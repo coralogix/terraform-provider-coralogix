@@ -477,26 +477,6 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	var state *RecordingRuleGroupSetResourceModel
-	diags = req.State.Get(ctx, &state)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	if !plan.Name.IsNull() && !state.Name.IsNull() {
-		if plan.Name.ValueString() != state.Name.ValueString() {
-			resp.Diagnostics.AddError(
-				"Name Cannot Be Changed",
-				"The 'name' attribute cannot be changed after resource creation. "+
-					"To change the name, you must destroy and recreate the resource. "+
-					fmt.Sprintf("Current name: %s, Attempted new name: %s",
-						state.Name.ValueString(),
-						plan.Name.ValueString()),
-			)
-			return
-		}
-	}
 
 	id := plan.ID.ValueString()
 	rq, diags := expandUpdateRecordingRulesGroupsSet(ctx, plan)
@@ -569,7 +549,7 @@ func flattenRecordingRuleGroupSet(ctx context.Context, plan *RecordingRuleGroupS
 		return &RecordingRuleGroupSetResourceModel{
 			ID:          types.StringValue(resp.GetId()),
 			YamlContent: types.StringValue(plan.YamlContent.ValueString()),
-			Name:        types.StringValue(plan.Name.ValueString()),
+			Name:        types.StringValue(resp.GetName()),
 			Groups:      groups,
 		}, nil
 	}
@@ -695,7 +675,6 @@ func expandRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroup
 
 func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*recRuless.UpdateRuleGroupSet, diag.Diagnostics) {
 	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
-		// The name won't get updated anyways, so we just pass an empty string
 		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent, "")
 		if diags.HasError() {
 			return nil, diags
@@ -703,7 +682,7 @@ func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRul
 
 		return &recRuless.UpdateRuleGroupSet{
 			Groups: rrg.Groups,
-			// Name:   rrg.Name,
+			Name:   rrg.Name,
 		}, nil
 	}
 
@@ -714,7 +693,7 @@ func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRul
 
 	return &recRuless.UpdateRuleGroupSet{
 		Groups: rrg.Groups,
-		// Name:   rrg.Name,
+		Name:   rrg.Name,
 	}, nil
 }
 

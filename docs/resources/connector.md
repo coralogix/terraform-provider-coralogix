@@ -13,6 +13,20 @@ Coralogix Connector. **Note:** This resource is in Beta stage.
 ## Example Usage
 
 ```terraform
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 3.0"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_connector" "generic_https_example" {
   id               = "generic_https_example" //This field is optional, if not provided a random id will be generated
   type             = "generic_https"
@@ -167,7 +181,6 @@ resource "coralogix_connector" "email_example" {
       }
     ]
   }
-  config_overrides = []
 }
 
 resource "coralogix_connector" "service_now_example" {
@@ -190,7 +203,6 @@ resource "coralogix_connector" "service_now_example" {
       }
     ]
   }
-  config_overrides = []
 }
 ```
 
