@@ -18,12 +18,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
@@ -38,17 +37,18 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
+
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	alertscheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
 )
 
 var (
 	_                              resource.ResourceWithConfigure   = &AlertsSchedulerResource{}
 	_                              resource.ResourceWithImportState = &AlertsSchedulerResource{}
-	protoToSchemaDurationFrequency                                  = map[cxsdk.DurationFrequency]string{
-		cxsdk.DurationFrequencyMinute: "minutes",
-		cxsdk.DurationFrequencyHour:   "hours",
-		cxsdk.DurationFrequencyDay:    "days",
+	protoToSchemaDurationFrequency                                  = map[alertscheduler.DurationFrequency]string{
+		alertscheduler.DURATIONFREQUENCY_DURATION_FREQUENCY_MINUTE: "minutes",
+		alertscheduler.DURATIONFREQUENCY_DURATION_FREQUENCY_HOUR:   "hours",
+		alertscheduler.DURATIONFREQUENCY_DURATION_FREQUENCY_DAY:    "days",
 	}
 	schemaToProtoDurationFrequency = utils.ReverseMap(protoToSchemaDurationFrequency)
 	validDurationFrequencies       = utils.GetKeys(schemaToProtoDurationFrequency)
@@ -63,10 +63,10 @@ var (
 	}
 	protoToDaysValue               = utils.ReverseMap(daysToProtoValue)
 	validDays                      = utils.GetKeys(daysToProtoValue)
-	protoToSchemaScheduleOperation = map[cxsdk.ScheduleOperation]string{
-		cxsdk.ScheduleOperationActivate:    "active",
-		cxsdk.ScheduleOperationUnspecified: utils.UNSPECIFIED,
-		cxsdk.ScheduleOperationMute:        "mute",
+	protoToSchemaScheduleOperation = map[alertscheduler.ScheduleOperation]string{
+		alertscheduler.SCHEDULEOPERATION_SCHEDULE_OPERATION_ACTIVATE:    "active",
+		alertscheduler.SCHEDULEOPERATION_SCHEDULE_OPERATION_UNSPECIFIED: utils.UNSPECIFIED,
+		alertscheduler.SCHEDULEOPERATION_SCHEDULE_OPERATION_MUTE:        "mute",
 	}
 	schemaToProtoScheduleOperation = utils.ReverseMap(protoToSchemaScheduleOperation)
 	validScheduleOperations        = utils.GetKeys(schemaToProtoScheduleOperation)
@@ -80,7 +80,7 @@ func NewAlertsSchedulerResource() resource.Resource {
 }
 
 type AlertsSchedulerResource struct {
-	client *cxsdk.AlertSchedulerClient
+	client *alertscheduler.AlertSchedulerRuleServiceAPIService
 }
 
 type AlertsSchedulerResourceModel struct {
@@ -570,27 +570,26 @@ func (r *AlertsSchedulerResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	alertScheduler, diags := extractAlertsScheduler(ctx, plan, nil)
+	alertSchedulerRule, diags := extractAlertsScheduler(ctx, plan, nil)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	createAlertSchedulerRequest := &cxsdk.CreateAlertSchedulerRuleRequest{
-		AlertSchedulerRule: alertScheduler,
+	createRequest := alertscheduler.CreateAlertSchedulerRuleRequestDataStructure{
+		AlertSchedulerRule: alertSchedulerRule,
 	}
-	alertsSchedulerStr := protojson.Format(createAlertSchedulerRequest)
-	log.Printf("[INFO] Creating new alerts-scheduler: %s", alertsSchedulerStr)
-	createResp, err := r.client.Create(ctx, createAlertSchedulerRequest)
+	createResp, httpResp, err := r.client.
+		AlertSchedulerRuleServiceCreateAlertSchedulerRule(ctx).
+		CreateAlertSchedulerRuleRequestDataStructure(createRequest).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError("Error creating alerts-scheduler",
-			utils.FormatRpcErrors(err, cxsdk.CreateAlertSchedulerRuleRPC, alertsSchedulerStr))
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Create", createRequest))
 		return
 	}
-	alertScheduler = createResp.GetAlertSchedulerRule()
-	log.Printf("[INFO] Submitted new alerts-scheduler: %s", protojson.Format(alertScheduler))
+	alertSchedulerRule = createResp.AlertSchedulerRule
 
-	stateModel, diags := flattenAlertScheduler(ctx, alertScheduler)
+	stateModel, diags := flattenAlertScheduler(ctx, createResp.AlertSchedulerRule)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -604,18 +603,18 @@ func (r *AlertsSchedulerResource) Create(ctx context.Context, req resource.Creat
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenAlertScheduler(ctx context.Context, scheduler *cxsdk.AlertSchedulerRule) (*AlertsSchedulerResourceModel, diag.Diagnostics) {
+func flattenAlertScheduler(ctx context.Context, scheduler alertscheduler.AlertSchedulerRule) (*AlertsSchedulerResourceModel, diag.Diagnostics) {
 	metaLabels, diags := flattenAlertsSchedulerMetaLabels(ctx, scheduler.GetMetaLabels())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	filter, diags := flattenFilter(ctx, scheduler.GetFilter())
+	filter, diags := flattenFilter(ctx, scheduler.Filter)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	schedule, diags := flattenSchedule(ctx, scheduler.GetSchedule())
+	schedule, diags := flattenSchedule(ctx, scheduler.Schedule)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -631,7 +630,7 @@ func flattenAlertScheduler(ctx context.Context, scheduler *cxsdk.AlertSchedulerR
 	}, nil
 }
 
-func flattenAlertsSchedulerMetaLabels(ctx context.Context, labels []*cxsdk.MetaLabel) (types.Set, diag.Diagnostics) {
+func flattenAlertsSchedulerMetaLabels(ctx context.Context, labels []alertscheduler.MetaLabelsProtobufV1MetaLabel) (types.Set, diag.Diagnostics) {
 	if len(labels) == 0 {
 		return types.SetNull(types.ObjectType{AttrTypes: labelModelAttr()}), nil
 	}
@@ -661,28 +660,27 @@ func labelModelAttr() map[string]attr.Type {
 	}
 }
 
-func flattenFilter(ctx context.Context, filter *cxsdk.AlertSchedulerFilter) (types.Object, diag.Diagnostics) {
+func flattenFilter(ctx context.Context, filter *alertscheduler.AlertSchedulerRuleProtobufV1Filter) (types.Object, diag.Diagnostics) {
 	if filter == nil {
 		return types.ObjectNull(filterModelAttr()), nil
 	}
 
 	var filterModel FilterModel
-	switch filterType := filter.WhichAlerts.(type) {
-	case *cxsdk.AlertSchedulerFilterMetaLabels:
-		metaLabels, diags := flattenAlertsSchedulerMetaLabels(ctx, filterType.AlertMetaLabels.GetValue())
+	if filter.AlertSchedulerRuleProtobufV1FilterAlertMetaLabels != nil {
+		metaLabels, diags := flattenAlertsSchedulerMetaLabels(ctx, filter.AlertSchedulerRuleProtobufV1FilterAlertMetaLabels.AlertMetaLabels.GetValue())
 		if diags.HasError() {
 			return types.ObjectNull(filterModelAttr()), diags
 		}
 		filterModel.MetaLabels = metaLabels
 		filterModel.AlertsUniqueIDs = types.SetNull(types.StringType)
-	case *cxsdk.AlertSchedulerFilterUniqueIDs:
-		filterModel.AlertsUniqueIDs = utils.StringSliceToTypeStringSet(filterType.AlertUniqueIds.GetValue())
+		filterModel.WhatExpression = types.StringValue(filter.AlertSchedulerRuleProtobufV1FilterAlertMetaLabels.GetWhatExpression())
+	} else if filter.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds != nil {
+		filterModel.AlertsUniqueIDs = utils.StringSliceToTypeStringSet(filter.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds.AlertUniqueIds.GetValue())
 		filterModel.MetaLabels = types.SetNull(types.ObjectType{AttrTypes: labelModelAttr()})
-	default:
-		return types.ObjectNull(filterModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten filter", fmt.Sprintf("unknown filter type: %T", filterType))}
+		filterModel.WhatExpression = types.StringValue(filter.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds.GetWhatExpression())
+	} else {
+		return types.ObjectNull(filterModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten filter", "unknown filter type")}
 	}
-
-	filterModel.WhatExpression = types.StringValue(filter.GetWhatExpression())
 
 	return types.ObjectValueFrom(ctx, filterModelAttr(), filterModel)
 }
@@ -699,51 +697,57 @@ func filterModelAttr() map[string]attr.Type {
 	}
 }
 
-func flattenSchedule(ctx context.Context, schedule *cxsdk.Schedule) (types.Object, diag.Diagnostics) {
+func flattenSchedule(ctx context.Context, schedule *alertscheduler.Schedule) (types.Object, diag.Diagnostics) {
 	if schedule == nil {
 		return types.ObjectNull(scheduleModelAttr()), nil
 	}
 
 	var scheduleModel ScheduleModel
-	scheduleModel.Operation = types.StringValue(protoToSchemaScheduleOperation[schedule.GetScheduleOperation()])
-	switch scheduleType := schedule.Scheduler.(type) {
-	case *cxsdk.ScheduleOneTime:
-		oneTime, diags := flattenOneTime(ctx, scheduleType.OneTime)
+	if schedule.ScheduleOneTime != nil {
+		scheduleModel.Operation = types.StringValue(protoToSchemaScheduleOperation[schedule.ScheduleOneTime.GetScheduleOperation()])
+		oneTime, diags := flattenOneTime(ctx, schedule.ScheduleOneTime.OneTime)
 		if diags.HasError() {
 			return types.ObjectNull(scheduleModelAttr()), diags
 		}
 		scheduleModel.OneTime = oneTime
 		scheduleModel.Recurring = types.ObjectNull(recurringModelAttr())
-	case *cxsdk.ScheduleRecurring:
-		recurring, diags := flattenRecurring(ctx, scheduleType.Recurring)
+	} else if schedule.ScheduleRecurring != nil {
+		scheduleModel.Operation = types.StringValue(protoToSchemaScheduleOperation[schedule.ScheduleRecurring.GetScheduleOperation()])
+		recurring, diags := flattenRecurring(ctx, schedule.ScheduleRecurring.Recurring)
 		if diags.HasError() {
 			return types.ObjectNull(scheduleModelAttr()), diags
 		}
 		scheduleModel.Recurring = recurring
 		scheduleModel.OneTime = types.ObjectNull(oneTimeModelAttr())
-	default:
-		return types.ObjectNull(scheduleModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten schedule", fmt.Sprintf("unknown filter type: %T", scheduleType))}
+	} else {
+		return types.ObjectNull(scheduleModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten schedule", "unknown schedule type")}
 	}
 
 	return types.ObjectValueFrom(ctx, scheduleModelAttr(), scheduleModel)
 }
 
-func flattenRecurring(ctx context.Context, recurring *cxsdk.Recurring) (types.Object, diag.Diagnostics) {
+func flattenRecurring(ctx context.Context, recurring *alertscheduler.Recurring) (types.Object, diag.Diagnostics) {
 	if recurring == nil {
 		return types.ObjectNull(recurringModelAttr()), nil
 	}
 
 	var recurringModel RecurringModel
-	dynamic, diags := flattenDynamic(ctx, recurring.GetDynamic())
-	if diags.HasError() {
-		return types.ObjectNull(recurringModelAttr()), diags
+	if recurring.RecurringSchedule != nil {
+		dynamic, diags := flattenDynamic(ctx, recurring.RecurringSchedule.Schedule)
+		if diags.HasError() {
+			return types.ObjectNull(recurringModelAttr()), diags
+		}
+		recurringModel.Dynamic = dynamic
+	} else if recurring.RecurringAlwaysActive != nil {
+		recurringModel.Dynamic = types.ObjectNull(dynamicModelAttr())
+	} else {
+		return types.ObjectNull(recurringModelAttr()), nil
 	}
-	recurringModel.Dynamic = dynamic
 
 	return types.ObjectValueFrom(ctx, recurringModelAttr(), recurringModel)
 }
 
-func flattenDynamic(ctx context.Context, dynamic *cxsdk.RecurringDynamicInner) (types.Object, diag.Diagnostics) {
+func flattenDynamic(ctx context.Context, dynamic *alertscheduler.RecurringDynamic) (types.Object, diag.Diagnostics) {
 	if dynamic == nil {
 		return types.ObjectNull(dynamicModelAttr()), nil
 	}
@@ -753,56 +757,79 @@ func flattenDynamic(ctx context.Context, dynamic *cxsdk.RecurringDynamicInner) (
 		return types.ObjectNull(dynamicModelAttr()), diags
 	}
 
-	timeFrame, diags := flattenAlertsSchedulerTimeFrame(ctx, dynamic.GetTimeframe())
-	if diags.HasError() {
-		return types.ObjectNull(dynamicModelAttr()), diags
+	var timeFrame types.Object
+	var repeatEvery int32
+	var terminationDate string
+
+	if dynamic.RecurringDynamicDaily != nil {
+		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.RecurringDynamicDaily.Timeframe)
+		if diags.HasError() {
+			return types.ObjectNull(dynamicModelAttr()), diags
+		}
+		repeatEvery = dynamic.RecurringDynamicDaily.GetRepeatEvery()
+		terminationDate = dynamic.RecurringDynamicDaily.GetTerminationDate()
+	} else if dynamic.RecurringDynamicWeekly != nil {
+		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.RecurringDynamicWeekly.Timeframe)
+		if diags.HasError() {
+			return types.ObjectNull(dynamicModelAttr()), diags
+		}
+		repeatEvery = dynamic.RecurringDynamicWeekly.GetRepeatEvery()
+		terminationDate = dynamic.RecurringDynamicWeekly.GetTerminationDate()
+	} else if dynamic.RecurringDynamicMonthly != nil {
+		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.RecurringDynamicMonthly.Timeframe)
+		if diags.HasError() {
+			return types.ObjectNull(dynamicModelAttr()), diags
+		}
+		repeatEvery = dynamic.RecurringDynamicMonthly.GetRepeatEvery()
+		terminationDate = dynamic.RecurringDynamicMonthly.GetTerminationDate()
+	} else {
+		return types.ObjectNull(dynamicModelAttr()), nil
 	}
 
 	dynamicModel := DynamicModel{
-		RepeatEvery:    types.Int64Value(int64(dynamic.GetRepeatEvery())),
+		RepeatEvery:    types.Int64Value(int64(repeatEvery)),
 		Frequency:      frequency,
 		TimeFrame:      timeFrame,
-		TerminationDay: types.StringValue(dynamic.GetTerminationDate()),
+		TerminationDay: types.StringValue(terminationDate),
 	}
 
 	return types.ObjectValueFrom(ctx, dynamicModelAttr(), dynamicModel)
 }
 
-func flattenFrequency(ctx context.Context, dynamic *cxsdk.RecurringDynamicInner) (types.Object, diag.Diagnostics) {
+func flattenFrequency(ctx context.Context, dynamic *alertscheduler.RecurringDynamic) (types.Object, diag.Diagnostics) {
 	if dynamic == nil {
 		return types.ObjectNull(frequencyModelAttr()), nil
 	}
 
 	var frequencyModel FrequencyModel
-	switch frequencyType := dynamic.GetFrequency().(type) {
-	case *cxsdk.RecurringDynamicDaily:
+	if dynamic.RecurringDynamicDaily != nil {
 		frequencyModel.Daily = types.ObjectNull(map[string]attr.Type{})
 		frequencyModel.Weekly = types.ObjectNull(weeklyModelAttr())
 		frequencyModel.Monthly = types.ObjectNull(monthlyModelAttr())
-	case *cxsdk.RecurringDynamicWeekly:
-		weekly, diags := flattenWeekly(ctx, frequencyType.Weekly)
+	} else if dynamic.RecurringDynamicWeekly != nil {
+		weekly, diags := flattenWeekly(ctx, dynamic.RecurringDynamicWeekly.Weekly)
 		if diags.HasError() {
 			return types.ObjectNull(frequencyModelAttr()), diags
 		}
 		frequencyModel.Weekly = weekly
 		frequencyModel.Daily = types.ObjectNull(map[string]attr.Type{})
 		frequencyModel.Monthly = types.ObjectNull(monthlyModelAttr())
-	case *cxsdk.RecurringDynamicMonthly:
-		monthly, diags := flattenMonthly(ctx, frequencyType.Monthly)
+	} else if dynamic.RecurringDynamicMonthly != nil {
+		monthly, diags := flattenMonthly(ctx, dynamic.RecurringDynamicMonthly.Monthly)
 		if diags.HasError() {
 			return types.ObjectNull(frequencyModelAttr()), diags
 		}
 		frequencyModel.Monthly = monthly
 		frequencyModel.Daily = types.ObjectNull(map[string]attr.Type{})
 		frequencyModel.Weekly = types.ObjectNull(weeklyModelAttr())
-	default:
-		return types.ObjectNull(frequencyModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten frequency", fmt.Sprintf("unknown filter type: %T", frequencyType))}
+	} else {
+		return types.ObjectNull(frequencyModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten frequency", "unknown frequency type")}
 	}
 
 	return types.ObjectValueFrom(ctx, frequencyModelAttr(), frequencyModel)
 }
 
-func flattenWeekly(ctx context.Context, weekly *cxsdk.Weekly) (types.Object, diag.Diagnostics) {
+func flattenWeekly(ctx context.Context, weekly *alertscheduler.Weekly) (types.Object, diag.Diagnostics) {
 	if weekly == nil {
 		return types.ObjectNull(weeklyModelAttr()), nil
 	}
@@ -819,7 +846,7 @@ func flattenWeekly(ctx context.Context, weekly *cxsdk.Weekly) (types.Object, dia
 
 }
 
-func flattenMonthly(ctx context.Context, monthly *cxsdk.Monthly) (types.Object, diag.Diagnostics) {
+func flattenMonthly(ctx context.Context, monthly *alertscheduler.Monthly) (types.Object, diag.Diagnostics) {
 	if monthly == nil {
 		return types.ObjectNull(monthlyModelAttr()), nil
 	}
@@ -831,12 +858,12 @@ func flattenMonthly(ctx context.Context, monthly *cxsdk.Monthly) (types.Object, 
 	return types.ObjectValueFrom(ctx, monthlyModelAttr(), monthlyModel)
 }
 
-func flattenOneTime(ctx context.Context, time *cxsdk.OneTime) (types.Object, diag.Diagnostics) {
+func flattenOneTime(ctx context.Context, time *alertscheduler.OneTime) (types.Object, diag.Diagnostics) {
 	if time == nil {
 		return types.ObjectNull(oneTimeModelAttr()), nil
 	}
 
-	timeFrame, diags := flattenAlertsSchedulerTimeFrame(ctx, time.GetTimeframe())
+	timeFrame, diags := flattenAlertsSchedulerTimeFrame(ctx, time.Timeframe)
 	if diags.HasError() {
 		return types.ObjectNull(oneTimeModelAttr()), diags
 	}
@@ -848,35 +875,35 @@ func flattenOneTime(ctx context.Context, time *cxsdk.OneTime) (types.Object, dia
 	return types.ObjectValueFrom(ctx, oneTimeModelAttr(), oneTimeModel)
 }
 
-func flattenAlertsSchedulerTimeFrame(ctx context.Context, timeFrame *cxsdk.Timeframe) (types.Object, diag.Diagnostics) {
+func flattenAlertsSchedulerTimeFrame(ctx context.Context, timeFrame *alertscheduler.Timeframe) (types.Object, diag.Diagnostics) {
 	if timeFrame == nil {
 		return types.ObjectNull(timeFrameModelAttr()), nil
 	}
 
 	var timeFrameModel TimeFrameModel
-	// Normalize start_time to the format the API uses (no Z) so state is consistent after apply.
-	timeFrameModel.StartTime = types.StringValue(normalizeStartTimeFromAPI(timeFrame.GetStartTime()))
-	// Store timezone exactly as returned by the API so plan and state match.
-	timeFrameModel.TimeZone = types.StringValue(timeFrame.GetTimezone())
-	switch untilType := timeFrame.GetUntil().(type) {
-	case *cxsdk.TimeframeEndTime:
-		timeFrameModel.EndTime = types.StringValue(untilType.EndTime)
+	if timeFrame.TimeframeEndTime != nil {
+		// Normalize start_time to the format the API uses (no Z) so state is consistent after apply.
+		timeFrameModel.StartTime = types.StringValue(normalizeStartTimeFromAPI(timeFrame.TimeframeEndTime.GetStartTime()))
+		timeFrameModel.TimeZone = types.StringValue(timeFrame.TimeframeEndTime.GetTimezone())
+		timeFrameModel.EndTime = types.StringValue(timeFrame.TimeframeEndTime.GetEndTime())
 		timeFrameModel.Duration = types.ObjectNull(durationModelAttr())
-	case *cxsdk.TimeframeDuration:
+	} else if timeFrame.TimeframeDuration != nil {
+		timeFrameModel.StartTime = types.StringValue(normalizeStartTimeFromAPI(timeFrame.TimeframeDuration.GetStartTime()))
+		timeFrameModel.TimeZone = types.StringValue(timeFrame.TimeframeDuration.GetTimezone())
 		var diags diag.Diagnostics
-		timeFrameModel.Duration, diags = flattenAlertsSchedulerDuration(ctx, untilType.Duration)
+		timeFrameModel.Duration, diags = flattenAlertsSchedulerDuration(ctx, timeFrame.TimeframeDuration.Duration)
 		if diags.HasError() {
 			return types.ObjectNull(timeFrameModelAttr()), diags
 		}
 		timeFrameModel.EndTime = types.StringNull()
-	default:
-		return types.ObjectNull(timeFrameModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten time frame", fmt.Sprintf("unknown filter type: %T", untilType))}
+	} else {
+		return types.ObjectNull(timeFrameModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten time frame", "unknown timeframe type")}
 	}
 
 	return types.ObjectValueFrom(ctx, timeFrameModelAttr(), timeFrameModel)
 }
 
-func flattenAlertsSchedulerDuration(ctx context.Context, duration *cxsdk.AlertSchedulerDuration) (types.Object, diag.Diagnostics) {
+func flattenAlertsSchedulerDuration(ctx context.Context, duration *alertscheduler.V1Duration) (types.Object, diag.Diagnostics) {
 	if duration == nil {
 		return types.ObjectNull(durationModelAttr()), nil
 	}
@@ -978,37 +1005,37 @@ func timeFrameModelAttr() map[string]attr.Type {
 	}
 }
 
-func extractAlertsScheduler(ctx context.Context, plan *AlertsSchedulerResourceModel, id *string) (*cxsdk.AlertSchedulerRule, diag.Diagnostics) {
+func extractAlertsScheduler(ctx context.Context, plan *AlertsSchedulerResourceModel, id *string) (alertscheduler.AlertSchedulerRule, diag.Diagnostics) {
 	metaLabels, diags := extractAlertsSchedulerMetaLabels(ctx, plan.MetaLabels)
 	if diags.HasError() {
-		return nil, diags
+		return alertscheduler.AlertSchedulerRule{}, diags
 	}
 
 	filter, diags := extractFilter(ctx, plan.Filter)
 	if diags.HasError() {
-		return nil, diags
+		return alertscheduler.AlertSchedulerRule{}, diags
 	}
 
 	schedule, diags := extractSchedule(ctx, plan.Schedule)
 	if diags.HasError() {
-		return nil, diags
+		return alertscheduler.AlertSchedulerRule{}, diags
 	}
 
-	return &cxsdk.AlertSchedulerRule{
+	return alertscheduler.AlertSchedulerRule{
 		UniqueIdentifier: id,
-		Name:             plan.Name.ValueString(),
+		Name:             alertscheduler.PtrString(plan.Name.ValueString()),
 		Description:      utils.TypeStringToStringPointer(plan.Description),
 		MetaLabels:       metaLabels,
 		Filter:           filter,
 		Schedule:         schedule,
-		Enabled:          plan.Enabled.ValueBool(),
+		Enabled:          alertscheduler.PtrBool(plan.Enabled.ValueBool()),
 	}, nil
 }
 
-func extractAlertsSchedulerMetaLabels(ctx context.Context, labels types.Set) ([]*cxsdk.MetaLabel, diag.Diagnostics) {
+func extractAlertsSchedulerMetaLabels(ctx context.Context, labels types.Set) ([]alertscheduler.MetaLabelsProtobufV1MetaLabel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var labelsObjects []types.Object
-	var expandedLabels []*cxsdk.MetaLabel
+	var expandedLabels []alertscheduler.MetaLabelsProtobufV1MetaLabel
 	labels.ElementsAs(ctx, &labelsObjects, true)
 
 	for _, lo := range labelsObjects {
@@ -1017,8 +1044,8 @@ func extractAlertsSchedulerMetaLabels(ctx context.Context, labels types.Set) ([]
 			diags.Append(dg...)
 			continue
 		}
-		expandedLabel := &cxsdk.MetaLabel{
-			Key:   label.Key.ValueString(),
+		expandedLabel := alertscheduler.MetaLabelsProtobufV1MetaLabel{
+			Key:   utils.TypeStringToStringPointer(label.Key),
 			Value: utils.TypeStringToStringPointer(label.Value),
 		}
 		expandedLabels = append(expandedLabels, expandedLabel)
@@ -1027,7 +1054,7 @@ func extractAlertsSchedulerMetaLabels(ctx context.Context, labels types.Set) ([]
 	return expandedLabels, diags
 }
 
-func extractFilter(ctx context.Context, filter types.Object) (*cxsdk.AlertSchedulerFilter, diag.Diagnostics) {
+func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.AlertSchedulerRuleProtobufV1Filter, diag.Diagnostics) {
 	if filter.IsNull() || filter.IsUnknown() {
 		return nil, nil
 	}
@@ -1044,10 +1071,10 @@ func extractFilter(ctx context.Context, filter types.Object) (*cxsdk.AlertSchedu
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.AlertSchedulerFilter{
-			WhatExpression: whatExpression,
-			WhichAlerts: &cxsdk.AlertSchedulerFilterUniqueIDs{
-				AlertUniqueIds: &cxsdk.AlertUniqueIDs{
+		return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
+			AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
+				WhatExpression: alertscheduler.PtrString(whatExpression),
+				AlertUniqueIds: &alertscheduler.AlertUniqueIds{
 					Value: ids,
 				},
 			},
@@ -1057,27 +1084,27 @@ func extractFilter(ctx context.Context, filter types.Object) (*cxsdk.AlertSchedu
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.AlertSchedulerFilter{
-			WhatExpression: whatExpression,
-			WhichAlerts: &cxsdk.AlertSchedulerFilterMetaLabels{
-				AlertMetaLabels: &cxsdk.MetaLabels{
+		return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
+			AlertSchedulerRuleProtobufV1FilterAlertMetaLabels: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertMetaLabels{
+				WhatExpression: alertscheduler.PtrString(whatExpression),
+				AlertMetaLabels: &alertscheduler.MetaLabels{
 					Value: metaLabels,
 				},
 			},
 		}, nil
 	}
 
-	return &cxsdk.AlertSchedulerFilter{
-		WhatExpression: whatExpression,
-		WhichAlerts: &cxsdk.AlertSchedulerFilterUniqueIDs{
-			AlertUniqueIds: &cxsdk.AlertUniqueIDs{
+	return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
+		AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
+			WhatExpression: alertscheduler.PtrString(whatExpression),
+			AlertUniqueIds: &alertscheduler.AlertUniqueIds{
 				Value: nil,
 			},
 		},
 	}, nil
 }
 
-func extractSchedule(ctx context.Context, schedule types.Object) (*cxsdk.Schedule, diag.Diagnostics) {
+func extractSchedule(ctx context.Context, schedule types.Object) (*alertscheduler.Schedule, diag.Diagnostics) {
 	if utils.ObjIsNullOrUnknown(schedule) {
 		return nil, nil
 	}
@@ -1087,30 +1114,36 @@ func extractSchedule(ctx context.Context, schedule types.Object) (*cxsdk.Schedul
 		return nil, diags
 	}
 
-	scheduler := &cxsdk.Schedule{
-		ScheduleOperation: schemaToProtoScheduleOperation[scheduleModel.Operation.ValueString()],
-	}
+	operation := schemaToProtoScheduleOperation[scheduleModel.Operation.ValueString()]
 
 	if !(scheduleModel.OneTime.IsNull() || scheduleModel.OneTime.IsUnknown()) {
 		oneTime, diags := extractOneTime(ctx, scheduleModel.OneTime)
 		if diags.HasError() {
 			return nil, diags
 		}
-		scheduler.Scheduler = oneTime
-		return scheduler, nil
+		return &alertscheduler.Schedule{
+			ScheduleOneTime: &alertscheduler.ScheduleOneTime{
+				OneTime:           oneTime,
+				ScheduleOperation: &operation,
+			},
+		}, nil
 	} else if !(scheduleModel.Recurring.IsNull() || scheduleModel.Recurring.IsUnknown()) {
 		recurring, diags := extractRecurring(ctx, scheduleModel.Recurring)
 		if diags.HasError() {
 			return nil, diags
 		}
-		scheduler.Scheduler = recurring
-		return scheduler, nil
+		return &alertscheduler.Schedule{
+			ScheduleRecurring: &alertscheduler.ScheduleRecurring{
+				Recurring:         recurring,
+				ScheduleOperation: &operation,
+			},
+		}, nil
 	}
 
 	return nil, nil
 }
 
-func extractOneTime(ctx context.Context, oneTimeObject types.Object) (*cxsdk.ScheduleOneTime, diag.Diagnostics) {
+func extractOneTime(ctx context.Context, oneTimeObject types.Object) (*alertscheduler.OneTime, diag.Diagnostics) {
 	if utils.ObjIsNullOrUnknown(oneTimeObject) {
 		return nil, nil
 	}
@@ -1125,14 +1158,12 @@ func extractOneTime(ctx context.Context, oneTimeObject types.Object) (*cxsdk.Sch
 		return nil, diags
 	}
 
-	return &cxsdk.ScheduleOneTime{
-		OneTime: &cxsdk.OneTime{
-			Timeframe: timeFrame,
-		},
+	return &alertscheduler.OneTime{
+		Timeframe: timeFrame,
 	}, nil
 }
 
-func extractTimeFrame(ctx context.Context, timeFrame types.Object) (*cxsdk.Timeframe, diag.Diagnostics) {
+func extractTimeFrame(ctx context.Context, timeFrame types.Object) (*alertscheduler.Timeframe, diag.Diagnostics) {
 	if utils.ObjIsNullOrUnknown(timeFrame) {
 		return nil, nil
 	}
@@ -1143,38 +1174,38 @@ func extractTimeFrame(ctx context.Context, timeFrame types.Object) (*cxsdk.Timef
 	}
 
 	// API expects "UTC+0" for UTC; UI and config may use "UTC".
-	tz := timeFrameModel.TimeZone.ValueString()
-	if tz == "UTC" {
-		tz = "UTC+0"
-	}
-	expandedTimeFrame := &cxsdk.Timeframe{
-		StartTime: timeFrameModel.StartTime.ValueString(),
-		Timezone:  tz,
-	}
-	expandedTimeFrame, diags := expandTimeFrameUntil(ctx, timeFrameModel, expandedTimeFrame)
-	if diags.HasError() {
-		return nil, diags
+	startTime := timeFrameModel.StartTime.ValueString()
+	timezone := timeFrameModel.TimeZone.ValueString()
+	if timezone == "UTC" {
+		timezone = "UTC+0"
 	}
 
-	return expandedTimeFrame, nil
-}
-
-func expandTimeFrameUntil(ctx context.Context, timeFrameModel TimeFrameModel, expandedTimeFrame *cxsdk.Timeframe) (*cxsdk.Timeframe, diag.Diagnostics) {
 	if !(timeFrameModel.Duration.IsNull() || timeFrameModel.Duration.IsUnknown()) {
 		duration, diags := extractDuration(ctx, timeFrameModel.Duration)
 		if diags.HasError() {
 			return nil, diags
 		}
-		expandedTimeFrame.Until = duration
+		return &alertscheduler.Timeframe{
+			TimeframeDuration: &alertscheduler.TimeframeDuration{
+				StartTime: alertscheduler.PtrString(startTime),
+				Timezone:  alertscheduler.PtrString(timezone),
+				Duration:  duration,
+			},
+		}, nil
 	} else if !(timeFrameModel.EndTime.IsNull() || timeFrameModel.EndTime.IsUnknown()) {
-		expandedTimeFrame.Until = &cxsdk.TimeframeEndTime{
-			EndTime: timeFrameModel.EndTime.ValueString(),
-		}
+		return &alertscheduler.Timeframe{
+			TimeframeEndTime: &alertscheduler.TimeframeEndTime{
+				StartTime: alertscheduler.PtrString(startTime),
+				Timezone:  alertscheduler.PtrString(timezone),
+				EndTime:   alertscheduler.PtrString(timeFrameModel.EndTime.ValueString()),
+			},
+		}, nil
 	}
-	return expandedTimeFrame, nil
+
+	return nil, nil
 }
 
-func extractDuration(ctx context.Context, duration types.Object) (*cxsdk.TimeframeDuration, diag.Diagnostics) {
+func extractDuration(ctx context.Context, duration types.Object) (*alertscheduler.V1Duration, diag.Diagnostics) {
 	if duration.IsNull() || duration.IsUnknown() {
 		return nil, nil
 	}
@@ -1182,15 +1213,14 @@ func extractDuration(ctx context.Context, duration types.Object) (*cxsdk.Timefra
 	if diags := duration.As(ctx, &durationModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
 	}
-	return &cxsdk.TimeframeDuration{
-		Duration: &cxsdk.AlertSchedulerDuration{
-			ForOver:   int32(durationModel.ForOver.ValueInt64()),
-			Frequency: schemaToProtoDurationFrequency[durationModel.Frequency.ValueString()],
-		},
+	freq := schemaToProtoDurationFrequency[durationModel.Frequency.ValueString()]
+	return &alertscheduler.V1Duration{
+		ForOver:   alertscheduler.PtrInt32(int32(durationModel.ForOver.ValueInt64())),
+		Frequency: &freq,
 	}, nil
 }
 
-func extractRecurring(ctx context.Context, recurring types.Object) (*cxsdk.ScheduleRecurring, diag.Diagnostics) {
+func extractRecurring(ctx context.Context, recurring types.Object) (*alertscheduler.Recurring, diag.Diagnostics) {
 	if recurring.IsNull() || recurring.IsUnknown() {
 		return nil, nil
 	}
@@ -1205,23 +1235,19 @@ func extractRecurring(ctx context.Context, recurring types.Object) (*cxsdk.Sched
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.ScheduleRecurring{
-			Recurring: &cxsdk.Recurring{
-				Condition: dynamic,
+		return &alertscheduler.Recurring{
+			RecurringSchedule: &alertscheduler.RecurringSchedule{
+				Schedule: dynamic,
 			},
 		}, nil
 	}
 
-	return &cxsdk.ScheduleRecurring{
-		Recurring: &cxsdk.Recurring{
-			Condition: &cxsdk.RecurringAlways{
-				Always: &cxsdk.RecurringAlwaysInner{},
-			},
-		},
+	return &alertscheduler.Recurring{
+		RecurringAlwaysActive: &alertscheduler.RecurringAlwaysActive{},
 	}, nil
 }
 
-func extractDynamic(ctx context.Context, dynamic types.Object) (*cxsdk.RecurringDynamic, diag.Diagnostics) {
+func extractDynamic(ctx context.Context, dynamic types.Object) (*alertscheduler.RecurringDynamic, diag.Diagnostics) {
 	if dynamic.IsNull() || dynamic.IsUnknown() {
 		return nil, nil
 	}
@@ -1236,31 +1262,27 @@ func extractDynamic(ctx context.Context, dynamic types.Object) (*cxsdk.Recurring
 		return nil, diags
 	}
 
-	expandedDynamic := &cxsdk.RecurringDynamic{
-		Dynamic: &cxsdk.RecurringDynamicInner{
-			RepeatEvery:     int32(dynamicModel.RepeatEvery.ValueInt64()),
-			Timeframe:       timeFrame,
-			TerminationDate: utils.TypeStringToStringPointer(dynamicModel.TerminationDay),
-		},
-	}
-	expandedDynamic.Dynamic, diags = expandFrequency(ctx, expandedDynamic.Dynamic, dynamicModel.Frequency)
-	if diags.HasError() {
-		return nil, diags
-	}
+	repeatEvery := int32(dynamicModel.RepeatEvery.ValueInt64())
+	terminationDate := utils.TypeStringToStringPointer(dynamicModel.TerminationDay)
 
-	return expandedDynamic, nil
+	return expandFrequency(ctx, dynamicModel.Frequency, timeFrame, repeatEvery, terminationDate)
 }
 
-func expandFrequency(ctx context.Context, dynamic *cxsdk.RecurringDynamicInner, frequency types.Object) (*cxsdk.RecurringDynamicInner, diag.Diagnostics) {
+func expandFrequency(ctx context.Context, frequency types.Object, timeFrame *alertscheduler.Timeframe, repeatEvery int32, terminationDate *string) (*alertscheduler.RecurringDynamic, diag.Diagnostics) {
 	var frequencyModel FrequencyModel
 	if diags := frequency.As(ctx, &frequencyModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
 	}
 
 	if daily := frequencyModel.Daily; !(daily.IsNull() || daily.IsUnknown()) {
-		dynamic.Frequency = &cxsdk.RecurringDynamicDaily{
-			Daily: &cxsdk.Daily{},
-		}
+		return &alertscheduler.RecurringDynamic{
+			RecurringDynamicDaily: &alertscheduler.RecurringDynamicDaily{
+				Daily:           make(map[string]interface{}),
+				Timeframe:       timeFrame,
+				RepeatEvery:     &repeatEvery,
+				TerminationDate: terminationDate,
+			},
+		}, nil
 	} else if weekly := frequencyModel.Weekly; !(weekly.IsNull() || weekly.IsUnknown()) {
 		var weeklyModel WeeklyModel
 		if diags := weekly.As(ctx, &weeklyModel, basetypes.ObjectAsOptions{}); diags.HasError() {
@@ -1276,11 +1298,16 @@ func expandFrequency(ctx context.Context, dynamic *cxsdk.RecurringDynamicInner, 
 			daysValues[i] = daysToProtoValue[day]
 		}
 
-		dynamic.Frequency = &cxsdk.RecurringDynamicWeekly{
-			Weekly: &cxsdk.Weekly{
-				DaysOfWeek: daysValues,
+		return &alertscheduler.RecurringDynamic{
+			RecurringDynamicWeekly: &alertscheduler.RecurringDynamicWeekly{
+				Weekly: &alertscheduler.Weekly{
+					DaysOfWeek: daysValues,
+				},
+				Timeframe:       timeFrame,
+				RepeatEvery:     &repeatEvery,
+				TerminationDate: terminationDate,
 			},
-		}
+		}, nil
 	} else if monthly := frequencyModel.Monthly; !(monthly.IsNull() || monthly.IsUnknown()) {
 		var monthlyModel MonthlyModel
 		if diags := monthly.As(ctx, &monthlyModel, basetypes.ObjectAsOptions{}); diags.HasError() {
@@ -1292,14 +1319,19 @@ func expandFrequency(ctx context.Context, dynamic *cxsdk.RecurringDynamicInner, 
 			return nil, diags
 		}
 
-		dynamic.Frequency = &cxsdk.RecurringDynamicMonthly{
-			Monthly: &cxsdk.Monthly{
-				DaysOfMonth: days,
+		return &alertscheduler.RecurringDynamic{
+			RecurringDynamicMonthly: &alertscheduler.RecurringDynamicMonthly{
+				Monthly: &alertscheduler.Monthly{
+					DaysOfMonth: days,
+				},
+				Timeframe:       timeFrame,
+				RepeatEvery:     &repeatEvery,
+				TerminationDate: terminationDate,
 			},
-		}
+		}, nil
 	}
 
-	return dynamic, nil
+	return nil, nil
 }
 
 func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -1313,11 +1345,11 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 	//Get refreshed alerts-scheduler value from Coralogix
 	id := currentState.ID.ValueString()
 	log.Printf("[INFO] Reading alerts-scheduler: %s", id)
-	getAlertsSchedulerReq := &cxsdk.GetAlertSchedulerRuleRequest{AlertSchedulerRuleId: id}
-	getAlertsSchedulerResp, err := r.client.Get(ctx, getAlertsSchedulerReq)
+	getAlertsSchedulerResp, httpResp, err := r.client.
+		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -1326,13 +1358,12 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading alerts-scheduler",
-				utils.FormatRpcErrors(err, cxsdk.GetAlertSchedulerRuleRPC, protojson.Format(getAlertsSchedulerReq)),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Read", id),
 			)
 		}
 		return
 	}
-	alertsScheduler := getAlertsSchedulerResp.GetAlertSchedulerRule()
-	log.Printf("[INFO] Received alerts-scheduler: %s", protojson.Format(alertsScheduler))
+	alertsScheduler := getAlertsSchedulerResp.AlertSchedulerRule
 
 	stateModel, diags := flattenAlertScheduler(ctx, alertsScheduler)
 	if diags.HasError() {
@@ -1349,7 +1380,6 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 }
 
 func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
 	var plan *AlertsSchedulerResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -1359,50 +1389,47 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 
 	var state *AlertsSchedulerResourceModel
 	req.State.Get(ctx, &state)
-	id := new(string)
-	*id = state.ID.ValueString()
-	alertsScheduler, diags := extractAlertsScheduler(ctx, plan, id)
+	id := state.ID.ValueString()
+	alertsScheduler, diags := extractAlertsScheduler(ctx, plan, &id)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	updateAlertsSchedulerReq := &cxsdk.UpdateAlertSchedulerRuleRequest{
+	updateRequest := alertscheduler.UpdateAlertSchedulerRuleRequestDataStructure{
 		AlertSchedulerRule: alertsScheduler,
 	}
-	log.Printf("[INFO] Updating alerts-scheduler: %s", protojson.Format(updateAlertsSchedulerReq))
-	updateAlertsSchedulerResp, err := r.client.Update(ctx, updateAlertsSchedulerReq)
+	_, httpResp, err := r.client.
+		AlertSchedulerRuleServiceUpdateAlertSchedulerRule(ctx).
+		UpdateAlertSchedulerRuleRequestDataStructure(updateRequest).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating alerts-scheduler",
-			utils.FormatRpcErrors(err, cxsdk.UpdateAlertSchedulerRuleRPC, protojson.Format(updateAlertsSchedulerReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Update", updateRequest),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated alerts-scheduler: %s", protojson.Format(updateAlertsSchedulerResp))
 
-	// Get refreshed alerts-scheduler value from Coralogix
-	getAlertsSchedulerReq := &cxsdk.GetAlertSchedulerRuleRequest{AlertSchedulerRuleId: *id}
-	getAlertsSchedulerResp, err := r.client.Get(ctx, getAlertsSchedulerReq)
+	getAlertsSchedulerResp, httpResp, err := r.client.
+		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("alerts-scheduler %s is in state, but no longer exists in Coralogix backend", *id),
-				fmt.Sprintf("%s will be recreated when you apply", *id),
+				fmt.Sprintf("alerts-scheduler %s is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading alerts-scheduler",
-				utils.FormatRpcErrors(err, cxsdk.GetAlertSchedulerRuleRPC, protojson.Format(getAlertsSchedulerReq)),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Read", id),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received alerts-scheduler: %s", protojson.Format(getAlertsSchedulerResp))
 
-	stateModel, diags := flattenAlertScheduler(ctx, getAlertsSchedulerResp.GetAlertSchedulerRule())
+	stateModel, diags := flattenAlertScheduler(ctx, getAlertsSchedulerResp.AlertSchedulerRule)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -1425,14 +1452,17 @@ func (r *AlertsSchedulerResource) Delete(ctx context.Context, req resource.Delet
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting alerts-scheduler %s", id)
-	deleteReq := &cxsdk.DeleteAlertSchedulerRuleRequest{AlertSchedulerRuleId: id}
-	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
+	_, httpResp, err := r.client.
+		AlertSchedulerRuleServiceDeleteAlertSchedulerRule(ctx, id).
+		Execute()
+	if err != nil {
+		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+			return
+		}
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting alerts-scheduler %s", id),
-			utils.FormatRpcErrors(err, cxsdk.DeleteAlertSchedulerRuleRPC, protojson.Format(deleteReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Delete", id),
 		)
 		return
 	}
-	log.Printf("[INFO] alerts-scheduler %s deleted", id)
 }

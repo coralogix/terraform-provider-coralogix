@@ -21,7 +21,6 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -109,13 +108,11 @@ func testAccCheckAlertsSchedulerDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &cxsdk.GetAlertSchedulerRuleRequest{
-			AlertSchedulerRuleId: rs.Primary.ID,
-		}
-
-		resp, err := client.Get(ctx, req)
-		if err == nil {
-			if resp.GetAlertSchedulerRule().GetId() == rs.Primary.ID {
+		resp, _, err := client.
+			AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, rs.Primary.ID).
+			Execute()
+		if err == nil && resp != nil {
+			if resp.AlertSchedulerRule.Id != nil && *resp.AlertSchedulerRule.Id == rs.Primary.ID {
 				return fmt.Errorf("alerts-scheduler still exists: %s", rs.Primary.ID)
 			}
 		}
