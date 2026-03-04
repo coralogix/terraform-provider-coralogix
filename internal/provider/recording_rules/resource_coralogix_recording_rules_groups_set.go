@@ -16,8 +16,11 @@ package recording_rules
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -317,6 +320,7 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 				MarkdownDescription: "The name of the rule group. Overrides the name specified in the YAML if provided.",
 			},
@@ -400,6 +404,22 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-ba8d92.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		reqName := ""
+		if rq.Name != nil {
+			reqName = *rq.Name
+		}
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "ba8d92", "hypothesisId": "H1", "location": "recording_rules Create before API",
+			"message": "create request name", "data": map[string]string{"request_name": reqName},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
 
 	createResult, httpResponse, err := r.client.RuleGroupSetsCreate(ctx).
 		CreateRuleGroupSet(*rq).
@@ -485,6 +505,22 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		return
 	}
 
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-8bb069.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		reqName := ""
+		if rq.Name != nil {
+			reqName = *rq.Name
+		}
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "8bb069", "hypothesisId": "H1_H2", "location": "recording_rules Update before API",
+			"message": "update request and plan name", "data": map[string]string{"plan_name": plan.Name.ValueString(), "request_name": reqName},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
+
 	_, httpResponse, err := r.client.
 		RuleGroupSetsUpdate(ctx, id).
 		UpdateRuleGroupSet(*rq).
@@ -512,6 +548,18 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		)
 		return
 	}
+
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-8bb069.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "8bb069", "hypothesisId": "H2_H3", "location": "recording_rules Update after Fetch",
+			"message": "name returned by Fetch after update", "data": map[string]string{"fetch_name": result.GetName(), "plan_name": plan.Name.ValueString()},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
 
 	plan, diags = flattenRecordingRuleGroupSet(ctx, plan, result)
 	if diags.HasError() {
@@ -666,6 +714,19 @@ func flattenRecordingRule(ctx context.Context, rule *recRuless.OutRule) (*Record
 }
 
 func expandRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*recRuless.CreateRuleGroupSet, diag.Diagnostics) {
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-ba8d92.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		planName := plan.Name.ValueString()
+		hasYaml := plan.YamlContent.ValueString() != ""
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "ba8d92", "hypothesisId": "H1", "location": "expandRecordingRulesGroupsSet",
+			"message": "plan name and path", "data": map[string]interface{}{"plan_name": planName, "has_yaml": hasYaml},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
 	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
 		setName := plan.Name.ValueString()
 		return expandRecordingRulesGroupsSetFromYaml(yamlContent, setName)
@@ -675,14 +736,18 @@ func expandRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroup
 
 func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*recRuless.UpdateRuleGroupSet, diag.Diagnostics) {
 	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
-		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent, "")
+		setName := plan.Name.ValueString()
+		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent, setName)
 		if diags.HasError() {
 			return nil, diags
 		}
-
+		updateName := rrg.Name
+		if len(setName) > 0 {
+			updateName = &setName
+		}
 		return &recRuless.UpdateRuleGroupSet{
 			Groups: rrg.Groups,
-			Name:   rrg.Name,
+			Name:   updateName,
 		}, nil
 	}
 
@@ -702,14 +767,43 @@ func expandRecordingRulesGroupsSetFromYaml(yamlContent string, setName string) (
 	if err := yaml.Unmarshal([]byte(yamlContent), &result); err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error on unmarshal yaml_content", err.Error())}
 	}
+	// #region agent log
+	finalName := ""
+	if result.Name != nil {
+		finalName = *result.Name
+	}
+	// #endregion
 	if len(setName) > 0 {
 		result.Name = &setName
+		finalName = setName
 	}
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-ba8d92.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "ba8d92", "hypothesisId": "H2", "location": "expandRecordingRulesGroupsSetFromYaml",
+			"message": "setName and final name", "data": map[string]interface{}{"set_name": setName, "final_name": finalName},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
 	return &result, nil
 }
 
 func expandRecordingRulesGroupSetExplicitly(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*recRuless.CreateRuleGroupSet, diag.Diagnostics) {
 	name := plan.Name.ValueString()
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-ba8d92.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "ba8d92", "hypothesisId": "H3", "location": "expandRecordingRulesGroupSetExplicitly",
+			"message": "explicit path name", "data": map[string]interface{}{"name": name},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
 	groups, diags := expandRecordingRulesGroups(ctx, plan.Groups)
 	if diags.HasError() {
 		return nil, diags
