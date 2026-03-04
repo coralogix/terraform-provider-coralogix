@@ -12,13 +12,13 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_data_set" data_set {
+resource "coralogix_data_set" "data_set" {
   name         = "custom enrichment data"
   description  = "description"
   file_content = file("./date-to-day-of-the-week.csv")
 }
 
-resource "coralogix_data_set" data_set2 {
+resource "coralogix_data_set" "data_set2" {
   name        = "custom enrichment data 2"
   description = "description"
   uploaded_file {

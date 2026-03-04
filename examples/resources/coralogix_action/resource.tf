@@ -12,7 +12,7 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_action" action {
+resource "coralogix_action" "action" {
   is_private  = false
   source_type = "Log"
   name        = "google search action"

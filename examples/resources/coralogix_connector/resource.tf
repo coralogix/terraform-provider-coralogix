@@ -13,10 +13,10 @@ provider "coralogix" {
 }
 
 resource "coralogix_connector" "generic_https_example" {
-  id               = "generic_https_example" //This field is optional, if not provided a random id will be generated
-  type             = "generic_https"
-  name             = "generic-https connector"
-  description      = "generic-https connector example"
+  id          = "generic_https_example" //This field is optional, if not provided a random id will be generated
+  type        = "generic_https"
+  name        = "generic-https connector"
+  description = "generic-https connector example"
   connector_config = {
     fields = [
       {
@@ -29,25 +29,25 @@ resource "coralogix_connector" "generic_https_example" {
       },
       {
         field_name = "additionalHeaders"
-        value      = jsonencode(
+        value = jsonencode(
           {
             "Authorization" : "GenieKey <key>",
             "Content-Type" : "application/json"
-          })
+        })
       },
       {
         field_name = "additionalBodyFields"
-        value      = jsonencode(
+        value = jsonencode(
           {
             alias = "{{alert.groupingKey}}"
-          })
+        })
       }
     ]
   }
   config_overrides = [
     {
       entity_type = "alerts"
-      fields      = [
+      fields = [
         {
           field_name = "url"
           template   = <<EOF
@@ -81,9 +81,9 @@ EOF
 }
 
 resource "coralogix_connector" "slack_example" {
-  type             = "slack"
-  name             = "slack connector"
-  description      = "slack connector example"
+  type        = "slack"
+  name        = "slack connector"
+  description = "slack connector example"
   connector_config = {
     fields = [
       {
@@ -103,7 +103,7 @@ resource "coralogix_connector" "slack_example" {
   config_overrides = [
     {
       entity_type = "alerts"
-      fields      = [
+      fields = [
         {
           field_name = "channel"
           template   = <<EOF
@@ -122,9 +122,9 @@ EOF
 }
 
 resource "coralogix_connector" "pagerduty_example" {
-  type             = "pagerduty"
-  name             = "pagerduty connector"
-  description      = "pagerduty connector example"
+  type        = "pagerduty"
+  name        = "pagerduty connector"
+  description = "pagerduty connector example"
   connector_config = {
     fields = [
       {
@@ -136,7 +136,7 @@ resource "coralogix_connector" "pagerduty_example" {
   config_overrides = [
     {
       entity_type = "alerts"
-      fields      = [
+      fields = [
         {
           field_name = "integrationKey"
           template   = <<EOF
@@ -155,9 +155,9 @@ EOF
 }
 
 resource "coralogix_connector" "email_example" {
-  type             = "email"
-  name             = "email connector"
-  description      = "email connector example"
+  type        = "email"
+  name        = "email connector"
+  description = "email connector example"
   connector_config = {
     fields = [
       {
@@ -169,9 +169,9 @@ resource "coralogix_connector" "email_example" {
 }
 
 resource "coralogix_connector" "service_now_example" {
-  type             = "service_now"
-  name             = "service now connector"
-  description      = "service now connector example"
+  type        = "service_now"
+  name        = "service now connector"
+  description = "service now connector example"
   connector_config = {
     fields = [
       {

@@ -15,10 +15,10 @@ provider "coralogix" {
 //Examples of connectors
 
 resource "coralogix_connector" "generic_https_example" {
-  id               = "generic_https_example" //This field is optional, if not provided a random id will be generated
-  type             = "generic_https"
-  name             = "generic-https connector"
-  description      = "generic-https connector example"
+  id          = "generic_https_example" //This field is optional, if not provided a random id will be generated
+  type        = "generic_https"
+  name        = "generic-https connector"
+  description = "generic-https connector example"
   connector_config = {
     fields = [
       {
@@ -31,25 +31,25 @@ resource "coralogix_connector" "generic_https_example" {
       },
       {
         field_name = "additionalHeaders"
-        value      = jsonencode(
+        value = jsonencode(
           {
             "Authorization" : "GenieKey <key>",
             "Content-Type" : "application/json"
-          })
+        })
       },
       {
         field_name = "additionalBodyFields"
-        value      = jsonencode(
+        value = jsonencode(
           {
             alias = "{{alert.groupingKey}}"
-          })
+        })
       }
     ]
   }
   config_overrides = [
     {
       entity_type = "alerts"
-      fields      = [
+      fields = [
         {
           field_name = "url"
           template   = <<EOF
@@ -83,9 +83,9 @@ EOF
 }
 
 resource "coralogix_connector" "slack_example" {
-  type             = "slack"
-  name             = "slack connector"
-  description      = "slack connector example"
+  type        = "slack"
+  name        = "slack connector"
+  description = "slack connector example"
   connector_config = {
     fields = [
       {
@@ -105,7 +105,7 @@ resource "coralogix_connector" "slack_example" {
   config_overrides = [
     {
       entity_type = "alerts"
-      fields      = [
+      fields = [
         {
           field_name = "channel"
           template   = <<EOF
@@ -124,9 +124,9 @@ EOF
 }
 
 resource "coralogix_connector" "pagerduty_example" {
-  type             = "pagerduty"
-  name             = "pagerduty connector"
-  description      = "pagerduty connector example"
+  type        = "pagerduty"
+  name        = "pagerduty connector"
+  description = "pagerduty connector example"
   connector_config = {
     fields = [
       {
@@ -138,7 +138,7 @@ resource "coralogix_connector" "pagerduty_example" {
   config_overrides = [
     {
       entity_type = "alerts"
-      fields      = [
+      fields = [
         {
           field_name = "integrationKey"
           template   = <<EOF
@@ -159,12 +159,12 @@ EOF
 
 //Examples of presets
 resource "coralogix_preset" "generic_https_example" {
-  id               = "generic_https_example"
-  name             = "generic_https example"
-  description      = "generic_https preset example"
-  entity_type      = "alerts"
-  connector_type   = "generic_https"
-  parent_id        = "preset_system_generic_https_alerts_empty"
+  id             = "generic_https_example"
+  name           = "generic_https example"
+  description    = "generic_https preset example"
+  entity_type    = "alerts"
+  connector_type = "generic_https"
+  parent_id      = "preset_system_generic_https_alerts_empty"
   config_overrides = [
     {
       condition_type = {
@@ -189,12 +189,12 @@ resource "coralogix_preset" "generic_https_example" {
 }
 
 resource "coralogix_preset" "slack_example" {
-  id               = "slack_example"
-  name             = "slack example"
-  description      = "slack preset example"
-  entity_type      = "alerts"
-  connector_type   = "slack"
-  parent_id        = "preset_system_slack_alerts_basic"
+  id             = "slack_example"
+  name           = "slack example"
+  description    = "slack preset example"
+  entity_type    = "alerts"
+  connector_type = "slack"
+  parent_id      = "preset_system_slack_alerts_basic"
   config_overrides = [
     {
       condition_type = {
@@ -219,12 +219,12 @@ resource "coralogix_preset" "slack_example" {
 }
 
 resource "coralogix_preset" "pagerduty_example" {
-  id               = "pagerduty_example"
-  name             = "pagerduty example"
-  description      = "pagerduty preset example"
-  entity_type      = "alerts"
-  connector_type   = "pagerduty"
-  parent_id        = "preset_system_pagerduty_alerts_basic"
+  id             = "pagerduty_example"
+  name           = "pagerduty example"
+  description    = "pagerduty preset example"
+  entity_type    = "alerts"
+  connector_type = "pagerduty"
+  parent_id      = "preset_system_pagerduty_alerts_basic"
   config_overrides = [
     {
       condition_type = {
@@ -268,12 +268,12 @@ resource "coralogix_preset" "pagerduty_example" {
 resource "coralogix_global_router" "example" {
   name        = "global router example"
   description = "global router example"
-  rules       = [
+  rules = [
     {
       entity_type = "alerts"
-      name      = "rule-name"
-      condition = "alertDef.priority == \"P1\""
-      targets   = [
+      name        = "rule-name"
+      condition   = "alertDef.priority == \"P1\""
+      targets = [
         {
           connector_id = coralogix_connector.generic_https_example.id
           preset_id    = coralogix_preset.generic_https_example.id
