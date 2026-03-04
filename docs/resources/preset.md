@@ -118,7 +118,6 @@ resource "coralogix_preset" "pagerduty_example" {
   ]
 }
 
-
 resource "coralogix_preset" "email_example" {
   id             = "email_example"
   name           = "email example"
