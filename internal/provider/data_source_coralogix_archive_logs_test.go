@@ -25,7 +25,7 @@ var archiveLogsDataSourceName = "data." + archiveLogsResourceName
 //				Config: testAccCoralogixResourceArchiveLogs() +
 //					testAccCoralogixDataSourceArchiveLogs_read(),
 //				Check: resource.ComposeAggregateTestCheckFunc(
-//					resource.TestCheckResourceAttr(archiveLogsDataSourceName, "bucket", "coralogix-c4c-eu2-prometheus-data"),
+//					resource.TestCheckResourceAttr(archiveLogsDataSourceName, "bucket", archiveLogsBucket),
 //					resource.TestCheckResourceAttr(archiveLogsDataSourceName, "active", "true"),
 //				),
 //			},
