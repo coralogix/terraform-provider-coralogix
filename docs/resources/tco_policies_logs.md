@@ -35,25 +35,25 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
       severities = ["debug", "verbose", "info"]
       applications = {
         rule_type = "starts_with"
-        names        = ["prod"]
+        names     = ["prod"]
       }
       subsystems = {
         rule_type = "is"
-        names = ["mobile", "web"]
+        names     = ["mobile", "web"]
       }
       archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
     },
     {
-      name     = "Example tco_policy from terraform 2"
-      priority = "medium"
+      name       = "Example tco_policy from terraform 2"
+      priority   = "medium"
       severities = ["error", "warning", "critical"]
       applications = {
         rule_type = "starts_with"
-        names        = ["prod"]
+        names     = ["prod"]
       }
       subsystems = {
         rule_type = "is"
-        names = ["mobile", "web"]
+        names     = ["mobile", "web"]
       }
     },
     {
@@ -63,11 +63,11 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
       severities = ["error", "warning", "critical"]
       applications = {
         rule_type = "starts_with"
-        names        = ["prod"]
+        names     = ["prod"]
       }
       subsystems = {
         rule_type = "is"
-        names = ["mobile", "web"]
+        names     = ["mobile", "web"]
       }
     },
     {
@@ -77,11 +77,11 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
       severities = ["error", "warning", "critical"]
       applications = {
         rule_type = "starts_with"
-        names        = ["prod"]
+        names     = ["prod"]
       }
       subsystems = {
         rule_type = "is"
-        names = ["mobile", "web"]
+        names     = ["mobile", "web"]
       }
     }
   ]

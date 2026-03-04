@@ -31,5 +31,6 @@ jobs:
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
           TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}          
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
+          ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
         run: |
           make testacc
