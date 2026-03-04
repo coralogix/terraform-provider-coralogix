@@ -1584,6 +1584,9 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
     webhooks_settings = [
       {
         notify_on = "Triggered Only"
+        retriggering_period = {
+          minutes = 1
+        }
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -1657,6 +1660,9 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
     webhooks_settings = [
       {
         notify_on = "Triggered Only"
+        retriggering_period = {
+          minutes = 10
+        }
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -1734,6 +1740,9 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
     webhooks_settings = [
       {
         notify_on = "Triggered Only"
+        retriggering_period = {
+          minutes = 1
+        }
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -2029,6 +2038,9 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
     webhooks_settings = [
       {
         notify_on = "Triggered Only"
+        retriggering_period = {
+          minutes = 1
+        }
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -2301,6 +2313,9 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
         webhooks_settings = [
         {
             notify_on = "Triggered Only"
+            retriggering_period = {
+              minutes = 1
+            }
             recipients = ["example@coralogix.com", "example2@coralogix.com"]
         },
         ]
@@ -2367,7 +2382,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
 
       notification_group = {
         webhooks_settings = [
-            { notify_on = "Triggered Only", recipients = ["example@coralogix.com"] }
+            { notify_on = "Triggered Only", retriggering_period = { minutes = 10 }, recipients = ["example@coralogix.com"] }
         ]
       }
 
@@ -2432,6 +2447,9 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
     webhooks_settings = [
       {
         notify_on = "Triggered Only"
+        retriggering_period = {
+          minutes = 1
+        }
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -2507,6 +2525,9 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
     webhooks_settings = [
       {
         notify_on = "Triggered Only"
+        retriggering_period = {
+          minutes = 1
+        }
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -3533,6 +3554,132 @@ resource "coralogix_alert" "test" {
             ]
         }
     }
+}
+`
+}
+
+func TestAccCoralogixResourceAlert_webhooks_disabled_advanced_notification(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertWebhooksDisabledAdvancedNotification(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "alert with disabled advanced notification"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Alert webhook inherits global incident cadence"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
+						map[string]string{
+							"recipients.#": "1",
+							"recipients.0": "example@coralogix.com",
+						},
+					),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertWebhooksEnabledAdvancedNotification(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "alert with enabled advanced notification"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Alert webhook with per-webhook retriggering"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
+						map[string]string{
+							"recipients.#":                "1",
+							"recipients.0":                "example@coralogix.com",
+							"notify_on":                   "Triggered and Resolved",
+							"retriggering_period.minutes": "5",
+						},
+					),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertWebhooksDisabledAdvancedNotification() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "alert with disabled advanced notification"
+  description = "Alert webhook inherits global incident cadence"
+  priority    = "P2"
+
+  labels = {
+    alert_type = "security"
+  }
+
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 10
+    }
+  }
+
+  type_definition = {
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertWebhooksEnabledAdvancedNotification() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "alert with enabled advanced notification"
+  description = "Alert webhook with per-webhook retriggering"
+  priority    = "P2"
+
+  labels = {
+    alert_type = "security"
+  }
+
+  notification_group = {
+    webhooks_settings = [
+      {
+        notify_on = "Triggered and Resolved"
+        retriggering_period = {
+          minutes = 5
+        }
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 10
+    }
+  }
+
+  type_definition = {
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
+    }
+  }
 }
 `
 }

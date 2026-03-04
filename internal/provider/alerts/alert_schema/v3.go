@@ -745,22 +745,26 @@ func V3() schema.Schema {
 								"retriggering_period": schema.SingleNestedAttribute{
 									Optional: true,
 									Computed: true,
-									Default: objectdefault.StaticValue(types.ObjectValueMust(RetriggeringPeriodAttr(), map[string]attr.Value{
-										"minutes": types.Int64Value(10),
-									})),
+									PlanModifiers: []planmodifier.Object{
+										objectplanmodifier.UseStateForUnknown(),
+									},
 									Attributes: map[string]schema.Attribute{
 										"minutes": schema.Int64Attribute{
 											Required: true,
 										},
 									},
-									MarkdownDescription: "Retriggering period in minutes. 10 minutes by default.",
+									MarkdownDescription: "Retriggering period in minutes. When omitted (along with notify_on), Advanced Notification is disabled and the webhook inherits the global incident cadence.",
 								},
 								"notify_on": schema.StringAttribute{
-									Required: true,
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.String{
+										stringplanmodifier.UseStateForUnknown(),
+									},
 									Validators: []validator.String{
 										stringvalidator.OneOf(alerttypes.ValidNotifyOn...),
 									},
-									MarkdownDescription: fmt.Sprintf("Notify on. Valid values: %q.", alerttypes.ValidNotifyOn),
+									MarkdownDescription: fmt.Sprintf("Notify on. Valid values: %q. When omitted (along with retriggering_period), Advanced Notification is disabled.", alerttypes.ValidNotifyOn),
 								},
 								"integration_id": schema.StringAttribute{
 									Optional: true,
