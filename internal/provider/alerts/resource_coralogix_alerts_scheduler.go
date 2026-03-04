@@ -17,7 +17,9 @@ package alerts
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -69,7 +71,7 @@ var (
 	schemaToProtoScheduleOperation = utils.ReverseMap(protoToSchemaScheduleOperation)
 	validScheduleOperations        = utils.GetKeys(schemaToProtoScheduleOperation)
 
-	validTimeZones = []string{"UTC-11", "UTC-10", "UTC-9", "UTC-8", "UTC-7", "UTC-6", "UTC-5", "UTC-4", "UTC-3", "UTC-2", "UTC-1",
+	validTimeZones = []string{"UTC", "UTC-11", "UTC-10", "UTC-9", "UTC-8", "UTC-7", "UTC-6", "UTC-5", "UTC-4", "UTC-3", "UTC-2", "UTC-1",
 		"UTC+0", "UTC+1", "UTC+2", "UTC+3", "UTC+4", "UTC+5", "UTC+6", "UTC+7", "UTC+8", "UTC+9", "UTC+10", "UTC+11", "UTC+12", "UTC+13", "UTC+14"}
 )
 
@@ -325,10 +327,199 @@ func metaLabelsAttributes() map[string]schema.Attribute {
 	}
 }
 
+const (
+	startTimeFormatCanonical   = "2006-01-02T15:04:05.000" // output format and parse format without Z
+	startTimeFormatWithMillisZ = "2006-01-02T15:04:05.000Z"
+	startTimeFormatZ           = "2006-01-02T15:04:05Z"
+	startTimeFormatNoMillis    = "2006-01-02T15:04:05" // fallback parse format
+)
+
+// startTimeFormats are formats the API may return or users may send for start_time.
+var startTimeFormats = []string{
+	time.RFC3339Nano,
+	time.RFC3339,
+	startTimeFormatWithMillisZ,
+	startTimeFormatCanonical,
+	startTimeFormatZ,
+}
+
+// normalizeStartTimeFromAPI parses start_time from the API and returns it in the format the API uses (no Z suffix).
+func normalizeStartTimeFromAPI(s string) string {
+	if s == "" {
+		return s
+	}
+	for _, layout := range startTimeFormats {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.UTC().Format(startTimeFormatCanonical)
+		}
+	}
+	if t, err := time.Parse(startTimeFormatNoMillis, s); err == nil {
+		return t.UTC().Format(startTimeFormatCanonical)
+	}
+	return s
+}
+
+func parseStartTime(s string) (t time.Time, ok bool) {
+	for _, layout := range startTimeFormats {
+		if parsed, err := time.Parse(layout, s); err == nil {
+			return parsed.UTC(), true
+		}
+	}
+	if parsed, err := time.Parse(startTimeFormatNoMillis, s); err == nil {
+		return parsed.UTC(), true
+	}
+	return time.Time{}, false
+}
+
+// startTimeSemanticallyEqual returns true if a and b represent the same instant (for comparison with API response).
+func startTimeSemanticallyEqual(a, b string) bool {
+	if a == b {
+		return true
+	}
+	at, okA := parseStartTime(a)
+	bt, okB := parseStartTime(b)
+	return okA && okB && at.Equal(bt)
+}
+
+// timeZoneEquivalent returns true if plan and state represent the same zone (e.g. "UTC" and "UTC+0").
+func timeZoneEquivalent(planTZ, stateTZ string) bool {
+	if planTZ == stateTZ {
+		return true
+	}
+	return (planTZ == "UTC" && stateTZ == "UTC+0") || (planTZ == "UTC+0" && stateTZ == "UTC")
+}
+
+// mergeScheduleFromPlan overwrites state's schedule time_frame.start_time and time_zone with plan values when they are semantically equal, so Terraform does not report "inconsistent result after apply".
+func mergeScheduleFromPlan(ctx context.Context, stateModel *AlertsSchedulerResourceModel, plan *AlertsSchedulerResourceModel) diag.Diagnostics {
+	if utils.ObjIsNullOrUnknown(stateModel.Schedule) || utils.ObjIsNullOrUnknown(plan.Schedule) {
+		return nil
+	}
+	var stateSchedule ScheduleModel
+	if diags := stateModel.Schedule.As(ctx, &stateSchedule, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return diags
+	}
+	var planSchedule ScheduleModel
+	if diags := plan.Schedule.As(ctx, &planSchedule, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return diags
+	}
+	// Recurring.dynamic.time_frame
+	if !(stateSchedule.Recurring.IsNull() || stateSchedule.Recurring.IsUnknown()) &&
+		!(planSchedule.Recurring.IsNull() || planSchedule.Recurring.IsUnknown()) {
+		var stateRecurring RecurringModel
+		if diags := stateSchedule.Recurring.As(ctx, &stateRecurring, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return diags
+		}
+		var planRecurring RecurringModel
+		if diags := planSchedule.Recurring.As(ctx, &planRecurring, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return diags
+		}
+		if !(stateRecurring.Dynamic.IsNull() || stateRecurring.Dynamic.IsUnknown()) &&
+			!(planRecurring.Dynamic.IsNull() || planRecurring.Dynamic.IsUnknown()) {
+			var stateDynamic DynamicModel
+			if diags := stateRecurring.Dynamic.As(ctx, &stateDynamic, basetypes.ObjectAsOptions{}); diags.HasError() {
+				return diags
+			}
+			var planDynamic DynamicModel
+			if diags := planRecurring.Dynamic.As(ctx, &planDynamic, basetypes.ObjectAsOptions{}); diags.HasError() {
+				return diags
+			}
+			if !(stateDynamic.TimeFrame.IsNull() || stateDynamic.TimeFrame.IsUnknown()) &&
+				!(planDynamic.TimeFrame.IsNull() || planDynamic.TimeFrame.IsUnknown()) {
+				var stateTF TimeFrameModel
+				if diags := stateDynamic.TimeFrame.As(ctx, &stateTF, basetypes.ObjectAsOptions{}); diags.HasError() {
+					return diags
+				}
+				var planTF TimeFrameModel
+				if diags := planDynamic.TimeFrame.As(ctx, &planTF, basetypes.ObjectAsOptions{}); diags.HasError() {
+					return diags
+				}
+				// Use plan's start_time when semantically equal so state matches plan.
+				if !planTF.StartTime.IsNull() && !planTF.StartTime.IsUnknown() &&
+					startTimeSemanticallyEqual(planTF.StartTime.ValueString(), stateTF.StartTime.ValueString()) {
+					stateTF.StartTime = planTF.StartTime
+				}
+				// Use plan's time_zone when equivalent (e.g. plan "UTC" vs state "UTC+0").
+				if !planTF.TimeZone.IsNull() && !planTF.TimeZone.IsUnknown() &&
+					timeZoneEquivalent(planTF.TimeZone.ValueString(), stateTF.TimeZone.ValueString()) {
+					stateTF.TimeZone = planTF.TimeZone
+				}
+				newTF, diags := types.ObjectValueFrom(ctx, timeFrameModelAttr(), stateTF)
+				if diags.HasError() {
+					return diags
+				}
+				stateDynamic.TimeFrame = newTF
+				newDynamic, diags := types.ObjectValueFrom(ctx, dynamicModelAttr(), stateDynamic)
+				if diags.HasError() {
+					return diags
+				}
+				stateRecurring.Dynamic = newDynamic
+				newRecurring, diags := types.ObjectValueFrom(ctx, recurringModelAttr(), stateRecurring)
+				if diags.HasError() {
+					return diags
+				}
+				stateSchedule.Recurring = newRecurring
+				newSchedule, diags := types.ObjectValueFrom(ctx, scheduleModelAttr(), stateSchedule)
+				if diags.HasError() {
+					return diags
+				}
+				stateModel.Schedule = newSchedule
+			}
+		}
+	}
+	// One_time.time_frame (same idea if we ever need it)
+	if !(stateSchedule.OneTime.IsNull() || stateSchedule.OneTime.IsUnknown()) &&
+		!(planSchedule.OneTime.IsNull() || planSchedule.OneTime.IsUnknown()) {
+		var stateOneTime OneTimeModel
+		if diags := stateSchedule.OneTime.As(ctx, &stateOneTime, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return diags
+		}
+		var planOneTime OneTimeModel
+		if diags := planSchedule.OneTime.As(ctx, &planOneTime, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return diags
+		}
+		if !(stateOneTime.TimeFrame.IsNull() || stateOneTime.TimeFrame.IsUnknown()) &&
+			!(planOneTime.TimeFrame.IsNull() || planOneTime.TimeFrame.IsUnknown()) {
+			var stateTF TimeFrameModel
+			if diags := stateOneTime.TimeFrame.As(ctx, &stateTF, basetypes.ObjectAsOptions{}); diags.HasError() {
+				return diags
+			}
+			var planTF TimeFrameModel
+			if diags := planOneTime.TimeFrame.As(ctx, &planTF, basetypes.ObjectAsOptions{}); diags.HasError() {
+				return diags
+			}
+			if !planTF.StartTime.IsNull() && !planTF.StartTime.IsUnknown() &&
+				startTimeSemanticallyEqual(planTF.StartTime.ValueString(), stateTF.StartTime.ValueString()) {
+				stateTF.StartTime = planTF.StartTime
+			}
+			if !planTF.TimeZone.IsNull() && !planTF.TimeZone.IsUnknown() &&
+				timeZoneEquivalent(planTF.TimeZone.ValueString(), stateTF.TimeZone.ValueString()) {
+				stateTF.TimeZone = planTF.TimeZone
+			}
+			newTF, diags := types.ObjectValueFrom(ctx, timeFrameModelAttr(), stateTF)
+			if diags.HasError() {
+				return diags
+			}
+			stateOneTime.TimeFrame = newTF
+			newOneTime, diags := types.ObjectValueFrom(ctx, oneTimeModelAttr(), stateOneTime)
+			if diags.HasError() {
+				return diags
+			}
+			stateSchedule.OneTime = newOneTime
+			newSchedule, diags := types.ObjectValueFrom(ctx, scheduleModelAttr(), stateSchedule)
+			if diags.HasError() {
+				return diags
+			}
+			stateModel.Schedule = newSchedule
+		}
+	}
+	return nil
+}
+
 func timeFrameAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"start_time": schema.StringAttribute{
-			Required: true,
+			Required:            true,
+			MarkdownDescription: "Start time in ISO8601 format (e.g. `2026-02-17T08:00:00.000` or `2026-02-17T08:00:00.000Z`).",
 		},
 		"end_time": schema.StringAttribute{
 			Optional: true,
@@ -362,6 +553,7 @@ func timeFrameAttributes() map[string]schema.Attribute {
 			Validators: []validator.String{
 				stringvalidator.OneOf(validTimeZones...),
 			},
+			MarkdownDescription: "Timezone (e.g. `UTC`, `UTC+0`, `UTC+2`). Both `UTC` and `UTC+0` are accepted for zero offset.",
 		},
 	}
 }
@@ -397,13 +589,17 @@ func (r *AlertsSchedulerResource) Create(ctx context.Context, req resource.Creat
 	}
 	alertSchedulerRule = createResp.AlertSchedulerRule
 
-	plan, diags = flattenAlertScheduler(ctx, alertSchedulerRule)
+	stateModel, diags := flattenAlertScheduler(ctx, createResp.AlertSchedulerRule)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-
-	diags = resp.State.Set(ctx, plan)
+	// So state matches plan for equivalent start_time/time_zone and Terraform does not report "inconsistent result after apply".
+	if mergeDiags := mergeScheduleFromPlan(ctx, stateModel, plan); mergeDiags.HasError() {
+		resp.Diagnostics.Append(mergeDiags...)
+		return
+	}
+	diags = resp.State.Set(ctx, stateModel)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -686,12 +882,13 @@ func flattenAlertsSchedulerTimeFrame(ctx context.Context, timeFrame *alertschedu
 
 	var timeFrameModel TimeFrameModel
 	if timeFrame.TimeframeEndTime != nil {
-		timeFrameModel.StartTime = types.StringValue(timeFrame.TimeframeEndTime.GetStartTime())
+		// Normalize start_time to the format the API uses (no Z) so state is consistent after apply.
+		timeFrameModel.StartTime = types.StringValue(normalizeStartTimeFromAPI(timeFrame.TimeframeEndTime.GetStartTime()))
 		timeFrameModel.TimeZone = types.StringValue(timeFrame.TimeframeEndTime.GetTimezone())
 		timeFrameModel.EndTime = types.StringValue(timeFrame.TimeframeEndTime.GetEndTime())
 		timeFrameModel.Duration = types.ObjectNull(durationModelAttr())
 	} else if timeFrame.TimeframeDuration != nil {
-		timeFrameModel.StartTime = types.StringValue(timeFrame.TimeframeDuration.GetStartTime())
+		timeFrameModel.StartTime = types.StringValue(normalizeStartTimeFromAPI(timeFrame.TimeframeDuration.GetStartTime()))
 		timeFrameModel.TimeZone = types.StringValue(timeFrame.TimeframeDuration.GetTimezone())
 		var diags diag.Diagnostics
 		timeFrameModel.Duration, diags = flattenAlertsSchedulerDuration(ctx, timeFrame.TimeframeDuration.Duration)
@@ -976,8 +1173,12 @@ func extractTimeFrame(ctx context.Context, timeFrame types.Object) (*alertschedu
 		return nil, diags
 	}
 
+	// API expects "UTC+0" for UTC; UI and config may use "UTC".
 	startTime := timeFrameModel.StartTime.ValueString()
 	timezone := timeFrameModel.TimeZone.ValueString()
+	if timezone == "UTC" {
+		timezone = "UTC+0"
+	}
 
 	if !(timeFrameModel.Duration.IsNull() || timeFrameModel.Duration.IsUnknown()) {
 		duration, diags := extractDuration(ctx, timeFrameModel.Duration)
@@ -1134,14 +1335,16 @@ func expandFrequency(ctx context.Context, frequency types.Object, timeFrame *ale
 }
 
 func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state *AlertsSchedulerResourceModel
-	diags := req.State.Get(ctx, &state)
+	var currentState AlertsSchedulerResourceModel
+	diags := req.State.Get(ctx, &currentState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	id := state.ID.ValueString()
+	//Get refreshed alerts-scheduler value from Coralogix
+	id := currentState.ID.ValueString()
+	log.Printf("[INFO] Reading alerts-scheduler: %s", id)
 	getAlertsSchedulerResp, httpResp, err := r.client.
 		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
 		Execute()
@@ -1162,13 +1365,17 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 	}
 	alertsScheduler := getAlertsSchedulerResp.AlertSchedulerRule
 
-	state, diags = flattenAlertScheduler(ctx, alertsScheduler)
+	stateModel, diags := flattenAlertScheduler(ctx, alertsScheduler)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-
-	diags = resp.State.Set(ctx, &state)
+	// Preserve existing state's start_time/time_zone when equivalent so the next plan does not show a spurious update.
+	if mergeDiags := mergeScheduleFromPlan(ctx, stateModel, &currentState); mergeDiags.HasError() {
+		resp.Diagnostics.Append(mergeDiags...)
+		return
+	}
+	diags = resp.State.Set(ctx, stateModel)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -1222,13 +1429,17 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	plan, diags = flattenAlertScheduler(ctx, getAlertsSchedulerResp.AlertSchedulerRule)
+	stateModel, diags := flattenAlertScheduler(ctx, getAlertsSchedulerResp.AlertSchedulerRule)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-
-	diags = resp.State.Set(ctx, plan)
+	// So state matches plan for equivalent start_time/time_zone and Terraform does not report "inconsistent result after apply".
+	if mergeDiags := mergeScheduleFromPlan(ctx, stateModel, plan); mergeDiags.HasError() {
+		resp.Diagnostics.Append(mergeDiags...)
+		return
+	}
+	diags = resp.State.Set(ctx, stateModel)
 	resp.Diagnostics.Append(diags...)
 }
 
