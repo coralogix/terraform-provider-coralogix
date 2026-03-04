@@ -15,8 +15,8 @@ provider "coralogix" {
 resource "coralogix_tco_policies_traces" "tco_policies" {
   policies = [
     {
-      name         = "Example tco_policy from terraform 1"
-      priority     = "low"
+      name     = "Example tco_policy from terraform 1"
+      priority = "low"
       applications = {
         rule_type = "starts_with"
         names     = ["prod"]
@@ -42,8 +42,8 @@ resource "coralogix_tco_policies_traces" "tco_policies" {
       archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
     },
     {
-      name         = "Example tco_policy from terraform 2"
-      priority     = "medium"
+      name     = "Example tco_policy from terraform 2"
+      priority = "medium"
       applications = {
         rule_type = "starts_with"
         names     = ["staging"]
@@ -66,8 +66,8 @@ resource "coralogix_tco_policies_traces" "tco_policies" {
       }
     },
     {
-      name         = "Example tco_policy from terraform 3"
-      priority     = "medium"
+      name     = "Example tco_policy from terraform 3"
+      priority = "medium"
       applications = {
         rule_type = "starts_with"
         names     = ["staging"]
@@ -89,5 +89,5 @@ resource "coralogix_tco_policies_traces" "tco_policies" {
         }
       }
     }
-    ]
+  ]
 }

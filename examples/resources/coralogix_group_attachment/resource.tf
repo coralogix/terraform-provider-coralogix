@@ -14,7 +14,7 @@ provider "coralogix" {
 
 resource "coralogix_user" "example" {
   user_name = "example@coralogix.com"
-  name      = {
+  name = {
     given_name  = "example"
     family_name = "example"
   }
@@ -22,7 +22,7 @@ resource "coralogix_user" "example" {
 
 resource "coralogix_user" "example2" {
   user_name = "example2@coralogix.com"
-  name      = {
+  name = {
     given_name  = "example2"
     family_name = "example2"
   }
@@ -34,5 +34,5 @@ data "coralogix_group" "example" {
 
 resource "coralogix_group_attachment" "example" {
   group_id = data.coralogix_group.example.id
-  user_ids  = [coralogix_user.example.id, coralogix_user.example2.id]
+  user_ids = [coralogix_user.example.id, coralogix_user.example2.id]
 }
