@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -29,6 +30,7 @@ import (
 var integrationWithoutSensitiveDataName = "aws-metrics-collector"
 var integrationWithSensitiveDataName = "gcp-metrics-collector"
 var testRoleArn = os.Getenv("AWS_TEST_ROLE")
+var testAwsRegion = os.Getenv("AWS_REGION")
 
 func TestAccCoralogixResourceIntegrationWithoutSensitiveData(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -41,7 +43,7 @@ func TestAccCoralogixResourceIntegrationWithoutSensitiveData(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coralogix_integration.no_sensitive_data_test", "id"),
 					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "integration_key", integrationWithoutSensitiveDataName),
-					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "version", "0.1.0"),
+					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "version", "0.9.0"),
 					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.ApplicationName", "cxsdk"),
 					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.SubsystemName", integrationWithoutSensitiveDataName),
 					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.AwsRegion", "eu-north-1"),
@@ -66,7 +68,7 @@ func TestAccCoralogixResourceIntegrationWithVariablesWithoutSensitiveData(t *tes
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coralogix_integration.variable_test", "id"),
 					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "integration_key", integrationWithoutSensitiveDataName),
-					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "version", "0.1.0"),
+					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "version", "0.9.0"),
 					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "parameters.ApplicationName", "cxsdk"),
 					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "parameters.SubsystemName", integrationWithoutSensitiveDataName),
 					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "parameters.AwsRegion", "eu-north-1"),
@@ -81,13 +83,17 @@ func TestAccCoralogixResourceIntegrationWithVariablesWithoutSensitiveData(t *tes
 }
 
 func TestAccCoralogixResourceIntegrationWithSensitiveData(t *testing.T) {
+	gcpServiceAccountKey := os.Getenv("GCP_SERVICE_ACCOUNT_KEY")
+	if gcpServiceAccountKey == "" {
+		t.Skip("GCP_SERVICE_ACCOUNT_KEY must be set for this acceptance test")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckIntegrationDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceIntegrationWithSensitiveData(),
+				Config: testAccCoralogixResourceIntegrationWithSensitiveData(gcpServiceAccountKey),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coralogix_integration.sensitive_data_test", "id"),
 					resource.TestCheckResourceAttr("coralogix_integration.sensitive_data_test", "integration_key", integrationWithSensitiveDataName),
@@ -101,8 +107,74 @@ func TestAccCoralogixResourceIntegrationWithSensitiveData(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceIntegrationV091(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckIntegrationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceIntegrationV091(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coralogix_integration.v091_test", "id"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "integration_key", integrationWithoutSensitiveDataName),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "version", "0.9.1"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "parameters.DiscoverNamespaces", "false"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "parameters.IncludeLinkedAccounts", "false"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "parameters.WithAggregations", "false"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "parameters.EnrichWithTags", "true"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "parameters.AwsRoleArn", testRoleArn),
+				),
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceIntegrationV091MissingParam verifies that when a
+// required parameter is omitted the provider surfaces a descriptive error that
+// names the missing field (e.g. "Required field Statistics not provided") rather
+// than an opaque "400 Bad Request". This is a regression test for the improved
+// error-handling in Create/Update — the fix applies to any missing field, not
+// just Statistics, because utils.FormatOpenAPIErrors now extracts the full
+// response body from the API.
+func TestAccCoralogixResourceIntegrationV091MissingParam(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixResourceIntegrationV091MissingCoreFields(),
+				ExpectError: regexp.MustCompile(`Required field`),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceIntegrationV090(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckIntegrationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceIntegrationByVersion("0.9.0", "sdk-integration-v090-test"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coralogix_integration.version_test", "id"),
+					resource.TestCheckResourceAttr("coralogix_integration.version_test", "integration_key", integrationWithoutSensitiveDataName),
+					resource.TestCheckResourceAttr("coralogix_integration.version_test", "version", "0.9.0"),
+					resource.TestCheckResourceAttr("coralogix_integration.version_test", "parameters.AwsRoleArn", testRoleArn),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckIntegrationDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Integrations()
+	meta := testAccProvider.Meta()
+	if meta == nil {
+		return nil
+	}
+	client := meta.(*clientset.ClientSet).Integrations()
 	ctx := context.TODO()
 
 	for _, rs := range s.RootModule().Resources {
@@ -112,7 +184,7 @@ func testAccCheckIntegrationDestroy(s *terraform.State) error {
 
 		_, _, err := client.IntegrationServiceGetDeployedIntegration(ctx, rs.Primary.ID).Execute()
 		if err == nil {
-			return fmt.Errorf("Integration still exists: %v, %v", rs.Primary.ID, err)
+			return fmt.Errorf("integration %q still exists", rs.Primary.ID)
 		}
 	}
 	return nil
@@ -121,62 +193,57 @@ func testAccCheckIntegrationDestroy(s *terraform.State) error {
 func testAccCoralogixResourceIntegrationWithoutSensitiveData() string {
 	return fmt.Sprintf(`resource "coralogix_integration" "no_sensitive_data_test" {
 integration_key = "%v"
-version = "0.1.0"
+version = "0.9.0"
 # Note that the attribute casing is important here
 parameters = {
-	ApplicationName = "cxsdk"
-	SubsystemName = "%v"
-	MetricNamespaces = [
-		"AWS/S3",
-		"AWS/ECR",
-		"AWS/EFS",
-		"AWS/RDS",
-		"AWS/ApplicationELB",
-		"AWS/Lambda",
-		"AWS/Backup",
-		"AWS/EBS",
-		"AWS/SNS",
-		"AWS/EC2"
-	]
-	AwsRoleArn = "%v"
-	IntegrationName = "sdk-integration-no-sensitive-data-setup"
-	AwsRegion = "eu-north-1"
-	WithAggregations = false
-	EnrichWithTags = true
+	ApplicationName       = "cxsdk"
+	SubsystemName         = "%v"
+	MetricNamespaces      = ["AWS/S3", "AWS/ECR", "AWS/EFS", "AWS/RDS", "AWS/ApplicationELB", "AWS/Lambda", "AWS/Backup", "AWS/EBS", "AWS/SNS", "AWS/EC2"]
+	AwsRoleArn            = "%v"
+	IntegrationName       = "sdk-integration-no-sensitive-data-setup"
+	AwsRegion             = "eu-north-1"
+	WithAggregations      = false
+	EnrichWithTags        = true
+	Statistics            = ["Average", "Sum", "SampleCount", "Minimum", "Maximum"]
+	DiscoverNamespaces    = false
+	IncludeLinkedAccounts = false
 }
 }
 	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName, testRoleArn)
 }
 
-func testAccCoralogixResourceIntegrationWithSensitiveData() string {
-	return fmt.Sprintf("%40s", `resource "coralogix_integration" "sensitive_data_test" {
+func testAccCoralogixResourceIntegrationWithSensitiveData(serviceAccountKey string) string {
+	return fmt.Sprintf(`resource "coralogix_integration" "sensitive_data_test" {
 		integration_key = "gcp-metrics-collector"
 		version         = "1.0.0"
 		# Note that the attribute casing is important here
 		parameters = {
-			ApplicationName = "cxsdk"
-			SubsystemName   = "gcp-metrics-collector"
-			IntegrationName   = "sdk-integration-with-sensitive-data-setup"
-			MetricPrefixes    = ["appengine.googleapis.com","cloudfunctions.googleapis.com","cloudkms.googleapis.com","cloudsql.googleapis.com","compute.googleapis.com","container.googleapis.com","datastream.googleapis.com","firestore.googleapis.com","loadbalancing.googleapis.com","network.googleapis.com","run.googleapis.com","storage.googleapis.com"]
-			ServiceAccountKey = "{\"type\": \"service_account\",\"project_id\": \"redacted\",\"private_key_id\": \"redacted\",\"private_key\": \"-----BEGIN PRIVATE KEY-----\\redacted\",\"client_email\": \"redacted@redacted.iam.gserviceaccount.com\",\"client_id\": \"redacted\",\"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\"token_uri\": \"https://oauth2.googleapis.com/token\",\"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/redacted%40assen-project.iam.gserviceaccount.com\",\"universe_domain\": \"googleapis.com\"}"
+			ApplicationName    = "cxsdk"
+			SubsystemName      = "gcp-metrics-collector"
+			IntegrationName    = "sdk-integration-with-sensitive-data-setup"
+			MetricPrefixes     = ["appengine.googleapis.com","cloudfunctions.googleapis.com","cloudkms.googleapis.com","cloudsql.googleapis.com","compute.googleapis.com","container.googleapis.com","datastream.googleapis.com","firestore.googleapis.com","loadbalancing.googleapis.com","network.googleapis.com","run.googleapis.com","storage.googleapis.com"]
+			ServiceAccountKey = %q
 		}
-	}`)
+	}`, serviceAccountKey)
 }
 
 func testAccCoralogixResourceIntegrationVariablesWithoutSensitiveData() string {
 	return fmt.Sprintf(`resource "coralogix_integration" "variable_test" {
 integration_key = "%v"
-version = "0.1.0"
+version = "0.9.0"
 # Note that the attribute casing is important here
 parameters = {
-	ApplicationName = "cxsdk"
-	SubsystemName = "%v"
-	MetricNamespaces = var.metrics_to_collect
-	AwsRoleArn = "%v"
-	IntegrationName = "sdk-integration-no-sensitive-data-setup"
-	AwsRegion = "eu-north-1"
-	WithAggregations = false
-	EnrichWithTags = true
+	ApplicationName       = "cxsdk"
+	SubsystemName         = "%v"
+	MetricNamespaces      = var.metrics_to_collect
+	AwsRoleArn            = "%v"
+	IntegrationName       = "sdk-integration-no-sensitive-data-setup"
+	AwsRegion             = "eu-north-1"
+	WithAggregations      = false
+	EnrichWithTags        = true
+	Statistics            = ["Average", "Sum", "SampleCount", "Minimum", "Maximum"]
+	DiscoverNamespaces    = false
+	IncludeLinkedAccounts = false
 }
 }
 
@@ -194,4 +261,115 @@ variable "metrics_to_collect" {
 	]
   }
 	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName, testRoleArn)
+}
+
+func testAccCoralogixResourceIntegrationV091() string {
+	region := testAwsRegion
+	if region == "" {
+		region = "eu-west-1"
+	}
+	return fmt.Sprintf(`resource "coralogix_integration" "v091_test" {
+integration_key = "%v"
+version = "0.9.1"
+# Note that the attribute casing is important here
+parameters = {
+	ApplicationName       = "cxsdk"
+	SubsystemName         = "%v"
+	IntegrationName       = "sdk-integration-v091-test"
+	AwsRoleArn            = "%v"
+	AwsRegion             = "%v"
+	MetricNamespaces      = ["AWS/SQS"]
+	EnrichWithTags        = true
+	WithAggregations      = false
+	Statistics            = ["Average", "Sum", "SampleCount", "Minimum", "Maximum"]
+	DiscoverNamespaces    = false
+	IncludeLinkedAccounts = false
+}
+}
+	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName, testRoleArn, region)
+}
+
+// testAccCoralogixResourceIntegrationV091MissingCoreFields deliberately omits
+// ApplicationName and SubsystemName to verify that the provider returns a
+// descriptive error naming the missing fields.
+func testAccCoralogixResourceIntegrationV091MissingCoreFields() string {
+	region := testAwsRegion
+	if region == "" {
+		region = "eu-west-1"
+	}
+	return fmt.Sprintf(`resource "coralogix_integration" "v091_missing_fields_test" {
+integration_key = "%v"
+version = "0.9.1"
+parameters = {
+	IntegrationName       = "sdk-integration-v091-missing-core"
+	AwsRoleArn            = "%v"
+	AwsRegion             = "%v"
+	MetricNamespaces      = ["AWS/SQS"]
+	EnrichWithTags        = true
+	WithAggregations      = false
+	Statistics            = ["Average", "Sum", "SampleCount", "Minimum", "Maximum"]
+	DiscoverNamespaces    = false
+	IncludeLinkedAccounts = false
+}
+}
+	`, integrationWithoutSensitiveDataName, testRoleArn, region)
+}
+
+func TestAccCoralogixResourceIntegration_deprecatedVersionRejected(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixResourceIntegrationDeprecatedVersion(),
+				ExpectError: regexp.MustCompile(`Unsupported integration version`),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceIntegrationDeprecatedVersion() string {
+	return fmt.Sprintf(`resource "coralogix_integration" "deprecated_test" {
+  integration_key = "%v"
+  version         = "0.5.0"
+
+  parameters = {
+    IntegrationName  = "cx-test-deprecated"
+    AwsRoleArn       = "arn:aws:iam::012345678901:role/test"
+    AwsRegion        = "eu-west-1"
+    ApplicationName  = "test"
+    SubsystemName    = "test"
+    MetricNamespaces = ["AWS/EC2"]
+    Statistics       = ["Average"]
+    WithAggregations = false
+    EnrichWithTags   = true
+  }
+}`, integrationWithoutSensitiveDataName)
+}
+
+// testAccCoralogixResourceIntegrationByVersion builds a config for any version
+// using the full v0.9.x parameter set (extra fields are ignored by older versions).
+func testAccCoralogixResourceIntegrationByVersion(version, integrationName string) string {
+	region := testAwsRegion
+	if region == "" {
+		region = "eu-west-1"
+	}
+	return fmt.Sprintf(`resource "coralogix_integration" "version_test" {
+integration_key = "%v"
+version = "%v"
+parameters = {
+	ApplicationName       = "cxsdk"
+	SubsystemName         = "%v"
+	IntegrationName       = "%v"
+	AwsRoleArn            = "%v"
+	AwsRegion             = "%v"
+	MetricNamespaces      = ["AWS/SQS"]
+	EnrichWithTags        = true
+	WithAggregations      = false
+	Statistics            = ["Average", "Sum", "SampleCount", "Minimum", "Maximum"]
+	DiscoverNamespaces    = false
+	IncludeLinkedAccounts = false
+}
+}
+	`, integrationWithoutSensitiveDataName, version, integrationWithoutSensitiveDataName, integrationName, testRoleArn, region)
 }
