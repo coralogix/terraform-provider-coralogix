@@ -1204,3 +1204,8 @@ Feat:
 
 FIX:
 * "Invalid uuid" error during update operations 
+
+#### resource/coralogix_recording_rules
+
+FIX:
+* Name attribute now accepts updates
