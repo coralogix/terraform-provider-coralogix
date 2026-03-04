@@ -16,8 +16,11 @@ package recording_rules
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -401,6 +404,22 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		return
 	}
 
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-ba8d92.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		reqName := ""
+		if rq.Name != nil {
+			reqName = *rq.Name
+		}
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "ba8d92", "hypothesisId": "H1", "location": "recording_rules Create before API",
+			"message": "create request name", "data": map[string]string{"request_name": reqName},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
+
 	createResult, httpResponse, err := r.client.RuleGroupSetsCreate(ctx).
 		CreateRuleGroupSet(*rq).
 		Execute()
@@ -485,6 +504,22 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		return
 	}
 
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-8bb069.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		reqName := ""
+		if rq.Name != nil {
+			reqName = *rq.Name
+		}
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "8bb069", "hypothesisId": "H1_H2", "location": "recording_rules Update before API",
+			"message": "update request and plan name", "data": map[string]string{"plan_name": plan.Name.ValueString(), "request_name": reqName},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
+
 	_, httpResponse, err := r.client.
 		RuleGroupSetsUpdate(ctx, id).
 		UpdateRuleGroupSet(*rq).
@@ -512,6 +547,18 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		)
 		return
 	}
+
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-8bb069.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "8bb069", "hypothesisId": "H2_H3", "location": "recording_rules Update after Fetch",
+			"message": "name returned by Fetch after update", "data": map[string]string{"fetch_name": result.GetName(), "plan_name": plan.Name.ValueString()},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
 
 	plan, diags = flattenRecordingRuleGroupSet(ctx, plan, result)
 	if diags.HasError() {
