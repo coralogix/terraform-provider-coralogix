@@ -320,6 +320,7 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 				MarkdownDescription: "The name of the rule group. Overrides the name specified in the YAML if provided.",
 			},
@@ -713,6 +714,19 @@ func flattenRecordingRule(ctx context.Context, rule *recRuless.OutRule) (*Record
 }
 
 func expandRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*recRuless.CreateRuleGroupSet, diag.Diagnostics) {
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-ba8d92.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		planName := plan.Name.ValueString()
+		hasYaml := plan.YamlContent.ValueString() != ""
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "ba8d92", "hypothesisId": "H1", "location": "expandRecordingRulesGroupsSet",
+			"message": "plan name and path", "data": map[string]interface{}{"plan_name": planName, "has_yaml": hasYaml},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
 	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
 		setName := plan.Name.ValueString()
 		return expandRecordingRulesGroupsSetFromYaml(yamlContent, setName)
@@ -722,14 +736,18 @@ func expandRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroup
 
 func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*recRuless.UpdateRuleGroupSet, diag.Diagnostics) {
 	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
-		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent, "")
+		setName := plan.Name.ValueString()
+		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent, setName)
 		if diags.HasError() {
 			return nil, diags
 		}
-
+		updateName := rrg.Name
+		if len(setName) > 0 {
+			updateName = &setName
+		}
 		return &recRuless.UpdateRuleGroupSet{
 			Groups: rrg.Groups,
-			Name:   rrg.Name,
+			Name:   updateName,
 		}, nil
 	}
 
@@ -749,14 +767,43 @@ func expandRecordingRulesGroupsSetFromYaml(yamlContent string, setName string) (
 	if err := yaml.Unmarshal([]byte(yamlContent), &result); err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error on unmarshal yaml_content", err.Error())}
 	}
+	// #region agent log
+	finalName := ""
+	if result.Name != nil {
+		finalName = *result.Name
+	}
+	// #endregion
 	if len(setName) > 0 {
 		result.Name = &setName
+		finalName = setName
 	}
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-ba8d92.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "ba8d92", "hypothesisId": "H2", "location": "expandRecordingRulesGroupsSetFromYaml",
+			"message": "setName and final name", "data": map[string]interface{}{"set_name": setName, "final_name": finalName},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
 	return &result, nil
 }
 
 func expandRecordingRulesGroupSetExplicitly(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*recRuless.CreateRuleGroupSet, diag.Diagnostics) {
 	name := plan.Name.ValueString()
+	// #region agent log
+	if f, _ := os.OpenFile("/Users/noya.itzhaki/repos/terraform-provider-coralogix/.cursor/debug-ba8d92.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); f != nil {
+		b, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "ba8d92", "hypothesisId": "H3", "location": "expandRecordingRulesGroupSetExplicitly",
+			"message": "explicit path name", "data": map[string]interface{}{"name": name},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		f.Write(append(b, '\n'))
+		f.Close()
+	}
+	// #endregion
 	groups, diags := expandRecordingRulesGroups(ctx, plan.Groups)
 	if diags.HasError() {
 		return nil, diags
