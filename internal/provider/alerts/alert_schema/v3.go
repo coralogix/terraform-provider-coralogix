@@ -758,9 +758,6 @@ func V3() schema.Schema {
 								"notify_on": schema.StringAttribute{
 									Optional: true,
 									Computed: true,
-									PlanModifiers: []planmodifier.String{
-										stringplanmodifier.UseStateForUnknown(),
-									},
 									Validators: []validator.String{
 										stringvalidator.OneOf(alerttypes.ValidNotifyOn...),
 									},
