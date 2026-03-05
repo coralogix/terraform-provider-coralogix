@@ -17,6 +17,7 @@ package alerts
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"strconv"
@@ -547,10 +548,15 @@ func extractNotificationRouter(ctx context.Context, routerObject types.Object) (
 func extractAdvancedTargetSetting(ctx context.Context, webhooksSettingsModel alerttypes.WebhooksSettingsModel) (*alerts.AlertDefWebhooksSettings, diag.Diagnostics) {
 	advancedTargetSettings := &alerts.AlertDefWebhooksSettings{}
 
-	if !webhooksSettingsModel.NotifyOn.IsNull() && !webhooksSettingsModel.NotifyOn.IsUnknown() {
+	notifyOnIsEmpty := webhooksSettingsModel.NotifyOn.IsNull() || webhooksSettingsModel.NotifyOn.IsUnknown()
+	retriggeringPeriodIsEmpty := utils.ObjIsNullOrUnknown(webhooksSettingsModel.RetriggeringPeriod)
+
+	if notifyOnIsEmpty && retriggeringPeriodIsEmpty {
+		log.Printf("[WARN] Advanced notifications disabled for webhook - both notify_on and retriggering_period are not set")
+	}
+
+	if !notifyOnIsEmpty {
 		advancedTargetSettings.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[webhooksSettingsModel.NotifyOn.ValueString()].Ptr()
-	} else {
-		advancedTargetSettings.NotifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED.Ptr()
 	}
 	advancedTargetSettings, diags := expandAlertNotificationByRetriggeringPeriod(ctx, advancedTargetSettings, webhooksSettingsModel.RetriggeringPeriod)
 	if diags.HasError() {
@@ -3192,14 +3198,14 @@ func flattenAdvancedTargetSettings(ctx context.Context, webhooksSettings []alert
 			continue
 		}
 
-		var notifyOn alerts.NotifyOn
+		var notifyOnValue types.String
 		if notification.NotifyOn != nil {
-			notifyOn = *notification.NotifyOn
+			notifyOnValue = types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[*notification.NotifyOn])
 		} else {
-			notifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED
+			notifyOnValue = types.StringNull()
 		}
 		notificationModel := alerttypes.WebhooksSettingsModel{
-			NotifyOn:           types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[notifyOn]),
+			NotifyOn:           notifyOnValue,
 			RetriggeringPeriod: retriggeringPeriod,
 			IntegrationID:      types.StringNull(),
 			Recipients:         types.SetNull(types.StringType),

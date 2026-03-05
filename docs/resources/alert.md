@@ -2069,15 +2069,12 @@ Optional:
 <a id="nestedatt--notification_group--webhooks_settings"></a>
 ### Nested Schema for `notification_group.webhooks_settings`
 
-Required:
-
-- `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"].
-
 Optional:
 
 - `integration_id` (String)
+- `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"]. When omitted (along with retriggering_period), Advanced Notification is disabled.
 - `recipients` (Set of String)
-- `retriggering_period` (Attributes) Retriggering period in minutes. 10 minutes by default. (see [below for nested schema](#nestedatt--notification_group--webhooks_settings--retriggering_period))
+- `retriggering_period` (Attributes) Retriggering period in minutes. When omitted (along with notify_on), Advanced Notification is disabled and the webhook inherits the global incident cadence. (see [below for nested schema](#nestedatt--notification_group--webhooks_settings--retriggering_period))
 
 <a id="nestedatt--notification_group--webhooks_settings--retriggering_period"></a>
 ### Nested Schema for `notification_group.webhooks_settings.retriggering_period`
