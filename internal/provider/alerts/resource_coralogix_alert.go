@@ -17,6 +17,7 @@ package alerts
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"strconv"
@@ -547,7 +548,14 @@ func extractNotificationRouter(ctx context.Context, routerObject types.Object) (
 func extractAdvancedTargetSetting(ctx context.Context, webhooksSettingsModel alerttypes.WebhooksSettingsModel) (*alerts.AlertDefWebhooksSettings, diag.Diagnostics) {
 	advancedTargetSettings := &alerts.AlertDefWebhooksSettings{}
 
-	if !webhooksSettingsModel.NotifyOn.IsNull() && !webhooksSettingsModel.NotifyOn.IsUnknown() {
+	notifyOnIsEmpty := webhooksSettingsModel.NotifyOn.IsNull() || webhooksSettingsModel.NotifyOn.IsUnknown()
+	retriggeringPeriodIsEmpty := utils.ObjIsNullOrUnknown(webhooksSettingsModel.RetriggeringPeriod)
+
+	if notifyOnIsEmpty && retriggeringPeriodIsEmpty {
+		log.Printf("[WARN] Advanced notifications disabled for webhook - both notify_on and retriggering_period are not set")
+	}
+
+	if !notifyOnIsEmpty {
 		advancedTargetSettings.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[webhooksSettingsModel.NotifyOn.ValueString()].Ptr()
 	}
 	advancedTargetSettings, diags := expandAlertNotificationByRetriggeringPeriod(ctx, advancedTargetSettings, webhooksSettingsModel.RetriggeringPeriod)
