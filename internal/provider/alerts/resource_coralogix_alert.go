@@ -2814,7 +2814,7 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 		alertPriority = alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED.Ptr()
 	}
 	groupByKeys := getAlertGroupByKeys(alertProperties)
-	groupBy := groupByKeysToStateValue(groupByKeys)
+	groupBy := groupByKeysToStateValue(groupByKeys, alertProperties)
 	return &alerttypes.AlertResourceModel{
 		ID:                types.StringPointerValue(alert.Id),
 		Name:              types.StringPointerValue(getAlertName(alertProperties)),
@@ -3055,13 +3055,27 @@ func getAlertPriority(alertDefProperties *alerts.AlertDefProperties) *alerts.Ale
 	}
 }
 
-func groupByKeysToStateValue(keys []string) types.List {
-	// Use empty list instead of null when there are no keys, so that plan and read
-	// are consistent (avoids "was ListValEmpty, but now null" on apply).
+func groupByKeysToStateValue(keys []string, alertDefProperties *alerts.AlertDefProperties) types.List {
+	// For alert types that use the group_by plan modifier (slo_threshold, tracing_threshold, flow),
+	// use empty list instead of null when there are no keys so plan and read are consistent.
+	// Other types plan group_by as null when unset, so we must return null for empty to avoid
+	// "was null, but now cty.ListValEmpty" on apply.
 	if len(keys) == 0 {
-		return types.ListValueMust(types.StringType, []attr.Value{})
+		if alertDefProperties != nil && alertTypeUsesGroupByPlanModifier(alertDefProperties) {
+			return types.ListValueMust(types.StringType, []attr.Value{})
+		}
+		return types.ListNull(types.StringType)
 	}
 	return utils.StringSliceToTypeStringList(keys)
+}
+
+// alertTypeUsesGroupByPlanModifier returns true for alert types that have the special group_by
+// plan modifier (unknown when state null, state value when state set). Only for these do we
+// normalize empty group_by to [] instead of null on read.
+func alertTypeUsesGroupByPlanModifier(alertDefProperties *alerts.AlertDefProperties) bool {
+	return alertDefProperties.AlertDefPropertiesSloThreshold != nil ||
+		alertDefProperties.AlertDefPropertiesTracingThreshold != nil ||
+		alertDefProperties.AlertDefPropertiesFlow != nil
 }
 
 func getAlertGroupByKeys(alertDefProperties *alerts.AlertDefProperties) []string {
