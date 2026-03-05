@@ -15,6 +15,8 @@
 package provider
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -22,9 +24,13 @@ import (
 
 var (
 	archiveMetricsResourceName = "coralogix_archive_metrics.test"
+	archiveMetricsBucket       = os.Getenv("ARCHIVE_BUCKET")
 )
 
 func TestAccCoralogixResourceResourceArchiveMetrics(t *testing.T) {
+	if archiveMetricsBucket == "" {
+		t.Skip("ARCHIVE_BUCKET must be set for this acceptance test")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -33,7 +39,7 @@ func TestAccCoralogixResourceResourceArchiveMetrics(t *testing.T) {
 				Config: testAccCoralogixResourceArchiveMetrics(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(archiveMetricsResourceName, "s3.region", "eu-north-1"),
-					resource.TestCheckResourceAttr(archiveMetricsResourceName, "s3.bucket", "coralogix-c4c-eu2-prometheus-data"),
+					resource.TestCheckResourceAttr(archiveMetricsResourceName, "s3.bucket", archiveMetricsBucket),
 				),
 			},
 			{
@@ -46,11 +52,11 @@ func TestAccCoralogixResourceResourceArchiveMetrics(t *testing.T) {
 }
 
 func testAccCoralogixResourceArchiveMetrics() string {
-	return `resource "coralogix_archive_metrics" "test" {
+	return fmt.Sprintf(`resource "coralogix_archive_metrics" "test" {
   s3 = {
     region = "eu-north-1"
-    bucket = "coralogix-c4c-eu2-prometheus-data"
+    bucket = %q
   }
 }
-`
+`, archiveMetricsBucket)
 }

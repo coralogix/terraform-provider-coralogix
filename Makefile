@@ -53,3 +53,4 @@ testacc:
 
 generate:
 	go generate ${BUILD_ARGS}
+	git checkout -- docs/guides
