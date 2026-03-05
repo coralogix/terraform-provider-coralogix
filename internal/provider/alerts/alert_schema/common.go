@@ -214,10 +214,15 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 		}
 	case "slo_threshold", "tracing_threshold", "flow":
 		// Backend may return group_by (e.g. from SLO grouping) even when not set in config.
-		// Use unknown so Terraform accepts whatever the API returns after apply, avoiding
-		// "Provider produced inconsistent result" when state had null but API returns a list.
+		// When state has no value yet, use unknown so Terraform accepts whatever the API returns
+		// after apply (avoids "Provider produced inconsistent result"). When state already has a
+		// value, use it so the next plan is empty (avoids test failure "plan was not empty").
 		if request.ConfigValue.IsUnknown() || request.ConfigValue.IsNull() {
-			response.PlanValue = types.ListUnknown(types.StringType)
+			if request.StateValue.IsNull() || request.StateValue.IsUnknown() {
+				response.PlanValue = types.ListUnknown(types.StringType)
+			} else {
+				response.PlanValue = request.StateValue
+			}
 			return
 		}
 	}
