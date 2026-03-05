@@ -145,6 +145,12 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 		typeDefinitionStr = "metric_anomaly"
 	} else if !utils.ObjIsNullOrUnknown(typeDefinition.LogsNewValue) {
 		typeDefinitionStr = "logs_new_value"
+	} else if !utils.ObjIsNullOrUnknown(typeDefinition.SloThreshold) {
+		typeDefinitionStr = "slo_threshold"
+	} else if !utils.ObjIsNullOrUnknown(typeDefinition.TracingThreshold) {
+		typeDefinitionStr = "tracing_threshold"
+	} else if !utils.ObjIsNullOrUnknown(typeDefinition.Flow) {
+		typeDefinitionStr = "flow"
 	}
 
 	switch typeDefinitionStr {
@@ -204,6 +210,14 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 			} else {
 				response.PlanValue = request.StateValue
 			}
+			return
+		}
+	case "slo_threshold", "tracing_threshold", "flow":
+		// Backend may return group_by (e.g. from SLO grouping) even when not set in config.
+		// Use unknown so Terraform accepts whatever the API returns after apply, avoiding
+		// "Provider produced inconsistent result" when state had null but API returns a list.
+		if request.ConfigValue.IsUnknown() || request.ConfigValue.IsNull() {
+			response.PlanValue = types.ListUnknown(types.StringType)
 			return
 		}
 	}

@@ -2813,6 +2813,8 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 	if alertPriority == nil {
 		alertPriority = alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED.Ptr()
 	}
+	groupByKeys := getAlertGroupByKeys(alertProperties)
+	groupBy := groupByKeysToStateValue(groupByKeys)
 	return &alerttypes.AlertResourceModel{
 		ID:                types.StringPointerValue(alert.Id),
 		Name:              types.StringPointerValue(getAlertName(alertProperties)),
@@ -2821,7 +2823,7 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 		Priority:          types.StringValue(alerttypes.AlertPriorityProtoToSchemaMap[*alertPriority]),
 		Schedule:          alertSchedule,
 		TypeDefinition:    alertTypeDefinition,
-		GroupBy:           utils.StringSliceToTypeStringList(getAlertGroupByKeys(alertProperties)),
+		GroupBy:           groupBy,
 		IncidentsSettings: incidentsSettings,
 		NotificationGroup: notificationGroup,
 		Labels:            labels,
@@ -3051,6 +3053,15 @@ func getAlertPriority(alertDefProperties *alerts.AlertDefProperties) *alerts.Ale
 	} else {
 		return alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED.Ptr()
 	}
+}
+
+func groupByKeysToStateValue(keys []string) types.List {
+	// Use empty list instead of null when there are no keys, so that plan and read
+	// are consistent (avoids "was ListValEmpty, but now null" on apply).
+	if len(keys) == 0 {
+		return types.ListValueMust(types.StringType, []attr.Value{})
+	}
+	return utils.StringSliceToTypeStringList(keys)
 }
 
 func getAlertGroupByKeys(alertDefProperties *alerts.AlertDefProperties) []string {
