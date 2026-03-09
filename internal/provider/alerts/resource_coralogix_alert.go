@@ -3508,8 +3508,15 @@ func flattenSimpleFilter(ctx context.Context, filter *alerts.LogsSimpleFilter) (
 		return types.ObjectNull(alertschema.LuceneFilterAttr()), diags
 	}
 
+	// Normalize nil or empty lucene_query to "" so state matches config after apply.
+	// API returns null when lucene_query is empty, causing "Provider produced inconsistent result after apply".
+	luceneQueryVal := ""
+	if luceneQuery != nil && *luceneQuery != "" {
+		luceneQueryVal = *luceneQuery
+	}
+
 	return types.ObjectValueFrom(ctx, alertschema.LuceneFilterAttr(), alerttypes.SimpleFilterModel{
-		LuceneQuery:  utils.StringPointerToTypeString(luceneQuery),
+		LuceneQuery:  types.StringValue(luceneQueryVal),
 		LabelFilters: labelFiltersModel,
 	})
 }
