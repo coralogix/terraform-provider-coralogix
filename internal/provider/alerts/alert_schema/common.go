@@ -439,6 +439,8 @@ func logsFilterSchema() schema.SingleNestedAttribute {
 				Attributes: map[string]schema.Attribute{
 					"lucene_query": schema.StringAttribute{
 						Optional: true,
+						Computed: true,
+						Default:  stringdefault.StaticString(""),
 					},
 					"label_filters": schema.SingleNestedAttribute{
 						Optional: true,
