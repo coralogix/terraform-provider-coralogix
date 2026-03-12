@@ -27,6 +27,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -508,7 +509,14 @@ func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
 }
 
 func testAccCheckDashboardDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Dashboards()
+	// Configure the SDK provider so Meta() is set (ProtoV6 tests don't configure testAccProvider).
+	rc := terraform2.ResourceConfig{}
+	_ = testAccProvider.Configure(context.Background(), &rc)
+	meta := testAccProvider.Meta()
+	if meta == nil {
+		return nil
+	}
+	client := meta.(*clientset.ClientSet).Dashboards()
 
 	ctx := context.TODO()
 
