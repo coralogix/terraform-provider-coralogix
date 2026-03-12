@@ -382,7 +382,34 @@ func TestAccCoralogixResourceDashboardGaugeWidgetDataPrime(t *testing.T) {
 		CheckDestroy:             testAccCheckDashboardDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardGaugeWidgetDataPrimeConfig(),
+				Config: testAccCoralogixResourceDashboardWithWidget(`{
+  title = "gauge_dataprime"
+  definition = {
+    gauge = {
+      query = {
+        data_prime = {
+          query = <<-EOT
+source logs
+| filter 1 == 1
+| aggregate count() as c
+| choose c
+EOT
+        }
+      }
+      min            = 0
+      max            = 100
+      show_inner_arc = true
+      show_outer_arc = true
+      unit           = "percent100"
+      data_mode_type = "archive"
+      threshold_by   = "value"
+      thresholds = [{
+        from  = 0
+        color = "green"
+      }]
+    }
+  }
+}`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "gauge_dataprime"),
@@ -815,54 +842,6 @@ layout = {
 }
 }
 `, widget)
-}
-
-func testAccCoralogixResourceDashboardGaugeWidgetDataPrimeConfig() string {
-	return `resource "coralogix_dashboard" test {
-  name        = "test-gauge-dataprime"
-  description = "Acceptance test for gauge widget with DataPrime query"
-  time_frame = {
-    relative = {
-      duration = "seconds:900"
-    }
-  }
-  layout = {
-    sections = [{
-      rows = [{
-        height = 19
-        widgets = [{
-          title = "gauge_dataprime"
-          definition = {
-            gauge = {
-              query = {
-                data_prime = {
-                  query = <<-EOT
-source logs
-| filter 1 == 1
-| aggregate count() as c
-| choose c
-EOT
-                }
-              }
-              min            = 0
-              max            = 100
-              show_inner_arc = true
-              show_outer_arc = true
-              unit           = "percent100"
-              data_mode_type = "archive"
-              threshold_by   = "value"
-              thresholds = [{
-                from  = 0
-                color = "green"
-              }]
-            }
-          }
-        }]
-      }]
-    }]
-  }
-}
-`
 }
 
 func TestAccCoralogixResourceDashboardLayoutColor(t *testing.T) {
