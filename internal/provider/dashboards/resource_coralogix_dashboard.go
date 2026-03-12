@@ -1643,6 +1643,16 @@ func expandGaugeQuery(ctx context.Context, gaugeQuery *dashboardwidgets.GaugeQue
 				Spans: spanQuery,
 			},
 		}, nil
+	case gaugeQuery.DataPrime != nil:
+		dataprimeQuery, diags := expandGaugeQueryDataPrime(ctx, gaugeQuery.DataPrime)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &cxsdk.GaugeQuery{
+			Value: &cxsdk.GaugeQueryDataprime{
+				Dataprime: dataprimeQuery,
+			},
+		}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Extract Gauge Query Error", fmt.Sprintf("Unknown gauge query type %#v", gaugeQuery))}
 	}
@@ -1672,6 +1682,28 @@ func expandGaugeQuerySpans(ctx context.Context, gaugeQuerySpans *dashboardwidget
 		SpansAggregation: spansAggregation,
 		Filters:          filters,
 		TimeFrame:        timeFrame,
+	}, nil
+}
+
+func expandGaugeQueryDataPrime(ctx context.Context, dataPrime *dashboardwidgets.DataPrimeModel) (*cxsdk.GaugeDataprimeQuery, diag.Diagnostics) {
+	if dataPrime == nil {
+		return nil, nil
+	}
+	filters, diags := dashboardwidgets.ExpandDashboardFiltersSources(ctx, dataPrime.Filters)
+	if diags.HasError() {
+		return nil, diags
+	}
+	timeFrame, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+	dataprimeQuery := &cxsdk.DashboardDataprimeQuery{
+		Text: dataPrime.Query.ValueString(),
+	}
+	return &cxsdk.GaugeDataprimeQuery{
+		DataprimeQuery: dataprimeQuery,
+		Filters:        filters,
+		TimeFrame:      timeFrame,
 	}, nil
 }
 
@@ -4342,6 +4374,8 @@ func flattenGaugeQueries(ctx context.Context, query *cxsdk.GaugeQuery) (*dashboa
 		return flattenGaugeQueryLogs(ctx, query.GetLogs())
 	case *cxsdk.GaugeQuerySpans:
 		return flattenGaugeQuerySpans(ctx, query.GetSpans())
+	case *cxsdk.GaugeQueryDataprime:
+		return flattenGaugeQueryDataPrime(ctx, query.GetDataprime())
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Gauge Query", fmt.Sprintf("unknown query type %T", query))}
 	}
@@ -4426,6 +4460,31 @@ func flattenGaugeQuerySpans(ctx context.Context, spans *cxsdk.GaugeSpansQuery) (
 			Filters:          filters,
 			SpansAggregation: spansAggregation,
 			TimeFrame:        timeFrame,
+		},
+	}, nil
+}
+
+func flattenGaugeQueryDataPrime(ctx context.Context, dataPrime *cxsdk.GaugeDataprimeQuery) (*dashboardwidgets.GaugeQueryModel, diag.Diagnostics) {
+	if dataPrime == nil {
+		return nil, nil
+	}
+	queryStr := types.StringNull()
+	if dataPrime.GetDataprimeQuery() != nil {
+		queryStr = types.StringValue(dataPrime.GetDataprimeQuery().GetText())
+	}
+	filters, diags := dashboardwidgets.FlattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, dataPrime.GetTimeFrame())
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardwidgets.GaugeQueryModel{
+		DataPrime: &dashboardwidgets.DataPrimeModel{
+			Query:     queryStr,
+			Filters:   filters,
+			TimeFrame: timeFrame,
 		},
 	}, nil
 }
