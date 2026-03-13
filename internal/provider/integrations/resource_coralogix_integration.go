@@ -21,6 +21,7 @@ import (
 	"math/big"
 	"net/http"
 	"slices"
+	"strings"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -120,26 +121,34 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	resp.Diagnostics.Append(r.validateIntegrationVersion(ctx, plan.IntegrationKey.ValueString(), plan.Version.ValueString())...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	rq, diags := extractCreateIntegration(plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	testResult, _, testErr := r.client.IntegrationServiceTestIntegration(ctx).TestIntegrationRequest(integrations.TestIntegrationRequest{
+	testResult, testHttpResponse, testErr := r.client.IntegrationServiceTestIntegration(ctx).TestIntegrationRequest(integrations.TestIntegrationRequest{
 		IntegrationData: rq.Metadata,
 	}).Execute()
 
 	if testErr != nil {
-		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Testing the integration has failed", fmt.Sprintf("API responded with an error: %v", testErr.Error()))}
-		resp.Diagnostics.Append(newDiags...)
+		resp.Diagnostics.AddError(
+			"Testing the integration has failed",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(testHttpResponse, testErr), "TestIntegration", nil),
+		)
 		return
 	}
 
-	if testResult.Result.TestIntegrationResultFailure != nil {
-		// TODO after the data structure is fixed, change to print the error message
-		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", testResult.Result.TestIntegrationResultFailure))}
-		resp.Diagnostics.Append(newDiags...)
+	if testResult.GetResult().TestIntegrationResultFailure != nil {
+		resp.Diagnostics.AddError(
+			"Invalid integration configuration",
+			testResult.GetResult().TestIntegrationResultFailure.Failure.GetErrorMessage(),
+		)
 		return
 	}
 
@@ -421,25 +430,34 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	id := plan.ID.ValueString()
 
+	resp.Diagnostics.Append(r.validateIntegrationVersion(ctx, plan.IntegrationKey.ValueString(), plan.Version.ValueString())...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	rq, diags := extractUpdateIntegration(plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	testResult, _, testErr := r.client.IntegrationServiceTestIntegration(ctx).TestIntegrationRequest(integrations.TestIntegrationRequest{
+
+	testResult, testHttpResponse, testErr := r.client.IntegrationServiceTestIntegration(ctx).TestIntegrationRequest(integrations.TestIntegrationRequest{
 		IntegrationData: rq.Metadata,
 	}).Execute()
 
 	if testErr != nil {
-		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Testing the integration has failed", fmt.Sprintf("API responded with an error: %v", testErr.Error()))}
-		resp.Diagnostics.Append(newDiags...)
+		resp.Diagnostics.AddError(
+			"Testing the integration has failed",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(testHttpResponse, testErr), "TestIntegration", nil),
+		)
 		return
 	}
 
-	if testResult.Result.TestIntegrationResultFailure != nil {
-		// TODO after the data structure is fixed, change to print the error message
-		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", testResult.Result.TestIntegrationResultFailure))}
-		resp.Diagnostics.Append(newDiags...)
+	if testResult.GetResult().TestIntegrationResultFailure != nil {
+		resp.Diagnostics.AddError(
+			"Invalid integration configuration",
+			testResult.GetResult().TestIntegrationResultFailure.Failure.GetErrorMessage(),
+		)
 		return
 	}
 
@@ -500,4 +518,88 @@ func (r *IntegrationResource) Delete(ctx context.Context, req resource.DeleteReq
 		)
 		return
 	}
+}
+
+func (r *IntegrationResource) validateIntegrationVersion(ctx context.Context, integrationKey, integrationVersion string) diag.Diagnostics {
+	integrationsResponse, httpResponse, err := r.client.IntegrationServiceGetIntegrations(ctx).Execute()
+	if err != nil {
+		return diag.Diagnostics{diag.NewWarningDiagnostic(
+			"Could not verify supported integration versions",
+			fmt.Sprintf("Proceeding without client-side validation for %q version %q. API responded with: %s",
+				integrationKey,
+				integrationVersion,
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "GetIntegrations", nil),
+			),
+		)}
+	}
+
+	supportedVersions, found := supportedVersionsForKey(integrationsResponse.GetIntegrations(), integrationKey)
+	if !found || len(supportedVersions) == 0 {
+		return diag.Diagnostics{diag.NewWarningDiagnostic(
+			"Could not verify supported integration versions",
+			fmt.Sprintf("Integration %q was not returned by the integrations catalog API, skipping client-side validation.", integrationKey),
+		)}
+	}
+
+	if slices.Contains(supportedVersions, integrationVersion) {
+		return diag.Diagnostics{}
+	}
+
+	return diag.Diagnostics{diag.NewErrorDiagnostic(
+		"Unsupported integration version",
+		fmt.Sprintf("Integration %q does not support version %q in this Coralogix environment. Supported versions: %s",
+			integrationKey, integrationVersion, strings.Join(supportedVersions, ", ")),
+	)}
+}
+
+func supportedVersionsForKey(integrationsWithCounts []integrations.GetIntegrationsResponseIntegrationWithCounts, integrationKey string) ([]string, bool) {
+	for _, integrationWithCounts := range integrationsWithCounts {
+		if integrationWithCounts.Integration == nil {
+			continue
+		}
+		if integrationWithCounts.Integration.GetId() != integrationKey {
+			continue
+		}
+
+		// Build a set of non-deprecated versions using the Revisions list, which
+		// carries lifecycle information. Fall back to the flat Versions list only
+		// when no revision summaries are available.
+		revisions := integrationWithCounts.Integration.GetRevisions()
+		if len(revisions) > 0 {
+			unique := make(map[string]struct{}, len(revisions))
+			supportedVersions := make([]string, 0, len(revisions))
+			for _, rev := range revisions {
+				v := rev.GetVersion()
+				if v == "" {
+					continue
+				}
+				if rev.GetLifecycle() == integrations.REVISIONLIFECYCLE_REVISION_LIFECYCLE_DEPRECATED {
+					continue
+				}
+				if _, exists := unique[v]; exists {
+					continue
+				}
+				unique[v] = struct{}{}
+				supportedVersions = append(supportedVersions, v)
+			}
+			slices.Sort(supportedVersions)
+			return supportedVersions, true
+		}
+
+		unique := make(map[string]struct{}, len(integrationWithCounts.Integration.Versions))
+		supportedVersions := make([]string, 0, len(integrationWithCounts.Integration.Versions))
+		for _, version := range integrationWithCounts.Integration.Versions {
+			if version == "" {
+				continue
+			}
+			if _, exists := unique[version]; exists {
+				continue
+			}
+			unique[version] = struct{}{}
+			supportedVersions = append(supportedVersions, version)
+		}
+		slices.Sort(supportedVersions)
+		return supportedVersions, true
+	}
+	return nil, false
 }
