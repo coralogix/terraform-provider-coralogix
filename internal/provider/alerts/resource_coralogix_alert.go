@@ -17,6 +17,7 @@ package alerts
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"strconv"
@@ -547,10 +548,15 @@ func extractNotificationRouter(ctx context.Context, routerObject types.Object) (
 func extractAdvancedTargetSetting(ctx context.Context, webhooksSettingsModel alerttypes.WebhooksSettingsModel) (*alerts.AlertDefWebhooksSettings, diag.Diagnostics) {
 	advancedTargetSettings := &alerts.AlertDefWebhooksSettings{}
 
-	if !webhooksSettingsModel.NotifyOn.IsNull() && !webhooksSettingsModel.NotifyOn.IsUnknown() {
+	notifyOnIsEmpty := webhooksSettingsModel.NotifyOn.IsNull() || webhooksSettingsModel.NotifyOn.IsUnknown()
+	retriggeringPeriodIsEmpty := utils.ObjIsNullOrUnknown(webhooksSettingsModel.RetriggeringPeriod)
+
+	if notifyOnIsEmpty && retriggeringPeriodIsEmpty {
+		log.Printf("[WARN] Advanced notifications disabled for webhook - both notify_on and retriggering_period are not set")
+	}
+
+	if !notifyOnIsEmpty {
 		advancedTargetSettings.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[webhooksSettingsModel.NotifyOn.ValueString()].Ptr()
-	} else {
-		advancedTargetSettings.NotifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED.Ptr()
 	}
 	advancedTargetSettings, diags := expandAlertNotificationByRetriggeringPeriod(ctx, advancedTargetSettings, webhooksSettingsModel.RetriggeringPeriod)
 	if diags.HasError() {
@@ -2813,6 +2819,8 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 	if alertPriority == nil {
 		alertPriority = alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED.Ptr()
 	}
+	groupByKeys := getAlertGroupByKeys(alertProperties)
+	groupBy := groupByKeysToStateValue(groupByKeys, alertProperties)
 	return &alerttypes.AlertResourceModel{
 		ID:                types.StringPointerValue(alert.Id),
 		Name:              types.StringPointerValue(getAlertName(alertProperties)),
@@ -2821,7 +2829,7 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 		Priority:          types.StringValue(alerttypes.AlertPriorityProtoToSchemaMap[*alertPriority]),
 		Schedule:          alertSchedule,
 		TypeDefinition:    alertTypeDefinition,
-		GroupBy:           utils.StringSliceToTypeStringList(getAlertGroupByKeys(alertProperties)),
+		GroupBy:           groupBy,
 		IncidentsSettings: incidentsSettings,
 		NotificationGroup: notificationGroup,
 		Labels:            labels,
@@ -3053,6 +3061,29 @@ func getAlertPriority(alertDefProperties *alerts.AlertDefProperties) *alerts.Ale
 	}
 }
 
+func groupByKeysToStateValue(keys []string, alertDefProperties *alerts.AlertDefProperties) types.List {
+	// For alert types that use the group_by plan modifier (slo_threshold, tracing_threshold, flow),
+	// use empty list instead of null when there are no keys so plan and read are consistent.
+	// Other types plan group_by as null when unset, so we must return null for empty to avoid
+	// "was null, but now cty.ListValEmpty" on apply.
+	if len(keys) == 0 {
+		if alertDefProperties != nil && alertTypeUsesGroupByPlanModifier(alertDefProperties) {
+			return types.ListValueMust(types.StringType, []attr.Value{})
+		}
+		return types.ListNull(types.StringType)
+	}
+	return utils.StringSliceToTypeStringList(keys)
+}
+
+// alertTypeUsesGroupByPlanModifier returns true for alert types that have the special group_by
+// plan modifier (unknown when state null, state value when state set). Only for these do we
+// normalize empty group_by to [] instead of null on read.
+func alertTypeUsesGroupByPlanModifier(alertDefProperties *alerts.AlertDefProperties) bool {
+	return alertDefProperties.AlertDefPropertiesSloThreshold != nil ||
+		alertDefProperties.AlertDefPropertiesTracingThreshold != nil ||
+		alertDefProperties.AlertDefPropertiesFlow != nil
+}
+
 func getAlertGroupByKeys(alertDefProperties *alerts.AlertDefProperties) []string {
 	if alertDefProperties.AlertDefPropertiesFlow != nil {
 		return alertDefProperties.AlertDefPropertiesFlow.GroupByKeys
@@ -3192,14 +3223,14 @@ func flattenAdvancedTargetSettings(ctx context.Context, webhooksSettings []alert
 			continue
 		}
 
-		var notifyOn alerts.NotifyOn
+		var notifyOnValue types.String
 		if notification.NotifyOn != nil {
-			notifyOn = *notification.NotifyOn
+			notifyOnValue = types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[*notification.NotifyOn])
 		} else {
-			notifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED
+			notifyOnValue = types.StringNull()
 		}
 		notificationModel := alerttypes.WebhooksSettingsModel{
-			NotifyOn:           types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[notifyOn]),
+			NotifyOn:           notifyOnValue,
 			RetriggeringPeriod: retriggeringPeriod,
 			IntegrationID:      types.StringNull(),
 			Recipients:         types.SetNull(types.StringType),
@@ -3477,8 +3508,15 @@ func flattenSimpleFilter(ctx context.Context, filter *alerts.LogsSimpleFilter) (
 		return types.ObjectNull(alertschema.LuceneFilterAttr()), diags
 	}
 
+	// Normalize nil or empty lucene_query to "" so state matches config after apply.
+	// API returns null when lucene_query is empty, causing "Provider produced inconsistent result after apply".
+	luceneQueryVal := ""
+	if luceneQuery != nil && *luceneQuery != "" {
+		luceneQueryVal = *luceneQuery
+	}
+
 	return types.ObjectValueFrom(ctx, alertschema.LuceneFilterAttr(), alerttypes.SimpleFilterModel{
-		LuceneQuery:  utils.StringPointerToTypeString(luceneQuery),
+		LuceneQuery:  types.StringValue(luceneQueryVal),
 		LabelFilters: labelFiltersModel,
 	})
 }

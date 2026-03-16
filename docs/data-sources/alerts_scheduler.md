@@ -79,8 +79,8 @@ Read-Only:
 
 - `duration` (Attributes) The duration from the start time to wait. (see [below for nested schema](#nestedatt--schedule--one_time--time_frame--duration))
 - `end_time` (String) The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`.
-- `start_time` (String)
-- `time_zone` (String)
+- `start_time` (String) Start time in ISO8601 format (e.g. `2026-02-17T08:00:00.000` or `2026-02-17T08:00:00.000Z`).
+- `time_zone` (String) Timezone (e.g. `UTC`, `UTC+0`, `UTC+2`). Both `UTC` and `UTC+0` are accepted for zero offset.
 
 <a id="nestedatt--schedule--one_time--time_frame--duration"></a>
 ### Nested Schema for `schedule.one_time.time_frame.duration`
@@ -147,8 +147,8 @@ Read-Only:
 
 - `duration` (Attributes) The duration from the start time to wait. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--time_frame--duration))
 - `end_time` (String) The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`.
-- `start_time` (String)
-- `time_zone` (String)
+- `start_time` (String) Start time in ISO8601 format (e.g. `2026-02-17T08:00:00.000` or `2026-02-17T08:00:00.000Z`).
+- `time_zone` (String) Timezone (e.g. `UTC`, `UTC+0`, `UTC+2`). Both `UTC` and `UTC+0` are accepted for zero offset.
 
 <a id="nestedatt--schedule--recurring--dynamic--time_frame--duration"></a>
 ### Nested Schema for `schedule.recurring.dynamic.time_frame.duration`
