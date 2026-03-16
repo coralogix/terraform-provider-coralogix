@@ -680,13 +680,9 @@ func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRul
 		if diags.HasError() {
 			return nil, diags
 		}
-		updateName := rrg.Name
-		if len(setName) > 0 {
-			updateName = &setName
-		}
 		return &recRuless.UpdateRuleGroupSet{
 			Groups: rrg.Groups,
-			Name:   updateName,
+			Name:   rrg.Name,
 		}, nil
 	}
 
