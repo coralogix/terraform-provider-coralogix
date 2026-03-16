@@ -105,6 +105,7 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYamlWithName(t *testing.T) {
 }
 
 func TestAccCoralogixRecordingRulesGroupsSetUpdateName(t *testing.T) {
+	var idAfterCreate string
 	name := acctest.RandomWithPrefix("tf-acc-rr-set")
 	nameUpdated := acctest.RandomWithPrefix("tf-acc-rr-set-upd")
 	wd, err := os.Getwd()
@@ -121,6 +122,14 @@ func TestAccCoralogixRecordingRulesGroupsSetUpdateName(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithName(filePath, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					func(s *terraform.State) error {
+						rs := s.RootModule().Resources[recordingRulesGroupsSetResourceName]
+						if rs == nil || rs.Primary == nil {
+							return fmt.Errorf("resource %s not found in state", recordingRulesGroupsSetResourceName)
+						}
+						idAfterCreate = rs.Primary.ID
+						return nil
+					},
 					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
 					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "name", name),
 					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "groups.*",
@@ -142,7 +151,7 @@ func TestAccCoralogixRecordingRulesGroupsSetUpdateName(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithNameUpdated(filePath, nameUpdated),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "id", idAfterCreate),
 					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "name", nameUpdated),
 					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "groups.*",
 						map[string]string{
@@ -197,7 +206,11 @@ func TestAccCoralogixRecordingRulesGroupsExplicit(t *testing.T) {
 }
 
 func testAccCheckRecordingRulesGroupDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).RecordingRuleGroupsSets()
+	meta := testAccProvider.Meta()
+	if meta == nil {
+		return nil
+	}
+	client := meta.(*clientset.ClientSet).RecordingRuleGroupsSets()
 	ctx := context.TODO()
 
 	for _, rs := range s.RootModule().Resources {
