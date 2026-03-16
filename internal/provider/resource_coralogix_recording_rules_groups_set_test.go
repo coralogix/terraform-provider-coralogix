@@ -123,12 +123,17 @@ func TestAccCoralogixRecordingRulesGroupsSetUpdateName(t *testing.T) {
 				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithName(filePath, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					func(s *terraform.State) error {
-						rs := s.RootModule().Resources[recordingRulesGroupsSetResourceName]
-						if rs == nil || rs.Primary == nil {
-							return fmt.Errorf("resource %s not found in state", recordingRulesGroupsSetResourceName)
+						for resName, rs := range s.RootModule().Resources {
+							if rs.Type != "coralogix_recording_rules_groups_set" {
+								continue
+							}
+							if rs.Primary == nil || rs.Primary.ID == "" {
+								return fmt.Errorf("resource %s has no primary id", resName)
+							}
+							idAfterCreate = rs.Primary.ID
+							return nil
 						}
-						idAfterCreate = rs.Primary.ID
-						return nil
+						return fmt.Errorf("no coralogix_recording_rules_groups_set resource in state")
 					},
 					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
 					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "name", name),
@@ -151,7 +156,21 @@ func TestAccCoralogixRecordingRulesGroupsSetUpdateName(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithNameUpdated(filePath, nameUpdated),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "id", idAfterCreate),
+					func(s *terraform.State) error {
+						for _, rs := range s.RootModule().Resources {
+							if rs.Type != "coralogix_recording_rules_groups_set" {
+								continue
+							}
+							if rs.Primary == nil {
+								return fmt.Errorf("resource has no primary state")
+							}
+							if rs.Primary.ID != idAfterCreate {
+								return fmt.Errorf("id mismatch: got %s, want %s", rs.Primary.ID, idAfterCreate)
+							}
+							return nil
+						}
+						return fmt.Errorf("no coralogix_recording_rules_groups_set resource in state")
+					},
 					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "name", nameUpdated),
 					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "groups.*",
 						map[string]string{

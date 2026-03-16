@@ -1,9 +1,0 @@
-provider_installation {
-  filesystem_mirror {
-    path    = "~/.terraform.d/plugins"
-    include = ["locally/debug/coralogix"]
-  }
-  direct {
-    exclude = ["locally/debug/coralogix"]
-  }
-}
