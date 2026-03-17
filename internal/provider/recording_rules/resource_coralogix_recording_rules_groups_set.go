@@ -675,11 +675,11 @@ func expandRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroup
 
 func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*recRuless.UpdateRuleGroupSet, diag.Diagnostics) {
 	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
-		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent, "")
+		setName := plan.Name.ValueString()
+		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent, setName)
 		if diags.HasError() {
 			return nil, diags
 		}
-
 		return &recRuless.UpdateRuleGroupSet{
 			Groups: rrg.Groups,
 			Name:   rrg.Name,
