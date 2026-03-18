@@ -1153,6 +1153,15 @@ func expandDemisto(demisto *DemistoModel) *webhooks.OutgoingWebhookInputDataDemi
 }
 
 func flattenWebhook(ctx context.Context, webhook *webhooks.OutgoingWebhook) (*WebhookResourceModel, diag.Diagnostics) {
+	if webhook == nil {
+		return nil, diag.Diagnostics{
+			diag.NewErrorDiagnostic(
+				"Error flattening webhook",
+				"Received nil webhook from API",
+			),
+		}
+	}
+
 	result := &WebhookResourceModel{}
 
 	var diags diag.Diagnostics
