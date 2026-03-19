@@ -81,6 +81,7 @@ func TestAccCoralogixResourceIntegrationWithVariablesWithoutSensitiveData(t *tes
 }
 
 func TestAccCoralogixResourceIntegrationWithSensitiveData(t *testing.T) {
+	t.Skip("Skipping: test requires valid GCP service account credentials")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -149,7 +150,7 @@ parameters = {
 }
 
 func testAccCoralogixResourceIntegrationWithSensitiveData() string {
-	return fmt.Sprintf("%40s", `resource "coralogix_integration" "sensitive_data_test" {
+	return `resource "coralogix_integration" "sensitive_data_test" {
 		integration_key = "gcp-metrics-collector"
 		version         = "1.0.0"
 		# Note that the attribute casing is important here
@@ -160,7 +161,7 @@ func testAccCoralogixResourceIntegrationWithSensitiveData() string {
 			MetricPrefixes    = ["appengine.googleapis.com","cloudfunctions.googleapis.com","cloudkms.googleapis.com","cloudsql.googleapis.com","compute.googleapis.com","container.googleapis.com","datastream.googleapis.com","firestore.googleapis.com","loadbalancing.googleapis.com","network.googleapis.com","run.googleapis.com","storage.googleapis.com"]
 			ServiceAccountKey = "{\"type\": \"service_account\",\"project_id\": \"redacted\",\"private_key_id\": \"redacted\",\"private_key\": \"-----BEGIN PRIVATE KEY-----\\redacted\",\"client_email\": \"redacted@redacted.iam.gserviceaccount.com\",\"client_id\": \"redacted\",\"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\"token_uri\": \"https://oauth2.googleapis.com/token\",\"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/redacted%40assen-project.iam.gserviceaccount.com\",\"universe_domain\": \"googleapis.com\"}"
 		}
-	}`)
+	}`
 }
 
 func testAccCoralogixResourceIntegrationVariablesWithoutSensitiveData() string {
