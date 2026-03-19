@@ -81,7 +81,6 @@ func TestAccCoralogixResourceIntegrationWithVariablesWithoutSensitiveData(t *tes
 }
 
 func TestAccCoralogixResourceIntegrationWithSensitiveData(t *testing.T) {
-	t.Skip("Skipping: test requires valid GCP service account credentials")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -166,33 +165,33 @@ func testAccCoralogixResourceIntegrationWithSensitiveData() string {
 
 func testAccCoralogixResourceIntegrationVariablesWithoutSensitiveData() string {
 	return fmt.Sprintf(`resource "coralogix_integration" "variable_test" {
-integration_key = "%v"
-version = "0.1.0"
-# Note that the attribute casing is important here
-parameters = {
-	ApplicationName = "cxsdk"
-	SubsystemName = "%v"
-	MetricNamespaces = var.metrics_to_collect
-	AwsRoleArn = "%v"
-	IntegrationName = "sdk-integration-no-sensitive-data-setup"
-	AwsRegion = "eu-north-1"
-	WithAggregations = false
-	EnrichWithTags = true
-}
-}
+		integration_key = "%v"
+		version = "0.1.0"
+		# Note that the attribute casing is important here
+		parameters = {
+			ApplicationName = "cxsdk"
+			SubsystemName = "%v"
+			MetricNamespaces = var.metrics_to_collect
+			AwsRoleArn = "%v"
+			IntegrationName = "sdk-integration-no-sensitive-data-setup"
+			AwsRegion = "eu-north-1"
+			WithAggregations = false
+			EnrichWithTags = true
+		}
+	}
 
 
-variable "metrics_to_collect" {
-	description = "metric namespaces to collect"
-	type = list(string)
-	default = [
-	  "AWS/RDS",
-	  "AWS/SQS",
-	  "AWS/S3",
-	  "AWS/AmazonMQ",
-	  "AWS/Lambda",
-	  "AWS/Transfer"
-	]
-  }
+	variable "metrics_to_collect" {
+		description = "metric namespaces to collect"
+		type = list(string)
+		default = [
+		"AWS/RDS",
+		"AWS/SQS",
+		"AWS/S3",
+		"AWS/AmazonMQ",
+		"AWS/Lambda",
+		"AWS/Transfer"
+		]
+	}
 	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName, testRoleArn)
 }
