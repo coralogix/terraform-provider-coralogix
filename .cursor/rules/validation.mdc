@@ -1,28 +1,36 @@
 ---
-description: Validation patterns for Terraform provider resources
+description: Guidance for AI assistants working with validation in this Terraform provider
 globs: ["internal/provider/**/*.go"]
 ---
 
-# Validation in Terraform Provider
+# Validation Patterns for AI Assistants
 
-## Where Validation Is Done
+## Before Adding Validation
 
-- **Schema Validators**: Added to schema attributes in each resource/data source's `Schema()` method
-- **Custom Validators**: Reusable validators in `internal/utils/utils.go` (e.g., `UrlValidationFuncFramework`)
-- **Resource-level ValidateConfig**: Cross-field validation (e.g., TCO policies, SLO)
+When working in `internal/provider/`, always check for existing validation patterns first:
+
+1. **Search for similar validators** in nearby files before creating new ones
+2. **Check `internal/utils/utils.go`** for reusable custom validators (e.g., `UrlValidationFuncFramework`)
+3. **Follow existing conventions** in the same resource/data source file
+
+## Where Validation Lives
+
+- **Schema Validators**: In each resource/data source's `Schema()` method, on individual attributes
+- **Custom Validators**: `internal/utils/utils.go` — implement `validator.String` interface
+- **Resource-level ValidateConfig**: For cross-field validation (see TCO policies, SLO resources)
 
 ## Common Validators (terraform-plugin-framework-validators)
 
 | Validator | Purpose |
 |-----------|---------|
 | `stringvalidator.LengthAtLeast(1)` | Reject empty strings |
-| `stringvalidator.RegexMatches(regexp.MustCompile(\`\S\`), "...")` | Reject whitespace-only strings |
+| `stringvalidator.RegexMatches(regexp.MustCompile(...), "...")` (e.g. pattern matching `\S`) | Reject whitespace-only strings |
 | `stringvalidator.OneOf(...)` | Enum validation |
 | `stringvalidator.ExactlyOneOf(...)` | Mutually exclusive attributes |
 
-## Empty/Whitespace String Validation Pattern
+## Empty/Whitespace String Validation
 
-Always combine both validators when a string must have actual content:
+Combine both validators when a string must have actual content:
 
 ```go
 Validators: []validator.String{
@@ -33,3 +41,7 @@ Validators: []validator.String{
     ),
 }
 ```
+
+## Key Principle
+
+Do not introduce new validation helpers unless existing patterns are insufficient. Prefer inline validators using `terraform-plugin-framework-validators` over custom code.
