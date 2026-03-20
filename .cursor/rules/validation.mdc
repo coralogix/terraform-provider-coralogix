@@ -1,0 +1,35 @@
+---
+description: Validation patterns for Terraform provider resources
+globs: ["internal/provider/**/*.go"]
+---
+
+# Validation in Terraform Provider
+
+## Where Validation Is Done
+
+- **Schema Validators**: Added to schema attributes in each resource/data source's `Schema()` method
+- **Custom Validators**: Reusable validators in `internal/utils/utils.go` (e.g., `UrlValidationFuncFramework`)
+- **Resource-level ValidateConfig**: Cross-field validation (e.g., TCO policies, SLO)
+
+## Common Validators (terraform-plugin-framework-validators)
+
+| Validator | Purpose |
+|-----------|---------|
+| `stringvalidator.LengthAtLeast(1)` | Reject empty strings |
+| `stringvalidator.RegexMatches(regexp.MustCompile(\`\S\`), "...")` | Reject whitespace-only strings |
+| `stringvalidator.OneOf(...)` | Enum validation |
+| `stringvalidator.ExactlyOneOf(...)` | Mutually exclusive attributes |
+
+## Empty/Whitespace String Validation Pattern
+
+Always combine both validators when a string must have actual content:
+
+```go
+Validators: []validator.String{
+    stringvalidator.LengthAtLeast(1),
+    stringvalidator.RegexMatches(
+        regexp.MustCompile(`\S`),
+        "must not be empty or contain only whitespace",
+    ),
+}
+```
