@@ -78,11 +78,6 @@ func (d *WebhookDataSource) Schema(ctx context.Context, _ datasource.SchemaReque
 		idAttr.Optional = true
 		idAttr.Validators = []validator.String{
 			stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("name")),
-			stringvalidator.LengthAtLeast(1),
-			stringvalidator.RegexMatches(
-				regexp.MustCompile(`\S`),
-				"must not be empty or contain only whitespace",
-			),
 		}
 		resp.Schema.Attributes["id"] = idAttr
 	}
