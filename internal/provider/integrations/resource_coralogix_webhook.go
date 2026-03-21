@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -372,6 +373,13 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"name": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "Webhook name.",
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`\S`),
+						"must not be empty or contain only whitespace",
+					),
+				},
 			},
 			"custom": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
@@ -1153,6 +1161,15 @@ func expandDemisto(demisto *DemistoModel) *webhooks.OutgoingWebhookInputDataDemi
 }
 
 func flattenWebhook(ctx context.Context, webhook *webhooks.OutgoingWebhook) (*WebhookResourceModel, diag.Diagnostics) {
+	if webhook == nil {
+		return nil, diag.Diagnostics{
+			diag.NewErrorDiagnostic(
+				"Error flattening webhook",
+				"Received nil webhook from API",
+			),
+		}
+	}
+
 	result := &WebhookResourceModel{}
 
 	var diags diag.Diagnostics

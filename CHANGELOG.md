@@ -1209,3 +1209,8 @@ FIX:
 
 FIX:
 * Name attribute now accepts updates
+
+## data_source/coralogix_webhook
+
+FIX:
+* Nil pointer dereference panic when empty strings are passed for `id` or `name` attributes
