@@ -82,7 +82,7 @@ func TestAccCoralogixDataSourceWebhook_emptyID(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccCoralogixDataSourceWebhook_emptyID(),
-				ExpectError: regexp.MustCompile("Either 'id' or 'name' must be set to a non-empty value"),
+				ExpectError: regexp.MustCompile("string length must be at least 1|must not be empty or contain only whitespace"),
 			},
 		},
 	})
