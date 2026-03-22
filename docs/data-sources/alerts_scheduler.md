@@ -35,7 +35,7 @@ Read-Only:
 
 - `alerts_unique_ids` (Set of String)
 - `meta_labels` (Attributes Set) (see [below for nested schema](#nestedatt--filter--meta_labels))
-- `what_expression` (String) DataPrime query expression. - [DataPrime query language](https://coralogix.com/docs/dataprime-query-language/).
+- `what_expression` (String) A [DataPrime](https://coralogix.com/docs/dataprime-query-language/) expression that filters which **group-by values** to suppress within the selected alerts. The expression must start with `source logs | filter` (this syntax is required even for metric or tracing alerts - the filtering works on group-by values regardless of alert type). Use `"source logs | filter true"` to suppress all alert activity without filtering specific values. Use `"source logs | filter $d.fieldName == 'value'"` to suppress only when specific group-by values match. This field controls **what triggered values** to suppress, while `alerts_unique_ids` or `meta_labels` control **which alerts** the rule applies to.
 
 <a id="nestedatt--filter--meta_labels"></a>
 ### Nested Schema for `filter.meta_labels`
