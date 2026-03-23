@@ -1178,6 +1178,33 @@ Fix:
 * Don't send `maxUniqueCountPerGroupByKey` when optional field `max_unique_count_per_group_by_key` is not set in `logs_unique_count` alerts. Previously, the provider sent `"0"` causing API `400 Bad Request` errors.
 
 
+# Release 3.2.0
+
+#### resource/coralogix_recording_rules
+
+- FIX: Name attribute now accepts updates
+
+## data_source/coralogix_webhook
+
+- FIX: Nil pointer dereference panic when empty strings are passed for `id` or `name` attributes
+
+#### resource/coralogix_alert_scheduler
+
+- DOCS: Clarify what_expression field usage
+
+#### resource/coralogix_dashboard
+
+- FEAT: Support dataprime queries for dashboards
+
+#### resource/coralogix_alert
+
+- FIX: Repair 2 provider errors
+- FIX: Allow disabling Advanced Notification for webhooks by making notify_on and retriggering_period optional
+
+#### resource/coralogix_connector
+
+- FEAT: Support email and serviceNow connector types
+
 # Release 4.0.0
 
 ## resource/coralogix_enrichment, data_source/coralogix_enrichment
@@ -1203,14 +1230,4 @@ Feat:
 #### resource/coralogix_alerts_scheduler
 
 FIX:
-* "Invalid uuid" error during update operations 
-
-#### resource/coralogix_recording_rules
-
-FIX:
-* Name attribute now accepts updates
-
-## data_source/coralogix_webhook
-
-FIX:
-* Nil pointer dereference panic when empty strings are passed for `id` or `name` attributes
+* "Invalid uuid" error during update operations
