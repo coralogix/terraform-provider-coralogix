@@ -38,6 +38,42 @@ var (
 	validHostedDashboardTypes = []string{"grafana"}
 )
 
+// getHostedDashboardType determines the dashboard type from either the ID prefix
+// (for import operations) or the schema data (for normal CRUD operations).
+// During import, the schema is empty, so we extract the type from the ID (e.g., "grafana:uid").
+func getHostedDashboardType(d *schema.ResourceData) (string, error) {
+	// First, try to extract type from ID prefix (handles import case)
+	if id := d.Id(); id != "" && strings.Contains(id, ":") {
+		dashboardType := strings.Split(id, ":")[0]
+		for _, validType := range validHostedDashboardTypes {
+			if dashboardType == validType {
+				return dashboardType, nil
+			}
+		}
+	}
+
+	// Fall back to checking schema (for create/update operations)
+	result := From(validHostedDashboardTypes).FirstWith(func(key interface{}) bool {
+		schemaData := d.Get(key.(string)).([]interface{})
+		return len(schemaData) > 0
+	})
+	if result != nil {
+		return result.(string), nil
+	}
+
+	return "", fmt.Errorf("unable to determine hosted dashboard type from ID %q or schema", d.Id())
+}
+
+// getHostedDashboardSchema retrieves the schema data for the given dashboard type.
+// Returns nil if no schema data exists (e.g., during import before Read populates state).
+func getHostedDashboardSchema(d *schema.ResourceData, dashboardType string) map[string]interface{} {
+	schemaData := d.Get(dashboardType).([]interface{})
+	if len(schemaData) == 0 || schemaData[0] == nil {
+		return nil
+	}
+	return schemaData[0].(map[string]interface{})
+}
+
 func ResourceCoralogixHostedDashboard() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceHostedDashboardCreate,
@@ -63,11 +99,15 @@ func ResourceCoralogixHostedDashboard() *schema.Resource {
 }
 
 func resourceHostedDashboardCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	hostedDashboardTypeStr := From(validHostedDashboardTypes).FirstWith(func(key interface{}) bool {
-		return len(d.Get(key.(string)).([]interface{})) > 0
-	}).(string)
+	hostedDashboardTypeStr, err := getHostedDashboardType(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	hostedDashboardTypeSchema := d.Get(hostedDashboardTypeStr).([]interface{})[0].(map[string]interface{})
+	hostedDashboardTypeSchema := getHostedDashboardSchema(d, hostedDashboardTypeStr)
+	if hostedDashboardTypeSchema == nil {
+		return diag.Errorf("no configuration found for hosted dashboard type %q", hostedDashboardTypeStr)
+	}
 
 	switch hostedDashboardTypeStr {
 	case "grafana":
@@ -78,11 +118,13 @@ func resourceHostedDashboardCreate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceHostedDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	hostedDashboardTypeStr := From(validHostedDashboardTypes).FirstWith(func(key interface{}) bool {
-		return len(d.Get(key.(string)).([]interface{})) > 0
-	}).(string)
+	hostedDashboardTypeStr, err := getHostedDashboardType(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	hostedDashboardTypeSchema := d.Get(hostedDashboardTypeStr).([]interface{})[0].(map[string]interface{})
+	// During import, schema is empty - pass nil and let the read function handle it
+	hostedDashboardTypeSchema := getHostedDashboardSchema(d, hostedDashboardTypeStr)
 
 	switch hostedDashboardTypeStr {
 	case "grafana":
@@ -93,11 +135,15 @@ func resourceHostedDashboardRead(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourceHostedDashboardUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	hostedDashboardTypeStr := From(validHostedDashboardTypes).FirstWith(func(key interface{}) bool {
-		return len(d.Get(key.(string)).([]interface{})) > 0
-	}).(string)
+	hostedDashboardTypeStr, err := getHostedDashboardType(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	hostedDashboardTypeSchema := d.Get(hostedDashboardTypeStr).([]interface{})[0].(map[string]interface{})
+	hostedDashboardTypeSchema := getHostedDashboardSchema(d, hostedDashboardTypeStr)
+	if hostedDashboardTypeSchema == nil {
+		return diag.Errorf("no configuration found for hosted dashboard type %q", hostedDashboardTypeStr)
+	}
 
 	switch hostedDashboardTypeStr {
 	case "grafana":
@@ -108,9 +154,10 @@ func resourceHostedDashboardUpdate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceHostedDashboardDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	hostedDashboardTypeStr := From(validHostedDashboardTypes).FirstWith(func(key interface{}) bool {
-		return len(d.Get(key.(string)).([]interface{})) > 0
-	}).(string)
+	hostedDashboardTypeStr, err := getHostedDashboardType(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	switch hostedDashboardTypeStr {
 	case "grafana":
@@ -231,11 +278,14 @@ func resourceGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, m
 	hostedGrafanaNewSchema["url"] = strings.TrimRight(meta.(*clientset.ClientSet).Grafana().GetTargetURL(), "/") + dashboard.Meta.URL
 
 	// If the folder was originally set to a numeric ID, we read the folder ID
-	// Othwerwise, we read the folder UID
+	// Otherwise, we read the folder UID
+	// During import, hostedGrafanaSchema may be nil, so we check the state directly
 	var folderID string
-	m := d.Get("grafana").([]interface{})[0].(map[string]interface{})
-	if folder, ok := m["folder"]; ok && folder != nil {
-		_, folderID = SplitOrgResourceID(folder.(string))
+	if schemaData := d.Get("grafana").([]interface{}); len(schemaData) > 0 && schemaData[0] != nil {
+		m := schemaData[0].(map[string]interface{})
+		if folder, ok := m["folder"]; ok && folder != nil {
+			_, folderID = SplitOrgResourceID(folder.(string))
+		}
 	}
 	if idRegexp.MatchString(folderID) && dashboard.Meta.Folder > 0 {
 		hostedGrafanaNewSchema["folder"] = strconv.FormatInt(dashboard.Meta.Folder, 10)
@@ -252,7 +302,13 @@ func resourceGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	configJSON := hostedGrafanaSchema["config_json"].(string)
+	// Get config_json from schema if available (nil during import)
+	var configJSON string
+	if hostedGrafanaSchema != nil {
+		if cfg, ok := hostedGrafanaSchema["config_json"].(string); ok {
+			configJSON = cfg
+		}
+	}
 
 	// Skip if `uid` is not set in configuration, we need to delete it from the
 	// dashboard JSON we just read from the Grafana API. This is so it does not
