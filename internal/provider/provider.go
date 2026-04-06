@@ -72,6 +72,8 @@ var (
 		"US1":     "ng-api-grpc.coralogix.us:443",
 		"USA2":    "ng-api-grpc.cx498.coralogix.com:443",
 		"US2":     "ng-api-grpc.cx498.coralogix.com:443",
+		"CX510":   "ng-api-grpc.cx510.coralogix.com:443",
+		"CX520":   "ng-api-grpc.cx520.coralogix.com:443",
 	}
 	validEnvironmentAliases                   = utils.GetKeys(terraformEnvironmentAliasToGrpcUrl)
 	terraformEnvironmentAliasToSdkEnvironment = map[string]string{
@@ -89,6 +91,8 @@ var (
 		"US1":     "US1",
 		"USA2":    "US2",
 		"US2":     "US2",
+		"CX510":   "cx510.coralogix.com",
+		"CX520":   "cx520.coralogix.com",
 	}
 )
 

@@ -214,7 +214,11 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 
 	_, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
 	if !found {
-		url := cxsdkOpenapi.URLFromDomain(region)
+		openapiDomain := region
+		if !strings.HasPrefix(openapiDomain, "api.") {
+			openapiDomain = "api." + openapiDomain
+		}
+		url := cxsdkOpenapi.URLFromDomain(openapiDomain)
 		confBuilder.WithURL(url)
 	} else {
 		confBuilder.WithRegion(strings.ToLower(region))
