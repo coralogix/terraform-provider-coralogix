@@ -34,6 +34,7 @@ var envLongToShort = map[string]string{
 	"EUROPE2": "EU2",
 	"USA1":    "US1",
 	"USA2":    "US2",
+	"USA3":    "US3",
 }
 
 func main() {
