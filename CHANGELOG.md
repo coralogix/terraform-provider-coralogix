@@ -1205,6 +1205,16 @@ Fix:
 
 - FEAT: Support email and serviceNow connector types
 
+# Release 3.3.0
+
+#### provider
+
+- FEAT: Add support for US3 region
+
+#### resource/coralogix_hosted_dashboard
+
+- FIX: Resolve panic during terraform import
+
 # Release 4.0.0
 
 ## resource/coralogix_enrichment, data_source/coralogix_enrichment
