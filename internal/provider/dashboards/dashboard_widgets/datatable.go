@@ -192,7 +192,10 @@ func DataTableSchema() schema.Attribute {
 			},
 			"results_per_page": schema.Int64Attribute{
 				Required:            true,
-				MarkdownDescription: "The number of results to display per page.",
+				MarkdownDescription: "The number of results to display per page. Valid values are 10, 20, 50, or 100.",
+				Validators: []validator.Int64{
+					int64validator.OneOf(10, 20, 50, 100),
+				},
 			},
 			"row_style": schema.StringAttribute{
 				Required: true,
