@@ -120,7 +120,8 @@ type DurationModel struct {
 }
 
 type RecurringModel struct {
-	Dynamic types.Object `tfsdk:"dynamic"` //DynamicModel
+	Dynamic      types.Object `tfsdk:"dynamic"`       //DynamicModel
+	AlwaysActive types.Bool   `tfsdk:"always_active"` // Permanent suppression
 }
 
 type DynamicModel struct {
@@ -246,6 +247,10 @@ func (r *AlertsSchedulerResource) Schema(_ context.Context, _ resource.SchemaReq
 					},
 					"recurring": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
+							"always_active": schema.BoolAttribute{
+								Optional:            true,
+								MarkdownDescription: "When set to `true`, creates a permanent suppression rule that is always active. This is mutually exclusive with `dynamic`. When using `always_active = true`, no time frame or frequency configuration is needed.",
+							},
 							"dynamic": schema.SingleNestedAttribute{
 								Attributes: map[string]schema.Attribute{
 									"repeat_every": schema.Int64Attribute{
@@ -294,12 +299,19 @@ func (r *AlertsSchedulerResource) Schema(_ context.Context, _ resource.SchemaReq
 									},
 								},
 								Optional: true,
+								Validators: []validator.Object{
+									objectvalidator.ExactlyOneOf(
+										path.MatchRelative().AtParent().AtName("always_active"),
+										path.MatchRelative().AtParent().AtName("dynamic"),
+									),
+								},
 							},
 						},
 						Optional: true,
 						Validators: []validator.Object{
 							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("one_time")),
 						},
+						MarkdownDescription: "Recurring schedule configuration. Use `dynamic` for time-based recurring schedules, or `always_active = true` for permanent suppression rules.",
 					},
 				},
 				Required:            true,
@@ -738,8 +750,10 @@ func flattenRecurring(ctx context.Context, recurring *alertscheduler.Recurring) 
 			return types.ObjectNull(recurringModelAttr()), diags
 		}
 		recurringModel.Dynamic = dynamic
+		recurringModel.AlwaysActive = types.BoolNull()
 	} else if recurring.RecurringAlwaysActive != nil {
 		recurringModel.Dynamic = types.ObjectNull(dynamicModelAttr())
+		recurringModel.AlwaysActive = types.BoolValue(true)
 	} else {
 		return types.ObjectNull(recurringModelAttr()), nil
 	}
@@ -945,6 +959,7 @@ func durationModelAttr() map[string]attr.Type {
 
 func recurringModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
+		"always_active": types.BoolType,
 		"dynamic": types.ObjectType{
 			AttrTypes: dynamicModelAttr(),
 		},
@@ -1242,9 +1257,19 @@ func extractRecurring(ctx context.Context, recurring types.Object) (*alertschedu
 		}, nil
 	}
 
-	return &alertscheduler.Recurring{
-		RecurringAlwaysActive: &alertscheduler.RecurringAlwaysActive{},
-	}, nil
+	// Handle always_active - permanent suppression rule
+	if !recurringModel.AlwaysActive.IsNull() && !recurringModel.AlwaysActive.IsUnknown() && recurringModel.AlwaysActive.ValueBool() {
+		return &alertscheduler.Recurring{
+			RecurringAlwaysActive: &alertscheduler.RecurringAlwaysActive{
+				AlwaysActive: map[string]interface{}{},
+			},
+		}, nil
+	}
+
+	return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+		"Invalid recurring configuration",
+		"Exactly one of 'always_active = true' or 'dynamic' must be set in recurring schedule",
+	)}
 }
 
 func extractDynamic(ctx context.Context, dynamic types.Object) (*alertscheduler.RecurringDynamic, diag.Diagnostics) {

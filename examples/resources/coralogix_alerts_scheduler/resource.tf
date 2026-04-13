@@ -112,3 +112,40 @@ resource "coralogix_alerts_scheduler" "recurring_suppression" {
     }
   }
 }
+
+# Example 5: Permanent (always active) suppression rule
+resource "coralogix_alerts_scheduler" "permanent_suppression" {
+  name        = "Permanent Suppression - Test Environment"
+  description = "Permanently suppress alerts for test environment"
+  filter = {
+    what_expression = "source logs | filter $d.environment == 'test'"
+    meta_labels = [
+      {
+        key   = "severity"
+        value = "low"
+      }
+    ]
+  }
+  schedule = {
+    operation = "mute"
+    recurring = {
+      always_active = true
+    }
+  }
+}
+
+# Example 6: Permanent suppression for specific alerts
+resource "coralogix_alerts_scheduler" "permanent_alert_suppression" {
+  name        = "Permanent Alert Mute"
+  description = "Permanently mute specific alerts"
+  filter = {
+    what_expression   = "source logs | filter true"
+    alerts_unique_ids = ["ed6f3713-d827-49a2-9bb6-a8dba8b8c580"]
+  }
+  schedule = {
+    operation = "mute"
+    recurring = {
+      always_active = true
+    }
+  }
+}

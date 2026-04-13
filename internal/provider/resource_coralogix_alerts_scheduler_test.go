@@ -192,3 +192,45 @@ func testAccCoralogixResourceAlertsSchedulerAllAlerts() string {
 }
 `
 }
+
+func TestAccCoralogixResourceResourceAlertsSchedulerAlwaysActive(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		CheckDestroy:             testAccCheckAlertsSchedulerDestroy,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertsSchedulerAlwaysActive(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "name", "permanent-suppression"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "filter.what_expression", "source logs | filter true"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.operation", "mute"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.always_active", "true"),
+					resource.TestCheckNoResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic"),
+				),
+			},
+			{
+				ResourceName:      alertsSchedulerResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertsSchedulerAlwaysActive() string {
+	return `resource "coralogix_alerts_scheduler" "test" {
+  name        = "permanent-suppression"
+  description = "Permanent suppression rule - always active"
+  filter = {
+    what_expression = "source logs | filter true"
+  }
+  schedule = {
+    operation = "mute"
+    recurring = {
+      always_active = true
+    }
+  }
+}
+`
+}

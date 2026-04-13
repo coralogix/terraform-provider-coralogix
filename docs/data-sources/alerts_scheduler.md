@@ -63,7 +63,7 @@ Read-Only:
 
 - `one_time` (Attributes) (see [below for nested schema](#nestedatt--schedule--one_time))
 - `operation` (String) The operation to perform. Can be `mute` or `active`.
-- `recurring` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring))
+- `recurring` (Attributes) Recurring schedule configuration. Use `dynamic` for time-based recurring schedules, or `always_active = true` for permanent suppression rules. (see [below for nested schema](#nestedatt--schedule--recurring))
 
 <a id="nestedatt--schedule--one_time"></a>
 ### Nested Schema for `schedule.one_time`
@@ -98,6 +98,7 @@ Read-Only:
 
 Read-Only:
 
+- `always_active` (Boolean) When set to `true`, creates a permanent suppression rule that is always active. This is mutually exclusive with `dynamic`. When using `always_active = true`, no time frame or frequency configuration is needed.
 - `dynamic` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic))
 
 <a id="nestedatt--schedule--recurring--dynamic"></a>
