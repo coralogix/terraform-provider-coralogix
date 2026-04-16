@@ -44,13 +44,13 @@ import (
 var (
 	_                              resource.ResourceWithConfigure   = &PresetResource{}
 	_                              resource.ResourceWithImportState = &PresetResource{}
-	presetConnectorTypeSchemaToApi                                  = map[string]presets.ConnectorType{
-		utils.UNSPECIFIED: presets.CONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
-		"slack":           presets.CONNECTORTYPE_SLACK,
-		"generic_https":   presets.CONNECTORTYPE_GENERIC_HTTPS,
-		"pagerduty":       presets.CONNECTORTYPE_PAGERDUTY,
-		"service_now":     presets.CONNECTORTYPE_SERVICE_NOW,
-		"email":           presets.CONNECTORTYPE_EMAIL,
+	presetConnectorTypeSchemaToApi                                  = map[string]presets.NotificationCenterConnectorType{
+		utils.UNSPECIFIED: presets.NOTIFICATIONCENTERCONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
+		"slack":           presets.NOTIFICATIONCENTERCONNECTORTYPE_SLACK,
+		"generic_https":   presets.NOTIFICATIONCENTERCONNECTORTYPE_GENERIC_HTTPS,
+		"pagerduty":       presets.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY,
+		"service_now":     presets.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
+		"email":           presets.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
 	}
 	presetConnectorTypeApiToSchema = utils.ReverseMap(presetConnectorTypeSchemaToApi)
 	validConnectorTypes            = utils.GetKeys(presetConnectorTypeSchemaToApi)
@@ -463,7 +463,7 @@ func extractConditionType(ctx context.Context, conditionType types.Object) (*pre
 		}
 		return &presets.NotificationCenterConditionType{
 			NotificationCenterConditionTypeMatchEntityTypeAndSubType: &presets.NotificationCenterConditionTypeMatchEntityTypeAndSubType{
-				MatchEntityTypeAndSubType: &presets.MatchEntityTypeAndSubTypeCondition{
+				MatchEntityTypeAndSubType: presets.MatchEntityTypeAndSubTypeCondition{
 					EntitySubType: matchEntityTypeAndSubTypeModel.EntitySubType.ValueStringPointer(),
 				},
 			},

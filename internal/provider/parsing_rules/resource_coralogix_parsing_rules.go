@@ -537,7 +537,7 @@ func extractRuleMatchers(apps []types.String, subs []types.String, sevs []types.
 	for i, a := range apps {
 		ruleMatchers[i] = prgs.RuleMatcher{
 			RuleMatcherApplicationName: &prgs.RuleMatcherApplicationName{
-				ApplicationName: &prgs.ApplicationNameConstraint{Value: a.ValueStringPointer()},
+				ApplicationName: prgs.ApplicationNameConstraint{Value: a.ValueStringPointer()},
 			},
 		}
 	}
@@ -545,7 +545,7 @@ func extractRuleMatchers(apps []types.String, subs []types.String, sevs []types.
 	for i, s := range subs {
 		ruleMatchers[len(apps)+i] = prgs.RuleMatcher{
 			RuleMatcherSubsystemName: &prgs.RuleMatcherSubsystemName{
-				SubsystemName: &prgs.SubsystemNameConstraint{Value: s.ValueStringPointer()},
+				SubsystemName: prgs.SubsystemNameConstraint{Value: s.ValueStringPointer()},
 			},
 		}
 	}
@@ -555,7 +555,7 @@ func extractRuleMatchers(apps []types.String, subs []types.String, sevs []types.
 			val := rulesSchemaSeverityToApiSeverity[s.ValueString()]
 			ruleMatchers[len(apps)+len(subs)+i] = prgs.RuleMatcher{
 				RuleMatcherSeverity: &prgs.RuleMatcherSeverity{
-					Severity: &prgs.SeverityConstraint{Value: &val},
+					Severity: prgs.SeverityConstraint{Value: &val},
 				},
 			}
 		}
@@ -780,7 +780,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 				if r.BlockMatchingLogs.ValueBool() {
 					params = prgs.RuleParameters{
 						RuleParametersBlockParameters: &prgs.RuleParametersBlockParameters{
-							BlockParameters: &prgs.BlockParameters{
+							BlockParameters: prgs.BlockParameters{
 								KeepBlockedLogs: r.KeepBlockedLogs.ValueBoolPointer(),
 								Rule:            r.RegularExpression.ValueStringPointer(),
 							},
@@ -789,7 +789,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 				} else {
 					params = prgs.RuleParameters{
 						RuleParametersAllowParameters: &prgs.RuleParametersAllowParameters{
-							AllowParameters: &prgs.AllowParameters{
+							AllowParameters: prgs.AllowParameters{
 								KeepBlockedLogs: r.KeepBlockedLogs.ValueBoolPointer(),
 								Rule:            r.RegularExpression.ValueStringPointer(),
 							},
@@ -816,7 +816,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					SourceField: &defaultSourceFieldName,
 					Parameters: &prgs.RuleParameters{
 						RuleParametersJsonExtractParameters: &prgs.RuleParametersJsonExtractParameters{
-							JsonExtractParameters: &prgs.JsonExtractParameters{
+							JsonExtractParameters: prgs.JsonExtractParameters{
 								DestinationFieldText: r.DestinationFieldText.ValueStringPointer(),
 								DestinationFieldType: &destinationField,
 								Rule:                 r.JsonKey.ValueStringPointer(),
@@ -834,7 +834,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
 						RuleParametersReplaceParameters: &prgs.RuleParametersReplaceParameters{
-							ReplaceParameters: &prgs.ReplaceParameters{
+							ReplaceParameters: prgs.ReplaceParameters{
 								DestinationField: r.DestinationField.ValueStringPointer(),
 								ReplaceNewVal:    r.ReplacementString.ValueStringPointer(),
 								Rule:             r.RegularExpression.ValueStringPointer(),
@@ -854,7 +854,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
 						RuleParametersExtractTimestampParameters: &prgs.RuleParametersExtractTimestampParameters{
-							ExtractTimestampParameters: &prgs.ExtractTimestampParameters{
+							ExtractTimestampParameters: prgs.ExtractTimestampParameters{
 								Format:   r.TimeFormat.ValueStringPointer(),
 								Standard: &fmtStd,
 							},
@@ -872,7 +872,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					SourceField: &defaultSourceFieldName,
 					Parameters: &prgs.RuleParameters{
 						RuleParametersRemoveFieldsParameters: &prgs.RuleParametersRemoveFieldsParameters{
-							RemoveFieldsParameters: &prgs.RemoveFieldsParameters{
+							RemoveFieldsParameters: prgs.RemoveFieldsParameters{
 								Fields: utils.TypeStringSliceToStringSlice(r.ExcludedFields),
 							},
 						},
@@ -890,7 +890,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
 						RuleParametersJsonStringifyParameters: &prgs.RuleParametersJsonStringifyParameters{
-							JsonStringifyParameters: &prgs.JsonStringifyParameters{
+							JsonStringifyParameters: prgs.JsonStringifyParameters{
 								DeleteSource:     &deleteSource,
 								DestinationField: r.DestinationField.ValueStringPointer(),
 							},
@@ -908,7 +908,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
 						RuleParametersExtractParameters: &prgs.RuleParametersExtractParameters{
-							ExtractParameters: &prgs.ExtractParameters{
+							ExtractParameters: prgs.ExtractParameters{
 								Rule: r.RegularExpression.ValueStringPointer(),
 							},
 						},
@@ -928,7 +928,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
 						RuleParametersJsonParseParameters: &prgs.RuleParametersJsonParseParameters{
-							JsonParseParameters: &prgs.JsonParseParameters{
+							JsonParseParameters: prgs.JsonParseParameters{
 								DeleteSource:     &deleteSource,
 								DestinationField: r.DestinationField.ValueStringPointer(),
 								EscapedValue:     &escapeValue,
@@ -948,7 +948,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
 						RuleParametersParseParameters: &prgs.RuleParametersParseParameters{
-							ParseParameters: &prgs.ParseParameters{
+							ParseParameters: prgs.ParseParameters{
 								DestinationField: r.DestinationField.ValueStringPointer(),
 								Rule:             r.RegularExpression.ValueStringPointer(),
 							},

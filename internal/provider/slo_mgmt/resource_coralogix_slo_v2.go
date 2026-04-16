@@ -287,12 +287,12 @@ func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics = diags
 		return
 	}
-	rq := slos.SlosServiceReplaceSloRequest{
+	rq := slos.SlosServiceCreateSloRequest{
 		SloRequestBasedMetricSli: slo.SloRequestBasedMetricSli,
 		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
 	}
 
-	result, httpResponse, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceReplaceSloRequest(rq).Execute()
+	result, httpResponse, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceCreateSloRequest(rq).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating coralogix_slo_v2",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
@@ -487,7 +487,7 @@ func extractRequestBasedSLI(ctx context.Context, id *string, labels *map[string]
 	}
 
 	return &slos.SloRequestBasedMetricSli{
-		RequestBasedMetricSli: &slos.RequestBasedMetricSli{
+		RequestBasedMetricSli: slos.RequestBasedMetricSli{
 			GoodEvents: &slos.Metric{
 				Query: goodModel.Query.ValueStringPointer(),
 			},
@@ -518,7 +518,7 @@ func extractWindowBasedSLI(ctx context.Context, id *string, labels *map[string]s
 	}
 
 	return &slos.SloWindowBasedMetricSli{
-		WindowBasedMetricSli: &slos.WindowBasedMetricSli{
+		WindowBasedMetricSli: slos.WindowBasedMetricSli{
 			Query: &slos.Metric{
 				Query: queryModel.Query.ValueStringPointer(),
 			},

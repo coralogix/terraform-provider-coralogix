@@ -615,7 +615,7 @@ func extractCustomEnrichmentsDataCreate(plan *DataEnrichmentsModel) *cess.Create
 			File: cess.FileTextualAsFile(&cess.FileTextual{
 				Extension: &ext,
 				Name:      plan.Custom.CustomEnrichmentDataModel.Name.ValueStringPointer(),
-				Textual:   plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer(),
+				Textual:   plan.Custom.CustomEnrichmentDataModel.Contents.ValueString(),
 			}),
 		}
 	}
@@ -633,7 +633,7 @@ func extractCustomEnrichmentsDataUpdate(plan *DataEnrichmentsModel) *cess.Update
 				FileTextual: &cess.FileTextual{
 					Extension: &ext,
 					Name:      plan.Custom.CustomEnrichmentDataModel.Name.ValueStringPointer(),
-					Textual:   plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer(),
+					Textual:   plan.Custom.CustomEnrichmentDataModel.Contents.ValueString(),
 				},
 			},
 		}
@@ -648,7 +648,7 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 		for _, f := range plan.Aws.Fields {
 			enrichmentType := ess.EnrichmentType{
 				EnrichmentTypeAws: &ess.EnrichmentTypeAws{
-					Aws: &ess.AwsType{
+					Aws: ess.AwsType{
 						ResourceType: f.Resource.ValueStringPointer(),
 					},
 				},
@@ -665,7 +665,7 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 	if plan.GeoIp != nil {
 		enrichmentType := ess.EnrichmentType{
 			EnrichmentTypeGeoIp: &ess.EnrichmentTypeGeoIp{
-				GeoIp: ess.NewGeoIpType(),
+				GeoIp: *ess.NewGeoIpType(),
 			},
 		}
 		for _, f := range plan.GeoIp.Fields {
@@ -703,7 +703,7 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 
 			enrichmentType := ess.EnrichmentType{
 				EnrichmentTypeCustomEnrichment: &ess.EnrichmentTypeCustomEnrichment{
-					CustomEnrichment: &ess.CustomEnrichmentType{
+					CustomEnrichment: ess.CustomEnrichmentType{
 						Id: id,
 					},
 				},

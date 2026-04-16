@@ -717,7 +717,7 @@ func flattenSchedule(ctx context.Context, schedule *alertscheduler.Schedule) (ty
 	var scheduleModel ScheduleModel
 	if schedule.ScheduleOneTime != nil {
 		scheduleModel.Operation = types.StringValue(protoToSchemaScheduleOperation[schedule.ScheduleOneTime.GetScheduleOperation()])
-		oneTime, diags := flattenOneTime(ctx, schedule.ScheduleOneTime.OneTime)
+		oneTime, diags := flattenOneTime(ctx, &schedule.ScheduleOneTime.OneTime)
 		if diags.HasError() {
 			return types.ObjectNull(scheduleModelAttr()), diags
 		}
@@ -725,7 +725,7 @@ func flattenSchedule(ctx context.Context, schedule *alertscheduler.Schedule) (ty
 		scheduleModel.Recurring = types.ObjectNull(recurringModelAttr())
 	} else if schedule.ScheduleRecurring != nil {
 		scheduleModel.Operation = types.StringValue(protoToSchemaScheduleOperation[schedule.ScheduleRecurring.GetScheduleOperation()])
-		recurring, diags := flattenRecurring(ctx, schedule.ScheduleRecurring.Recurring)
+		recurring, diags := flattenRecurring(ctx, &schedule.ScheduleRecurring.Recurring)
 		if diags.HasError() {
 			return types.ObjectNull(scheduleModelAttr()), diags
 		}
@@ -745,7 +745,7 @@ func flattenRecurring(ctx context.Context, recurring *alertscheduler.Recurring) 
 
 	var recurringModel RecurringModel
 	if recurring.RecurringSchedule != nil {
-		dynamic, diags := flattenDynamic(ctx, recurring.RecurringSchedule.Schedule)
+		dynamic, diags := flattenDynamic(ctx, &recurring.RecurringSchedule.Schedule)
 		if diags.HasError() {
 			return types.ObjectNull(recurringModelAttr()), diags
 		}
@@ -821,7 +821,7 @@ func flattenFrequency(ctx context.Context, dynamic *alertscheduler.RecurringDyna
 		frequencyModel.Weekly = types.ObjectNull(weeklyModelAttr())
 		frequencyModel.Monthly = types.ObjectNull(monthlyModelAttr())
 	} else if dynamic.RecurringDynamicWeekly != nil {
-		weekly, diags := flattenWeekly(ctx, dynamic.RecurringDynamicWeekly.Weekly)
+		weekly, diags := flattenWeekly(ctx, &dynamic.RecurringDynamicWeekly.Weekly)
 		if diags.HasError() {
 			return types.ObjectNull(frequencyModelAttr()), diags
 		}
@@ -829,7 +829,7 @@ func flattenFrequency(ctx context.Context, dynamic *alertscheduler.RecurringDyna
 		frequencyModel.Daily = types.ObjectNull(map[string]attr.Type{})
 		frequencyModel.Monthly = types.ObjectNull(monthlyModelAttr())
 	} else if dynamic.RecurringDynamicMonthly != nil {
-		monthly, diags := flattenMonthly(ctx, dynamic.RecurringDynamicMonthly.Monthly)
+		monthly, diags := flattenMonthly(ctx, &dynamic.RecurringDynamicMonthly.Monthly)
 		if diags.HasError() {
 			return types.ObjectNull(frequencyModelAttr()), diags
 		}
@@ -905,7 +905,7 @@ func flattenAlertsSchedulerTimeFrame(ctx context.Context, timeFrame *alertschedu
 		timeFrameModel.StartTime = types.StringValue(normalizeStartTimeFromAPI(timeFrame.TimeframeDuration.GetStartTime()))
 		timeFrameModel.TimeZone = types.StringValue(timeFrame.TimeframeDuration.GetTimezone())
 		var diags diag.Diagnostics
-		timeFrameModel.Duration, diags = flattenAlertsSchedulerDuration(ctx, timeFrame.TimeframeDuration.Duration)
+		timeFrameModel.Duration, diags = flattenAlertsSchedulerDuration(ctx, &timeFrame.TimeframeDuration.Duration)
 		if diags.HasError() {
 			return types.ObjectNull(timeFrameModelAttr()), diags
 		}
@@ -1089,7 +1089,7 @@ func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.Al
 		return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
 			AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
 				WhatExpression: alertscheduler.PtrString(whatExpression),
-				AlertUniqueIds: &alertscheduler.AlertUniqueIds{
+				AlertUniqueIds: alertscheduler.AlertUniqueIds{
 					Value: ids,
 				},
 			},
@@ -1102,7 +1102,7 @@ func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.Al
 		return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
 			AlertSchedulerRuleProtobufV1FilterAlertMetaLabels: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertMetaLabels{
 				WhatExpression: alertscheduler.PtrString(whatExpression),
-				AlertMetaLabels: &alertscheduler.MetaLabels{
+				AlertMetaLabels: alertscheduler.MetaLabels{
 					Value: metaLabels,
 				},
 			},
@@ -1112,7 +1112,7 @@ func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.Al
 	return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
 		AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
 			WhatExpression: alertscheduler.PtrString(whatExpression),
-			AlertUniqueIds: &alertscheduler.AlertUniqueIds{
+			AlertUniqueIds: alertscheduler.AlertUniqueIds{
 				Value: nil,
 			},
 		},
@@ -1138,7 +1138,7 @@ func extractSchedule(ctx context.Context, schedule types.Object) (*alertschedule
 		}
 		return &alertscheduler.Schedule{
 			ScheduleOneTime: &alertscheduler.ScheduleOneTime{
-				OneTime:           oneTime,
+				OneTime:           *oneTime,
 				ScheduleOperation: &operation,
 			},
 		}, nil
@@ -1149,7 +1149,7 @@ func extractSchedule(ctx context.Context, schedule types.Object) (*alertschedule
 		}
 		return &alertscheduler.Schedule{
 			ScheduleRecurring: &alertscheduler.ScheduleRecurring{
-				Recurring:         recurring,
+				Recurring:         *recurring,
 				ScheduleOperation: &operation,
 			},
 		}, nil
@@ -1204,7 +1204,7 @@ func extractTimeFrame(ctx context.Context, timeFrame types.Object) (*alertschedu
 			TimeframeDuration: &alertscheduler.TimeframeDuration{
 				StartTime: alertscheduler.PtrString(startTime),
 				Timezone:  alertscheduler.PtrString(timezone),
-				Duration:  duration,
+				Duration:  *duration,
 			},
 		}, nil
 	} else if !(timeFrameModel.EndTime.IsNull() || timeFrameModel.EndTime.IsUnknown()) {
@@ -1212,7 +1212,7 @@ func extractTimeFrame(ctx context.Context, timeFrame types.Object) (*alertschedu
 			TimeframeEndTime: &alertscheduler.TimeframeEndTime{
 				StartTime: alertscheduler.PtrString(startTime),
 				Timezone:  alertscheduler.PtrString(timezone),
-				EndTime:   alertscheduler.PtrString(timeFrameModel.EndTime.ValueString()),
+				EndTime:   timeFrameModel.EndTime.ValueString(),
 			},
 		}, nil
 	}
@@ -1252,7 +1252,7 @@ func extractRecurring(ctx context.Context, recurring types.Object) (*alertschedu
 		}
 		return &alertscheduler.Recurring{
 			RecurringSchedule: &alertscheduler.RecurringSchedule{
-				Schedule: dynamic,
+				Schedule: *dynamic,
 			},
 		}, nil
 	}
@@ -1325,7 +1325,7 @@ func expandFrequency(ctx context.Context, frequency types.Object, timeFrame *ale
 
 		return &alertscheduler.RecurringDynamic{
 			RecurringDynamicWeekly: &alertscheduler.RecurringDynamicWeekly{
-				Weekly: &alertscheduler.Weekly{
+				Weekly: alertscheduler.Weekly{
 					DaysOfWeek: daysValues,
 				},
 				Timeframe:       timeFrame,
@@ -1346,7 +1346,7 @@ func expandFrequency(ctx context.Context, frequency types.Object, timeFrame *ale
 
 		return &alertscheduler.RecurringDynamic{
 			RecurringDynamicMonthly: &alertscheduler.RecurringDynamicMonthly{
-				Monthly: &alertscheduler.Monthly{
+				Monthly: alertscheduler.Monthly{
 					DaysOfMonth: days,
 				},
 				Timeframe:       timeFrame,

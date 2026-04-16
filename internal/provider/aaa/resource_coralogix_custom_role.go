@@ -293,7 +293,7 @@ func extractCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) 
 	return &roless.RoleManagementServiceCreateRoleRequest{
 
 		CreateRoleRequestParentRoleName: &roless.CreateRoleRequestParentRoleName{
-			ParentRoleName: roleModel.ParentRole.ValueStringPointer(),
+			ParentRoleName: roleModel.ParentRole.ValueString(),
 			Name:           roleModel.Name.ValueStringPointer(),
 			Description:    roleModel.Description.ValueStringPointer(),
 			Permissions:    permissions,
