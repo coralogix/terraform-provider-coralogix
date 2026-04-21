@@ -214,8 +214,18 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 
 	_, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
 	if !found {
-		url := cxsdkOpenapi.URLFromDomain(region)
-		confBuilder.WithURL(url)
+		// Custom-domain (BYOC) tenants: the OpenAPI management endpoint is always
+		// served at api.<CX_ID>.coralogix.com, independent of how the user wrote
+		// the `domain` (with or without the `api.` prefix). Normalize to the bare
+		// base host and build the canonical URL so both inputs work seamlessly
+		// alongside the legacy SCIM/gRPC clients (see CDS-2851).
+		base, err := NormalizeBaseHost(region)
+		if err != nil {
+			slog.Error("invalid Coralogix domain", "domain", region, "error", err)
+			confBuilder.WithURL(cxsdkOpenapi.URLFromDomain(region))
+		} else {
+			confBuilder.WithURL("https://api." + base + "/mgmt/openapi/4")
+		}
 	} else {
 		confBuilder.WithRegion(strings.ToLower(region))
 	}
