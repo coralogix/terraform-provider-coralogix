@@ -19,19 +19,8 @@ import (
 	"strings"
 )
 
-// NormalizeBaseHost returns the bare tenant host for a Coralogix `domain` input,
-// independent of whether the caller supplied an `api.` prefix, a scheme, or a
-// trailing slash. It is intended for BYOC / custom-domain deployments where the
-// same tenant is reachable via multiple hostnames that all share a common base
-// (for example `factset.coralogix.com`, `api.factset.coralogix.com`,
-// `ng-api-http.factset.coralogix.com`).
-//
-// Examples:
-//
-//	"factset.coralogix.com"              -> "factset.coralogix.com"
-//	"api.factset.coralogix.com"          -> "factset.coralogix.com"
-//	"https://api.factset.coralogix.com/" -> "factset.coralogix.com"
-//	"API.FACTSET.coralogix.com"          -> "factset.coralogix.com"
+// NormalizeBaseHost returns the bare tenant host from a Coralogix `domain`
+// input, stripping any scheme, path, port and a leading `api.` prefix.
 func NormalizeBaseHost(raw string) (string, error) {
 	host := strings.TrimSpace(raw)
 	if host == "" {
