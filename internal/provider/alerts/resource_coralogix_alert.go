@@ -363,7 +363,7 @@ func extractNotificationGroup(ctx context.Context, notificationGroupObject types
 
 func extractWebhooksSettings(ctx context.Context, webhooksSettings types.Set) ([]alerts.AlertDefWebhooksSettings, diag.Diagnostics) {
 	if webhooksSettings.IsNull() || webhooksSettings.IsUnknown() {
-		return nil, nil
+		return []alerts.AlertDefWebhooksSettings{}, nil
 	}
 
 	var webhooksSettingsObject []types.Object

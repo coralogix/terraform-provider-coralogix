@@ -354,6 +354,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.0.condition.time_window", "2_HOURS"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.0.condition.condition_type", "LESS_THAN"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.notify_on", "Triggered and Resolved"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "0"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
@@ -3576,4 +3577,144 @@ resource "coralogix_alert" "slo_alert_burn_rate" {
   }
 }
 `, sloName, alertName)
+}
+
+// TestAccCoralogixResourceAlert_webhooks_settings_deletion verifies BUGV2-5323:
+// when transitioning from webhooks_settings to router (or no notification group),
+// the provider must clear the webhooks from the API rather than silently preserving them.
+func TestAccCoralogixResourceAlert_webhooks_settings_deletion(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertWebhooksSettingsWithWebhooks(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "bugv2-5323-webhook-to-router"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
+						map[string]string{
+							"recipients.#": "1",
+							"recipients.0": "test@coralogix.com",
+						},
+					),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertWebhooksSettingsWithRouter(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "bugv2-5323-webhook-to-router"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.notify_on", "Triggered Only"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertWebhooksSettingsNoNotifications(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "bugv2-5323-webhook-to-router"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertWebhooksSettingsWithWebhooks() string {
+	return `resource "coralogix_alert" "test" {
+  name     = "bugv2-5323-webhook-to-router"
+  priority = "P3"
+
+  notification_group = {
+    webhooks_settings = [
+      {
+        notify_on  = "Triggered Only"
+        recipients = ["test@coralogix.com"]
+      }
+    ]
+  }
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(increase(calls_total{}[2m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 1000
+          for_over_pct   = 100
+          of_the_last    = "5m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+        override = { priority = "P3" }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertWebhooksSettingsWithRouter() string {
+	return `resource "coralogix_alert" "test" {
+  name     = "bugv2-5323-webhook-to-router"
+  priority = "P3"
+
+  notification_group = {
+    router = {
+      notify_on = "Triggered Only"
+    }
+  }
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(increase(calls_total{}[2m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 1000
+          for_over_pct   = 100
+          of_the_last    = "5m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+        override = { priority = "P3" }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertWebhooksSettingsNoNotifications() string {
+	return `resource "coralogix_alert" "test" {
+  name     = "bugv2-5323-webhook-to-router"
+  priority = "P3"
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(increase(calls_total{}[2m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 1000
+          for_over_pct   = 100
+          of_the_last    = "5m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+        override = { priority = "P3" }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
+`
 }
