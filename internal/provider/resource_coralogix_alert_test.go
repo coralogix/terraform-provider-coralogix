@@ -3628,6 +3628,9 @@ func testAccCoralogixResourceAlertWebhooksSettingsWithWebhooks() string {
   notification_group = {
     webhooks_settings = [
       {
+        retriggering_period = {
+          minutes = 1
+        }
         notify_on  = "Triggered Only"
         recipients = ["test@coralogix.com"]
       }
