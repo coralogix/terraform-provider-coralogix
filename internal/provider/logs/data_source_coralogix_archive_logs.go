@@ -91,7 +91,7 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 		}
 		return
 	}
-	data = flattenArchiveLogs(result.Target.TargetS3, id)
+	data = flattenArchiveLogs(result.Target.V2TargetS3, id)
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

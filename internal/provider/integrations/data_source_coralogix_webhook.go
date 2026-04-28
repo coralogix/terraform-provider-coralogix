@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -77,6 +78,11 @@ func (d *WebhookDataSource) Schema(ctx context.Context, _ datasource.SchemaReque
 		idAttr.Optional = true
 		idAttr.Validators = []validator.String{
 			stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("name")),
+			stringvalidator.LengthAtLeast(1),
+			stringvalidator.RegexMatches(
+				regexp.MustCompile(`\S`),
+				"must not be empty or contain only whitespace",
+			),
 		}
 		resp.Schema.Attributes["id"] = idAttr
 	}
@@ -84,6 +90,13 @@ func (d *WebhookDataSource) Schema(ctx context.Context, _ datasource.SchemaReque
 	if nameAttr, ok := resp.Schema.Attributes["name"].(schema.StringAttribute); ok {
 		nameAttr.Required = false
 		nameAttr.Optional = true
+		nameAttr.Validators = []validator.String{
+			stringvalidator.LengthAtLeast(1),
+			stringvalidator.RegexMatches(
+				regexp.MustCompile(`\S`),
+				"must not be empty or contain only whitespace",
+			),
+		}
 		resp.Schema.Attributes["name"] = nameAttr
 	}
 }
@@ -149,7 +162,22 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		if err != nil {
 			return
 		}
+	} else {
+		resp.Diagnostics.AddError(
+			"Invalid Configuration",
+			"Either 'id' or 'name' must be set to a non-empty value",
+		)
+		return
 	}
+
+	if result == nil || result.Webhook == nil {
+		resp.Diagnostics.AddError(
+			"Error reading Webhook",
+			"Received nil response from API",
+		)
+		return
+	}
+
 	data, diags := flattenWebhook(ctx, result.Webhook)
 	if diags.HasError() {
 		resp.Diagnostics = diags
@@ -165,7 +193,7 @@ func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, res
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_webhook %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),

@@ -15,6 +15,7 @@
 package provider
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -59,6 +60,45 @@ func testAccCoralogixDataSourceWebhook_readByID() string {
 func testAccCoralogixDataSourceWebhook_readByName() string {
 	return `data "coralogix_webhook" "test_by_name" {
 	name = coralogix_webhook.test.name
+}
+`
+}
+
+func TestAccCoralogixDataSourceWebhook_emptyIDAndName(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixDataSourceWebhook_emptyIDAndName(),
+				ExpectError: regexp.MustCompile("Either 'id' or 'name' must be set to a non-empty value|Invalid Attribute Combination"),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixDataSourceWebhook_emptyID(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixDataSourceWebhook_emptyID(),
+				ExpectError: regexp.MustCompile("string length must be at least 1|must not be empty or contain only whitespace"),
+			},
+		},
+	})
+}
+
+func testAccCoralogixDataSourceWebhook_emptyIDAndName() string {
+	return `data "coralogix_webhook" "test" {
+	id   = ""
+	name = ""
+}
+`
+}
+
+func testAccCoralogixDataSourceWebhook_emptyID() string {
+	return `data "coralogix_webhook" "test" {
+	id = ""
 }
 `
 }

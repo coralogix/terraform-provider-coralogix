@@ -535,14 +535,14 @@ func extractOwner(keyModel *ApiKeyModel) (apiKeys.Owner, diag.Diagnostics) {
 	if keyModel.Owner.UserId.ValueString() != "" {
 		return apiKeys.Owner{
 			OwnerUserId: &apiKeys.OwnerUserId{
-				UserId: keyModel.Owner.UserId.ValueStringPointer(),
+				UserId: keyModel.Owner.UserId.ValueString(),
 			},
 		}, diags
 	} else {
 		if keyModel.Owner.OrganisationId.ValueString() != "" {
 			return apiKeys.Owner{
 				OwnerOrganisationId: &apiKeys.OwnerOrganisationId{
-					OrganisationId: keyModel.Owner.OrganisationId.ValueStringPointer(),
+					OrganisationId: keyModel.Owner.OrganisationId.ValueString(),
 				},
 			}, diags
 		} else {
@@ -550,10 +550,9 @@ func extractOwner(keyModel *ApiKeyModel) (apiKeys.Owner, diag.Diagnostics) {
 			if err != nil {
 				diags.AddError("Invalid team id", "Team id must be a int")
 			}
-			teamIdP := int64(teamId)
 			return apiKeys.Owner{
 				OwnerTeamId: &apiKeys.OwnerTeamId{
-					TeamId: &teamIdP,
+					TeamId: int64(teamId),
 				},
 			}, diags
 		}
@@ -563,15 +562,15 @@ func extractOwner(keyModel *ApiKeyModel) (apiKeys.Owner, diag.Diagnostics) {
 func flattenOwner(owner *apiKeys.Owner) Owner {
 	if owner.OwnerOrganisationId != nil {
 		return Owner{
-			OrganisationId: types.StringValue(*owner.OwnerOrganisationId.OrganisationId),
+			OrganisationId: types.StringValue(owner.OwnerOrganisationId.OrganisationId),
 		}
 	} else if owner.OwnerUserId != nil {
 		return Owner{
-			UserId: types.StringValue(*owner.OwnerUserId.UserId),
+			UserId: types.StringValue(owner.OwnerUserId.UserId),
 		}
 	} else if owner.OwnerTeamId != nil {
 		return Owner{
-			TeamId: types.StringValue(strconv.Itoa(int(*owner.OwnerTeamId.TeamId))),
+			TeamId: types.StringValue(strconv.Itoa(int(owner.OwnerTeamId.TeamId))),
 		}
 	} else {
 		return Owner{}

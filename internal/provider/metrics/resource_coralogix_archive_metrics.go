@@ -423,7 +423,7 @@ func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel
 			return nil, diags
 		}
 		tenantConfig.ConfigureTenantRequestIbm = &ams.ConfigureTenantRequestIbm{
-			Ibm: &ams.IbmConfigV2{
+			Ibm: ams.IbmConfigV2{
 				Endpoint: ibmConfig.Endpoint.ValueStringPointer(),
 				Crn:      ibmConfig.Crn.ValueStringPointer(),
 			},
@@ -436,7 +436,7 @@ func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel
 			return nil, diags
 		}
 		tenantConfig.ConfigureTenantRequestS3 = &ams.ConfigureTenantRequestS3{
-			S3: &ams.S3Config{
+			S3: ams.S3Config{
 				Bucket: s3Config.Bucket.ValueStringPointer(),
 				Region: s3Config.Region.ValueStringPointer(),
 			},

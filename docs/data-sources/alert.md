@@ -143,9 +143,9 @@ Read-Only:
 Read-Only:
 
 - `integration_id` (String)
-- `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"].
+- `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"]. When omitted (along with retriggering_period), Advanced Notification is disabled.
 - `recipients` (Set of String)
-- `retriggering_period` (Attributes) Retriggering period in minutes. 10 minutes by default. (see [below for nested schema](#nestedatt--notification_group--webhooks_settings--retriggering_period))
+- `retriggering_period` (Attributes) Retriggering period in minutes. When omitted (along with notify_on), Advanced Notification is disabled and the webhook inherits the global incident cadence. (see [below for nested schema](#nestedatt--notification_group--webhooks_settings--retriggering_period))
 
 <a id="nestedatt--notification_group--webhooks_settings--retriggering_period"></a>
 ### Nested Schema for `notification_group.webhooks_settings.retriggering_period`
@@ -574,6 +574,7 @@ Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter))
+- `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--no_data_policy))
 - `notification_payload_filter` (Set of String)
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--rules))
 - `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--undetected_values_management))
@@ -621,6 +622,15 @@ Read-Only:
 
 
 
+
+
+<a id="nestedatt--type_definition--logs_threshold--no_data_policy"></a>
+### Nested Schema for `type_definition.logs_threshold.no_data_policy`
+
+Read-Only:
+
+- `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds.
+- `state` (String) No-data policy state. Valid values: ["ALERTING" "KEEP_LAST" "NO_DATA" "OK" "UNSPECIFIED"].
 
 
 <a id="nestedatt--type_definition--logs_threshold--rules"></a>
@@ -875,6 +885,7 @@ Read-Only:
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--metric_filter))
 - `missing_values` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--missing_values))
+- `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--no_data_policy))
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--rules))
 - `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--undetected_values_management))
 
@@ -893,6 +904,15 @@ Read-Only:
 
 - `min_non_null_values_pct` (Number)
 - `replace_with_zero` (Boolean)
+
+
+<a id="nestedatt--type_definition--metric_threshold--no_data_policy"></a>
+### Nested Schema for `type_definition.metric_threshold.no_data_policy`
+
+Read-Only:
+
+- `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds.
+- `state` (String) No-data policy state. Valid values: ["ALERTING" "KEEP_LAST" "NO_DATA" "OK" "UNSPECIFIED"].
 
 
 <a id="nestedatt--type_definition--metric_threshold--rules"></a>

@@ -29,7 +29,7 @@ provider "coralogix" {
 
 resource "coralogix_user" "example" {
   user_name = "example@coralogix.com"
-  name      = {
+  name = {
     given_name  = "example"
     family_name = "example"
   }
@@ -38,7 +38,7 @@ resource "coralogix_user" "example" {
 resource "coralogix_scope" "example" {
   display_name       = "ExampleScope"
   default_expression = "<v1>true"
-  filters            = [
+  filters = [
     {
       entity_type = "logs"
       expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"

@@ -30,7 +30,7 @@ provider "coralogix" {
 resource "coralogix_rules_group" "rules_group_example" {
   name         = "Example rule-group from terraform"
   description  = "rule_group creates by coralogix terraform provider"
-  applications = ["nginx"] //change here for existing applications from your account
+  applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
   order        = 1
@@ -47,10 +47,10 @@ resource "coralogix_rules_group" "rules_group_example" {
 
     rules {
       json_extract {
-        name              = "Worker to category"
-        description       = "Extracts value from 'worker' and populates 'Category'"
-        json_key          = "worker"
-        destination_field = "Text"
+        name                   = "Worker to category"
+        description            = "Extracts value from 'worker' and populates 'Category'"
+        json_key               = "worker"
+        destination_field      = "Text"
         destination_field_text = "text.free_text"
       }
     }
@@ -113,7 +113,7 @@ resource "coralogix_rules_group" "rules_group_example" {
 resource "coralogix_rules_group" "extract_timestamp_example" {
   name         = "Example extract-timestamp rule-group from terraform"
   description  = "rule_group created by coralogix terraform provider"
-  applications = ["nginx"] //change here for existing applications from your account
+  applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
   order        = 4
@@ -134,7 +134,7 @@ resource "coralogix_rules_group" "extract_timestamp_example" {
 resource "coralogix_rules_group" "remove_fields_example" {
   name         = "Example remove-fields rule-group from terraform"
   description  = "rule_group created by coralogix terraform provider"
-  applications = ["nginx"] //change here for existing applications from your account
+  applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
   order        = 3
@@ -152,10 +152,10 @@ resource "coralogix_rules_group" "remove_fields_example" {
 resource "coralogix_rules_group" "parse_json_field_example" {
   name         = "Example parse-json-field rule-group from terraform"
   description  = "rule_group created by coralogix terraform provider"
-  applications = ["nginx"] //change here for existing applications from your account
+  applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
-  order = 2
+  order        = 2
   rule_subgroups {
     rules {
       parse_json_field {

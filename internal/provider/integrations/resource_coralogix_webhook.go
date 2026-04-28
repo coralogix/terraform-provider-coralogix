@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -372,6 +373,13 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"name": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "Webhook name.",
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`\S`),
+						"must not be empty or contain only whitespace",
+					),
+				},
 			},
 			"custom": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
@@ -957,7 +965,7 @@ func expandEventBridge(bridge *EventBridgeModel) *webhooks.OutgoingWebhookInputD
 	ty := webhooks.WEBHOOKTYPE_AWS_EVENT_BRIDGE
 	return &webhooks.OutgoingWebhookInputDataAwsEventBridge{
 		Type: &ty,
-		AwsEventBridge: &webhooks.AwsEventBridgeConfig{
+		AwsEventBridge: webhooks.AwsEventBridgeConfig{
 			EventBusArn: bridge.EventBusARN.ValueStringPointer(),
 			Detail:      bridge.Detail.ValueStringPointer(),
 			DetailType:  bridge.DetailType.ValueStringPointer(),
@@ -994,7 +1002,7 @@ func expandSlack(ctx context.Context, slack *SlackModel) (*webhooks.OutgoingWebh
 	ty := webhooks.WEBHOOKTYPE_SLACK
 	return &webhooks.OutgoingWebhookInputDataSlack{
 		Url: url,
-		Slack: &webhooks.SlackConfig{
+		Slack: webhooks.SlackConfig{
 			Digests:     digests,
 			Attachments: attachments,
 		},
@@ -1070,7 +1078,7 @@ func expandGenericWebhook(ctx context.Context, genericWebhook *CustomWebhookMode
 	return &webhooks.OutgoingWebhookInputDataGenericWebhook{
 		Type: &ty,
 		Url:  url,
-		GenericWebhook: &webhooks.GenericWebhookConfig{
+		GenericWebhook: webhooks.GenericWebhookConfig{
 			Uuid:    &uuid,
 			Method:  &method,
 			Headers: &headers,
@@ -1083,7 +1091,7 @@ func expandPagerDuty(pagerDuty *PagerDutyModel) *webhooks.OutgoingWebhookInputDa
 	ty := webhooks.WEBHOOKTYPE_PAGERDUTY
 	return &webhooks.OutgoingWebhookInputDataPagerDuty{
 		Type: &ty,
-		PagerDuty: &webhooks.PagerDutyConfig{
+		PagerDuty: webhooks.PagerDutyConfig{
 			ServiceKey: pagerDuty.ServiceKey.ValueStringPointer(),
 		},
 	}
@@ -1095,7 +1103,7 @@ func expandSendLog(sendLog *SendLogModel) *webhooks.OutgoingWebhookInputDataSend
 	ty := webhooks.WEBHOOKTYPE_SEND_LOG
 	return &webhooks.OutgoingWebhookInputDataSendLog{
 		Type: &ty,
-		SendLog: &webhooks.SendLogConfig{
+		SendLog: webhooks.SendLogConfig{
 			Payload: sendLog.Payload.ValueStringPointer(),
 			Uuid:    &uuid,
 		},
@@ -1112,7 +1120,7 @@ func expandEmailGroup(ctx context.Context, emailGroup *EmailGroupModel) (*webhoo
 	ty := webhooks.WEBHOOKTYPE_EMAIL_GROUP
 	return &webhooks.OutgoingWebhookInputDataEmailGroup{
 		Type: &ty,
-		EmailGroup: &webhooks.EmailGroupConfig{
+		EmailGroup: webhooks.EmailGroupConfig{
 			EmailAddresses: emailAddresses,
 		},
 	}, nil
@@ -1123,7 +1131,7 @@ func expandJira(jira *JiraModel) *webhooks.OutgoingWebhookInputDataJira {
 	return &webhooks.OutgoingWebhookInputDataJira{
 		Type: &ty,
 		Url:  utils.StringNullIfUnknown(jira.URL),
-		Jira: &webhooks.JiraConfig{
+		Jira: webhooks.JiraConfig{
 			ApiToken:   jira.ApiKey.ValueStringPointer(),
 			Email:      jira.Email.ValueStringPointer(),
 			ProjectKey: jira.ProjectID.ValueStringPointer(),
@@ -1145,7 +1153,7 @@ func expandDemisto(demisto *DemistoModel) *webhooks.OutgoingWebhookInputDataDemi
 	return &webhooks.OutgoingWebhookInputDataDemisto{
 		Type: &ty,
 		Url:  utils.StringNullIfUnknown(demisto.URL),
-		Demisto: &webhooks.DemistoConfig{
+		Demisto: webhooks.DemistoConfig{
 			Uuid:    &uuid,
 			Payload: demisto.Payload.ValueStringPointer(),
 		},
@@ -1153,6 +1161,15 @@ func expandDemisto(demisto *DemistoModel) *webhooks.OutgoingWebhookInputDataDemi
 }
 
 func flattenWebhook(ctx context.Context, webhook *webhooks.OutgoingWebhook) (*WebhookResourceModel, diag.Diagnostics) {
+	if webhook == nil {
+		return nil, diag.Diagnostics{
+			diag.NewErrorDiagnostic(
+				"Error flattening webhook",
+				"Received nil webhook from API",
+			),
+		}
+	}
+
 	result := &WebhookResourceModel{}
 
 	var diags diag.Diagnostics

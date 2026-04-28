@@ -81,13 +81,17 @@ func TestAccCoralogixResourceIntegrationWithVariablesWithoutSensitiveData(t *tes
 }
 
 func TestAccCoralogixResourceIntegrationWithSensitiveData(t *testing.T) {
+	gcpServiceAccountKey := os.Getenv("GCP_SERVICE_ACCOUNT_KEY")
+	if gcpServiceAccountKey == "" {
+		t.Skip("GCP_SERVICE_ACCOUNT_KEY must be set for this acceptance test")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckIntegrationDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceIntegrationWithSensitiveData(),
+				Config: testAccCoralogixResourceIntegrationWithSensitiveData(gcpServiceAccountKey),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coralogix_integration.sensitive_data_test", "id"),
 					resource.TestCheckResourceAttr("coralogix_integration.sensitive_data_test", "integration_key", integrationWithSensitiveDataName),
@@ -148,50 +152,50 @@ parameters = {
 	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName, testRoleArn)
 }
 
-func testAccCoralogixResourceIntegrationWithSensitiveData() string {
-	return fmt.Sprintf("%40s", `resource "coralogix_integration" "sensitive_data_test" {
+func testAccCoralogixResourceIntegrationWithSensitiveData(serviceAccountKey string) string {
+	return fmt.Sprintf(`resource "coralogix_integration" "sensitive_data_test" {
 		integration_key = "gcp-metrics-collector"
 		version         = "1.0.0"
 		# Note that the attribute casing is important here
 		parameters = {
-			ApplicationName = "cxsdk"
-			SubsystemName   = "gcp-metrics-collector"
-			IntegrationName   = "sdk-integration-with-sensitive-data-setup"
-			MetricPrefixes    = ["appengine.googleapis.com","cloudfunctions.googleapis.com","cloudkms.googleapis.com","cloudsql.googleapis.com","compute.googleapis.com","container.googleapis.com","datastream.googleapis.com","firestore.googleapis.com","loadbalancing.googleapis.com","network.googleapis.com","run.googleapis.com","storage.googleapis.com"]
-			ServiceAccountKey = "{\"type\": \"service_account\",\"project_id\": \"redacted\",\"private_key_id\": \"redacted\",\"private_key\": \"-----BEGIN PRIVATE KEY-----\\redacted\",\"client_email\": \"redacted@redacted.iam.gserviceaccount.com\",\"client_id\": \"redacted\",\"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\"token_uri\": \"https://oauth2.googleapis.com/token\",\"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/redacted%40assen-project.iam.gserviceaccount.com\",\"universe_domain\": \"googleapis.com\"}"
+			ApplicationName    = "cxsdk"
+			SubsystemName      = "gcp-metrics-collector"
+			IntegrationName    = "sdk-integration-with-sensitive-data-setup"
+			MetricPrefixes     = ["appengine.googleapis.com","cloudfunctions.googleapis.com","cloudkms.googleapis.com","cloudsql.googleapis.com","compute.googleapis.com","container.googleapis.com","datastream.googleapis.com","firestore.googleapis.com","loadbalancing.googleapis.com","network.googleapis.com","run.googleapis.com","storage.googleapis.com"]
+			ServiceAccountKey  = %q
 		}
-	}`)
+	}`, serviceAccountKey)
 }
 
 func testAccCoralogixResourceIntegrationVariablesWithoutSensitiveData() string {
 	return fmt.Sprintf(`resource "coralogix_integration" "variable_test" {
-integration_key = "%v"
-version = "0.1.0"
-# Note that the attribute casing is important here
-parameters = {
-	ApplicationName = "cxsdk"
-	SubsystemName = "%v"
-	MetricNamespaces = var.metrics_to_collect
-	AwsRoleArn = "%v"
-	IntegrationName = "sdk-integration-no-sensitive-data-setup"
-	AwsRegion = "eu-north-1"
-	WithAggregations = false
-	EnrichWithTags = true
-}
-}
+		integration_key = "%v"
+		version = "0.1.0"
+		# Note that the attribute casing is important here
+		parameters = {
+			ApplicationName = "cxsdk"
+			SubsystemName = "%v"
+			MetricNamespaces = var.metrics_to_collect
+			AwsRoleArn = "%v"
+			IntegrationName = "sdk-integration-no-sensitive-data-setup"
+			AwsRegion = "eu-north-1"
+			WithAggregations = false
+			EnrichWithTags = true
+		}
+	}
 
 
-variable "metrics_to_collect" {
-	description = "metric namespaces to collect"
-	type = list(string)
-	default = [
-	  "AWS/RDS",
-	  "AWS/SQS",
-	  "AWS/S3",
-	  "AWS/AmazonMQ",
-	  "AWS/Lambda",
-	  "AWS/Transfer"
-	]
-  }
+	variable "metrics_to_collect" {
+		description = "metric namespaces to collect"
+		type = list(string)
+		default = [
+		"AWS/RDS",
+		"AWS/SQS",
+		"AWS/S3",
+		"AWS/AmazonMQ",
+		"AWS/Lambda",
+		"AWS/Transfer"
+		]
+	}
 	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName, testRoleArn)
 }

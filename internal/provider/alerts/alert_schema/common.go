@@ -145,6 +145,12 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 		typeDefinitionStr = "metric_anomaly"
 	} else if !utils.ObjIsNullOrUnknown(typeDefinition.LogsNewValue) {
 		typeDefinitionStr = "logs_new_value"
+	} else if !utils.ObjIsNullOrUnknown(typeDefinition.SloThreshold) {
+		typeDefinitionStr = "slo_threshold"
+	} else if !utils.ObjIsNullOrUnknown(typeDefinition.TracingThreshold) {
+		typeDefinitionStr = "tracing_threshold"
+	} else if !utils.ObjIsNullOrUnknown(typeDefinition.Flow) {
+		typeDefinitionStr = "flow"
 	}
 
 	switch typeDefinitionStr {
@@ -200,6 +206,19 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 
 		if request.ConfigValue.IsUnknown() || request.ConfigValue.IsNull() {
 			if !rulesState.Equal(rulesPlan) {
+				response.PlanValue = types.ListUnknown(types.StringType)
+			} else {
+				response.PlanValue = request.StateValue
+			}
+			return
+		}
+	case "slo_threshold", "tracing_threshold", "flow":
+		// Backend may return group_by (e.g. from SLO grouping) even when not set in config.
+		// When state has no value yet, use unknown so Terraform accepts whatever the API returns
+		// after apply (avoids "Provider produced inconsistent result"). When state already has a
+		// value, use it so the next plan is empty (avoids test failure "plan was not empty").
+		if request.ConfigValue.IsUnknown() || request.ConfigValue.IsNull() {
+			if request.StateValue.IsNull() || request.StateValue.IsUnknown() {
 				response.PlanValue = types.ListUnknown(types.StringType)
 			} else {
 				response.PlanValue = request.StateValue
@@ -420,6 +439,8 @@ func logsFilterSchema() schema.SingleNestedAttribute {
 				Attributes: map[string]schema.Attribute{
 					"lucene_query": schema.StringAttribute{
 						Optional: true,
+						Computed: true,
+						Default:  stringdefault.StaticString(""),
 					},
 					"label_filters": schema.SingleNestedAttribute{
 						Optional: true,

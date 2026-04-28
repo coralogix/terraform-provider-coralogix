@@ -35,7 +35,7 @@ Read-Only:
 
 - `alerts_unique_ids` (Set of String)
 - `meta_labels` (Attributes Set) (see [below for nested schema](#nestedatt--filter--meta_labels))
-- `what_expression` (String) DataPrime query expression. - [DataPrime query language](https://coralogix.com/docs/dataprime-query-language/).
+- `what_expression` (String) A [DataPrime](https://coralogix.com/docs/dataprime-query-language/) expression that filters which **group-by values** to suppress within the selected alerts. The expression must start with `source logs | filter` (this syntax is required even for metric or tracing alerts - the filtering works on group-by values regardless of alert type). Use `"source logs | filter true"` to suppress all alert activity without filtering specific values. Use `"source logs | filter $d.fieldName == 'value'"` to suppress only when specific group-by values match. This field controls **what triggered values** to suppress, while `alerts_unique_ids` or `meta_labels` control **which alerts** the rule applies to.
 
 <a id="nestedatt--filter--meta_labels"></a>
 ### Nested Schema for `filter.meta_labels`
@@ -63,7 +63,7 @@ Read-Only:
 
 - `one_time` (Attributes) (see [below for nested schema](#nestedatt--schedule--one_time))
 - `operation` (String) The operation to perform. Can be `mute` or `active`.
-- `recurring` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring))
+- `recurring` (Attributes) Recurring schedule configuration. Use `dynamic` for time-based recurring schedules, or `always_active = true` for permanent suppression rules. (see [below for nested schema](#nestedatt--schedule--recurring))
 
 <a id="nestedatt--schedule--one_time"></a>
 ### Nested Schema for `schedule.one_time`
@@ -79,8 +79,8 @@ Read-Only:
 
 - `duration` (Attributes) The duration from the start time to wait. (see [below for nested schema](#nestedatt--schedule--one_time--time_frame--duration))
 - `end_time` (String) The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`.
-- `start_time` (String)
-- `time_zone` (String)
+- `start_time` (String) Start time in ISO8601 format (e.g. `2026-02-17T08:00:00.000` or `2026-02-17T08:00:00.000Z`).
+- `time_zone` (String) Timezone (e.g. `UTC`, `UTC+0`, `UTC+2`). Both `UTC` and `UTC+0` are accepted for zero offset.
 
 <a id="nestedatt--schedule--one_time--time_frame--duration"></a>
 ### Nested Schema for `schedule.one_time.time_frame.duration`
@@ -98,6 +98,7 @@ Read-Only:
 
 Read-Only:
 
+- `always_active` (Boolean) When set to `true`, creates a permanent suppression rule that is always active. This is mutually exclusive with `dynamic`. When using `always_active = true`, no time frame or frequency configuration is needed.
 - `dynamic` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic))
 
 <a id="nestedatt--schedule--recurring--dynamic"></a>
@@ -147,8 +148,8 @@ Read-Only:
 
 - `duration` (Attributes) The duration from the start time to wait. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--time_frame--duration))
 - `end_time` (String) The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`.
-- `start_time` (String)
-- `time_zone` (String)
+- `start_time` (String) Start time in ISO8601 format (e.g. `2026-02-17T08:00:00.000` or `2026-02-17T08:00:00.000Z`).
+- `time_zone` (String) Timezone (e.g. `UTC`, `UTC+0`, `UTC+2`). Both `UTC` and `UTC+0` are accepted for zero offset.
 
 <a id="nestedatt--schedule--recurring--dynamic--time_frame--duration"></a>
 ### Nested Schema for `schedule.recurring.dynamic.time_frame.duration`

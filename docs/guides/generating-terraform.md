@@ -68,7 +68,7 @@ The script itself needs the terminal with the environment variables set up. Make
 
 ```bash
 $ env | grep "CORALOGIX_"
-CORALOGIX_API_KEY=cxup_ap1K3yap1K3yap1K3yap1K3yap1b5
+CORALOGIX_API_KEY=<your-api-key>
 CORALOGIX_ENV=EU2
 ```
 

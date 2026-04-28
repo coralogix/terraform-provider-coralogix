@@ -13,7 +13,7 @@ provider "coralogix" {
 }
 
 resource "coralogix_custom_role" "example" {
-  name  = "Example custom role"
+  name        = "Example custom role"
   description = "This role is created with terraform!"
   parent_role = "Standard User"
   permissions = ["spans.events2metrics:UpdateConfig"]
@@ -21,7 +21,7 @@ resource "coralogix_custom_role" "example" {
 
 resource "coralogix_user" "example" {
   user_name = "example@coralogix.com"
-  name      = {
+  name = {
     given_name  = "example"
     family_name = "example"
   }

@@ -27,10 +27,10 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_hosted_dashboard" dashboard {
+resource "coralogix_hosted_dashboard" "dashboard" {
   grafana {
     config_json = file("./grafana_dashboard.json")
-    folder = coralogix_grafana_folder.test_folder.id
+    folder      = coralogix_grafana_folder.test_folder.id
   }
 }
 

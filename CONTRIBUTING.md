@@ -59,10 +59,12 @@ $ cd $GOPATH/src/github.com/hashicorp/terraform-provider-coralogix
 $ make install
 ```
 
+Configure Terraform to use the local provider by copying `.terraformrc.example` to `~/.terraformrc` (or set `TF_CLI_CONFIG_FILE` to its path). This tells Terraform to load `locally/debug/coralogix` from `~/.terraform.d/plugins` instead of the network. If `~` is not expanded in your environment, use the full path for the `path` argument (e.g. `$HOME/.terraform.d/plugins` or your actual home path).
+
 Running examples
 ---------------------
 Navigate to one of the example directories or create your own terraform file, and initialize the Terraform configuration files.
-For running the build provider, change the source of the provider to locally/debug/coralogix (`source  = "locally/debug/coralogix"`).
+For running the build provider, change the source of the provider to locally/debug/coralogix (`source  = "locally/debug/coralogix"`) and use version `~> 1.5` to match the Makefile.
 ```sh
 $ cd examples/rules_group
 $ terraform init

@@ -244,18 +244,18 @@ func dynamicToParameters(planParameters types.Dynamic) ([]integrations.Parameter
 			switch v := value.(type) {
 			case types.String:
 				param.ParameterStringValue = &integrations.ParameterStringValue{
-					StringValue: v.ValueStringPointer(),
+					StringValue: v.ValueString(),
 					Key:         &key,
 				}
 			case types.Number:
 				f, _ := v.ValueBigFloat().Float64()
 				param.ParameterNumericValue = &integrations.ParameterNumericValue{
-					NumericValue: &f,
+					NumericValue: f,
 					Key:          &key,
 				}
 			case types.Bool:
 				param.ParameterBooleanValue = &integrations.ParameterBooleanValue{
-					BooleanValue: v.ValueBoolPointer(),
+					BooleanValue: v.ValueBool(),
 					Key:          &key,
 				}
 			case types.List:
@@ -300,7 +300,7 @@ func collectionToParameters(elements []attr.Value) (*integrations.ParameterStrin
 		}
 	}
 	return &integrations.ParameterStringList{
-		StringList: &integrations.StringList{
+		StringList: integrations.StringList{
 			Values: strings,
 		},
 	}, nil
@@ -343,15 +343,15 @@ func parametersToDynamic(parameters []integrations.Parameter, keys []string) (ty
 			t[*parameter.ParameterStringList.Key] = types.TupleType{ElemTypes: assignedTypes}
 
 		} else if parameter.ParameterBooleanValue != nil && slices.Contains(keys, *parameter.ParameterBooleanValue.Key) {
-			obj[*parameter.ParameterBooleanValue.Key] = types.BoolPointerValue(parameter.ParameterBooleanValue.BooleanValue)
+			obj[*parameter.ParameterBooleanValue.Key] = types.BoolValue(parameter.ParameterBooleanValue.BooleanValue)
 			t[*parameter.ParameterBooleanValue.Key] = types.BoolType
 
 		} else if parameter.ParameterStringValue != nil && slices.Contains(keys, *parameter.ParameterStringValue.Key) {
-			obj[*parameter.ParameterStringValue.Key] = types.StringPointerValue(parameter.ParameterStringValue.StringValue)
+			obj[*parameter.ParameterStringValue.Key] = types.StringValue(parameter.ParameterStringValue.StringValue)
 			t[*parameter.ParameterStringValue.Key] = types.StringType
 
 		} else if parameter.ParameterNumericValue != nil && slices.Contains(keys, *parameter.ParameterNumericValue.Key) {
-			obj[*parameter.ParameterNumericValue.Key] = types.NumberValue(big.NewFloat(*parameter.ParameterNumericValue.NumericValue))
+			obj[*parameter.ParameterNumericValue.Key] = types.NumberValue(big.NewFloat(parameter.ParameterNumericValue.NumericValue))
 			t[*parameter.ParameterNumericValue.Key] = types.NumberType
 
 		} else if parameter.ParameterApiKey != nil && slices.Contains(keys, *parameter.ParameterApiKey.Key) {

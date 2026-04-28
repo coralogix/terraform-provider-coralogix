@@ -27,6 +27,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -374,6 +375,60 @@ func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceDashboardGaugeWidgetDataPrime(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWithWidget(`{
+  title = "gauge_dataprime"
+  definition = {
+    gauge = {
+      query = {
+        data_prime = {
+          query = <<-EOT
+source logs
+| filter 1 == 1
+| aggregate count() as c
+| choose c
+EOT
+        }
+      }
+      min            = 0
+      max            = 100
+      show_inner_arc = true
+      show_outer_arc = true
+      unit           = "percent100"
+      data_mode_type = "archive"
+      threshold_by   = "value"
+      thresholds = [{
+        from  = 0
+        color = "green"
+      }]
+    }
+  }
+}`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "gauge_dataprime"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query.data_prime.query"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.min", "0"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.max", "100"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.unit", "percent100"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.data_mode_type", "archive"),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -481,7 +536,14 @@ func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
 }
 
 func testAccCheckDashboardDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Dashboards()
+	// Configure the SDK provider so Meta() is set (ProtoV6 tests don't configure testAccProvider).
+	rc := terraform2.ResourceConfig{}
+	_ = testAccProvider.Configure(context.Background(), &rc)
+	meta := testAccProvider.Meta()
+	if meta == nil {
+		return nil
+	}
+	client := meta.(*clientset.ClientSet).Dashboards()
 
 	ctx := context.TODO()
 

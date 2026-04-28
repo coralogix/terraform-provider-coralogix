@@ -21,7 +21,6 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -109,13 +108,11 @@ func testAccCheckAlertsSchedulerDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &cxsdk.GetAlertSchedulerRuleRequest{
-			AlertSchedulerRuleId: rs.Primary.ID,
-		}
-
-		resp, err := client.Get(ctx, req)
-		if err == nil {
-			if resp.GetAlertSchedulerRule().GetId() == rs.Primary.ID {
+		resp, _, err := client.
+			AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, rs.Primary.ID).
+			Execute()
+		if err == nil && resp != nil {
+			if resp.AlertSchedulerRule.Id != nil && *resp.AlertSchedulerRule.Id == rs.Primary.ID {
 				return fmt.Errorf("alerts-scheduler still exists: %s", rs.Primary.ID)
 			}
 		}
@@ -190,6 +187,48 @@ func testAccCoralogixResourceAlertsSchedulerAllAlerts() string {
         }
         termination_date = "2025-01-01T00:00:00.000"
       }
+    }
+  }
+}
+`
+}
+
+func TestAccCoralogixResourceResourceAlertsSchedulerAlwaysActive(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		CheckDestroy:             testAccCheckAlertsSchedulerDestroy,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertsSchedulerAlwaysActive(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "name", "permanent-suppression"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "filter.what_expression", "source logs | filter true"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.operation", "mute"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.always_active", "true"),
+					resource.TestCheckNoResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic"),
+				),
+			},
+			{
+				ResourceName:      alertsSchedulerResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertsSchedulerAlwaysActive() string {
+	return `resource "coralogix_alerts_scheduler" "test" {
+  name        = "permanent-suppression"
+  description = "Permanent suppression rule - always active"
+  filter = {
+    what_expression = "source logs | filter true"
+  }
+  schedule = {
+    operation = "mute"
+    recurring = {
+      always_active = true
     }
   }
 }

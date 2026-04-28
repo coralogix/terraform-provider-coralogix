@@ -18,9 +18,11 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
+	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -28,7 +30,8 @@ import (
 var groupResourceName = "coralogix_group.test"
 
 func TestAccCoralogixResourceGroup(t *testing.T) {
-	userName := randUserName()
+	// Use a unique username to avoid 409 Conflict (user already exists) when re-running or from other tests
+	userName := fmt.Sprintf("test-group-acc-%d@coralogix.com", time.Now().UnixNano())
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -55,7 +58,14 @@ func TestAccCoralogixResourceGroup(t *testing.T) {
 }
 
 func testAccCheckGroupDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Groups()
+	// Configure the SDK provider so Meta() is set (ProtoV6 tests don't configure testAccProvider).
+	rc := terraform2.ResourceConfig{}
+	_ = testAccProvider.Configure(context.Background(), &rc)
+	meta := testAccProvider.Meta()
+	if meta == nil {
+		return nil
+	}
+	client := meta.(*clientset.ClientSet).Groups()
 
 	ctx := context.TODO()
 

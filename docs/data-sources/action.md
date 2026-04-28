@@ -13,7 +13,7 @@ Coralogix action. For more info please review - https://coralogix.com/docs/coral
 ## Example Usage
 
 ```terraform
-data "coralogix_action" imported_action {
+data "coralogix_action" "imported_action" {
   id = coralogix_action.action.id
 }
 ```

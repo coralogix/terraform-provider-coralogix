@@ -19,7 +19,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/cenkalti/backoff/v5"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -130,7 +132,10 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
-	getResp, err := r.client.GetGroup(ctx, createResp.ID)
+
+	// Retry GetGroup with backoff when we set scope_id: API may have eventual consistency
+	// and not return nextGenScopeId on the first read after create.
+	getResp, err := r.getGroupWithScopeRetry(ctx, createResp.ID, plan.ScopeID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading group",
 			utils.FormatRpcErrors(err, r.client.TargetUrl, createResp.ID),
@@ -149,6 +154,32 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
+}
+
+// getGroupWithScopeRetry fetches the group and, when expectedScopeID is set,
+// retries with backoff until the API returns the scope (handles eventual consistency).
+func (r *GroupResource) getGroupWithScopeRetry(ctx context.Context, groupID, expectedScopeID string) (*clientset.SCIMGroup, error) {
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = time.Second
+	b.MaxInterval = 3 * time.Second
+
+	op := func() (*clientset.SCIMGroup, error) {
+		resp, err := r.client.GetGroup(ctx, groupID)
+		if err != nil {
+			return nil, err
+		}
+		if expectedScopeID != "" && resp.ScopeID == "" {
+			log.Printf("[INFO] Group %s scope_id not yet visible (eventual consistency), retrying", groupID)
+			return nil, fmt.Errorf("scope_id not yet visible")
+		}
+		return resp, nil
+	}
+
+	return backoff.Retry(ctx, op,
+		backoff.WithBackOff(b),
+		backoff.WithMaxTries(5),
+		backoff.WithMaxElapsedTime(10*time.Second),
+	)
 }
 
 func flattenSCIMGroup(group *clientset.SCIMGroup) (*GroupResourceModel, diag.Diagnostics) {

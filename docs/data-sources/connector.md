@@ -14,7 +14,7 @@ Coralogix Connector. **Note:** This resource is in Beta stage.
 
 ```terraform
 data "coralogix_connector" "generic_https_example_data" {
-    id = "<connector_id>"
+  id = "<connector_id>"
 }
 
 data "coralogix_connector" "generic_https_example_data_by_name" {
@@ -35,7 +35,7 @@ data "coralogix_connector" "generic_https_example_data_by_name" {
 - `config_overrides` (Attributes List) (see [below for nested schema](#nestedatt--config_overrides))
 - `connector_config` (Attributes) (see [below for nested schema](#nestedatt--connector_config))
 - `description` (String)
-- `type` (String) Connector type. Valid values are: [generic_https pagerduty slack unspecified]
+- `type` (String) Connector type. Valid values are: [email generic_https pagerduty service_now slack unspecified]
 
 <a id="nestedatt--config_overrides"></a>
 ### Nested Schema for `config_overrides`

@@ -17,16 +17,15 @@ package alerts
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"google.golang.org/protobuf/encoding/protojson"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	alertscheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
 )
 
 var _ datasource.DataSourceWithConfigure = &AlertsSchedulerDataSource{}
@@ -36,7 +35,7 @@ func NewAlertsSchedulerDataSource() datasource.DataSource {
 }
 
 type AlertsSchedulerDataSource struct {
-	client *cxsdk.AlertSchedulerClient
+	client *alertscheduler.AlertSchedulerRuleServiceAPIService
 }
 
 func (d *AlertsSchedulerDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -75,22 +74,19 @@ func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	//Get refreshed alerts-scheduler value from Coralogix
 	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading alerts-scheduler: %s", id)
-	getAlertsSchedulerReq := &cxsdk.GetAlertSchedulerRuleRequest{AlertSchedulerRuleId: id}
-	getAlertsSchedulerResp, err := d.client.Get(ctx, getAlertsSchedulerReq)
+	getAlertsSchedulerResp, httpResp, err := d.client.
+		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading alerts-scheduler",
-			utils.FormatRpcErrors(err, cxsdk.GetAlertSchedulerRuleRPC, protojson.Format(getAlertsSchedulerReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Read", id),
 		)
 		return
 	}
-	log.Printf("[INFO] Received alerts-scheduler: %s", protojson.Format(getAlertsSchedulerResp))
 
-	data, diags := flattenAlertScheduler(ctx, getAlertsSchedulerResp.GetAlertSchedulerRule())
+	data, diags := flattenAlertScheduler(ctx, getAlertsSchedulerResp.AlertSchedulerRule)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return

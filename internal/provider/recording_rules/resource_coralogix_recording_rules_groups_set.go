@@ -549,7 +549,7 @@ func flattenRecordingRuleGroupSet(ctx context.Context, plan *RecordingRuleGroupS
 		return &RecordingRuleGroupSetResourceModel{
 			ID:          types.StringValue(resp.GetId()),
 			YamlContent: types.StringValue(plan.YamlContent.ValueString()),
-			Name:        types.StringValue(plan.Name.ValueString()),
+			Name:        types.StringValue(resp.GetName()),
 			Groups:      groups,
 		}, nil
 	}
@@ -675,15 +675,14 @@ func expandRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroup
 
 func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*recRuless.UpdateRuleGroupSet, diag.Diagnostics) {
 	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
-		// The name won't get updated anyways, so we just pass an empty string
-		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent, "")
+		setName := plan.Name.ValueString()
+		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent, setName)
 		if diags.HasError() {
 			return nil, diags
 		}
-
 		return &recRuless.UpdateRuleGroupSet{
 			Groups: rrg.Groups,
-			// Name:   rrg.Name,
+			Name:   rrg.Name,
 		}, nil
 	}
 
@@ -694,7 +693,7 @@ func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRul
 
 	return &recRuless.UpdateRuleGroupSet{
 		Groups: rrg.Groups,
-		// Name:   rrg.Name,
+		Name:   rrg.Name,
 	}, nil
 }
 

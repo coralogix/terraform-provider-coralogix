@@ -173,6 +173,47 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceEmailConnector(t *testing.T) {
+	name := uuid.NewString()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceCoralogixEmailConnector(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "email"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", name),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "email connector example"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "emailAddresses",
+						"value":      `["email1@example.com","email2@example.com"]`,
+					}),
+				),
+			},
+			{
+				ResourceName:      connectorResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccResourceCoralogixEmailConnectorUpdate(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "email"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", fmt.Sprintf("%s-updated", name)),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "email connector example updated"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "emailAddresses",
+						"value":      `["email1@example.com","email2@example.com","email3@example.com"]`,
+					}),
+				),
+			},
+		},
+	})
+}
+
 func testAccResourceCoralogixGenericHttpsConnector(name string) string {
 	return fmt.Sprintf(`resource "coralogix_connector" "example" {
    id               = "%[1]v"
@@ -298,5 +339,41 @@ func testAccResourceCoralogixPagerdutyConnectorUpdate(name string) string {
        }
      ]
    }
+ }`, name)
+}
+
+func testAccResourceCoralogixEmailConnector(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
+   type             = "email"
+   name             = "%[1]v"
+   description      = "email connector example"
+   connector_config = {
+     fields = [
+       {
+         field_name = "emailAddresses"
+         value      = "[\"email1@example.com\",\"email2@example.com\"]"
+       }
+     ]
+   }
+   config_overrides = []
+ }`, name)
+}
+
+func testAccResourceCoralogixEmailConnectorUpdate(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
+   type             = "email"
+   name             = "%[1]v-updated"
+   description      = "email connector example updated"
+   connector_config = {
+     fields = [
+       {
+         field_name = "emailAddresses"
+         value      = "[\"email1@example.com\",\"email2@example.com\",\"email3@example.com\"]"
+       }
+     ]
+   }
+   config_overrides = []
  }`, name)
 }

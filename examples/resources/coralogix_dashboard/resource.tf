@@ -12,24 +12,24 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_dashboard" dashboard {
+resource "coralogix_dashboard" "dashboard" {
   name        = "portal monitoring"
   description = "<insert description>"
-  layout      = {
+  layout = {
     sections = [
       {
         options = {
-          name = "Status"
+          name        = "Status"
           description = "abc"
-          collapsed = false
-          color = "blue"
+          collapsed   = false
+          color       = "blue"
         }
         rows = [
           {
-            height  = 15
+            height = 15
             widgets = [
               {
-                title      = "Avg api response times"
+                title = "Avg api response times"
                 definition = {
                   line_chart = {
                     query_definitions = [
@@ -51,7 +51,7 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
-                        resolution         = {
+                        resolution = {
                           interval = "seconds:900"
                         }
                       },
@@ -68,7 +68,7 @@ resource "coralogix_dashboard" dashboard {
                 }
               },
               {
-                title      = "Avg Snowflake query times"
+                title = "Avg Snowflake query times"
                 definition = {
                   line_chart = {
                     query_definitions = [
@@ -105,7 +105,7 @@ resource "coralogix_dashboard" dashboard {
                 }
               },
               {
-                title      = "Avg RDS query times"
+                title = "Avg RDS query times"
                 definition = {
                   line_chart = {
                     query_definitions = [
@@ -127,7 +127,7 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
-                        resolution         = {
+                        resolution = {
                           buckets_presented = 10
                         }
                       },
@@ -147,10 +147,10 @@ resource "coralogix_dashboard" dashboard {
             ]
           },
           {
-            height  = 15
+            height = 15
             widgets = [
               {
-                title      = "OpenAPI - Avg response times"
+                title = "OpenAPI - Avg response times"
                 definition = {
                   line_chart = {
                     query_definitions = [
@@ -187,10 +187,10 @@ resource "coralogix_dashboard" dashboard {
                 width = 10
               },
               {
-                title      = "gauge"
+                title = "gauge"
                 definition = {
                   gauge = {
-                    unit  = "milliseconds"
+                    unit = "milliseconds"
                     query = {
                       metrics = {
                         promql_query = "vector(1)"
@@ -203,10 +203,10 @@ resource "coralogix_dashboard" dashboard {
             ]
           },
           {
-            height  = 15
+            height = 15
             widgets = [
               {
-                title      = "Open API Requests per organization"
+                title = "Open API Requests per organization"
                 definition = {
                   line_chart = {
                     query_definitions = [
@@ -240,7 +240,7 @@ resource "coralogix_dashboard" dashboard {
                 width = 0
               },
               {
-                title      = "Last failed SF queries DBs"
+                title = "Last failed SF queries DBs"
                 definition = {
                   line_chart = {
                     query_definitions = [
@@ -274,7 +274,7 @@ resource "coralogix_dashboard" dashboard {
                 width = 0
               },
               {
-                title      = "Avg configuration service query times"
+                title = "Avg configuration service query times"
                 definition = {
                   line_chart = {
                     query_definitions = [
@@ -308,10 +308,10 @@ resource "coralogix_dashboard" dashboard {
             height = 15
           },
           {
-            height  = 19
+            height = 19
             widgets = [
               {
-                title      = "Slowest API requests"
+                title = "Slowest API requests"
                 definition = {
                   line_chart = {
                     query_definitions = [
@@ -349,10 +349,10 @@ resource "coralogix_dashboard" dashboard {
             ]
           },
           {
-            height  = 19
+            height = 19
             widgets = [
               {
-                title      = "Cache warmer runs"
+                title = "Cache warmer runs"
                 definition = {
                   line_chart = {
                     query_definitions = [
@@ -382,7 +382,7 @@ resource "coralogix_dashboard" dashboard {
                 }
               },
               {
-                title      = "Alerts notification eu runs"
+                title = "Alerts notification eu runs"
                 definition = {
                   line_chart = {
                     query_definitions = [
@@ -412,7 +412,7 @@ resource "coralogix_dashboard" dashboard {
                 }
               },
               {
-                title      = "Alerts notification runs"
+                title = "Alerts notification runs"
                 definition = {
                   line_chart = {
                     query_definitions = [
@@ -442,13 +442,13 @@ resource "coralogix_dashboard" dashboard {
                 }
               },
               {
-                title      = "Alerts notification us runs"
+                title = "Alerts notification us runs"
                 definition = {
                   pie_chart = {
                     query = {
                       logs = {
                         lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
-                        aggregation  = {
+                        aggregation = {
                           type = "count"
                         }
                         group_names = [
@@ -462,13 +462,13 @@ resource "coralogix_dashboard" dashboard {
                 }
               },
               {
-                title      = "Alerts notification us runs"
+                title = "Alerts notification us runs"
                 definition = {
                   bar_chart = {
                     query = {
                       logs = {
                         lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
-                        aggregation  = {
+                        aggregation = {
                           type = "count"
                         }
                         group_names_fields = [
@@ -493,16 +493,16 @@ resource "coralogix_dashboard" dashboard {
                 }
               },
               {
-                title      = "Horizontal Bar-Chart"
+                title = "Horizontal Bar-Chart"
                 definition = {
                   horizontal_bar_chart = {
                     color_scheme   = "cold"
                     colors_by      = "aggregation"
                     display_on_bar = true
-                    query          = {
+                    query = {
                       logs = {
                         lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
-                        aggregation  = {
+                        aggregation = {
                           type = "count"
                         }
                         group_names        = ["coralogix.logId.keyword"]
@@ -522,25 +522,25 @@ resource "coralogix_dashboard" dashboard {
                 }
               },
               {
-                title      = "Data Table"
+                title = "Data Table"
                 definition = {
                   data_table = {
                     results_per_page = 10
                     row_style        = "one_line"
-                    query            = {
+                    query = {
                       data_prime = {
-                        query   = "xxx"
+                        query = "xxx"
                         filters = [
                           {
                             logs = {
                               lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
-                              aggregation  = {
+                              aggregation = {
                                 type = "count"
                               }
                               group_names        = ["coralogix.logId.keyword"]
                               stacked_group_name = "coralogix.metadata.severity"
                               field              = "coralogix.metadata.applicationName"
-                              operator           = {
+                              operator = {
                                 type            = "equals"
                                 selected_values = ["staging"]
                               }
@@ -562,11 +562,11 @@ resource "coralogix_dashboard" dashboard {
     {
       name         = "test_variable"
       display_name = "Test Variable"
-      definition   = {
+      definition = {
         multi_select = {
           selected_values = ["1", "2", "3"]
-          source          = {
-            query ={
+          source = {
+            query = {
               query = {
                 metrics = {
                   metric_name = {
@@ -588,7 +588,7 @@ resource "coralogix_dashboard" dashboard {
           metric_name = "http_requests_total"
           label       = "status"
           field       = "coralogix.metadata.applicationName"
-          operator    = {
+          operator = {
             type            = "equals"
             selected_values = ["staging"]
           }
@@ -598,11 +598,11 @@ resource "coralogix_dashboard" dashboard {
   ]
   annotations = [
     {
-      name   = "test_annotation"
+      name = "test_annotation"
       source = {
         metrics = {
           promql_query = "vector(1)"
-          strategy     = {
+          strategy = {
             start_time = {}
           }
           message_template = "test annotation"
@@ -620,10 +620,10 @@ resource "coralogix_dashboard" dashboard {
 }
 
 resource "coralogix_dashboards_folder" "example" {
-  name     = "example"
+  name = "example"
 }
 
-resource "coralogix_dashboard" widgets {
+resource "coralogix_dashboard" "widgets" {
   name        = "widget-examples"
   description = "Widget testing"
   time_frame = {
@@ -636,24 +636,24 @@ resource "coralogix_dashboard" widgets {
       rows = [{
         height = 19
         widgets = [{
-          title      = "hexagon"
+          title = "hexagon"
           definition = {
             hexagon = {
-              min = 0
-              max = 100
-              decimal = 2
+              min            = 0
+              max            = 100
+              decimal        = 2
               threshold_type = "relative"
               thresholds = [{
-                from = 0
+                from  = 0
                 color = "var(--c-severity-log-verbose)"
-              },
-              {
-                from = 33
-                color = "var(--c-severity-log-warning)"
-              },
-              {
-                from = 66
-                color = "var(--c-severity-log-error)"
+                },
+                {
+                  from  = 33
+                  color = "var(--c-severity-log-warning)"
+                },
+                {
+                  from  = 66
+                  color = "var(--c-severity-log-error)"
               }]
               query = {
                 logs = {
@@ -662,7 +662,7 @@ resource "coralogix_dashboard" widgets {
                   }
                   group_by = [{
                     keypath = ["subsystemname"]
-                    scope = "label"
+                    scope   = "label"
                   }]
                 }
               }
@@ -679,7 +679,7 @@ resource "coralogix_dashboard" widgets {
   }
 }
 
-resource "coralogix_dashboard" dashboard_from_json_with_folder {
+resource "coralogix_dashboard" "dashboard_from_json_with_folder" {
   content_json = file("./dashboard.json")
   folder = {
     id = coralogix_dashboards_folder.example.id

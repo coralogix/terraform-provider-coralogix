@@ -153,7 +153,7 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	plan = flattenArchiveLogs(result.Target.TargetS3, RESOURCE_ID_ARCHIVE_LOGS)
+	plan = flattenArchiveLogs(result.Target.V2TargetS3, RESOURCE_ID_ARCHIVE_LOGS)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -163,7 +163,7 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveLogs(targetS3 *archiveLogs.TargetS3, id string) *ArchiveLogsResourceModel {
+func flattenArchiveLogs(targetS3 *archiveLogs.V2TargetS3, id string) *ArchiveLogsResourceModel {
 	if targetS3 == nil {
 		return nil
 	}
@@ -214,7 +214,7 @@ func (r *ArchiveLogsResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	state = flattenArchiveLogs(result.Target.TargetS3, id)
+	state = flattenArchiveLogs(result.Target.V2TargetS3, id)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -250,7 +250,7 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	plan = flattenArchiveLogs(result.Target.TargetS3, plan.ID.ValueString())
+	plan = flattenArchiveLogs(result.Target.V2TargetS3, plan.ID.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

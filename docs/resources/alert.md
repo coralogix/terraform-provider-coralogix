@@ -204,7 +204,6 @@ resource "coralogix_alert" "test" {
 # }
 
 # resource "coralogix_alert" "test_with_router" {
-#   depends_on = [coralogix_global_router.example]
 #   name        = "logs_threshold alert example"
 #   description = "Example of logs_threshold alert example from terraform"
 #   priority    = "P2"
@@ -217,6 +216,7 @@ resource "coralogix_alert" "test" {
 #   notification_group = {
 #     webhooks_settings = [{
 #       recipients = ["example@coralogix.com", "example2@coralogix.com"]
+#       notify_on  = "Triggered and Resolved"
 #     }]
 #     router = {}
 #   }
@@ -248,12 +248,16 @@ resource "coralogix_alert" "test" {
 #           priority = "P2"
 #         }
 #       }]
+#       no_data_policy = {
+#         state               = "ALERTING"
+#         auto_retire_seconds = 300
+#       }
 #       logs_filter       = {
 #         simple_filter = {
 #           lucene_query  = "message:\"error\""
 #           label_filters = {
 #             application_name = [{
-#               operation = "NOT"
+#               operation = "IS"
 #               value     = "application_name"
 #             }]
 #             subsystem_name = [{
@@ -406,6 +410,10 @@ resource "coralogix_alert" "test" {
 #       }]
 #       missing_values = {
 #         replace_with_zero = true
+#       }
+#       no_data_policy = {
+#         state               = "KEEP_LAST"
+#         auto_retire_seconds = 600
 #       }
 #     }
 #   }
@@ -1177,6 +1185,7 @@ Optional:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter))
+- `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--no_data_policy))
 - `notification_payload_filter` (Set of String)
 - `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--undetected_values_management))
 
@@ -1256,6 +1265,15 @@ Optional:
 
 
 
+
+
+<a id="nestedatt--type_definition--logs_threshold--no_data_policy"></a>
+### Nested Schema for `type_definition.logs_threshold.no_data_policy`
+
+Optional:
+
+- `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds.
+- `state` (String) No-data policy state. Valid values: ["ALERTING" "KEEP_LAST" "NO_DATA" "OK" "UNSPECIFIED"].
 
 
 <a id="nestedatt--type_definition--logs_threshold--undetected_values_management"></a>
@@ -1508,6 +1526,7 @@ Required:
 Optional:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--no_data_policy))
 - `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--metric_threshold--metric_filter"></a>
@@ -1555,6 +1574,15 @@ Optional:
 
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
+
+
+<a id="nestedatt--type_definition--metric_threshold--no_data_policy"></a>
+### Nested Schema for `type_definition.metric_threshold.no_data_policy`
+
+Optional:
+
+- `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds.
+- `state` (String) No-data policy state. Valid values: ["ALERTING" "KEEP_LAST" "NO_DATA" "OK" "UNSPECIFIED"].
 
 
 <a id="nestedatt--type_definition--metric_threshold--undetected_values_management"></a>
@@ -2041,15 +2069,12 @@ Optional:
 <a id="nestedatt--notification_group--webhooks_settings"></a>
 ### Nested Schema for `notification_group.webhooks_settings`
 
-Required:
-
-- `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"].
-
 Optional:
 
 - `integration_id` (String)
+- `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"]. When omitted (along with retriggering_period), Advanced Notification is disabled.
 - `recipients` (Set of String)
-- `retriggering_period` (Attributes) Retriggering period in minutes. 10 minutes by default. (see [below for nested schema](#nestedatt--notification_group--webhooks_settings--retriggering_period))
+- `retriggering_period` (Attributes) Retriggering period in minutes. When omitted (along with notify_on), Advanced Notification is disabled and the webhook inherits the global incident cadence. (see [below for nested schema](#nestedatt--notification_group--webhooks_settings--retriggering_period))
 
 <a id="nestedatt--notification_group--webhooks_settings--retriggering_period"></a>
 ### Nested Schema for `notification_group.webhooks_settings.retriggering_period`
