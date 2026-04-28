@@ -118,7 +118,7 @@ func (r retentionsValidator) MarkdownDescription(_ context.Context) string {
 
 func (r retentionsValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
 	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
-		resp.Diagnostics.AddError("error on validating retentions", "retentions can not be null or unknown")
+		return
 	}
 
 	var retentionsObjects []types.Object
@@ -130,6 +130,7 @@ func (r retentionsValidator) ValidateList(ctx context.Context, req validator.Lis
 
 	if length := len(retentionsObjects); length != 4 {
 		resp.Diagnostics.AddError("error on validating retentions", fmt.Sprintf("retentions list must have 4 elements but got %d", length))
+		return
 	}
 
 	var archiveRetentionResourceModel ArchiveRetentionResourceModel
