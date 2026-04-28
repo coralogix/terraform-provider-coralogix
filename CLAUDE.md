@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Project guidance for AI coding agents (Claude Code, Codex, Cursor, etc.) working in this repository. `AGENTS.md` is a symlink to this file so vendor-neutral discovery works alongside Claude Code's documented entry point.
 
 ## Common commands
 
@@ -51,7 +51,9 @@ Both implementations live in `internal/provider/provider.go`. To add a new resou
 
 ## Skill maintenance (dynamic)
 
-Project skills live at `.claude/skills/<skill-name>/SKILL.md`. Treat the skills directory as a living knowledge base — when a bug fix or issue reveals non-obvious, repeat-able knowledge, capture it as a skill so future sessions inherit it. Don't capture things already derivable from the code, git history, or CLAUDE.md.
+Project skills live at `.claude/skills/<skill-name>/SKILL.md`. The directory is symlinked from `.cursor/skills` so Cursor users discover the same files; if a future tool needs them, add a similar symlink for that tool's convention rather than duplicating files.
+
+Treat the skills directory as a living knowledge base — when a bug fix or issue reveals non-obvious, repeat-able knowledge, capture it as a skill so future sessions inherit it. Don't capture things already derivable from the code, git history, or this file.
 
 **When to create a new skill** (after finishing the actual fix):
 - A bug fix uncovered a footgun that's likely to bite again (e.g., a Plan-Modifier that *must* be set to avoid spurious diffs on a specific attribute type, an SDKv2-vs-framework gotcha, a gRPC enum mapping that breaks silently).
@@ -64,7 +66,7 @@ Project skills live at `.claude/skills/<skill-name>/SKILL.md`. Treat the skills 
 
 **When NOT to create a skill:**
 - One-off fixes with no generalizable lesson.
-- Anything covered by Go/Terraform docs or already in CLAUDE.md.
+- Anything covered by Go/Terraform docs or already in this file.
 - Vague "be careful with X" advice without a concrete trigger and action.
 
 **Keep skills short** — ~20 lines, index-entry sized. A fresh Claude should read it in 30 seconds and know what to do. If it needs >30 lines, it's probably two skills. Don't include current-state inventories ("attribute X still has the bug") — those rot fast and belong in PR descriptions.
