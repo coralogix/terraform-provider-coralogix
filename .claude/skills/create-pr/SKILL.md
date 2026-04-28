@@ -1,22 +1,25 @@
 ---
 name: create-pr
-description: Structure for a non-trivial bug-fix PR description in this repo (compounding issues, schema-level changes, framework-internals fixes). Replaces the default PR template body, which is minimal scaffolding. Trigger phrases include "create a PR", "open a PR", "draft the PR description". For feature PRs, fall back to the team's standard process.
+description: PR description structure for non-trivial bug fixes in this repo. Follows the .github/PULL_REQUEST_TEMPLATE.md skeleton but expands the Description body with deeper sections. Trigger phrases: "create a PR", "open a PR", "draft the PR description".
 ---
 
-# Create PR — bug-fix description structure
+# Create PR
 
-**Trigger:** opening a PR for a non-trivial bug fix. Trivial one-liners can keep the default template.
+**Trigger:** opening a PR for a non-trivial bug fix. Trivial one-liners can keep the default template body as-is.
 
-**Sections (use as `##` headers in order, replacing the default template body):**
+**Use `.github/PULL_REQUEST_TEMPLATE.md` as the skeleton** — keep every section (Description, Acceptance tests, Release Note, References, Community Note). Don't drop the Community Note or other boilerplate.
 
-1. **Summary** — one sentence: what bug is fixed and the link to the ticket if any.
-2. **Root Cause** — the *mechanism*, not the symptom. If multiple compounding bugs, split into "Issue 1 / Issue 2 / …" with `file:function` refs and explain how each contributes.
-3. **Why was it introduced** — run `git log --follow <file>` and `git blame` the offending lines. Cite the introducing commit + the original intent. If you can't find a clear answer, say so — don't speculate from commit-message phrasing.
-4. **Breaking change?** — explicit yes/no. If no, list edge cases where behaviour shifts (e.g., post-import re-plan). If yes, describe the migration path.
-5. **Risks** — bullet list. For each, how the fix mitigates it (or why it's acceptable).
-6. **Changes** — `| File | Change |` table. One row per touched file.
-7. **Test plan** — checklist with specific test function names that exercise the fix; flag existing tests being strengthened.
+**Inside the Description section,** use these `##` headers in order:
+1. **Summary** — one sentence: what bug is fixed; link the ticket if any.
+2. **Root Cause** — the *mechanism*, not the symptom. Split into "Issue 1 / Issue 2 …" with `file:function` refs if compounding.
+3. **Why was it introduced** — cite the introducing commit via `git log --follow` / `git blame`. If unclear, say so; don't speculate from commit-message phrasing.
+4. **Breaking change?** — explicit yes/no, with edge cases or migration path.
+5. **Risks** — bullets, with mitigation per item.
+6. **Changes** — `| File | Change |` table.
+7. **Test plan** — checklist with specific test function names.
 
-**Before creating the PR:** show the full assembled description to the user and wait for explicit approval. PR creation is a visible-to-others action — never `gh pr create` without confirmation, even after the description is "done". The user may want to tweak wording, drop a section, or hold the PR.
+**Fill the rest of the template:** answer the Acceptance tests checkboxes, paste relevant `make testacc TESTARGS='-run=...'` output, write a meaningful Release Note (`NONE` for chore/internal), link related PRs/issues in References, keep Community Note verbatim.
 
-**Why:** reviewers shouldn't redo the archaeology you already did. This structure makes review fast and leaves a forensic trail for future regression triage. Symptom-and-fix descriptions push the work back onto the reviewer.
+**Before `gh pr create`:** show the assembled description and wait for explicit approval. PR creation is visible-to-others.
+
+**Why:** reviewers shouldn't redo the archaeology you did. Symptom-and-fix descriptions push the work back onto them.
