@@ -49,6 +49,42 @@ Both implementations live in `internal/provider/provider.go`. To add a new resou
 
 `.pre-commit-config.yaml` runs `gofmt`, `goimports`, `go vet`, `golangci-lint`, `go-cyclo` (limit 15), `go-mod-tidy`, `go-build`, and `go-unit-tests` on every commit.
 
+## API source of truth (for feature work)
+
+When adding support for a new API field or method, three GitHub repos are in play, listed in flow order:
+
+- **[`coralogix/cx-management-apis`](https://github.com/coralogix/cx-management-apis)** — canonical gRPC service definitions. All released APIs originate here. Feature tickets typically link directly to a `proto` file in this repo.
+- **[`coralogix/openapi-facade`](https://github.com/coralogix/openapi-facade)** — HTTP/REST proxy that translates REST clients to the gRPC backends. Versioned by quarter (`dec25`, `jan26`, `may26`, …). Useful for verifying how an API surfaces over REST.
+- **[`coralogix/coralogix-management-sdk`](https://github.com/coralogix/coralogix-management-sdk)** — multi-language SDK consumed by this provider. Go bindings live under `go/openapi/gen/<service>/`. The exact version is pinned in this provider's `go.mod` (often a date-stamped pseudo-version like `v1.9.4-0.20260419...`).
+
+The provider depends only on the Go SDK. The SDK's own `proto/` directory can lag upstream; treat the **generated Go types at the pinned version** as authoritative for "is this field available to me?".
+
+### Workflow when the ticket asks for a new field X
+
+1. **Read the proto** linked in the ticket (in `cx-management-apis`) to confirm the field's shape and parent type.
+2. **Verify the pinned SDK has the generated Go type:**
+   ```bash
+   grep coralogix-management-sdk go.mod                       # find pinned version
+   grep -rn "FieldName" ~/go/pkg/mod/github.com/coralogix/coralogix-management-sdk@<version>/go/openapi/gen/<service>/
+   ```
+   Found → no SDK bump needed; jump to step 4.
+   Absent → step 3 first.
+3. **The SDK type needs to land upstream first.** One observed precedent (PR #491):
+    - Identify or open a paired SDK PR in `coralogix/coralogix-management-sdk` adding the proto/Go type.
+    - Open the provider PR in parallel; cite the SDK PR URL in the description with a "merge only after" note.
+    - After the SDK PR merges and a new pseudo-version is published, bump `go.mod` on the provider PR and rebuild.
+4. **Add the schema attribute, model field, extractor, and flatten** in `internal/provider/<domain>/`.
+5. **Verify empirically** against an env (e.g. EU2) — the proto and the API can diverge in subtle ways (validators, mutual-exclusion rules, default behaviour). Don't trust schema-vs-API alignment without a roundtrip.
+
+### Bumping the SDK in `go.mod` (standalone bumps)
+
+Sometimes a bump is needed independent of feature work — to pull in fixes or to track a quarterly LTS release.
+
+- Title convention: `Bump SDK` or `Bump SDK for <month> release` (precedents: #506, #461).
+- A bump usually requires **adapting many resource files** to the new SDK API surface (renamed types, changed signatures). #506 touched 17 resource files alongside `go.mod`. That's expected; bundle the bump and the adaptations in the same PR — they're not separable.
+- Prefer LTS releases (the SDK uses `x.6.x` in June each year) for stable shipping.
+- After the bump: `go mod tidy && go build ./... && go vet ./...`, then the relevant `make testacc` runs to catch behaviour drift the compiler can't.
+
 ## Skill maintenance (dynamic)
 
 Project skills live at `.claude/skills/<skill-name>/SKILL.md`. The directory is symlinked from `.cursor/skills` so Cursor users discover the same files; if a future tool needs them, add a similar symlink for that tool's convention rather than duplicating files.
