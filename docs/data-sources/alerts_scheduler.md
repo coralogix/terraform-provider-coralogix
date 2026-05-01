@@ -8,7 +8,7 @@ description: |-
 
 # coralogix_alerts_scheduler (Data Source)
 
-Coralogix alerts-scheduler.
+Coralogix alerts-scheduler; also known as Coralogix alert suppression rules.
 
 
 
