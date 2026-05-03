@@ -73,8 +73,21 @@ The provider depends only on the Go SDK. The SDK's own `proto/` directory can la
     - Identify or open a paired SDK PR in `coralogix/coralogix-management-sdk` adding the proto/Go type.
     - Open the provider PR in parallel; cite the SDK PR URL in the description with a "merge only after" note.
     - After the SDK PR merges and a new pseudo-version is published, bump `go.mod` on the provider PR and rebuild.
-4. **Add the schema attribute, model field, extractor, and flatten** in `internal/provider/<domain>/`.
+4. **Add the schema attribute, model field, extractor, and flatten** in `internal/provider/<domain>/`. If the resource has a paired data source (`data_source_*.go`), check whether it delegates to the resource's `Schema()` method — many in this repo do, which means new attributes flow through automatically. Quick check: `grep "var r.*Resource" internal/provider/<domain>/data_source_*.go`.
 5. **Verify empirically** against an env (e.g. EU2) — the proto and the API can diverge in subtle ways (validators, mutual-exclusion rules, default behaviour). Don't trust schema-vs-API alignment without a roundtrip.
+
+### Proto annotations describe the wire format, not runtime business rules
+
+The `.proto` file is authoritative for field types, IDs, and `oneof` groupings — anything affecting the wire format. It is **not** authoritative for runtime business rules (mutual exclusion across non-`oneof` fields, value ranges, cross-field validation). Those live in the gRPC service implementation, unless the team uses a validation library like `buf.validate` / `protovalidate`. Treat `openapiv3_schema.required:[...]` and similar annotations as documentation hints, not enforcement.
+
+Practical implication: **probe empirically against a live env before encoding constraints in the schema.** A wrong validator that blocks valid configs is harder to fix than a missing one. Concrete examples surfaced in this codebase:
+
+- `LogRules.dpxl_expression` and `LogRules.severities` are mutually exclusive at the API even though the proto allows both fields independently.
+- `UsageTier.daily_quota_percentage` is bounded to `0–100` even though the proto declares plain `double`.
+
+### Coralogix expression languages use a `<v1>` version prefix
+
+Fields that take expressions — `coralogix_tco_policies_logs.dpxl_expression`, `coralogix_scope.default_expression`, `coralogix_scope.filters[*].expression` — require a version tag at the start of the string (e.g. `<v1> $d.severity == 'INFO'`, `<v1>true`). Bare expressions are rejected at API compile time. When adding a new expression-typed field, mention the prefix in `MarkdownDescription` and include it in test fixtures.
 
 ### Bumping the SDK in `go.mod` (standalone bumps)
 
@@ -84,6 +97,16 @@ Sometimes a bump is needed independent of feature work — to pull in fixes or t
 - A bump usually requires **adapting many resource files** to the new SDK API surface (renamed types, changed signatures). #506 touched 17 resource files alongside `go.mod`. That's expected; bundle the bump and the adaptations in the same PR — they're not separable.
 - Prefer LTS releases (the SDK uses `x.6.x` in June each year) for stable shipping.
 - After the bump: `go mod tidy && go build ./... && go vet ./...`, then the relevant `make testacc` runs to catch behaviour drift the compiler can't.
+
+## Public-repo discipline
+
+This is a public repo (`coralogix/terraform-provider-coralogix`). Internal ticket identifiers (`BUGV2-`, `CX-`, etc.) belong in **commit messages, PR descriptions, and branch names** — not in committed code, comments, doc strings, test fixtures, or example HCL. Use descriptive names instead.
+
+A simple grep before committing catches leakage:
+
+```bash
+git diff master.. -- internal docs examples | grep -iE "BUGV2-|CX-[0-9]" || echo "✓ none"
+```
 
 ## Skill maintenance (dynamic)
 
