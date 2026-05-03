@@ -197,6 +197,57 @@ func TestAccCoralogixResourceTCOPoliciesLogs_quota_based_priority_override(t *te
 	})
 }
 
+func TestAccCoralogixResourceTCOPoliciesLogs_dpxl_replaces_severities(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesLogsSeveritiesOnly(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.severities.#", "1"),
+					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.severities.*", "info"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.dpxl_expression", ""),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceTCOPoliciesLogsDpxlOnly(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.dpxl_expression", "<v1> $d.severity == 'INFO'"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.severities.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceTCOPoliciesLogsSeveritiesOnly() string {
+	return `resource "coralogix_tco_policies_logs" "test" {
+  policies = [
+    {
+      name        = "Example tco_policy migration"
+      priority    = "high"
+      severities  = ["info"]
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesLogsDpxlOnly() string {
+	return `resource "coralogix_tco_policies_logs" "test" {
+  policies = [
+    {
+      name            = "Example tco_policy migration"
+      priority        = "high"
+      dpxl_expression = "<v1> $d.severity == 'INFO'"
+    },
+  ]
+}
+`
+}
+
 func testAccCoralogixResourceTCOPoliciesLogsDpxlExpression() string {
 	return `resource "coralogix_tco_policies_logs" "test" {
   policies = [

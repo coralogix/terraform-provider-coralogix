@@ -682,6 +682,13 @@ func extractTcoPolicyLog(ctx context.Context, plan TCOPolicyLogsModel) (*tcoPoli
 	}
 	enabled := !plan.Enabled.ValueBool()
 
+	logRules := tcoPolicys.LogRules{}
+	if !plan.DpxlExpression.IsNull() && !plan.DpxlExpression.IsUnknown() {
+		logRules.DpxlExpression = plan.DpxlExpression.ValueStringPointer()
+	} else {
+		logRules.Severities = severities
+	}
+
 	return &tcoPolicys.CreateLogPolicyRequest{
 		Policy: tcoPolicys.CreateGenericPolicyRequest{
 			Name:             plan.Name.ValueString(),
@@ -693,10 +700,7 @@ func extractTcoPolicyLog(ctx context.Context, plan TCOPolicyLogsModel) (*tcoPoli
 			Disabled:         &enabled,
 			PriorityOverride: priorityOverride,
 		},
-		LogRules: tcoPolicys.LogRules{
-			Severities:     severities,
-			DpxlExpression: plan.DpxlExpression.ValueStringPointer(),
-		},
+		LogRules: logRules,
 	}, nil
 }
 
