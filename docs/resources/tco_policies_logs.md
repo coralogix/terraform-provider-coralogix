@@ -83,6 +83,28 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
         rule_type = "is"
         names     = ["mobile", "web"]
       }
+    },
+    # DPXL-expression-based matcher. Mutually exclusive with `severities` — set
+    # exactly one. The expression must include a version prefix, e.g. `<v1>`.
+    {
+      name            = "Example tco_policy with DPXL expression"
+      description     = "Match logs via DataPrime expression instead of severities"
+      priority        = "high"
+      dpxl_expression = "<v1> $d.severity == 'INFO'"
+    },
+    # Quota-based priority override: dynamically reassign the policy's priority
+    # based on daily quota consumption tiers.
+    {
+      name        = "Example tco_policy with quota-based override"
+      description = "Drop priority as daily quota is consumed"
+      priority    = "high"
+      severities  = ["info", "warning"]
+      quota_based_priority_override = {
+        usage_tiers = [
+          { daily_quota_percentage = 50, priority = "medium" },
+          { daily_quota_percentage = 80, priority = "low" },
+        ]
+      }
     }
   ]
 }
@@ -112,7 +134,9 @@ Optional:
 - `applications` (Attributes) The applications to apply the policy on. Applies the policy on all the applications by default. (see [below for nested schema](#nestedatt--policies--applications))
 - `archive_retention_id` (String) Allowing logs with a specific retention to be tagged.
 - `description` (String) The policy description
+- `dpxl_expression` (String) DataPrime expression to match logs for this policy. Mutually exclusive with `severities` — set exactly one. The expression must include a version prefix, e.g. `<v1> $d.severity == 'INFO'`.
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
+- `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
 - `severities` (Set of String) The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"].
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
 
@@ -131,6 +155,23 @@ Required:
 Optional:
 
 - `rule_type` (String) The rule type. Can be one of ["includes" "is" "is_not" "starts_with" "unspecified"].
+
+
+<a id="nestedatt--policies--quota_based_priority_override"></a>
+### Nested Schema for `policies.quota_based_priority_override`
+
+Required:
+
+- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override--usage_tiers))
+
+<a id="nestedatt--policies--quota_based_priority_override--usage_tiers"></a>
+### Nested Schema for `policies.quota_based_priority_override.usage_tiers`
+
+Required:
+
+- `daily_quota_percentage` (Number) Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
+- `priority` (String) The priority to apply when this tier is active. Can be one of ["block" "high" "low" "medium"].
+
 
 
 <a id="nestedatt--policies--subsystems"></a>

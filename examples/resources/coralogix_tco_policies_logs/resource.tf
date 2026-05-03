@@ -68,6 +68,28 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
         rule_type = "is"
         names     = ["mobile", "web"]
       }
+    },
+    # DPXL-expression-based matcher. Mutually exclusive with `severities` — set
+    # exactly one. The expression must include a version prefix, e.g. `<v1>`.
+    {
+      name            = "Example tco_policy with DPXL expression"
+      description     = "Match logs via DataPrime expression instead of severities"
+      priority        = "high"
+      dpxl_expression = "<v1> $d.severity == 'INFO'"
+    },
+    # Quota-based priority override: dynamically reassign the policy's priority
+    # based on daily quota consumption tiers.
+    {
+      name        = "Example tco_policy with quota-based override"
+      description = "Drop priority as daily quota is consumed"
+      priority    = "high"
+      severities  = ["info", "warning"]
+      quota_based_priority_override = {
+        usage_tiers = [
+          { daily_quota_percentage = 50, priority = "medium" },
+          { daily_quota_percentage = 80, priority = "low" },
+        ]
+      }
     }
   ]
 }
