@@ -17,6 +17,7 @@ package provider
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -90,6 +91,51 @@ func testAccCoralogixResourceArchiveRetentionsUpdate() string {
 			name = "new_name_4"
 		},
 	]
+}
+`
+}
+
+// TestAccCoralogixResourceArchiveRetentions_via_variable verifies BUGV2-5395:
+// before the fix, supplying retentions through a Terraform variable caused the
+// retentionsValidator to panic during ValidateResourceConfig because the null/
+// unknown branch did not return early. This test exercises the variable path
+// with values injected via ConfigVariables (the test-framework analogue of
+// .tfvars / TF_VAR_*).
+func TestAccCoralogixResourceArchiveRetentions_via_variable(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceArchiveRetentionsViaVariable(),
+				ConfigVariables: config.Variables{
+					"retentions_list": config.ListVariable(
+						config.ObjectVariable(map[string]config.Variable{}),
+						config.ObjectVariable(map[string]config.Variable{"name": config.StringVariable("name_2")}),
+						config.ObjectVariable(map[string]config.Variable{"name": config.StringVariable("name_3")}),
+						config.ObjectVariable(map[string]config.Variable{"name": config.StringVariable("name_4")}),
+					),
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(archiveRetentionsResourceName, "retentions.0.name", "Default"),
+					resource.TestCheckResourceAttr(archiveRetentionsResourceName, "retentions.1.name", "name_2"),
+					resource.TestCheckResourceAttr(archiveRetentionsResourceName, "retentions.2.name", "name_3"),
+					resource.TestCheckResourceAttr(archiveRetentionsResourceName, "retentions.3.name", "name_4"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceArchiveRetentionsViaVariable() string {
+	return `
+variable "retentions_list" {
+  type    = list(any)
+  default = []
+}
+
+resource "coralogix_archive_retentions" "test" {
+  retentions = var.retentions_list
 }
 `
 }
