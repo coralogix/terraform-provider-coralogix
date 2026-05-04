@@ -215,13 +215,13 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	_, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
 	if !found {
 		// Accept `domain` with or without an `api.` prefix and resolve to api.<base>.
-		base, err := NormalizeBaseHost(region)
-		if err != nil {
-			slog.Error("invalid Coralogix domain", "domain", region, "error", err)
-			confBuilder.WithURL(cxsdkOpenapi.URLFromDomain(region))
+		host := region
+		if base, err := NormalizeBaseHost(region); err == nil {
+			host = "api." + base
 		} else {
-			confBuilder.WithURL("https://api." + base + "/mgmt/openapi/4")
+			slog.Error("invalid Coralogix domain", "domain", region, "error", err)
 		}
+		confBuilder.WithURL(cxsdkOpenapi.URLFromDomain(host))
 	} else {
 		confBuilder.WithRegion(strings.ToLower(region))
 	}
