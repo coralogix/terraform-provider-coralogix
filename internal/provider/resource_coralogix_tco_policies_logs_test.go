@@ -208,7 +208,7 @@ func TestAccCoralogixResourceTCOPoliciesLogs_dpxl_replaces_severities(t *testing
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.severities.#", "1"),
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.severities.*", "info"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.dpxl_expression", ""),
+					resource.TestCheckNoResourceAttr(tcoPoliciesResourceName, "policies.0.dpxl_expression"),
 				),
 			},
 			{
