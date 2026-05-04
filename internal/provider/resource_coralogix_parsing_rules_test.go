@@ -123,6 +123,32 @@ func TestAccCoralogixResourceParsingRules_block(t *testing.T) {
 	})
 }
 
+// TestAccCoralogixResourceParsingRules_block_omitted_description verifies BUGV2-5288:
+// before the fix, omitting the optional `description` field inside a `block` rule caused
+// "Provider produced inconsistent result after apply" because the API echoed back "" while
+// Terraform expected null. The fix adds Computed+Default("") to the `description` field
+// in commonRulesAttrs, so omitted description normalizes to "" before the request is sent.
+func TestAccCoralogixResourceParsingRules_block_omitted_description(t *testing.T) {
+	r := getRandomParsingRule()
+	regEx := `.*`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckParsingRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceParsingRulesBlockOmittedDescription(r, regEx),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.name", r.parsingRuleParams.name),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.description", ""),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.regular_expression", regEx),
+				),
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceParsingRules_allow(t *testing.T) {
 	r := getRandomParsingRule()
 
@@ -705,6 +731,25 @@ func testAccCoralogixResourceParsingRulesBlock(r *parsingRuleGroupParams, regEx,
   }]
  }
 `, r.name, r.description, r.creator, r.parsingRuleParams.name, r.parsingRuleParams.description, regEx, keepBlockedLogs)
+}
+
+func testAccCoralogixResourceParsingRulesBlockOmittedDescription(r *parsingRuleGroupParams, regEx string) string {
+	return fmt.Sprintf(`resource "coralogix_parsing_rules" "test" {
+  name        = "%s"
+  description = "%s"
+  creator     = "%s"
+  rule_subgroups = [{
+    rules = [{
+      block = {
+        name               = "%s"
+        source_field       = "text"
+        regular_expression = "%s"
+        keep_blocked_logs  = false
+      }
+    }]
+  }]
+}
+`, r.name, r.description, r.creator, r.parsingRuleParams.name, regEx)
 }
 
 func testAccCoralogixResourceParsingRulesJsonExtract(r *parsingRuleGroupParams, jsonKey, destinationField string) string {

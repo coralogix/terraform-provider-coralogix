@@ -35,6 +35,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -720,6 +721,8 @@ func commonRulesAttrs() map[string]schema.Attribute {
 		},
 		"description": schema.StringAttribute{
 			Optional:    true,
+			Computed:    true,
+			Default:     stringdefault.StaticString(""),
 			Description: "The rule description.",
 		},
 		"active": schema.BoolAttribute{
