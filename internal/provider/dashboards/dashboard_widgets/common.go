@@ -849,25 +849,34 @@ func (l logsAggregationValidator) ValidateObject(ctx context.Context, req valida
 		return
 	}
 
+	if aggregation.Type.IsNull() || aggregation.Type.IsUnknown() {
+		return
+	}
+
 	aggregationType := aggregation.Type.ValueString()
-	fieldSet := !aggregation.Field.IsNull()
-	observationFieldSet := !aggregation.ObservationField.IsNull()
+	fieldKnownSet := !aggregation.Field.IsNull() && !aggregation.Field.IsUnknown()
+	fieldKnownUnset := aggregation.Field.IsNull()
+	obsKnownSet := !aggregation.ObservationField.IsNull() && !aggregation.ObservationField.IsUnknown()
+	obsKnownUnset := aggregation.ObservationField.IsNull()
 
 	if aggregationType == "count" {
-		if fieldSet || observationFieldSet {
+		if fieldKnownSet || obsKnownSet {
 			resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `count`, neither `field` nor `observation_field` can be set"))
 		}
 	} else {
-		if !fieldSet && !observationFieldSet {
+		if fieldKnownUnset && obsKnownUnset {
 			resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, either `field` or `observation_field` must be set", aggregationType)))
-		} else if fieldSet && observationFieldSet {
+		} else if fieldKnownSet && obsKnownSet {
 			resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `field` and `observation_field` are mutually exclusive — set exactly one", aggregationType)))
 		}
 	}
 
-	if aggregationType == "percentile" && aggregation.Percent.IsNull() {
+	percentKnownSet := !aggregation.Percent.IsNull() && !aggregation.Percent.IsUnknown()
+	percentKnownUnset := aggregation.Percent.IsNull()
+
+	if aggregationType == "percentile" && percentKnownUnset {
 		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `percentile`, `percent` must be set"))
-	} else if aggregationType != "percentile" && !aggregation.Percent.IsNull() {
+	} else if aggregationType != "percentile" && percentKnownSet {
 		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `percent` cannot be set", aggregationType)))
 	}
 }
