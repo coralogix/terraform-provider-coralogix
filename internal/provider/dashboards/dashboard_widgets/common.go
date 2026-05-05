@@ -850,10 +850,19 @@ func (l logsAggregationValidator) ValidateObject(ctx context.Context, req valida
 	}
 
 	aggregationType := aggregation.Type.ValueString()
-	if aggregationType == "count" && !aggregation.Field.IsNull() {
-		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `count`, `field` cannot be set"))
-	} else if aggregationType != "count" && aggregation.Field.IsNull() {
-		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `field` must be set", aggregationType)))
+	fieldSet := !aggregation.Field.IsNull()
+	observationFieldSet := !aggregation.ObservationField.IsNull()
+
+	if aggregationType == "count" {
+		if fieldSet || observationFieldSet {
+			resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `count`, neither `field` nor `observation_field` can be set"))
+		}
+	} else {
+		if !fieldSet && !observationFieldSet {
+			resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, either `field` or `observation_field` must be set", aggregationType)))
+		} else if fieldSet && observationFieldSet {
+			resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `field` and `observation_field` are mutually exclusive — set exactly one", aggregationType)))
+		}
 	}
 
 	if aggregationType == "percentile" && aggregation.Percent.IsNull() {
