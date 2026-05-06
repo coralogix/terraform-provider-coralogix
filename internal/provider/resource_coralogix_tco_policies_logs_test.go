@@ -153,3 +153,131 @@ policies = [{
 }
 	`
 }
+
+// TestAccCoralogixResourceTCOPoliciesLogs_dpxl_expression covers a TCO log policy
+// whose matcher is a DataPrime expression instead of severities. The two are
+// mutually exclusive at the API level, so this fixture omits severities entirely.
+func TestAccCoralogixResourceTCOPoliciesLogs_dpxl_expression(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesLogsDpxlExpression(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with DPXL expression"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.priority", "high"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.dpxl_expression", "<v1> $d.severity == 'INFO'"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.severities.#", "0"),
+				),
+			},
+		},
+	})
+}
+func TestAccCoralogixResourceTCOPoliciesLogs_quota_based_priority_override(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesLogsQuotaBasedOverride(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with quota-based override"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.priority", "high"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.quota_based_priority_override.usage_tiers.#", "2"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.quota_based_priority_override.usage_tiers.0.daily_quota_percentage", "50"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.quota_based_priority_override.usage_tiers.0.priority", "medium"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.quota_based_priority_override.usage_tiers.1.daily_quota_percentage", "80"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.quota_based_priority_override.usage_tiers.1.priority", "low"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceTCOPoliciesLogs_dpxl_replaces_severities(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesLogsSeveritiesOnly(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.severities.#", "1"),
+					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.severities.*", "info"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesResourceName, "policies.0.dpxl_expression"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceTCOPoliciesLogsDpxlOnly(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.dpxl_expression", "<v1> $d.severity == 'INFO'"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.severities.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceTCOPoliciesLogsSeveritiesOnly() string {
+	return `resource "coralogix_tco_policies_logs" "test" {
+  policies = [
+    {
+      name        = "Example tco_policy migration"
+      priority    = "high"
+      severities  = ["info"]
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesLogsDpxlOnly() string {
+	return `resource "coralogix_tco_policies_logs" "test" {
+  policies = [
+    {
+      name            = "Example tco_policy migration"
+      priority        = "high"
+      dpxl_expression = "<v1> $d.severity == 'INFO'"
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesLogsDpxlExpression() string {
+	return `resource "coralogix_tco_policies_logs" "test" {
+  policies = [
+    {
+      name            = "Example tco_policy with DPXL expression"
+      description     = "DPXL-based matcher for the TCO policy"
+      priority        = "high"
+      dpxl_expression = "<v1> $d.severity == 'INFO'"
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesLogsQuotaBasedOverride() string {
+	return `resource "coralogix_tco_policies_logs" "test" {
+  policies = [
+    {
+      name        = "Example tco_policy with quota-based override"
+      description = "Dynamic priority reassignment based on daily quota tiers"
+      priority    = "high"
+      severities  = ["info", "warning"]
+      quota_based_priority_override = {
+        usage_tiers = [
+          { daily_quota_percentage = 50, priority = "medium" },
+          { daily_quota_percentage = 80, priority = "low" },
+        ]
+      }
+    },
+  ]
+}
+`
+}
