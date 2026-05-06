@@ -9,6 +9,12 @@ on:
   pull_request:
     branches:
       - master
+    paths-ignore:
+      - '.claude/**'
+      - '.cursor/**'
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - '**/*.md'
 
 jobs:
   test:

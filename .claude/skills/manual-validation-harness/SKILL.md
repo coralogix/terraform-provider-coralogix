@@ -1,6 +1,6 @@
 ---
 name: manual-validation-harness
-description: When validating a coralogix terraform-provider bug fix end-to-end against a real Coralogix env. Triggers on "test the fix locally", "reproduce the bug", "validate before merge".
+description: "Use when validating a Coralogix terraform-provider bug fix end-to-end against a real Coralogix environment. Builds the provider locally, runs multi-step Terraform apply/plan scenarios to verify idempotency, and catches perpetual-diff regressions before merge."
 ---
 
 # Manual end-to-end validation
