@@ -76,7 +76,7 @@ Treat the skills directory as a living knowledge base — when a bug fix or issu
 ```markdown
 ---
 name: <kebab-case-name>
-description: <one sentence — concrete triggers Claude matches against (resource names, error strings, file paths)>
+description: "Use when <concrete trigger — resource names, error strings, file paths, scenarios>. <One short clause on what it does.> Do NOT use for <obvious anti-pattern, when relevant>."
 ---
 
 # <Title>
@@ -88,7 +88,14 @@ description: <one sentence — concrete triggers Claude matches against (resourc
 **Why:** <one sentence — the underlying reason, so future-you can judge edge cases>
 ```
 
+**Description format** (frontmatter):
+- Always quote the value (single line, in `"…"`). Strict YAML parsers choke on unquoted descriptions that contain colons, parentheses, or other punctuation.
+- Start with `Use when …` so it matches the documented Anthropic Skills convention and other agents (Cursor, Codex) discover it consistently.
+- Keep under ~200 characters. The description is what tools match against to decide relevance — be specific and concrete, avoid filler.
+
 **Naming:** kebab-case, scoped to the problem, not the resource (e.g., `framework-plan-modifier-for-set-of-objects`, not `fix-alert-bug-2026-04`). A good name reads like an index entry.
+
+**Public surface:** `.claude/skills/` is checked into a public repo and indexed by external tooling. No customer names, no internal-only ticket bodies, no non-public URLs. Treat skills like docs you'd be comfortable showing to anyone who reads the repo.
 
 **Workflow at end of a bug-fix session:**
 1. Ask: "did I just learn something a fresh Claude wouldn't?"
