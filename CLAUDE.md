@@ -49,6 +49,44 @@ Both implementations live in `internal/provider/provider.go`. To add a new resou
 
 `.pre-commit-config.yaml` runs `gofmt`, `goimports`, `go vet`, `golangci-lint`, `go-cyclo` (limit 15), `go-mod-tidy`, `go-build`, and `go-unit-tests` on every commit.
 
+## Adding API support / SDK considerations
+
+The provider depends on the public Go SDK at [`coralogix/coralogix-management-sdk`](https://github.com/coralogix/coralogix-management-sdk). That SDK is the authoritative surface for "is this API field available to me?".
+
+**To check whether a field exists in the pinned SDK:**
+
+```bash
+grep coralogix-management-sdk go.mod                       # find pinned version
+grep -rn "FieldName" ~/go/pkg/mod/github.com/coralogix/coralogix-management-sdk@<version>/go/openapi/gen/<service>/
+```
+
+If the SDK's generated Go types don't include the field, an SDK release has to land first. If they do, wire the schema, model, extractor, and flatten in the relevant `internal/provider/<domain>/` package.
+
+When the resource has a paired data source (`data_source_*.go`), check whether it delegates to the resource's `Schema()` method — many in this repo do, which means new attributes flow through automatically. Quick check: `grep "var r.*Resource" internal/provider/<domain>/data_source_*.go`.
+
+**Verify empirically.** API behaviour can diverge from what the SDK's generated Go types suggest — runtime business rules (mutual exclusion, value bounds, defaults) often aren't expressed in the types. Always test against a real environment before encoding constraints in the schema. Wrong validators that block valid configs are harder to undo than missing ones. Examples that surfaced in this codebase:
+
+- `LogRules.dpxl_expression` and `LogRules.severities` are mutually exclusive at the API even though the Go types don't enforce it.
+- `UsageTier.daily_quota_percentage` is bounded to `0–100` even though the Go type is plain `float64`.
+
+### Coralogix expression languages use a `<v1>` version prefix
+
+Fields that take expressions — `coralogix_tco_policies_logs.dpxl_expression`, `coralogix_scope.default_expression`, `coralogix_scope.filters[*].expression` — require a version tag at the start of the string (e.g. `<v1> $d.severity == 'INFO'`, `<v1>true`). Bare expressions are rejected at API compile time. When adding a new expression-typed field, mention the prefix in `MarkdownDescription` and include it in test fixtures.
+
+### Bumping the SDK in `go.mod`
+
+A bump usually requires adapting many resource files to the new SDK API surface (renamed types, changed signatures). PR #506 touched 17 resource files alongside `go.mod`. That's expected — bundle the bump and the adaptations in the same PR; they're not separable. After the bump: `go mod tidy && go build ./... && go vet ./...`, then the relevant `make testacc` runs to catch behaviour drift the compiler can't.
+
+## Public-repo discipline
+
+This is a public repo (`coralogix/terraform-provider-coralogix`). Internal ticket identifiers (`BUGV2-`, `CX-`, etc.) belong in **commit messages, PR descriptions, and branch names** — not in committed code, comments, doc strings, test fixtures, or example HCL. Use descriptive names instead.
+
+A simple grep before committing catches leakage:
+
+```bash
+git diff master.. -- internal docs examples | grep -iE "BUGV2-|CX-[0-9]" || echo "✓ none"
+```
+
 ## Skill maintenance (dynamic)
 
 Project skills live at `.claude/skills/<skill-name>/SKILL.md`. The directory is symlinked from `.cursor/skills` so Cursor users discover the same files; if a future tool needs them, add a similar symlink for that tool's convention rather than duplicating files.
