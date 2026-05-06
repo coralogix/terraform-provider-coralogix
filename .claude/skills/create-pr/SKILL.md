@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: PR description structure for non-trivial bug fixes in this repo. Follows the .github/PULL_REQUEST_TEMPLATE.md skeleton but expands the Description body with deeper sections. Trigger phrases: "create a PR", "open a PR", "draft the PR description".
+description: "Use when creating a PR for a non-trivial bug fix in this repo. Assembles a structured PR description following .github/PULL_REQUEST_TEMPLATE.md with expanded sections for root cause, risks, and test plan. Do NOT use for trivial one-liner fixes."
 ---
 
 # Create PR
