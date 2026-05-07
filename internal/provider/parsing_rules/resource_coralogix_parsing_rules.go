@@ -441,7 +441,13 @@ func (r *ParsingRulesResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	id := plan.ID.ValueString()
+	var priorState *ParsingRulesModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorState)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	id := priorState.ID.ValueString()
 	rq := extractParsingRules(plan)
 
 	result, httpResponse, err := r.client.
