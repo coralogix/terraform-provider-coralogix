@@ -34,8 +34,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -260,8 +262,10 @@ func (r *ParsingRulesResource) Schema(_ context.Context, _ resource.SchemaReques
 		Version: 0,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Required:    true,
@@ -441,13 +445,7 @@ func (r *ParsingRulesResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	var priorState *ParsingRulesModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &priorState)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	id := priorState.ID.ValueString()
+	id := plan.ID.ValueString()
 	rq := extractParsingRules(plan)
 
 	result, httpResponse, err := r.client.
