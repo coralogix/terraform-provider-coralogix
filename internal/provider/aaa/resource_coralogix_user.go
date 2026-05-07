@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -81,8 +82,13 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				MarkdownDescription: "User ID.",
 			},
 			"user_name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "User name.",
+				Required: true,
+				PlanModifiers: []planmodifier.String{
+					caseInsensitiveStringPlanModifier{},
+				},
+				MarkdownDescription: "User name (email). Comparison is case-insensitive: SSO " +
+					"login can normalize letter case in the backend, and that normalization " +
+					"will not trigger drift in subsequent plans.",
 			},
 			"name": schema.SingleNestedAttribute{
 				Optional: true,
@@ -314,10 +320,15 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	if plan.UserName.ValueString() != state.UserName.ValueString() {
+	if !strings.EqualFold(plan.UserName.ValueString(), state.UserName.ValueString()) {
 		resp.Diagnostics.AddError(
 			"User name cannot be updated",
-			"User name is immutable and cannot be updated",
+			fmt.Sprintf(
+				"Cannot change user_name from %q to %q. user_name is set at creation and "+
+					"cannot be updated in place. To assign this resource to a different user, "+
+					"recreate it (terraform state rm + apply, or `terraform state mv`).",
+				state.UserName.ValueString(), plan.UserName.ValueString(),
+			),
 		)
 		return
 	}
@@ -500,4 +511,23 @@ func extractUserEmails(ctx context.Context, emails types.Set) ([]cxsdk.SCIMUserE
 	}
 
 	return expandedEmails, diags
+}
+
+type caseInsensitiveStringPlanModifier struct{}
+
+func (caseInsensitiveStringPlanModifier) Description(_ context.Context) string {
+	return "Treats the value as case-insensitive — suppresses diffs that only change letter case."
+}
+
+func (m caseInsensitiveStringPlanModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (caseInsensitiveStringPlanModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.StateValue.IsNull() || req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
+		return
+	}
+	if strings.EqualFold(req.StateValue.ValueString(), req.PlanValue.ValueString()) {
+		resp.PlanValue = req.StateValue
+	}
 }
