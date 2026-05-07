@@ -558,6 +558,7 @@ func TestAccCoralogixResourceParsingRules_update(t *testing.T) {
 	r1 := getRandomParsingRule()
 	r2 := getRandomParsingRule()
 	resourceName := "coralogix_parsing_rules.test"
+	var ruleID string
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -578,6 +579,7 @@ func TestAccCoralogixResourceParsingRules_update(t *testing.T) {
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.parse.name", "rule1"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.extract.name", "rule2"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.name", "rule3"),
+					captureParsingRuleID(parsingRulesGroupResourceName, &ruleID),
 				),
 			},
 			{
@@ -599,6 +601,7 @@ func TestAccCoralogixResourceParsingRules_update(t *testing.T) {
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.parse.name", "rule1"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.extract.name", "rule2"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.name", "rule3"),
+					assertParsingRuleIDUnchanged(parsingRulesGroupResourceName, &ruleID),
 				),
 			},
 		},
@@ -608,6 +611,7 @@ func TestAccCoralogixResourceParsingRules_update(t *testing.T) {
 func TestAccCoralogixResourceParsingRules_update_order_inside_rule_group(t *testing.T) {
 	r := getRandomParsingRule()
 	resourceName := "coralogix_parsing_rules.test"
+	var ruleID string
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -631,6 +635,7 @@ func TestAccCoralogixResourceParsingRules_update_order_inside_rule_group(t *test
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.extract.order", "2"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.name", "rule3"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.order", "3"),
+					captureParsingRuleID(parsingRulesGroupResourceName, &ruleID),
 				),
 			},
 			{
@@ -656,6 +661,7 @@ func TestAccCoralogixResourceParsingRules_update_order_inside_rule_group(t *test
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.name", "rule1"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.order", "3"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.3.extract_timestamp.name", "rule1"),
+					assertParsingRuleIDUnchanged(parsingRulesGroupResourceName, &ruleID),
 				),
 			},
 		},
@@ -696,7 +702,7 @@ func testAccCheckParsingRuleDestroy(s *terraform.State) error {
 		}
 
 		resp, _, err := client.RuleGroupsServiceGetRuleGroup(ctx, rs.Primary.ID).Execute()
-		if err == nil {
+		if err == nil && resp != nil && resp.RuleGroup != nil && resp.RuleGroup.Id != nil {
 			if *resp.RuleGroup.Id == rs.Primary.ID {
 				return fmt.Errorf("RuleGroup still exists: %s", rs.Primary.ID)
 			}
@@ -704,6 +710,33 @@ func testAccCheckParsingRuleDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func captureParsingRuleID(resourceName string, out *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource %q not found in state", resourceName)
+		}
+		*out = rs.Primary.ID
+		return nil
+	}
+}
+
+func assertParsingRuleIDUnchanged(resourceName string, expected *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource %q not found in state", resourceName)
+		}
+		if *expected == "" {
+			return fmt.Errorf("expected ID was not captured before this assertion ran")
+		}
+		if rs.Primary.ID != *expected {
+			return fmt.Errorf("RuleGroup ID changed across update: %s -> %s (resource was recreated, leaking the original)", *expected, rs.Primary.ID)
+		}
+		return nil
+	}
 }
 
 /*func testAccCoralogixResourceParsingRulesMinimal(name string) string {

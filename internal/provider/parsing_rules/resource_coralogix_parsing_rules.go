@@ -441,15 +441,16 @@ func (r *ParsingRulesResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
+	id := plan.ID.ValueString()
 	rq := extractParsingRules(plan)
 
 	result, httpResponse, err := r.client.
-		RuleGroupsServiceCreateRuleGroup(ctx).
+		RuleGroupsServiceUpdateRuleGroup(ctx, id).
 		RuleGroupsServiceCreateRuleGroupRequest(*rq).
 		Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error replacing coralogix_parsing_rules",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
+		resp.Diagnostics.AddError("Error updating coralogix_parsing_rules",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq),
 		)
 		return
 	}
