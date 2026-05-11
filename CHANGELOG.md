@@ -1215,7 +1215,35 @@ Fix:
 
 - FIX: Resolve panic during terraform import
 
-# Release 4.0.0
+# Release 3.4.0
+
+#### resource/coralogix_tco_policies_logs
+
+- FEAT: Add `dpxl_expression` as an alternative to `severities` for matching logs, and `quota_based_priority_override` for dynamic priority reassignment based on daily quota tiers.
+
+#### resource/coralogix_alert
+
+- FEAT: Support permanent Always Active suppression rules.
+- FIX: Stop persisting `webhooks_settings` after they are removed from configuration.
+
+#### resource/coralogix_user
+
+- FIX: Treat `user_name` as case-insensitive — backend case normalization (e.g. on SSO login) no longer causes spurious drift or apply errors.
+
+#### resource/coralogix_dashboard
+
+- FIX: Accept `observation_field` as an alternative to `field` in logs aggregation widget configurations.
+
+#### resource/coralogix_parsing_rules
+
+- FIX: Stop `Update` from creating duplicate rule groups.
+- FIX: Normalize empty `description` on block rules so it no longer causes spurious drift on re-apply.
+
+#### resource/coralogix_archive_retentions
+
+- FIX: Prevent panic when retentions are sourced from a Terraform variable.
+
+# Planned for Release 4.0.0 (deprecation notice)
 
 ## resource/coralogix_enrichment, data_source/coralogix_enrichment
 
@@ -1228,16 +1256,3 @@ Fix:
 ## resource/coralogix_rules_group, data_source/coralogix_rules_group
 
 - Removed.
-
-# Unknown future release 
-
-## resource/coralogix_alert
-Remove:  remove support for `notification_group.destinations`
-
-Feat:
-* Added `percentage_of_deviation` field to `logs_anomaly` and `metric_anomaly` alert types to configure the percentage of deviation from baseline for triggering anomaly alerts.
-
-#### resource/coralogix_alerts_scheduler
-
-FIX:
-* "Invalid uuid" error during update operations
