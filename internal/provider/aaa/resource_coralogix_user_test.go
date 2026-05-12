@@ -18,9 +18,34 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+func TestUserResourceSchemaUserName(t *testing.T) {
+	resp := &resource.SchemaResponse{}
+	NewUserResource().Schema(context.Background(), resource.SchemaRequest{}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("schema returned diagnostics: %v", resp.Diagnostics)
+	}
+
+	userNameAttr, ok := resp.Schema.Attributes["user_name"].(schema.StringAttribute)
+	if !ok {
+		t.Fatalf("expected user_name to be schema.StringAttribute, got %T", resp.Schema.Attributes["user_name"])
+	}
+	if userNameAttr.MarkdownDescription != "User name." {
+		t.Fatalf("expected user_name description to stay short, got %q", userNameAttr.MarkdownDescription)
+	}
+
+	for _, modifier := range userNameAttr.PlanModifiers {
+		if _, ok := modifier.(caseInsensitiveStringPlanModifier); ok {
+			return
+		}
+	}
+	t.Fatal("expected user_name to include caseInsensitiveStringPlanModifier")
+}
 
 func TestCaseInsensitiveStringPlanModifier(t *testing.T) {
 	cases := []struct {

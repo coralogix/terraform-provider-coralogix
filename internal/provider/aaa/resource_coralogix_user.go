@@ -86,9 +86,7 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				PlanModifiers: []planmodifier.String{
 					caseInsensitiveStringPlanModifier{},
 				},
-				MarkdownDescription: "User name (email). Comparison is case-insensitive: SSO " +
-					"login can normalize letter case in the backend, and that normalization " +
-					"will not trigger drift in subsequent plans.",
+				MarkdownDescription: "User name.",
 			},
 			"name": schema.SingleNestedAttribute{
 				Optional: true,
