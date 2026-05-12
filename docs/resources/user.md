@@ -54,7 +54,7 @@ resource "coralogix_group" "example" {
 
 ### Required
 
-- `user_name` (String) User name.
+- `user_name` (String) User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans.
 
 ### Optional
 
