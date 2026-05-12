@@ -48,7 +48,27 @@ resource "coralogix_alerts_scheduler" "suppress_all" {
   }
 }
 
-# Example 2: Suppress only specific group-by values
+# Example 2: Suppress all alert activity for every alert
+# Omit both selector fields (alerts_unique_ids and meta_labels) to target all alerts
+resource "coralogix_alerts_scheduler" "suppress_every_alert" {
+  name        = "Maintenance Window - Every Alert"
+  description = "Suppress every alert during maintenance window"
+  filter = {
+    what_expression = "source logs | filter true"
+  }
+  schedule = {
+    operation = "mute"
+    one_time = {
+      time_frame = {
+        start_time = "2025-01-04T00:00:00.000"
+        end_time   = "2025-01-04T06:00:00.000"
+        time_zone  = "UTC+2"
+      }
+    }
+  }
+}
+
+# Example 3: Suppress only specific group-by values
 # The what_expression filters which triggered values to suppress
 # Note: "source logs" syntax works for ALL alert types (logs, metrics, tracing)
 resource "coralogix_alerts_scheduler" "suppress_specific_values" {
@@ -70,7 +90,7 @@ resource "coralogix_alerts_scheduler" "suppress_specific_values" {
   }
 }
 
-# Example 3: Suppress with multiple conditions
+# Example 4: Suppress with multiple conditions
 # Works with any alert group-by keys including metric labels
 resource "coralogix_alerts_scheduler" "suppress_multiple_conditions" {
   name        = "Suppress Staging Cluster Alerts"
@@ -91,7 +111,7 @@ resource "coralogix_alerts_scheduler" "suppress_multiple_conditions" {
   }
 }
 
-# Example 4: Recurring suppression with meta_labels selector
+# Example 5: Recurring suppression with meta_labels selector
 resource "coralogix_alerts_scheduler" "recurring_suppression" {
   name        = "Weekly Maintenance Window"
   description = "Suppress alerts every Sunday for maintenance"
@@ -128,7 +148,7 @@ resource "coralogix_alerts_scheduler" "recurring_suppression" {
   }
 }
 
-# Example 5: Permanent (always active) suppression rule
+# Example 6: Permanent (always active) suppression rule
 resource "coralogix_alerts_scheduler" "permanent_suppression" {
   name        = "Permanent Suppression - Test Environment"
   description = "Permanently suppress alerts for test environment"
@@ -149,7 +169,7 @@ resource "coralogix_alerts_scheduler" "permanent_suppression" {
   }
 }
 
-# Example 6: Permanent suppression for specific alerts
+# Example 7: Permanent suppression for specific alerts
 resource "coralogix_alerts_scheduler" "permanent_alert_suppression" {
   name        = "Permanent Alert Mute"
   description = "Permanently mute specific alerts"

@@ -15,8 +15,15 @@
 package alerts
 
 import (
+	"context"
+	"slices"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+
+	alertscheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
 )
 
 func TestNormalizeStartTimeFromAPI(t *testing.T) {
@@ -115,5 +122,99 @@ func TestStartTimeSemanticallyEqual(t *testing.T) {
 				t.Errorf("startTimeSemanticallyEqual(%q, %q) = %v, want %v", tt.a, tt.b, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestFlattenFilterTreatsNilOrEmptyAlertIDsAsAllAlerts(t *testing.T) {
+	ctx := context.Background()
+	tests := []struct {
+		name string
+		ids  []string
+	}{
+		{name: "nil ids", ids: nil},
+		{name: "empty ids", ids: []string{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filter := &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
+				AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
+					WhatExpression: alertscheduler.PtrString("source logs | filter true"),
+					AlertUniqueIds: alertscheduler.AlertUniqueIds{Value: tt.ids},
+				},
+			}
+
+			got, diags := flattenFilter(ctx, filter)
+			if diags.HasError() {
+				t.Fatalf("flattenFilter returned diagnostics: %v", diags)
+			}
+
+			var model FilterModel
+			if diags := got.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+				t.Fatalf("converting flattened filter returned diagnostics: %v", diags)
+			}
+
+			if got := model.WhatExpression.ValueString(); got != "source logs | filter true" {
+				t.Fatalf("what_expression = %q, want source logs | filter true", got)
+			}
+			if !model.AlertsUniqueIDs.IsNull() {
+				t.Fatalf("alerts_unique_ids should be null for all-alert backend filter, got %#v", model.AlertsUniqueIDs)
+			}
+			if !model.MetaLabels.IsNull() {
+				t.Fatalf("meta_labels should be null for all-alert backend filter, got %#v", model.MetaLabels)
+			}
+		})
+	}
+}
+
+func TestFlattenFilterPreservesDirectAlertIDs(t *testing.T) {
+	ctx := context.Background()
+	filter := &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
+		AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
+			WhatExpression: alertscheduler.PtrString("source logs | filter true"),
+			AlertUniqueIds: alertscheduler.AlertUniqueIds{Value: []string{"alert-id-1", "alert-id-2"}},
+		},
+	}
+
+	got, diags := flattenFilter(ctx, filter)
+	if diags.HasError() {
+		t.Fatalf("flattenFilter returned diagnostics: %v", diags)
+	}
+
+	var model FilterModel
+	if diags := got.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+		t.Fatalf("converting flattened filter returned diagnostics: %v", diags)
+	}
+
+	var ids []string
+	if diags := model.AlertsUniqueIDs.ElementsAs(ctx, &ids, false); diags.HasError() {
+		t.Fatalf("converting alert IDs returned diagnostics: %v", diags)
+	}
+	slices.Sort(ids)
+	if len(ids) != 2 || ids[0] != "alert-id-1" || ids[1] != "alert-id-2" {
+		t.Fatalf("alerts_unique_ids = %#v, want [alert-id-1 alert-id-2]", ids)
+	}
+}
+
+func TestExtractFilterOmitsAlertIDsForAllAlerts(t *testing.T) {
+	ctx := context.Background()
+	filter, diags := types.ObjectValueFrom(ctx, filterModelAttr(), FilterModel{
+		WhatExpression:  types.StringValue("source logs | filter true"),
+		MetaLabels:      types.SetNull(types.ObjectType{AttrTypes: labelModelAttr()}),
+		AlertsUniqueIDs: types.SetNull(types.StringType),
+	})
+	if diags.HasError() {
+		t.Fatalf("creating filter object returned diagnostics: %v", diags)
+	}
+
+	got, diags := extractFilter(ctx, filter)
+	if diags.HasError() {
+		t.Fatalf("extractFilter returned diagnostics: %v", diags)
+	}
+	if got.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds == nil {
+		t.Fatal("extractFilter did not produce alert unique IDs filter for all-alert config")
+	}
+	if ids := got.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds.AlertUniqueIds.Value; ids != nil {
+		t.Fatalf("all-alert config should extract nil alert IDs, got %#v", ids)
 	}
 }
