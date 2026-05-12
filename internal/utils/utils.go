@@ -356,7 +356,7 @@ func Int32SliceToTypeInt64Set(arr []int32) types.Set {
 	for _, n := range arr {
 		elements = append(elements, types.Int64Value(int64(n)))
 	}
-	return types.SetValueMust(types.StringType, elements)
+	return types.SetValueMust(types.Int64Type, elements)
 }
 
 func StringSliceToTypeStringList(s []string) types.List {
@@ -489,21 +489,20 @@ func TypeStringSliceToStringSlice(s []types.String) []string {
 	return result
 }
 
-func TypeInt64SliceToInt32Slice(ctx context.Context, s []attr.Value) ([]int32, diag.Diagnostics) {
+func TypeInt64SliceToInt32Slice(_ context.Context, s []attr.Value) ([]int32, diag.Diagnostics) {
 	result := make([]int32, 0, len(s))
 	var diags diag.Diagnostics
 	for _, v := range s {
-		val, err := v.ToTerraformValue(ctx)
-		if err != nil {
-			diags.AddError("Failed to convert value to Terraform", err.Error())
+		i64, ok := v.(types.Int64)
+		if !ok {
+			diags.AddError("Failed to convert value to Terraform", fmt.Sprintf("expected types.Int64, got %T", v))
 			continue
 		}
-		var n int64
-		if err = val.As(&n); err != nil {
-			diags.AddError("Failed to convert value to Terraform", err.Error())
+		if i64.IsNull() || i64.IsUnknown() {
+			diags.AddError("Failed to convert value to Terraform", "unexpected null or unknown Int64 in set")
 			continue
 		}
-		result = append(result, int32(n))
+		result = append(result, int32(i64.ValueInt64()))
 	}
 	if diags.HasError() {
 		return nil, diags
