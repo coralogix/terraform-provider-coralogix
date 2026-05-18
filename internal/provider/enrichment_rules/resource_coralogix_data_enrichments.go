@@ -124,23 +124,23 @@ type DataEnrichmentsResource struct {
 func (e *DataEnrichmentsModel) GetFields() []CoralogixEnrichment {
 	fields := make([]CoralogixEnrichment, 0)
 	if e.Aws != nil {
-		for _, f := range e.Aws.Fields {
-			fields = append(fields, &f)
+		for i := range e.Aws.Fields {
+			fields = append(fields, &e.Aws.Fields[i])
 		}
 	}
 	if e.GeoIp != nil {
-		for _, f := range e.GeoIp.Fields {
-			fields = append(fields, &f)
+		for i := range e.GeoIp.Fields {
+			fields = append(fields, &e.GeoIp.Fields[i])
 		}
 	}
 	if e.SuspiciousIp != nil {
-		for _, f := range e.SuspiciousIp.Fields {
-			fields = append(fields, &f)
+		for i := range e.SuspiciousIp.Fields {
+			fields = append(fields, &e.SuspiciousIp.Fields[i])
 		}
 	}
 	if e.Custom != nil {
-		for _, f := range e.Custom.Fields {
-			fields = append(fields, &f)
+		for i := range e.Custom.Fields {
+			fields = append(fields, &e.Custom.Fields[i])
 		}
 	}
 	return fields
