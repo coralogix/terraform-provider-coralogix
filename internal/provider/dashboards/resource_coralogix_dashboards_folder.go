@@ -97,6 +97,7 @@ func (r *DashboardsFolderResource) Schema(ctx context.Context, req resource.Sche
 				MarkdownDescription: "Parent folder id.",
 			},
 		},
+		MarkdownDescription: "Coralogix Custom Dashboards folder. Folders organize dashboards into a navigable catalog. For more info please review - https://coralogix.com/docs/user-guides/custom-dashboards/tutorials/manage-dashboard-catalog/.",
 	}
 }
 

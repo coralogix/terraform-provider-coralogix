@@ -3,12 +3,12 @@
 page_title: "coralogix_events2metric Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  Coralogix Events2Metrics. Converts logs and spans into metrics for long-term monitoring. For more info please review - https://coralogix.com/docs/user-guides/monitoring-and-insights/events2metrics/.
 ---
 
 # coralogix_events2metric (Resource)
 
-
+Coralogix Events2Metrics. Converts logs and spans into metrics for long-term monitoring. For more info please review - https://coralogix.com/docs/user-guides/monitoring-and-insights/events2metrics/.
 
 ## Example Usage
 

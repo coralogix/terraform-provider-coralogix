@@ -3,12 +3,12 @@
 page_title: "coralogix_alerts_scheduler Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix alerts-scheduler.
+  Coralogix alerts-scheduler (alert suppression rules). For more info please review - https://coralogix.com/docs/user-guides/alerting/alert-suppression-rules/.
 ---
 
 # coralogix_alerts_scheduler (Resource)
 
-Coralogix alerts-scheduler.
+Coralogix alerts-scheduler (alert suppression rules). For more info please review - https://coralogix.com/docs/user-guides/alerting/alert-suppression-rules/.
 
 ## Example Usage
 

@@ -3,12 +3,12 @@
 page_title: "coralogix_recording_rules_groups_set Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  Coralogix recording rules group set. Recording rules pre-compute frequently used or computationally heavy PromQL expressions into new metrics. For more info please review - https://coralogix.com/docs/user-guides/data-transformation/metric-rules/recording-rules/.
 ---
 
 # coralogix_recording_rules_groups_set (Resource)
 
-
+Coralogix recording rules group set. Recording rules pre-compute frequently used or computationally heavy PromQL expressions into new metrics. For more info please review - https://coralogix.com/docs/user-guides/data-transformation/metric-rules/recording-rules/.
 
 ## Example Usage
 

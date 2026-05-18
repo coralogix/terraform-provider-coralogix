@@ -29,6 +29,8 @@ func DataSourceCoralogixHostedDashboard() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceHostedDashboardRead,
 
+		Description: "Coralogix Hosted Grafana dashboard. For more info please review - https://coralogix.com/docs/user-guides/visualizations/hosted-grafana-view/.",
+
 		Schema: map[string]*schema.Schema{
 			"grafana": {
 				Type:     schema.TypeList,

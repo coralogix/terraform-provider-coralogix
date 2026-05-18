@@ -3,12 +3,12 @@
 page_title: "coralogix_ip_access Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  Coralogix IP access control. Restricts access to a Coralogix team to a configured set of IP ranges. For more info please review - https://coralogix.com/docs/user-guides/account-management/account-settings/ip-access-control/.
 ---
 
 # coralogix_ip_access (Data Source)
 
-
+Coralogix IP access control. Restricts access to a Coralogix team to a configured set of IP ranges. For more info please review - https://coralogix.com/docs/user-guides/account-management/account-settings/ip-access-control/.
 
 ## Example Usage
 

@@ -94,7 +94,7 @@ func ResourceCoralogixHostedDashboard() *schema.Resource {
 
 		Schema: HostedDashboardSchema(),
 
-		Description: fmt.Sprintf("Hosted dashboard. Can be one of - %q.", validHostedDashboardTypes),
+		Description: fmt.Sprintf("Coralogix Hosted Grafana dashboard. Can be one of - %q. For more info please review - https://coralogix.com/docs/user-guides/visualizations/hosted-grafana-view/.", validHostedDashboardTypes),
 	}
 }
 

@@ -3,12 +3,12 @@
 page_title: "coralogix_user Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix User.
+  Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/.
 ---
 
 # coralogix_user (Data Source)
 
-Coralogix User.
+Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/.
 
 
 
@@ -25,7 +25,7 @@ Coralogix User.
 - `emails` (Attributes Set) (see [below for nested schema](#nestedatt--emails))
 - `groups` (Set of String)
 - `name` (Attributes) (see [below for nested schema](#nestedatt--name))
-- `user_name` (String) User name.
+- `user_name` (String) User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans.
 
 <a id="nestedatt--emails"></a>
 ### Nested Schema for `emails`

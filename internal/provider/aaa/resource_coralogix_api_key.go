@@ -168,7 +168,7 @@ func resourceSchemaV1() schema.Schema {
 				MarkdownDescription: "Api Key Access Policy",
 			},
 		},
-		MarkdownDescription: "Coralogix Api keys.",
+		MarkdownDescription: "Coralogix Api keys. For more info please review - https://coralogix.com/docs/user-guides/account-management/api-keys/api-keys/.",
 	}
 }
 
@@ -242,7 +242,7 @@ func resourceSchemaV0() schema.Schema {
 				},
 			},
 		},
-		MarkdownDescription: "Coralogix Api keys.",
+		MarkdownDescription: "Coralogix Api keys. For more info please review - https://coralogix.com/docs/user-guides/account-management/api-keys/api-keys/.",
 	}
 }
 

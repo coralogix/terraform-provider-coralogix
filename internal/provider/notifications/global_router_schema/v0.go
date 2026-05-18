@@ -113,6 +113,6 @@ func V0() schema.Schema {
 				ElementType: types.StringType,
 			},
 		},
-		MarkdownDescription: "Coralogix GlobalRouter. **Note:** This resource is in alpha stage.",
+		MarkdownDescription: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in alpha stage.",
 	}
 }

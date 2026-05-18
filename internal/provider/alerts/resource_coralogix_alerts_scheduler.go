@@ -324,7 +324,7 @@ func (r *AlertsSchedulerResource) Schema(_ context.Context, _ resource.SchemaReq
 				MarkdownDescription: "Alert Scheduler enabled. If set to `false`, the alert scheduler will be disabled. True by default.",
 			},
 		},
-		MarkdownDescription: "Coralogix alerts-scheduler.",
+		MarkdownDescription: "Coralogix alerts-scheduler (alert suppression rules). For more info please review - https://coralogix.com/docs/user-guides/alerting/alert-suppression-rules/.",
 	}
 }
 

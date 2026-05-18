@@ -3,12 +3,12 @@
 page_title: "coralogix_connector Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Connector. Note: This resource is in Beta stage.
+  Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/. Note: This resource is in Beta stage.
 ---
 
 # coralogix_connector (Resource)
 
-Coralogix Connector. **Note:** This resource is in Beta stage.
+Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/. **Note:** This resource is in Beta stage.
 
 ## Example Usage
 

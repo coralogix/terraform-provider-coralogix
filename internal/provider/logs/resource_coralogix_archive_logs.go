@@ -126,6 +126,7 @@ func (r ArchiveLogsResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions",
 			},
 		},
+		MarkdownDescription: "Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.",
 	}
 }
 

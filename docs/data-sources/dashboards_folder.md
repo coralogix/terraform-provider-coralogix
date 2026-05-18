@@ -3,12 +3,12 @@
 page_title: "coralogix_dashboards_folder Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  Coralogix Custom Dashboards folder. Folders organize dashboards into a navigable catalog. For more info please review - https://coralogix.com/docs/user-guides/custom-dashboards/tutorials/manage-dashboard-catalog/.
 ---
 
 # coralogix_dashboards_folder (Data Source)
 
-
+Coralogix Custom Dashboards folder. Folders organize dashboards into a navigable catalog. For more info please review - https://coralogix.com/docs/user-guides/custom-dashboards/tutorials/manage-dashboard-catalog/.
 
 ## Example Usage
 

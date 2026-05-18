@@ -3,12 +3,12 @@
 page_title: "coralogix_dashboard Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  Coralogix Custom Dashboard. For more info please review - https://coralogix.com/docs/user-guides/custom-dashboards/introduction/.
 ---
 
 # coralogix_dashboard (Data Source)
 
-
+Coralogix Custom Dashboard. For more info please review - https://coralogix.com/docs/user-guides/custom-dashboards/introduction/.
 
 
 

@@ -100,7 +100,7 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Computed:            true,
 			},
 		},
-		MarkdownDescription: "Coralogix group.",
+		MarkdownDescription: "Coralogix group. Groups bind users to roles and scopes. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/assign-user-roles-and-scopes-via-groups/.",
 	}
 }
 

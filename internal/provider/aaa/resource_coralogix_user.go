@@ -149,7 +149,7 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				},
 			},
 		},
-		MarkdownDescription: "Coralogix User.",
+		MarkdownDescription: "Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/.",
 	}
 }
 

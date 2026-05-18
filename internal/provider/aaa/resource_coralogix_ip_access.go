@@ -107,6 +107,7 @@ func (r *IpAccessResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 		},
+		MarkdownDescription: "Coralogix IP access control. Restricts access to a Coralogix team to a configured set of IP ranges. For more info please review - https://coralogix.com/docs/user-guides/account-management/account-settings/ip-access-control/.",
 	}
 }
 

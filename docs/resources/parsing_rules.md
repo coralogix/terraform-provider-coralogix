@@ -3,12 +3,12 @@
 page_title: "coralogix_parsing_rules Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  Coralogix log parsing rules. Parsing rules transform unstructured log data into structured fields at ingestion time. For more info please review - https://coralogix.com/docs/user-guides/data-transformation/parsing/log-parsing-rules/.
 ---
 
 # coralogix_parsing_rules (Resource)
 
-
+Coralogix log parsing rules. Parsing rules transform unstructured log data into structured fields at ingestion time. For more info please review - https://coralogix.com/docs/user-guides/data-transformation/parsing/log-parsing-rules/.
 
 ## Example Usage
 

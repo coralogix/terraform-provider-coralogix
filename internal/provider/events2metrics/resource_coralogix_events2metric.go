@@ -559,6 +559,7 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 				MarkdownDescription: "logs-events2metric type. Exactly one of \"spans_query\" or \"logs_query\" must be defined.",
 			},
 		},
+		MarkdownDescription: "Coralogix Events2Metrics. Converts logs and spans into metrics for long-term monitoring. For more info please review - https://coralogix.com/docs/user-guides/monitoring-and-insights/events2metrics/.",
 	}
 }
 

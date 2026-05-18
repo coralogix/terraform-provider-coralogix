@@ -3,12 +3,12 @@
 page_title: "coralogix_group_attachment Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  Coralogix group attachment. Attaches a set of users to a Coralogix group. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/assign-user-roles-and-scopes-via-groups/.
 ---
 
 # coralogix_group_attachment (Resource)
 
-
+Coralogix group attachment. Attaches a set of users to a Coralogix group. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/assign-user-roles-and-scopes-via-groups/.
 
 ## Example Usage
 
