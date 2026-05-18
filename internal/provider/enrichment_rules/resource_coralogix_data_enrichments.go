@@ -124,23 +124,23 @@ type DataEnrichmentsResource struct {
 func (e *DataEnrichmentsModel) GetFields() []CoralogixEnrichment {
 	fields := make([]CoralogixEnrichment, 0)
 	if e.Aws != nil {
-		for _, f := range e.Aws.Fields {
-			fields = append(fields, &f)
+		for i := range e.Aws.Fields {
+			fields = append(fields, &e.Aws.Fields[i])
 		}
 	}
 	if e.GeoIp != nil {
-		for _, f := range e.GeoIp.Fields {
-			fields = append(fields, &f)
+		for i := range e.GeoIp.Fields {
+			fields = append(fields, &e.GeoIp.Fields[i])
 		}
 	}
 	if e.SuspiciousIp != nil {
-		for _, f := range e.SuspiciousIp.Fields {
-			fields = append(fields, &f)
+		for i := range e.SuspiciousIp.Fields {
+			fields = append(fields, &e.SuspiciousIp.Fields[i])
 		}
 	}
 	if e.Custom != nil {
-		for _, f := range e.Custom.Fields {
-			fields = append(fields, &f)
+		for i := range e.Custom.Fields {
+			fields = append(fields, &e.Custom.Fields[i])
 		}
 	}
 	return fields
@@ -443,6 +443,13 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
+	var state *DataEnrichmentsModel
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// First, upload/update the custom enrichment (if provided)
 	upload := extractCustomEnrichmentsDataUpdate(plan)
 	var uploadResult *cess.CustomEnrichment
@@ -461,11 +468,25 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 		uploadResult = result.CustomEnrichment
 	}
 
-	rq := extractDataEnrichmentsUpdate(plan)
+	ids := make([]int64, 0)
+	for _, id := range ExtractIdsFromEnrichment(state.GetFields()) {
+		ids = append(ids, int64(id))
+	}
+	if len(ids) > 0 {
+		_, httpResponse, err := r.client.EnrichmentServiceRemoveEnrichments(ctx).EnrichmentIds(ids).Execute()
+		if err != nil {
+			resp.Diagnostics.AddError("Error replacing coralogix_data_enrichments",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", ids),
+			)
+			return
+		}
+	}
+
+	rq := extractDataEnrichmentsCreate(plan)
 
 	result, httpResponse, err := r.client.
-		EnrichmentServiceAtomicOverwriteEnrichments(ctx).
-		EnrichmentServiceAtomicOverwriteEnrichmentsRequest(*rq).
+		EnrichmentServiceAddEnrichments(ctx).
+		EnrichmentsCreationRequest(*rq).
 		Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error replacing coralogix_data_enrichments. If custom enrichment data was updated, then this update was executed successfully.",
@@ -477,7 +498,7 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 	if plan.Custom != nil && plan.Custom.CustomEnrichmentDataModel != nil {
 		content = plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
 	}
-	state := flattenDataEnrichments(result.Enrichments,
+	state = flattenDataEnrichments(result.Enrichments,
 		uploadResult,
 		content)
 	if diags.HasError() {
@@ -722,17 +743,6 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 func extractDataEnrichmentsCreate(plan *DataEnrichmentsModel) *ess.EnrichmentsCreationRequest {
 	req := &ess.EnrichmentsCreationRequest{
 		RequestEnrichments: extractDataEnrichments(plan),
-	}
-	return req
-}
-
-func extractDataEnrichmentsUpdate(plan *DataEnrichmentsModel) *ess.EnrichmentServiceAtomicOverwriteEnrichmentsRequest {
-	req := &ess.EnrichmentServiceAtomicOverwriteEnrichmentsRequest{
-		RequestEnrichments: extractDataEnrichments(plan),
-		// some server side validation wants this
-		EnrichmentType: &ess.EnrichmentType{EnrichmentTypeSuspiciousIp: &ess.EnrichmentTypeSuspiciousIp{
-			SuspiciousIp: map[string]any{},
-		}},
 	}
 	return req
 }

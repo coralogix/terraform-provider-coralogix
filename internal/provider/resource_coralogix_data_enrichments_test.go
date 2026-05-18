@@ -161,6 +161,97 @@ func TestAccCoralogixResourceGeoIpAndSuspiciousIpDataEnrichment(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceGeoIpAndSuspiciousIpDataEnrichmentsSelectedColumns(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceGeoIpSusIpDataEnrichmentsSelectedColumns("client_ip_geo"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.enriched_field_name", "client_ip_geo"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.selected_columns.#", "2"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "geo_ip.fields.0.selected_columns.*", "city"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "geo_ip.fields.0.selected_columns.*", "country"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.enriched_field_name", "suspicious_ip_enriched"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.selected_columns.#", "2"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.selected_columns.*", "classification"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.selected_columns.*", "threat_score"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceGeoIpSusIpDataEnrichmentsSelectedColumns("client_ip_geo_v2"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.enriched_field_name", "client_ip_geo_v2"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.selected_columns.#", "2"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "geo_ip.fields.0.selected_columns.*", "city"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "geo_ip.fields.0.selected_columns.*", "country"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.enriched_field_name", "suspicious_ip_enriched"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.selected_columns.#", "2"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.selected_columns.*", "classification"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.selected_columns.*", "threat_score"),
+				),
+			},
+			{
+				ResourceName:            dataEnrichmentResourceName,
+				ImportState:             true,
+				ImportStateId:           "geo_ip,suspicious_ip",
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"id"},
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDataEnrichmentsParitySurface(t *testing.T) {
+	awsResourceType := os.Getenv("CORALOGIX_AWS_ENRICHMENT_RESOURCE_TYPE")
+	if awsResourceType == "" {
+		t.Skip("set CORALOGIX_AWS_ENRICHMENT_RESOURCE_TYPE to an AWS cloud resource type present in the account to run AWS enrichment parity")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDataEnrichmentsParitySurface(awsResourceType),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
+					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "aws.fields.0.id"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "aws.fields.0.name", "coralogix.metadata.aws_resource_id"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "aws.fields.0.enriched_field_name", "aws_resource_enriched"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "aws.fields.0.resource", awsResourceType),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "aws.fields.0.selected_columns.#", "2"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "aws.fields.0.selected_columns.*", "resourceId"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "aws.fields.0.selected_columns.*", "accountId"),
+					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "geo_ip.fields.0.id"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.name", "coralogix.metadata.client_ip"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.enriched_field_name", "client_ip_geo"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.with_asn", "true"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.selected_columns.#", "2"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "geo_ip.fields.0.selected_columns.*", "city"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "geo_ip.fields.0.selected_columns.*", "country"),
+					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "suspicious_ip.fields.0.id"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.name", "coralogix.metadata.suspicious_ip"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.enriched_field_name", "suspicious_ip_enriched"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.selected_columns.#", "2"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.selected_columns.*", "classification"),
+					resource.TestCheckTypeSetElemAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.selected_columns.*", "threat_score"),
+				),
+			},
+			{
+				ResourceName:            dataEnrichmentResourceName,
+				ImportState:             true,
+				ImportStateId:           "geo_ip,suspicious_ip,aws",
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"id"},
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceCustomDataEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
@@ -244,6 +335,54 @@ func testAccCoralogixResourceGeoIpSusIpDataEnrichments() string {
 		}]
 	}
 }`
+}
+
+func testAccCoralogixResourceGeoIpSusIpDataEnrichmentsSelectedColumns(geoIpEnrichedFieldName string) string {
+	return fmt.Sprintf(`resource "coralogix_data_enrichments" test {
+	geo_ip = {
+		fields = [{
+			name                = "coralogix.metadata.client_ip"
+			enriched_field_name = "%s"
+			with_asn            = true
+			selected_columns    = ["city", "country"]
+		}]
+	}
+	suspicious_ip = {
+		fields = [{
+			name                = "coralogix.metadata.suspicious_ip"
+			enriched_field_name = "suspicious_ip_enriched"
+			selected_columns    = ["classification", "threat_score"]
+		}]
+	}
+}`, geoIpEnrichedFieldName)
+}
+
+func testAccCoralogixResourceDataEnrichmentsParitySurface(awsResourceType string) string {
+	return fmt.Sprintf(`resource "coralogix_data_enrichments" test {
+	aws = {
+		fields = [{
+			name                = "coralogix.metadata.aws_resource_id"
+			enriched_field_name = "aws_resource_enriched"
+			resource            = "%s"
+			selected_columns    = ["resourceId", "accountId"]
+		}]
+	}
+	geo_ip = {
+		fields = [{
+			name                = "coralogix.metadata.client_ip"
+			enriched_field_name = "client_ip_geo"
+			with_asn            = true
+			selected_columns    = ["city", "country"]
+		}]
+	}
+	suspicious_ip = {
+		fields = [{
+			name                = "coralogix.metadata.suspicious_ip"
+			enriched_field_name = "suspicious_ip_enriched"
+			selected_columns    = ["classification", "threat_score"]
+		}]
+	}
+}`, awsResourceType)
 }
 
 func popLineFromCsvFile(path string) {
