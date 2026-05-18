@@ -40,8 +40,6 @@ const (
 	CUSTOM_TYPE = "custom"
 )
 
-const selectedColumnsDescription = "Columns from the enrichment response to preserve. Provider parity coverage exercises this for `geo_ip` and `suspicious_ip`, and for `aws` when the test account has an AWS cloud resource type."
-
 type CoralogixEnrichment interface {
 	GetId() uint32
 }
@@ -242,10 +240,9 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 									Required: true,
 								},
 								"selected_columns": schema.SetAttribute{
-									ElementType:         types.StringType,
-									Optional:            true,
-									Computed:            true,
-									MarkdownDescription: selectedColumnsDescription,
+									ElementType: types.StringType,
+									Optional:    true,
+									Computed:    true,
 									PlanModifiers: []planmodifier.Set{
 										setplanmodifier.UseStateForUnknown(),
 									},
@@ -298,9 +295,8 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 									Required: true,
 								},
 								"selected_columns": schema.SetAttribute{
-									ElementType:         types.StringType,
-									Optional:            true,
-									MarkdownDescription: selectedColumnsDescription,
+									ElementType: types.StringType,
+									Optional:    true,
 								},
 							},
 						},
@@ -338,8 +334,8 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 								Description: "The version of the enrichment data.",
 							},
 							"contents": schema.StringAttribute{
-								Required:            true,
-								MarkdownDescription: "The file contents to upload. Use Terraform's functions to read from disk. The Coralogix custom-enrichment read API returns file metadata, but not the original CSV contents, so Terraform preserves this value from configuration or state and cannot recover it from live backend reads after import.",
+								Required:    true,
+								Description: "The file contents to upload. Use Terraform's functions to read from disk.",
 							},
 						},
 					},
@@ -368,9 +364,8 @@ func enrichmentFieldSchema() map[string]schema.Attribute {
 			Required: true,
 		},
 		"selected_columns": schema.SetAttribute{
-			ElementType:         types.StringType,
-			Optional:            true,
-			MarkdownDescription: selectedColumnsDescription,
+			ElementType: types.StringType,
+			Optional:    true,
 		},
 		"id": schema.Int64Attribute{
 			Optional: true,

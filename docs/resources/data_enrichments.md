@@ -121,7 +121,7 @@ Required:
 Optional:
 
 - `id` (Number)
-- `selected_columns` (Set of String) Columns from the enrichment response to preserve. Provider parity coverage exercises this for `geo_ip` and `suspicious_ip`, and for `aws` when the test account has an AWS cloud resource type.
+- `selected_columns` (Set of String)
 
 
 
@@ -147,7 +147,7 @@ Required:
 Optional:
 
 - `id` (Number)
-- `selected_columns` (Set of String) Columns from the enrichment response to preserve. Provider parity coverage exercises this for `geo_ip` and `suspicious_ip`, and for `aws` when the test account has an AWS cloud resource type.
+- `selected_columns` (Set of String)
 
 
 <a id="nestedatt--custom--custom_enrichment_data"></a>
@@ -155,7 +155,7 @@ Optional:
 
 Required:
 
-- `contents` (String) The file contents to upload. Use Terraform's functions to read from disk. The Coralogix custom-enrichment read API returns file metadata, but not the original CSV contents, so Terraform preserves this value from configuration or state and cannot recover it from live backend reads after import.
+- `contents` (String) The file contents to upload. Use Terraform's functions to read from disk.
 - `name` (String) A name for the enrichment.
 
 Optional:
@@ -187,7 +187,7 @@ Required:
 Optional:
 
 - `id` (Number)
-- `selected_columns` (Set of String) Columns from the enrichment response to preserve. Provider parity coverage exercises this for `geo_ip` and `suspicious_ip`, and for `aws` when the test account has an AWS cloud resource type.
+- `selected_columns` (Set of String)
 - `with_asn` (Boolean)
 
 
@@ -210,7 +210,7 @@ Required:
 Optional:
 
 - `id` (Number)
-- `selected_columns` (Set of String) Columns from the enrichment response to preserve. Provider parity coverage exercises this for `geo_ip` and `suspicious_ip`, and for `aws` when the test account has an AWS cloud resource type.
+- `selected_columns` (Set of String)
 
 ## Import
 
