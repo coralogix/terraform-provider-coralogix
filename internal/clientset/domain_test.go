@@ -59,3 +59,76 @@ func TestNormalizeBaseHost(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveCustomDomainHosts(t *testing.T) {
+	cases := []struct {
+		name        string
+		in          string
+		wantBase    string
+		wantGrpc    string
+		wantOpenAPI string
+		wantErr     bool
+	}{
+		{
+			name:        "bare base host",
+			in:          "factset.coralogix.com",
+			wantBase:    "factset.coralogix.com",
+			wantGrpc:    "ng-api-grpc.factset.coralogix.com:443",
+			wantOpenAPI: "api.factset.coralogix.com",
+		},
+		{
+			name:        "api prefixed host",
+			in:          "api.factset.coralogix.com",
+			wantBase:    "factset.coralogix.com",
+			wantGrpc:    "ng-api-grpc.factset.coralogix.com:443",
+			wantOpenAPI: "api.factset.coralogix.com",
+		},
+		{
+			name:        "https URL form",
+			in:          "https://api.factset.coralogix.com",
+			wantBase:    "factset.coralogix.com",
+			wantGrpc:    "ng-api-grpc.factset.coralogix.com:443",
+			wantOpenAPI: "api.factset.coralogix.com",
+		},
+		{
+			name:        "URL with port and path",
+			in:          "https://api.factset.coralogix.com:443/mgmt/openapi/5",
+			wantBase:    "factset.coralogix.com",
+			wantGrpc:    "ng-api-grpc.factset.coralogix.com:443",
+			wantOpenAPI: "api.factset.coralogix.com",
+		},
+		{
+			name:        "known region treated as domain",
+			in:          "eu1.coralogix.com",
+			wantBase:    "eu1.coralogix.com",
+			wantGrpc:    "ng-api-grpc.eu1.coralogix.com:443",
+			wantOpenAPI: "api.eu1.coralogix.com",
+		},
+		{name: "empty domain errors", in: "", wantErr: true},
+		{name: "only api prefix errors", in: "api.", wantErr: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			base, grpc, openapi, err := resolveCustomDomainHosts(tc.in)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("resolveCustomDomainHosts(%q) = (%q,%q,%q), want error", tc.in, base, grpc, openapi)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("resolveCustomDomainHosts(%q) unexpected error: %v", tc.in, err)
+			}
+			if base != tc.wantBase {
+				t.Errorf("base = %q, want %q", base, tc.wantBase)
+			}
+			if grpc != tc.wantGrpc {
+				t.Errorf("grpc = %q, want %q", grpc, tc.wantGrpc)
+			}
+			if openapi != tc.wantOpenAPI {
+				t.Errorf("openapi = %q, want %q", openapi, tc.wantOpenAPI)
+			}
+		})
+	}
+}

@@ -19,6 +19,16 @@ import (
 	"strings"
 )
 
+// resolveCustomDomainHosts returns the base, gRPC target, and OpenAPI host
+// derived from a custom `domain`, so all three clients agree.
+func resolveCustomDomainHosts(raw string) (baseHost, grpcTargetURL, openapiHost string, err error) {
+	base, err := NormalizeBaseHost(raw)
+	if err != nil {
+		return "", "", "", err
+	}
+	return base, fmt.Sprintf("ng-api-grpc.%s:443", base), "api." + base, nil
+}
+
 // NormalizeBaseHost returns the bare tenant host from a Coralogix `domain`
 // input, stripping any scheme, path, port and a leading `api.` prefix.
 func NormalizeBaseHost(raw string) (string, error) {
