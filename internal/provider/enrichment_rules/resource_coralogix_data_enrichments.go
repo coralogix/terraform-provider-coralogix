@@ -40,6 +40,8 @@ const (
 	CUSTOM_TYPE = "custom"
 )
 
+const selectedColumnsDescription = "Columns from the enrichment response to preserve. Provider parity coverage exercises this for `geo_ip` and `suspicious_ip`, and for `aws` when the test account has an AWS cloud resource type."
+
 type CoralogixEnrichment interface {
 	GetId() uint32
 }
@@ -240,9 +242,10 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 									Required: true,
 								},
 								"selected_columns": schema.SetAttribute{
-									ElementType: types.StringType,
-									Optional:    true,
-									Computed:    true,
+									ElementType:         types.StringType,
+									Optional:            true,
+									Computed:            true,
+									MarkdownDescription: selectedColumnsDescription,
 									PlanModifiers: []planmodifier.Set{
 										setplanmodifier.UseStateForUnknown(),
 									},
@@ -295,8 +298,9 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 									Required: true,
 								},
 								"selected_columns": schema.SetAttribute{
-									ElementType: types.StringType,
-									Optional:    true,
+									ElementType:         types.StringType,
+									Optional:            true,
+									MarkdownDescription: selectedColumnsDescription,
 								},
 							},
 						},
@@ -334,8 +338,8 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 								Description: "The version of the enrichment data.",
 							},
 							"contents": schema.StringAttribute{
-								Required:    true,
-								Description: "The file contents to upload. Use Terraform's functions to read from disk.",
+								Required:            true,
+								MarkdownDescription: "The file contents to upload. Use Terraform's functions to read from disk. The Coralogix custom-enrichment read API returns file metadata, but not the original CSV contents, so Terraform preserves this value from configuration or state and cannot recover it from live backend reads after import.",
 							},
 						},
 					},
@@ -364,8 +368,9 @@ func enrichmentFieldSchema() map[string]schema.Attribute {
 			Required: true,
 		},
 		"selected_columns": schema.SetAttribute{
-			ElementType: types.StringType,
-			Optional:    true,
+			ElementType:         types.StringType,
+			Optional:            true,
+			MarkdownDescription: selectedColumnsDescription,
 		},
 		"id": schema.Int64Attribute{
 			Optional: true,
@@ -443,6 +448,13 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
+	var state *DataEnrichmentsModel
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// First, upload/update the custom enrichment (if provided)
 	upload := extractCustomEnrichmentsDataUpdate(plan)
 	var uploadResult *cess.CustomEnrichment
@@ -461,11 +473,25 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 		uploadResult = result.CustomEnrichment
 	}
 
-	rq := extractDataEnrichmentsUpdate(plan)
+	ids := make([]int64, 0)
+	for _, id := range ExtractIdsFromEnrichment(state.GetFields()) {
+		ids = append(ids, int64(id))
+	}
+	if len(ids) > 0 {
+		_, httpResponse, err := r.client.EnrichmentServiceRemoveEnrichments(ctx).EnrichmentIds(ids).Execute()
+		if err != nil {
+			resp.Diagnostics.AddError("Error replacing coralogix_data_enrichments",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", ids),
+			)
+			return
+		}
+	}
+
+	rq := extractDataEnrichmentsCreate(plan)
 
 	result, httpResponse, err := r.client.
-		EnrichmentServiceAtomicOverwriteEnrichments(ctx).
-		EnrichmentServiceAtomicOverwriteEnrichmentsRequest(*rq).
+		EnrichmentServiceAddEnrichments(ctx).
+		EnrichmentsCreationRequest(*rq).
 		Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error replacing coralogix_data_enrichments. If custom enrichment data was updated, then this update was executed successfully.",
@@ -477,7 +503,7 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 	if plan.Custom != nil && plan.Custom.CustomEnrichmentDataModel != nil {
 		content = plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
 	}
-	state := flattenDataEnrichments(result.Enrichments,
+	state = flattenDataEnrichments(result.Enrichments,
 		uploadResult,
 		content)
 	if diags.HasError() {
@@ -722,17 +748,6 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 func extractDataEnrichmentsCreate(plan *DataEnrichmentsModel) *ess.EnrichmentsCreationRequest {
 	req := &ess.EnrichmentsCreationRequest{
 		RequestEnrichments: extractDataEnrichments(plan),
-	}
-	return req
-}
-
-func extractDataEnrichmentsUpdate(plan *DataEnrichmentsModel) *ess.EnrichmentServiceAtomicOverwriteEnrichmentsRequest {
-	req := &ess.EnrichmentServiceAtomicOverwriteEnrichmentsRequest{
-		RequestEnrichments: extractDataEnrichments(plan),
-		// some server side validation wants this
-		EnrichmentType: &ess.EnrichmentType{EnrichmentTypeSuspiciousIp: &ess.EnrichmentTypeSuspiciousIp{
-			SuspiciousIp: map[string]any{},
-		}},
 	}
 	return req
 }

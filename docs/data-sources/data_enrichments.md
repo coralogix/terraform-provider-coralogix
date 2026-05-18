@@ -49,7 +49,7 @@ Read-Only:
 - `id` (Number)
 - `name` (String)
 - `resource` (String)
-- `selected_columns` (Set of String)
+- `selected_columns` (Set of String) Columns from the enrichment response to preserve. Provider parity coverage exercises this for `geo_ip` and `suspicious_ip`, and for `aws` when the test account has an AWS cloud resource type.
 
 
 
@@ -66,7 +66,7 @@ Read-Only:
 
 Read-Only:
 
-- `contents` (String) The file contents to upload. Use Terraform's functions to read from disk.
+- `contents` (String) The file contents to upload. Use Terraform's functions to read from disk. The Coralogix custom-enrichment read API returns file metadata, but not the original CSV contents, so Terraform preserves this value from configuration or state and cannot recover it from live backend reads after import.
 - `description` (String) A description.
 - `id` (Number)
 - `name` (String) A name for the enrichment.
@@ -81,7 +81,7 @@ Read-Only:
 - `enriched_field_name` (String)
 - `id` (Number)
 - `name` (String)
-- `selected_columns` (Set of String)
+- `selected_columns` (Set of String) Columns from the enrichment response to preserve. Provider parity coverage exercises this for `geo_ip` and `suspicious_ip`, and for `aws` when the test account has an AWS cloud resource type.
 
 
 
@@ -100,7 +100,7 @@ Read-Only:
 - `enriched_field_name` (String)
 - `id` (Number)
 - `name` (String)
-- `selected_columns` (Set of String)
+- `selected_columns` (Set of String) Columns from the enrichment response to preserve. Provider parity coverage exercises this for `geo_ip` and `suspicious_ip`, and for `aws` when the test account has an AWS cloud resource type.
 - `with_asn` (Boolean)
 
 
@@ -120,4 +120,4 @@ Read-Only:
 - `enriched_field_name` (String)
 - `id` (Number)
 - `name` (String)
-- `selected_columns` (Set of String)
+- `selected_columns` (Set of String) Columns from the enrichment response to preserve. Provider parity coverage exercises this for `geo_ip` and `suspicious_ip`, and for `aws` when the test account has an AWS cloud resource type.
