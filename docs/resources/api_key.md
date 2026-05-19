@@ -58,7 +58,7 @@ resource "coralogix_api_key" "example" {
 
 - `hashed` (Boolean) Api Key Is Hashed.
 - `id` (String) ApiKey ID.
-- `value` (String, Sensitive) Api Key value.
+- `value` (String, Sensitive) The API key's secret value. Returned only at creation and preserved in Terraform state thereafter. Imported resources cannot recover this value — manage the resource via Terraform from creation to keep it in state.
 
 <a id="nestedatt--owner"></a>
 ### Nested Schema for `owner`

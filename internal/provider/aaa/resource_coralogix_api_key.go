@@ -93,9 +93,11 @@ func resourceSchemaV1() schema.Schema {
 				MarkdownDescription: "Api Key name.",
 			},
 			"value": schema.StringAttribute{
-				Computed:            true,
-				Sensitive:           true,
-				MarkdownDescription: "Api Key value.",
+				Computed:  true,
+				Sensitive: true,
+				MarkdownDescription: "The API key's secret value. Returned only at creation and " +
+					"preserved in Terraform state thereafter. Imported resources cannot recover " +
+					"this value — manage the resource via Terraform from creation to keep it in state.",
 			},
 			"owner": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{

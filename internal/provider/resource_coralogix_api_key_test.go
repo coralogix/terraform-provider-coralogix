@@ -42,9 +42,10 @@ func TestApiKeyResource(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      apiKeyResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            apiKeyResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"value"},
 			},
 			{
 				Config: updateApiKeyResource(),

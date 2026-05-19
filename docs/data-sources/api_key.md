@@ -34,7 +34,7 @@ data "coralogix_api_key" "same_key_by_id" {
 - `owner` (Attributes) Api Key Owner. It can either be a team_id, organisation_id, or a user_id (see [below for nested schema](#nestedatt--owner))
 - `permissions` (Set of String) Api Key Permissions
 - `presets` (Set of String) Api Key Presets
-- `value` (String) Api Key value.
+- `value` (String) The API key's secret value. Returned only at creation and preserved in Terraform state thereafter. Imported resources cannot recover this value — manage the resource via Terraform from creation to keep it in state.
 
 <a id="nestedatt--owner"></a>
 ### Nested Schema for `owner`
