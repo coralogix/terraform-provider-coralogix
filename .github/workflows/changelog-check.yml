@@ -1,0 +1,52 @@
+name: changelog-check
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for skip label
+        id: skip
+        run: |
+          LABELS='${{ toJson(github.event.pull_request.labels.*.name) }}'
+          if echo "$LABELS" | jq -e 'any(. == "skip changelog")' > /dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check CHANGELOG.md was modified
+        if: steps.skip.outputs.skip == 'false'
+        run: |
+          git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -q "^CHANGELOG\.md$" || \
+            { echo "ERROR: CHANGELOG.md was not updated in this PR. Update it or add the 'skip changelog' label."; exit 1; }
+
+      - name: Check version.go was modified
+        if: steps.skip.outputs.skip == 'false'
+        run: |
+          git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -q "^internal/clientset/version\.go$" || \
+            { echo "ERROR: internal/clientset/version.go was not updated in this PR. Update it or add the 'skip changelog' label."; exit 1; }
+
+      - name: Validate versions match
+        if: steps.skip.outputs.skip == 'false'
+        run: |
+          CHANGELOG_VERSION=$(grep -m1 "^# Release " CHANGELOG.md | awk '{print $3}')
+          GO_VERSION=$(grep 'TF_PROVIDER_VERSION' internal/clientset/version.go | sed 's/.*"\(.*\)".*/\1/')
+
+          echo "CHANGELOG.md version : $CHANGELOG_VERSION"
+          echo "version.go version   : $GO_VERSION"
+
+          if [ "$CHANGELOG_VERSION" != "$GO_VERSION" ]; then
+            echo "ERROR: Version mismatch — CHANGELOG.md says '$CHANGELOG_VERSION' but version.go says '$GO_VERSION'. They must match."
+            exit 1
+          fi
+
+          echo "OK: versions match ($CHANGELOG_VERSION)"
