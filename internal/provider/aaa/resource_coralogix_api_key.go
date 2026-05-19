@@ -474,13 +474,18 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 	var key types.String
 	hashedKey := (response.KeyInfo.Hashed != nil && *response.KeyInfo.Hashed || false)
 	active := (response.KeyInfo.Active != nil && *response.KeyInfo.Active || false)
-	if hashedKey && keyValue == nil {
-		diags.AddError("Key value is required", "Key value is required")
-		return nil, diags
-	} else if !hashedKey {
-		key = types.StringValue(response.KeyInfo.GetValue())
-	} else {
+
+	switch {
+	case keyValue != nil && *keyValue != "":
 		key = types.StringValue(*keyValue)
+	case response.KeyInfo.GetValue() != "":
+		key = types.StringValue(response.KeyInfo.GetValue())
+	case hashedKey:
+		diags.AddError("Key value is required",
+			"Hashed API key has no recoverable value from the backend and none was provided.")
+		return nil, diags
+	default:
+		key = types.StringNull()
 	}
 
 	owner := flattenOwner(response.KeyInfo.Owner)
