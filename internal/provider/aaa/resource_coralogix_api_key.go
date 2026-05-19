@@ -93,9 +93,12 @@ func resourceSchemaV1() schema.Schema {
 				MarkdownDescription: "Api Key name.",
 			},
 			"value": schema.StringAttribute{
-				Computed:            true,
-				Sensitive:           true,
-				MarkdownDescription: "Api Key value.",
+				Computed:  true,
+				Sensitive: true,
+				MarkdownDescription: "The API key's secret value. The Coralogix backend returns this " +
+					"only when the key is first created; the Terraform provider captures it then and " +
+					"preserves it in resource state. Imported resources and data-source lookups cannot " +
+					"recover the value and will surface it as null.",
 			},
 			"owner": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
@@ -474,13 +477,18 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 	var key types.String
 	hashedKey := (response.KeyInfo.Hashed != nil && *response.KeyInfo.Hashed || false)
 	active := (response.KeyInfo.Active != nil && *response.KeyInfo.Active || false)
-	if hashedKey && keyValue == nil {
-		diags.AddError("Key value is required", "Key value is required")
-		return nil, diags
-	} else if !hashedKey {
-		key = types.StringValue(response.KeyInfo.GetValue())
-	} else {
+
+	switch {
+	case keyValue != nil && *keyValue != "":
 		key = types.StringValue(*keyValue)
+	case response.KeyInfo.GetValue() != "":
+		key = types.StringValue(response.KeyInfo.GetValue())
+	case hashedKey:
+		diags.AddError("Key value is required",
+			"Hashed API key has no recoverable value from the backend and none was provided.")
+		return nil, diags
+	default:
+		key = types.StringNull()
 	}
 
 	owner := flattenOwner(response.KeyInfo.Owner)
