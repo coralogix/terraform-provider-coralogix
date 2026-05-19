@@ -1,0 +1,32 @@
+name: changelog-check
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for skip label
+        id: skip
+        run: |
+          LABELS='${{ toJson(github.event.pull_request.labels.*.name) }}'
+          if echo "$LABELS" | jq -e 'any(. == "skip changelog")' > /dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check CHANGELOG.md was modified
+        if: steps.skip.outputs.skip == 'false'
+        run: |
+          git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -q "^CHANGELOG\.md$" || \
+            { echo "ERROR: CHANGELOG.md was not updated in this PR."; \
+              echo "Add your change under the '# Unreleased' section, or add the 'skip changelog' label to bypass."; \
+              exit 1; }
