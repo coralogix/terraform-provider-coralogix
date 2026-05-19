@@ -95,9 +95,10 @@ func resourceSchemaV1() schema.Schema {
 			"value": schema.StringAttribute{
 				Computed:  true,
 				Sensitive: true,
-				MarkdownDescription: "The API key's secret value. Returned only at creation and " +
-					"preserved in Terraform state thereafter. Imported resources cannot recover " +
-					"this value — manage the resource via Terraform from creation to keep it in state.",
+				MarkdownDescription: "The API key's secret value. The Coralogix backend returns this " +
+					"only when the key is first created; the Terraform provider captures it then and " +
+					"preserves it in resource state. Imported resources and data-source lookups cannot " +
+					"recover the value and will surface it as null.",
 			},
 			"owner": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
