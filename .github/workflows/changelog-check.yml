@@ -31,5 +31,5 @@ jobs:
         run: |
           git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -q "^CHANGELOG\.md$" || \
             { echo "ERROR: CHANGELOG.md was not updated in this PR."; \
-              echo "Add your change under the '# Unreleased' section, or add the 'skip changelog' label to bypass."; \
+              echo "Update CHANGELOG.md, or add the 'skip changelog' label to bypass."; \
               exit 1; }
