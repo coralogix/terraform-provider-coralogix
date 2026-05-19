@@ -321,6 +321,7 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 				MarkdownDescription: "The name of the rule group. Overrides the name specified in the YAML if provided.",
 			},
 		},
+		MarkdownDescription: "Coralogix recording rules group set. Recording rules pre-compute frequently used or computationally heavy PromQL expressions into new metrics. For more info please review - https://coralogix.com/docs/user-guides/data-transformation/metric-rules/recording-rules/.",
 	}
 }
 

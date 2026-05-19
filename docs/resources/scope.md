@@ -3,12 +3,12 @@
 page_title: "coralogix_scope Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Scope.
+  Coralogix Scope. Scopes assign data access to users via groups. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/scopes/.
 ---
 
 # coralogix_scope (Resource)
 
-Coralogix Scope.
+Coralogix Scope. Scopes assign data access to users via groups. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/scopes/.
 
 ## Example Usage
 

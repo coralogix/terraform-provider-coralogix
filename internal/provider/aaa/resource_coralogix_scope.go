@@ -127,7 +127,7 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 			},
 		},
-		MarkdownDescription: "Coralogix Scope.",
+		MarkdownDescription: "Coralogix Scope. Scopes assign data access to users via groups. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/scopes/.",
 	}
 }
 

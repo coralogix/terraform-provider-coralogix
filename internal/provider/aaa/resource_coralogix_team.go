@@ -106,7 +106,7 @@ func (r *TeamResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				},
 			},
 		},
-		MarkdownDescription: "Coralogix Team.",
+		MarkdownDescription: "Coralogix Team. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/create-and-manage-teams/.",
 	}
 }
 

@@ -3,12 +3,12 @@
 page_title: "coralogix_global_router Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix GlobalRouter. Note: This resource is in Beta stage.
+  Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. Note: This resource is in Beta stage.
 ---
 
 # coralogix_global_router (Data Source)
 
-Coralogix GlobalRouter. **Note:** This resource is in Beta stage.
+Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in Beta stage.
 
 ## Example Usage
 

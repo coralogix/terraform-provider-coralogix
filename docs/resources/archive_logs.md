@@ -3,12 +3,12 @@
 page_title: "coralogix_archive_logs Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
 ---
 
 # coralogix_archive_logs (Resource)
 
-
+Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
 
 ## Example Usage
 

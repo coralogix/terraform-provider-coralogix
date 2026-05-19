@@ -3,12 +3,12 @@
 page_title: "coralogix_hosted_dashboard Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Hosted dashboard. Can be one of - ["grafana"].
+  Coralogix Hosted Grafana dashboard. Can be one of - ["grafana"]. For more info please review - https://coralogix.com/docs/user-guides/visualizations/hosted-grafana-view/.
 ---
 
 # coralogix_hosted_dashboard (Resource)
 
-Hosted dashboard. Can be one of - ["grafana"].
+Coralogix Hosted Grafana dashboard. Can be one of - ["grafana"]. For more info please review - https://coralogix.com/docs/user-guides/visualizations/hosted-grafana-view/.
 
 ## Example Usage
 

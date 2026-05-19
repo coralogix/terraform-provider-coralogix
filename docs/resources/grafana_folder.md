@@ -3,13 +3,15 @@
 page_title: "coralogix_grafana_folder Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder/
+  Coralogix Hosted Grafana folder. For more info please review - https://coralogix.com/docs/user-guides/visualizations/hosted-grafana-view/.
+  Grafana official documentation https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/Grafana HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder/
 ---
 
 # coralogix_grafana_folder (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
+Coralogix Hosted Grafana folder. For more info please review - https://coralogix.com/docs/user-guides/visualizations/hosted-grafana-view/.
+* [Grafana official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
+* [Grafana HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
 
 
 

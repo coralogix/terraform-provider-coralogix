@@ -3,12 +3,12 @@
 page_title: "coralogix_archive_metrics Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  Coralogix archive-metrics. Configures the S3/IBM bucket Coralogix archives metrics into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
 ---
 
 # coralogix_archive_metrics (Resource)
 
-
+Coralogix archive-metrics. Configures the S3/IBM bucket Coralogix archives metrics into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
 
 ## Example Usage
 

@@ -41,8 +41,9 @@ func V4() schema.Schema {
 	attributes := dashboardSchemaAttributesV4()
 
 	return schema.Schema{
-		Version:    4,
-		Attributes: attributes,
+		Version:             4,
+		Attributes:          attributes,
+		MarkdownDescription: "Coralogix Custom Dashboard. For more info please review - https://coralogix.com/docs/user-guides/custom-dashboards/introduction/.",
 	}
 }
 

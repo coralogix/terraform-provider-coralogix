@@ -3,12 +3,12 @@
 page_title: "coralogix_slo Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix SLO.
+  Coralogix SLO. For more info please review - https://coralogix.com/docs/user-guides/apm/features/service-slos/.
 ---
 
 # coralogix_slo (Resource)
 
-Coralogix SLO.
+Coralogix SLO. For more info please review - https://coralogix.com/docs/user-guides/apm/features/service-slos/.
 
 ## Example Usage
 

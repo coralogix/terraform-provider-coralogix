@@ -3,12 +3,12 @@
 page_title: "coralogix_team Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Team.
+  Coralogix Team. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/create-and-manage-teams/.
 ---
 
 # coralogix_team (Resource)
 
-Coralogix Team.
+Coralogix Team. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/create-and-manage-teams/.
 
 ## Example Usage
 

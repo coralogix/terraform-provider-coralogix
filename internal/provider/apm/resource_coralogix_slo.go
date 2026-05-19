@@ -243,7 +243,7 @@ func (r *SLOResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				MarkdownDescription: fmt.Sprintf("Period. This is the period of the SLO. Valid values are: %q", validSLOPeriods),
 			},
 		},
-		MarkdownDescription: "Coralogix SLO.",
+		MarkdownDescription: "Coralogix SLO. For more info please review - https://coralogix.com/docs/user-guides/apm/features/service-slos/.",
 		DeprecationMessage:  "This resource is deprecated in favor of coralogix_slo_v2.",
 	}
 }

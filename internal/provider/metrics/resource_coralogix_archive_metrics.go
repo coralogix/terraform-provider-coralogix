@@ -182,6 +182,7 @@ func (r *ArchiveMetricsResource) Schema(_ context.Context, _ resource.SchemaRequ
 				},
 			},
 		},
+		MarkdownDescription: "Coralogix archive-metrics. Configures the S3/IBM bucket Coralogix archives metrics into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.",
 	}
 }
 

@@ -405,6 +405,7 @@ func (r *ParsingRulesResource) Schema(_ context.Context, _ resource.SchemaReques
 				Description: "List of rule-subgroups. Every rule-subgroup is a list of rules linked with a logical 'OR' (||) operation.",
 			},
 		},
+		MarkdownDescription: "Coralogix log parsing rules. Parsing rules transform unstructured log data into structured fields at ingestion time. For more info please review - https://coralogix.com/docs/user-guides/data-transformation/parsing/log-parsing-rules/.",
 	}
 }
 

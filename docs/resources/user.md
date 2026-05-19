@@ -3,12 +3,12 @@
 page_title: "coralogix_user Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix User.
+  Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/.
 ---
 
 # coralogix_user (Resource)
 
-Coralogix User.
+Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/.
 
 ## Example Usage
 
@@ -54,7 +54,7 @@ resource "coralogix_group" "example" {
 
 ### Required
 
-- `user_name` (String) User name.
+- `user_name` (String) User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans.
 
 ### Optional
 

@@ -107,7 +107,7 @@ func (r *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 		},
-		MarkdownDescription: "Coralogix Custom Role.",
+		MarkdownDescription: "Coralogix Custom Role. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/create-roles-and-permissions/.",
 	}
 }
 

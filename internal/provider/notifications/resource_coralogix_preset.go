@@ -223,7 +223,7 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Required: true,
 			},
 		},
-		MarkdownDescription: "Coralogix Preset. **NOTE:** This resource is in Beta stage.",
+		MarkdownDescription: "Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/. **NOTE:** This resource is in Beta stage.",
 	}
 }
 

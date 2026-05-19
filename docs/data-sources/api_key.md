@@ -3,12 +3,12 @@
 page_title: "coralogix_api_key Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Api keys.
+  Coralogix Api keys. For more info please review - https://coralogix.com/docs/user-guides/account-management/api-keys/api-keys/.
 ---
 
 # coralogix_api_key (Data Source)
 
-Coralogix Api keys.
+Coralogix Api keys. For more info please review - https://coralogix.com/docs/user-guides/account-management/api-keys/api-keys/.
 
 ## Example Usage
 

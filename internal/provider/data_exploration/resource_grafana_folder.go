@@ -34,9 +34,9 @@ import (
 func ResourceGrafanaFolder() *schema.Resource {
 	return &schema.Resource{
 
-		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
+		Description: `Coralogix Hosted Grafana folder. For more info please review - https://coralogix.com/docs/user-guides/visualizations/hosted-grafana-view/.
+* [Grafana official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
+* [Grafana HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
 `,
 
 		CreateContext: CreateFolder,
