@@ -86,7 +86,21 @@ Every PR must update `CHANGELOG.md`. The CI `changelog-check` workflow enforces 
 - **Normal PR** — add bullet points under the `# Unreleased` section at the top of the file.
 - **Release PR** (the PR that bumps `internal/clientset/version.go` to a new version) — rename `# Unreleased` to `# Release X.Y.Z` matching the new version, and add a fresh empty `# Unreleased` section above it.
 
-Keep entries concise: one line per change, prefixed with the affected resource/data-source path when relevant (e.g. `#### resource/coralogix_alert`).
+Keep entries concise: one line per change, prefixed with the affected resource/data-source path when relevant. Examples:
+
+```markdown
+# Unreleased
+
+#### resource/coralogix_alert
+- FEAT: Add support for `no_data_policy` condition.
+- FIX: Nil pointer dereference on import when `scheduling` is unset.
+
+#### resource/coralogix_dashboard
+- FIX: Incorrect unit mapping for gauge widgets.
+
+#### provider
+- FEAT: Add support for `AP4` region.
+```
 
 ## Public-repo discipline
 
