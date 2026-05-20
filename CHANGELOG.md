@@ -1,3 +1,22 @@
+# Release 3.4.1
+
+#### resource/coralogix_api_key
+
+- FIX: Preserve the `value` attribute across Create and refresh so it is available to downstream consumers (e.g. `aws_secretsmanager_secret_version`) on the same apply and does not drift on subsequent plans.
+
+#### resource/coralogix_data_enrichments
+
+- FIX: Multi-type updates no longer cause drift.
+
+#### resource/coralogix_alerts_scheduler
+
+- FIX: `monthly.days` int64 decode.
+- DOCS: Update examples and documentation for all-alert suppression.
+
+#### provider
+
+- DOCS: Add Coralogix documentation links to resource and data source descriptions.
+
 # Release 3.4.0
 
 #### resource/coralogix_tco_policies_logs
