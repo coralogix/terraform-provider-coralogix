@@ -77,6 +77,31 @@ Fields that take expressions — `coralogix_tco_policies_logs.dpxl_expression`, 
 
 A bump usually requires adapting many resource files to the new SDK API surface (renamed types, changed signatures). PR #506 touched 17 resource files alongside `go.mod`. That's expected — bundle the bump and the adaptations in the same PR; they're not separable. After the bump: `go mod tidy && go build ./... && go vet ./...`, then the relevant `make testacc` runs to catch behaviour drift the compiler can't.
 
+## Changelog
+
+Every PR must update `CHANGELOG.md`. The CI `changelog-check` workflow enforces this and will block merges if the file is untouched. Add a `skip changelog` label to the PR to bypass the check.
+
+**Where to add your entry:**
+
+- **Normal PR** — add bullet points under the `# Unreleased` section at the top of the file.
+- **Release PR** (the PR that bumps `internal/clientset/version.go` to a new version) — rename `# Unreleased` to `# Release X.Y.Z` matching the new version, and add a fresh empty `# Unreleased` section above it.
+
+Keep entries concise: one line per change, prefixed with the affected resource/data-source path when relevant. Examples:
+
+```markdown
+# Unreleased
+
+#### resource/coralogix_alert
+- FEAT: Add support for `no_data_policy` condition.
+- FIX: Nil pointer dereference on import when `scheduling` is unset.
+
+#### resource/coralogix_dashboard
+- FIX: Incorrect unit mapping for gauge widgets.
+
+#### provider
+- FEAT: Add support for `AP4` region.
+```
+
 ## Public-repo discipline
 
 This is a public repo (`coralogix/terraform-provider-coralogix`). Internal ticket identifiers (`BUGV2-`, `CX-`, etc.) belong in **commit messages, PR descriptions, and branch names** — not in committed code, comments, doc strings, test fixtures, or example HCL. Use descriptive names instead.
