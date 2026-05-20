@@ -79,7 +79,7 @@ A bump usually requires adapting many resource files to the new SDK API surface 
 
 ## Changelog
 
-Every PR must update `CHANGELOG.md`. The CI `changelog-check` workflow enforces this and will block merges if the file is untouched. Add a `skip changelog` label to the PR to bypass the check (no release will be triggered for that PR).
+Every PR must update `CHANGELOG.md`. The CI `changelog-check` workflow enforces this and will block merges if the file is untouched. Add a `skip changelog` label to the PR to bypass the check.
 
 **Where to add your entry:**
 
