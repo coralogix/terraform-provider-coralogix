@@ -103,10 +103,12 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 	state, e := integrationDetail(result, keys)
-	state.Parameters = data.Parameters
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
+	}
+	if hasKnownParameters(data.Parameters) {
+		state.Parameters = data.Parameters
 	}
 
 	diags = resp.State.Set(ctx, state)
