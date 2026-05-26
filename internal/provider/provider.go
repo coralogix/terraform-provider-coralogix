@@ -114,7 +114,7 @@ func OldProvider() *oldSchema.Provider {
 				Optional: true,
 				//ForceNew: true,
 				//DefaultFunc:   oldSchema.EnvDefaultFunc("CORALOGIX_DOMAIN", nil),
-				Description:   "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
+				Description:   "The Coralogix domain. For AWS PrivateLink use the management API host (e.g. api.private.eu2.coralogix.com). Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
 				ConflictsWith: []string{"env"},
 			},
 			"api_key": {
@@ -153,7 +153,7 @@ func OldProvider() *oldSchema.Provider {
 					cxEnv = env.(string)
 				}
 			} else if domain, ok := d.GetOk("domain"); ok && domain.(string) != "" {
-				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
+				targetUrl = clientset.GrpcTargetFromDomain(domain.(string))
 				cxEnv = domain.(string)
 			} else if env = strings.ToUpper(os.Getenv("CORALOGIX_ENV")); env != "" {
 				if url, ok := terraformEnvironmentAliasToGrpcUrl[env.(string)]; !ok {
@@ -163,7 +163,7 @@ func OldProvider() *oldSchema.Provider {
 					cxEnv = env.(string)
 				}
 			} else if domain := os.Getenv("CORALOGIX_DOMAIN"); domain != "" {
-				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
+				targetUrl = clientset.GrpcTargetFromDomain(domain)
 				cxEnv = domain
 			} else {
 				return nil, diag.Errorf("At least one of the fields 'env' or 'domain', or one of the environment variables 'CORALOGIX_ENV' or 'CORALOGIX_DOMAIN' have to be defined")
@@ -222,7 +222,7 @@ func (p *coralogixProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Validators: []validator.String{
 					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("domain")),
 				},
-				Description: "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
+				Description: "The Coralogix domain. For AWS PrivateLink use the management API host (e.g. api.private.eu2.coralogix.com). Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
 			},
 			"api_key": schema.StringAttribute{
 				Optional:    true,
@@ -344,7 +344,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	if terraformEnvironmentAlias != "" {
 		targetUrl = terraformEnvironmentAliasToGrpcUrl[terraformEnvironmentAlias]
 	} else {
-		targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
+		targetUrl = clientset.GrpcTargetFromDomain(domain)
 	}
 
 	sdkEnvironment := terraformEnvironmentAliasToSdkEnvironment[terraformEnvironmentAlias]

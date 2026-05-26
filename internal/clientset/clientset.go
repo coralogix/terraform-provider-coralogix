@@ -204,9 +204,9 @@ func (c *ClientSet) DataEnrichments() (*ess.EnrichmentsServiceAPIService, *cess.
 	return c.dataEnrichments, c.customDataEnrichments
 }
 
-func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
-	apiKeySdk := cxsdk.NewSDKCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
-	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
+func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
+	apiKeySdk := newTerraformSDKCallPropertiesCreator(apiKey, TF_PROVIDER_VERSION, grpcTarget)
+	apikeyCPC := NewCallPropertiesCreator(grpcTarget, apiKey)
 
 	confBuilder := cxsdkOpenapi.NewConfigBuilder().
 		WithTerraformVersion(TF_PROVIDER_VERSION).

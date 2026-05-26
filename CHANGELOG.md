@@ -1,5 +1,9 @@
 # Unreleased
 
+#### provider
+
+- FIX: When `domain` is an AWS PrivateLink management host (`api.private.<region>.coralogix.com`), dial gRPC on that host instead of `ng-api-grpc.<domain>` so dashboards and other gRPC resources work over PrivateLink.
+
 #### resource/coralogix_integration
 
 - FIX: Support importing integrations when Terraform has not populated dynamic `parameters` state yet.
