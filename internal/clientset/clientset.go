@@ -205,8 +205,16 @@ func (c *ClientSet) DataEnrichments() (*ess.EnrichmentsServiceAPIService, *cess.
 }
 
 func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
-	apiKeySdk := newTerraformSDKCallPropertiesCreator(apiKey, TF_PROVIDER_VERSION, grpcTarget)
+	grpcCreator := newTerraformSDKCallPropertiesCreator(apiKey, TF_PROVIDER_VERSION, grpcTarget)
 	apikeyCPC := NewCallPropertiesCreator(grpcTarget, apiKey)
+
+	// UsersClient uses REST SCIM and type-asserts *cxsdk.SDKCallPropertiesCreator; a custom
+	// CallPropertiesCreator makes NewUsersClient return nil (see users-client.go).
+	sdkCreator := cxsdk.NewSDKCallPropertiesCreatorTerraform(
+		strings.ToLower(region),
+		cxsdk.NewAuthContext(apiKey, apiKey),
+		TF_PROVIDER_VERSION,
+	)
 
 	confBuilder := cxsdkOpenapi.NewConfigBuilder().
 		WithTerraformVersion(TF_PROVIDER_VERSION).
@@ -231,18 +239,18 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 
 	return &ClientSet{
 		// deprecated
-		dataSet:     cxsdk.NewDataSetClient(apiKeySdk),
-		enrichments: cxsdk.NewEnrichmentClient(apiKeySdk),
-		legacySlos:  cxsdk.NewLegacySLOsClient(apiKeySdk),
-		ruleGroups:  cxsdk.NewRuleGroupsClient(apiKeySdk),
-		teams:       cxsdk.NewTeamsClient(apiKeySdk),
+		dataSet:     cxsdk.NewDataSetClient(grpcCreator),
+		enrichments: cxsdk.NewEnrichmentClient(grpcCreator),
+		legacySlos:  cxsdk.NewLegacySLOsClient(grpcCreator),
+		ruleGroups:  cxsdk.NewRuleGroupsClient(grpcCreator),
+		teams:       cxsdk.NewTeamsClient(grpcCreator),
 
-		users: cxsdk.NewUsersClient(apiKeySdk),
+		users: cxsdk.NewUsersClient(sdkCreator),
 
 		// TODO
-		dashboards:     cxsdk.NewDashboardsClient(apiKeySdk),
-		events2Metrics: cxsdk.NewEvents2MetricsClient(apiKeySdk),
-		groupGrpc:      cxsdk.NewGroupsClient(apiKeySdk),
+		dashboards:     cxsdk.NewDashboardsClient(grpcCreator),
+		events2Metrics: cxsdk.NewEvents2MetricsClient(grpcCreator),
+		groupGrpc:      cxsdk.NewGroupsClient(grpcCreator),
 
 		dahboardsFolders:      cs.DashboardFolders(),
 		parsingRuleGroups:     cs.RuleGroups(),
