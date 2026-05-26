@@ -205,20 +205,29 @@ func (c *ClientSet) DataEnrichments() (*ess.EnrichmentsServiceAPIService, *cess.
 }
 
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
-	apiKeySdk := cxsdk.NewSDKCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
-	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
+	sdkRegion := strings.ToLower(region)
 
 	confBuilder := cxsdkOpenapi.NewConfigBuilder().
 		WithTerraformVersion(TF_PROVIDER_VERSION).
 		WithAPIKey(apiKey)
 
-	_, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
-	if !found {
-		url := cxsdkOpenapi.URLFromDomain(region)
-		confBuilder.WithURL(url)
+	if _, found := cxsdkOpenapi.URLFromRegion(sdkRegion); found {
+		confBuilder.WithRegion(sdkRegion)
 	} else {
-		confBuilder.WithRegion(strings.ToLower(region))
+		// Custom-domain (BYOC): normalize once and override the provider's
+		// raw `region`/`targetUrl` so gRPC, REST, and OpenAPI all agree.
+		if base, grpc, openapiHost, err := resolveCustomDomainHosts(region); err == nil {
+			sdkRegion = base
+			targetUrl = grpc
+			confBuilder.WithURL(cxsdkOpenapi.URLFromDomain(openapiHost))
+		} else {
+			slog.Error("invalid Coralogix domain", "domain", region, "error", err)
+			confBuilder.WithURL(cxsdkOpenapi.URLFromDomain(region))
+		}
 	}
+
+	apiKeySdk := cxsdk.NewSDKCallPropertiesCreatorTerraform(sdkRegion, cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
+	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 
 	logLevel := slog.LevelInfo
 	if strings.ToLower(os.Getenv("TF_LOG")) == "debug" {
