@@ -170,17 +170,24 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	state, e := integrationDetail(readResult, keys)
-	state.Parameters = plan.Parameters
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
 	}
+	state.Parameters = plan.Parameters
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
 func KeysFromPlan(ctx context.Context, plan *IntegrationResourceModel) ([]string, diag.Diagnostics) {
+	if plan == nil {
+		return nil, nil
+	}
+	if !hasKnownParameters(plan.Parameters) {
+		return nil, nil
+	}
+
 	// extract keys first to filter the returned parameters later
 	parameters, diags := dynamicToParameters(plan.Parameters)
 	keys := make([]string, len(parameters))
@@ -287,6 +294,13 @@ func dynamicToParameters(planParameters types.Dynamic) ([]integrations.Parameter
 	return parameters, diag.Diagnostics{}
 }
 
+func hasKnownParameters(parameters types.Dynamic) bool {
+	if parameters.IsNull() || parameters.IsUnknown() || parameters.UnderlyingValue() == nil {
+		return false
+	}
+	return !parameters.IsUnderlyingValueNull() && !parameters.IsUnderlyingValueUnknown()
+}
+
 func collectionToParameters(elements []attr.Value) (*integrations.ParameterStringList, diag.Diagnostics) {
 	strings := make([]string, len(elements))
 	for i, value := range elements {
@@ -327,7 +341,7 @@ func parametersToDynamic(parameters []integrations.Parameter, keys []string) (ty
 	t := make(map[string]attr.Type, len(parameters))
 	for _, parameter := range parameters {
 
-		if parameter.ParameterStringList != nil && slices.Contains(keys, *parameter.ParameterStringList.Key) {
+		if parameter.ParameterStringList != nil && includeParameter(keys, parameter.ParameterStringList.Key) {
 			v := parameter.ParameterStringList
 			values := make([]attr.Value, len(v.StringList.Values))
 			assignedTypes := make([]attr.Type, len(v.StringList.Values))
@@ -342,23 +356,23 @@ func parametersToDynamic(parameters []integrations.Parameter, keys []string) (ty
 			obj[*parameter.ParameterStringList.Key] = parameters
 			t[*parameter.ParameterStringList.Key] = types.TupleType{ElemTypes: assignedTypes}
 
-		} else if parameter.ParameterBooleanValue != nil && slices.Contains(keys, *parameter.ParameterBooleanValue.Key) {
+		} else if parameter.ParameterBooleanValue != nil && includeParameter(keys, parameter.ParameterBooleanValue.Key) {
 			obj[*parameter.ParameterBooleanValue.Key] = types.BoolValue(parameter.ParameterBooleanValue.BooleanValue)
 			t[*parameter.ParameterBooleanValue.Key] = types.BoolType
 
-		} else if parameter.ParameterStringValue != nil && slices.Contains(keys, *parameter.ParameterStringValue.Key) {
+		} else if parameter.ParameterStringValue != nil && includeParameter(keys, parameter.ParameterStringValue.Key) {
 			obj[*parameter.ParameterStringValue.Key] = types.StringValue(parameter.ParameterStringValue.StringValue)
 			t[*parameter.ParameterStringValue.Key] = types.StringType
 
-		} else if parameter.ParameterNumericValue != nil && slices.Contains(keys, *parameter.ParameterNumericValue.Key) {
+		} else if parameter.ParameterNumericValue != nil && includeParameter(keys, parameter.ParameterNumericValue.Key) {
 			obj[*parameter.ParameterNumericValue.Key] = types.NumberValue(big.NewFloat(parameter.ParameterNumericValue.NumericValue))
 			t[*parameter.ParameterNumericValue.Key] = types.NumberType
 
-		} else if parameter.ParameterApiKey != nil && slices.Contains(keys, *parameter.ParameterApiKey.Key) {
+		} else if parameter.ParameterApiKey != nil && includeParameter(keys, parameter.ParameterApiKey.Key) {
 			obj[*parameter.ParameterApiKey.Key] = types.StringPointerValue(parameter.ParameterApiKey.ApiKey.Value)
 			t[*parameter.ParameterApiKey.Key] = types.StringType
 
-		} else if parameter.ParameterSensitiveData != nil && slices.Contains(keys, *parameter.ParameterSensitiveData.Key) {
+		} else if parameter.ParameterSensitiveData != nil && includeParameter(keys, parameter.ParameterSensitiveData.Key) {
 			obj[*parameter.ParameterSensitiveData.Key] = types.StringValue("<redacted>")
 			t[*parameter.ParameterSensitiveData.Key] = types.StringType
 		} else {
@@ -367,6 +381,10 @@ func parametersToDynamic(parameters []integrations.Parameter, keys []string) (ty
 	}
 	val, e := types.ObjectValue(t, obj)
 	return types.DynamicValue(val), e
+}
+
+func includeParameter(keys []string, key *string) bool {
+	return key != nil && (keys == nil || slices.Contains(keys, *key))
 }
 
 func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -402,10 +420,12 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 	state, e := integrationDetail(result, keys)
-	state.Parameters = plan.Parameters
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
+	}
+	if hasKnownParameters(plan.Parameters) {
+		state.Parameters = plan.Parameters
 	}
 
 	diags = resp.State.Set(ctx, state)
@@ -470,11 +490,11 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	state, e := integrationDetail(readResult, keys)
-	state.Parameters = plan.Parameters
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
 	}
+	state.Parameters = plan.Parameters
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)

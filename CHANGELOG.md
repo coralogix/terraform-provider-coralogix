@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_integration
+
+- FIX: Support importing integrations when Terraform has not populated dynamic `parameters` state yet.
+
 # Release 3.4.1
 
 #### resource/coralogix_api_key
