@@ -16,6 +16,7 @@ package clientset
 
 import (
 	"log/slog"
+	gourl "net/url"
 	"os"
 	"strings"
 
@@ -220,7 +221,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 
 	_, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
 	if !found {
-		url := cxsdkOpenapi.URLFromDomain(region)
+		url := openAPIURLFromDomain(region)
 		confBuilder.WithURL(url)
 	} else {
 		confBuilder.WithRegion(strings.ToLower(region))
@@ -276,4 +277,22 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		grafana:               NewGrafanaClient(apikeyCPC),
 		groups:                NewGroupsClient(apikeyCPC),
 	}
+}
+
+func openAPIURLFromDomain(domain string) string {
+	host := strings.TrimSpace(domain)
+	if parsed, err := gourl.Parse(host); err == nil && parsed.Host != "" {
+		host = parsed.Host
+	}
+	host = strings.Trim(host, "/")
+	if !strings.HasPrefix(host, "api.") {
+		host = "api." + host
+	}
+
+	url := gourl.URL{
+		Scheme: "https",
+		Host:   host,
+		Path:   "mgmt/openapi/5",
+	}
+	return url.String()
 }
