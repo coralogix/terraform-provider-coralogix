@@ -206,18 +206,21 @@ func TestProtoDashboardFromOpenAPIReadableUnsupportedRefreshVariants(t *testing.
 	}
 }
 
-func TestOpenAPIDashboardFromProtoMissingTimeFrame(t *testing.T) {
+func TestOpenAPIDashboardFromProtoMissingTimeFrameDefaultsToRelative(t *testing.T) {
 	dashboard := testDashboardProto()
 	dashboard.TimeFrame = nil
 
-	_, diags := openAPIDashboardFromProto(dashboard)
-	if !diags.HasError() {
-		t.Fatal("expected missing time frame diagnostic")
+	openAPIDashboard, diags := openAPIDashboardFromProto(dashboard)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
 
-	detail := diags[0].Detail()
-	if !strings.Contains(detail, "absoluteTimeFrame") || !strings.Contains(detail, "relativeTimeFrame") {
-		t.Fatalf("expected diagnostic to mention required OpenAPI time frame choices, got %q", detail)
+	roundtripped, diags := protoDashboardFromOpenAPI(openAPIDashboard)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics after roundtrip: %v", diags)
+	}
+	if got := roundtripped.GetRelativeTimeFrame().AsDuration(); got != 15*time.Minute {
+		t.Fatalf("expected missing time frame to default to 15m relative, got %s", got)
 	}
 }
 

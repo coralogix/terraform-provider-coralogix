@@ -20,7 +20,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -638,27 +637,35 @@ func TestAccCoralogixResourceDashboardFromJsonWithEmbeddedFolderPath(t *testing.
 	})
 }
 
-func TestAccCoralogixResourceDashboardMissingTimeFrame(t *testing.T) {
+func TestAccCoralogixResourceDashboardOptionalTimeFrame(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccCoralogixResourceDashboardMissingTimeFrame(),
-				ExpectError: regexp.MustCompile("Dashboard time frame is required for OpenAPI|absoluteTimeFrame|relativeTimeFrame"),
+				Config: testAccCoralogixResourceDashboardMissingTimeFrame(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "time_frame.relative.duration"),
+				),
 			},
 		},
 	})
 }
 
-func TestAccCoralogixResourceDashboardContentJSONMissingTimeFrame(t *testing.T) {
+func TestAccCoralogixResourceDashboardContentJSONOptionalTimeFrame(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccCoralogixResourceDashboardContentJSONMissingTimeFrame(),
-				ExpectError: regexp.MustCompile("Dashboard time frame is required for OpenAPI|absoluteTimeFrame|relativeTimeFrame"),
+				Config: testAccCoralogixResourceDashboardContentJSONMissingTimeFrame(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "time_frame.relative.duration"),
+				),
 			},
 		},
 	})
@@ -1141,7 +1148,7 @@ resource "coralogix_dashboard" "test" {
 func testAccCoralogixResourceDashboardMissingTimeFrame() string {
 	return `resource "coralogix_dashboard" "test" {
   name        = "openapi-missing-time-frame"
-  description = "missing time frame should fail before API call"
+  description = "missing time frame should preserve optional schema behavior"
   auto_refresh = {
     type = "off"
   }

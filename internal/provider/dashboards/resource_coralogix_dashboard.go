@@ -3198,9 +3198,13 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		return nil, diags
 	}
 
-	timeFrame, diags := dashboardwidgets.FlattenDashboardTimeFrame(ctx, dashboard)
-	if diags.HasError() {
-		return nil, diags
+	var timeFrame *dashboardwidgets.TimeFrameModel
+	if plan.TimeFrame != nil {
+		var diags diag.Diagnostics
+		timeFrame, diags = dashboardwidgets.FlattenDashboardTimeFrame(ctx, dashboard)
+		if diags.HasError() {
+			return nil, diags
+		}
 	}
 
 	annotations, diags := flattenDashboardAnnotations(ctx, dashboard.GetAnnotations())

@@ -17,6 +17,7 @@ package dashboards
 import (
 	"encoding/json"
 	"strings"
+	"time"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	dashboardService "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
@@ -25,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 func openAPIDashboardFromProto(dashboard *cxsdk.Dashboard) (dashboardService.Dashboard, diag.Diagnostics) {
@@ -42,10 +44,7 @@ func openAPIDashboardFromProto(dashboard *cxsdk.Dashboard) (dashboardService.Das
 	}
 
 	if dashboardCopy.GetTimeFrame() == nil {
-		return dashboardService.Dashboard{}, diag.Diagnostics{diag.NewErrorDiagnostic(
-			"Dashboard time frame is required for OpenAPI",
-			"OpenAPI requires exactly one of absoluteTimeFrame or relativeTimeFrame. Set the dashboard time_frame attribute or include one of those fields in content_json.",
-		)}
+		dashboardCopy.TimeFrame = &cxsdk.DashboardRelativeTimeFrame{RelativeTimeFrame: durationpb.New(15 * time.Minute)}
 	}
 
 	data, err := protojson.MarshalOptions{EmitUnpopulated: false}.Marshal(dashboardCopy)
