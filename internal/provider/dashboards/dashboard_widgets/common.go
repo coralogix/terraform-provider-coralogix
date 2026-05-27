@@ -1164,8 +1164,8 @@ func flattenDuration(timeFrame *durationpb.Duration) basetypes.StringValue {
 
 func flattenAbsoluteTimeFrame(ctx context.Context, timeFrame *cxsdk.DashboardTimeFrame) (*TimeFrameModel, diag.Diagnostics) {
 	absoluteTimeFrame := &TimeFrameAbsoluteModel{
-		Start: types.StringValue(timeFrame.GetFrom().String()),
-		End:   types.StringValue(timeFrame.GetTo().String()),
+		Start: types.StringValue(timeFrame.GetFrom().AsTime().UTC().Format(time.RFC3339)),
+		End:   types.StringValue(timeFrame.GetTo().AsTime().UTC().Format(time.RFC3339)),
 	}
 
 	flattenedTimeFrame := &TimeFrameModel{

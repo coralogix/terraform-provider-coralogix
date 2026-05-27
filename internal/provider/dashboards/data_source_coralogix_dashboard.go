@@ -22,12 +22,11 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	dashboardService "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var _ datasource.DataSourceWithConfigure = &DashboardDataSource{}
@@ -37,7 +36,7 @@ func NewDashboardDataSource() datasource.DataSource {
 }
 
 type DashboardDataSource struct {
-	client *cxsdk.DashboardsClient
+	client *dashboardService.DashboardServiceAPIService
 }
 
 func (d *DashboardDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -58,7 +57,7 @@ func (d *DashboardDataSource) Configure(_ context.Context, req datasource.Config
 		return
 	}
 
-	d.client = clientSet.Dashboards()
+	d.client = clientSet.DashboardsOpenAPI()
 }
 
 func (d *DashboardDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -79,19 +78,27 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 	//Get refreshed Dashboard value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
-	getDashboardReq := &cxsdk.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
-	getDashboardResp, err := d.client.Get(ctx, getDashboardReq)
+	getDashboardResp, httpResponse, err := d.client.DashboardsServiceGetDashboard(ctx, id).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Dashboard",
-			utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "DashboardsServiceGetDashboard", id),
 		)
 		return
 	}
-	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
+	if getDashboardResp.Dashboard == nil {
+		resp.Diagnostics.AddError("Error reading Dashboard", "OpenAPI get response did not include dashboard")
+		return
+	}
+	protoDashboard, diags := protoDashboardFromOpenAPI(getDashboardResp.GetDashboard())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(protoDashboard))
 
-	dashboard, diags := flattenDashboard(ctx, DashboardResourceModel{}, getDashboardResp.GetDashboard())
+	dashboard, diags := flattenDashboard(ctx, DashboardResourceModel{}, protoDashboard)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return

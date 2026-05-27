@@ -28,6 +28,7 @@ import (
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 	cess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/custom_enrichments_service"
 	dbfs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_folders_service"
+	dashboardService "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
@@ -59,6 +60,7 @@ type ClientSet struct {
 	teams          *cxsdk.TeamsClient
 
 	dahboardsFolders      *dbfs.DashboardFoldersServiceAPIService
+	dashboardsOpenAPI     *dashboardService.DashboardServiceAPIService
 	customDataEnrichments *cess.CustomEnrichmentsServiceAPIService
 	dataEnrichments       *ess.EnrichmentsServiceAPIService
 	parsingRuleGroups     *prgs.RuleGroupsServiceAPIService
@@ -113,6 +115,10 @@ func (c *ClientSet) DataSet() *cxsdk.DataSetClient {
 
 func (c *ClientSet) Dashboards() *cxsdk.DashboardsClient {
 	return c.dashboards
+}
+
+func (c *ClientSet) DashboardsOpenAPI() *dashboardService.DashboardServiceAPIService {
+	return c.dashboardsOpenAPI
 }
 
 func (c *ClientSet) Grafana() *GrafanaClient {
@@ -245,6 +251,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		groupGrpc:      cxsdk.NewGroupsClient(apiKeySdk),
 
 		dahboardsFolders:      cs.DashboardFolders(),
+		dashboardsOpenAPI:     cs.Dashboards(),
 		parsingRuleGroups:     cs.RuleGroups(),
 		archiveMetrics:        cs.ArchiveMetrics(),
 		alerts:                cs.Alerts(),

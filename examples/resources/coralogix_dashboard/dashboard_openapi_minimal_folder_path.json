@@ -1,0 +1,11 @@
+{
+  "name": "openapi-minimal-folder-path",
+  "layout": {},
+  "relativeTimeFrame": "900s",
+  "off": {},
+  "folderPath": {
+    "segments": [
+      "openapi-test-folder"
+    ]
+  }
+}

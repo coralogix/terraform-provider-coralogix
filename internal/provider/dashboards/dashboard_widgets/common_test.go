@@ -18,10 +18,13 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestLogsAggregationValidator(t *testing.T) {
@@ -99,3 +102,18 @@ func TestLogsAggregationValidator(t *testing.T) {
 	}
 }
 
+func TestFlattenAbsoluteTimeFrameUsesRFC3339(t *testing.T) {
+	timeFrame, diags := flattenAbsoluteTimeFrame(context.Background(), &cxsdk.DashboardTimeFrame{
+		From: timestamppb.New(time.Date(2026, 5, 27, 9, 0, 0, 0, time.UTC)),
+		To:   timestamppb.New(time.Date(2026, 5, 27, 10, 0, 0, 0, time.UTC)),
+	})
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if got := timeFrame.Absolute.Start.ValueString(); got != "2026-05-27T09:00:00Z" {
+		t.Fatalf("expected RFC3339 start, got %q", got)
+	}
+	if got := timeFrame.Absolute.End.ValueString(); got != "2026-05-27T10:00:00Z" {
+		t.Fatalf("expected RFC3339 end, got %q", got)
+	}
+}
