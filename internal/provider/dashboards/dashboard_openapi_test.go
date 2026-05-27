@@ -26,6 +26,7 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	dashboardService "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -221,6 +222,38 @@ func TestOpenAPIDashboardFromProtoMissingTimeFrameDefaultsToRelative(t *testing.
 	}
 	if got := roundtripped.GetRelativeTimeFrame().AsDuration(); got != 15*time.Minute {
 		t.Fatalf("expected missing time frame to default to 15m relative, got %s", got)
+	}
+}
+
+func TestFlattenDashboardOmittedTimeFrameModes(t *testing.T) {
+	dashboard := testDashboardProto()
+
+	exposed, diags := flattenDashboard(context.Background(), DashboardResourceModel{}, dashboard, false)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics exposing dashboard time frame: %v", diags)
+	}
+	if exposed.TimeFrame == nil || exposed.TimeFrame.Relative == nil {
+		t.Fatalf("expected data source/import flatten to expose dashboard time frame, got %#v", exposed.TimeFrame)
+	}
+	if got := exposed.TimeFrame.Relative.Duration.ValueString(); got != "seconds:900" {
+		t.Fatalf("expected exposed dashboard time frame to be seconds:900, got %q", got)
+	}
+
+	preserved, diags := flattenDashboard(context.Background(), DashboardResourceModel{}, dashboard, true)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics preserving omitted dashboard time frame: %v", diags)
+	}
+	if preserved.TimeFrame != nil {
+		t.Fatalf("expected managed resource flatten to preserve omitted time frame, got %#v", preserved.TimeFrame)
+	}
+}
+
+func TestShouldPreserveOmittedDashboardTimeFrame(t *testing.T) {
+	if shouldPreserveOmittedDashboardTimeFrame(DashboardResourceModel{}) {
+		t.Fatal("expected import/data-source shaped state to expose dashboard time frame")
+	}
+	if !shouldPreserveOmittedDashboardTimeFrame(DashboardResourceModel{Name: types.StringValue("managed")}) {
+		t.Fatal("expected managed resource state to preserve omitted dashboard time frame")
 	}
 }
 

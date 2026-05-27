@@ -98,7 +98,7 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 	}
 	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(protoDashboard))
 
-	dashboard, diags := flattenDashboard(ctx, DashboardResourceModel{}, protoDashboard)
+	dashboard, diags := flattenDashboard(ctx, DashboardResourceModel{}, protoDashboard, false)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return

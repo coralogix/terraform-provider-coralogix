@@ -650,6 +650,11 @@ func TestAccCoralogixResourceDashboardOptionalTimeFrame(t *testing.T) {
 					resource.TestCheckNoResourceAttr(dashboardResourceName, "time_frame.relative.duration"),
 				),
 			},
+			{
+				ResourceName:     dashboardResourceName,
+				ImportState:      true,
+				ImportStateCheck: testAccCheckImportedDashboard(map[string]string{"time_frame.relative.duration": "seconds:900"}),
+			},
 		},
 	})
 }
@@ -1317,4 +1322,20 @@ resource "coralogix_dashboard" "test" {
 			},
 		},
 	})
+}
+
+func testAccCheckImportedDashboard(expected map[string]string) resource.ImportStateCheckFunc {
+	return func(states []*terraform.InstanceState) error {
+		if len(states) == 0 {
+			return fmt.Errorf("expected imported dashboard state, got no state entries")
+		}
+
+		attrs := states[0].Attributes
+		for key, want := range expected {
+			if got := attrs[key]; got != want {
+				return fmt.Errorf("imported %s = %q, want %q", key, got, want)
+			}
+		}
+		return nil
+	}
 }

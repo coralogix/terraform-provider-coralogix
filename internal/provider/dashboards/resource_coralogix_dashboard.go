@@ -330,7 +330,7 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 	}
 	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
 
-	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp.GetDashboard())
+	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp.GetDashboard(), true)
 	if diags != nil {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -747,7 +747,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	createDashboardRespStr := protojson.Format(protoDashboard)
 	log.Printf("[INFO] Submitted new Dashboard: %s", createDashboardRespStr)
 
-	flattenedDashboard, diags := flattenDashboard(ctx, plan, protoDashboard)
+	flattenedDashboard, diags := flattenDashboard(ctx, plan, protoDashboard, true)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -3140,7 +3140,7 @@ func expandDashboardFolder(ctx context.Context, dashboard *cxsdk.Dashboard, fold
 	return dashboard, nil
 }
 
-func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboard *cxsdk.Dashboard) (*DashboardResourceModel, diag.Diagnostics) {
+func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboard *cxsdk.Dashboard, preserveOmittedTimeFrame bool) (*DashboardResourceModel, diag.Diagnostics) {
 	folder, diags := flattenDashboardFolder(ctx, plan.Folder, dashboard)
 	if diags.HasError() {
 		return nil, diags
@@ -3199,7 +3199,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 	}
 
 	var timeFrame *dashboardwidgets.TimeFrameModel
-	if plan.TimeFrame != nil {
+	if plan.TimeFrame != nil || !preserveOmittedTimeFrame {
 		var diags diag.Diagnostics
 		timeFrame, diags = dashboardwidgets.FlattenDashboardTimeFrame(ctx, dashboard)
 		if diags.HasError() {
@@ -3230,6 +3230,16 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		AutoRefresh: autoRefresh,
 		ContentJson: types.StringNull(),
 	}, nil
+}
+
+func shouldPreserveOmittedDashboardTimeFrame(state DashboardResourceModel) bool {
+	if state.TimeFrame != nil {
+		return false
+	}
+	if !state.ContentJson.IsNull() && !state.ContentJson.IsUnknown() {
+		return true
+	}
+	return !state.Name.IsNull() && !state.Name.IsUnknown()
 }
 
 func flattenDashboardLayout(ctx context.Context, layout *cxsdk.DashboardLayout) (types.Object, diag.Diagnostics) {
@@ -6091,7 +6101,7 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(protoDashboard))
 
-	flattenedDashboard, diags := flattenDashboard(ctx, state, protoDashboard)
+	flattenedDashboard, diags := flattenDashboard(ctx, state, protoDashboard, shouldPreserveOmittedDashboardTimeFrame(state))
 	if diags != nil {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -6167,7 +6177,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	updateDashboardRespStr := protojson.Format(protoDashboard)
 	log.Printf("[INFO] Submitted updated Dashboard: %s", updateDashboardRespStr)
 
-	flattenedDashboard, diags := flattenDashboard(ctx, plan, protoDashboard)
+	flattenedDashboard, diags := flattenDashboard(ctx, plan, protoDashboard, true)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
