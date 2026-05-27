@@ -257,6 +257,35 @@ func TestShouldPreserveOmittedDashboardTimeFrame(t *testing.T) {
 	}
 }
 
+func TestPreserveDashboardTimeFrameForReplace(t *testing.T) {
+	dashboard := testDashboardProto()
+	dashboard.TimeFrame = nil
+	existingDashboard := testDashboardProto()
+	existingDashboard.TimeFrame = testAbsoluteTimeFrame()
+
+	preserveDashboardTimeFrameForReplace(dashboard, existingDashboard)
+
+	if _, ok := dashboard.GetTimeFrame().(*cxsdk.DashboardAbsoluteTimeFrame); !ok {
+		t.Fatalf("expected replace dashboard to preserve existing absolute time frame, got %T", dashboard.GetTimeFrame())
+	}
+}
+
+func TestFlattenDashboardUnsupportedAutoRefreshDiagnostics(t *testing.T) {
+	dashboard := unmarshalOpenAPIDashboard(t, `{"name":"unsupported-refresh","layout":{},"relativeTimeFrame":"900s","oneMinute":{}}`)
+	protoDashboard, diags := protoDashboardFromOpenAPI(dashboard)
+	if diags.HasError() {
+		t.Fatalf("unexpected conversion diagnostics: %v", diags)
+	}
+
+	_, diags = flattenDashboard(context.Background(), DashboardResourceModel{}, protoDashboard, false)
+	if !diags.HasError() {
+		t.Fatal("expected unsupported auto-refresh diagnostic")
+	}
+	if detail := diags[0].Detail(); !strings.Contains(detail, "off") || !strings.Contains(detail, "two_minutes") || !strings.Contains(detail, "five_minutes") {
+		t.Fatalf("expected diagnostic to mention supported auto-refresh values, got %q", detail)
+	}
+}
+
 func TestOpenAPIDashboardOneOfConflictDiagnostics(t *testing.T) {
 	tests := map[string]string{
 		"both time frame variants": `{

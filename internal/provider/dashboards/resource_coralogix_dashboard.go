@@ -3242,6 +3242,12 @@ func shouldPreserveOmittedDashboardTimeFrame(state DashboardResourceModel) bool 
 	return !state.Name.IsNull() && !state.Name.IsUnknown()
 }
 
+func preserveDashboardTimeFrameForReplace(dashboard *cxsdk.Dashboard, existingDashboard *cxsdk.Dashboard) {
+	if dashboard.GetTimeFrame() == nil && existingDashboard.GetTimeFrame() != nil {
+		dashboard.TimeFrame = existingDashboard.GetTimeFrame()
+	}
+}
+
 func flattenDashboardLayout(ctx context.Context, layout *cxsdk.DashboardLayout) (types.Object, diag.Diagnostics) {
 	sections, diags := flattenDashboardSections(ctx, layout.GetSections())
 	if diags.HasError() {
@@ -6057,6 +6063,11 @@ func flattenDashboardAutoRefresh(ctx context.Context, dashboard *cxsdk.Dashboard
 		refreshType.Type = types.StringValue("five_minutes")
 	case *cxsdk.DashboardTwoMinutes:
 		refreshType.Type = types.StringValue("two_minutes")
+	default:
+		return types.ObjectNull(dashboardAutoRefreshModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Unsupported dashboard auto-refresh",
+			fmt.Sprintf("Dashboard uses auto-refresh variant %T, but Terraform only supports off, two_minutes, and five_minutes.", autoRefresh),
+		)}
 	}
 	return types.ObjectValueFrom(ctx, dashboardAutoRefreshModelAttr(), &refreshType)
 }
@@ -6120,11 +6131,47 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var state DashboardResourceModel
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if plan.ID.IsNull() || plan.ID.IsUnknown() {
+		plan.ID = state.ID
+	}
 
 	dashboard, diags := extractDashboard(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
+	}
+	if dashboard.GetTimeFrame() == nil {
+		dashboardID := dashboard.GetId().GetValue()
+		if dashboardID == "" {
+			dashboardID = plan.ID.ValueString()
+		}
+		if dashboardID != "" {
+			getDashboardResp, httpResponse, err := r.client.DashboardsServiceGetDashboard(ctx, dashboardID).Execute()
+			if err != nil {
+				log.Printf("[ERROR] Received error: %s", err.Error())
+				resp.Diagnostics.AddError(
+					"Error getting Dashboard",
+					utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "DashboardsServiceGetDashboard", dashboardID),
+				)
+				return
+			}
+			if getDashboardResp.Dashboard == nil {
+				resp.Diagnostics.AddError("Error getting Dashboard", "OpenAPI get response did not include dashboard")
+				return
+			}
+			existingDashboard, diags := protoDashboardFromOpenAPI(getDashboardResp.GetDashboard())
+			if diags.HasError() {
+				resp.Diagnostics.Append(diags...)
+				return
+			}
+			preserveDashboardTimeFrameForReplace(dashboard, existingDashboard)
+		}
 	}
 
 	openAPIDashboard, diags := openAPIDashboardFromProto(dashboard)
