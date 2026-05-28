@@ -15,30 +15,23 @@
 package provider
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var hostedDashboardDataSourceName = "data." + hostedDashboardResourceName
 
 func TestAccCoralogixDataSourceGrafanaDashboard_basic(t *testing.T) {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	parent := filepath.Dir(filepath.Dir(wd))
-	filePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_dashboard.json"
-	expectedFolderTitle := "Test Folder"
+	filePath := testAccHostedDashboardJSONFile(t, acctest.RandomWithPrefix("tf-acc-hosted-dashboard-title"), testAccHostedDashboardUID())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceGrafanaDashboard(filePath, expectedFolderTitle) +
+				Config: testAccCoralogixResourceGrafanaDashboardRoot(filePath) +
 					testAccCoralogixDataSourceGrafanaDashboard_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(hostedDashboardDataSourceName, "uid"),

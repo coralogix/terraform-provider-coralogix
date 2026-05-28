@@ -20,11 +20,13 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/data_exploration"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -33,19 +35,17 @@ var hostedDashboardResourceName = "coralogix_hosted_dashboard.test"
 var hostedDashboardFolderResourceName = "coralogix_grafana_folder.test_folder"
 
 func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	parent := filepath.Dir(filepath.Dir(wd))
-	filePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_dashboard.json"
-	updatedFilePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_updated_dashboard.json"
+	dashboardUID := testAccHostedDashboardUID()
+	dashboardTitle := acctest.RandomWithPrefix("tf-acc-hosted-dashboard-title")
+	updatedDashboardTitle := acctest.RandomWithPrefix("tf-acc-hosted-dashboard-title-updated")
+	filePath := testAccHostedDashboardJSONFile(t, dashboardTitle, dashboardUID)
+	updatedFilePath := testAccHostedDashboardJSONFile(t, updatedDashboardTitle, dashboardUID)
 
-	expectedInitialConfig := `{"title":"Title test","uid":"UID"}`
-	expectedUpdatedTitleConfig := `{"title":"Updated Title","uid":"UID"}`
+	expectedInitialConfig := fmt.Sprintf(`{"title":"%s","uid":"%s"}`, dashboardTitle, dashboardUID)
+	expectedUpdatedTitleConfig := fmt.Sprintf(`{"title":"%s","uid":"%s"}`, updatedDashboardTitle, dashboardUID)
 
-	expectedFolderTitle := "Test Folder"
-	expectedFolderUpdateTitle := "Updated Folder Title"
+	expectedFolderTitle := acctest.RandomWithPrefix("tf-acc-hosted-dashboard-folder")
+	expectedFolderUpdateTitle := acctest.RandomWithPrefix("tf-acc-hosted-dashboard-folder-updated")
 
 	var dashboard gapi.Dashboard
 
@@ -76,6 +76,7 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
+					time.Sleep(3 * time.Second)
 				},
 				// Test resource creation.
 				Config: testAccCoralogixResourceGrafanaDashboard(filePath, expectedFolderTitle),
@@ -158,4 +159,29 @@ func testAccCoralogixResourceGrafanaDashboard(filePath, folderTitle string) stri
   					title = "%s"
 				}
 `, filePath, folderTitle)
+}
+
+func testAccCoralogixResourceGrafanaDashboardRoot(filePath string) string {
+	return fmt.Sprintf(
+		`resource "coralogix_hosted_dashboard" test {
+	grafana{
+		config_json = file("%s")
+	}
+}
+`, filePath)
+}
+
+func testAccHostedDashboardJSONFile(t *testing.T, title string, uid string) string {
+	t.Helper()
+
+	filePath := filepath.Join(t.TempDir(), "grafana_acc_dashboard.json")
+	content := fmt.Sprintf(`{"title":%q,"uid":%q}`, title, uid)
+	if err := os.WriteFile(filePath, []byte(content), 0600); err != nil {
+		t.Fatalf("failed to write hosted dashboard fixture: %s", err)
+	}
+	return filePath
+}
+
+func testAccHostedDashboardUID() string {
+	return "tfacc" + acctest.RandStringFromCharSet(12, "abcdefghijklmnopqrstuvwxyz0123456789")
 }
