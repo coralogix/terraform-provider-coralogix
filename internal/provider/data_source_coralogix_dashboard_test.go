@@ -32,6 +32,7 @@ func TestAccCoralogixDataSourceDashboard_basic(t *testing.T) {
 					testAccCoralogixDataSourceDashboard_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(dashboardDataSourceName, "name", "test"),
+					resource.TestCheckResourceAttr(dashboardDataSourceName, "time_frame.relative.duration", "seconds:900"),
 				),
 			},
 		},

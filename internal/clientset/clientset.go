@@ -16,6 +16,7 @@ package clientset
 
 import (
 	"log/slog"
+	gourl "net/url"
 	"os"
 	"strings"
 
@@ -28,6 +29,7 @@ import (
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 	cess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/custom_enrichments_service"
 	dbfs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_folders_service"
+	dashboardService "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
@@ -59,6 +61,7 @@ type ClientSet struct {
 	teams          *cxsdk.TeamsClient
 
 	dahboardsFolders      *dbfs.DashboardFoldersServiceAPIService
+	dashboardsOpenAPI     *dashboardService.DashboardServiceAPIService
 	customDataEnrichments *cess.CustomEnrichmentsServiceAPIService
 	dataEnrichments       *ess.EnrichmentsServiceAPIService
 	parsingRuleGroups     *prgs.RuleGroupsServiceAPIService
@@ -113,6 +116,10 @@ func (c *ClientSet) DataSet() *cxsdk.DataSetClient {
 
 func (c *ClientSet) Dashboards() *cxsdk.DashboardsClient {
 	return c.dashboards
+}
+
+func (c *ClientSet) DashboardsOpenAPI() *dashboardService.DashboardServiceAPIService {
+	return c.dashboardsOpenAPI
 }
 
 func (c *ClientSet) Grafana() *GrafanaClient {
@@ -214,7 +221,11 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 
 	_, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
 	if !found {
-		url := cxsdkOpenapi.URLFromDomain(region)
+		// The Terraform provider has a legacy domain/CORALOGIX_DOMAIN path that
+		// builds gRPC clients from ng-api-grpc.<domain>. OpenAPI clients need the
+		// API host for that same domain instead. Region aliases still go through
+		// URLFromRegion above.
+		url := openAPIURLFromDomain(region)
 		confBuilder.WithURL(url)
 	} else {
 		confBuilder.WithRegion(strings.ToLower(region))
@@ -245,6 +256,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		groupGrpc:      cxsdk.NewGroupsClient(apiKeySdk),
 
 		dahboardsFolders:      cs.DashboardFolders(),
+		dashboardsOpenAPI:     cs.Dashboards(),
 		parsingRuleGroups:     cs.RuleGroups(),
 		archiveMetrics:        cs.ArchiveMetrics(),
 		alerts:                cs.Alerts(),
@@ -269,4 +281,22 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		grafana:               NewGrafanaClient(apikeyCPC),
 		groups:                NewGroupsClient(apikeyCPC),
 	}
+}
+
+func openAPIURLFromDomain(domain string) string {
+	host := strings.TrimSpace(domain)
+	if parsed, err := gourl.Parse(host); err == nil && parsed.Host != "" {
+		host = parsed.Host
+	}
+	host = strings.Trim(host, "/")
+	if !strings.HasPrefix(host, "api.") {
+		host = "api." + host
+	}
+
+	url := gourl.URL{
+		Scheme: "https",
+		Host:   host,
+		Path:   "mgmt/openapi/5",
+	}
+	return url.String()
 }

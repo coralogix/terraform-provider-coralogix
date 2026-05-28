@@ -4,6 +4,10 @@
 
 - FIX: Support importing integrations when Terraform has not populated dynamic `parameters` state yet.
 
+#### resource/coralogix_dashboard
+
+- FIX: Use the OpenAPI custom dashboard API instead of the gRPC API.
+
 # Release 3.4.1
 
 #### resource/coralogix_api_key

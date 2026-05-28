@@ -17,16 +17,16 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -105,6 +105,111 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 				ResourceName:      dashboardResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardOpenAPILifecycle(t *testing.T) {
+	var dashboardID string
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardOpenAPIConfig("openapi-lifecycle-root", testAccDashboardRelativeTimeFrame(), "off", ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "name", "openapi-lifecycle-root"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "time_frame.relative.duration", "seconds:900"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "auto_refresh.type", "off"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "folder.id"),
+					testAccCaptureDashboardID(&dashboardID),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceDashboardOpenAPIConfig("openapi-lifecycle-renamed", testAccDashboardRelativeTimeFrame(), "off", ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckDashboardIDUnchanged(&dashboardID),
+					resource.TestCheckResourceAttr(dashboardResourceName, "name", "openapi-lifecycle-renamed"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceDashboardOpenAPIConfig("openapi-lifecycle-renamed", testAccDashboardRelativeTimeFrame(), "two_minutes", ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckDashboardIDUnchanged(&dashboardID),
+					resource.TestCheckResourceAttr(dashboardResourceName, "auto_refresh.type", "two_minutes"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceDashboardOpenAPIConfig("openapi-lifecycle-renamed", testAccDashboardRelativeTimeFrame(), "five_minutes", ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckDashboardIDUnchanged(&dashboardID),
+					resource.TestCheckResourceAttr(dashboardResourceName, "auto_refresh.type", "five_minutes"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceDashboardOpenAPIConfig("openapi-lifecycle-renamed", testAccDashboardAbsoluteTimeFrame(), "five_minutes", ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckDashboardIDUnchanged(&dashboardID),
+					resource.TestCheckResourceAttr(dashboardResourceName, "time_frame.absolute.start", "2026-05-27T09:00:00Z"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "time_frame.absolute.end", "2026-05-27T10:00:00Z"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceDashboardOpenAPIConfig("openapi-lifecycle-renamed", testAccDashboardRelativeTimeFrame(), "off", ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckDashboardIDUnchanged(&dashboardID),
+					resource.TestCheckResourceAttr(dashboardResourceName, "time_frame.relative.duration", "seconds:900"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "auto_refresh.type", "off"),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardFolderID(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWithFolderID(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "folder.id"),
+					resource.TestCheckResourceAttrSet(folderResourceName, "id"),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardFolderPath(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWithFolderPath(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "folder.id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "folder.path", "openapi-folder-path"),
+				),
 			},
 		},
 	})
@@ -514,6 +619,81 @@ func TestAccCoralogixResourceDashboardFromJsonWithFolder(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceDashboardFromJsonWithEmbeddedFolderPath(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardFromJsonWithEmbeddedFolderPath(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "folder.id"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "folder.path"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardOptionalTimeFrame(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardMissingTimeFrame(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "time_frame.relative.duration"),
+				),
+			},
+			{
+				ResourceName:     dashboardResourceName,
+				ImportState:      true,
+				ImportStateCheck: testAccCheckImportedDashboard(map[string]string{"time_frame.relative.duration": "seconds:900"}),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardContentJSONOptionalTimeFrame(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardContentJSONMissingTimeFrame(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "time_frame.relative.duration"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardDeleteAlreadyAbsent(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:             testAccCoralogixResourceDashboardOpenAPIConfig("openapi-delete-already-absent", testAccDashboardRelativeTimeFrame(), "off", ""),
+				ExpectNonEmptyPlan: true,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					testAccDeleteDashboardRemotely,
+				),
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -535,6 +715,30 @@ func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
 	})
 }
 
+func TestDashboardAcceptanceDestroyUsesOpenAPI(t *testing.T) {
+	data, err := os.ReadFile("resource_coralogix_dashboard_test.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	source := string(data)
+	start := strings.LastIndex(source, "func testAccCheckDashboardDestroy")
+	if start == -1 {
+		t.Fatal("testAccCheckDashboardDestroy not found")
+	}
+	end := strings.Index(source[start:], "\nfunc ")
+	if end == -1 {
+		end = len(source) - start
+	}
+	functionBody := source[start : start+end]
+	if !strings.Contains(functionBody, "DashboardsOpenAPI()") {
+		t.Fatal("acceptance destroy check must use DashboardsOpenAPI")
+	}
+	if strings.Contains(functionBody, ".Dashboard"+"s()") {
+		t.Fatal("acceptance destroy check must not use legacy dashboard getter")
+	}
+}
+
 func testAccCheckDashboardDestroy(s *terraform.State) error {
 	// Configure the SDK provider so Meta() is set (ProtoV6 tests don't configure testAccProvider).
 	rc := terraform2.ResourceConfig{}
@@ -543,7 +747,7 @@ func testAccCheckDashboardDestroy(s *terraform.State) error {
 	if meta == nil {
 		return nil
 	}
-	client := meta.(*clientset.ClientSet).Dashboards()
+	client := meta.(*clientset.ClientSet).DashboardsOpenAPI()
 
 	ctx := context.TODO()
 
@@ -552,16 +756,71 @@ func testAccCheckDashboardDestroy(s *terraform.State) error {
 			continue
 		}
 
-		dashboardId := wrapperspb.String(rs.Primary.ID)
-		resp, err := client.Get(ctx, &cxsdk.GetDashboardRequest{DashboardId: dashboardId})
-		if err == nil {
-			if resp.GetDashboard().GetId().GetValue() == rs.Primary.ID {
+		resp, _, err := client.DashboardsServiceGetDashboard(ctx, rs.Primary.ID).Execute()
+		if err == nil && resp != nil {
+			if dashboard, ok := resp.GetDashboardOk(); ok && dashboard != nil {
 				return fmt.Errorf("dashboard still exists: %s", rs.Primary.ID)
 			}
 		}
 	}
 
 	return nil
+}
+
+func testAccDeleteDashboardRemotely(s *terraform.State) error {
+	rc := terraform2.ResourceConfig{}
+	_ = testAccProvider.Configure(context.Background(), &rc)
+	meta := testAccProvider.Meta()
+	if meta == nil {
+		return nil
+	}
+	client := meta.(*clientset.ClientSet).DashboardsOpenAPI()
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "coralogix_dashboard" {
+			continue
+		}
+
+		_, httpResponse, err := client.DashboardsServiceDeleteDashboard(context.Background(), rs.Primary.ID).
+			RequestId("tf-acc-delete-" + rs.Primary.ID).
+			Execute()
+		if err != nil {
+			apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
+			if cxsdkOpenapi.Code(apiErr) == http.StatusNotFound {
+				continue
+			}
+			return fmt.Errorf("failed to delete dashboard %s before Terraform destroy: %w", rs.Primary.ID, apiErr)
+		}
+	}
+
+	return nil
+}
+
+func testAccCaptureDashboardID(target *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[dashboardResourceName]
+		if !ok {
+			return fmt.Errorf("resource %s not found", dashboardResourceName)
+		}
+		*target = rs.Primary.ID
+		return nil
+	}
+}
+
+func testAccCheckDashboardIDUnchanged(expected *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[dashboardResourceName]
+		if !ok {
+			return fmt.Errorf("resource %s not found", dashboardResourceName)
+		}
+		if *expected == "" {
+			return fmt.Errorf("expected dashboard id was not captured")
+		}
+		if rs.Primary.ID != *expected {
+			return fmt.Errorf("dashboard was replaced: expected id %s, got %s", *expected, rs.Primary.ID)
+		}
+		return nil
+	}
 }
 
 func testAccCoralogixResourceDashboard() string {
@@ -783,6 +1042,160 @@ func testAccCoralogixResourceDashboardFromJson(jsonFilePath string) string {
 `, jsonFilePath)
 }
 
+func testAccCoralogixResourceDashboardOpenAPIConfig(name, timeFrame, autoRefreshType, folder string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" "test" {
+  name        = %[1]q
+  description = "openapi migration focused acceptance"
+%[2]s
+  auto_refresh = {
+    type = %[3]q
+  }
+%[4]s
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "openapi-smoke"
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  metrics = {
+                    promql_query = "vector(1)"
+                  }
+                }
+              }]
+              legend = {
+                is_visible = false
+              }
+            }
+          }
+          width = 0
+        }]
+      }]
+    }]
+  }
+}
+`, name, timeFrame, autoRefreshType, folder)
+}
+
+func testAccDashboardRelativeTimeFrame() string {
+	return `  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+`
+}
+
+func testAccDashboardAbsoluteTimeFrame() string {
+	return `  time_frame = {
+    absolute = {
+      start = "2026-05-27T09:00:00Z"
+      end   = "2026-05-27T10:00:00Z"
+    }
+  }
+`
+}
+
+func testAccCoralogixResourceDashboardWithFolderID() string {
+	return `resource "coralogix_dashboards_folder" "test_folder" {
+  name = "openapi-folder-id"
+}
+
+` + testAccCoralogixResourceDashboardOpenAPIConfig(
+		"openapi-folder-id-dashboard",
+		testAccDashboardRelativeTimeFrame(),
+		"off",
+		`  folder = {
+    id = coralogix_dashboards_folder.test_folder.id
+  }
+`,
+	)
+}
+
+func testAccCoralogixResourceDashboardWithFolderPath() string {
+	return `resource "coralogix_dashboards_folder" "test_folder" {
+  name = "openapi-folder-path"
+}
+
+` + testAccCoralogixResourceDashboardOpenAPIConfig(
+		"openapi-folder-path-dashboard",
+		testAccDashboardRelativeTimeFrame(),
+		"off",
+		`  folder = {
+    path = coralogix_dashboards_folder.test_folder.name
+  }
+`,
+	)
+}
+
+func testAccCoralogixResourceDashboardFromJsonWithEmbeddedFolderPath() string {
+	return `resource "coralogix_dashboards_folder" "test_folder" {
+  name = "openapi-content-json-folder-path"
+}
+
+resource "coralogix_dashboard" "test" {
+  content_json = jsonencode({
+    name = "openapi-content-json-folder-path-dashboard"
+    layout = {}
+    relativeTimeFrame = "900s"
+    off = {}
+    folderPath = {
+      segments = [coralogix_dashboards_folder.test_folder.name]
+    }
+  })
+}
+`
+}
+
+func testAccCoralogixResourceDashboardMissingTimeFrame() string {
+	return `resource "coralogix_dashboard" "test" {
+  name        = "openapi-missing-time-frame"
+  description = "missing time frame should preserve optional schema behavior"
+  auto_refresh = {
+    type = "off"
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  metrics = {
+                    promql_query = "vector(1)"
+                  }
+                }
+              }]
+              legend = {
+                is_visible = false
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`
+}
+
+func testAccCoralogixResourceDashboardContentJSONMissingTimeFrame() string {
+	return `resource "coralogix_dashboard" "test" {
+  content_json = jsonencode({
+    name = "openapi-content-json-missing-time-frame"
+    layout = {}
+    off = {}
+  })
+}
+`
+}
+
 func testAccCoralogixResourceDashboardFromJsonWithFolder(jsonFilePath string) string {
 	return fmt.Sprintf(`
   resource "coralogix_dashboards_folder" test_folder {
@@ -909,4 +1322,20 @@ resource "coralogix_dashboard" "test" {
 			},
 		},
 	})
+}
+
+func testAccCheckImportedDashboard(expected map[string]string) resource.ImportStateCheckFunc {
+	return func(states []*terraform.InstanceState) error {
+		if len(states) == 0 {
+			return fmt.Errorf("expected imported dashboard state, got no state entries")
+		}
+
+		attrs := states[0].Attributes
+		for key, want := range expected {
+			if got := attrs[key]; got != want {
+				return fmt.Errorf("imported %s = %q, want %q", key, got, want)
+			}
+		}
+		return nil
+	}
 }

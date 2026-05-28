@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
@@ -27,6 +28,8 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	dashboardService "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -266,7 +269,8 @@ func NewDashboardResource() resource.Resource {
 }
 
 type DashboardResource struct {
-	client *cxsdk.DashboardsClient
+	client     *dashboardService.DashboardServiceAPIService
+	grpcClient *cxsdk.DashboardsClient
 }
 
 func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
@@ -282,13 +286,13 @@ func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.St
 		2: {
 			PriorSchema: &schemaV2,
 			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				upgradeDashboardStateV3ToV4(ctx, req, resp, r.client)
+				upgradeDashboardStateV3ToV4(ctx, req, resp, r.grpcClient)
 			},
 		},
 		3: {
 			PriorSchema: &schemaV3,
 			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				upgradeDashboardStateV3ToV4(ctx, req, resp, r.client)
+				upgradeDashboardStateV3ToV4(ctx, req, resp, r.grpcClient)
 			},
 		},
 	}
@@ -326,7 +330,7 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 	}
 	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
 
-	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp.GetDashboard())
+	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp.GetDashboard(), true)
 	if diags != nil {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -693,38 +697,57 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	createDashboardReq := &cxsdk.CreateDashboardRequest{
-		Dashboard: dashboard,
+	openAPIDashboard, diags := openAPIDashboardFromProto(dashboard)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
 	}
-	dashboardStr := protojson.Format(createDashboardReq)
+
+	createDashboardReq := dashboardService.CreateDashboardRequestDataStructure{
+		Dashboard: openAPIDashboard,
+		RequestId: newDashboardRequestID(),
+	}
+	dashboardStr := utils.FormatJSON(createDashboardReq)
 	log.Printf("[INFO] Creating new Dashboard: %s", dashboardStr)
-	createResponse, err := r.client.Create(ctx, createDashboardReq)
+	createResponse, httpResponse, err := r.client.DashboardsServiceCreateDashboard(ctx).
+		CreateDashboardRequestDataStructure(createDashboardReq).
+		Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Dashboard",
-			utils.FormatRpcErrors(err, cxsdk.CreateDashboardRPC, dashboardStr),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "DashboardsServiceCreateDashboard", createDashboardReq),
 		)
 		return
 	}
 
-	getDashboardReq := &cxsdk.GetDashboardRequest{
-		DashboardId: createResponse.DashboardId,
+	dashboardID := createResponse.GetDashboardId()
+	if dashboardID == "" {
+		resp.Diagnostics.AddError("Error creating Dashboard", "OpenAPI create response did not include dashboardId")
+		return
 	}
-	getDashboardResp, err := r.client.Get(ctx, getDashboardReq)
+	getDashboardResp, httpResponse, err := r.client.DashboardsServiceGetDashboard(ctx, dashboardID).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		reqStr := protojson.Format(getDashboardReq)
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
-			utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, reqStr),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "DashboardsServiceGetDashboard", dashboardID),
 		)
 		return
 	}
-	createDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
+	if getDashboardResp.Dashboard == nil {
+		resp.Diagnostics.AddError("Error getting Dashboard", "OpenAPI get response did not include dashboard")
+		return
+	}
+	protoDashboard, diags := protoDashboardFromOpenAPI(getDashboardResp.GetDashboard())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	createDashboardRespStr := protojson.Format(protoDashboard)
 	log.Printf("[INFO] Submitted new Dashboard: %s", createDashboardRespStr)
 
-	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp.GetDashboard())
+	flattenedDashboard, diags := flattenDashboard(ctx, plan, protoDashboard, true)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -3117,7 +3140,7 @@ func expandDashboardFolder(ctx context.Context, dashboard *cxsdk.Dashboard, fold
 	return dashboard, nil
 }
 
-func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboard *cxsdk.Dashboard) (*DashboardResourceModel, diag.Diagnostics) {
+func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboard *cxsdk.Dashboard, preserveOmittedTimeFrame bool) (*DashboardResourceModel, diag.Diagnostics) {
 	folder, diags := flattenDashboardFolder(ctx, plan.Folder, dashboard)
 	if diags.HasError() {
 		return nil, diags
@@ -3175,9 +3198,13 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		return nil, diags
 	}
 
-	timeFrame, diags := dashboardwidgets.FlattenDashboardTimeFrame(ctx, dashboard)
-	if diags.HasError() {
-		return nil, diags
+	var timeFrame *dashboardwidgets.TimeFrameModel
+	if plan.TimeFrame != nil || !preserveOmittedTimeFrame {
+		var diags diag.Diagnostics
+		timeFrame, diags = dashboardwidgets.FlattenDashboardTimeFrame(ctx, dashboard)
+		if diags.HasError() {
+			return nil, diags
+		}
 	}
 
 	annotations, diags := flattenDashboardAnnotations(ctx, dashboard.GetAnnotations())
@@ -3203,6 +3230,22 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		AutoRefresh: autoRefresh,
 		ContentJson: types.StringNull(),
 	}, nil
+}
+
+func shouldPreserveOmittedDashboardTimeFrame(state DashboardResourceModel) bool {
+	if state.TimeFrame != nil {
+		return false
+	}
+	if !state.ContentJson.IsNull() && !state.ContentJson.IsUnknown() {
+		return true
+	}
+	return !state.Name.IsNull() && !state.Name.IsUnknown()
+}
+
+func preserveDashboardTimeFrameForReplace(dashboard *cxsdk.Dashboard, existingDashboard *cxsdk.Dashboard) {
+	if dashboard.GetTimeFrame() == nil && existingDashboard.GetTimeFrame() != nil {
+		dashboard.TimeFrame = existingDashboard.GetTimeFrame()
+	}
 }
 
 func flattenDashboardLayout(ctx context.Context, layout *cxsdk.DashboardLayout) (types.Object, diag.Diagnostics) {
@@ -6020,6 +6063,11 @@ func flattenDashboardAutoRefresh(ctx context.Context, dashboard *cxsdk.Dashboard
 		refreshType.Type = types.StringValue("five_minutes")
 	case *cxsdk.DashboardTwoMinutes:
 		refreshType.Type = types.StringValue("two_minutes")
+	default:
+		return types.ObjectNull(dashboardAutoRefreshModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Unsupported dashboard auto-refresh",
+			fmt.Sprintf("Dashboard uses auto-refresh variant %T, but Terraform only supports off, two_minutes, and five_minutes.", autoRefresh),
+		)}
 	}
 	return types.ObjectValueFrom(ctx, dashboardAutoRefreshModelAttr(), &refreshType)
 }
@@ -6035,11 +6083,11 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 	//Get refreshed Dashboard value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
-	getDashboardReq := &cxsdk.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
-	getDashboardResp, err := r.client.Get(ctx, getDashboardReq)
+	getDashboardResp, httpResponse, err := r.client.DashboardsServiceGetDashboard(ctx, id).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
+		if cxsdkOpenapi.Code(apiErr) == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Dashboard %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -6048,14 +6096,23 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
-				utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+				utils.FormatOpenAPIErrors(apiErr, "DashboardsServiceGetDashboard", id),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
+	if getDashboardResp.Dashboard == nil {
+		resp.Diagnostics.AddError("Error reading Dashboard", "OpenAPI get response did not include dashboard")
+		return
+	}
+	protoDashboard, diags := protoDashboardFromOpenAPI(getDashboardResp.GetDashboard())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(protoDashboard))
 
-	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp.GetDashboard())
+	flattenedDashboard, diags := flattenDashboard(ctx, state, protoDashboard, shouldPreserveOmittedDashboardTimeFrame(state))
 	if diags != nil {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -6074,43 +6131,100 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var state DashboardResourceModel
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if plan.ID.IsNull() || plan.ID.IsUnknown() {
+		plan.ID = state.ID
+	}
 
 	dashboard, diags := extractDashboard(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	if dashboard.GetTimeFrame() == nil {
+		dashboardID := dashboard.GetId().GetValue()
+		if dashboardID == "" {
+			dashboardID = plan.ID.ValueString()
+		}
+		if dashboardID != "" {
+			getDashboardResp, httpResponse, err := r.client.DashboardsServiceGetDashboard(ctx, dashboardID).Execute()
+			if err != nil {
+				log.Printf("[ERROR] Received error: %s", err.Error())
+				resp.Diagnostics.AddError(
+					"Error getting Dashboard",
+					utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "DashboardsServiceGetDashboard", dashboardID),
+				)
+				return
+			}
+			if getDashboardResp.Dashboard == nil {
+				resp.Diagnostics.AddError("Error getting Dashboard", "OpenAPI get response did not include dashboard")
+				return
+			}
+			existingDashboard, diags := protoDashboardFromOpenAPI(getDashboardResp.GetDashboard())
+			if diags.HasError() {
+				resp.Diagnostics.Append(diags...)
+				return
+			}
+			preserveDashboardTimeFrameForReplace(dashboard, existingDashboard)
+		}
+	}
 
-	updateReq := &cxsdk.ReplaceDashboardRequest{Dashboard: dashboard}
-	reqStr := protojson.Format(updateReq)
+	openAPIDashboard, diags := openAPIDashboardFromProto(dashboard)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	updateReq := dashboardService.ReplaceDashboardRequestDataStructure{
+		Dashboard: openAPIDashboard,
+		RequestId: newDashboardRequestID(),
+	}
+	reqStr := utils.FormatJSON(updateReq)
 	log.Printf("[INFO] Updating Dashboard: %s", reqStr)
-	_, err := r.client.Replace(ctx, updateReq)
+	_, httpResponse, err := r.client.DashboardsServiceReplaceDashboard(ctx).
+		ReplaceDashboardRequestDataStructure(updateReq).
+		Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Dashboard",
-			utils.FormatRpcErrors(err, cxsdk.ReplaceDashboardRPC, reqStr),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "DashboardsServiceReplaceDashboard", updateReq),
 		)
 		return
 	}
 
-	getDashboardReq := &cxsdk.GetDashboardRequest{
-		DashboardId: dashboard.GetId(),
+	dashboardID := dashboard.GetId().GetValue()
+	if dashboardID == "" {
+		dashboardID = plan.ID.ValueString()
 	}
-	getDashboardResp, err := r.client.Get(ctx, getDashboardReq)
+	getDashboardResp, httpResponse, err := r.client.DashboardsServiceGetDashboard(ctx, dashboardID).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
-			utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "DashboardsServiceGetDashboard", dashboardID),
 		)
 		return
 	}
+	if getDashboardResp.Dashboard == nil {
+		resp.Diagnostics.AddError("Error getting Dashboard", "OpenAPI get response did not include dashboard")
+		return
+	}
+	protoDashboard, diags := protoDashboardFromOpenAPI(getDashboardResp.GetDashboard())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 
-	updateDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
+	updateDashboardRespStr := protojson.Format(protoDashboard)
 	log.Printf("[INFO] Submitted updated Dashboard: %s", updateDashboardRespStr)
 
-	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp.GetDashboard())
+	flattenedDashboard, diags := flattenDashboard(ctx, plan, protoDashboard, true)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -6131,11 +6245,16 @@ func (r *DashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Dashboard %s", id)
-	deleteReq := &cxsdk.DeleteDashboardRequest{DashboardId: wrapperspb.String(id)}
-	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
+	requestID := newDashboardRequestID()
+	if _, httpResponse, err := r.client.DashboardsServiceDeleteDashboard(ctx, id).RequestId(requestID).Execute(); err != nil {
+		apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
+		if cxsdkOpenapi.Code(apiErr) == http.StatusNotFound {
+			log.Printf("[INFO] Dashboard %s was already deleted", id)
+			return
+		}
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Dashboard %s", id),
-			utils.FormatRpcErrors(err, cxsdk.DeleteDashboardRPC, protojson.Format(deleteReq)),
+			utils.FormatOpenAPIErrors(apiErr, "DashboardsServiceDeleteDashboard", map[string]string{"dashboardId": id, "requestId": requestID}),
 		)
 		return
 	}
@@ -6156,5 +6275,6 @@ func (r *DashboardResource) Configure(_ context.Context, req resource.ConfigureR
 		return
 	}
 
-	r.client = clientSet.Dashboards()
+	r.client = clientSet.DashboardsOpenAPI()
+	r.grpcClient = clientSet.Dashboards()
 }
