@@ -221,6 +221,10 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 
 	_, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
 	if !found {
+		// The Terraform provider has a legacy domain/CORALOGIX_DOMAIN path that
+		// builds gRPC clients from ng-api-grpc.<domain>. OpenAPI clients need the
+		// API host for that same domain instead. Region aliases still go through
+		// URLFromRegion above.
 		url := openAPIURLFromDomain(region)
 		confBuilder.WithURL(url)
 	} else {

@@ -18,19 +18,17 @@ import "testing"
 
 func TestOpenAPIURLFromDomain(t *testing.T) {
 	tests := map[string]string{
-		"root domain":     "https://api.coralogix.com/mgmt/openapi/5",
-		"api domain":      "https://api.coralogix.com/mgmt/openapi/5",
-		"https domain":    "https://api.coralogix.com/mgmt/openapi/5",
-		"trailing slash":  "https://api.eu2.coralogix.com/mgmt/openapi/5",
-		"regional domain": "https://api.eu2.coralogix.com/mgmt/openapi/5",
+		"root domain":    "https://api.coralogix.com/mgmt/openapi/5",
+		"api domain":     "https://api.coralogix.com/mgmt/openapi/5",
+		"https domain":   "https://api.coralogix.com/mgmt/openapi/5",
+		"trailing slash": "https://api.custom.example/mgmt/openapi/5",
 	}
 
 	inputs := map[string]string{
-		"root domain":     "coralogix.com",
-		"api domain":      "api.coralogix.com",
-		"https domain":    "https://coralogix.com",
-		"trailing slash":  "eu2.coralogix.com/",
-		"regional domain": "eu2.coralogix.com",
+		"root domain":    "coralogix.com",
+		"api domain":     "api.coralogix.com",
+		"https domain":   "https://coralogix.com",
+		"trailing slash": "custom.example/",
 	}
 
 	for name, want := range tests {
