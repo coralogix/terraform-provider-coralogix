@@ -53,7 +53,7 @@ type ClientSet struct {
 	legacySlos     *cxsdk.LegacySLOsClient
 	dashboards     *cxsdk.DashboardsClient
 	ruleGroups     *cxsdk.RuleGroupsClient
-	users          *cxsdk.UsersClient
+	users          *UsersClient
 	events2Metrics *cxsdk.Events2MetricsClient
 	groupGrpc      *cxsdk.GroupsClient
 	teams          *cxsdk.TeamsClient
@@ -167,7 +167,7 @@ func (c *ClientSet) Groups() *GroupsClient {
 	return c.groups
 }
 
-func (c *ClientSet) Users() *cxsdk.UsersClient {
+func (c *ClientSet) Users() *UsersClient {
 	return c.users
 }
 
@@ -208,14 +208,6 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 	grpcCreator := newTerraformSDKCallPropertiesCreator(apiKey, TF_PROVIDER_VERSION, grpcTarget)
 	apikeyCPC := NewCallPropertiesCreator(grpcTarget, apiKey)
 
-	// UsersClient uses REST SCIM and type-asserts *cxsdk.SDKCallPropertiesCreator; a custom
-	// CallPropertiesCreator makes NewUsersClient return nil (see users-client.go).
-	sdkCreator := cxsdk.NewSDKCallPropertiesCreatorTerraform(
-		strings.ToLower(region),
-		cxsdk.NewAuthContext(apiKey, apiKey),
-		TF_PROVIDER_VERSION,
-	)
-
 	confBuilder := cxsdkOpenapi.NewConfigBuilder().
 		WithTerraformVersion(TF_PROVIDER_VERSION).
 		WithAPIKey(apiKey)
@@ -245,7 +237,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		ruleGroups:  cxsdk.NewRuleGroupsClient(grpcCreator),
 		teams:       cxsdk.NewTeamsClient(grpcCreator),
 
-		users: cxsdk.NewUsersClient(sdkCreator),
+		users: NewUsersClient(region, apiKey),
 
 		// TODO
 		dashboards:     cxsdk.NewDashboardsClient(grpcCreator),
@@ -275,6 +267,6 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		customDataEnrichments: cs.CustomEnrichments(),
 		alertScheduler:        cs.AlertScheduler(),
 		grafana:               NewGrafanaClient(apikeyCPC),
-		groups:                NewGroupsClient(apikeyCPC),
+		groups:                NewGroupsClient(region, apiKey),
 	}
 }

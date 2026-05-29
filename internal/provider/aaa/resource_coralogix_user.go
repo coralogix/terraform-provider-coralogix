@@ -46,7 +46,7 @@ func NewUserResource() resource.Resource {
 }
 
 type UserResource struct {
-	client *cxsdk.UsersClient
+	client *clientset.UsersClient
 }
 
 func (r *UserResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {

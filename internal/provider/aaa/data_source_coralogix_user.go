@@ -36,7 +36,7 @@ func NewUserDataSource() datasource.DataSource {
 }
 
 type UserDataSource struct {
-	client *cxsdk.UsersClient
+	client *clientset.UsersClient
 }
 
 func (d *UserDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {

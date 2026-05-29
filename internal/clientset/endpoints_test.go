@@ -50,3 +50,35 @@ func TestGrpcTargetFromDomain(t *testing.T) {
 		})
 	}
 }
+
+func TestScimRestBaseURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		regionOrDomain string
+		want           string
+	}{
+		{
+			regionOrDomain: "api.private.eu2.coralogix.com",
+			want:           "https://api.private.eu2.coralogix.com",
+		},
+		{
+			regionOrDomain: "EU2",
+			want:           "https://ng-api-http.eu2.coralogix.com",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.regionOrDomain, func(t *testing.T) {
+			t.Parallel()
+			if got := ScimRestBaseURL(tt.regionOrDomain); got != tt.want {
+				t.Fatalf("ScimRestBaseURL(%q) = %q, want %q", tt.regionOrDomain, got, tt.want)
+			}
+		})
+	}
+
+	// SDK default for unknown domain must not be used for PrivateLink hosts.
+	if got := ScimRestBaseURL("api.private.eu1.coralogix.com"); got == "https://ng-api-http.api.private.eu1.coralogix.com" {
+		t.Fatalf("ScimRestBaseURL must not use ng-api-http prefix for api.private.*, got %q", got)
+	}
+}

@@ -3,6 +3,7 @@
 #### provider
 
 - FIX: When `domain` is an AWS PrivateLink management host (`api.private.<region>.coralogix.com`), dial gRPC on that host instead of `ng-api-grpc.<domain>` so dashboards and other gRPC resources work over PrivateLink.
+- FIX: Route SCIM users and groups REST clients to the PrivateLink management host (`https://api.private.<region>.coralogix.com/scim/...`) instead of `ng-api-http.api.private...`.
 
 #### resource/coralogix_integration
 
