@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_alert
+
+- FIX: `tracing_filter.latency_threshold_ms` no longer drifts to a rounded value after apply. The flatten path was using `big.ParseFloat` with a 10-bit precision argument, which silently rounded values whose mantissa exceeded 10 bits (e.g. `30000` → `30016`, `50000` → `49984`), causing "Provider produced inconsistent result after apply" on v2→v3 migrations. Switched to `strconv.ParseInt` + `big.Float.SetInt64`, matching the pattern already used in this file for `MaxUniqueCountPerGroupByKey` and `TimeframeMs`.
+
 #### provider
 
 - FIX: When `domain` is an AWS PrivateLink management host (`api.private.<region>.coralogix.com`), dial gRPC on that host instead of `ng-api-grpc.<domain>` so dashboards and other gRPC resources work over PrivateLink.
