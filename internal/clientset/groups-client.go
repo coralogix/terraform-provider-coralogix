@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset/rest"
 )
@@ -106,8 +105,8 @@ func (c GroupsClient) DeleteGroup(ctx context.Context, groupID string) error {
 	return err
 }
 
-func NewGroupsClient(c *CallPropertiesCreator) *GroupsClient {
-	targetUrl := "https://" + strings.Replace(c.targetUrl, "grpc", "http", 1) + "/scim/Groups"
-	client := rest.NewRestClient(targetUrl, c.apiKey)
+func NewGroupsClient(regionOrDomain, apiKey string) *GroupsClient {
+	targetUrl := ScimRestBaseURL(regionOrDomain) + "/scim/Groups"
+	client := rest.NewRestClient(targetUrl, apiKey)
 	return &GroupsClient{client: client, TargetUrl: targetUrl}
 }
