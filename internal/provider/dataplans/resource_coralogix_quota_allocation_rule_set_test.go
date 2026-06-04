@@ -194,3 +194,24 @@ func TestFlattenQuotaAllocationRuleSetUsesSyntheticID(t *testing.T) {
 		t.Fatalf("expected synthetic id, got %q", state.ID.ValueString())
 	}
 }
+
+func TestQuotaAllocationRuleSetIsEmpty(t *testing.T) {
+	if !quotaAllocationRuleSetIsEmpty(nil) {
+		t.Fatal("nil response should be treated as empty")
+	}
+	if !quotaAllocationRuleSetIsEmpty(&quotaRules.GetQuotaAllocationRuleSetResponse{}) {
+		t.Fatal("nil rule set should be treated as empty")
+	}
+	if !quotaAllocationRuleSetIsEmpty(&quotaRules.GetQuotaAllocationRuleSetResponse{
+		RuleSet: &quotaRules.QuotaAllocationEntityTypeRuleSet{Rules: []quotaRules.QuotaAllocationEntityTypeRule{}},
+	}) {
+		t.Fatal("rule set without rules should be treated as empty")
+	}
+	if quotaAllocationRuleSetIsEmpty(&quotaRules.GetQuotaAllocationRuleSetResponse{
+		RuleSet: &quotaRules.QuotaAllocationEntityTypeRuleSet{
+			Rules: []quotaRules.QuotaAllocationEntityTypeRule{{EntityType: "logs"}},
+		},
+	}) {
+		t.Fatal("rule set with rules should not be treated as empty")
+	}
+}

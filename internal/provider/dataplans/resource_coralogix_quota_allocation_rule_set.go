@@ -320,6 +320,14 @@ func (r *QuotaAllocationRuleSetResource) Delete(ctx context.Context, _ resource.
 			return
 		}
 
+		result, readResponse, readErr := getQuotaAllocationRuleSet(ctx, r.client, "")
+		if readErr == nil && quotaAllocationRuleSetIsEmpty(result) {
+			return
+		}
+		if responseStatus(readResponse) == http.StatusNotFound {
+			return
+		}
+
 		resp.Diagnostics.AddError("Error deleting coralogix_quota_allocation_rule_set",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
@@ -443,6 +451,10 @@ func flattenReplaceQuotaAllocationRuleSetResponse(resp *quotaRules.ReplaceQuotaA
 	}
 
 	return flattenQuotaAllocationRuleSet(resp.RuleSet)
+}
+
+func quotaAllocationRuleSetIsEmpty(resp *quotaRules.GetQuotaAllocationRuleSetResponse) bool {
+	return resp == nil || resp.RuleSet == nil || len(resp.RuleSet.GetRules()) == 0
 }
 
 func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) (*QuotaAllocationRuleSetModel, diag.Diagnostics) {
