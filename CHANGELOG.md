@@ -1,13 +1,18 @@
-# Unreleased
+# Release 3.4.2
 
 #### provider
 
 - FIX: When `domain` is an AWS PrivateLink management host (`api.private.<region>.coralogix.com`), dial gRPC on that host instead of `ng-api-grpc.<domain>` so dashboards and other gRPC resources work over PrivateLink.
 - FIX: Route SCIM users and groups REST clients to the PrivateLink management host (`https://api.private.<region>.coralogix.com/scim/...`) instead of `ng-api-http.api.private...`.
+- CHORE: Bump `coralogix-management-sdk` to latest master.
 
 #### resource/coralogix_integration
 
 - FIX: Support importing integrations when Terraform has not populated dynamic `parameters` state yet.
+
+#### resource/coralogix_slo_v2
+
+- FIX: Adapt SLO create to the renamed SDK request type (`SlosServiceReplaceSloRequest`).
 
 # Release 3.4.1
 
