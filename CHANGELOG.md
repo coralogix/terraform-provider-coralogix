@@ -1,3 +1,16 @@
+# Unreleased
+
+#### resource/coralogix_dashboard
+
+- FIX: `section.id` / `row.id` / `widget.id` are now `Optional+Computed` so the server-assigned UUID round-trips without a "Provider produced inconsistent result after apply" error on first Create. Also fixes a copy-paste typo in `flattenDashboardOptions` that forced `section.options.collapsed` to `null` whenever `description` was unset (#505).
+- FIX: `multi_select` variable `label_filters` no longer drifts on plans where the API returns an empty list — flatten path now returns `types.ListNull` instead of an empty list when the upstream slice is empty, matching the schema's `Optional`-only declaration. Same guard added to `selected_values` on the metrics operator path (#508).
+- FIX: Removed the spurious `Default: 0` from the widget `appearance.width` field. The underlying proto is deprecated and ignored by the API; the Default caused a perpetual `width = 0` diff on every widget after apply. The schema attribute now carries a `DeprecationMessage` (#427).
+- FIX: `folder.id` and `folder.path` round-trip cleanly when only one is set. Previously the flatten path stored both the backend-resolved `id` and the user-supplied `path`, and neither attribute had `UseStateForUnknown` — the unset attribute was marked `(known after apply)` on every plan. Now state holds whichever the user configured (#426).
+
+#### resource/coralogix_dashboard / line_chart widget
+
+- FIX: `stacked_line` is now `UseStateForUnknown()`, preventing a perpetual `(known after apply)` plan whenever the user omits the attribute (#429).
+
 # Release 3.4.2
 
 #### provider
