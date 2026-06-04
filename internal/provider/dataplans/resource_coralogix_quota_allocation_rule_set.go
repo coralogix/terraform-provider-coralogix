@@ -33,11 +33,38 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 const quotaAllocationRuleSetImportID = "quota-allocation-rule-set"
+
+const (
+	quotaAllocationTypeUnspecified = "unspecified"
+	quotaAllocationTypePercentage  = "percentage"
+	quotaAllocationTypeLockedUnits = "locked_units"
+)
+
+var (
+	quotaAllocationTypeSchemaToAPI = map[string]quotaRules.QuotaAllocationType{
+		quotaAllocationTypeUnspecified: quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_UNSPECIFIED,
+		quotaAllocationTypePercentage:  quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE,
+		quotaAllocationTypeLockedUnits: quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS,
+	}
+	quotaAllocationTypeAPIToSchema = map[quotaRules.QuotaAllocationType]string{
+		quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_UNSPECIFIED:  quotaAllocationTypeUnspecified,
+		quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE:   quotaAllocationTypePercentage,
+		quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS: quotaAllocationTypeLockedUnits,
+	}
+	validQuotaAllocationTypes = []string{
+		quotaAllocationTypeUnspecified,
+		quotaAllocationTypePercentage,
+		quotaAllocationTypeLockedUnits,
+	}
+)
 
 var (
 	_ resource.ResourceWithConfigure      = &QuotaAllocationRuleSetResource{}
@@ -59,10 +86,12 @@ type QuotaAllocationRuleSetModel struct {
 }
 
 type QuotaAllocationRuleModel struct {
-	EntityType  types.String  `tfsdk:"entity_type"`
-	Allocation  types.Float64 `tfsdk:"allocation"`
-	Enabled     types.Bool    `tfsdk:"enabled"`
-	CanOverflow types.Bool    `tfsdk:"can_overflow"`
+	EntityType     types.String  `tfsdk:"entity_type"`
+	Allocation     types.Float64 `tfsdk:"allocation"`
+	AllocationType types.String  `tfsdk:"allocation_type"`
+	Enabled        types.Bool    `tfsdk:"enabled"`
+	CanOverflow    types.Bool    `tfsdk:"can_overflow"`
+	CxManaged      types.Bool    `tfsdk:"cx_managed"`
 }
 
 func (r *QuotaAllocationRuleSetResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -112,9 +141,18 @@ func (r *QuotaAllocationRuleSetResource) Schema(_ context.Context, _ resource.Sc
 						"allocation": schema.Float64Attribute{
 							Required: true,
 							Validators: []validator.Float64{
-								float64validator.Between(0, 100),
+								float64validator.AtLeast(0),
 							},
-							MarkdownDescription: "Quota allocation percentage for this entity type. Must be between 0 and 100.",
+							MarkdownDescription: "Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative.",
+						},
+						"allocation_type": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+							Default:  stringdefault.StaticString(quotaAllocationTypePercentage),
+							Validators: []validator.String{
+								stringvalidator.OneOf(validQuotaAllocationTypes...),
+							},
+							MarkdownDescription: "How the allocation value is interpreted. Valid values are `percentage`, `locked_units`, and `unspecified`.",
 						},
 						"enabled": schema.BoolAttribute{
 							Required:            true,
@@ -123,6 +161,11 @@ func (r *QuotaAllocationRuleSetResource) Schema(_ context.Context, _ resource.Sc
 						"can_overflow": schema.BoolAttribute{
 							Required:            true,
 							MarkdownDescription: "Whether this entity type can overflow beyond its allocation.",
+						},
+						"cx_managed": schema.BoolAttribute{
+							Computed:            true,
+							PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+							MarkdownDescription: "Whether the quota allocation rule is managed by Coralogix. This read-only value is returned by the API and is not sent in create or replace requests.",
 						},
 					},
 				},
@@ -315,6 +358,21 @@ func validateQuotaAllocationRules(rules []QuotaAllocationRuleModel) diag.Diagnos
 			continue
 		}
 		seen[entityType] = struct{}{}
+
+		if rule.Allocation.IsUnknown() || rule.Allocation.IsNull() {
+			continue
+		}
+		allocationType := quotaAllocationTypePercentage
+		if !rule.AllocationType.IsUnknown() && !rule.AllocationType.IsNull() {
+			allocationType = rule.AllocationType.ValueString()
+		}
+		if allocationType == quotaAllocationTypePercentage && rule.Allocation.ValueFloat64() > 100 {
+			diags.AddAttributeError(
+				path.Root("rules"),
+				"Invalid percentage quota allocation",
+				fmt.Sprintf("The quota allocation rule for entity_type %q uses allocation_type %q, so allocation must be between 0 and 100.", entityType, quotaAllocationTypePercentage),
+			)
+		}
 	}
 
 	return diags
@@ -328,12 +386,18 @@ func expandQuotaAllocationRuleSet(plan QuotaAllocationRuleSetModel) (*quotaRules
 
 	rules := make([]quotaRules.QuotaAllocationEntityTypeRule, 0, len(plan.Rules))
 	for _, rule := range plan.Rules {
-		rules = append(rules, quotaRules.QuotaAllocationEntityTypeRule{
+		sdkRule := quotaRules.QuotaAllocationEntityTypeRule{
 			EntityType:  rule.EntityType.ValueString(),
 			Allocation:  float32(rule.Allocation.ValueFloat64()),
 			Enabled:     rule.Enabled.ValueBool(),
 			CanOverflow: rule.CanOverflow.ValueBool(),
-		})
+		}
+		if !rule.AllocationType.IsNull() && !rule.AllocationType.IsUnknown() {
+			if allocationType, ok := quotaAllocationTypeSchemaToAPI[rule.AllocationType.ValueString()]; ok {
+				sdkRule.SetAllocationType(allocationType)
+			}
+		}
+		rules = append(rules, sdkRule)
 	}
 
 	sort.Slice(rules, func(i, j int) bool {
@@ -389,11 +453,25 @@ func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityType
 
 	stateRules := make([]QuotaAllocationRuleModel, 0, len(rules))
 	for _, rule := range rules {
+		allocationType := types.StringValue(quotaAllocationTypePercentage)
+		if sdkAllocationType, ok := rule.GetAllocationTypeOk(); ok {
+			if schemaAllocationType, found := quotaAllocationTypeAPIToSchema[*sdkAllocationType]; found {
+				allocationType = types.StringValue(schemaAllocationType)
+			}
+		}
+
+		cxManaged := types.BoolNull()
+		if value, ok := rule.GetCxManagedOk(); ok {
+			cxManaged = types.BoolValue(*value)
+		}
+
 		stateRules = append(stateRules, QuotaAllocationRuleModel{
-			EntityType:  types.StringValue(rule.GetEntityType()),
-			Allocation:  types.Float64Value(float64(rule.GetAllocation())),
-			Enabled:     types.BoolValue(rule.GetEnabled()),
-			CanOverflow: types.BoolValue(rule.GetCanOverflow()),
+			EntityType:     types.StringValue(rule.GetEntityType()),
+			Allocation:     types.Float64Value(float64(rule.GetAllocation())),
+			AllocationType: allocationType,
+			Enabled:        types.BoolValue(rule.GetEnabled()),
+			CanOverflow:    types.BoolValue(rule.GetCanOverflow()),
+			CxManaged:      cxManaged,
 		})
 	}
 

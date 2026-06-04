@@ -79,7 +79,11 @@ func (d *QuotaAllocationRuleSetDataSource) Schema(_ context.Context, _ datasourc
 						},
 						"allocation": schema.Float64Attribute{
 							Computed:            true,
-							MarkdownDescription: "Quota allocation percentage for this entity type.",
+							MarkdownDescription: "Quota allocation value for this entity type.",
+						},
+						"allocation_type": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "How the allocation value is interpreted. Valid values are `percentage`, `locked_units`, and `unspecified`.",
 						},
 						"enabled": schema.BoolAttribute{
 							Computed:            true,
@@ -88,6 +92,10 @@ func (d *QuotaAllocationRuleSetDataSource) Schema(_ context.Context, _ datasourc
 						"can_overflow": schema.BoolAttribute{
 							Computed:            true,
 							MarkdownDescription: "Whether this entity type can overflow beyond its allocation.",
+						},
+						"cx_managed": schema.BoolAttribute{
+							Computed:            true,
+							MarkdownDescription: "Whether the quota allocation rule is managed by Coralogix.",
 						},
 					},
 				},

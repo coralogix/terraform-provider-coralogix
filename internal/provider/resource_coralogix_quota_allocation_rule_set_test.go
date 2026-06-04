@@ -106,12 +106,14 @@ resource "coralogix_quota_allocation_rule_set" "test" {
     {
       entity_type  = "logs"
       allocation   = %d
+      allocation_type = "percentage"
       enabled      = %t
       can_overflow = true
     },
     {
       entity_type  = "metrics"
       allocation   = %d
+      allocation_type = "percentage"
       enabled      = true
       can_overflow = false
     }

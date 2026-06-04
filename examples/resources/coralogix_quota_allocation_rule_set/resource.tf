@@ -15,16 +15,18 @@ provider "coralogix" {
 resource "coralogix_quota_allocation_rule_set" "example" {
   rules = [
     {
-      entity_type  = "logs"
-      allocation   = 60
-      enabled      = true
-      can_overflow = true
+      entity_type     = "logs"
+      allocation      = 60
+      allocation_type = "percentage"
+      enabled         = true
+      can_overflow    = true
     },
     {
-      entity_type  = "metrics"
-      allocation   = 40
-      enabled      = true
-      can_overflow = false
+      entity_type     = "metrics"
+      allocation      = 40
+      allocation_type = "percentage"
+      enabled         = true
+      can_overflow    = false
     }
   ]
 }

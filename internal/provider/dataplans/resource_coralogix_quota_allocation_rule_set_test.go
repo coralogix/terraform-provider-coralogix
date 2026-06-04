@@ -26,16 +26,18 @@ func TestExpandQuotaAllocationRuleSet(t *testing.T) {
 		ID: types.StringValue("rule-set-id"),
 		Rules: []QuotaAllocationRuleModel{
 			{
-				EntityType:  types.StringValue("metrics"),
-				Allocation:  types.Float64Value(25),
-				Enabled:     types.BoolValue(true),
-				CanOverflow: types.BoolValue(false),
+				EntityType:     types.StringValue("metrics"),
+				Allocation:     types.Float64Value(25),
+				AllocationType: types.StringValue(quotaAllocationTypeLockedUnits),
+				Enabled:        types.BoolValue(true),
+				CanOverflow:    types.BoolValue(false),
 			},
 			{
-				EntityType:  types.StringValue("logs"),
-				Allocation:  types.Float64Value(75),
-				Enabled:     types.BoolValue(false),
-				CanOverflow: types.BoolValue(true),
+				EntityType:     types.StringValue("logs"),
+				Allocation:     types.Float64Value(75),
+				AllocationType: types.StringValue(quotaAllocationTypePercentage),
+				Enabled:        types.BoolValue(false),
+				CanOverflow:    types.BoolValue(true),
 			},
 		},
 	}
@@ -59,6 +61,13 @@ func TestExpandQuotaAllocationRuleSet(t *testing.T) {
 	}
 	if !ruleSet.Rules[0].GetCanOverflow() {
 		t.Fatal("expected logs can_overflow to be true")
+	}
+	allocationType, ok := ruleSet.Rules[1].GetAllocationTypeOk()
+	if !ok || *allocationType != quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS {
+		t.Fatalf("expected metrics allocation_type to be locked units, got %v", allocationType)
+	}
+	if ruleSet.Rules[1].HasCxManaged() {
+		t.Fatal("cx_managed is read-only and should not be sent to the API")
 	}
 }
 
@@ -99,16 +108,48 @@ func TestValidateQuotaAllocationRulesRejectsDuplicateEntityType(t *testing.T) {
 	}
 }
 
+func TestValidateQuotaAllocationRulesPercentageAllocationMaximum(t *testing.T) {
+	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
+		{
+			EntityType:     types.StringValue("logs"),
+			Allocation:     types.Float64Value(101),
+			AllocationType: types.StringValue(quotaAllocationTypePercentage),
+		},
+	})
+
+	if !diags.HasError() {
+		t.Fatal("expected percentage allocation diagnostic")
+	}
+}
+
+func TestValidateQuotaAllocationRulesAllowsLockedUnitsAbovePercentageMaximum(t *testing.T) {
+	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
+		{
+			EntityType:     types.StringValue("logs"),
+			Allocation:     types.Float64Value(101),
+			AllocationType: types.StringValue(quotaAllocationTypeLockedUnits),
+		},
+	})
+
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+}
+
 func TestFlattenQuotaAllocationRuleSet(t *testing.T) {
 	id := "rule-set-id"
+	lockedUnits := quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS
+	cxManaged := true
 	state, diags := flattenQuotaAllocationRuleSet(&quotaRules.QuotaAllocationEntityTypeRuleSet{
 		Id: &id,
 		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
 			{
-				EntityType:  "metrics",
-				Allocation:  10,
-				Enabled:     true,
-				CanOverflow: true,
+				EntityType:     "metrics",
+				Allocation:     10,
+				AllocationType: &lockedUnits,
+				CxManaged:      &cxManaged,
+				Enabled:        true,
+				CanOverflow:    true,
 			},
 			{
 				EntityType:  "logs",
@@ -133,6 +174,12 @@ func TestFlattenQuotaAllocationRuleSet(t *testing.T) {
 	}
 	if state.Rules[0].Allocation.ValueFloat64() != 90 {
 		t.Fatalf("expected logs allocation 90, got %v", state.Rules[0].Allocation.ValueFloat64())
+	}
+	if state.Rules[1].AllocationType.ValueString() != quotaAllocationTypeLockedUnits {
+		t.Fatalf("expected metrics allocation_type locked_units, got %q", state.Rules[1].AllocationType.ValueString())
+	}
+	if !state.Rules[1].CxManaged.ValueBool() {
+		t.Fatal("expected metrics cx_managed to be true")
 	}
 }
 

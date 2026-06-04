@@ -43,7 +43,9 @@ data "coralogix_quota_allocation_rule_set" "current" {}
 
 Read-Only:
 
-- `allocation` (Number) Quota allocation percentage for this entity type.
+- `allocation` (Number) Quota allocation value for this entity type.
+- `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage`, `locked_units`, and `unspecified`.
 - `can_overflow` (Boolean) Whether this entity type can overflow beyond its allocation.
+- `cx_managed` (Boolean) Whether the quota allocation rule is managed by Coralogix.
 - `enabled` (Boolean) Whether the quota allocation rule is enabled.
 - `entity_type` (String) Entity type covered by the rule.

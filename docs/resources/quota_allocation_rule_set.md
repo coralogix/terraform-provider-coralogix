@@ -30,16 +30,18 @@ provider "coralogix" {
 resource "coralogix_quota_allocation_rule_set" "example" {
   rules = [
     {
-      entity_type  = "logs"
-      allocation   = 60
-      enabled      = true
-      can_overflow = true
+      entity_type     = "logs"
+      allocation      = 60
+      allocation_type = "percentage"
+      enabled         = true
+      can_overflow    = true
     },
     {
-      entity_type  = "metrics"
-      allocation   = 40
-      enabled      = true
-      can_overflow = false
+      entity_type     = "metrics"
+      allocation      = 40
+      allocation_type = "percentage"
+      enabled         = true
+      can_overflow    = false
     }
   ]
 }
@@ -61,7 +63,15 @@ resource "coralogix_quota_allocation_rule_set" "example" {
 
 Required:
 
-- `allocation` (Number) Quota allocation percentage for this entity type. Must be between 0 and 100.
+- `allocation` (Number) Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative.
 - `can_overflow` (Boolean) Whether this entity type can overflow beyond its allocation.
 - `enabled` (Boolean) Whether the quota allocation rule is enabled.
 - `entity_type` (String) Entity type covered by the rule. Known values include `logs`, `browserLogs`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`.
+
+Optional:
+
+- `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage`, `locked_units`, and `unspecified`.
+
+Read-Only:
+
+- `cx_managed` (Boolean) Whether the quota allocation rule is managed by Coralogix. This read-only value is returned by the API and is not sent in create or replace requests.
