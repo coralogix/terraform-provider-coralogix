@@ -136,6 +136,34 @@ func TestValidateQuotaAllocationRulesAllowsLockedUnitsAbovePercentageMaximum(t *
 	}
 }
 
+func TestValidateQuotaAllocationRulesAllowsFloat32RoundTrip(t *testing.T) {
+	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
+		{
+			EntityType:     types.StringValue("logs"),
+			Allocation:     types.Float64Value(33.33),
+			AllocationType: types.StringValue(quotaAllocationTypePercentage),
+		},
+	})
+
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+}
+
+func TestValidateQuotaAllocationRulesRejectsAllocationThatCannotRoundTrip(t *testing.T) {
+	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
+		{
+			EntityType:     types.StringValue("logs"),
+			Allocation:     types.Float64Value(16777217),
+			AllocationType: types.StringValue(quotaAllocationTypeLockedUnits),
+		},
+	})
+
+	if !diags.HasError() {
+		t.Fatal("expected allocation precision diagnostic")
+	}
+}
+
 func TestFlattenQuotaAllocationRuleSet(t *testing.T) {
 	id := "rule-set-id"
 	lockedUnits := quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS

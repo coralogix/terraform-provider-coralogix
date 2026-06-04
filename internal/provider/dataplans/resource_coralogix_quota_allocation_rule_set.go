@@ -354,11 +354,20 @@ func validateQuotaAllocationRules(rules []QuotaAllocationRuleModel) diag.Diagnos
 		if !rule.AllocationType.IsUnknown() && !rule.AllocationType.IsNull() {
 			allocationType = rule.AllocationType.ValueString()
 		}
-		if allocationType == quotaAllocationTypePercentage && rule.Allocation.ValueFloat64() > 100 {
+		allocation := rule.Allocation.ValueFloat64()
+		if allocationType == quotaAllocationTypePercentage && allocation > 100 {
 			diags.AddAttributeError(
 				path.Root("rules"),
 				"Invalid percentage quota allocation",
 				fmt.Sprintf("The quota allocation rule for entity_type %q uses allocation_type %q, so allocation must be between 0 and 100.", entityType, quotaAllocationTypePercentage),
+			)
+		}
+		normalizedAllocation := normalizeQuotaAllocation(allocation)
+		if normalizedAllocation != allocation {
+			diags.AddAttributeError(
+				path.Root("rules"),
+				"Invalid quota allocation precision",
+				fmt.Sprintf("The quota allocation rule for entity_type %q uses allocation %s, but the Coralogix API stores allocations as float32 and would return %s. Configure %s instead to avoid Terraform state drift.", entityType, formatQuotaAllocation(allocation), formatQuotaAllocation(normalizedAllocation), formatQuotaAllocation(normalizedAllocation)),
 			)
 		}
 	}
@@ -473,12 +482,20 @@ func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityType
 }
 
 func float32ToSchemaFloat64(value float32) float64 {
-	parsed, err := strconv.ParseFloat(strconv.FormatFloat(float64(value), 'f', -1, 32), 64)
+	return normalizeQuotaAllocation(float64(value))
+}
+
+func normalizeQuotaAllocation(value float64) float64 {
+	parsed, err := strconv.ParseFloat(strconv.FormatFloat(float64(float32(value)), 'f', -1, 32), 64)
 	if err != nil {
-		return float64(value)
+		return value
 	}
 
 	return parsed
+}
+
+func formatQuotaAllocation(value float64) string {
+	return strconv.FormatFloat(value, 'f', -1, 64)
 }
 
 func responseStatus(response *http.Response) int {
