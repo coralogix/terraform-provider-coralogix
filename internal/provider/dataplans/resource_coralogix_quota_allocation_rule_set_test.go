@@ -136,6 +136,20 @@ func TestValidateQuotaAllocationRulesAllowsLockedUnitsAbovePercentageMaximum(t *
 	}
 }
 
+func TestValidateQuotaAllocationRulesDefersPercentageMaximumForUnknownAllocationType(t *testing.T) {
+	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
+		{
+			EntityType:     types.StringValue("logs"),
+			Allocation:     types.Float64Value(500),
+			AllocationType: types.StringUnknown(),
+		},
+	})
+
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+}
+
 func TestValidateQuotaAllocationRulesAllowsFloat32RoundTrip(t *testing.T) {
 	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
 		{

@@ -45,6 +45,32 @@ func TestFlattenQuotaAllocationRuleSetDataSourceIncludesCxManaged(t *testing.T) 
 	}
 }
 
+func TestFlattenQuotaAllocationRuleSetDataSourceDefaultsOmittedCxManagedToFalse(t *testing.T) {
+	state, diags := flattenQuotaAllocationRuleSetDataSource(&quotaRules.QuotaAllocationEntityTypeRuleSet{
+		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+			{
+				EntityType:  "metrics",
+				Allocation:  10,
+				Enabled:     true,
+				CanOverflow: true,
+			},
+		},
+	})
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	if len(state.Rules) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(state.Rules))
+	}
+	if state.Rules[0].CxManaged.IsNull() {
+		t.Fatal("expected data source cx_managed to default to false, got null")
+	}
+	if state.Rules[0].CxManaged.ValueBool() {
+		t.Fatal("expected data source cx_managed to be false")
+	}
+}
+
 func TestFlattenQuotaAllocationRuleSetDataSourceRoundsFloat32Allocation(t *testing.T) {
 	state, diags := flattenQuotaAllocationRuleSetDataSource(&quotaRules.QuotaAllocationEntityTypeRuleSet{
 		Rules: []quotaRules.QuotaAllocationEntityTypeRule{

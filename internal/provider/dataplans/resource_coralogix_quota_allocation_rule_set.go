@@ -242,6 +242,10 @@ func (r *QuotaAllocationRuleSetResource) Read(ctx context.Context, req resource.
 		)
 		return
 	}
+	if quotaAllocationRuleSetIsEmpty(result) {
+		resp.State.RemoveResource(ctx)
+		return
+	}
 
 	newState, diags := flattenGetQuotaAllocationRuleSetResponse(result)
 	if diags.HasError() {
@@ -351,11 +355,14 @@ func validateQuotaAllocationRules(rules []QuotaAllocationRuleModel) diag.Diagnos
 			continue
 		}
 		allocationType := quotaAllocationTypePercentage
+		allocationTypeKnown := true
 		if !rule.AllocationType.IsUnknown() && !rule.AllocationType.IsNull() {
 			allocationType = rule.AllocationType.ValueString()
+		} else if rule.AllocationType.IsUnknown() {
+			allocationTypeKnown = false
 		}
 		allocation := rule.Allocation.ValueFloat64()
-		if allocationType == quotaAllocationTypePercentage && allocation > 100 {
+		if allocationTypeKnown && allocationType == quotaAllocationTypePercentage && allocation > 100 {
 			diags.AddAttributeError(
 				path.Root("rules"),
 				"Invalid percentage quota allocation",

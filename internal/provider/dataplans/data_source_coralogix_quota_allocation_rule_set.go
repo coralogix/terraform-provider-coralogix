@@ -169,7 +169,7 @@ func flattenQuotaAllocationRuleSetDataSource(ruleSet *quotaRules.QuotaAllocation
 			}
 		}
 
-		cxManaged := types.BoolNull()
+		cxManaged := types.BoolValue(false)
 		if value, ok := rule.GetCxManagedOk(); ok {
 			cxManaged = types.BoolValue(*value)
 		}
