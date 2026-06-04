@@ -87,6 +87,24 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceAlert_overnight_active_on(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertOvernightActiveOn(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "22:00"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time", "08:00"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.utc_offset", "+0300"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -1557,6 +1575,34 @@ func testAccCoralogixResourceAlertLogsImmediate() string {
       utc_offset = "+0300"
     }
   }
+  type_definition = {
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertOvernightActiveOn() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "overnight active_on alert"
+  description = "Verifies overnight windows (end_time < start_time) are accepted"
+  priority    = "P3"
+
+  schedule = {
+    active_on = {
+      days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+      start_time   = "22:00"
+      end_time     = "08:00"
+      utc_offset   = "+0300"
+    }
+  }
+
   type_definition = {
     logs_immediate = {
       logs_filter = {

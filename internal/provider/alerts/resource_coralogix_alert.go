@@ -648,9 +648,13 @@ func expandActiveOnSchedule(ctx context.Context, scheduleObject types.Object) (*
 	if e != nil {
 		diags.AddError("Failed to parse end time", e.Error())
 	}
-	if endTime.Before(startTime) {
-		diags.AddError("End time is before start time", "End time is before start time")
-	}
+
+	// No ordering check between start_time and end_time: the API's
+	// ActivitySchedule stores TimeOfDay (hours+minutes only) with no
+	// constraint that end > start, so overnight windows like
+	// start=22:00, end=08:00 are valid. A previous endTime.Before(startTime)
+	// guard here fired incorrectly because time.ParseInLocation with a
+	// time-only format anchors both values to Go's zero date.
 
 	if diags.HasError() {
 		return nil, diags
