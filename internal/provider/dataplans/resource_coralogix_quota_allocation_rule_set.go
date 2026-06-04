@@ -33,8 +33,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -91,7 +89,6 @@ type QuotaAllocationRuleModel struct {
 	AllocationType types.String  `tfsdk:"allocation_type"`
 	Enabled        types.Bool    `tfsdk:"enabled"`
 	CanOverflow    types.Bool    `tfsdk:"can_overflow"`
-	CxManaged      types.Bool    `tfsdk:"cx_managed"`
 }
 
 func (r *QuotaAllocationRuleSetResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -161,11 +158,6 @@ func (r *QuotaAllocationRuleSetResource) Schema(_ context.Context, _ resource.Sc
 						"can_overflow": schema.BoolAttribute{
 							Required:            true,
 							MarkdownDescription: "Whether this entity type can overflow beyond its allocation.",
-						},
-						"cx_managed": schema.BoolAttribute{
-							Computed:            true,
-							PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
-							MarkdownDescription: "Whether the quota allocation rule is managed by Coralogix. This read-only value is returned by the API and is not sent in create or replace requests.",
 						},
 					},
 				},
@@ -472,18 +464,12 @@ func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityType
 			}
 		}
 
-		cxManaged := types.BoolNull()
-		if value, ok := rule.GetCxManagedOk(); ok {
-			cxManaged = types.BoolValue(*value)
-		}
-
 		stateRules = append(stateRules, QuotaAllocationRuleModel{
 			EntityType:     types.StringValue(rule.GetEntityType()),
 			Allocation:     types.Float64Value(float64(rule.GetAllocation())),
 			AllocationType: allocationType,
 			Enabled:        types.BoolValue(rule.GetEnabled()),
 			CanOverflow:    types.BoolValue(rule.GetCanOverflow()),
-			CxManaged:      cxManaged,
 		})
 	}
 

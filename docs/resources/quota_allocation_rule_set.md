@@ -71,7 +71,3 @@ Required:
 Optional:
 
 - `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage`, `locked_units`, and `unspecified`.
-
-Read-Only:
-
-- `cx_managed` (Boolean) Whether the quota allocation rule is managed by Coralogix. This read-only value is returned by the API and is not sent in create or replace requests.

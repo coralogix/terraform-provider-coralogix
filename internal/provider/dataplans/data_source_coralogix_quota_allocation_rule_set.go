@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -27,6 +28,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSourceWithConfigure = &QuotaAllocationRuleSetDataSource{}
@@ -37,6 +40,20 @@ func NewQuotaAllocationRuleSetDataSource() datasource.DataSource {
 
 type QuotaAllocationRuleSetDataSource struct {
 	client *quotaRules.QuotaAllocationRuleSetServiceAPIService
+}
+
+type QuotaAllocationRuleSetDataSourceModel struct {
+	ID    types.String                         `tfsdk:"id"`
+	Rules []QuotaAllocationRuleDataSourceModel `tfsdk:"rules"`
+}
+
+type QuotaAllocationRuleDataSourceModel struct {
+	EntityType     types.String  `tfsdk:"entity_type"`
+	Allocation     types.Float64 `tfsdk:"allocation"`
+	AllocationType types.String  `tfsdk:"allocation_type"`
+	Enabled        types.Bool    `tfsdk:"enabled"`
+	CanOverflow    types.Bool    `tfsdk:"can_overflow"`
+	CxManaged      types.Bool    `tfsdk:"cx_managed"`
 }
 
 func (d *QuotaAllocationRuleSetDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -121,11 +138,63 @@ func (d *QuotaAllocationRuleSetDataSource) Read(ctx context.Context, _ datasourc
 		return
 	}
 
-	state, diags := flattenGetQuotaAllocationRuleSetResponse(result)
+	state, diags := flattenGetQuotaAllocationRuleSetDataSourceResponse(result)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
+func flattenGetQuotaAllocationRuleSetDataSourceResponse(resp *quotaRules.GetQuotaAllocationRuleSetResponse) (*QuotaAllocationRuleSetDataSourceModel, diag.Diagnostics) {
+	if resp == nil || resp.RuleSet == nil {
+		return &QuotaAllocationRuleSetDataSourceModel{
+			ID:    types.StringValue(quotaAllocationRuleSetImportID),
+			Rules: []QuotaAllocationRuleDataSourceModel{},
+		}, nil
+	}
+
+	return flattenQuotaAllocationRuleSetDataSource(resp.RuleSet)
+}
+
+func flattenQuotaAllocationRuleSetDataSource(ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) (*QuotaAllocationRuleSetDataSourceModel, diag.Diagnostics) {
+	rules := ruleSet.GetRules()
+	sort.Slice(rules, func(i, j int) bool {
+		return rules[i].EntityType < rules[j].EntityType
+	})
+
+	stateRules := make([]QuotaAllocationRuleDataSourceModel, 0, len(rules))
+	for _, rule := range rules {
+		allocationType := types.StringValue(quotaAllocationTypePercentage)
+		if sdkAllocationType, ok := rule.GetAllocationTypeOk(); ok {
+			if schemaAllocationType, found := quotaAllocationTypeAPIToSchema[*sdkAllocationType]; found {
+				allocationType = types.StringValue(schemaAllocationType)
+			}
+		}
+
+		cxManaged := types.BoolNull()
+		if value, ok := rule.GetCxManagedOk(); ok {
+			cxManaged = types.BoolValue(*value)
+		}
+
+		stateRules = append(stateRules, QuotaAllocationRuleDataSourceModel{
+			EntityType:     types.StringValue(rule.GetEntityType()),
+			Allocation:     types.Float64Value(float64(rule.GetAllocation())),
+			AllocationType: allocationType,
+			Enabled:        types.BoolValue(rule.GetEnabled()),
+			CanOverflow:    types.BoolValue(rule.GetCanOverflow()),
+			CxManaged:      cxManaged,
+		})
+	}
+
+	id := ruleSet.GetId()
+	if id == "" {
+		id = quotaAllocationRuleSetImportID
+	}
+
+	return &QuotaAllocationRuleSetDataSourceModel{
+		ID:    types.StringValue(id),
+		Rules: stateRules,
+	}, nil
 }

@@ -178,9 +178,6 @@ func TestFlattenQuotaAllocationRuleSet(t *testing.T) {
 	if state.Rules[1].AllocationType.ValueString() != quotaAllocationTypeLockedUnits {
 		t.Fatalf("expected metrics allocation_type locked_units, got %q", state.Rules[1].AllocationType.ValueString())
 	}
-	if !state.Rules[1].CxManaged.ValueBool() {
-		t.Fatal("expected metrics cx_managed to be true")
-	}
 }
 
 func TestFlattenQuotaAllocationRuleSetUsesSyntheticID(t *testing.T) {
