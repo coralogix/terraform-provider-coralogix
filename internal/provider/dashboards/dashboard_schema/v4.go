@@ -29,7 +29,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -901,7 +900,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 													"width": schema.Int64Attribute{
 														Optional:            true,
 														Computed:            true,
-														Default:             int64default.StaticInt64(0),
+														DeprecationMessage:  "The widget appearance.width field is deprecated and ignored by the API.",
 														MarkdownDescription: "The width of the chart.",
 													},
 												},

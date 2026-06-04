@@ -1275,7 +1275,7 @@ func dashboardSchemaAttributesV1() map[string]schema.Attribute {
 													"width": schema.Int64Attribute{
 														Optional:            true,
 														Computed:            true,
-														Default:             int64default.StaticInt64(0),
+														DeprecationMessage:  "The widget appearance.width field is deprecated and ignored by the API.",
 														MarkdownDescription: "The width of the chart.",
 													},
 												},
