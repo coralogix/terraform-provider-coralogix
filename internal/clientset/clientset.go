@@ -15,10 +15,8 @@
 package clientset
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
-	"runtime"
 	"strings"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -220,11 +218,9 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		WithTerraformVersion(TF_PROVIDER_VERSION).
 		WithAPIKey(apiKey)
 
-	openapiURL, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
+	_, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
 	if !found {
-		url := cxsdkOpenapi.URLFromDomain(region)
-		confBuilder.WithURL(url)
-		openapiURL = url
+		confBuilder.WithURL(cxsdkOpenapi.URLFromDomain(region))
 	} else {
 		confBuilder.WithRegion(strings.ToLower(region))
 	}
@@ -261,7 +257,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		recordingRuleGroups:   cs.RecordingRules(),
 		archiveLogs:           cs.ArchiveLogs(),
 		tcoPolicies:           cs.TCOPolicies(),
-		quotaAllocationRules:  NewQuotaAllocationRulesClient(openapiURL, apiKey),
+		quotaAllocationRules:  cs.Quotas(),
 		actions:               cs.Actions(),
 		customRole:            cs.CustomRoles(),
 		scopes:                cs.Scopes(),
@@ -279,15 +275,4 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		grafana:               NewGrafanaClient(apikeyCPC),
 		groups:                NewGroupsClient(region, apiKey),
 	}
-}
-
-func NewQuotaAllocationRulesClient(openapiURL string, apiKey string) *quotaRules.QuotaAllocationRuleSetServiceAPIService {
-	cfg := quotaRules.NewConfiguration()
-	cfg.Servers = quotaRules.ServerConfigurations{{URL: openapiURL}}
-	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Bearer %s", apiKey))
-	cfg.AddDefaultHeader("x-cx-sdk-version", "terraform-"+TF_PROVIDER_VERSION)
-	cfg.AddDefaultHeader("x-cx-sdk-language", "go")
-	cfg.AddDefaultHeader("x-cx-go-version", runtime.Version())
-
-	return quotaRules.NewAPIClient(cfg).QuotaAllocationRuleSetServiceAPI
 }
