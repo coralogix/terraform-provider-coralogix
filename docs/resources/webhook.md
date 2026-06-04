@@ -253,7 +253,7 @@ Optional:
 Optional:
 
 - `payload` (String) Webhook payload. JSON string.
-- `url` (String) Webhook URL. The SendLog backend may omit this value.
+- `url` (String) Webhook URL. The SendLog backend rejects URL configuration, so this value is read-only and is not sent in create or update requests.
 - `uuid` (String) Webhook UUID. Computed automatically.
 
 
