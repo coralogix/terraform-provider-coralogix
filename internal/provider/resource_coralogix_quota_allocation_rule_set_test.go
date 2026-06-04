@@ -17,7 +17,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -29,10 +28,6 @@ import (
 const quotaAllocationRuleSetResourceName = "coralogix_quota_allocation_rule_set.test"
 
 func TestAccCoralogixResourceQuotaAllocationRuleSet(t *testing.T) {
-	if os.Getenv("CORALOGIX_QUOTA_RULES_ACC") != "1" {
-		t.Skip("Quota allocation rule set acceptance tests require team-quota-rules:Manage and mutate a singleton account-level API. Set CORALOGIX_QUOTA_RULES_ACC=1 to run.")
-	}
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
