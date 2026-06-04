@@ -176,7 +176,7 @@ func flattenQuotaAllocationRuleSetDataSource(ruleSet *quotaRules.QuotaAllocation
 
 		stateRules = append(stateRules, QuotaAllocationRuleDataSourceModel{
 			EntityType:     types.StringValue(rule.GetEntityType()),
-			Allocation:     types.Float64Value(float64(rule.GetAllocation())),
+			Allocation:     types.Float64Value(float32ToSchemaFloat64(rule.GetAllocation())),
 			AllocationType: allocationType,
 			Enabled:        types.BoolValue(rule.GetEnabled()),
 			CanOverflow:    types.BoolValue(rule.GetCanOverflow()),

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
@@ -453,7 +454,7 @@ func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityType
 
 		stateRules = append(stateRules, QuotaAllocationRuleModel{
 			EntityType:     types.StringValue(rule.GetEntityType()),
-			Allocation:     types.Float64Value(float64(rule.GetAllocation())),
+			Allocation:     types.Float64Value(float32ToSchemaFloat64(rule.GetAllocation())),
 			AllocationType: allocationType,
 			Enabled:        types.BoolValue(rule.GetEnabled()),
 			CanOverflow:    types.BoolValue(rule.GetCanOverflow()),
@@ -469,6 +470,15 @@ func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityType
 		ID:    types.StringValue(id),
 		Rules: stateRules,
 	}, nil
+}
+
+func float32ToSchemaFloat64(value float32) float64 {
+	parsed, err := strconv.ParseFloat(strconv.FormatFloat(float64(value), 'f', -1, 32), 64)
+	if err != nil {
+		return float64(value)
+	}
+
+	return parsed
 }
 
 func responseStatus(response *http.Response) int {
