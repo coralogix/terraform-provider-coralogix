@@ -25,3 +25,5 @@ with [Coralogix](https://coralogix.com/) resources.
 - [Contributing](CONTRIBUTING.md)
 - [Building the provider](CONTRIBUTING.md#Building-the-provider)
 - [Generating terraform configurations for existing resources](docs/guides/generating-terraform.md)
+
+<!-- smoke test marker, will be removed -->
