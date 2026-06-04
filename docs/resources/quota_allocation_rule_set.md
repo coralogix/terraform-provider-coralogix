@@ -16,7 +16,7 @@ Manages the account-level Coralogix quota allocation rule set. This API is a sin
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 2.0"
+      version = "~> 3.0"
       source  = "coralogix/coralogix"
     }
   }
