@@ -73,6 +73,9 @@ func LineChartSchema() schema.Attribute {
 			"stacked_line": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidLineChartStackedLineOptions...),
 				},
