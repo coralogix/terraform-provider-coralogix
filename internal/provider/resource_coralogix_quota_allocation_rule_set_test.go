@@ -83,7 +83,11 @@ func TestAccCoralogixResourceQuotaAllocationRuleSet(t *testing.T) {
 }
 
 func testAccQuotaAllocationRuleSetCheckDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).QuotaAllocationRules()
+	meta := testAccProvider.Meta()
+	if meta == nil {
+		return nil
+	}
+	client := meta.(*clientset.ClientSet).QuotaAllocationRules()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "coralogix_quota_allocation_rule_set" {
