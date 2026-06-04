@@ -515,8 +515,8 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						MarkdownDescription: "Webhook UUID. Computed automatically.",
 					},
 					"url": schema.StringAttribute{
-						Computed:            true,
-						MarkdownDescription: "Webhook URL. The SendLog backend rejects URL configuration, so this value is read-only and is not sent in create or update requests.",
+						Required:            true,
+						MarkdownDescription: "Webhook URL.",
 					},
 					"payload": schema.StringAttribute{
 						Optional:            true,
@@ -1107,6 +1107,7 @@ func expandSendLog(sendLog *SendLogModel) *webhooks.OutgoingWebhookInputDataSend
 			Payload: sendLog.Payload.ValueStringPointer(),
 			Uuid:    &uuid,
 		},
+		Url: sendLog.URL.ValueStringPointer(),
 	}
 }
 

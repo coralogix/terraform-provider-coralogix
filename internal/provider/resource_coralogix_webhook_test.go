@@ -368,11 +368,7 @@ func TestAccCoralogixResourceEventBridgeWebhook(t *testing.T) {
 }
 
 func testAccCheckWebhookDestroy(s *terraform.State) error {
-	meta := testAccProvider.Meta()
-	if meta == nil {
-		return nil
-	}
-	client := meta.(*clientset.ClientSet).Webhooks()
+	client := testAccProvider.Meta().(*clientset.ClientSet).Webhooks()
 
 	ctx := context.TODO()
 
@@ -468,10 +464,11 @@ func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {
 name    = "%s"
 sendlog = {
 	payload  = jsonencode({ "custom" : "payload" })
+	url      = "%s"
 }
 }
 `,
-		w.name)
+		w.name, w.url)
 }
 
 func testAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(w *webhookTestFields) string {
