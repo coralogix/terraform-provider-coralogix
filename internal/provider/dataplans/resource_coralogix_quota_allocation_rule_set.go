@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"time"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
@@ -182,9 +181,6 @@ func (r *QuotaAllocationRuleSetResource) ImportState(ctx context.Context, req re
 }
 
 func (r *QuotaAllocationRuleSetResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
-	defer cancel()
-
 	var plan QuotaAllocationRuleSetModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
@@ -227,9 +223,6 @@ func (r *QuotaAllocationRuleSetResource) Create(ctx context.Context, req resourc
 }
 
 func (r *QuotaAllocationRuleSetResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
-
 	var state QuotaAllocationRuleSetModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -259,9 +252,6 @@ func (r *QuotaAllocationRuleSetResource) Read(ctx context.Context, req resource.
 }
 
 func (r *QuotaAllocationRuleSetResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
-	defer cancel()
-
 	var plan QuotaAllocationRuleSetModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
@@ -301,9 +291,6 @@ func (r *QuotaAllocationRuleSetResource) Update(ctx context.Context, req resourc
 }
 
 func (r *QuotaAllocationRuleSetResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
-	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
-	defer cancel()
-
 	_, httpResponse, err := r.client.
 		QuotaAllocationRuleSetServiceDeleteQuotaAllocationRuleSet(ctx).
 		Execute()

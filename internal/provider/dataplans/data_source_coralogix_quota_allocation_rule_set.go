@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"time"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
@@ -122,9 +121,6 @@ func (d *QuotaAllocationRuleSetDataSource) Schema(_ context.Context, _ datasourc
 }
 
 func (d *QuotaAllocationRuleSetDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
-
 	result, httpResponse, err := getQuotaAllocationRuleSet(ctx, d.client, "")
 	if err != nil {
 		if responseStatus(httpResponse) == http.StatusNotFound {
