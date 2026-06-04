@@ -3923,7 +3923,7 @@ func flattenDashboardOptions(_ context.Context, opts *cxsdk.DashboardSectionOpti
 	}
 
 	var collapsed basetypes.BoolValue
-	if opts.GetCustom().Description != nil {
+	if opts.GetCustom().Collapsed != nil {
 		collapsed = types.BoolValue(opts.GetCustom().Collapsed.GetValue())
 	} else {
 		collapsed = types.BoolNull()

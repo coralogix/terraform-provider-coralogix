@@ -70,6 +70,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 					NestedObject: schema.NestedAttributeObject{
 						Attributes: map[string]schema.Attribute{
 							"id": schema.StringAttribute{
+								Optional: true,
 								Computed: true,
 								PlanModifiers: []planmodifier.String{
 									stringplanmodifier.UseStateForUnknown(),
@@ -79,6 +80,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"id": schema.StringAttribute{
+											Optional: true,
 											Computed: true,
 											PlanModifiers: []planmodifier.String{
 												stringplanmodifier.UseStateForUnknown(),
@@ -96,6 +98,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 											NestedObject: schema.NestedAttributeObject{
 												Attributes: map[string]schema.Attribute{
 													"id": schema.StringAttribute{
+														Optional: true,
 														Computed: true,
 														PlanModifiers: []planmodifier.String{
 															stringplanmodifier.UseStateForUnknown(),
