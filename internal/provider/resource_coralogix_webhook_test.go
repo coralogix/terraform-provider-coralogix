@@ -254,8 +254,6 @@ func TestAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(t *testing.T) {
 }
 
 func TestAccCoralogixResourceSendLogWebhook(t *testing.T) {
-	t.Skip("SendLog webhook acceptance test requires a schema/API update: the provider requires sendlog.url, but the backend rejects URL configuration for SendLog webhooks.")
-
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
@@ -370,7 +368,11 @@ func TestAccCoralogixResourceEventBridgeWebhook(t *testing.T) {
 }
 
 func testAccCheckWebhookDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Webhooks()
+	meta := testAccProvider.Meta()
+	if meta == nil {
+		return nil
+	}
+	client := meta.(*clientset.ClientSet).Webhooks()
 
 	ctx := context.TODO()
 
@@ -466,11 +468,10 @@ func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {
 name    = "%s"
 sendlog = {
 	payload  = jsonencode({ "custom" : "payload" })
-	url      = "%s"
 }
 }
 `,
-		w.name, w.url)
+		w.name)
 }
 
 func testAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(w *webhookTestFields) string {

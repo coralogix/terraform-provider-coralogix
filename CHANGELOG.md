@@ -6,6 +6,10 @@
 - FEAT: Support `allocation_type` and read-only `cx_managed` fields returned by the quota allocation API.
 - FIX: Treat delete as successful when the backend clears the singleton quota allocation rule set but returns an error response.
 
+#### resource/coralogix_webhook
+
+- FIX: Stop requiring or sending `sendlog.url` by default because the backend rejects URL configuration for SendLog webhooks.
+
 # Release 3.4.2
 
 #### provider

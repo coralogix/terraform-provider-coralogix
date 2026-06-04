@@ -95,9 +95,7 @@ resource "coralogix_webhook" "demisto_webhook" {
 
 resource "coralogix_webhook" "sendlog_webhook" {
   name = "sendlog-webhook"
-  sendlog = {
-    url = "https://example-url.com/"
-  }
+  sendlog = {}
 }
 
 resource "coralogix_webhook" "event_bridge_webhook" {
@@ -252,13 +250,10 @@ Optional:
 <a id="nestedatt--sendlog"></a>
 ### Nested Schema for `sendlog`
 
-Required:
-
-- `url` (String) Webhook URL.
-
 Optional:
 
 - `payload` (String) Webhook payload. JSON string.
+- `url` (String) Webhook URL. The SendLog backend may omit this value.
 - `uuid` (String) Webhook UUID. Computed automatically.
 
 
