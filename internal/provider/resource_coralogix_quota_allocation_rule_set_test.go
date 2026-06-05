@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"testing"
 
+	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -95,12 +96,24 @@ func testAccQuotaAllocationRuleSetCheckDestroy(s *terraform.State) error {
 		}
 
 		result, _, err := client.QuotaAllocationRuleSetServiceGetQuotaAllocationRuleSet(ctx).Execute()
-		if err == nil && result != nil && result.RuleSet != nil && len(result.RuleSet.GetRules()) > 0 {
+		if err == nil && quotaAllocationRuleSetHasUserManagedRules(result) {
 			return fmt.Errorf("quota allocation rule set still exists: %s", utils.FormatJSON(result))
 		}
 	}
 
 	return nil
+}
+
+func quotaAllocationRuleSetHasUserManagedRules(result *quotaRules.GetQuotaAllocationRuleSetResponse) bool {
+	if result == nil || result.RuleSet == nil {
+		return false
+	}
+	for _, rule := range result.RuleSet.GetRules() {
+		if !rule.GetCxManaged() {
+			return true
+		}
+	}
+	return false
 }
 
 func testAccCoralogixResourceQuotaAllocationRuleSet(logsAllocation, metricsAllocation int, logsEnabled bool) string {
