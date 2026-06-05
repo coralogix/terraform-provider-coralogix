@@ -15,8 +15,6 @@
 package provider
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -26,12 +24,7 @@ import (
 var hostedDashboardDataSourceName = "data." + hostedDashboardResourceName
 
 func TestAccCoralogixDataSourceGrafanaDashboard_basic(t *testing.T) {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	parent := filepath.Dir(filepath.Dir(wd))
-	filePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_dashboard.json"
+	filePath, _, _ := testAccGrafanaDashboardFiles(t)
 	expectedFolderTitle := acctest.RandomWithPrefix("tf-acc-test-folder")
 
 	resource.Test(t, resource.TestCase{
