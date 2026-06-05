@@ -299,6 +299,36 @@ func TestMergeManagedQuotaAllocationRulesPreservesRemoteManagedRules(t *testing.
 	}
 }
 
+func TestMergeManagedQuotaAllocationRulesSkipsManagedRuleOverriddenByPlan(t *testing.T) {
+	cxManaged := true
+	ruleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{
+		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+			{
+				EntityType: "logs",
+				Allocation: 90,
+			},
+		},
+	}
+	remoteRuleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{
+		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+			{
+				EntityType: "logs",
+				Allocation: 10,
+				CxManaged:  &cxManaged,
+			},
+		},
+	}
+
+	mergedRuleSet := mergeManagedQuotaAllocationRules(ruleSet, remoteRuleSet)
+
+	if len(mergedRuleSet.Rules) != 1 {
+		t.Fatalf("expected planned rule to override matching managed rule, got %d rules", len(mergedRuleSet.Rules))
+	}
+	if mergedRuleSet.Rules[0].GetAllocation() != 90 {
+		t.Fatalf("expected planned allocation to be preserved, got %v", mergedRuleSet.Rules[0].GetAllocation())
+	}
+}
+
 func TestManagedQuotaAllocationRuleSetKeepsOnlyManagedRules(t *testing.T) {
 	id := "rule-set-id"
 	cxManaged := true

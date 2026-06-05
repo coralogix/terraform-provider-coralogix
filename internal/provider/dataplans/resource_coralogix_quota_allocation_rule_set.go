@@ -563,9 +563,17 @@ func mergeManagedQuotaAllocationRules(ruleSet, remoteRuleSet *quotaRules.QuotaAl
 		}
 	}
 
-	managedRuleSet := managedQuotaAllocationRuleSet(remoteRuleSet)
 	rules := append([]quotaRules.QuotaAllocationEntityTypeRule{}, ruleSet.GetRules()...)
-	rules = append(rules, managedRuleSet.GetRules()...)
+	plannedEntityTypes := make(map[string]struct{}, len(rules))
+	for _, rule := range rules {
+		plannedEntityTypes[rule.GetEntityType()] = struct{}{}
+	}
+	for _, rule := range managedQuotaAllocationRuleSet(remoteRuleSet).GetRules() {
+		if _, ok := plannedEntityTypes[rule.GetEntityType()]; ok {
+			continue
+		}
+		rules = append(rules, rule)
+	}
 	sort.Slice(rules, func(i, j int) bool {
 		return rules[i].EntityType < rules[j].EntityType
 	})
