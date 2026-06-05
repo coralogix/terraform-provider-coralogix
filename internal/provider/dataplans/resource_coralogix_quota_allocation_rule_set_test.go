@@ -294,8 +294,8 @@ func TestMergeManagedQuotaAllocationRulesPreservesRemoteManagedRules(t *testing.
 	if mergedRuleSet.Rules[1].GetEntityType() != "metrics" {
 		t.Fatalf("expected managed rule to be preserved, got %q", mergedRuleSet.Rules[1].GetEntityType())
 	}
-	if !mergedRuleSet.Rules[1].GetCxManaged() {
-		t.Fatal("expected managed rule cx_managed flag to be preserved")
+	if mergedRuleSet.Rules[1].HasCxManaged() {
+		t.Fatal("cx_managed is read-only and should not be sent for preserved managed rules")
 	}
 }
 
@@ -325,6 +325,9 @@ func TestManagedQuotaAllocationRuleSetKeepsOnlyManagedRules(t *testing.T) {
 	}
 	if managedRuleSet.Rules[0].GetEntityType() != "metrics" {
 		t.Fatalf("expected metrics managed rule, got %q", managedRuleSet.Rules[0].GetEntityType())
+	}
+	if managedRuleSet.Rules[0].HasCxManaged() {
+		t.Fatal("cx_managed is read-only and should not be sent for preserved managed rules")
 	}
 }
 

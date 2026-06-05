@@ -580,7 +580,7 @@ func managedQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityType
 	}
 	for _, rule := range ruleSet.GetRules() {
 		if quotaAllocationRuleIsManaged(rule) {
-			managedRuleSet.Rules = append(managedRuleSet.Rules, rule)
+			managedRuleSet.Rules = append(managedRuleSet.Rules, quotaAllocationRuleForRequest(rule))
 		}
 	}
 	sort.Slice(managedRuleSet.Rules, func(i, j int) bool {
@@ -626,6 +626,11 @@ func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityType
 		ID:    types.StringValue(id),
 		Rules: stateRules,
 	}, nil
+}
+
+func quotaAllocationRuleForRequest(rule quotaRules.QuotaAllocationEntityTypeRule) quotaRules.QuotaAllocationEntityTypeRule {
+	rule.CxManaged = nil
+	return rule
 }
 
 func quotaAllocationRuleIsManaged(rule quotaRules.QuotaAllocationEntityTypeRule) bool {
