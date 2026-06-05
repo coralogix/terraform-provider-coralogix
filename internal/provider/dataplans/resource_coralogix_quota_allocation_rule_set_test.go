@@ -208,17 +208,14 @@ func TestFlattenQuotaAllocationRuleSet(t *testing.T) {
 	if state.ID.ValueString() != "rule-set-id" {
 		t.Fatalf("expected id to round-trip, got %q", state.ID.ValueString())
 	}
-	if len(state.Rules) != 2 {
-		t.Fatalf("expected 2 rules, got %d", len(state.Rules))
+	if len(state.Rules) != 1 {
+		t.Fatalf("expected only user-managed rules in state, got %d", len(state.Rules))
 	}
 	if state.Rules[0].EntityType.ValueString() != "logs" {
 		t.Fatalf("expected rules to be sorted by entity type, got %q first", state.Rules[0].EntityType.ValueString())
 	}
 	if state.Rules[0].Allocation.ValueFloat64() != 90 {
 		t.Fatalf("expected logs allocation 90, got %v", state.Rules[0].Allocation.ValueFloat64())
-	}
-	if state.Rules[1].AllocationType.ValueString() != quotaAllocationTypeLockedUnits {
-		t.Fatalf("expected metrics allocation_type locked_units, got %q", state.Rules[1].AllocationType.ValueString())
 	}
 }
 

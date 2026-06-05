@@ -252,6 +252,10 @@ func (r *QuotaAllocationRuleSetResource) Read(ctx context.Context, req resource.
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	if len(newState.Rules) == 0 {
+		resp.State.RemoveResource(ctx)
+		return
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
 }
@@ -461,6 +465,10 @@ func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityType
 
 	stateRules := make([]QuotaAllocationRuleModel, 0, len(rules))
 	for _, rule := range rules {
+		if value, ok := rule.GetCxManagedOk(); ok && *value {
+			continue
+		}
+
 		allocationType := types.StringValue(quotaAllocationTypePercentage)
 		if sdkAllocationType, ok := rule.GetAllocationTypeOk(); ok {
 			if schemaAllocationType, found := quotaAllocationTypeAPIToSchema[*sdkAllocationType]; found {
