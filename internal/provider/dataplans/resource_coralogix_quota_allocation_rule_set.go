@@ -273,8 +273,19 @@ func (r *QuotaAllocationRuleSetResource) Update(ctx context.Context, req resourc
 		return
 	}
 
+	result, httpResponse, err := getQuotaAllocationRuleSet(ctx, r.client, plan.ID.ValueString())
+	if err != nil && responseStatus(httpResponse) != http.StatusNotFound {
+		resp.Diagnostics.AddError("Error reading coralogix_quota_allocation_rule_set before replace",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+		)
+		return
+	}
+	if err == nil && result != nil && result.RuleSet != nil {
+		ruleSet = mergeManagedQuotaAllocationRules(ruleSet, result.RuleSet)
+	}
+
 	request := quotaRules.ReplaceQuotaAllocationRuleSetRequest{RuleSet: *ruleSet}
-	result, httpResponse, err := r.client.
+	replaceResult, httpResponse, err := r.client.
 		QuotaAllocationRuleSetServiceReplaceQuotaAllocationRuleSet(ctx).
 		ReplaceQuotaAllocationRuleSetRequest(request).
 		Execute()
@@ -290,7 +301,7 @@ func (r *QuotaAllocationRuleSetResource) Update(ctx context.Context, req resourc
 		return
 	}
 
-	state, diags := flattenReplaceQuotaAllocationRuleSetResponse(result)
+	state, diags := flattenReplaceQuotaAllocationRuleSetResponse(replaceResult)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -300,7 +311,42 @@ func (r *QuotaAllocationRuleSetResource) Update(ctx context.Context, req resourc
 }
 
 func (r *QuotaAllocationRuleSetResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
-	_, httpResponse, err := r.client.
+	result, httpResponse, err := getQuotaAllocationRuleSet(ctx, r.client, "")
+	if err != nil {
+		if responseStatus(httpResponse) == http.StatusNotFound {
+			return
+		}
+
+		resp.Diagnostics.AddError("Error reading coralogix_quota_allocation_rule_set before delete",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+		)
+		return
+	}
+	if quotaAllocationRuleSetIsEmpty(result) {
+		return
+	}
+
+	managedRuleSet := managedQuotaAllocationRuleSet(result.RuleSet)
+	if len(managedRuleSet.GetRules()) > 0 {
+		request := quotaRules.ReplaceQuotaAllocationRuleSetRequest{RuleSet: *managedRuleSet}
+		_, httpResponse, err = r.client.
+			QuotaAllocationRuleSetServiceReplaceQuotaAllocationRuleSet(ctx).
+			ReplaceQuotaAllocationRuleSetRequest(request).
+			Execute()
+		if err != nil {
+			if responseStatus(httpResponse) == http.StatusNotFound {
+				return
+			}
+
+			resp.Diagnostics.AddError("Error preserving Coralogix-managed quota allocation rules during delete",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", request),
+			)
+			return
+		}
+		return
+	}
+
+	_, httpResponse, err = r.client.
 		QuotaAllocationRuleSetServiceDeleteQuotaAllocationRuleSet(ctx).
 		Execute()
 	if err != nil {
@@ -457,6 +503,49 @@ func quotaAllocationRuleSetIsEmpty(resp *quotaRules.GetQuotaAllocationRuleSetRes
 	return resp == nil || resp.RuleSet == nil || len(resp.RuleSet.GetRules()) == 0
 }
 
+func mergeManagedQuotaAllocationRules(ruleSet, remoteRuleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) *quotaRules.QuotaAllocationEntityTypeRuleSet {
+	if ruleSet == nil {
+		ruleSet = &quotaRules.QuotaAllocationEntityTypeRuleSet{}
+	}
+	if remoteRuleSet == nil {
+		return ruleSet
+	}
+	if !ruleSet.HasId() {
+		if id := remoteRuleSet.GetId(); id != "" {
+			ruleSet.SetId(id)
+		}
+	}
+
+	managedRuleSet := managedQuotaAllocationRuleSet(remoteRuleSet)
+	rules := append([]quotaRules.QuotaAllocationEntityTypeRule{}, ruleSet.GetRules()...)
+	rules = append(rules, managedRuleSet.GetRules()...)
+	sort.Slice(rules, func(i, j int) bool {
+		return rules[i].EntityType < rules[j].EntityType
+	})
+	ruleSet.Rules = rules
+	return ruleSet
+}
+
+func managedQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) *quotaRules.QuotaAllocationEntityTypeRuleSet {
+	managedRuleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{}
+	if ruleSet == nil {
+		return managedRuleSet
+	}
+
+	if id := ruleSet.GetId(); id != "" {
+		managedRuleSet.SetId(id)
+	}
+	for _, rule := range ruleSet.GetRules() {
+		if quotaAllocationRuleIsManaged(rule) {
+			managedRuleSet.Rules = append(managedRuleSet.Rules, rule)
+		}
+	}
+	sort.Slice(managedRuleSet.Rules, func(i, j int) bool {
+		return managedRuleSet.Rules[i].EntityType < managedRuleSet.Rules[j].EntityType
+	})
+	return managedRuleSet
+}
+
 func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) (*QuotaAllocationRuleSetModel, diag.Diagnostics) {
 	rules := ruleSet.GetRules()
 	sort.Slice(rules, func(i, j int) bool {
@@ -465,7 +554,7 @@ func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityType
 
 	stateRules := make([]QuotaAllocationRuleModel, 0, len(rules))
 	for _, rule := range rules {
-		if value, ok := rule.GetCxManagedOk(); ok && *value {
+		if quotaAllocationRuleIsManaged(rule) {
 			continue
 		}
 
@@ -494,6 +583,11 @@ func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityType
 		ID:    types.StringValue(id),
 		Rules: stateRules,
 	}, nil
+}
+
+func quotaAllocationRuleIsManaged(rule quotaRules.QuotaAllocationEntityTypeRule) bool {
+	value, ok := rule.GetCxManagedOk()
+	return ok && *value
 }
 
 func float32ToSchemaFloat64(value float32) float64 {

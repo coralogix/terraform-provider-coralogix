@@ -251,6 +251,83 @@ func TestFlattenQuotaAllocationRuleSetUsesSyntheticID(t *testing.T) {
 	}
 }
 
+func TestMergeManagedQuotaAllocationRulesPreservesRemoteManagedRules(t *testing.T) {
+	id := "rule-set-id"
+	cxManaged := true
+	ruleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{
+		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+			{
+				EntityType:  "logs",
+				Allocation:  90,
+				Enabled:     true,
+				CanOverflow: true,
+			},
+		},
+	}
+	remoteRuleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{
+		Id: &id,
+		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+			{
+				EntityType:  "metrics",
+				Allocation:  10,
+				CxManaged:   &cxManaged,
+				Enabled:     true,
+				CanOverflow: false,
+			},
+			{
+				EntityType:  "spans",
+				Allocation:  50,
+				Enabled:     true,
+				CanOverflow: true,
+			},
+		},
+	}
+
+	mergedRuleSet := mergeManagedQuotaAllocationRules(ruleSet, remoteRuleSet)
+
+	if len(mergedRuleSet.Rules) != 2 {
+		t.Fatalf("expected planned and managed rules, got %d", len(mergedRuleSet.Rules))
+	}
+	if mergedRuleSet.Rules[0].GetEntityType() != "logs" {
+		t.Fatalf("expected planned rule first after sorting, got %q", mergedRuleSet.Rules[0].GetEntityType())
+	}
+	if mergedRuleSet.Rules[1].GetEntityType() != "metrics" {
+		t.Fatalf("expected managed rule to be preserved, got %q", mergedRuleSet.Rules[1].GetEntityType())
+	}
+	if !mergedRuleSet.Rules[1].GetCxManaged() {
+		t.Fatal("expected managed rule cx_managed flag to be preserved")
+	}
+}
+
+func TestManagedQuotaAllocationRuleSetKeepsOnlyManagedRules(t *testing.T) {
+	id := "rule-set-id"
+	cxManaged := true
+	remoteRuleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{
+		Id: &id,
+		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+			{
+				EntityType: "logs",
+			},
+			{
+				EntityType: "metrics",
+				CxManaged:  &cxManaged,
+			},
+		},
+	}
+
+	managedRuleSet := managedQuotaAllocationRuleSet(remoteRuleSet)
+
+	if managedRuleSet.GetId() != id {
+		t.Fatalf("expected id to round-trip, got %q", managedRuleSet.GetId())
+	}
+	if len(managedRuleSet.Rules) != 1 {
+		t.Fatalf("expected only managed rules, got %d", len(managedRuleSet.Rules))
+	}
+	if managedRuleSet.Rules[0].GetEntityType() != "metrics" {
+		t.Fatalf("expected metrics managed rule, got %q", managedRuleSet.Rules[0].GetEntityType())
+	}
+}
+
 func TestQuotaAllocationRuleSetIsEmpty(t *testing.T) {
 	if !quotaAllocationRuleSetIsEmpty(nil) {
 		t.Fatal("nil response should be treated as empty")
