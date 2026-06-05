@@ -208,7 +208,7 @@ func (r *QuotaAllocationRuleSetResource) Create(ctx context.Context, req resourc
 				)
 				return
 			}
-			if !quotaAllocationRuleSetIsEmpty(existingResult) && !quotaAllocationRuleSetHasUserManagedRules(existingResult.RuleSet) {
+			if quotaAllocationRuleSetIsReplaceableOnCreateConflict(existingResult) {
 				ruleSet = mergeManagedQuotaAllocationRules(ruleSet, existingResult.RuleSet)
 				request := quotaRules.ReplaceQuotaAllocationRuleSetRequest{RuleSet: *ruleSet}
 				replaceResult, replaceResponse, replaceErr := r.client.
@@ -544,6 +544,10 @@ func quotaAllocationRuleSetHasUserManagedRules(ruleSet *quotaRules.QuotaAllocati
 		}
 	}
 	return false
+}
+
+func quotaAllocationRuleSetIsReplaceableOnCreateConflict(resp *quotaRules.GetQuotaAllocationRuleSetResponse) bool {
+	return quotaAllocationRuleSetIsEmpty(resp) || !quotaAllocationRuleSetHasUserManagedRules(resp.RuleSet)
 }
 
 func mergeManagedQuotaAllocationRules(ruleSet, remoteRuleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) *quotaRules.QuotaAllocationEntityTypeRuleSet {

@@ -357,6 +357,38 @@ func TestQuotaAllocationRuleSetHasUserManagedRules(t *testing.T) {
 	}
 }
 
+func TestQuotaAllocationRuleSetIsReplaceableOnCreateConflict(t *testing.T) {
+	cxManaged := true
+	if !quotaAllocationRuleSetIsReplaceableOnCreateConflict(&quotaRules.GetQuotaAllocationRuleSetResponse{
+		RuleSet: &quotaRules.QuotaAllocationEntityTypeRuleSet{},
+	}) {
+		t.Fatal("empty existing rule set should be replaceable")
+	}
+	if !quotaAllocationRuleSetIsReplaceableOnCreateConflict(&quotaRules.GetQuotaAllocationRuleSetResponse{
+		RuleSet: &quotaRules.QuotaAllocationEntityTypeRuleSet{
+			Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+				{
+					EntityType: "metrics",
+					CxManaged:  &cxManaged,
+				},
+			},
+		},
+	}) {
+		t.Fatal("managed-only existing rule set should be replaceable")
+	}
+	if quotaAllocationRuleSetIsReplaceableOnCreateConflict(&quotaRules.GetQuotaAllocationRuleSetResponse{
+		RuleSet: &quotaRules.QuotaAllocationEntityTypeRuleSet{
+			Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+				{
+					EntityType: "logs",
+				},
+			},
+		},
+	}) {
+		t.Fatal("existing user-managed rule set should still require import")
+	}
+}
+
 func TestQuotaAllocationRuleSetIsEmpty(t *testing.T) {
 	if !quotaAllocationRuleSetIsEmpty(nil) {
 		t.Fatal("nil response should be treated as empty")
