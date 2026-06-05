@@ -252,14 +252,14 @@ Optional:
 <a id="nestedatt--sendlog"></a>
 ### Nested Schema for `sendlog`
 
-Required:
-
-- `url` (String) Webhook URL.
-
 Optional:
 
 - `payload` (String) Webhook payload. JSON string.
 - `uuid` (String) Webhook UUID. Computed automatically.
+
+Read-Only:
+
+- `url` (String) Webhook URL returned by the service when present. SendLog webhooks do not support configuring a URL.
 
 
 <a id="nestedatt--slack"></a>

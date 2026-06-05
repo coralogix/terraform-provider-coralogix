@@ -461,14 +461,13 @@ email_group = {
 
 func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" test {
-name    = "%s"
-sendlog = {
-	payload  = jsonencode({ "custom" : "payload" })
-	url      = "%s"
-}
+	name    = "%s"
+	sendlog = {
+		payload  = jsonencode({ "custom" : "payload" })
+	}
 }
 `,
-		w.name, w.url)
+		w.name)
 }
 
 func testAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(w *webhookTestFields) string {

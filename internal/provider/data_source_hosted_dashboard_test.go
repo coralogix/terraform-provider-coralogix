@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -31,7 +32,7 @@ func TestAccCoralogixDataSourceGrafanaDashboard_basic(t *testing.T) {
 	}
 	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_dashboard.json"
-	expectedFolderTitle := "Test Folder"
+	expectedFolderTitle := acctest.RandomWithPrefix("tf-acc-test-folder")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },

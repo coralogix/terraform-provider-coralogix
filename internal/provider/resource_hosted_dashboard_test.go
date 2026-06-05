@@ -25,6 +25,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/data_exploration"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -44,8 +45,8 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 	expectedInitialConfig := `{"title":"Title test","uid":"UID"}`
 	expectedUpdatedTitleConfig := `{"title":"Updated Title","uid":"UID"}`
 
-	expectedFolderTitle := "Test Folder"
-	expectedFolderUpdateTitle := "Updated Folder Title"
+	expectedFolderTitle := acctest.RandomWithPrefix("tf-acc-test-folder")
+	expectedFolderUpdateTitle := expectedFolderTitle + "-updated"
 
 	var dashboard gapi.Dashboard
 
