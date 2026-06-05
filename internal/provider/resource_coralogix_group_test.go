@@ -23,6 +23,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -32,16 +33,18 @@ var groupResourceName = "coralogix_group.test"
 func TestAccCoralogixResourceGroup(t *testing.T) {
 	// Use a unique username to avoid 409 Conflict (user already exists) when re-running or from other tests
 	userName := fmt.Sprintf("test-group-acc-%d@coralogix.com", time.Now().UnixNano())
+	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
+	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceGroup(userName),
+				Config: testAccCoralogixResourceGroup(userName, displayName, scopeName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(groupResourceName, "id"),
-					resource.TestCheckResourceAttr(groupResourceName, "display_name", "example"),
+					resource.TestCheckResourceAttr(groupResourceName, "display_name", displayName),
 					resource.TestCheckResourceAttr(groupResourceName, "role", "Read Only"),
 					resource.TestCheckResourceAttr(groupResourceName, "members.#", "1"),
 					resource.TestCheckResourceAttrPair(groupResourceName, "members.0", "coralogix_user.test", "id"),
@@ -85,11 +88,11 @@ func testAccCheckGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCoralogixResourceGroup(userName string) string {
+func testAccCoralogixResourceGroup(userName, displayName, scopeName string) string {
 	return fmt.Sprintf(`
 
 	resource "coralogix_scope" "test" {
-		display_name       = "ExampleScope"
+		display_name       = "%s"
 		default_expression = "<v1>true"
 		filters            = [
 		{
@@ -104,10 +107,10 @@ func testAccCoralogixResourceGroup(userName string) string {
 	}
 	
 	resource "coralogix_group" "test" {
-		display_name = "example"
+		display_name = "%s"
 		role         = "Read Only"
 		members      = [coralogix_user.test.id]
 		scope_id     = coralogix_scope.test.id
 	}
-`, userName)
+`, scopeName, userName, displayName)
 }

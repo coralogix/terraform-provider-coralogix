@@ -136,7 +136,7 @@ Read-Only:
 Read-Only:
 
 - `payload` (String) Webhook payload. JSON string.
-- `url` (String) Webhook URL.
+- `url` (String) Webhook URL returned by the service when present. SendLog webhooks do not support configuring a URL.
 - `uuid` (String) Webhook UUID. Computed automatically.
 
 

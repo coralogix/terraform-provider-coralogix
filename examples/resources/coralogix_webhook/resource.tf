@@ -80,9 +80,7 @@ resource "coralogix_webhook" "demisto_webhook" {
 
 resource "coralogix_webhook" "sendlog_webhook" {
   name = "sendlog-webhook"
-  sendlog = {
-    url = "https://example-url.com/"
-  }
+  sendlog = {}
 }
 
 resource "coralogix_webhook" "event_bridge_webhook" {

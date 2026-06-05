@@ -1,3 +1,11 @@
+# Unreleased
+
+#### resource/coralogix_quota_allocation_rule_set, data_source/coralogix_quota_allocation_rule_set
+
+- FEAT: Add support for managing and reading account-level quota allocation rule sets.
+- FEAT: Support `allocation_type` on quota allocation rules and expose read-only `cx_managed` from the quota allocation data source.
+- FIX: Treat delete as successful when the backend clears the singleton quota allocation rule set but returns an error response.
+
 # Release 3.4.2
 
 #### provider
