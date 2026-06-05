@@ -201,6 +201,37 @@ func (r *QuotaAllocationRuleSetResource) Create(ctx context.Context, req resourc
 		Execute()
 	if err != nil {
 		if responseStatus(httpResponse) == http.StatusConflict {
+			existingResult, readResponse, readErr := getQuotaAllocationRuleSet(ctx, r.client, "")
+			if readErr != nil {
+				resp.Diagnostics.AddError("Error reading existing coralogix_quota_allocation_rule_set after create conflict",
+					utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(readResponse, readErr), "Read", nil),
+				)
+				return
+			}
+			if !quotaAllocationRuleSetIsEmpty(existingResult) && !quotaAllocationRuleSetHasUserManagedRules(existingResult.RuleSet) {
+				ruleSet = mergeManagedQuotaAllocationRules(ruleSet, existingResult.RuleSet)
+				request := quotaRules.ReplaceQuotaAllocationRuleSetRequest{RuleSet: *ruleSet}
+				replaceResult, replaceResponse, replaceErr := r.client.
+					QuotaAllocationRuleSetServiceReplaceQuotaAllocationRuleSet(ctx).
+					ReplaceQuotaAllocationRuleSetRequest(request).
+					Execute()
+				if replaceErr != nil {
+					resp.Diagnostics.AddError("Error preserving Coralogix-managed quota allocation rules during create",
+						utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(replaceResponse, replaceErr), "Replace", request),
+					)
+					return
+				}
+
+				state, diags := flattenReplaceQuotaAllocationRuleSetResponse(replaceResult)
+				if diags.HasError() {
+					resp.Diagnostics.Append(diags...)
+					return
+				}
+
+				resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+				return
+			}
+
 			resp.Diagnostics.AddError(
 				"Quota allocation rule set already exists",
 				"Coralogix already has a quota allocation rule set. Import it with `terraform import coralogix_quota_allocation_rule_set.<name> quota-allocation-rule-set` before managing it with Terraform.",
@@ -501,6 +532,18 @@ func flattenReplaceQuotaAllocationRuleSetResponse(resp *quotaRules.ReplaceQuotaA
 
 func quotaAllocationRuleSetIsEmpty(resp *quotaRules.GetQuotaAllocationRuleSetResponse) bool {
 	return resp == nil || resp.RuleSet == nil || len(resp.RuleSet.GetRules()) == 0
+}
+
+func quotaAllocationRuleSetHasUserManagedRules(ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) bool {
+	if ruleSet == nil {
+		return false
+	}
+	for _, rule := range ruleSet.GetRules() {
+		if !quotaAllocationRuleIsManaged(rule) {
+			return true
+		}
+	}
+	return false
 }
 
 func mergeManagedQuotaAllocationRules(ruleSet, remoteRuleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) *quotaRules.QuotaAllocationEntityTypeRuleSet {

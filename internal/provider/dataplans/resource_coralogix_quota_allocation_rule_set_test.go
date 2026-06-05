@@ -328,6 +328,32 @@ func TestManagedQuotaAllocationRuleSetKeepsOnlyManagedRules(t *testing.T) {
 	}
 }
 
+func TestQuotaAllocationRuleSetHasUserManagedRules(t *testing.T) {
+	cxManaged := true
+	if quotaAllocationRuleSetHasUserManagedRules(nil) {
+		t.Fatal("nil rule set should not have user-managed rules")
+	}
+	if quotaAllocationRuleSetHasUserManagedRules(&quotaRules.QuotaAllocationEntityTypeRuleSet{
+		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+			{
+				EntityType: "metrics",
+				CxManaged:  &cxManaged,
+			},
+		},
+	}) {
+		t.Fatal("managed-only rule set should not have user-managed rules")
+	}
+	if !quotaAllocationRuleSetHasUserManagedRules(&quotaRules.QuotaAllocationEntityTypeRuleSet{
+		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+			{
+				EntityType: "logs",
+			},
+		},
+	}) {
+		t.Fatal("rule set with omitted cx_managed should have user-managed rules")
+	}
+}
+
 func TestQuotaAllocationRuleSetIsEmpty(t *testing.T) {
 	if !quotaAllocationRuleSetIsEmpty(nil) {
 		t.Fatal("nil response should be treated as empty")
