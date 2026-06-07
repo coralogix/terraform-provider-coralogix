@@ -434,7 +434,7 @@ Read-Only:
 - `description` (String) Widget description.
 - `id` (String)
 - `title` (String) Widget title. Required for all widgets except markdown.
-- `width` (Number) The width of the chart.
+- `width` (Number) Deprecated: the widget appearance.width field is ignored by the API and has no effect.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition`
