@@ -6,6 +6,10 @@
 - FEAT: Support `allocation_type` on quota allocation rules and expose read-only `cx_managed` from the quota allocation data source.
 - FIX: Treat delete as successful when the backend clears the singleton quota allocation rule set but returns an error response.
 
+#### resource/coralogix_dashboard
+
+- FIX: Avoid "provider produced inconsistent result after apply" when a `variables[*].definition.multi_select.source.query.query.metrics.label_value` block is configured without `label_filters` (or without `operator.selected_values`) — flatten now returns null for empty backend slices instead of an empty list.
+
 # Release 3.4.2
 
 #### provider
