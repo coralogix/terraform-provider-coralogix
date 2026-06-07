@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+
+- FIX: Drop the `Default(0)` and add `UseStateForUnknown()` on the widget `width` attribute so an unset width no longer produces a perpetual `width = 0` drift after every apply. The field is deprecated and ignored by the API; a `DeprecationMessage` now surfaces this to users.
+
 #### resource/coralogix_quota_allocation_rule_set, data_source/coralogix_quota_allocation_rule_set
 
 - FEAT: Add support for managing and reading account-level quota allocation rule sets.
