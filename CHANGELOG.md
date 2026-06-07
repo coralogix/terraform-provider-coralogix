@@ -1,5 +1,10 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+
+- FIX: Eliminate "Provider produced inconsistent result after apply" on `layout.sections[*].id`, `layout.sections[*].rows[*].id`, and `layout.sections[*].rows[*].widgets[*].id` by marking the `id` attributes `Optional+Computed` so the provider-generated UUID can round-trip on first Create (#505).
+- FIX: `layout.sections[*].options.collapsed` now reflects the API value instead of being forced to `null` whenever `description` is unset (typo in flatten nil-guard) (#505).
+
 #### resource/coralogix_quota_allocation_rule_set, data_source/coralogix_quota_allocation_rule_set
 
 - FEAT: Add support for managing and reading account-level quota allocation rule sets.
