@@ -531,10 +531,7 @@ func extractNotificationRouter(ctx context.Context, routerObject types.Object) (
 		return nil, diags
 	}
 
-	id := "router_default"
-	router := &alerts.NotificationRouter{
-		Id: &id,
-	}
+	router := &alerts.NotificationRouter{}
 
 	if !routerModel.NotifyOn.IsNull() && !routerModel.NotifyOn.IsUnknown() {
 		router.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[routerModel.NotifyOn.ValueString()].Ptr()
