@@ -3,7 +3,7 @@
 #### resource/coralogix_dashboard
 
 - FIX: Logs filters whose `field` contains a literal dot (e.g. `log.level`) now match. Provider synthesizes a single-element `observation_field` keypath when only `field` is set, matching the UI's serializer.
-- FIX: `observation_field` blocks that redundantly mirror `field` (single-element keypath equal to `field`, `scope = "user_data"`) are normalized out of state. Users who set both will see a one-time plan diff dropping the redundant block; the simplified `field`-only form is canonical going forward.
+- CHANGE: `notification_group.observation_field` (top-level dashboard filters and widget logs filters) is now Optional+Computed. After upgrade, configurations that only set `field` will show `observation_field = (known after apply)` on plan and the provider will populate state with the synthesized value; existing configurations that set `observation_field` explicitly continue to work unchanged.
 
 #### resource/coralogix_alert
 

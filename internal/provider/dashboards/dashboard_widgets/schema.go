@@ -297,6 +297,7 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 				"observation_field": schema.SingleNestedAttribute{
 					Attributes: ObservationFieldSchema(),
 					Optional:   true,
+					Computed:   true,
 				},
 			},
 		},
@@ -330,6 +331,7 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 				"observation_field": schema.SingleNestedAttribute{
 					Attributes: ObservationFieldSchema(),
 					Optional:   true,
+					Computed:   true,
 				},
 			},
 			Optional: true,

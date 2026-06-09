@@ -1059,16 +1059,9 @@ func FlattenDashboardFilterSourceLogs(ctx context.Context, logs *cxsdk.Dashboard
 		return nil, diag.Diagnostics{dg}
 	}
 
-	rawObservationField := logs.GetObservationField()
-	var observationField types.Object
-	if observationFieldMatchesSynthesizedFromField(rawObservationField, logs.GetField()) {
-		observationField = types.ObjectNull(ObservationFieldAttr())
-	} else {
-		var diags diag.Diagnostics
-		observationField, diags = FlattenObservationField(ctx, rawObservationField)
-		if diags.HasError() {
-			return nil, diags
-		}
+	observationField, diags := FlattenObservationField(ctx, logs.GetObservationField())
+	if diags.HasError() {
+		return nil, diags
 	}
 
 	return &FilterSourceLogsModel{
@@ -1346,16 +1339,9 @@ func flattenLogsFilter(ctx context.Context, filter *cxsdk.DashboardFilterLogsFil
 		return nil, diag.Diagnostics{dg}
 	}
 
-	rawObservationField := filter.GetObservationField()
-	var observationField types.Object
-	if observationFieldMatchesSynthesizedFromField(rawObservationField, filter.GetField()) {
-		observationField = types.ObjectNull(ObservationFieldAttr())
-	} else {
-		var diags diag.Diagnostics
-		observationField, diags = FlattenObservationField(ctx, rawObservationField)
-		if diags.HasError() {
-			return nil, diags
-		}
+	observationField, diags := FlattenObservationField(ctx, filter.GetObservationField())
+	if diags.HasError() {
+		return nil, diags
 	}
 
 	return &LogsFilterModel{
@@ -1502,20 +1488,6 @@ func synthesizeObservationFieldFromField(field *wrapperspb.StringValue) *cxsdk.O
 		Keypath: []*wrapperspb.StringValue{wrapperspb.String(field.GetValue())},
 		Scope:   cxsdk.DatasetScopeUserData,
 	}
-}
-
-func observationFieldMatchesSynthesizedFromField(obs *cxsdk.ObservationField, field *wrapperspb.StringValue) bool {
-	if obs == nil || field == nil {
-		return false
-	}
-	if obs.GetScope() != cxsdk.DatasetScopeUserData {
-		return false
-	}
-	keypath := obs.GetKeypath()
-	if len(keypath) != 1 {
-		return false
-	}
-	return keypath[0].GetValue() == field.GetValue()
 }
 
 func ExpandObservationFieldObject(ctx context.Context, field types.Object) (*cxsdk.ObservationField, diag.Diagnostics) {

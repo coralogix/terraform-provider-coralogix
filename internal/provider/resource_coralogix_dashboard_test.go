@@ -960,7 +960,8 @@ resource "coralogix_dashboard" "test" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "filters.0.source.logs.field", "log.level"),
-					resource.TestCheckNoResourceAttr(dashboardResourceName, "filters.0.source.logs.observation_field"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "filters.0.source.logs.observation_field.keypath.0", "log.level"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "filters.0.source.logs.observation_field.scope", "user_data"),
 				),
 			},
 			{
