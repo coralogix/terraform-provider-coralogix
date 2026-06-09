@@ -4,6 +4,10 @@
 
 - FIX: Eliminate "Provider produced inconsistent result after apply" on `layout.sections[*].id`, `layout.sections[*].rows[*].id`, and `layout.sections[*].rows[*].widgets[*].id` by marking the `id` attributes `Optional+Computed` so the provider-generated UUID can round-trip on first Create (#505).
 - FIX: `layout.sections[*].options.collapsed` now reflects the API value instead of being forced to `null` whenever `description` is unset (typo in flatten nil-guard) (#505).
+#### resource/coralogix_alert
+
+- FIX: `tracing_filter.latency_threshold_ms` no longer drifts to a rounded value after apply. The flatten path was using `big.ParseFloat` with a 10-bit precision argument, which silently rounded values whose mantissa exceeded 10 bits (e.g. `30000` → `30016`, `50000` → `49984`), causing "Provider produced inconsistent result after apply" on v2→v3 migrations. Switched to `strconv.ParseInt` + `big.Float.SetInt64`, matching the pattern already used in this file for `MaxUniqueCountPerGroupByKey` and `TimeframeMs`.
+- FIX: Stop injecting `router.id = "router_default"` on the `notification_group.router` API request when the user omits an id from config. Empty `router = {}` now sends an empty-router block (no `id`), so the API performs label-based Global Router matching as documented. Previously the hard-coded default bypassed label-based routing entirely.
 
 #### resource/coralogix_quota_allocation_rule_set, data_source/coralogix_quota_allocation_rule_set
 
