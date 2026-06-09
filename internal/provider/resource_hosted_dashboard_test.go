@@ -25,6 +25,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/data_exploration"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -33,19 +34,13 @@ var hostedDashboardResourceName = "coralogix_hosted_dashboard.test"
 var hostedDashboardFolderResourceName = "coralogix_grafana_folder.test_folder"
 
 func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	parent := filepath.Dir(filepath.Dir(wd))
-	filePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_dashboard.json"
-	updatedFilePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_updated_dashboard.json"
+	filePath, updatedFilePath, dashboardUID := testAccGrafanaDashboardFiles(t)
 
-	expectedInitialConfig := `{"title":"Title test","uid":"UID"}`
-	expectedUpdatedTitleConfig := `{"title":"Updated Title","uid":"UID"}`
+	expectedInitialConfig := fmt.Sprintf(`{"title":"Title test","uid":%q}`, dashboardUID)
+	expectedUpdatedTitleConfig := fmt.Sprintf(`{"title":"Updated Title","uid":%q}`, dashboardUID)
 
-	expectedFolderTitle := "Test Folder"
-	expectedFolderUpdateTitle := "Updated Folder Title"
+	expectedFolderTitle := acctest.RandomWithPrefix("tf-acc-test-folder")
+	expectedFolderUpdateTitle := expectedFolderTitle + "-updated"
 
 	var dashboard gapi.Dashboard
 
@@ -103,6 +98,23 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccGrafanaDashboardFiles(t *testing.T) (string, string, string) {
+	t.Helper()
+
+	dashboardUID := acctest.RandomWithPrefix("tfaccdash")
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "grafana_acc_dashboard.json")
+	updatedFilePath := filepath.Join(tempDir, "grafana_acc_updated_dashboard.json")
+	if err := os.WriteFile(filePath, []byte(fmt.Sprintf(`{"title":"Title test","uid":%q}`, dashboardUID)), 0600); err != nil {
+		t.Fatalf("writing initial dashboard config: %s", err)
+	}
+	if err := os.WriteFile(updatedFilePath, []byte(fmt.Sprintf(`{"title":"Updated Title","uid":%q}`, dashboardUID)), 0600); err != nil {
+		t.Fatalf("writing updated dashboard config: %s", err)
+	}
+
+	return filePath, updatedFilePath, dashboardUID
 }
 
 func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.TestCheckFunc {
