@@ -871,6 +871,7 @@ func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 			"Error creating Events2Metric",
 			utils.FormatRpcErrors(err, cxsdk.E2MCreateRPC, protojson.Format(e2mCreateReq)),
 		)
+		return
 	}
 	log.Printf("[INFO] Submitted new Events2metric: %s", protojson.Format(e2mCreateResp))
 
