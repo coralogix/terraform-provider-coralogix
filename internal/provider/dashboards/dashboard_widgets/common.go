@@ -1059,9 +1059,16 @@ func FlattenDashboardFilterSourceLogs(ctx context.Context, logs *cxsdk.Dashboard
 		return nil, diag.Diagnostics{dg}
 	}
 
-	observationField, diags := FlattenObservationField(ctx, logs.GetObservationField())
-	if diags.HasError() {
-		return nil, diags
+	rawObservationField := logs.GetObservationField()
+	var observationField types.Object
+	if observationFieldMatchesSynthesizedFromField(rawObservationField, logs.GetField()) {
+		observationField = types.ObjectNull(ObservationFieldAttr())
+	} else {
+		var diags diag.Diagnostics
+		observationField, diags = FlattenObservationField(ctx, rawObservationField)
+		if diags.HasError() {
+			return nil, diags
+		}
 	}
 
 	return &FilterSourceLogsModel{
@@ -1339,9 +1346,16 @@ func flattenLogsFilter(ctx context.Context, filter *cxsdk.DashboardFilterLogsFil
 		return nil, diag.Diagnostics{dg}
 	}
 
-	observationField, diags := FlattenObservationField(ctx, filter.GetObservationField())
-	if diags.HasError() {
-		return nil, diags
+	rawObservationField := filter.GetObservationField()
+	var observationField types.Object
+	if observationFieldMatchesSynthesizedFromField(rawObservationField, filter.GetField()) {
+		observationField = types.ObjectNull(ObservationFieldAttr())
+	} else {
+		var diags diag.Diagnostics
+		observationField, diags = FlattenObservationField(ctx, rawObservationField)
+		if diags.HasError() {
+			return nil, diags
+		}
 	}
 
 	return &LogsFilterModel{
@@ -1478,6 +1492,30 @@ func ExpandObservationFields(ctx context.Context, namesFields types.List) ([]*cx
 	}
 
 	return expandedNamesFields, diags
+}
+
+func synthesizeObservationFieldFromField(field *wrapperspb.StringValue) *cxsdk.ObservationField {
+	if field == nil || field.GetValue() == "" {
+		return nil
+	}
+	return &cxsdk.ObservationField{
+		Keypath: []*wrapperspb.StringValue{wrapperspb.String(field.GetValue())},
+		Scope:   cxsdk.DatasetScopeUserData,
+	}
+}
+
+func observationFieldMatchesSynthesizedFromField(obs *cxsdk.ObservationField, field *wrapperspb.StringValue) bool {
+	if obs == nil || field == nil {
+		return false
+	}
+	if obs.GetScope() != cxsdk.DatasetScopeUserData {
+		return false
+	}
+	keypath := obs.GetKeypath()
+	if len(keypath) != 1 {
+		return false
+	}
+	return keypath[0].GetValue() == field.GetValue()
 }
 
 func ExpandObservationFieldObject(ctx context.Context, field types.Object) (*cxsdk.ObservationField, diag.Diagnostics) {

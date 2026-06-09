@@ -1,5 +1,10 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+
+- FIX: Logs filters whose `field` contains a literal dot (e.g. `log.level`) now match. Provider synthesizes a single-element `observation_field` keypath when only `field` is set, matching the UI's serializer.
+- FIX: `observation_field` blocks that redundantly mirror `field` (single-element keypath equal to `field`, `scope = "user_data"`) are normalized out of state. Users who set both will see a one-time plan diff dropping the redundant block; the simplified `field`-only form is canonical going forward.
+
 #### resource/coralogix_alert
 
 - FIX: `tracing_filter.latency_threshold_ms` no longer drifts to a rounded value after apply. The flatten path was using `big.ParseFloat` with a 10-bit precision argument, which silently rounded values whose mantissa exceeded 10 bits (e.g. `30000` → `30016`, `50000` → `49984`), causing "Provider produced inconsistent result after apply" on v2→v3 migrations. Switched to `strconv.ParseInt` + `big.Float.SetInt64`, matching the pattern already used in this file for `MaxUniqueCountPerGroupByKey` and `TimeframeMs`.

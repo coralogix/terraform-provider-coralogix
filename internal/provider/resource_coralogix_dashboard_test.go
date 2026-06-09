@@ -910,3 +910,64 @@ resource "coralogix_dashboard" "test" {
 		},
 	})
 }
+
+func TestAccCoralogixResourceDashboardLogsFilterDotField(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "coralogix_dashboard" "test" {
+  name        = "issue-504-dot-field-filter"
+  description = "Top-level logs filter with literal-dot field identifier"
+  time_frame = {
+    relative = { duration = "seconds:900" }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          title = "placeholder"
+          width = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = { logs = { aggregations = [{ type = "count" }] } }
+              }]
+              legend = { is_visible = false }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+  filters = [{
+    source = {
+      logs = {
+        field = "log.level"
+        operator = {
+          type            = "equals"
+          selected_values = ["error"]
+        }
+      }
+    }
+  }]
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "filters.0.source.logs.field", "log.level"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "filters.0.source.logs.observation_field"),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}

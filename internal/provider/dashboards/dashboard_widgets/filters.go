@@ -101,8 +101,13 @@ func expandLogsFilter(ctx context.Context, logsFilter LogsFilterModel) (*cxsdk.D
 		return nil, diags
 	}
 
+	field := utils.TypeStringToWrapperspbString(logsFilter.Field)
+	if observationField == nil {
+		observationField = synthesizeObservationFieldFromField(field)
+	}
+
 	return &cxsdk.DashboardFilterLogsFilter{
-		Field:            utils.TypeStringToWrapperspbString(logsFilter.Field),
+		Field:            field,
 		Operator:         operator,
 		ObservationField: observationField,
 	}, nil
@@ -148,10 +153,15 @@ func expandFilterSourceLogs(ctx context.Context, logs *FilterSourceLogsModel) (*
 		return nil, diags
 	}
 
+	field := utils.TypeStringToWrapperspbString(logs.Field)
+	if observationField == nil {
+		observationField = synthesizeObservationFieldFromField(field)
+	}
+
 	return &cxsdk.DashboardFilterSource{
 		Value: &cxsdk.DashboardFilterSourceLogs{
 			Logs: &cxsdk.DashboardFilterLogsFilter{
-				Field:            utils.TypeStringToWrapperspbString(logs.Field),
+				Field:            field,
 				Operator:         operator,
 				ObservationField: observationField,
 			},
