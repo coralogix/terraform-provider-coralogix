@@ -4362,10 +4362,11 @@ func flattenTracingSimpleFilter(ctx context.Context, tracingQuery *alerts.Tracin
 	if diags.HasError() {
 		return types.ObjectNull(alertschema.TracingQueryAttr()), diags
 	}
-	latencyThresholdMs, _, err := big.ParseFloat(*tracingQuery.LatencyThresholdMs, 10, 10, big.ToNearestAway)
+	latencyRaw, err := strconv.ParseInt(*tracingQuery.LatencyThresholdMs, 10, 64)
 	if err != nil {
-		return types.ObjectNull(alertschema.TracingQueryAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid int64", "Expected latency threshold to be int64 convertible")}
+		return types.ObjectNull(alertschema.TracingQueryAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Latency Threshold Ms", fmt.Sprintf("Could not parse Latency Threshold Ms value '%s' to int64: %s", *tracingQuery.LatencyThresholdMs, err.Error()))}
 	}
+	latencyThresholdMs := new(big.Float).SetInt64(latencyRaw)
 	tracingQueryModel := &alerttypes.TracingFilterModel{
 		LatencyThresholdMs:  types.NumberValue(latencyThresholdMs),
 		TracingLabelFilters: labelFilters,
