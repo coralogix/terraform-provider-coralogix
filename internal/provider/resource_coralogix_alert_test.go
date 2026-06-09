@@ -22,6 +22,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/google/uuid"
 
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -3918,5 +3919,277 @@ func testAccCoralogixResourceAlertWebhooksSettingsNoNotifications() string {
     }
   }
 }
+`
+}
+
+func TestAccCoralogixResourceAlert_group_by_keys_deletion(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertGroupByKeysSet(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-group-by-keys-delete"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.group_by_keys.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.group_by_keys.0", "environment"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertGroupByKeysCleared(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-group-by-keys-delete"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.group_by_keys.#", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.notify_on", "Triggered Only"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertGroupByKeysPhantom(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-group-by-keys-delete"),
+					resource.TestCheckResourceAttr(alertResourceName, "phantom_mode", "true"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertGroupByKeysSet() string {
+	return `resource "coralogix_alert" "test" {
+  name     = "issue-552-group-by-keys-delete"
+  priority = "P3"
+
+  notification_group = {
+    group_by_keys = ["environment"]
+    router = {
+      notify_on = "Triggered Only"
+    }
+  }
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(increase(calls_total{}[2m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 1000
+          for_over_pct   = 100
+          of_the_last    = "5m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+        override = { priority = "P3" }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertGroupByKeysCleared() string {
+	return `resource "coralogix_alert" "test" {
+  name     = "issue-552-group-by-keys-delete"
+  priority = "P3"
+
+  notification_group = {
+    router = {
+      notify_on = "Triggered Only"
+    }
+  }
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(increase(calls_total{}[2m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 1000
+          for_over_pct   = 100
+          of_the_last    = "5m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+        override = { priority = "P3" }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertGroupByKeysPhantom() string {
+	return `resource "coralogix_alert" "test" {
+  name         = "issue-552-group-by-keys-delete"
+  priority     = "P3"
+  phantom_mode = true
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(increase(calls_total{}[2m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 1000
+          for_over_pct   = 100
+          of_the_last    = "5m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+        override = { priority = "P3" }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
+`
+}
+
+func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertDestinationsSet(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-destinations-delete"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "1"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertDestinationsCleared(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-destinations-delete"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.notify_on", "Triggered Only"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertDestinationsFixtures(name string) string {
+	return fmt.Sprintf(`
+  resource "coralogix_connector" "slack_example" {
+    id               = "%[1]v"
+    name             = "%[1]v"
+    type             = "slack"
+    description      = "slack connector example"
+    connector_config = {
+      fields = [
+        { field_name = "integrationId",   value = "luigis-testing-grounds" },
+        { field_name = "fallbackChannel", value = "luigis-testing-grounds" },
+        { field_name = "channel",         value = "luigis-testing-grounds" }
+      ]
+    }
+  }
+
+  resource "coralogix_preset" "slack_example" {
+    id               = "%[1]v"
+    name             = "%[1]v"
+    description      = "slack preset example"
+    entity_type      = "alerts"
+    connector_type   = "slack"
+    parent_id        = "preset_system_slack_alerts_basic"
+    config_overrides = [
+      {
+        condition_type = {
+          match_entity_type_and_sub_type = {
+            entity_sub_type = "logsImmediateResolved"
+          }
+        }
+        message_config = {
+          fields = [
+            { field_name = "title",       template = "{{alert.status}} {{alertDef.priority}} - {{alertDef.name}}" },
+            { field_name = "description", template = "{{alertDef.description}}" }
+          ]
+        }
+      }
+    ]
+  }
+`, name)
+}
+
+func testAccCoralogixResourceAlertDestinationsSet(name string) string {
+	return testAccCoralogixResourceAlertDestinationsFixtures(name) + `
+  resource "coralogix_alert" "test" {
+    name     = "issue-552-destinations-delete"
+    priority = "P3"
+
+    notification_group = {
+      destinations = [
+        {
+          connector_id = coralogix_connector.slack_example.id
+          preset_id    = coralogix_preset.slack_example.id
+        }
+      ]
+    }
+
+    type_definition = {
+      metric_threshold = {
+        metric_filter = {
+          promql = "sum(increase(calls_total{}[2m]))"
+        }
+        rules = [{
+          condition = {
+            threshold      = 1000
+            for_over_pct   = 100
+            of_the_last    = "5m"
+            condition_type = "MORE_THAN_OR_EQUALS"
+          }
+          override = { priority = "P3" }
+        }]
+        missing_values = {
+          replace_with_zero = true
+        }
+      }
+    }
+  }
+`
+}
+
+func testAccCoralogixResourceAlertDestinationsCleared(name string) string {
+	return testAccCoralogixResourceAlertDestinationsFixtures(name) + `
+  resource "coralogix_alert" "test" {
+    name     = "issue-552-destinations-delete"
+    priority = "P3"
+
+    notification_group = {
+      router = {
+        notify_on = "Triggered Only"
+      }
+    }
+
+    type_definition = {
+      metric_threshold = {
+        metric_filter = {
+          promql = "sum(increase(calls_total{}[2m]))"
+        }
+        rules = [{
+          condition = {
+            threshold      = 1000
+            for_over_pct   = 100
+            of_the_last    = "5m"
+            condition_type = "MORE_THAN_OR_EQUALS"
+          }
+          override = { priority = "P3" }
+        }]
+        missing_values = {
+          replace_with_zero = true
+        }
+      }
+    }
+  }
 `
 }
