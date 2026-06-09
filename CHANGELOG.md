@@ -3,15 +3,29 @@
 #### resource/coralogix_alert
 
 - FIX: `tracing_filter.latency_threshold_ms` no longer drifts to a rounded value after apply. The flatten path was using `big.ParseFloat` with a 10-bit precision argument, which silently rounded values whose mantissa exceeded 10 bits (e.g. `30000` → `30016`, `50000` → `49984`), causing "Provider produced inconsistent result after apply" on v2→v3 migrations. Switched to `strconv.ParseInt` + `big.Float.SetInt64`, matching the pattern already used in this file for `MaxUniqueCountPerGroupByKey` and `TimeframeMs`.
+- FIX: Stop injecting `router.id = "router_default"` on the `notification_group.router` API request when the user omits an id from config. Empty `router = {}` now sends an empty-router block (no `id`), so the API performs label-based Global Router matching as documented. Previously the hard-coded default bypassed label-based routing entirely.
+
+#### resource/coralogix_quota_allocation_rule_set, data_source/coralogix_quota_allocation_rule_set
+
+- FEAT: Add support for managing and reading account-level quota allocation rule sets.
+- FEAT: Support `allocation_type` on quota allocation rules and expose read-only `cx_managed` from the quota allocation data source.
+- FIX: Treat delete as successful when the backend clears the singleton quota allocation rule set but returns an error response.
+
+# Release 3.4.2
 
 #### provider
 
 - FIX: When `domain` is an AWS PrivateLink management host (`api.private.<region>.coralogix.com`), dial gRPC on that host instead of `ng-api-grpc.<domain>` so dashboards and other gRPC resources work over PrivateLink.
 - FIX: Route SCIM users and groups REST clients to the PrivateLink management host (`https://api.private.<region>.coralogix.com/scim/...`) instead of `ng-api-http.api.private...`.
+- CHORE: Bump `coralogix-management-sdk` to latest master.
 
 #### resource/coralogix_integration
 
 - FIX: Support importing integrations when Terraform has not populated dynamic `parameters` state yet.
+
+#### resource/coralogix_slo_v2
+
+- FIX: Adapt SLO create to the renamed SDK request type (`SlosServiceReplaceSloRequest`).
 
 # Release 3.4.1
 

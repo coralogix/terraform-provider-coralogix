@@ -37,6 +37,7 @@ import (
 	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
 	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
 	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
+	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
 	recRuless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/recording_rules_service"
 	retss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/retentions_service"
 	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
@@ -67,6 +68,7 @@ type ClientSet struct {
 	archiveRetentions     *retss.RetentionsServiceAPIService
 	recordingRuleGroups   *recRuless.RecordingRulesServiceAPIService
 	tcoPolicies           *tcoPolicys.PoliciesServiceAPIService
+	quotaAllocationRules  *quotaRules.QuotaAllocationRuleSetServiceAPIService
 	actions               *actionss.ActionsServiceAPIService
 	alerts                *alerts.AlertDefinitionsServiceAPIService
 	alertScheduler        *alertScheduler.AlertSchedulerRuleServiceAPIService
@@ -125,6 +127,10 @@ func (c *ClientSet) RecordingRuleGroupsSets() *recRuless.RecordingRulesServiceAP
 
 func (c *ClientSet) TCOPolicies() *tcoPolicys.PoliciesServiceAPIService {
 	return c.tcoPolicies
+}
+
+func (c *ClientSet) QuotaAllocationRules() *quotaRules.QuotaAllocationRuleSetServiceAPIService {
+	return c.quotaAllocationRules
 }
 
 func (c *ClientSet) Webhooks() *webhhooks.OutgoingWebhooksServiceAPIService {
@@ -214,8 +220,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 
 	_, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
 	if !found {
-		url := cxsdkOpenapi.URLFromDomain(region)
-		confBuilder.WithURL(url)
+		confBuilder.WithURL(cxsdkOpenapi.URLFromDomain(region))
 	} else {
 		confBuilder.WithRegion(strings.ToLower(region))
 	}
@@ -252,6 +257,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		recordingRuleGroups:   cs.RecordingRules(),
 		archiveLogs:           cs.ArchiveLogs(),
 		tcoPolicies:           cs.TCOPolicies(),
+		quotaAllocationRules:  cs.Quotas(),
 		actions:               cs.Actions(),
 		customRole:            cs.CustomRoles(),
 		scopes:                cs.Scopes(),
