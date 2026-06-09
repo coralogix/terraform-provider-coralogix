@@ -22,7 +22,6 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/google/uuid"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -4054,7 +4053,7 @@ func testAccCoralogixResourceAlertGroupByKeysPhantom() string {
 }
 
 func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
-	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -4073,6 +4072,13 @@ func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-destinations-delete"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "0"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.notify_on", "Triggered Only"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertDestinationsPhantom(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-destinations-delete"),
+					resource.TestCheckResourceAttr(alertResourceName, "phantom_mode", "true"),
 				),
 			},
 		},
@@ -4191,5 +4197,34 @@ func testAccCoralogixResourceAlertDestinationsCleared(name string) string {
       }
     }
   }
+`
+}
+
+func testAccCoralogixResourceAlertDestinationsPhantom() string {
+	return `resource "coralogix_alert" "test" {
+  name         = "issue-552-destinations-delete"
+  priority     = "P3"
+  phantom_mode = true
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(increase(calls_total{}[2m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 1000
+          for_over_pct   = 100
+          of_the_last    = "5m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+        override = { priority = "P3" }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
 `
 }

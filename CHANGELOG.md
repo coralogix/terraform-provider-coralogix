@@ -2,7 +2,7 @@
 
 #### resource/coralogix_alert
 
-- FIX: Stop persisting `notification_group.group_by_keys` and `notification_group.destinations` after they are removed from configuration. Previously, removing either attribute from HCL silently kept the prior value in state, so the backend was never told to clear it — moving an alert to watch-only (`phantom_mode = true`) and dropping the notification group in a single apply required two applies to actually take effect. Mirrors the fix in #510 for the sibling `webhooks_settings`.
+- FIX: Stop persisting `notification_group.group_by_keys` and `notification_group.destinations` after they are removed from configuration. Previously, removing either attribute from HCL silently kept the prior value in state, so the backend was never told to clear it — moving an alert to watch-only (`phantom_mode = true`) and dropping the notification group in a single apply required two applies to actually take effect. Mirrors the fix in #510 for the sibling `webhooks_settings`. Both attributes now reject an explicit empty list at plan time (use omission or `notification_group = { router = {...} }` instead).
 - FIX: Stop injecting `router.id = "router_default"` on the `notification_group.router` API request when the user omits an id from config. Empty `router = {}` now sends an empty-router block (no `id`), so the API performs label-based Global Router matching as documented. Previously the hard-coded default bypassed label-based routing entirely.
 
 #### resource/coralogix_quota_allocation_rule_set, data_source/coralogix_quota_allocation_rule_set

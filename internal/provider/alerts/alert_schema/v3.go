@@ -21,6 +21,7 @@ import (
 	alerttypes "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_types"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -727,6 +728,9 @@ func V3() schema.Schema {
 					"group_by_keys": schema.ListAttribute{
 						Optional:    true,
 						ElementType: types.StringType,
+						Validators: []validator.List{
+							listvalidator.SizeAtLeast(1),
+						},
 					},
 					"webhooks_settings": schema.SetNestedAttribute{
 						Optional: true,
@@ -772,6 +776,9 @@ func V3() schema.Schema {
 					"destinations": schema.ListNestedAttribute{
 						Optional:            true,
 						MarkdownDescription: "Link a 3rd party notification to an alert.",
+						Validators: []validator.List{
+							listvalidator.SizeAtLeast(1),
+						},
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"connector_id": schema.StringAttribute{
