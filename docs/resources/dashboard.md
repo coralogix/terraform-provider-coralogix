@@ -157,7 +157,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 10
               },
             ]
           },
@@ -199,7 +198,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 10
               },
               {
                 title = "gauge"
@@ -252,7 +250,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 0
               },
               {
                 title = "Last failed SF queries DBs"
@@ -286,7 +283,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 0
               },
               {
                 title = "Avg configuration service query times"
@@ -687,7 +683,6 @@ resource "coralogix_dashboard" "widgets" {
               }
             }
           }
-          width = 0
         }]
       }]
     }]
@@ -1168,7 +1163,7 @@ Optional:
 
 - `description` (String) Widget description.
 - `title` (String) Widget title. Required for all widgets except markdown.
-- `width` (Number) The width of the chart.
+- `width` (Number, Deprecated) Deprecated: the widget appearance.width field is ignored by the API and has no effect.
 
 Read-Only:
 

@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+
+- FIX: Drop the `Default(0)` and add `UseStateForUnknown()` on the widget `width` attribute so an unset width no longer produces a perpetual `width = 0` drift after every apply. The field is deprecated and ignored by the API; a `DeprecationMessage` now surfaces this to users.
 #### resource/coralogix_events2metric
 
 - FIX: `Create` now returns immediately after `resp.Diagnostics.AddError` so a backend rejection no longer poisons state with an empty-ID record (which subsequently resolved server-side to an arbitrary unrelated E2M).
