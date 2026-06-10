@@ -1076,6 +1076,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																			"label_name":  stringOrVariableSchema(),
 																			"label_filters": schema.ListNestedAttribute{
 																				Optional: true,
+																				PlanModifiers: []planmodifier.List{
+																					NormalizeEmptyListToNull{},
+																				},
 																				NestedObject: schema.NestedAttributeObject{
 																					Attributes: map[string]schema.Attribute{
 																						"metric": stringOrVariableSchema(),
@@ -1091,6 +1094,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																								},
 																								"selected_values": schema.ListNestedAttribute{
 																									Optional: true,
+																									PlanModifiers: []planmodifier.List{
+																										NormalizeEmptyListToNull{},
+																									},
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: stringOrVariableAttr(),
 																									},
