@@ -110,6 +110,34 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceDashboardAccessPolicy(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()) +
+					testAccCoralogixDataSourceDashboard_read(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "access_policy", testAccCoralogixDashboardAccessPolicyCanonical()),
+					resource.TestCheckResourceAttr(dashboardDataSourceName, "access_policy", testAccCoralogixDashboardAccessPolicyCanonical()),
+				),
+			},
+			{
+				Config:   testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyReordered()),
+				PlanOnly: true,
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -842,6 +870,80 @@ layout = {
 }
 }
 `, widget)
+}
+
+func testAccCoralogixResourceDashboardWithAccessPolicy(accessPolicy string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" test {
+  name = "test-access-policy"
+
+  access_policy = <<EOT
+%s
+EOT
+
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [
+          %s
+        ]
+      }]
+    }]
+  }
+}
+`, accessPolicy, testAccCoralogixResourceDashboardCountWidget())
+}
+
+func testAccCoralogixDashboardAccessPolicyPretty() string {
+	return `{
+  "version": "2025-01-01",
+  "default": {
+    "permissions": {
+      "team-dashboards:UpdateAccessPolicy": "grant",
+      "team-dashboards:Read": "grant",
+      "team-dashboards:Update": "grant",
+      "team-dashboards:ReadAccessPolicy": "grant"
+    }
+  },
+  "rules": []
+}`
+}
+
+func testAccCoralogixDashboardAccessPolicyReordered() string {
+	return `{"rules":[],"default":{"permissions":{"team-dashboards:Update":"grant","team-dashboards:ReadAccessPolicy":"grant","team-dashboards:UpdateAccessPolicy":"grant","team-dashboards:Read":"grant"}},"version":"2025-01-01"}`
+}
+
+func testAccCoralogixDashboardAccessPolicyCanonical() string {
+	return `{"default":{"permissions":{"team-dashboards:Read":"grant","team-dashboards:ReadAccessPolicy":"grant","team-dashboards:Update":"grant","team-dashboards:UpdateAccessPolicy":"grant"}},"rules":[],"version":"2025-01-01"}`
+}
+
+func testAccCoralogixResourceDashboardCountWidget() string {
+	return `{
+  title = "count"
+  definition = {
+    line_chart = {
+      query_definitions = [{
+        query = {
+          logs = {
+            aggregations = [{
+              type = "count"
+            }]
+          }
+        }
+      }]
+      legend = {
+        is_visible = false
+      }
+    }
+  }
+  width = 0
+}`
 }
 
 func TestAccCoralogixResourceDashboardLayoutColor(t *testing.T) {

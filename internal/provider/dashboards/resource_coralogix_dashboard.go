@@ -48,17 +48,18 @@ var (
 )
 
 type DashboardResourceModel struct {
-	ID          types.String                     `tfsdk:"id"`
-	Name        types.String                     `tfsdk:"name"`
-	Description types.String                     `tfsdk:"description"`
-	Layout      types.Object                     `tfsdk:"layout"`    //DashboardLayoutModel
-	Variables   types.List                       `tfsdk:"variables"` //DashboardVariableModel
-	Filters     types.List                       `tfsdk:"filters"`   //DashboardFilterModel
-	TimeFrame   *dashboardwidgets.TimeFrameModel `tfsdk:"time_frame"`
-	Folder      types.Object                     `tfsdk:"folder"`       //DashboardFolderModel
-	Annotations types.List                       `tfsdk:"annotations"`  //DashboardAnnotationModel
-	AutoRefresh types.Object                     `tfsdk:"auto_refresh"` //DashboardAutoRefreshModel
-	ContentJson types.String                     `tfsdk:"content_json"`
+	ID           types.String                     `tfsdk:"id"`
+	Name         types.String                     `tfsdk:"name"`
+	Description  types.String                     `tfsdk:"description"`
+	Layout       types.Object                     `tfsdk:"layout"`    //DashboardLayoutModel
+	Variables    types.List                       `tfsdk:"variables"` //DashboardVariableModel
+	Filters      types.List                       `tfsdk:"filters"`   //DashboardFilterModel
+	TimeFrame    *dashboardwidgets.TimeFrameModel `tfsdk:"time_frame"`
+	Folder       types.Object                     `tfsdk:"folder"`       //DashboardFolderModel
+	Annotations  types.List                       `tfsdk:"annotations"`  //DashboardAnnotationModel
+	AutoRefresh  types.Object                     `tfsdk:"auto_refresh"` //DashboardAutoRefreshModel
+	ContentJson  types.String                     `tfsdk:"content_json"`
+	AccessPolicy types.String                     `tfsdk:"access_policy"`
 }
 
 type DashboardLayoutModel struct {
@@ -326,7 +327,7 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 	}
 	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
 
-	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp.GetDashboard())
+	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp)
 	if diags != nil {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -694,7 +695,8 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	createDashboardReq := &cxsdk.CreateDashboardRequest{
-		Dashboard: dashboard,
+		Dashboard:    dashboard,
+		AccessPolicy: dashboardAccessPolicyForRequest(plan.AccessPolicy),
 	}
 	dashboardStr := protojson.Format(createDashboardReq)
 	log.Printf("[INFO] Creating new Dashboard: %s", dashboardStr)
@@ -724,7 +726,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	createDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
 	log.Printf("[INFO] Submitted new Dashboard: %s", createDashboardRespStr)
 
-	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp.GetDashboard())
+	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -734,6 +736,14 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
+}
+
+func dashboardAccessPolicyForRequest(accessPolicy types.String) *string {
+	if accessPolicy.IsNull() || accessPolicy.IsUnknown() {
+		return nil
+	}
+
+	return accessPolicy.ValueStringPointer()
 }
 
 func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*cxsdk.Dashboard, diag.Diagnostics) {
@@ -3117,8 +3127,13 @@ func expandDashboardFolder(ctx context.Context, dashboard *cxsdk.Dashboard, fold
 	return dashboard, nil
 }
 
-func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboard *cxsdk.Dashboard) (*DashboardResourceModel, diag.Diagnostics) {
+func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response *cxsdk.GetDashboardResponse) (*DashboardResourceModel, diag.Diagnostics) {
+	dashboard := response.GetDashboard()
 	folder, diags := flattenDashboardFolder(ctx, plan.Folder, dashboard)
+	if diags.HasError() {
+		return nil, diags
+	}
+	flattenedAccessPolicy, diags := flattenDashboardAccessPolicy(response.AccessPolicy)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3145,17 +3160,18 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		//}
 
 		return &DashboardResourceModel{
-			ContentJson: types.StringValue(plan.ContentJson.ValueString()),
-			ID:          types.StringValue(dashboard.GetId().GetValue()),
-			Name:        types.StringNull(),
-			Description: types.StringNull(),
-			Layout:      types.ObjectNull(layoutModelAttr()),
-			Variables:   types.ListNull(types.ObjectType{AttrTypes: dashboardsVariablesModelAttr()}),
-			Filters:     types.ListNull(types.ObjectType{AttrTypes: dashboardsFiltersModelAttr()}),
-			TimeFrame:   nil,
-			Folder:      folder,
-			Annotations: types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}),
-			AutoRefresh: types.ObjectNull(dashboardAutoRefreshModelAttr()),
+			ContentJson:  types.StringValue(plan.ContentJson.ValueString()),
+			ID:           types.StringValue(dashboard.GetId().GetValue()),
+			Name:         types.StringNull(),
+			Description:  types.StringNull(),
+			Layout:       types.ObjectNull(layoutModelAttr()),
+			Variables:    types.ListNull(types.ObjectType{AttrTypes: dashboardsVariablesModelAttr()}),
+			Filters:      types.ListNull(types.ObjectType{AttrTypes: dashboardsFiltersModelAttr()}),
+			TimeFrame:    nil,
+			Folder:       folder,
+			Annotations:  types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}),
+			AutoRefresh:  types.ObjectNull(dashboardAutoRefreshModelAttr()),
+			AccessPolicy: flattenedAccessPolicy,
 		}, nil
 	}
 
@@ -3191,18 +3207,35 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 	}
 
 	return &DashboardResourceModel{
-		ID:          types.StringValue(dashboard.GetId().GetValue()),
-		Name:        utils.WrapperspbStringToTypeString(dashboard.GetName()),
-		Description: utils.WrapperspbStringToTypeString(dashboard.GetDescription()),
-		Layout:      layout,
-		Variables:   variables,
-		Filters:     filters,
-		TimeFrame:   timeFrame,
-		Folder:      folder,
-		Annotations: annotations,
-		AutoRefresh: autoRefresh,
-		ContentJson: types.StringNull(),
+		ID:           types.StringValue(dashboard.GetId().GetValue()),
+		Name:         utils.WrapperspbStringToTypeString(dashboard.GetName()),
+		Description:  utils.WrapperspbStringToTypeString(dashboard.GetDescription()),
+		Layout:       layout,
+		Variables:    variables,
+		Filters:      filters,
+		TimeFrame:    timeFrame,
+		Folder:       folder,
+		Annotations:  annotations,
+		AutoRefresh:  autoRefresh,
+		ContentJson:  types.StringNull(),
+		AccessPolicy: flattenedAccessPolicy,
 	}, nil
+}
+
+func flattenDashboardAccessPolicy(accessPolicy *string) (types.String, diag.Diagnostics) {
+	if accessPolicy == nil {
+		return types.StringNull(), nil
+	}
+	if *accessPolicy == "" {
+		return types.StringValue(""), nil
+	}
+
+	canonicalAccessPolicy, diags := dashboardschema.CanonicalizeDashboardAccessPolicyJSON(*accessPolicy)
+	if diags.HasError() {
+		return types.StringNull(), diags
+	}
+
+	return types.StringValue(canonicalAccessPolicy), nil
 }
 
 func flattenDashboardLayout(ctx context.Context, layout *cxsdk.DashboardLayout) (types.Object, diag.Diagnostics) {
@@ -6055,7 +6088,7 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
 
-	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp.GetDashboard())
+	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp)
 	if diags != nil {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -6081,7 +6114,10 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	updateReq := &cxsdk.ReplaceDashboardRequest{Dashboard: dashboard}
+	updateReq := &cxsdk.ReplaceDashboardRequest{
+		Dashboard:    dashboard,
+		AccessPolicy: dashboardAccessPolicyForRequest(plan.AccessPolicy),
+	}
 	reqStr := protojson.Format(updateReq)
 	log.Printf("[INFO] Updating Dashboard: %s", reqStr)
 	_, err := r.client.Replace(ctx, updateReq)
@@ -6110,7 +6146,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	updateDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
 	log.Printf("[INFO] Submitted updated Dashboard: %s", updateDashboardRespStr)
 
-	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp.GetDashboard())
+	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

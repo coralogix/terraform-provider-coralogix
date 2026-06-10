@@ -21,6 +21,7 @@ Coralogix Custom Dashboard. For more info please review - https://coralogix.com/
 
 ### Read-Only
 
+- `access_policy` (String) JSON-encoded access policy for this dashboard.
 - `annotations` (Attributes List) (see [below for nested schema](#nestedatt--annotations))
 - `auto_refresh` (Attributes) (see [below for nested schema](#nestedatt--auto_refresh))
 - `content_json` (String) an option to set the dashboard content from a json file.

@@ -1326,5 +1326,13 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 			},
 			Description: "an option to set the dashboard content from a json file.",
 		},
+		"access_policy": schema.StringAttribute{
+			Optional: true,
+			Computed: true,
+			PlanModifiers: []planmodifier.String{
+				DashboardAccessPolicyCanonicalJSONPlanModifier{},
+			},
+			MarkdownDescription: "JSON-encoded access policy for this dashboard.",
+		},
 	}
 }
