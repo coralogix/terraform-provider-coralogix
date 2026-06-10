@@ -69,3 +69,4 @@ dist/
 
 # Claude Code per-user settings (allow-lists, model overrides, etc.)
 .claude/settings.local.json
+.envrc
