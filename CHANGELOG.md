@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+
+- DOCS: Clarify when to use `observation_field` over the bare `field` string in logs filters, logs aggregations, and dashboard variables. `observation_field` is required for flat field identifiers whose name contains literal dots (e.g. `log.level`) and for disambiguating fields that share a name across multiple scopes; the bare `field` value is resolved by the backend via dot-split, which silently fails to match literal-dot identifiers.
+
 #### resource/coralogix_alert
 
 - FIX: `tracing_filter.latency_threshold_ms` no longer drifts to a rounded value after apply. The flatten path was using `big.ParseFloat` with a 10-bit precision argument, which silently rounded values whose mantissa exceeded 10 bits (e.g. `30000` → `30016`, `50000` → `49984`), causing "Provider produced inconsistent result after apply" on v2→v3 migrations. Switched to `strconv.ParseInt` + `big.Float.SetInt64`, matching the pattern already used in this file for `MaxUniqueCountPerGroupByKey` and `TimeframeMs`.
