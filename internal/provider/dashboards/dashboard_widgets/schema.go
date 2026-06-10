@@ -34,14 +34,16 @@ import (
 func ObservationFieldSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"keypath": schema.ListAttribute{
-			ElementType: types.StringType,
-			Required:    true,
+			ElementType:         types.StringType,
+			Required:            true,
+			MarkdownDescription: "Ordered path segments. Single element for literal-dot identifiers (`[\"log.level\"]`); multiple elements for nested paths (`[\"meta\",\"responseTime\"]`).",
 		},
 		"scope": schema.StringAttribute{
 			Required: true,
 			Validators: []validator.String{
 				stringvalidator.OneOf(DashboardValidObservationFieldScope...),
 			},
+			MarkdownDescription: "Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).",
 		},
 	}
 }
@@ -243,8 +245,9 @@ func LogsAggregationAttributes() map[string]schema.Attribute {
 			MarkdownDescription: "The percentage of the aggregation to return. required when type is `percentile`.",
 		},
 		"observation_field": schema.SingleNestedAttribute{
-			Attributes: ObservationFieldSchema(),
-			Optional:   true,
+			Attributes:          ObservationFieldSchema(),
+			Optional:            true,
+			MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 		},
 	}
 }
@@ -295,8 +298,9 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 				},
 				"operator": FilterOperatorSchema(),
 				"observation_field": schema.SingleNestedAttribute{
-					Attributes: ObservationFieldSchema(),
-					Optional:   true,
+					Attributes:          ObservationFieldSchema(),
+					Optional:            true,
+					MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 				},
 			},
 		},
@@ -328,8 +332,9 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 				},
 				"operator": FilterOperatorSchema(),
 				"observation_field": schema.SingleNestedAttribute{
-					Attributes: ObservationFieldSchema(),
-					Optional:   true,
+					Attributes:          ObservationFieldSchema(),
+					Optional:            true,
+					MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 				},
 			},
 			Optional: true,
