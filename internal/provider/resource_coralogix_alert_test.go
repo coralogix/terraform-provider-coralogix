@@ -3939,7 +3939,7 @@ func TestAccCoralogixResourceAlert_group_by_keys_deletion(t *testing.T) {
 				Config: testAccCoralogixResourceAlertGroupByKeysCleared(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-group-by-keys-delete"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.group_by_keys.#", "0"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "notification_group.group_by_keys.#"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.notify_on", "Triggered Only"),
 				),
 			},
@@ -4070,7 +4070,7 @@ func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
 				Config: testAccCoralogixResourceAlertDestinationsCleared(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-destinations-delete"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "0"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "notification_group.destinations.#"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.notify_on", "Triggered Only"),
 				),
 			},
