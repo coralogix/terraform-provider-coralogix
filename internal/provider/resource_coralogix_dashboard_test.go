@@ -29,6 +29,7 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -512,6 +513,54 @@ func TestAccCoralogixResourceDashboardFromJsonWithFolder(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccCoralogixResourceDashboardFolderIDNoDrift(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardFolderIDNoDrift(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "folder.id"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceDashboardFolderIDNoDrift() string {
+	return `
+resource "coralogix_dashboards_folder" "test_folder" {
+  name = "issue-426-folder-id-drift"
+}
+
+resource "coralogix_dashboard" "test" {
+  name        = "issue-426-folder-id-drift"
+  description = "Dashboard with folder.id should not drift on next plan"
+
+  layout = {
+    sections = []
+  }
+
+  folder = {
+    id = coralogix_dashboards_folder.test_folder.id
+  }
+}
+`
 }
 
 func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
