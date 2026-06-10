@@ -194,6 +194,7 @@ func ConvertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 	case resourceschema.StringAttribute:
 		return datasourceschema.StringAttribute{
 			Computed:            true,
+			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 		}

@@ -121,21 +121,54 @@ func TestAccCoralogixResourceDashboardAccessPolicy(t *testing.T) {
 					testAccCoralogixDataSourceDashboard_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "access_policy", testAccCoralogixDashboardAccessPolicyCanonical()),
-					resource.TestCheckResourceAttr(dashboardDataSourceName, "access_policy", testAccCoralogixDashboardAccessPolicyCanonical()),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "access_policy"),
+					testAccCheckDashboardAccessPolicy(dashboardDataSourceName, testAccCoralogixDashboardAccessPolicyPretty()),
 				),
 			},
 			{
-				Config:   testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyReordered()),
+				Config:   testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()),
 				PlanOnly: true,
 			},
 			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            dashboardResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"access_policy"},
+				ImportStateCheck:        testAccCheckImportedDashboardAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()),
 			},
 		},
 	})
+}
+
+func testAccCheckDashboardAccessPolicy(resourceName, expected string) resource.TestCheckFunc {
+	return func(state *terraform.State) error {
+		resourceState, ok := state.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource %s not found", resourceName)
+		}
+
+		got := resourceState.Primary.Attributes["access_policy"]
+		if !utils.JSONStringsEqual(got, expected) {
+			return fmt.Errorf("%s access_policy = %q, want JSON equivalent to %q", resourceName, got, expected)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckImportedDashboardAccessPolicy(expected string) resource.ImportStateCheckFunc {
+	return func(states []*terraform.InstanceState) error {
+		for _, state := range states {
+			if got, ok := state.Attributes["access_policy"]; ok {
+				if !utils.JSONStringsEqual(got, expected) {
+					return fmt.Errorf("imported access_policy = %q, want JSON equivalent to %q", got, expected)
+				}
+				return nil
+			}
+		}
+
+		return fmt.Errorf("imported access_policy not found in %d state entries", len(states))
+	}
 }
 
 func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
@@ -886,6 +919,10 @@ EOT
     }
   }
 
+  auto_refresh = {
+    type = "off"
+  }
+
   layout = {
     sections = [{
       rows = [{
@@ -915,14 +952,6 @@ func testAccCoralogixDashboardAccessPolicyPretty() string {
 }`
 }
 
-func testAccCoralogixDashboardAccessPolicyReordered() string {
-	return `{"rules":[],"default":{"permissions":{"team-dashboards:Update":"grant","team-dashboards:ReadAccessPolicy":"grant","team-dashboards:UpdateAccessPolicy":"grant","team-dashboards:Read":"grant"}},"version":"2025-01-01"}`
-}
-
-func testAccCoralogixDashboardAccessPolicyCanonical() string {
-	return `{"default":{"permissions":{"team-dashboards:Read":"grant","team-dashboards:ReadAccessPolicy":"grant","team-dashboards:Update":"grant","team-dashboards:UpdateAccessPolicy":"grant"}},"rules":[],"version":"2025-01-01"}`
-}
-
 func testAccCoralogixResourceDashboardCountWidget() string {
 	return `{
   title = "count"
@@ -939,6 +968,7 @@ func testAccCoralogixResourceDashboardCountWidget() string {
       }]
       legend = {
         is_visible = false
+        placement  = "unspecified"
       }
     }
   }

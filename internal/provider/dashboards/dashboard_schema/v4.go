@@ -21,6 +21,7 @@ import (
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -1339,11 +1340,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 			Description: "an option to set the dashboard content from a json file.",
 		},
 		"access_policy": schema.StringAttribute{
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []planmodifier.String{
-				DashboardAccessPolicyCanonicalJSONPlanModifier{},
-			},
+			Optional:            true,
+			Computed:            true,
+			CustomType:          jsontypes.NormalizedType{},
 			MarkdownDescription: "JSON-encoded access policy for this dashboard.",
 		},
 	}

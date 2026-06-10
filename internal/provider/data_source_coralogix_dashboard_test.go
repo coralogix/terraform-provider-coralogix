@@ -47,7 +47,7 @@ func TestAccCoralogixDataSourceDashboardAccessPolicy(t *testing.T) {
 				Config: testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()) +
 					testAccCoralogixDataSourceDashboard_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(dashboardDataSourceName, "access_policy", testAccCoralogixDashboardAccessPolicyCanonical()),
+					testAccCheckDashboardAccessPolicy(dashboardDataSourceName, testAccCoralogixDashboardAccessPolicyPretty()),
 				),
 			},
 		},

@@ -28,6 +28,7 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
+	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -59,7 +60,7 @@ type DashboardResourceModel struct {
 	Annotations  types.List                       `tfsdk:"annotations"`  //DashboardAnnotationModel
 	AutoRefresh  types.Object                     `tfsdk:"auto_refresh"` //DashboardAutoRefreshModel
 	ContentJson  types.String                     `tfsdk:"content_json"`
-	AccessPolicy types.String                     `tfsdk:"access_policy"`
+	AccessPolicy jsontypes.Normalized             `tfsdk:"access_policy"`
 }
 
 type DashboardLayoutModel struct {
@@ -738,7 +739,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	resp.Diagnostics.Append(diags...)
 }
 
-func dashboardAccessPolicyForRequest(accessPolicy types.String) *string {
+func dashboardAccessPolicyForRequest(accessPolicy jsontypes.Normalized) *string {
 	if accessPolicy.IsNull() || accessPolicy.IsUnknown() {
 		return nil
 	}
@@ -3222,20 +3223,11 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response
 	}, nil
 }
 
-func flattenDashboardAccessPolicy(accessPolicy *string) (types.String, diag.Diagnostics) {
+func flattenDashboardAccessPolicy(accessPolicy *string) (jsontypes.Normalized, diag.Diagnostics) {
 	if accessPolicy == nil {
-		return types.StringNull(), nil
+		return jsontypes.NewNormalizedNull(), nil
 	}
-	if *accessPolicy == "" {
-		return types.StringValue(""), nil
-	}
-
-	canonicalAccessPolicy, diags := dashboardschema.CanonicalizeDashboardAccessPolicyJSON(*accessPolicy)
-	if diags.HasError() {
-		return types.StringNull(), diags
-	}
-
-	return types.StringValue(canonicalAccessPolicy), nil
+	return jsontypes.NewNormalizedValue(*accessPolicy), nil
 }
 
 func flattenDashboardLayout(ctx context.Context, layout *cxsdk.DashboardLayout) (types.Object, diag.Diagnostics) {
