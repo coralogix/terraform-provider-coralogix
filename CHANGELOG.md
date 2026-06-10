@@ -3,16 +3,31 @@
 #### resource/coralogix_dashboard
 
 - FEAT: Add support for dashboard `access_policy`.
+- FIX: Stop perpetual drift on the `line_chart.stacked_line` attribute when it is omitted from config. The attribute now defaults to `"unspecified"` (matching the sibling `scale_type` / `data_mode_type` pattern), so plans no longer mark it `(known after apply)` on every cycle.
+- FIX: Eliminate "Provider produced inconsistent result after apply" on `layout.sections[*].id`, `layout.sections[*].rows[*].id`, and `layout.sections[*].rows[*].widgets[*].id` by marking the `id` attributes `Optional+Computed` so the provider-generated UUID can round-trip on first Create (#505).
+- FIX: `layout.sections[*].options.collapsed` now reflects the API value instead of being forced to `null` whenever `description` is unset (typo in flatten nil-guard) (#505).
+- FIX: Drop the `Default(0)` and add `UseStateForUnknown()` on the widget `width` attribute so an unset width no longer produces a perpetual `width = 0` drift after every apply. The field is deprecated and ignored by the API; a `DeprecationMessage` now surfaces this to users.
+
+#### resource/coralogix_events2metric
+
+- FIX: `Create` now returns immediately after `resp.Diagnostics.AddError` so a backend rejection no longer poisons state with an empty-ID record (which subsequently resolved server-side to an arbitrary unrelated E2M).
 
 #### resource/coralogix_alert
 
+- FIX: `schedule.active_on` now accepts overnight windows (e.g. `start_time = "22:00"`, `end_time = "08:00"`). The provider was rejecting them with "End time is before start time" because both values get parsed against Go's zero date, making any earlier-clock-time end_time appear "before" start_time. The Coralogix API has no such ordering constraint.
+- FIX: `tracing_filter.latency_threshold_ms` no longer drifts to a rounded value after apply. The flatten path was using `big.ParseFloat` with a 10-bit precision argument, which silently rounded values whose mantissa exceeded 10 bits (e.g. `30000` → `30016`, `50000` → `49984`), causing "Provider produced inconsistent result after apply" on v2→v3 migrations. Switched to `strconv.ParseInt` + `big.Float.SetInt64`, matching the pattern already used in this file for `MaxUniqueCountPerGroupByKey` and `TimeframeMs`.
 - FIX: Stop injecting `router.id = "router_default"` on the `notification_group.router` API request when the user omits an id from config. Empty `router = {}` now sends an empty-router block (no `id`), so the API performs label-based Global Router matching as documented. Previously the hard-coded default bypassed label-based routing entirely.
+- FIX: `notification_group.{group_by_keys, destinations}` now actually clear on update. Removing either attribute from HCL (or the whole `notification_group` block) used to silently re-send the prior state value to the API because both attributes were `Optional+Computed` with `UseStateForUnknown()`. Dropped `Computed` and the plan modifier on both sub-attributes; an explicit empty literal (`group_by_keys = []` or `destinations = []`) is now rejected at plan time with `listvalidator.SizeAtLeast(1)` — omit the attribute or use the router-only form to clear. Re-applies #553, which was accidentally reverted by the recovery force-push on #549.
 
 #### resource/coralogix_quota_allocation_rule_set, data_source/coralogix_quota_allocation_rule_set
 
 - FEAT: Add support for managing and reading account-level quota allocation rule sets.
 - FEAT: Support `allocation_type` on quota allocation rules and expose read-only `cx_managed` from the quota allocation data source.
 - FIX: Treat delete as successful when the backend clears the singleton quota allocation rule set but returns an error response.
+
+#### resource/coralogix_dashboard
+
+- FIX: Avoid "provider produced inconsistent result after apply" when a `variables[*].definition.multi_select.source.query.query.metrics.label_value` block is configured without `label_filters` (or without `operator.selected_values`) — flatten now returns null for empty backend slices instead of an empty list.
 
 # Release 3.4.2
 

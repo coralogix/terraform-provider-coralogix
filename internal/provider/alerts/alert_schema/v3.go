@@ -21,6 +21,7 @@ import (
 	alerttypes "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_types"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -31,7 +32,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
@@ -727,10 +727,9 @@ func V3() schema.Schema {
 				Attributes: map[string]schema.Attribute{
 					"group_by_keys": schema.ListAttribute{
 						Optional:    true,
-						Computed:    true,
 						ElementType: types.StringType,
-						PlanModifiers: []planmodifier.List{
-							listplanmodifier.UseStateForUnknown(),
+						Validators: []validator.List{
+							listvalidator.SizeAtLeast(1),
 						},
 					},
 					"webhooks_settings": schema.SetNestedAttribute{
@@ -775,12 +774,11 @@ func V3() schema.Schema {
 						},
 					},
 					"destinations": schema.ListNestedAttribute{
-						Optional: true,
-						Computed: true,
-						PlanModifiers: []planmodifier.List{
-							listplanmodifier.UseStateForUnknown(),
-						},
+						Optional:            true,
 						MarkdownDescription: "Link a 3rd party notification to an alert.",
+						Validators: []validator.List{
+							listvalidator.SizeAtLeast(1),
+						},
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"connector_id": schema.StringAttribute{

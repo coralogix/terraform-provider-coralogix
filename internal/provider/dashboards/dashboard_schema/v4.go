@@ -29,7 +29,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -71,6 +71,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 					NestedObject: schema.NestedAttributeObject{
 						Attributes: map[string]schema.Attribute{
 							"id": schema.StringAttribute{
+								Optional: true,
 								Computed: true,
 								PlanModifiers: []planmodifier.String{
 									stringplanmodifier.UseStateForUnknown(),
@@ -80,6 +81,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"id": schema.StringAttribute{
+											Optional: true,
 											Computed: true,
 											PlanModifiers: []planmodifier.String{
 												stringplanmodifier.UseStateForUnknown(),
@@ -97,6 +99,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 											NestedObject: schema.NestedAttributeObject{
 												Attributes: map[string]schema.Attribute{
 													"id": schema.StringAttribute{
+														Optional: true,
 														Computed: true,
 														PlanModifiers: []planmodifier.String{
 															stringplanmodifier.UseStateForUnknown(),
@@ -899,10 +902,13 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 														MarkdownDescription: fmt.Sprintf("The widget definition. Can contain one of %v", dashboardwidgets.SupportedWidgetTypes),
 													},
 													"width": schema.Int64Attribute{
-														Optional:            true,
-														Computed:            true,
-														Default:             int64default.StaticInt64(0),
-														MarkdownDescription: "The width of the chart.",
+														Optional: true,
+														Computed: true,
+														PlanModifiers: []planmodifier.Int64{
+															int64planmodifier.UseStateForUnknown(),
+														},
+														DeprecationMessage:  "Widget appearance.width is ignored by the API and has no effect.",
+														MarkdownDescription: "Deprecated: the widget appearance.width field is ignored by the API and has no effect.",
 													},
 												},
 											},
@@ -1073,6 +1079,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																			"label_name":  stringOrVariableSchema(),
 																			"label_filters": schema.ListNestedAttribute{
 																				Optional: true,
+																				PlanModifiers: []planmodifier.List{
+																					NormalizeEmptyListToNull{},
+																				},
 																				NestedObject: schema.NestedAttributeObject{
 																					Attributes: map[string]schema.Attribute{
 																						"metric": stringOrVariableSchema(),
@@ -1088,6 +1097,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																								},
 																								"selected_values": schema.ListNestedAttribute{
 																									Optional: true,
+																									PlanModifiers: []planmodifier.List{
+																										NormalizeEmptyListToNull{},
+																									},
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: stringOrVariableAttr(),
 																									},

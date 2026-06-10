@@ -154,7 +154,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 10
               },
             ]
           },
@@ -196,7 +195,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 10
               },
               {
                 title = "gauge"
@@ -249,7 +247,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 0
               },
               {
                 title = "Last failed SF queries DBs"
@@ -283,7 +280,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 0
               },
               {
                 title = "Avg configuration service query times"
@@ -684,7 +680,6 @@ resource "coralogix_dashboard" "widgets" {
               }
             }
           }
-          width = 0
         }]
       }]
     }]

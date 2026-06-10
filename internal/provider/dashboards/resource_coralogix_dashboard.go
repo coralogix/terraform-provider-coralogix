@@ -3956,7 +3956,7 @@ func flattenDashboardOptions(_ context.Context, opts *cxsdk.DashboardSectionOpti
 	}
 
 	var collapsed basetypes.BoolValue
-	if opts.GetCustom().Description != nil {
+	if opts.GetCustom().Collapsed != nil {
 		collapsed = types.BoolValue(opts.GetCustom().Collapsed.GetValue())
 	} else {
 		collapsed = types.BoolNull()
@@ -5318,6 +5318,10 @@ func flattenDashboardVariableDefinitionMultiSelectQueryMetricsLabelValueModel(ct
 }
 
 func flattenMultiSelectQueryMetricsQueryMetricsLabelFilters(ctx context.Context, filters []*cxsdk.MultiSelectQueryMetricsQueryMetricsLabelFilter) (types.List, diag.Diagnostics) {
+	if len(filters) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: multiSelectQueryLabelFilterAttr()}), nil
+	}
+
 	var diagnostics diag.Diagnostics
 	flattenedFilters := make([]attr.Value, 0)
 	for _, filter := range filters {
@@ -5391,6 +5395,10 @@ func flattenMultiSelectQueryMetricsQueryMetricsLabelFilterOperator(ctx context.C
 }
 
 func flattenMultiSelectQueryMetricsQueryOperatorSelectedValues(ctx context.Context, values []*cxsdk.MultiSelectQueryMetricsQueryStringOrVariable) (types.List, diag.Diagnostics) {
+	if len(values) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: multiSelectQueryStringOrValueAttr()}), nil
+	}
+
 	var diagnostics diag.Diagnostics
 	flattenedValues := make([]types.Object, 0)
 	for _, value := range values {

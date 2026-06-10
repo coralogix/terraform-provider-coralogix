@@ -51,6 +51,23 @@ var (
 	DaysOfWeekSchemaToProtoMap = utils.ReverseMap(DaysOfWeekProtoToSchemaMap)
 	ValidDaysOfWeek            = utils.GetKeys(DaysOfWeekSchemaToProtoMap)
 
+	daysOfWeekOrder = []alerts.DayOfWeek{
+		alerts.DAYOFWEEK_DAY_OF_WEEK_MONDAY_OR_UNSPECIFIED,
+		alerts.DAYOFWEEK_DAY_OF_WEEK_TUESDAY,
+		alerts.DAYOFWEEK_DAY_OF_WEEK_WEDNESDAY,
+		alerts.DAYOFWEEK_DAY_OF_WEEK_THURSDAY,
+		alerts.DAYOFWEEK_DAY_OF_WEEK_FRIDAY,
+		alerts.DAYOFWEEK_DAY_OF_WEEK_SATURDAY,
+		alerts.DAYOFWEEK_DAY_OF_WEEK_SUNDAY,
+	}
+	daysOfWeekIndex = func() map[alerts.DayOfWeek]int {
+		m := make(map[alerts.DayOfWeek]int, len(daysOfWeekOrder))
+		for i, d := range daysOfWeekOrder {
+			m[d] = i
+		}
+		return m
+	}()
+
 	LogFilterOperationTypeProtoToSchemaMap = map[alerts.LogFilterOperationType]string{
 		alerts.LOGFILTEROPERATIONTYPE_LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED: "IS",
 		alerts.LOGFILTEROPERATIONTYPE_LOG_FILTER_OPERATION_TYPE_INCLUDES:          "INCLUDES",
@@ -396,7 +413,7 @@ type LogsThresholdModel struct {
 	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
-	NoDataPolicy               types.Object `tfsdk:"no_data_policy"`              // NoDataPolicyModel
+	NoDataPolicy               types.Object `tfsdk:"no_data_policy"`               // NoDataPolicyModel
 	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
@@ -698,4 +715,21 @@ type SloThresholdDurationWrapperModel struct {
 type SloDurationModel struct {
 	Duration types.Int64  `tfsdk:"duration"`
 	Unit     types.String `tfsdk:"unit"`
+}
+
+func ShiftDaysOfWeek(days []alerts.DayOfWeek, shift int) []alerts.DayOfWeek {
+	if shift == 0 || len(days) == 0 {
+		return days
+	}
+	out := make([]alerts.DayOfWeek, len(days))
+	for i, d := range days {
+		idx, ok := daysOfWeekIndex[d]
+		if !ok {
+			out[i] = d
+			continue
+		}
+		newIdx := ((idx+shift)%7 + 7) % 7
+		out[i] = daysOfWeekOrder[newIdx]
+	}
+	return out
 }
