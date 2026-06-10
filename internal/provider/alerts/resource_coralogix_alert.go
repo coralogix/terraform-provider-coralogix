@@ -604,6 +604,12 @@ func expandAlertNotificationByRetriggeringPeriod(ctx context.Context, alertNotif
 	return alertNotification, nil
 }
 
+func dayDelta(from, to time.Time) int {
+	fromDay := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
+	toDay := time.Date(to.Year(), to.Month(), to.Day(), 0, 0, 0, 0, time.UTC)
+	return int(toDay.Sub(fromDay).Hours() / 24)
+}
+
 func expandActiveOnSchedule(ctx context.Context, scheduleObject types.Object) (*alerts.ActivitySchedule, diag.Diagnostics) {
 	if utils.ObjIsNullOrUnknown(scheduleObject) {
 		return nil, nil
@@ -645,9 +651,6 @@ func expandActiveOnSchedule(ctx context.Context, scheduleObject types.Object) (*
 	if e != nil {
 		diags.AddError("Failed to parse end time", e.Error())
 	}
-	if endTime.Before(startTime) {
-		diags.AddError("End time is before start time", "End time is before start time")
-	}
 
 	if diags.HasError() {
 		return nil, diags
@@ -659,6 +662,10 @@ func expandActiveOnSchedule(ctx context.Context, scheduleObject types.Object) (*
 	startMinute := int32(startTimeUtc.Minute())
 	endHour := int32(endTimeUtc.Hour())
 	endMinute := int32(endTimeUtc.Minute())
+
+	if dayShift := dayDelta(startTime, startTimeUtc); dayShift != 0 {
+		daysOfWeek = alerttypes.ShiftDaysOfWeek(daysOfWeek, dayShift)
+	}
 	return &alerts.ActivitySchedule{
 		DayOfWeek: daysOfWeek,
 		StartTime: &alerts.TimeOfDay{
@@ -4077,19 +4084,25 @@ func getActiveOn(alertProperties alerts.AlertDefProperties) (*alerts.ActivitySch
 }
 
 func flattenActiveOn(ctx context.Context, activeOn alerts.ActivitySchedule, utcOffset string) (types.Object, diag.Diagnostics) {
-	daysOfWeek, diags := flattenDaysOfWeek(ctx, activeOn.DayOfWeek)
-	if diags.HasError() {
-		return types.ObjectNull(alertschema.AlertScheduleActiveOnAttr()), diags
-	}
 	offset, err := time.Parse(OFFSET_FORMAT, utcOffset)
-
 	if err != nil {
 		return types.ObjectNull(alertschema.AlertScheduleActiveOnAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid UTC Offset", fmt.Sprintf("UTC Offset %v is not valid", utcOffset))}
 	}
 	zoneName, offsetSecs := offset.Zone() // Name is probably empty
 	zone := time.FixedZone(zoneName, offsetSecs)
-	startTime := time.Date(2021, 2, 1, int(*activeOn.StartTime.Hours), int(*activeOn.StartTime.Minutes), 0, 0, time.UTC).In(zone)
-	endTime := time.Date(2021, 2, 1, int(*activeOn.EndTime.Hours), int(*activeOn.EndTime.Minutes), 0, 0, time.UTC).In(zone)
+	startTimeUtc := time.Date(2021, 2, 1, int(*activeOn.StartTime.Hours), int(*activeOn.StartTime.Minutes), 0, 0, time.UTC)
+	endTimeUtc := time.Date(2021, 2, 1, int(*activeOn.EndTime.Hours), int(*activeOn.EndTime.Minutes), 0, 0, time.UTC)
+	startTime := startTimeUtc.In(zone)
+	endTime := endTimeUtc.In(zone)
+
+	daysOfWeekProto := activeOn.DayOfWeek
+	if dayShift := dayDelta(startTimeUtc, startTime); dayShift != 0 {
+		daysOfWeekProto = alerttypes.ShiftDaysOfWeek(daysOfWeekProto, dayShift)
+	}
+	daysOfWeek, diags := flattenDaysOfWeek(ctx, daysOfWeekProto)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.AlertScheduleActiveOnAttr()), diags
+	}
 
 	activeOnModel := alerttypes.ActiveOnModel{
 		DaysOfWeek: daysOfWeek,
@@ -4362,10 +4375,11 @@ func flattenTracingSimpleFilter(ctx context.Context, tracingQuery *alerts.Tracin
 	if diags.HasError() {
 		return types.ObjectNull(alertschema.TracingQueryAttr()), diags
 	}
-	latencyThresholdMs, _, err := big.ParseFloat(*tracingQuery.LatencyThresholdMs, 10, 10, big.ToNearestAway)
+	latencyRaw, err := strconv.ParseInt(*tracingQuery.LatencyThresholdMs, 10, 64)
 	if err != nil {
-		return types.ObjectNull(alertschema.TracingQueryAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid int64", "Expected latency threshold to be int64 convertible")}
+		return types.ObjectNull(alertschema.TracingQueryAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Latency Threshold Ms", fmt.Sprintf("Could not parse Latency Threshold Ms value '%s' to int64: %s", *tracingQuery.LatencyThresholdMs, err.Error()))}
 	}
+	latencyThresholdMs := new(big.Float).SetInt64(latencyRaw)
 	tracingQueryModel := &alerttypes.TracingFilterModel{
 		LatencyThresholdMs:  types.NumberValue(latencyThresholdMs),
 		TracingLabelFilters: labelFilters,

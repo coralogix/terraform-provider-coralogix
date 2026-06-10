@@ -28,8 +28,29 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+type NormalizeEmptyListToNull struct{}
+
+func (m NormalizeEmptyListToNull) Description(_ context.Context) string {
+	return "Treats an explicit empty list as null so the backend's equivalent representations don't trigger an inconsistent-result diff."
+}
+
+func (m NormalizeEmptyListToNull) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m NormalizeEmptyListToNull) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
+	if req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
+		return
+	}
+	if len(req.PlanValue.Elements()) == 0 {
+		resp.PlanValue = types.ListNull(req.PlanValue.ElementType(ctx))
+	}
+}
 
 var (
 	JSONUnmarshal = protojson.UnmarshalOptions{
