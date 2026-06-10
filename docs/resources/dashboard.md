@@ -3489,7 +3489,7 @@ Required:
 Optional:
 
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--legend))
-- `stacked_line` (String) Option to show lines as stacked. Possible values: absolute, relative
+- `stacked_line` (String) Option to show lines as stacked. Possible values: absolute, relative, unspecified
 - `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--tooltip))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions"></a>

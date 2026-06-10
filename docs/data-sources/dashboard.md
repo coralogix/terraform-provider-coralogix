@@ -2531,7 +2531,7 @@ Read-Only:
 
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--legend))
 - `query_definitions` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions))
-- `stacked_line` (String) Option to show lines as stacked. Possible values: absolute, relative
+- `stacked_line` (String) Option to show lines as stacked. Possible values: absolute, relative, unspecified
 - `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--tooltip))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--legend"></a>
