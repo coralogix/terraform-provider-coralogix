@@ -29,7 +29,10 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 var dashboardResourceName = "coralogix_dashboard.test"
@@ -128,6 +131,30 @@ func TestAccCoralogixResourceDashboardAccessPolicy(t *testing.T) {
 			{
 				Config:   testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()),
 				PlanOnly: true,
+			},
+			{
+				Config: testAccCoralogixResourceDashboardWithoutAccessPolicy("test-access-policy-updated") +
+					testAccCoralogixDataSourceDashboard_read(),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectKnownValue(
+							dashboardResourceName,
+							tfjsonpath.New("access_policy"),
+							knownvalue.StringFunc(func(got string) error {
+								if !utils.JSONStringsEqual(got, testAccCoralogixDashboardAccessPolicyPretty()) {
+									return fmt.Errorf("planned access_policy = %q, want JSON equivalent to %q", got, testAccCoralogixDashboardAccessPolicyPretty())
+								}
+
+								return nil
+							}),
+						),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "name", "test-access-policy-updated"),
+					testAccCheckDashboardAccessPolicy(dashboardResourceName, testAccCoralogixDashboardAccessPolicyPretty()),
+					testAccCheckDashboardAccessPolicy(dashboardDataSourceName, testAccCoralogixDashboardAccessPolicyPretty()),
+				),
 			},
 			{
 				ResourceName:            dashboardResourceName,
@@ -906,12 +933,24 @@ layout = {
 }
 
 func testAccCoralogixResourceDashboardWithAccessPolicy(accessPolicy string) string {
-	return fmt.Sprintf(`resource "coralogix_dashboard" test {
-  name = "test-access-policy"
-
-  access_policy = <<EOT
+	return testAccCoralogixResourceDashboardAccessPolicyConfig(
+		"test-access-policy",
+		fmt.Sprintf(`  access_policy = <<EOT
 %s
 EOT
+`, accessPolicy),
+	)
+}
+
+func testAccCoralogixResourceDashboardWithoutAccessPolicy(name string) string {
+	return testAccCoralogixResourceDashboardAccessPolicyConfig(name, "")
+}
+
+func testAccCoralogixResourceDashboardAccessPolicyConfig(name, accessPolicyBlock string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" test {
+  name = %q
+
+%s
 
   time_frame = {
     relative = {
@@ -934,7 +973,7 @@ EOT
     }]
   }
 }
-`, accessPolicy, testAccCoralogixResourceDashboardCountWidget())
+`, name, accessPolicyBlock, testAccCoralogixResourceDashboardCountWidget())
 }
 
 func testAccCoralogixDashboardAccessPolicyPretty() string {

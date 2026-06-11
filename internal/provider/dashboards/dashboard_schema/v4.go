@@ -1343,6 +1343,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 			Optional:            true,
 			Computed:            true,
 			CustomType:          jsontypes.NormalizedType{},
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			MarkdownDescription: "JSON-encoded access policy for this dashboard.",
 		},
 	}
