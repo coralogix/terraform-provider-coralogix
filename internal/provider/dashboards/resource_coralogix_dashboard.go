@@ -746,6 +746,14 @@ func dashboardAccessPolicyForRequest(accessPolicy types.String) *string {
 	return accessPolicy.ValueStringPointer()
 }
 
+func dashboardAccessPolicyForConfiguredRequest(configAccessPolicy, planAccessPolicy types.String) *string {
+	if configAccessPolicy.IsNull() {
+		return nil
+	}
+
+	return dashboardAccessPolicyForRequest(planAccessPolicy)
+}
+
 func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*cxsdk.Dashboard, diag.Diagnostics) {
 	if !plan.ContentJson.IsNull() {
 		dashboard := new(cxsdk.Dashboard)
@@ -6109,6 +6117,12 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var configAccessPolicy types.String
+	diags = req.Config.GetAttribute(ctx, path.Root("access_policy"), &configAccessPolicy)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	dashboard, diags := extractDashboard(ctx, plan)
 	if diags.HasError() {
@@ -6118,7 +6132,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 
 	updateReq := &cxsdk.ReplaceDashboardRequest{
 		Dashboard:    dashboard,
-		AccessPolicy: dashboardAccessPolicyForRequest(plan.AccessPolicy),
+		AccessPolicy: dashboardAccessPolicyForConfiguredRequest(configAccessPolicy, plan.AccessPolicy),
 	}
 	reqStr := protojson.Format(updateReq)
 	log.Printf("[INFO] Updating Dashboard: %s", reqStr)
