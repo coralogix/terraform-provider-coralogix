@@ -26,6 +26,7 @@
 #### resource/coralogix_dashboard
 
 - FIX: Avoid "provider produced inconsistent result after apply" when a `variables[*].definition.multi_select.source.query.query.metrics.label_value` block is configured without `label_filters` (or without `operator.selected_values`) — flatten now returns null for empty backend slices instead of an empty list.
+- FIX: `folder.id` and `folder.path` no longer perpetually show `(known after apply)` on plans after a successful apply. Dropped `Computed: true` from both inner attributes (they remain `Optional` with the existing `ExactlyOneOf` mutual-exclusion validator) and updated `flattenDashboardFolder` to mirror whichever field the user set in config, so state matches config cleanly on every refresh. Users whose state was previously double-populated with both `folder.id` and `folder.path` by the buggy flatten will see a one-time diff on the first plan after upgrade as the unused field returns to null; the subsequent apply self-heals.
 
 # Release 3.4.2
 
