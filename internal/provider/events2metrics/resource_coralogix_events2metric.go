@@ -871,6 +871,7 @@ func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 			"Error creating Events2Metric",
 			utils.FormatRpcErrors(err, cxsdk.E2MCreateRPC, protojson.Format(e2mCreateReq)),
 		)
+		return
 	}
 	log.Printf("[INFO] Submitted new Events2metric: %s", protojson.Format(e2mCreateResp))
 
@@ -890,6 +891,10 @@ func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 
 	//Get refreshed Events2Metric value from Coralogix
 	id := state.ID.ValueString()
+	if len(id) == 0 {
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	log.Printf("[INFO] Reading Events2metric: %s", id)
 	getE2MReq := &cxsdk.GetE2MRequest{Id: wrapperspb.String(id)}
 	getE2MResp, err := r.client.Get(ctx, getE2MReq)

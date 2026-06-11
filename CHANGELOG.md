@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_events2metric
+
+- FIX: A failed create no longer writes an empty-ID resource into Terraform state. The empty ID caused the next refresh to fetch an arbitrary Events2Metric (typically an internal one), which the subsequent plan would try to destroy and replace. Refresh now also drops legacy empty-ID entries from state instead of adopting an unrelated Events2Metric.
+
 #### resource/coralogix_alert
 
 - FIX: `schedule.active_on` now accepts overnight windows (e.g. `start_time = "22:00"`, `end_time = "08:00"`). The provider was rejecting them with "End time is before start time" because both values get parsed against Go's zero date, making any earlier-clock-time end_time appear "before" start_time. The Coralogix API has no such ordering constraint.
