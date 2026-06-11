@@ -553,7 +553,33 @@ resource "coralogix_dashboard" "test" {
   description = "Dashboard with folder.id should not drift on next plan"
 
   layout = {
-    sections = []
+    sections = [
+      {
+        rows = [
+          {
+            height = 19
+            widgets = [
+              {
+                title = "placeholder"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          metrics = {
+                            promql_query = "up"
+                          }
+                        }
+                      },
+                    ]
+                  }
+                }
+              },
+            ]
+          },
+        ]
+      },
+    ]
   }
 
   folder = {
