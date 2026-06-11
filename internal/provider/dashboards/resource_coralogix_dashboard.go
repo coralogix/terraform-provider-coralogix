@@ -28,7 +28,6 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
-	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -60,7 +59,7 @@ type DashboardResourceModel struct {
 	Annotations  types.List                       `tfsdk:"annotations"`  //DashboardAnnotationModel
 	AutoRefresh  types.Object                     `tfsdk:"auto_refresh"` //DashboardAutoRefreshModel
 	ContentJson  types.String                     `tfsdk:"content_json"`
-	AccessPolicy jsontypes.Normalized             `tfsdk:"access_policy"`
+	AccessPolicy types.String                     `tfsdk:"access_policy"`
 }
 
 type DashboardLayoutModel struct {
@@ -739,8 +738,8 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	resp.Diagnostics.Append(diags...)
 }
 
-func dashboardAccessPolicyForRequest(accessPolicy jsontypes.Normalized) *string {
-	if accessPolicy.IsNull() || accessPolicy.IsUnknown() {
+func dashboardAccessPolicyForRequest(accessPolicy types.String) *string {
+	if accessPolicy.IsNull() || accessPolicy.IsUnknown() || accessPolicy.ValueString() == "" {
 		return nil
 	}
 
@@ -3134,7 +3133,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response
 	if diags.HasError() {
 		return nil, diags
 	}
-	flattenedAccessPolicy, diags := flattenDashboardAccessPolicy(response.AccessPolicy)
+	flattenedAccessPolicy, diags := flattenDashboardAccessPolicy(plan.AccessPolicy, response.AccessPolicy)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3223,11 +3222,14 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response
 	}, nil
 }
 
-func flattenDashboardAccessPolicy(accessPolicy *string) (jsontypes.Normalized, diag.Diagnostics) {
+func flattenDashboardAccessPolicy(planAccessPolicy types.String, accessPolicy *string) (types.String, diag.Diagnostics) {
 	if accessPolicy == nil {
-		return jsontypes.NewNormalizedNull(), nil
+		return types.StringNull(), nil
 	}
-	return jsontypes.NewNormalizedValue(*accessPolicy), nil
+	if !planAccessPolicy.IsNull() && !planAccessPolicy.IsUnknown() && utils.JSONStringsEqual(planAccessPolicy.ValueString(), *accessPolicy) {
+		return planAccessPolicy, nil
+	}
+	return types.StringValue(*accessPolicy), nil
 }
 
 func flattenDashboardLayout(ctx context.Context, layout *cxsdk.DashboardLayout) (types.Object, diag.Diagnostics) {

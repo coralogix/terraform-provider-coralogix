@@ -21,7 +21,6 @@ import (
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -1342,8 +1341,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 		"access_policy": schema.StringAttribute{
 			Optional:            true,
 			Computed:            true,
-			CustomType:          jsontypes.NormalizedType{},
-			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			PlanModifiers:       []planmodifier.String{PreserveStateForEquivalentJSON{}, stringplanmodifier.UseStateForUnknown()},
 			MarkdownDescription: "JSON-encoded access policy for this dashboard.",
 		},
 	}

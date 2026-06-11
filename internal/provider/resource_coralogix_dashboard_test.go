@@ -133,6 +133,10 @@ func TestAccCoralogixResourceDashboardAccessPolicy(t *testing.T) {
 				PlanOnly: true,
 			},
 			{
+				Config:   testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyReorderedObjectKeys()),
+				PlanOnly: true,
+			},
+			{
 				Config: testAccCoralogixResourceDashboardWithoutAccessPolicy("test-access-policy-updated") +
 					testAccCoralogixDataSourceDashboard_read(),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -989,6 +993,10 @@ func testAccCoralogixDashboardAccessPolicyPretty() string {
   },
   "rules": []
 }`
+}
+
+func testAccCoralogixDashboardAccessPolicyReorderedObjectKeys() string {
+	return `{"rules":[],"default":{"permissions":{"team-dashboards:Update":"grant","team-dashboards:ReadAccessPolicy":"grant","team-dashboards:UpdateAccessPolicy":"grant","team-dashboards:Read":"grant"}},"version":"2025-01-01"}`
 }
 
 func testAccCoralogixResourceDashboardCountWidget() string {
