@@ -14,4 +14,4 @@
 
 package clientset
 
-const TF_PROVIDER_VERSION = "3.4.2"
+const TF_PROVIDER_VERSION = "3.5.0"
