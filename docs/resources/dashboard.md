@@ -30,6 +30,18 @@ provider "coralogix" {
 resource "coralogix_dashboard" "dashboard" {
   name        = "portal monitoring"
   description = "<insert description>"
+  access_policy = jsonencode({
+    version = "2025-01-01"
+    default = {
+      permissions = {
+        "team-dashboards:Read"               = "grant"
+        "team-dashboards:ReadAccessPolicy"   = "grant"
+        "team-dashboards:Update"             = "grant"
+        "team-dashboards:UpdateAccessPolicy" = "grant"
+      }
+    }
+    rules = []
+  })
   layout = {
     sections = [
       {
@@ -702,6 +714,7 @@ resource "coralogix_dashboard" "dashboard_from_json_with_folder" {
 
 ### Optional
 
+- `access_policy` (String) JSON-encoded access policy for this dashboard.
 - `annotations` (Attributes List) (see [below for nested schema](#nestedatt--annotations))
 - `auto_refresh` (Attributes) (see [below for nested schema](#nestedatt--auto_refresh))
 - `content_json` (String) an option to set the dashboard content from a json file.

@@ -20,6 +20,7 @@ import (
 	"time"
 
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -49,6 +50,25 @@ func (m NormalizeEmptyListToNull) PlanModifyList(ctx context.Context, req planmo
 	}
 	if len(req.PlanValue.Elements()) == 0 {
 		resp.PlanValue = types.ListNull(req.PlanValue.ElementType(ctx))
+	}
+}
+
+type PreserveStateForEquivalentJSON struct{}
+
+func (m PreserveStateForEquivalentJSON) Description(_ context.Context) string {
+	return "Preserves the previous state value when the configured JSON is semantically equivalent."
+}
+
+func (m PreserveStateForEquivalentJSON) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m PreserveStateForEquivalentJSON) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+		return
+	}
+	if utils.JSONStringsEqual(req.ConfigValue.ValueString(), req.StateValue.ValueString()) {
+		resp.PlanValue = req.StateValue
 	}
 }
 

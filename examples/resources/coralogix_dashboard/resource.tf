@@ -15,6 +15,18 @@ provider "coralogix" {
 resource "coralogix_dashboard" "dashboard" {
   name        = "portal monitoring"
   description = "<insert description>"
+  access_policy = jsonencode({
+    version = "2025-01-01"
+    default = {
+      permissions = {
+        "team-dashboards:Read"               = "grant"
+        "team-dashboards:ReadAccessPolicy"   = "grant"
+        "team-dashboards:Update"             = "grant"
+        "team-dashboards:UpdateAccessPolicy" = "grant"
+      }
+    }
+    rules = []
+  })
   layout = {
     sections = [
       {
