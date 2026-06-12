@@ -2,10 +2,12 @@
 
 #### resource/coralogix_dashboard
 
+- FEAT: Add support for dashboard `access_policy`.
 - FIX: Stop perpetual drift on the `line_chart.stacked_line` attribute when it is omitted from config. The attribute now defaults to `"unspecified"` (matching the sibling `scale_type` / `data_mode_type` pattern), so plans no longer mark it `(known after apply)` on every cycle.
 - FIX: Eliminate "Provider produced inconsistent result after apply" on `layout.sections[*].id`, `layout.sections[*].rows[*].id`, and `layout.sections[*].rows[*].widgets[*].id` by marking the `id` attributes `Optional+Computed` so the provider-generated UUID can round-trip on first Create (#505).
 - FIX: `layout.sections[*].options.collapsed` now reflects the API value instead of being forced to `null` whenever `description` is unset (typo in flatten nil-guard) (#505).
 - FIX: Drop the `Default(0)` and add `UseStateForUnknown()` on the widget `width` attribute so an unset width no longer produces a perpetual `width = 0` drift after every apply. The field is deprecated and ignored by the API; a `DeprecationMessage` now surfaces this to users.
+
 #### resource/coralogix_events2metric
 
 - FIX: `Create` now returns immediately after `resp.Diagnostics.AddError` so a backend rejection no longer poisons state with an empty-ID record (which subsequently resolved server-side to an arbitrary unrelated E2M).

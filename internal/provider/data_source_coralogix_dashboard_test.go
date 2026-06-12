@@ -38,6 +38,22 @@ func TestAccCoralogixDataSourceDashboard_basic(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixDataSourceDashboardAccessPolicy(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()) +
+					testAccCoralogixDataSourceDashboard_read(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckDashboardAccessPolicy(dashboardDataSourceName, testAccCoralogixDashboardAccessPolicyPretty()),
+				),
+			},
+		},
+	})
+}
+
 func testAccCoralogixDataSourceDashboard_read() string {
 	return `data "coralogix_dashboard" "test" {
 	id = coralogix_dashboard.test.id
