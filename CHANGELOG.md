@@ -2,6 +2,7 @@
 
 #### resource/coralogix_dashboard
 
+- DOCS: Regenerate docs — `layout.sections[*].id`, `layout.sections[*].rows[*].id`, and `layout.sections[*].rows[*].widgets[*].id` now correctly listed as Optional (was Read-Only).
 - FEAT: Add support for dashboard `access_policy`.
 - FIX: Stop perpetual drift on the `line_chart.stacked_line` attribute when it is omitted from config. The attribute now defaults to `"unspecified"` (matching the sibling `scale_type` / `data_mode_type` pattern), so plans no longer mark it `(known after apply)` on every cycle.
 - FIX: Eliminate "Provider produced inconsistent result after apply" on `layout.sections[*].id`, `layout.sections[*].rows[*].id`, and `layout.sections[*].rows[*].widgets[*].id` by marking the `id` attributes `Optional+Computed` so the provider-generated UUID can round-trip on first Create (#505).
