@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.5.0
+
 #### resource/coralogix_dashboard
 
 - FEAT: Add support for dashboard `access_policy`.
