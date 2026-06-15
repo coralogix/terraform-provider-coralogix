@@ -5073,9 +5073,23 @@ func flattenDashboardVariableDefinition(ctx context.Context, variableDefinition 
 
 	switch variableDefinition.GetValue().(type) {
 	case *cxsdk.DashboardVariableDefinitionConstant:
-		return &DashboardVariableDefinitionModel{
-			ConstantValue: utils.WrapperspbStringToTypeString(variableDefinition.GetConstant().GetValue()),
-		}, nil
+		value := variableDefinition.GetConstant().GetValue()
+		return flattenDashboardVariableDefinitionMultiSelect(ctx, &cxsdk.DashboardMultiSelect{
+			Source: &cxsdk.DashboardMultiSelectSource{
+				Value: &cxsdk.MultiSelectSourceConstantList{
+					ConstantList: &cxsdk.MultiSelectConstantListSource{
+						Values: []*wrapperspb.StringValue{value},
+					},
+				},
+			},
+			Selection: &cxsdk.DashboardMultiSelectSelection{
+				Value: &cxsdk.DashboardMultiSelectSelectionList{
+					List: &cxsdk.DashboardMultiSelectListSelection{
+						Values: []*wrapperspb.StringValue{value},
+					},
+				},
+			},
+		})
 	case *cxsdk.DashboardVariableDefinitionMultiSelect:
 		return flattenDashboardVariableDefinitionMultiSelect(ctx, variableDefinition.GetMultiSelect())
 	default:

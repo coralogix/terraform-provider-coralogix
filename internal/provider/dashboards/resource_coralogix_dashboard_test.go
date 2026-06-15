@@ -19,7 +19,9 @@ import (
 	"strings"
 	"testing"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
@@ -76,8 +78,6 @@ func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
 	}
 }
 
-// constant_value is rejected by the backend; expand must fail fast with a clear
-// pointer to multi_select instead of sending the deprecated Constant variant.
 func TestExpandDashboardVariableDefinition_ConstantValueDeprecated(t *testing.T) {
 	def := &DashboardVariableDefinitionModel{
 		ConstantValue: types.StringValue("production"),
@@ -91,5 +91,24 @@ func TestExpandDashboardVariableDefinition_ConstantValueDeprecated(t *testing.T)
 	msg := diags.Errors()[0].Summary() + " " + diags.Errors()[0].Detail()
 	if !strings.Contains(msg, "constant_value") || !strings.Contains(msg, "multi_select") {
 		t.Fatalf("expected the error to direct users from constant_value to multi_select, got: %s", msg)
+	}
+}
+
+func TestFlattenDashboardVariableDefinition_LegacyConstantBecomesMultiSelect(t *testing.T) {
+	def := &cxsdk.DashboardVariableDefinition{
+		Value: &cxsdk.DashboardVariableDefinitionConstant{
+			Constant: &cxsdk.DashboardConstant{Value: wrapperspb.String("production")},
+		},
+	}
+
+	got, diags := flattenDashboardVariableDefinition(context.Background(), def)
+	if diags.HasError() {
+		t.Fatalf("unexpected error flattening legacy constant: %v", diags)
+	}
+	if got.MultiSelect == nil {
+		t.Fatalf("expected legacy Constant to flatten into multi_select, got %+v", got)
+	}
+	if !got.ConstantValue.IsNull() {
+		t.Fatalf("expected constant_value to be null after remap, got %q", got.ConstantValue.ValueString())
 	}
 }
