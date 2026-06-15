@@ -39,8 +39,8 @@ Read-Only:
 - `id` (String) tco-policy ID.
 - `name` (String) tco-policy name.
 - `order` (Number) The policy's order between the other policies.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"].
-- `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
+- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).
+- `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
 - `severities` (Set of String) The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"].
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
 
