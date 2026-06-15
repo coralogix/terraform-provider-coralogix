@@ -2958,13 +2958,16 @@ func expandDashboardVariableDefinition(ctx context.Context, definition *Dashboar
 	case definition.MultiSelect != nil:
 		return expandMultiSelect(ctx, definition.MultiSelect)
 	case !definition.ConstantValue.IsNull():
-		return &cxsdk.DashboardVariableDefinition{
-			Value: &cxsdk.DashboardVariableDefinitionConstant{
-				Constant: &cxsdk.DashboardConstant{
-					Value: utils.TypeStringToWrapperspbString(definition.ConstantValue),
-				},
-			},
-		}, nil
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Deprecated dashboard variable definition: constant_value",
+			"`constant_value` is deprecated and is rejected by the Coralogix API. Define the variable as a "+
+				"`multi_select` with a `constant_list` source and a single selected value instead:\n\n"+
+				"  multi_select = {\n"+
+				"    source                 = { constant_list = [\""+definition.ConstantValue.ValueString()+"\"] }\n"+
+				"    selected_values        = [\""+definition.ConstantValue.ValueString()+"\"]\n"+
+				"    values_order_direction = \"asc\"\n"+
+				"  }",
+		)}
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Dashboard Variable", fmt.Sprintf("unknown variable definition type: %T", definition))}
 	}
