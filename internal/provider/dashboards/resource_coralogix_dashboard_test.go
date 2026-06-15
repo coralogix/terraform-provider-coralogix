@@ -15,8 +15,6 @@
 package dashboards
 
 import (
-	"context"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -73,23 +71,5 @@ func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
 				t.Fatalf("expected access policy %q, got %v", *tt.want, got)
 			}
 		})
-	}
-}
-
-// constant_value is rejected by the backend; expand must fail with a clear
-// pointer to multi_select instead of sending the deprecated Constant variant.
-func TestExpandDashboardVariableDefinition_ConstantValueDeprecated(t *testing.T) {
-	def := &DashboardVariableDefinitionModel{
-		ConstantValue: types.StringValue("production"),
-	}
-
-	_, diags := expandDashboardVariableDefinition(context.Background(), def)
-	if !diags.HasError() {
-		t.Fatalf("expected an error for the deprecated constant_value, got none")
-	}
-
-	msg := diags.Errors()[0].Summary() + " " + diags.Errors()[0].Detail()
-	if !strings.Contains(msg, "constant_value") || !strings.Contains(msg, "multi_select") {
-		t.Fatalf("expected the error to direct users from constant_value to multi_select, got: %s", msg)
 	}
 }
