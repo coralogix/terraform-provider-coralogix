@@ -185,7 +185,7 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 							Validators: []validator.String{
 								stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 							},
-							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q.", tcoPoliciesValidPriorities),
+							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).", tcoPoliciesValidPriorities),
 						},
 						"order": schema.Int64Attribute{
 							Computed:            true,
@@ -292,7 +292,7 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 									MarkdownDescription: "Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.",
 								},
 							},
-							MarkdownDescription: "Dynamically reassign the policy's priority based on daily quota consumption tiers.",
+							MarkdownDescription: "Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback (\"Route the remaining quota to\" in the UI), which must be more restrictive than the last tier.",
 						},
 					},
 				},
