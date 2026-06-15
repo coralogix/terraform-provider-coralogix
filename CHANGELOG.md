@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+
+- FIX: Deprecate the dashboard variable `constant_value` attribute and fail fast on it. It maps to the API's deprecated `Constant` variant, which the backend rejects with an opaque `invalid variable definition: Constant(...)` error. A `DeprecationMessage` surfaces this at plan time, and the provider now returns a clear error (instead of letting the opaque API rejection through) directing users to a `multi_select` variable with a `constant_list` source and a single `selected_values` entry — the supported replacement.
+
 # Release 3.5.0
 
 #### resource/coralogix_dashboard
