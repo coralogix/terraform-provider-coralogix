@@ -39,10 +39,11 @@ Read-Only:
 - `id` (String) tco-policy ID.
 - `name` (String) tco-policy name.
 - `order` (Number) The policy's order between the other policies.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"].
+- `priority` (String) Legacy policy-level priority. Required when `targets` is not set. Can be one of ["block" "high" "low" "medium"].
 - `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
 - `severities` (Set of String) The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"].
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
+- `targets` (Attributes List) Target-level routing destinations for this policy. When set, legacy top-level priority, archive_retention_id, and quota_based_priority_override must not be set. (see [below for nested schema](#nestedatt--policies--targets))
 
 <a id="nestedatt--policies--applications"></a>
 ### Nested Schema for `policies.applications`
@@ -77,3 +78,30 @@ Read-Only:
 
 - `names` (Set of String)
 - `rule_type` (String)
+
+
+<a id="nestedatt--policies--targets"></a>
+### Nested Schema for `policies.targets`
+
+Read-Only:
+
+- `archive_retention_id` (String) Allowing logs routed to this target to be tagged with a specific retention.
+- `dataset` (String) The dataset routed by this target.
+- `dataspace` (String) The dataspace routed by this target.
+- `priority` (String) The target priority. Can be one of ["block" "high" "low" "medium"].
+- `quota_based_priority_override` (Attributes) Dynamically reassign this target's priority based on daily quota consumption tiers. (see [below for nested schema](#nestedatt--policies--targets--quota_based_priority_override))
+
+<a id="nestedatt--policies--targets--quota_based_priority_override"></a>
+### Nested Schema for `policies.targets.quota_based_priority_override`
+
+Read-Only:
+
+- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers for this target. (see [below for nested schema](#nestedatt--policies--targets--quota_based_priority_override--usage_tiers))
+
+<a id="nestedatt--policies--targets--quota_based_priority_override--usage_tiers"></a>
+### Nested Schema for `policies.targets.quota_based_priority_override.usage_tiers`
+
+Read-Only:
+
+- `daily_quota_percentage` (Number) Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
+- `priority` (String) The priority to apply when this tier is active. Can be one of ["block" "high" "low" "medium"].

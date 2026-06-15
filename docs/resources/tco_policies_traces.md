@@ -125,7 +125,6 @@ resource "coralogix_tco_policies_traces" "tco_policies" {
 Required:
 
 - `name` (String) tco-policy name.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"].
 
 Optional:
 
@@ -134,9 +133,11 @@ Optional:
 - `archive_retention_id` (String) Allowing logs with a specific retention to be tagged.
 - `description` (String) The policy description
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
+- `priority` (String) Legacy policy-level priority. Required when `targets` is not set. Can be one of ["block" "high" "low" "medium"].
 - `services` (Attributes) The services to apply the policy on. Applies the policy on all the services by default. (see [below for nested schema](#nestedatt--policies--services))
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
 - `tags` (Attributes Map) The tags to apply the policy on. Applies the policy on all the tags by default. (see [below for nested schema](#nestedatt--policies--tags))
+- `targets` (Attributes List) Target-level routing destinations for this policy. When set, legacy top-level priority and archive_retention_id must not be set. (see [below for nested schema](#nestedatt--policies--targets))
 
 Read-Only:
 
@@ -201,3 +202,17 @@ Required:
 Optional:
 
 - `rule_type` (String)
+
+
+<a id="nestedatt--policies--targets"></a>
+### Nested Schema for `policies.targets`
+
+Required:
+
+- `dataset` (String) The dataset routed by this target.
+- `priority` (String) The target priority. Can be one of ["block" "high" "low" "medium"].
+
+Optional:
+
+- `archive_retention_id` (String) Allowing traces routed to this target to be tagged with a specific retention.
+- `dataspace` (String) The dataspace routed by this target.
