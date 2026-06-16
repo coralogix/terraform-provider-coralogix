@@ -561,6 +561,59 @@ func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 		},
 	})
 }
+
+func TestAccCoralogixResourceDashboardDataTableWidgetLogsFilterObservationField(t *testing.T) {
+	config := testAccCoralogixResourceDashboardWithWidget(`{
+  title = "data_table"
+  definition = {
+    data_table = {
+      results_per_page = 100
+      row_style        = "one_line"
+      query = {
+        logs = {
+          filters = [{
+            observation_field = {
+              keypath = ["subsystemname"]
+              scope   = "label"
+            }
+            operator = {
+              type            = "equals"
+              selected_values = ["pubby-publisher"]
+            }
+          }]
+        }
+      }
+    }
+  }
+}`)
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.field"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.observation_field.keypath.0", "subsystemname"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.observation_field.scope", "label"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {

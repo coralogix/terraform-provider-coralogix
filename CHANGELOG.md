@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+
+- FIX: Allow `data "coralogix_dashboard"` state to be reapplied as a `resource "coralogix_dashboard"` config when a logs widget filter uses `observation_field` instead of `field`. The `data_table.query.logs.filters[*].field` and `filters.logs.field` attributes are now `Optional` (previously `Required`), so a filter that targets an observation field with `field` omitted is accepted at plan time.
+
 # Release 3.5.0
 
 #### resource/coralogix_dashboard

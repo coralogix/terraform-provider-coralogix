@@ -291,7 +291,7 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
 				"field": schema.StringAttribute{
-					Required: true,
+					Optional: true,
 				},
 				"operator": FilterOperatorSchema(),
 				"observation_field": schema.SingleNestedAttribute{
@@ -323,7 +323,7 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 		"logs": schema.SingleNestedAttribute{
 			Attributes: map[string]schema.Attribute{
 				"field": schema.StringAttribute{
-					Required:            true,
+					Optional:            true,
 					MarkdownDescription: "Field in the logs to apply the filter on.",
 				},
 				"operator": FilterOperatorSchema(),
