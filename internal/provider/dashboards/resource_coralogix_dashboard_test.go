@@ -15,9 +15,12 @@
 package dashboards
 
 import (
+	"context"
 	"testing"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
@@ -69,6 +72,61 @@ func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
 			}
 			if got == nil || *got != *tt.want {
 				t.Fatalf("expected access policy %q, got %v", *tt.want, got)
+			}
+		})
+	}
+}
+
+func TestFlattenDashboardOptionsColorPredefined(t *testing.T) {
+	customWith := func(color *cxsdk.DashboardSectionColor) *cxsdk.DashboardSectionOptions {
+		return &cxsdk.DashboardSectionOptions{
+			Value: &cxsdk.DashboardSectionOptionsCustom{
+				Custom: &cxsdk.CustomSectionOptions{
+					Name:  wrapperspb.String("Status"),
+					Color: color,
+				},
+			},
+		}
+	}
+	predefined := func(c cxsdk.DashboardSectionColorPredefinedColor) *cxsdk.DashboardSectionColor {
+		return &cxsdk.DashboardSectionColor{
+			Value: &cxsdk.DashboardSectionColorPredefined{Predefined: c},
+		}
+	}
+
+	cases := []struct {
+		name string
+		opts *cxsdk.DashboardSectionOptions
+		want types.String
+	}{
+		{
+			name: "color unset",
+			opts: customWith(nil),
+			want: types.StringNull(),
+		},
+		{
+			name: "color predefined UNSPECIFIED round-trips to null",
+			opts: customWith(predefined(cxsdk.DashboardSectionColorPredefinedColor(0))),
+			want: types.StringNull(),
+		},
+		{
+			name: "color predefined BLUE round-trips to lowercase token",
+			opts: customWith(predefined(cxsdk.DashboardSectionColorPredefinedColor(3))),
+			want: types.StringValue("blue"),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, diags := flattenDashboardOptions(context.Background(), tc.opts)
+			if diags.HasError() {
+				t.Fatalf("unexpected diagnostics: %s", diags.Errors())
+			}
+			if got == nil {
+				t.Fatalf("expected non-nil options model")
+			}
+			if !got.Color.Equal(tc.want) {
+				t.Fatalf("Color mismatch: want %q, got %q", tc.want.String(), got.Color.String())
 			}
 		})
 	}

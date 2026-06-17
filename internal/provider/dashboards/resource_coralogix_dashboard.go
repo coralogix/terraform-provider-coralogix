@@ -3964,13 +3964,11 @@ func flattenDashboardOptions(_ context.Context, opts *cxsdk.DashboardSectionOpti
 		collapsed = types.BoolNull()
 	}
 
-	var color basetypes.StringValue
-	if opts.GetCustom().Color != nil {
-		colorString := opts.GetCustom().Color.GetPredefined().String()
+	color := types.StringNull()
+	if predefined := opts.GetCustom().Color.GetPredefined(); int32(predefined) != 0 {
+		colorString := predefined.String()
 		colors := strings.Split(colorString, "_")
 		color = types.StringValue(strings.ToLower(colors[len(colors)-1]))
-	} else {
-		color = types.StringNull()
 	}
 
 	return &SectionOptionsModel{

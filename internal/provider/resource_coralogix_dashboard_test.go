@@ -561,6 +561,36 @@ func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 		},
 	})
 }
+func TestAccCoralogixResourceDashboardLogsFilterObservationField(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardObservationFieldFilters(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.observation_field.scope", "label"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.observation_field.keypath.0", "subsystemname"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.field"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "filters.0.source.logs.observation_field.scope", "label"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "filters.0.source.logs.observation_field.keypath.0", "applicationname"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "filters.0.source.logs.field"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -864,6 +894,72 @@ func testAccCoralogixResourceDashboard() string {
       }
     },
   ]
+}
+`
+}
+
+func testAccCoralogixResourceDashboardObservationFieldFilters() string {
+	return `resource "coralogix_dashboard" test {
+  name        = "obs-field-filter-roundtrip"
+  description = "Regression for observation_field-only filters (#496)"
+  time_frame = {
+    relative = {
+      duration = "seconds:3600"
+    }
+  }
+  filters = [{
+    source = {
+      logs = {
+        observation_field = {
+          keypath = ["applicationname"]
+          scope   = "label"
+        }
+        operator = {
+          type            = "equals"
+          selected_values = ["pubby-publisher"]
+        }
+      }
+    }
+    enabled   = true
+    collapsed = false
+  }]
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          title = "obs-field widget filter"
+          definition = {
+            data_table = {
+              data_mode_type   = "archive"
+              results_per_page = 100
+              row_style        = "one_line"
+              columns = [
+                { field = "coralogix.timestamp" },
+                { field = "coralogix.text" },
+                { field = "coralogix.metadata.applicationName" },
+                { field = "coralogix.metadata.subsystemName" },
+              ]
+              query = {
+                logs = {
+                  filters = [{
+                    observation_field = {
+                      keypath = ["subsystemname"]
+                      scope   = "label"
+                    }
+                    operator = {
+                      type            = "equals"
+                      selected_values = ["pubby-publisher"]
+                    }
+                  }]
+                }
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
 }
 `
 }

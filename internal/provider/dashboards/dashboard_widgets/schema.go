@@ -291,12 +291,19 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
 				"field": schema.StringAttribute{
-					Required: true,
+					Optional: true,
+					Validators: []validator.String{
+						stringvalidator.ExactlyOneOf(
+							path.MatchRelative().AtParent().AtName("observation_field"),
+						),
+					},
+					MarkdownDescription: "Log field to filter on. Mutually exclusive with `observation_field` — set exactly one.",
 				},
 				"operator": FilterOperatorSchema(),
 				"observation_field": schema.SingleNestedAttribute{
-					Attributes: ObservationFieldSchema(),
-					Optional:   true,
+					Attributes:          ObservationFieldSchema(),
+					Optional:            true,
+					MarkdownDescription: "Observation field to filter on. Mutually exclusive with `field` — set exactly one.",
 				},
 			},
 		},
@@ -323,13 +330,19 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 		"logs": schema.SingleNestedAttribute{
 			Attributes: map[string]schema.Attribute{
 				"field": schema.StringAttribute{
-					Required:            true,
-					MarkdownDescription: "Field in the logs to apply the filter on.",
+					Optional: true,
+					Validators: []validator.String{
+						stringvalidator.ExactlyOneOf(
+							path.MatchRelative().AtParent().AtName("observation_field"),
+						),
+					},
+					MarkdownDescription: "Field in the logs to apply the filter on. Mutually exclusive with `observation_field` — set exactly one.",
 				},
 				"operator": FilterOperatorSchema(),
 				"observation_field": schema.SingleNestedAttribute{
-					Attributes: ObservationFieldSchema(),
-					Optional:   true,
+					Attributes:          ObservationFieldSchema(),
+					Optional:            true,
+					MarkdownDescription: "Observation field to filter on. Mutually exclusive with `field` — set exactly one.",
 				},
 			},
 			Optional: true,

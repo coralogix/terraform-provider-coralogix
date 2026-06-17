@@ -1,5 +1,10 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+
+- FIX: Accept `observation_field`-only logs filters in dashboard widget `query.logs.filters[*]` and top-level `filters[*].source.logs`. The `field` attribute was `Required`, so configs round-tripped from `data "coralogix_dashboard"` for a UI-created dashboard using `observation_field` (e.g. subsystem label filter) failed at apply with `Missing Configuration for Required Attribute … filters[0].field`. `field` is now `Optional` with an `ExactlyOneOf` validator pairing it with `observation_field` — matching the proto, which makes the two alternatives.
+- FIX: `layout.sections[*].options.color` no longer round-trips as `"unspecified"` from the data source when the backend returns the `SECTION_PREDEFINED_COLOR_UNSPECIFIED` enum value. The flatten now maps the unspecified enum to `null`, matching the resource-side schema (whose `OneOf` validator only accepts concrete color tokens).
+
 # Release 3.5.0
 
 #### resource/coralogix_dashboard

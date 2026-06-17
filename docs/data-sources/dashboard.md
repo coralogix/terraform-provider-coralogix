@@ -310,8 +310,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--filters--source--logs--observation_field))
+- `field` (String) Field in the logs to apply the filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--filters--source--logs--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--filters--source--logs--operator))
 
 <a id="nestedatt--filters--source--logs--observation_field"></a>
@@ -503,8 +503,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--observation_field))
+- `field` (String) Field in the logs to apply the filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--observation_field"></a>
@@ -639,8 +639,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--observation_field))
+- `field` (String) Log field to filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--observation_field"></a>
@@ -954,8 +954,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--observation_field))
+- `field` (String) Field in the logs to apply the filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--observation_field"></a>
@@ -1066,8 +1066,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--observation_field))
+- `field` (String) Log field to filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--observation_field"></a>
@@ -1376,8 +1376,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--observation_field))
+- `field` (String) Field in the logs to apply the filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--observation_field"></a>
@@ -1488,8 +1488,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--observation_field))
+- `field` (String) Log field to filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--observation_field"></a>
@@ -1761,8 +1761,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--observation_field))
+- `field` (String) Field in the logs to apply the filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--observation_field"></a>
@@ -1894,8 +1894,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--observation_field))
+- `field` (String) Log field to filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--observation_field"></a>
@@ -2159,8 +2159,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--observation_field))
+- `field` (String) Field in the logs to apply the filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--observation_field"></a>
@@ -2295,8 +2295,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--observation_field))
+- `field` (String) Log field to filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--observation_field"></a>
@@ -2596,8 +2596,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--observation_field))
+- `field` (String) Field in the logs to apply the filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--observation_field"></a>
@@ -2729,8 +2729,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--observation_field))
+- `field` (String) Log field to filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--observation_field"></a>
@@ -3012,8 +3012,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--observation_field))
+- `field` (String) Field in the logs to apply the filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--observation_field"></a>
@@ -3148,8 +3148,8 @@ Read-Only:
 
 Read-Only:
 
-- `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--observation_field))
+- `field` (String) Log field to filter on. Mutually exclusive with `observation_field` — set exactly one.
+- `observation_field` (Attributes) Observation field to filter on. Mutually exclusive with `field` — set exactly one. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--observation_field"></a>
