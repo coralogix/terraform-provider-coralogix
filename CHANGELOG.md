@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+
+- FIX: Logs filter `field` is now `Optional` instead of `Required` so a filter expressed via `observation_field` alone (the shape the data source emits and the UI uses for label/metadata-scoped fields) plans and applies cleanly. A new per-filter `ExactlyOneOf(field, observation_field)` validator preserves the "pick exactly one" contract. Configs that previously set BOTH `field` and a redundant `observation_field` (which post-#504 already showed a one-time plan diff dropping the redundant block) will now fail at plan time with a validation error — drop one of the two.
+
 # Release 3.5.0
 
 #### resource/coralogix_dashboard

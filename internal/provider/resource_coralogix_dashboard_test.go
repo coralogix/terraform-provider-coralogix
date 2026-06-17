@@ -561,6 +561,64 @@ func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 		},
 	})
 }
+
+func TestAccCoralogixResourceDashboardDataTableWidgetObservationFieldFilter(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWithWidget(`{
+  title = "observation-field-filter"
+  definition = {
+    data_table = {
+      results_per_page = 100
+      row_style        = "one_line"
+      data_mode_type   = "archive"
+      columns = [
+        { field = "coralogix.timestamp" },
+        { field = "coralogix.text" },
+      ]
+      query = {
+        logs = {
+          filters = [{
+            observation_field = {
+              keypath = ["subsystemname"]
+              scope   = "label"
+            }
+            operator = {
+              type            = "equals"
+              selected_values = ["pubby-publisher"]
+            }
+          }]
+        }
+      }
+    }
+  }
+}`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "observation-field-filter"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.field"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.observation_field.keypath.0", "subsystemname"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.observation_field.scope", "label"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
