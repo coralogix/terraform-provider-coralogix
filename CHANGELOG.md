@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_quota_rule
+
+- FEAT: Add support for managing quota rules.
+
 # Release 3.5.0
 
 #### resource/coralogix_dashboard

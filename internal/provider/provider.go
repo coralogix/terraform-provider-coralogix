@@ -395,6 +395,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		actions.NewActionResource,
 		dataplans.NewTCOPoliciesLogsResource,
 		dataplans.NewTCOPoliciesTracesResource,
+		dataplans.NewQuotaRuleResource,
 		dataplans.NewQuotaAllocationRuleSetResource,
 		dashboards.NewDashboardResource,
 		integrations.NewWebhookResource,
