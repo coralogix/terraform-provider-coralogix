@@ -131,7 +131,7 @@ Optional:
 
 Optional:
 
-- `dpxl_expression` (String) DataPrime expression matched by this quota policy. Mutually exclusive with `severities`.
+- `dpxl_expression` (String) DataPrime expression matched by this quota policy. Mutually exclusive with `severities`. The expression must include a version prefix, e.g. `<v1> $d.severity == 'INFO'`.
 - `severities` (Set of String) Log severities matched by this quota policy. Valid values are ["critical" "debug" "error" "info" "verbose" "warning"]. Mutually exclusive with `dpxl_expression`.
 
 

@@ -197,7 +197,7 @@ func (r *QuotaRuleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 							stringvalidator.LengthAtLeast(1),
 							stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("severities")),
 						},
-						MarkdownDescription: "DataPrime expression matched by this quota policy. Mutually exclusive with `severities`.",
+						MarkdownDescription: "DataPrime expression matched by this quota policy. Mutually exclusive with `severities`. The expression must include a version prefix, e.g. `<v1> $d.severity == 'INFO'`.",
 					},
 				},
 				MarkdownDescription: "Log source-type matching rules. Exactly one of `log_rules` or `span_rules` must be set.",
@@ -225,6 +225,7 @@ func (r *QuotaRuleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.List{
+					quotaRuleTargetsRemovedPlanModifier{},
 					listplanmodifier.UseStateForUnknown(),
 				},
 				Validators: []validator.List{
@@ -353,12 +354,18 @@ func (r *QuotaRuleResource) Update(ctx context.Context, req resource.UpdateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var config QuotaRuleModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	if plan.ID.IsNull() || plan.ID.IsUnknown() || plan.ID.ValueString() == "" {
 		plan.ID = priorState.ID
 	}
 	if plan.Order.IsNull() || plan.Order.IsUnknown() {
 		plan.Order = priorState.Order
 	}
+	normalizeQuotaRuleUpdatePlanFromConfig(&plan, config)
 	if !plan.Targets.IsNull() && !plan.Targets.IsUnknown() {
 		plan.Priority = types.StringNull()
 	}
@@ -521,6 +528,41 @@ func validateQuotaRuleModel(ctx context.Context, data QuotaRuleModel) diag.Diagn
 	}
 
 	return diags
+}
+
+func normalizeQuotaRuleUpdatePlanFromConfig(plan *QuotaRuleModel, config QuotaRuleModel) {
+	targetsRemoved := config.Targets.IsNull()
+	priorityConfigured := !config.Priority.IsNull() && !config.Priority.IsUnknown()
+	if targetsRemoved && priorityConfigured {
+		plan.Targets = types.ListNull(types.ObjectType{AttrTypes: quotaRuleTargetAttributes()})
+	}
+}
+
+type quotaRuleTargetsRemovedPlanModifier struct{}
+
+func (m quotaRuleTargetsRemovedPlanModifier) Description(context.Context) string {
+	return "Allows target routing to be removed when policy-level priority is configured."
+}
+
+func (m quotaRuleTargetsRemovedPlanModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m quotaRuleTargetsRemovedPlanModifier) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
+	if !req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	var priority types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("priority"), &priority)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if priority.IsNull() || priority.IsUnknown() {
+		return
+	}
+
+	resp.PlanValue = types.ListNull(types.ObjectType{AttrTypes: quotaRuleTargetAttributes()})
 }
 
 func expandQuotaRuleCreate(ctx context.Context, plan QuotaRuleModel) (tcoPolicys.PoliciesServiceCreatePolicyRequest, diag.Diagnostics) {
@@ -897,7 +939,7 @@ func flattenQuotaRuleLogPolicy(ctx context.Context, policy *tcoPolicys.PolicyLog
 	if dgs.HasError() {
 		diags.Append(dgs...)
 	}
-	targets, dgs := flattenQuotaRuleTargets(ctx, policy.GetTargets())
+	targets, dgs := flattenQuotaRuleTargetsForPolicy(ctx, policy.GetPriority(), policy.GetTargets())
 	if dgs.HasError() {
 		diags.Append(dgs...)
 	}
@@ -941,7 +983,7 @@ func flattenQuotaRuleSpanPolicy(ctx context.Context, policy *tcoPolicys.PolicySp
 	if dgs.HasError() {
 		diags.Append(dgs...)
 	}
-	targets, dgs := flattenQuotaRuleTargets(ctx, policy.GetTargets())
+	targets, dgs := flattenQuotaRuleTargetsForPolicy(ctx, policy.GetPriority(), policy.GetTargets())
 	if dgs.HasError() {
 		diags.Append(dgs...)
 	}
@@ -989,6 +1031,14 @@ func flattenQuotaRuleLogRules(ctx context.Context, logRules tcoPolicys.LogRules)
 		Severities:     flattenTCOPolicySeverities(logRules.GetSeverities()),
 		DpxlExpression: types.StringPointerValue(logRules.DpxlExpression),
 	})
+}
+
+func flattenQuotaRuleTargetsForPolicy(ctx context.Context, policyPriority tcoPolicys.QuotaV1Priority, targets []tcoPolicys.V1Target) (types.List, diag.Diagnostics) {
+	if policyPriority != tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_UNSPECIFIED {
+		return types.ListNull(types.ObjectType{AttrTypes: quotaRuleTargetAttributes()}), nil
+	}
+
+	return flattenQuotaRuleTargets(ctx, targets)
 }
 
 func flattenQuotaRuleSpanRules(ctx context.Context, spanRules tcoPolicys.SpanRules) (types.Object, diag.Diagnostics) {

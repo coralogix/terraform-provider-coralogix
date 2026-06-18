@@ -70,7 +70,19 @@ func TestAccCoralogixResourceQuotaRule(t *testing.T) {
 				),
 			},
 			{
-				Config:   testAccCoralogixResourceQuotaRuleLogTarget(updatedName, "managed by terraform updated", false, "low"),
+				Config: testAccCoralogixResourceQuotaRuleLog(updatedName, "managed by terraform updated", false, "high"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(quotaRuleResourceName, "id"),
+					resource.TestCheckResourceAttr(quotaRuleResourceName, "name", updatedName),
+					resource.TestCheckResourceAttr(quotaRuleResourceName, "description", "managed by terraform updated"),
+					resource.TestCheckResourceAttr(quotaRuleResourceName, "enabled", "false"),
+					resource.TestCheckResourceAttr(quotaRuleResourceName, "priority", "high"),
+					resource.TestCheckResourceAttr(quotaRuleResourceName, "log_rules.severities.#", "1"),
+					resource.TestCheckResourceAttr(quotaRuleResourceName, "targets.#", "0"),
+				),
+			},
+			{
+				Config:   testAccCoralogixResourceQuotaRuleLog(updatedName, "managed by terraform updated", false, "high"),
 				PlanOnly: true,
 			},
 		},

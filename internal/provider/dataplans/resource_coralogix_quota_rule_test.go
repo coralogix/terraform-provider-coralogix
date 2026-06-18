@@ -136,7 +136,7 @@ func TestFlattenQuotaRulePolicyLog(t *testing.T) {
 			Description: &description,
 			Enabled:     true,
 			Order:       7,
-			Priority:    tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_HIGH,
+			Priority:    tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_UNSPECIFIED,
 			LogRules: tcoPolicys.LogRules{
 				DpxlExpression: stringPtr("<v1> $d.severity == 'INFO'"),
 			},
@@ -156,8 +156,8 @@ func TestFlattenQuotaRulePolicyLog(t *testing.T) {
 	if state.ID.ValueString() != "policy-id" {
 		t.Fatalf("expected id policy-id, got %q", state.ID.ValueString())
 	}
-	if state.Priority.ValueString() != "high" {
-		t.Fatalf("expected priority high, got %q", state.Priority.ValueString())
+	if !state.Priority.IsNull() {
+		t.Fatalf("expected priority to be null for target routing, got %q", state.Priority.ValueString())
 	}
 	if state.SpanRules.IsNull() != true {
 		t.Fatal("span_rules should be null for a log quota rule")
@@ -183,6 +183,42 @@ func TestFlattenQuotaRulePolicyLog(t *testing.T) {
 	}
 	if targets[0].Priority.ValueString() != "low" {
 		t.Fatalf("expected target priority low, got %q", targets[0].Priority.ValueString())
+	}
+}
+
+func TestFlattenQuotaRulePolicyLogHidesDefaultTargetsForPolicyPriority(t *testing.T) {
+	ctx := context.Background()
+	dataset := "logs"
+	dataspace := "default"
+	targetPriority := tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_HIGH
+
+	state, diags := flattenQuotaRulePolicy(ctx, &tcoPolicys.Policy{
+		PolicyLogRules: &tcoPolicys.PolicyLogRules{
+			Id:       "policy-id",
+			Name:     "terraform quota rule",
+			Enabled:  true,
+			Priority: tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_HIGH,
+			LogRules: tcoPolicys.LogRules{
+				Severities: []tcoPolicys.QuotaV1Severity{tcoPolicys.QUOTAV1SEVERITY_SEVERITY_INFO},
+			},
+			Targets: []tcoPolicys.V1Target{
+				{
+					Dataset:   &dataset,
+					Dataspace: &dataspace,
+					Priority:  &targetPriority,
+				},
+			},
+		},
+	})
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	if state.Priority.ValueString() != "high" {
+		t.Fatalf("expected priority high, got %q", state.Priority.ValueString())
+	}
+	if !state.Targets.IsNull() {
+		t.Fatalf("expected backend default targets to be hidden for policy priority, got %#v", state.Targets)
 	}
 }
 
@@ -223,6 +259,24 @@ func TestValidateQuotaRuleRejectsPolicyPriorityWithTargets(t *testing.T) {
 	diags := validateQuotaRuleModel(ctx, quotaRuleLogPlan(t, ctx))
 	if !diags.HasError() {
 		t.Fatal("expected policy priority with targets diagnostic")
+	}
+}
+
+func TestNormalizeQuotaRuleUpdatePlanFromConfigRemovesTargets(t *testing.T) {
+	ctx := context.Background()
+	plan := quotaRuleLogPlan(t, ctx)
+	plan.Priority = types.StringValue("high")
+	config := plan
+	config.Targets = types.ListNull(types.ObjectType{AttrTypes: quotaRuleTargetAttributes()})
+	config.Priority = types.StringValue("high")
+
+	normalizeQuotaRuleUpdatePlanFromConfig(&plan, config)
+
+	if !plan.Targets.IsNull() {
+		t.Fatalf("expected omitted targets in config to clear planned targets, got %#v", plan.Targets)
+	}
+	if plan.Priority.ValueString() != "high" {
+		t.Fatalf("expected normalizer to leave priority unchanged, got %q", plan.Priority.ValueString())
 	}
 }
 
