@@ -371,7 +371,7 @@ func (r *QuotaRuleResource) Update(ctx context.Context, req resource.UpdateReque
 		plan.Priority = types.StringNull()
 	}
 
-	request, diags := expandQuotaRuleUpdate(ctx, plan)
+	request, diags := expandQuotaRuleUpdate(ctx, plan, priorState)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -598,7 +598,7 @@ func expandQuotaRuleCreate(ctx context.Context, plan QuotaRuleModel) (tcoPolicys
 	return tcoPolicys.CreatePolicyRequestSpanRulesAsPoliciesServiceCreatePolicyRequest(request), nil
 }
 
-func expandQuotaRuleUpdate(ctx context.Context, plan QuotaRuleModel) (tcoPolicys.PoliciesServiceUpdatePolicyRequest, diag.Diagnostics) {
+func expandQuotaRuleUpdate(ctx context.Context, plan QuotaRuleModel, priorState QuotaRuleModel) (tcoPolicys.PoliciesServiceUpdatePolicyRequest, diag.Diagnostics) {
 	logRulesConfigured := !plan.LogRules.IsNull() && !plan.LogRules.IsUnknown()
 	if logRulesConfigured {
 		logRules, diags := expandQuotaRuleLogRules(ctx, plan.LogRules)
@@ -606,7 +606,7 @@ func expandQuotaRuleUpdate(ctx context.Context, plan QuotaRuleModel) (tcoPolicys
 			return tcoPolicys.PoliciesServiceUpdatePolicyRequest{}, diags
 		}
 
-		request, diags := expandQuotaRuleUpdateLog(ctx, plan, logRules)
+		request, diags := expandQuotaRuleUpdateLog(ctx, plan, priorState, logRules)
 		if diags.HasError() {
 			return tcoPolicys.PoliciesServiceUpdatePolicyRequest{}, diags
 		}
@@ -618,7 +618,7 @@ func expandQuotaRuleUpdate(ctx context.Context, plan QuotaRuleModel) (tcoPolicys
 		return tcoPolicys.PoliciesServiceUpdatePolicyRequest{}, diags
 	}
 
-	request, diags := expandQuotaRuleUpdateSpan(ctx, plan, spanRules)
+	request, diags := expandQuotaRuleUpdateSpan(ctx, plan, priorState, spanRules)
 	if diags.HasError() {
 		return tcoPolicys.PoliciesServiceUpdatePolicyRequest{}, diags
 	}
@@ -669,7 +669,7 @@ func expandQuotaRuleCreateSpan(ctx context.Context, plan QuotaRuleModel, spanRul
 	return request, nil
 }
 
-func expandQuotaRuleUpdateLog(ctx context.Context, plan QuotaRuleModel, logRules tcoPolicys.LogRules) (*tcoPolicys.UpdatePolicyRequestLogRules, diag.Diagnostics) {
+func expandQuotaRuleUpdateLog(ctx context.Context, plan QuotaRuleModel, priorState QuotaRuleModel, logRules tcoPolicys.LogRules) (*tcoPolicys.UpdatePolicyRequestLogRules, diag.Diagnostics) {
 	applicationRule, subsystemRule, archiveRetention, priorityOverride, targets, diags := expandQuotaRuleCommon(ctx, plan)
 	if diags.HasError() {
 		return nil, diags
@@ -684,15 +684,15 @@ func expandQuotaRuleUpdateLog(ctx context.Context, plan QuotaRuleModel, logRules
 	request.Description = plan.Description.ValueStringPointer()
 	request.Enabled = plan.Enabled.ValueBoolPointer()
 	request.Priority = &priority
-	request.ApplicationRule = applicationRule
-	request.SubsystemRule = subsystemRule
-	request.ArchiveRetention = archiveRetention
+	request.ApplicationRule = quotaRuleUpdateRule(plan.ApplicationRule, priorState.ApplicationRule, applicationRule)
+	request.SubsystemRule = quotaRuleUpdateRule(plan.SubsystemRule, priorState.SubsystemRule, subsystemRule)
+	request.ArchiveRetention = quotaRuleUpdateArchiveRetention(plan.ArchiveRetentionID, priorState.ArchiveRetentionID, archiveRetention)
 	request.PriorityOverride = quotaRuleUpdatePriorityOverride(plan, priorityOverride)
 	request.Targets = quotaRuleUpdateTargets(plan, targets)
 	return request, nil
 }
 
-func expandQuotaRuleUpdateSpan(ctx context.Context, plan QuotaRuleModel, spanRules tcoPolicys.SpanRules) (*tcoPolicys.UpdatePolicyRequestSpanRules, diag.Diagnostics) {
+func expandQuotaRuleUpdateSpan(ctx context.Context, plan QuotaRuleModel, priorState QuotaRuleModel, spanRules tcoPolicys.SpanRules) (*tcoPolicys.UpdatePolicyRequestSpanRules, diag.Diagnostics) {
 	applicationRule, subsystemRule, archiveRetention, priorityOverride, targets, diags := expandQuotaRuleCommon(ctx, plan)
 	if diags.HasError() {
 		return nil, diags
@@ -707,9 +707,9 @@ func expandQuotaRuleUpdateSpan(ctx context.Context, plan QuotaRuleModel, spanRul
 	request.Description = plan.Description.ValueStringPointer()
 	request.Enabled = plan.Enabled.ValueBoolPointer()
 	request.Priority = &priority
-	request.ApplicationRule = applicationRule
-	request.SubsystemRule = subsystemRule
-	request.ArchiveRetention = archiveRetention
+	request.ApplicationRule = quotaRuleUpdateRule(plan.ApplicationRule, priorState.ApplicationRule, applicationRule)
+	request.SubsystemRule = quotaRuleUpdateRule(plan.SubsystemRule, priorState.SubsystemRule, subsystemRule)
+	request.ArchiveRetention = quotaRuleUpdateArchiveRetention(plan.ArchiveRetentionID, priorState.ArchiveRetentionID, archiveRetention)
 	request.PriorityOverride = quotaRuleUpdatePriorityOverride(plan, priorityOverride)
 	request.Targets = quotaRuleUpdateTargets(plan, targets)
 	return request, nil
@@ -747,6 +747,20 @@ func quotaRuleUpdatePriorityOverride(plan QuotaRuleModel, priorityOverride *tcoP
 		return tcoPolicys.NewPriorityOverride()
 	}
 	return priorityOverride
+}
+
+func quotaRuleUpdateRule(planRule types.Object, priorRule types.Object, rule *tcoPolicys.QuotaV1Rule) *tcoPolicys.QuotaV1Rule {
+	if planRule.IsNull() && !priorRule.IsNull() && !priorRule.IsUnknown() {
+		return tcoPolicys.NewQuotaV1Rule()
+	}
+	return rule
+}
+
+func quotaRuleUpdateArchiveRetention(planArchiveRetention types.String, priorArchiveRetention types.String, archiveRetention *tcoPolicys.ArchiveRetention) *tcoPolicys.ArchiveRetention {
+	if planArchiveRetention.IsNull() && !priorArchiveRetention.IsNull() && !priorArchiveRetention.IsUnknown() {
+		return tcoPolicys.NewArchiveRetention()
+	}
+	return archiveRetention
 }
 
 func quotaRuleUpdateTargets(plan QuotaRuleModel, targets []tcoPolicys.V1Target) []tcoPolicys.V1Target {

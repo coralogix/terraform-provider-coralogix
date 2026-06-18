@@ -125,13 +125,19 @@ func TestExpandQuotaRuleCreateSpan(t *testing.T) {
 
 func TestExpandQuotaRuleUpdateClearsRemovedOptionalPolicyFields(t *testing.T) {
 	ctx := context.Background()
+	priorState := quotaRuleLogPlan(t, ctx)
+	priorState.ID = types.StringValue("policy-id")
+	priorState.SubsystemRule = quotaRuleTestRuleObject(t, ctx, "includes", []string{"payments"})
 	plan := quotaRuleLogPlan(t, ctx)
 	plan.ID = types.StringValue("policy-id")
 	plan.Priority = types.StringValue("high")
+	plan.ApplicationRule = types.ObjectNull(tcoPolicyRuleAttributes())
+	plan.SubsystemRule = types.ObjectNull(tcoPolicyRuleAttributes())
+	plan.ArchiveRetentionID = types.StringNull()
 	plan.QuotaBasedPriorityOverride = types.ObjectNull(quotaBasedPriorityOverrideAttributes())
 	plan.Targets = types.ListNull(types.ObjectType{AttrTypes: quotaRuleTargetAttributes()})
 
-	request, diags := expandQuotaRuleUpdate(ctx, plan)
+	request, diags := expandQuotaRuleUpdate(ctx, plan, priorState)
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
@@ -149,6 +155,15 @@ func TestExpandQuotaRuleUpdateClearsRemovedOptionalPolicyFields(t *testing.T) {
 	if len(logRequest.Targets) != 0 {
 		t.Fatalf("expected empty targets list, got %d targets", len(logRequest.Targets))
 	}
+	if logRequest.ApplicationRule == nil {
+		t.Fatal("expected empty application rule to be sent as a clear operation")
+	}
+	if logRequest.SubsystemRule == nil {
+		t.Fatal("expected empty subsystem rule to be sent as a clear operation")
+	}
+	if logRequest.ArchiveRetention == nil {
+		t.Fatal("expected empty archive retention to be sent as a clear operation")
+	}
 
 	payload, err := json.Marshal(logRequest)
 	if err != nil {
@@ -164,6 +179,15 @@ func TestExpandQuotaRuleUpdateClearsRemovedOptionalPolicyFields(t *testing.T) {
 	if _, ok := fields["targets"]; !ok {
 		t.Fatalf("expected targets clear field in payload: %s", string(payload))
 	}
+	if _, ok := fields["applicationRule"]; !ok {
+		t.Fatalf("expected applicationRule clear field in payload: %s", string(payload))
+	}
+	if _, ok := fields["subsystemRule"]; !ok {
+		t.Fatalf("expected subsystemRule clear field in payload: %s", string(payload))
+	}
+	if _, ok := fields["archiveRetention"]; !ok {
+		t.Fatalf("expected archiveRetention clear field in payload: %s", string(payload))
+	}
 }
 
 func TestExpandQuotaRuleUpdateDoesNotClearPolicyOverrideWithTargets(t *testing.T) {
@@ -173,7 +197,7 @@ func TestExpandQuotaRuleUpdateDoesNotClearPolicyOverrideWithTargets(t *testing.T
 	plan.Priority = types.StringNull()
 	plan.QuotaBasedPriorityOverride = types.ObjectNull(quotaBasedPriorityOverrideAttributes())
 
-	request, diags := expandQuotaRuleUpdate(ctx, plan)
+	request, diags := expandQuotaRuleUpdate(ctx, plan, plan)
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
