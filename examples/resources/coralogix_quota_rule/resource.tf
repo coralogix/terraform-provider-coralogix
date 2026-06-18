@@ -1,3 +1,17 @@
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 3.0"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_quota_rule" "logs_info" {
   name        = "Terraform example log quota rule"
   description = "Route info logs while quota policy is managed as code"
@@ -20,8 +34,8 @@ resource "coralogix_quota_rule" "logs_info" {
 }
 
 resource "coralogix_quota_rule" "dataset_target" {
-  name     = "Terraform example target quota rule"
-  enabled  = true
+  name    = "Terraform example target quota rule"
+  enabled = true
 
   log_rules = {
     dpxl_expression = "<v1> $d.severity == 'INFO'"
