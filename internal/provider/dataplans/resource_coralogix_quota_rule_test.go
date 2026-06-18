@@ -280,6 +280,23 @@ func TestNormalizeQuotaRuleUpdatePlanFromConfigRemovesTargets(t *testing.T) {
 	}
 }
 
+func TestQuotaRuleTagRuleKeyRegexp(t *testing.T) {
+	tests := map[string]bool{
+		"tags.http.method":   true,
+		"tags.http.status.5": true,
+		"tags":               false,
+		"tags.":              false,
+		"mytags.http.method": false,
+		"label.tags.method":  false,
+	}
+
+	for value, want := range tests {
+		if got := quotaRuleTagRuleKeyRegexp.MatchString(value); got != want {
+			t.Fatalf("expected match for %q to be %t, got %t", value, want, got)
+		}
+	}
+}
+
 func quotaRuleLogPlan(t *testing.T, ctx context.Context) QuotaRuleModel {
 	return QuotaRuleModel{
 		Name:                       types.StringValue("terraform quota rule"),

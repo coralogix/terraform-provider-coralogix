@@ -56,6 +56,7 @@ var (
 const quotaRuleDefaultDataspace = "default"
 
 var quotaRuleTargetDataspaceRegexp = regexp.MustCompile(`^[A-Za-z](?:[A-Za-z0-9_]|\.[A-Za-z0-9_])*$`)
+var quotaRuleTagRuleKeyRegexp = regexp.MustCompile(`^tags\..+`)
 
 func NewQuotaRuleResource() resource.Resource {
 	return &QuotaRuleResource{}
@@ -210,7 +211,7 @@ func (r *QuotaRuleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 					"tag_rules": schema.MapNestedAttribute{
 						Optional: true,
 						Validators: []validator.Map{
-							mapvalidator.KeysAre(stringvalidator.RegexMatches(regexp.MustCompile("tags.*"), "tag names must have a 'tags.' prefix")),
+							mapvalidator.KeysAre(stringvalidator.RegexMatches(quotaRuleTagRuleKeyRegexp, "tag names must have a 'tags.' prefix followed by a tag name")),
 						},
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: quotaRuleRuleSchemaAttributes(),
