@@ -637,6 +637,10 @@ resource "coralogix_dashboard" "dashboard" {
   auto_refresh = {
     type = "two_minutes"
   }
+  # Recommended: reference a sibling coralogix_dashboards_folder resource via
+  # folder.id so the folder's lifecycle is owned by Terraform. The shorthand
+  # `folder = { path = "Some/Folder" }` is accepted but implicitly creates any
+  # missing folders server-side and will not destroy them with the dashboard.
   folder = {
     id = coralogix_dashboards_folder.example.id
   }
@@ -720,7 +724,7 @@ resource "coralogix_dashboard" "dashboard_from_json_with_folder" {
 - `content_json` (String) an option to set the dashboard content from a json file.
 - `description` (String) Brief description or summary of the dashboard's purpose or content.
 - `filters` (Attributes List) List of filters that can be applied to the dashboard's data. (see [below for nested schema](#nestedatt--filters))
-- `folder` (Attributes) (see [below for nested schema](#nestedatt--folder))
+- `folder` (Attributes) The dashboards folder this dashboard belongs to. Exactly one of `id` or `path` is set. When authoring a `coralogix_dashboard` resource, `id` (pointing at a `coralogix_dashboards_folder` resource) is the recommended form; `path` is accepted but can trigger implicit server-side folder creation that Terraform will not clean up on destroy — see the `path` attribute description for details. (see [below for nested schema](#nestedatt--folder))
 - `layout` (Attributes) Layout configuration for the dashboard's visual elements. (see [below for nested schema](#nestedatt--layout))
 - `name` (String) Display name of the dashboard.
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--time_frame))
@@ -1113,8 +1117,8 @@ Optional:
 
 Optional:
 
-- `id` (String)
-- `path` (String)
+- `id` (String) ID of the dashboards folder this dashboard belongs to. When authoring a `coralogix_dashboard` resource, this is the lifecycle-safe choice: reference a `coralogix_dashboards_folder` resource's `id` so the folder is created and destroyed by Terraform alongside the dashboard.
+- `path` (String) Slash-separated folder path (e.g. `Team/Subteam`). When set on a `coralogix_dashboard` resource and the path does not already exist, the Coralogix dashboards service implicitly creates the missing folder hierarchy as a server-side side-effect of placing the dashboard. **That auto-created folder is not tracked in Terraform state and is not removed when the dashboard is destroyed — it will be left behind as an orphan in the Coralogix UI.** Use `folder.id` (referencing a `coralogix_dashboards_folder` resource) for symmetric apply/destroy semantics.
 
 
 <a id="nestedatt--layout"></a>
@@ -1129,12 +1133,9 @@ Optional:
 
 Optional:
 
+- `id` (String)
 - `options` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--options))
 - `rows` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows))
-
-Read-Only:
-
-- `id` (String)
 
 <a id="nestedatt--layout--sections--options"></a>
 ### Nested Schema for `layout.sections.options`
@@ -1159,11 +1160,8 @@ Required:
 
 Optional:
 
-- `widgets` (Attributes List) The list of widgets to display in the dashboard. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets))
-
-Read-Only:
-
 - `id` (String)
+- `widgets` (Attributes List) The list of widgets to display in the dashboard. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets))
 
 <a id="nestedatt--layout--sections--rows--widgets"></a>
 ### Nested Schema for `layout.sections.rows.widgets`
@@ -1175,12 +1173,9 @@ Required:
 Optional:
 
 - `description` (String) Widget description.
+- `id` (String)
 - `title` (String) Widget title. Required for all widgets except markdown.
 - `width` (Number, Deprecated) Deprecated: the widget appearance.width field is ignored by the API and has no effect.
-
-Read-Only:
-
-- `id` (String)
 
 <a id="nestedatt--layout--sections--rows--widgets--definition"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition`
