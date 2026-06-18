@@ -212,6 +212,39 @@ func TestExpandQuotaRuleUpdateDoesNotClearPolicyOverrideWithTargets(t *testing.T
 	}
 }
 
+func TestExpandQuotaRuleUpdateClearsRemovedPolicyOverrideWithTargets(t *testing.T) {
+	ctx := context.Background()
+	priorState := quotaRuleLogPlan(t, ctx)
+	priorState.ID = types.StringValue("policy-id")
+	plan := quotaRuleLogPlan(t, ctx)
+	plan.ID = types.StringValue("policy-id")
+	plan.Priority = types.StringNull()
+	plan.QuotaBasedPriorityOverride = types.ObjectNull(quotaBasedPriorityOverrideAttributes())
+
+	request, diags := expandQuotaRuleUpdate(ctx, plan, priorState)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if request.UpdatePolicyRequestLogRules == nil {
+		t.Fatal("expected log-rule update request")
+	}
+	if request.UpdatePolicyRequestLogRules.PriorityOverride == nil {
+		t.Fatal("expected empty policy-level priority override to clear the removed override")
+	}
+
+	payload, err := json.Marshal(request.UpdatePolicyRequestLogRules)
+	if err != nil {
+		t.Fatalf("unexpected marshal error: %v", err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &fields); err != nil {
+		t.Fatalf("unexpected payload unmarshal error: %v", err)
+	}
+	if _, ok := fields["priorityOverride"]; !ok {
+		t.Fatalf("expected priorityOverride clear field in payload: %s", string(payload))
+	}
+}
+
 func TestFlattenQuotaRulePolicyLog(t *testing.T) {
 	ctx := context.Background()
 	description := "managed by terraform"

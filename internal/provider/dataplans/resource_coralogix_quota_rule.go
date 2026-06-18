@@ -687,7 +687,7 @@ func expandQuotaRuleUpdateLog(ctx context.Context, plan QuotaRuleModel, priorSta
 	request.ApplicationRule = quotaRuleUpdateRule(plan.ApplicationRule, priorState.ApplicationRule, applicationRule)
 	request.SubsystemRule = quotaRuleUpdateRule(plan.SubsystemRule, priorState.SubsystemRule, subsystemRule)
 	request.ArchiveRetention = quotaRuleUpdateArchiveRetention(plan.ArchiveRetentionID, priorState.ArchiveRetentionID, archiveRetention)
-	request.PriorityOverride = quotaRuleUpdatePriorityOverride(plan, priorityOverride)
+	request.PriorityOverride = quotaRuleUpdatePriorityOverride(plan, priorState, priorityOverride)
 	request.Targets = quotaRuleUpdateTargets(plan, targets)
 	return request, nil
 }
@@ -710,7 +710,7 @@ func expandQuotaRuleUpdateSpan(ctx context.Context, plan QuotaRuleModel, priorSt
 	request.ApplicationRule = quotaRuleUpdateRule(plan.ApplicationRule, priorState.ApplicationRule, applicationRule)
 	request.SubsystemRule = quotaRuleUpdateRule(plan.SubsystemRule, priorState.SubsystemRule, subsystemRule)
 	request.ArchiveRetention = quotaRuleUpdateArchiveRetention(plan.ArchiveRetentionID, priorState.ArchiveRetentionID, archiveRetention)
-	request.PriorityOverride = quotaRuleUpdatePriorityOverride(plan, priorityOverride)
+	request.PriorityOverride = quotaRuleUpdatePriorityOverride(plan, priorState, priorityOverride)
 	request.Targets = quotaRuleUpdateTargets(plan, targets)
 	return request, nil
 }
@@ -741,7 +741,14 @@ func expandQuotaRuleCommon(ctx context.Context, plan QuotaRuleModel) (*tcoPolicy
 	return applicationRule, subsystemRule, expandActiveRetention(plan.ArchiveRetentionID), priorityOverride, targets, diags
 }
 
-func quotaRuleUpdatePriorityOverride(plan QuotaRuleModel, priorityOverride *tcoPolicys.PriorityOverride) *tcoPolicys.PriorityOverride {
+func quotaRuleUpdatePriorityOverride(plan QuotaRuleModel, priorState QuotaRuleModel, priorityOverride *tcoPolicys.PriorityOverride) *tcoPolicys.PriorityOverride {
+	priorityOverrideRemoved := plan.QuotaBasedPriorityOverride.IsNull() &&
+		!priorState.QuotaBasedPriorityOverride.IsNull() &&
+		!priorState.QuotaBasedPriorityOverride.IsUnknown()
+	if priorityOverrideRemoved {
+		return tcoPolicys.NewPriorityOverride()
+	}
+
 	targetsConfigured := !plan.Targets.IsNull() && !plan.Targets.IsUnknown()
 	if !targetsConfigured && (plan.QuotaBasedPriorityOverride.IsNull() || priorityOverride == nil) {
 		return tcoPolicys.NewPriorityOverride()
