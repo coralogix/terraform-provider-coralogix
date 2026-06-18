@@ -377,7 +377,7 @@ func (r *QuotaRuleResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	_, httpResponse, err := r.client.
+	result, httpResponse, err := r.client.
 		PoliciesServiceUpdatePolicy(ctx).
 		PoliciesServiceUpdatePolicyRequest(request).
 		Execute()
@@ -393,7 +393,12 @@ func (r *QuotaRuleResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+	state, diags := flattenUpdateQuotaRuleResponse(ctx, result)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *QuotaRuleResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -682,8 +687,8 @@ func expandQuotaRuleUpdateLog(ctx context.Context, plan QuotaRuleModel, logRules
 	request.ApplicationRule = applicationRule
 	request.SubsystemRule = subsystemRule
 	request.ArchiveRetention = archiveRetention
-	request.PriorityOverride = priorityOverride
-	request.Targets = targets
+	request.PriorityOverride = quotaRuleUpdatePriorityOverride(plan, priorityOverride)
+	request.Targets = quotaRuleUpdateTargets(plan, targets)
 	return request, nil
 }
 
@@ -705,8 +710,8 @@ func expandQuotaRuleUpdateSpan(ctx context.Context, plan QuotaRuleModel, spanRul
 	request.ApplicationRule = applicationRule
 	request.SubsystemRule = subsystemRule
 	request.ArchiveRetention = archiveRetention
-	request.PriorityOverride = priorityOverride
-	request.Targets = targets
+	request.PriorityOverride = quotaRuleUpdatePriorityOverride(plan, priorityOverride)
+	request.Targets = quotaRuleUpdateTargets(plan, targets)
 	return request, nil
 }
 
@@ -734,6 +739,21 @@ func expandQuotaRuleCommon(ctx context.Context, plan QuotaRuleModel) (*tcoPolicy
 	}
 
 	return applicationRule, subsystemRule, expandActiveRetention(plan.ArchiveRetentionID), priorityOverride, targets, diags
+}
+
+func quotaRuleUpdatePriorityOverride(plan QuotaRuleModel, priorityOverride *tcoPolicys.PriorityOverride) *tcoPolicys.PriorityOverride {
+	targetsConfigured := !plan.Targets.IsNull() && !plan.Targets.IsUnknown()
+	if !targetsConfigured && (plan.QuotaBasedPriorityOverride.IsNull() || priorityOverride == nil) {
+		return tcoPolicys.NewPriorityOverride()
+	}
+	return priorityOverride
+}
+
+func quotaRuleUpdateTargets(plan QuotaRuleModel, targets []tcoPolicys.V1Target) []tcoPolicys.V1Target {
+	if plan.Targets.IsNull() {
+		return []tcoPolicys.V1Target{}
+	}
+	return targets
 }
 
 func expandQuotaRulePolicyPriority(plan QuotaRuleModel) (tcoPolicys.QuotaV1Priority, diag.Diagnostics) {

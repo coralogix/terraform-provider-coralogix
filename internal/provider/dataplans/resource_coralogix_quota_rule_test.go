@@ -16,6 +16,7 @@ package dataplans
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
@@ -119,6 +120,71 @@ func TestExpandQuotaRuleCreateSpan(t *testing.T) {
 	}
 	if got := spanRequest.SpanRules.TagRules[0].GetTagValue(); got != "POST" {
 		t.Fatalf("expected tag value POST, got %q", got)
+	}
+}
+
+func TestExpandQuotaRuleUpdateClearsRemovedOptionalPolicyFields(t *testing.T) {
+	ctx := context.Background()
+	plan := quotaRuleLogPlan(t, ctx)
+	plan.ID = types.StringValue("policy-id")
+	plan.Priority = types.StringValue("high")
+	plan.QuotaBasedPriorityOverride = types.ObjectNull(quotaBasedPriorityOverrideAttributes())
+	plan.Targets = types.ListNull(types.ObjectType{AttrTypes: quotaRuleTargetAttributes()})
+
+	request, diags := expandQuotaRuleUpdate(ctx, plan)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if request.UpdatePolicyRequestLogRules == nil {
+		t.Fatal("expected log-rule update request")
+	}
+
+	logRequest := request.UpdatePolicyRequestLogRules
+	if logRequest.PriorityOverride == nil {
+		t.Fatal("expected empty priority override to be sent as a clear operation")
+	}
+	if logRequest.Targets == nil {
+		t.Fatal("expected empty targets list to be sent as a clear operation")
+	}
+	if len(logRequest.Targets) != 0 {
+		t.Fatalf("expected empty targets list, got %d targets", len(logRequest.Targets))
+	}
+
+	payload, err := json.Marshal(logRequest)
+	if err != nil {
+		t.Fatalf("unexpected marshal error: %v", err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &fields); err != nil {
+		t.Fatalf("unexpected payload unmarshal error: %v", err)
+	}
+	if _, ok := fields["priorityOverride"]; !ok {
+		t.Fatalf("expected priorityOverride clear field in payload: %s", string(payload))
+	}
+	if _, ok := fields["targets"]; !ok {
+		t.Fatalf("expected targets clear field in payload: %s", string(payload))
+	}
+}
+
+func TestExpandQuotaRuleUpdateDoesNotClearPolicyOverrideWithTargets(t *testing.T) {
+	ctx := context.Background()
+	plan := quotaRuleLogPlan(t, ctx)
+	plan.ID = types.StringValue("policy-id")
+	plan.Priority = types.StringNull()
+	plan.QuotaBasedPriorityOverride = types.ObjectNull(quotaBasedPriorityOverrideAttributes())
+
+	request, diags := expandQuotaRuleUpdate(ctx, plan)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if request.UpdatePolicyRequestLogRules == nil {
+		t.Fatal("expected log-rule update request")
+	}
+	if request.UpdatePolicyRequestLogRules.PriorityOverride != nil {
+		t.Fatal("did not expect policy-level priority override clear operation when targets are configured")
+	}
+	if len(request.UpdatePolicyRequestLogRules.Targets) != 1 {
+		t.Fatalf("expected target routing to be preserved, got %d targets", len(request.UpdatePolicyRequestLogRules.Targets))
 	}
 }
 
