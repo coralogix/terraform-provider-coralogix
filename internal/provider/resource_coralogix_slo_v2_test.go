@@ -134,3 +134,88 @@ resource "coralogix_slo_v2" "test" {
 }
 `
 }
+
+func TestAccCoralogixResourceSLOV2ApmError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccSLOV2CheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:  testAccCoralogixSLOV2ApmError(),
+				Destroy: false,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(sloV2ResourceName, "name", "test_apm_error_slo"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "target_threshold_percentage", "99.5"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "product_type", "SLO_PRODUCT_TYPE_APM"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "apm_sli.services.#", "1"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "apm_sli.services.0", "test-service"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceSLOV2ApmLatencyQuantile(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccSLOV2CheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:  testAccCoralogixSLOV2ApmLatencyQuantile(),
+				Destroy: false,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(sloV2ResourceName, "name", "test_apm_latency_slo"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "target_threshold_percentage", "95"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "product_type", "SLO_PRODUCT_TYPE_APM"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "apm_sli.services.#", "1"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "apm_sli.services.0", "test-service"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "apm_sli.latency_config.threshold", "200"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "apm_sli.latency_config.time_window", "5_minutes"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "apm_sli.latency_config.quantile.percentile", "0.99"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixSLOV2ApmError() string {
+	return `
+resource "coralogix_slo_v2" "test" {
+  name                        = "test_apm_error_slo"
+  description                 = "Acceptance test APM error-based SLO"
+  target_threshold_percentage = 99.5
+  apm_sli = {
+    services = ["test-service"]
+    error_config = {}
+  }
+  window = {
+    slo_time_frame = "7_days"
+  }
+}
+`
+}
+
+func testAccCoralogixSLOV2ApmLatencyQuantile() string {
+	return `
+resource "coralogix_slo_v2" "test" {
+  name                        = "test_apm_latency_slo"
+  description                 = "Acceptance test APM latency-based SLO"
+  target_threshold_percentage = 95.0
+  apm_sli = {
+    services = ["test-service"]
+    latency_config = {
+      threshold   = 200
+      time_window = "5_minutes"
+      quantile = {
+        percentile = 0.99
+      }
+    }
+  }
+  window = {
+    slo_time_frame = "28_days"
+  }
+}
+`
+}
