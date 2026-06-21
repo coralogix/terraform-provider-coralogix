@@ -234,6 +234,11 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 						Required:            true,
 						MarkdownDescription: "List of service names to monitor (at least one required).",
 					},
+					"grouping_keys": schema.ListAttribute{
+						ElementType:         types.StringType,
+						Optional:            true,
+						MarkdownDescription: "Labels to group SLO results by (e.g. `deployment_environment_name`).",
+					},
 					"filters": schema.ListNestedAttribute{
 						Optional: true,
 						NestedObject: schema.NestedAttributeObject{
@@ -363,6 +368,7 @@ type WindowModel struct {
 
 type ApmSliModel struct {
 	Services      types.List   `tfsdk:"services"`
+	GroupingKeys  types.List   `tfsdk:"grouping_keys"`
 	Filters       types.List   `tfsdk:"filters"`
 	ErrorConfig   types.Object `tfsdk:"error_config"`
 	LatencyConfig types.Object `tfsdk:"latency_config"`
@@ -601,6 +607,13 @@ func extractApmSLI(ctx context.Context, id *string, labels *map[string]string, n
 		return nil, diags
 	}
 
+	var groupingKeys []string
+	if !m.GroupingKeys.IsNull() && !m.GroupingKeys.IsUnknown() {
+		if diags := m.GroupingKeys.ElementsAs(ctx, &groupingKeys, false); diags.HasError() {
+			return nil, diags
+		}
+	}
+
 	filters, diags := extractApmFilters(ctx, m.Filters)
 	if diags.HasError() {
 		return nil, diags
@@ -610,6 +623,7 @@ func extractApmSLI(ctx context.Context, id *string, labels *map[string]string, n
 	if errCfg := m.ErrorConfig; !(errCfg.IsNull() || errCfg.IsUnknown()) {
 		ec := slos.NewApmSliErrorConfig(map[string]interface{}{})
 		ec.Services = services
+		ec.GroupingKeys = groupingKeys
 		ec.Filters = filters
 		apmSli = slos.ApmSliErrorConfigAsApmSli(ec)
 	} else if latCfg := m.LatencyConfig; !(latCfg.IsNull() || latCfg.IsUnknown()) {
@@ -619,6 +633,7 @@ func extractApmSLI(ctx context.Context, id *string, labels *map[string]string, n
 		}
 		lc := slos.NewApmSliLatencyConfig(*latConfig)
 		lc.Services = services
+		lc.GroupingKeys = groupingKeys
 		lc.Filters = filters
 		apmSli = slos.ApmSliLatencyConfigAsApmSli(lc)
 	} else {
@@ -839,12 +854,14 @@ func flattenApmSLI(ctx context.Context, sli *slos.SloApmSli) (*SLOV2ResourceMode
 
 func flattenApmSliSource(ctx context.Context, src *slos.ApmSli) (types.Object, diag.Diagnostics) {
 	var services []string
+	var groupingKeys []string
 	var filters []slos.ApmFilter
 	var errorConfig types.Object
 	var latencyConfig types.Object
 
 	if errCfg := src.ApmSliErrorConfig; errCfg != nil {
 		services = errCfg.Services
+		groupingKeys = errCfg.GroupingKeys
 		filters = errCfg.Filters
 		ec, diags := types.ObjectValue(map[string]attr.Type{}, map[string]attr.Value{})
 		if diags.HasError() {
@@ -854,6 +871,7 @@ func flattenApmSliSource(ctx context.Context, src *slos.ApmSli) (types.Object, d
 		latencyConfig = types.ObjectNull(apmLatencyConfigAttr())
 	} else if latCfg := src.ApmSliLatencyConfig; latCfg != nil {
 		services = latCfg.Services
+		groupingKeys = latCfg.GroupingKeys
 		filters = latCfg.Filters
 		errorConfig = types.ObjectNull(map[string]attr.Type{})
 		lc, diags := flattenApmLatencyConfig(ctx, &latCfg.LatencyConfig)
@@ -872,6 +890,11 @@ func flattenApmSliSource(ctx context.Context, src *slos.ApmSli) (types.Object, d
 		return types.ObjectNull(apmSliAttr()), diags
 	}
 
+	groupingKeysList, diags := types.ListValueFrom(ctx, types.StringType, groupingKeys)
+	if diags.HasError() {
+		return types.ObjectNull(apmSliAttr()), diags
+	}
+
 	filterObjs, diags := flattenApmFilters(ctx, filters)
 	if diags.HasError() {
 		return types.ObjectNull(apmSliAttr()), diags
@@ -879,6 +902,7 @@ func flattenApmSliSource(ctx context.Context, src *slos.ApmSli) (types.Object, d
 
 	model := ApmSliModel{
 		Services:      servicesList,
+		GroupingKeys:  groupingKeysList,
 		Filters:       filterObjs,
 		ErrorConfig:   errorConfig,
 		LatencyConfig: latencyConfig,
@@ -1157,6 +1181,7 @@ func apmLatencyConfigAttr() map[string]attr.Type {
 func apmSliAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"services":       types.ListType{ElemType: types.StringType},
+		"grouping_keys":  types.ListType{ElemType: types.StringType},
 		"filters":        types.ListType{ElemType: types.ObjectType{AttrTypes: apmFilterAttr()}},
 		"error_config":   types.ObjectType{AttrTypes: map[string]attr.Type{}},
 		"latency_config": types.ObjectType{AttrTypes: apmLatencyConfigAttr()},

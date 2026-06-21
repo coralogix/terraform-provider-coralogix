@@ -163,41 +163,57 @@ resource "coralogix_alert" "slo_alert_error_budget" {
 resource "coralogix_slo_v2" "example_apm_error_slo" {
   name                        = "coralogix_apm_error_slo"
   description                 = "Example APM SLO using error-based SLI"
-  target_threshold_percentage = 99.5
-  labels = {
-    env     = "prod"
-    service = "checkout"
-  }
+  target_threshold_percentage = 99.96
   apm_sli = {
-    services = ["checkout-service", "payment-service"]
+    services      = ["frontend"]
+    grouping_keys = ["deployment_environment_name"]
     filters = [
       {
-        key    = "status_code"
-        values = ["500", "503"]
+        key    = "span_name"
+        values = ["GET /checkout"]
       }
     ]
     error_config = {}
   }
   window = {
-    slo_time_frame = "7_days"
+    slo_time_frame = "21_days"
   }
 }
 
-resource "coralogix_slo_v2" "example_apm_latency_slo" {
-  name                        = "coralogix_apm_latency_slo"
-  description                 = "Example APM SLO using latency-based SLI (P99 < 200ms)"
-  target_threshold_percentage = 95
+resource "coralogix_slo_v2" "example_apm_latency_quantile_slo" {
+  name                        = "coralogix_apm_latency_quantile_slo"
+  description                 = "Example APM SLO using latency-based SLI (P95 < 300ms)"
+  target_threshold_percentage = 99
   apm_sli = {
-    services = ["api-gateway"]
+    services      = ["frontend"]
+    grouping_keys = ["deployment_environment_name"]
     latency_config = {
-      threshold   = 200
+      threshold   = 300
       time_window = "5_minutes"
       quantile = {
-        percentile = 0.99
+        percentile = 0.95
       }
     }
   }
   window = {
-    slo_time_frame = "28_days"
+    slo_time_frame = "21_days"
+  }
+}
+
+resource "coralogix_slo_v2" "example_apm_latency_average_slo" {
+  name                        = "coralogix_apm_latency_average_slo"
+  description                 = "Example APM SLO using average latency-based SLI (< 300ms)"
+  target_threshold_percentage = 99
+  apm_sli = {
+    services      = ["frontend"]
+    grouping_keys = ["deployment_environment_name"]
+    latency_config = {
+      threshold   = 300
+      time_window = "5_minutes"
+      average     = {}
+    }
+  }
+  window = {
+    slo_time_frame = "21_days"
   }
 }
