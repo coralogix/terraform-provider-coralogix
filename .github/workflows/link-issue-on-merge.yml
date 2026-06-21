@@ -1,0 +1,39 @@
+name: link-issue-on-merge
+
+# When a fix PR carrying a `<!-- cx-resolves-issue: N -->` marker merges, close the
+# referenced issue with a "Resolved by <pr>" comment. The marker (a bare number in an
+# HTML comment) is injected by the triage automation at PR-open and never autolinks, so
+# the issue stays clean during the PR's life and is closed only here, at merge. PRs
+# without the marker (human PRs, non-GitHub-sourced fixes) are a no-op.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  link:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const m = (pr.body || "").match(/<!--\s*cx-resolves-issue:\s*(\d+)\s*-->/);
+            if (!m) { core.info("no cx-resolves-issue marker; nothing to do"); return; }
+            const issue_number = Number(m[1]);
+            if (issue_number === pr.number) { core.info("marker points at the PR itself; skipping"); return; }
+            let issue;
+            try {
+              issue = (await github.rest.issues.get({ ...context.repo, issue_number })).data;
+            } catch {
+              core.info(`#${issue_number} not found in this repo; skipping`); return;
+            }
+            if (issue.pull_request) { core.info(`#${issue_number} is a PR, not an issue; skipping`); return; }
+            if (issue.state === "closed") { core.info(`#${issue_number} already closed; skipping`); return; }
+            await github.rest.issues.createComment({ ...context.repo, issue_number, body: `Resolved by ${pr.html_url}` });
+            await github.rest.issues.update({ ...context.repo, issue_number, state: "closed", state_reason: "completed" });
+            core.info(`commented + closed #${issue_number}`);
