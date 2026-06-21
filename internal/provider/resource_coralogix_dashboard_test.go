@@ -561,6 +561,89 @@ func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 		},
 	})
 }
+
+func TestAccCoralogixResourceDashboardDataTableWidgetObservationFieldFilter(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "coralogix_dashboard" "test" {
+  name        = "issue-496-observation-field-filter"
+  description = "Reproducer for #496"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      options = {
+        name        = "section-without-color"
+        description = "Exercises flattenDashboardOptions when color is unset."
+      }
+      rows = [{
+        height = 19
+        widgets = [{
+          title = "logs-with-observation-field"
+          definition = {
+            data_table = {
+              results_per_page = 100
+              row_style        = "one_line"
+              columns = [
+                { field = "coralogix.timestamp" },
+                { field = "coralogix.text" },
+                { field = "coralogix.metadata.subsystemName" },
+              ]
+              query = {
+                logs = {
+                  filters = [{
+                    observation_field = {
+                      keypath = ["subsystemname"]
+                      scope   = "label"
+                    }
+                    operator = {
+                      type            = "equals"
+                      selected_values = ["pubby-publisher"]
+                    }
+                  }]
+                }
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.name", "section-without-color"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.options.color"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.field"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.observation_field.keypath.0", "subsystemname"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.observation_field.scope", "label"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.operator.type", "equals"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.operator.selected_values.0", "pubby-publisher"),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {

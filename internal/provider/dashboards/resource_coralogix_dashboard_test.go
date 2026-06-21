@@ -15,9 +15,12 @@
 package dashboards
 
 import (
+	"context"
 	"testing"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
@@ -69,6 +72,76 @@ func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
 			}
 			if got == nil || *got != *tt.want {
 				t.Fatalf("expected access policy %q, got %v", *tt.want, got)
+			}
+		})
+	}
+}
+
+func TestFlattenDashboardOptionsColor(t *testing.T) {
+	tests := []struct {
+		name       string
+		color      *cxsdk.DashboardSectionColor
+		wantNull   bool
+		wantString string
+	}{
+		{
+			name:     "color absent (nil)",
+			color:    nil,
+			wantNull: true,
+		},
+		{
+			name: "predefined unspecified (zero value) is null",
+			color: &cxsdk.DashboardSectionColor{
+				Value: &cxsdk.DashboardSectionColorPredefined{
+					Predefined: cxsdk.DashboardSectionColorPredefinedColor(0),
+				},
+			},
+			wantNull: true,
+		},
+		{
+			name:     "color wrapper present but value oneof unset is null",
+			color:    &cxsdk.DashboardSectionColor{},
+			wantNull: true,
+		},
+		{
+			name: "predefined cyan flattens to lowercase string",
+			color: &cxsdk.DashboardSectionColor{
+				Value: &cxsdk.DashboardSectionColorPredefined{
+					Predefined: cxsdk.DashboardSectionColorPredefinedColor(cxsdk.DashboardSectionPredefinedColorValueLookup["SECTION_PREDEFINED_COLOR_CYAN"]),
+				},
+			},
+			wantString: "cyan",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := &cxsdk.DashboardSectionOptions{
+				Value: &cxsdk.DashboardSectionOptionsCustom{
+					Custom: &cxsdk.CustomSectionOptions{
+						Name:  wrapperspb.String("section"),
+						Color: tt.color,
+					},
+				},
+			}
+			model, diags := flattenDashboardOptions(context.Background(), opts)
+			if diags.HasError() {
+				t.Fatalf("unexpected diagnostics: %v", diags)
+			}
+			if model == nil {
+				t.Fatalf("expected non-nil model, got nil")
+			}
+			if tt.wantNull {
+				if !model.Color.IsNull() {
+					t.Fatalf("expected null color, got %q", model.Color.ValueString())
+				}
+				return
+			}
+			if model.Color.IsNull() {
+				t.Fatalf("expected color %q, got null", tt.wantString)
+			}
+			if got := model.Color.ValueString(); got != tt.wantString {
+				t.Fatalf("expected color %q, got %q", tt.wantString, got)
 			}
 		})
 	}
