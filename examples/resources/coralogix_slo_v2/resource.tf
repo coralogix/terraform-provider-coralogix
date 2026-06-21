@@ -159,3 +159,45 @@ resource "coralogix_alert" "slo_alert_error_budget" {
     }
   }
 }
+
+resource "coralogix_slo_v2" "example_apm_error_slo" {
+  name                        = "coralogix_apm_error_slo"
+  description                 = "Example APM SLO using error-based SLI"
+  target_threshold_percentage = 99.5
+  labels = {
+    env     = "prod"
+    service = "checkout"
+  }
+  apm_sli = {
+    services = ["checkout-service", "payment-service"]
+    filters = [
+      {
+        key    = "status_code"
+        values = ["500", "503"]
+      }
+    ]
+    error_config = {}
+  }
+  window = {
+    slo_time_frame = "7_days"
+  }
+}
+
+resource "coralogix_slo_v2" "example_apm_latency_slo" {
+  name                        = "coralogix_apm_latency_slo"
+  description                 = "Example APM SLO using latency-based SLI (P99 < 200ms)"
+  target_threshold_percentage = 95
+  apm_sli = {
+    services = ["api-gateway"]
+    latency_config = {
+      threshold   = 200
+      time_window = "5_minutes"
+      quantile = {
+        percentile = 0.99
+      }
+    }
+  }
+  window = {
+    slo_time_frame = "28_days"
+  }
+}

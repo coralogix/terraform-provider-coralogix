@@ -5,6 +5,9 @@
 - FIX: Every `*.query.logs.filters[*]` block (across all widget types — `data_table`, `line_chart`, `bar_chart`, `pie_chart`, `gauge`, `hexagon`, `horizontal_bar_chart`) and the top-level `filters[*].source.logs` block now accept `observation_field` as the sole filter target. `field` is `Optional` (was `Required`), and a `stringvalidator.ExactlyOneOf` on `field` keeps the field-vs-observation_field misconfiguration explicit. Configs copied from a `data "coralogix_dashboard"` whose backend filter used `observation_field` no longer fail validation with `Missing Configuration for Required Attribute`.
 - FIX: `layout.sections[*].options.color` no longer flattens the proto zero-value (`SECTION_PREDEFINED_COLOR_UNSPECIFIED`) to the literal string `"unspecified"`. Sections with no color set now round-trip as `null`, which matches the resource schema's allowed `OneOf` values (cyan/green/blue/purple/magenta/pink/orange). Existing state containing the leaked `"unspecified"` value will refresh to `null` on the next plan; no state migration is required because the broken value was already non-applyable through the resource schema's validator.
 
+#### resource/coralogix_slo_v2
+- FEAT: Add APM SLO support via new `apm_sli` block (mutually exclusive with `sli`); supports error-based and latency-based (quantile and average) SLIs with multi-service and filter support.
+
 # Release 3.5.0
 
 #### resource/coralogix_dashboard

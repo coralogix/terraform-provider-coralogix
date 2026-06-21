@@ -150,9 +150,13 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 					float32validator.Between(0, 100),
 				},
 			},
+			"product_type": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "SLO product type. Set by the server; APM SLOs return `SLO_PRODUCT_TYPE_APM`.",
+			},
 			"sli": schema.SingleNestedAttribute{
-				Required:            true,
-				MarkdownDescription: "SLI definition: exactly one of request_based_metric_sli or window_based_metric_sli must be provided.",
+				Optional:            true,
+				MarkdownDescription: "SLI definition: exactly one of request_based_metric_sli or window_based_metric_sli must be provided. Mutually exclusive with `apm_sli`.",
 				Attributes: map[string]schema.Attribute{
 					"request_based_metric_sli": schema.SingleNestedAttribute{
 						Optional:            true,
@@ -217,6 +221,87 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 						},
 					},
 				},
+				Validators: []validator.Object{
+					objectvalidator.ConflictsWith(path.MatchRoot("apm_sli")),
+				},
+			},
+			"apm_sli": schema.SingleNestedAttribute{
+				Optional:            true,
+				MarkdownDescription: "APM SLI definition. Mutually exclusive with `sli`. Coralogix auto-generates PromQL queries from the service and error/latency config.",
+				Attributes: map[string]schema.Attribute{
+					"services": schema.ListAttribute{
+						ElementType:         types.StringType,
+						Required:            true,
+						MarkdownDescription: "List of service names to monitor (at least one required).",
+					},
+					"filters": schema.ListNestedAttribute{
+						Optional: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"key": schema.StringAttribute{
+									Required:            true,
+									MarkdownDescription: "Label/tag name to filter on.",
+								},
+								"values": schema.ListAttribute{
+									ElementType:         types.StringType,
+									Required:            true,
+									MarkdownDescription: "Values to match (OR semantics).",
+								},
+							},
+						},
+						MarkdownDescription: "Additional label-based filters to apply to the metrics.",
+					},
+					"error_config": schema.SingleNestedAttribute{
+						Optional:            true,
+						Attributes:          map[string]schema.Attribute{},
+						MarkdownDescription: "Error-based APM SLI (predefined error ratio). Mutually exclusive with `latency_config`.",
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("latency_config")),
+						},
+					},
+					"latency_config": schema.SingleNestedAttribute{
+						Optional:            true,
+						MarkdownDescription: "Latency-based APM SLI. Mutually exclusive with `error_config`.",
+						Attributes: map[string]schema.Attribute{
+							"threshold": schema.Float32Attribute{
+								Required:            true,
+								MarkdownDescription: "Latency threshold in milliseconds.",
+							},
+							"time_window": schema.StringAttribute{
+								Required:            true,
+								MarkdownDescription: fmt.Sprintf("Evaluation time window. One of: %v.", strings.Join(validWindows, ", ")),
+								Validators:          []validator.String{stringvalidator.OneOf(validWindows...)},
+							},
+							"quantile": schema.SingleNestedAttribute{
+								Optional:            true,
+								MarkdownDescription: "Quantile-based latency measurement. Mutually exclusive with `average`.",
+								Attributes: map[string]schema.Attribute{
+									"percentile": schema.Float32Attribute{
+										Required:            true,
+										MarkdownDescription: "Percentile for latency SLOs (e.g. 0.99 for P99, 0.95 for P95).",
+									},
+								},
+								Validators: []validator.Object{
+									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("average")),
+								},
+							},
+							"average": schema.SingleNestedAttribute{
+								Optional:            true,
+								Attributes:          map[string]schema.Attribute{},
+								MarkdownDescription: "Average-based latency measurement. Mutually exclusive with `quantile`.",
+								Validators: []validator.Object{
+									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("quantile")),
+								},
+							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("error_config")),
+						},
+					},
+				},
+				Validators: []validator.Object{
+					objectvalidator.ConflictsWith(path.MatchRoot("sli")),
+				},
 			},
 			"window": schema.SingleNestedAttribute{
 				Required: true,
@@ -242,6 +327,8 @@ type SLOV2ResourceModel struct {
 	Grouping                  types.Object  `tfsdk:"grouping"`
 	TargetThresholdPercentage types.Float32 `tfsdk:"target_threshold_percentage"`
 	SLI                       types.Object  `tfsdk:"sli"`
+	ApmSli                    types.Object  `tfsdk:"apm_sli"`
+	ProductType               types.String  `tfsdk:"product_type"`
 	Window                    types.Object  `tfsdk:"window"`
 }
 
@@ -274,6 +361,29 @@ type WindowModel struct {
 	SloTimeFrame types.String `tfsdk:"slo_time_frame"`
 }
 
+type ApmSliModel struct {
+	Services      types.List   `tfsdk:"services"`
+	Filters       types.List   `tfsdk:"filters"`
+	ErrorConfig   types.Object `tfsdk:"error_config"`
+	LatencyConfig types.Object `tfsdk:"latency_config"`
+}
+
+type ApmFilterModel struct {
+	Key    types.String `tfsdk:"key"`
+	Values types.List   `tfsdk:"values"`
+}
+
+type ApmLatencyConfigModel struct {
+	Threshold  types.Float32 `tfsdk:"threshold"`
+	TimeWindow types.String  `tfsdk:"time_window"`
+	Quantile   types.Object  `tfsdk:"quantile"`
+	Average    types.Object  `tfsdk:"average"`
+}
+
+type ApmQuantileModel struct {
+	Percentile types.Float32 `tfsdk:"percentile"`
+}
+
 func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan *SLOV2ResourceModel
 	diags := req.Plan.Get(ctx, &plan)
@@ -288,6 +398,7 @@ func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 	rq := slos.SlosServiceReplaceSloRequest{
+		SloApmSli:                slo.SloApmSli,
 		SloRequestBasedMetricSli: slo.SloRequestBasedMetricSli,
 		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
 	}
@@ -364,6 +475,7 @@ func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 
 	rq := slos.SlosServiceReplaceSloRequest{
+		SloApmSli:                slo.SloApmSli,
 		SloRequestBasedMetricSli: slo.SloRequestBasedMetricSli,
 		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
 	}
@@ -439,32 +551,149 @@ func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*slos.Slo, dia
 		return nil, diags
 	}
 
-	var sliModel SLIModel
-	if diags := plan.SLI.As(ctx, &sliModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-		return nil, diags
-	}
-
-	if reqBased := sliModel.RequestBasedMetricSli; !(reqBased.IsNull() || reqBased.IsUnknown()) {
-
-		sli, diags := extractRequestBasedSLI(ctx, id, &labels, name, description, targetThresholdPct, timeFrame, reqBased)
+	if apmSliBlock := plan.ApmSli; !(apmSliBlock.IsNull() || apmSliBlock.IsUnknown()) {
+		apmSli, diags := extractApmSLI(ctx, id, &labels, name, description, targetThresholdPct, timeFrame, apmSliBlock)
 		if diags.HasError() {
 			return nil, diags
 		}
-		slo.SloRequestBasedMetricSli = sli
-	} else if winBased := sliModel.WindowBasedMetricSli; !(winBased.IsNull() || winBased.IsUnknown()) {
-		sli, diags := extractWindowBasedSLI(ctx, id, &labels, name, description, targetThresholdPct, timeFrame, winBased)
-		if diags.HasError() {
+		slo.SloApmSli = apmSli
+	} else if !plan.SLI.IsNull() && !plan.SLI.IsUnknown() {
+		var sliModel SLIModel
+		if diags := plan.SLI.As(ctx, &sliModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 			return nil, diags
 		}
-		slo.SloWindowBasedMetricSli = sli
+		if reqBased := sliModel.RequestBasedMetricSli; !(reqBased.IsNull() || reqBased.IsUnknown()) {
+			sli, diags := extractRequestBasedSLI(ctx, id, &labels, name, description, targetThresholdPct, timeFrame, reqBased)
+			if diags.HasError() {
+				return nil, diags
+			}
+			slo.SloRequestBasedMetricSli = sli
+		} else if winBased := sliModel.WindowBasedMetricSli; !(winBased.IsNull() || winBased.IsUnknown()) {
+			sli, diags := extractWindowBasedSLI(ctx, id, &labels, name, description, targetThresholdPct, timeFrame, winBased)
+			if diags.HasError() {
+				return nil, diags
+			}
+			slo.SloWindowBasedMetricSli = sli
+		} else {
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+				"Invalid SLI configuration",
+				"Exactly one of request_based_metric_sli or window_based_metric_sli must be provided.",
+			)}
+		}
 	} else {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Invalid SLI configuration",
-			"Exactly one of request_based_metric_sli or window_based_metric_sli must be provided.",
+			"Exactly one of sli or apm_sli must be provided.",
 		)}
 	}
 
 	return slo, nil
+}
+
+func extractApmSLI(ctx context.Context, id *string, labels *map[string]string, name, description *string, targetPct float32, timeFrame *slos.SloTimeFrame, apmSliBlock types.Object) (*slos.SloApmSli, diag.Diagnostics) {
+	var m ApmSliModel
+	if diags := apmSliBlock.As(ctx, &m, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	var services []string
+	if diags := m.Services.ElementsAs(ctx, &services, false); diags.HasError() {
+		return nil, diags
+	}
+
+	filters, diags := extractApmFilters(ctx, m.Filters)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var apmSli slos.ApmSli
+	if errCfg := m.ErrorConfig; !(errCfg.IsNull() || errCfg.IsUnknown()) {
+		ec := slos.NewApmSliErrorConfig(map[string]interface{}{})
+		ec.Services = services
+		ec.Filters = filters
+		apmSli = slos.ApmSliErrorConfigAsApmSli(ec)
+	} else if latCfg := m.LatencyConfig; !(latCfg.IsNull() || latCfg.IsUnknown()) {
+		latConfig, diags := extractApmLatencyConfig(ctx, latCfg)
+		if diags.HasError() {
+			return nil, diags
+		}
+		lc := slos.NewApmSliLatencyConfig(*latConfig)
+		lc.Services = services
+		lc.Filters = filters
+		apmSli = slos.ApmSliLatencyConfigAsApmSli(lc)
+	} else {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Invalid APM SLI",
+			"Exactly one of error_config or latency_config must be set within apm_sli.",
+		)}
+	}
+
+	return &slos.SloApmSli{
+		ApmSli:                    apmSli,
+		Description:               description,
+		Id:                        id,
+		Labels:                    labels,
+		Name:                      name,
+		SloTimeFrame:              timeFrame,
+		TargetThresholdPercentage: &targetPct,
+	}, nil
+}
+
+func extractApmFilters(ctx context.Context, filtersList types.List) ([]slos.ApmFilter, diag.Diagnostics) {
+	if filtersList.IsNull() || filtersList.IsUnknown() {
+		return nil, nil
+	}
+	var models []ApmFilterModel
+	if diags := filtersList.ElementsAs(ctx, &models, false); diags.HasError() {
+		return nil, diags
+	}
+	result := make([]slos.ApmFilter, len(models))
+	for i, m := range models {
+		var values []string
+		if diags := m.Values.ElementsAs(ctx, &values, false); diags.HasError() {
+			return nil, diags
+		}
+		key := m.Key.ValueStringPointer()
+		result[i] = slos.ApmFilter{Key: key, Values: values}
+	}
+	return result, nil
+}
+
+func extractApmLatencyConfig(ctx context.Context, latCfgObj types.Object) (*slos.ApmLatencySli, diag.Diagnostics) {
+	var m ApmLatencyConfigModel
+	if diags := latCfgObj.As(ctx, &m, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	tw := schemaToProtoSLOWindow[m.TimeWindow.ValueString()]
+	threshold := m.Threshold.ValueFloat32()
+
+	if quantile := m.Quantile; !(quantile.IsNull() || quantile.IsUnknown()) {
+		var qm ApmQuantileModel
+		if diags := quantile.As(ctx, &qm, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		percentile := qm.Percentile.ValueFloat32()
+		q := slos.ApmLatencySliQuantile{
+			Quantile:   slos.ApmLatencyQuantile{Percentile: &percentile},
+			Threshold:  &threshold,
+			TimeWindow: tw.Ptr(),
+		}
+		lat := slos.ApmLatencySliQuantileAsApmLatencySli(&q)
+		return &lat, nil
+	} else if avg := m.Average; !(avg.IsNull() || avg.IsUnknown()) {
+		a := slos.ApmLatencySliAverage{
+			Average:    map[string]interface{}{},
+			Threshold:  &threshold,
+			TimeWindow: tw.Ptr(),
+		}
+		lat := slos.ApmLatencySliAverageAsApmLatencySli(&a)
+		return &lat, nil
+	}
+	return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+		"Invalid latency config",
+		"Exactly one of quantile or average must be set within latency_config.",
+	)}
 }
 
 func extractRequestBasedSLI(ctx context.Context, id *string, labels *map[string]string, name *string, description *string, targetThresholdPct float32, timeFrame *slos.SloTimeFrame, reqBased types.Object) (*slos.SloRequestBasedMetricSli, diag.Diagnostics) {
@@ -550,17 +779,175 @@ func extractWindow(ctx context.Context, rule types.Object) (*slos.SloTimeFrame, 
 }
 
 func flattenSLOV2(ctx context.Context, slo *slos.Slo) (*SLOV2ResourceModel, diag.Diagnostics) {
-
-	if rb := slo.SloRequestBasedMetricSli; rb != nil {
+	if apm := slo.SloApmSli; apm != nil {
+		return flattenApmSLI(ctx, apm)
+	} else if rb := slo.SloRequestBasedMetricSli; rb != nil {
 		return flattenRequestBasedSLI(ctx, rb)
 	} else if wb := slo.SloWindowBasedMetricSli; wb != nil {
 		return flattenWindowBasedSLI(ctx, wb)
 	} else {
 		diags := diag.Diagnostics{}
-		log.Printf("[ERROR] Response was neither a request nor window based SLO; %s", utils.FormatJSON(slo))
+		log.Printf("[ERROR] Response was neither APM, request, nor window based SLO; %s", utils.FormatJSON(slo))
 		diags.AddError("Invalid response from server", utils.FormatJSON(slo))
 		return nil, diags
 	}
+}
+
+func flattenApmSLI(ctx context.Context, sli *slos.SloApmSli) (*SLOV2ResourceModel, diag.Diagnostics) {
+	var apmSliSource *slos.ApmSli
+	if sli.HasApmSliMetadata() {
+		meta := sli.GetApmSliMetadata()
+		apmSliSource = &meta
+	} else {
+		src := sli.GetApmSli()
+		apmSliSource = &src
+	}
+
+	apmSliObj, diags := flattenApmSliSource(ctx, apmSliSource)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	labels, diags := utils.StringMapToTypeMap(ctx, sli.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	grouping, diags := flattenGrouping(ctx, sli.Grouping)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	window, diags := flattenWindow(ctx, sli.GetSloTimeFrame())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &SLOV2ResourceModel{
+		ID:                        types.StringPointerValue(sli.Id),
+		Name:                      types.StringPointerValue(sli.Name),
+		Description:               types.StringPointerValue(sli.Description),
+		Labels:                    labels,
+		Grouping:                  grouping,
+		TargetThresholdPercentage: types.Float32Value(sli.GetTargetThresholdPercentage()),
+		SLI:                       types.ObjectNull(sliAttr()),
+		ApmSli:                    apmSliObj,
+		ProductType:               types.StringValue(string(sli.GetProductType())),
+		Window:                    window,
+	}, nil
+}
+
+func flattenApmSliSource(ctx context.Context, src *slos.ApmSli) (types.Object, diag.Diagnostics) {
+	var services []string
+	var filters []slos.ApmFilter
+	var errorConfig types.Object
+	var latencyConfig types.Object
+
+	if errCfg := src.ApmSliErrorConfig; errCfg != nil {
+		services = errCfg.Services
+		filters = errCfg.Filters
+		ec, diags := types.ObjectValue(map[string]attr.Type{}, map[string]attr.Value{})
+		if diags.HasError() {
+			return types.ObjectNull(apmSliAttr()), diags
+		}
+		errorConfig = ec
+		latencyConfig = types.ObjectNull(apmLatencyConfigAttr())
+	} else if latCfg := src.ApmSliLatencyConfig; latCfg != nil {
+		services = latCfg.Services
+		filters = latCfg.Filters
+		errorConfig = types.ObjectNull(map[string]attr.Type{})
+		lc, diags := flattenApmLatencyConfig(ctx, &latCfg.LatencyConfig)
+		if diags.HasError() {
+			return types.ObjectNull(apmSliAttr()), diags
+		}
+		latencyConfig = lc
+	} else {
+		return types.ObjectNull(apmSliAttr()), diag.Diagnostics{
+			diag.NewErrorDiagnostic("Invalid APM SLI metadata", "Neither error_config nor latency_config found in response"),
+		}
+	}
+
+	servicesList, diags := types.ListValueFrom(ctx, types.StringType, services)
+	if diags.HasError() {
+		return types.ObjectNull(apmSliAttr()), diags
+	}
+
+	filterObjs, diags := flattenApmFilters(ctx, filters)
+	if diags.HasError() {
+		return types.ObjectNull(apmSliAttr()), diags
+	}
+
+	model := ApmSliModel{
+		Services:      servicesList,
+		Filters:       filterObjs,
+		ErrorConfig:   errorConfig,
+		LatencyConfig: latencyConfig,
+	}
+	return types.ObjectValueFrom(ctx, apmSliAttr(), model)
+}
+
+func flattenApmFilters(ctx context.Context, filters []slos.ApmFilter) (types.List, diag.Diagnostics) {
+	if len(filters) == 0 {
+		return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: apmFilterAttr()}, []ApmFilterModel{})
+	}
+	models := make([]ApmFilterModel, len(filters))
+	for i, f := range filters {
+		values, diags := types.ListValueFrom(ctx, types.StringType, f.Values)
+		if diags.HasError() {
+			return types.ListNull(types.ObjectType{AttrTypes: apmFilterAttr()}), diags
+		}
+		models[i] = ApmFilterModel{
+			Key:    types.StringPointerValue(f.Key),
+			Values: values,
+		}
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: apmFilterAttr()}, models)
+}
+
+func flattenApmLatencyConfig(ctx context.Context, lat *slos.ApmLatencySli) (types.Object, diag.Diagnostics) {
+	var threshold float32
+	var timeWindow slos.WindowSloWindow
+	var quantile types.Object
+	var average types.Object
+
+	if q := lat.ApmLatencySliQuantile; q != nil {
+		threshold = q.GetThreshold()
+		if q.TimeWindow != nil {
+			timeWindow = *q.TimeWindow
+		}
+		pct := q.Quantile.GetPercentile()
+		qObj, diags := types.ObjectValueFrom(ctx, apmQuantileAttr(), ApmQuantileModel{
+			Percentile: types.Float32Value(pct),
+		})
+		if diags.HasError() {
+			return types.ObjectNull(apmLatencyConfigAttr()), diags
+		}
+		quantile = qObj
+		average = types.ObjectNull(map[string]attr.Type{})
+	} else if a := lat.ApmLatencySliAverage; a != nil {
+		threshold = a.GetThreshold()
+		if a.TimeWindow != nil {
+			timeWindow = *a.TimeWindow
+		}
+		aObj, diags := types.ObjectValue(map[string]attr.Type{}, map[string]attr.Value{})
+		if diags.HasError() {
+			return types.ObjectNull(apmLatencyConfigAttr()), diags
+		}
+		average = aObj
+		quantile = types.ObjectNull(apmQuantileAttr())
+	} else {
+		return types.ObjectNull(apmLatencyConfigAttr()), diag.Diagnostics{
+			diag.NewErrorDiagnostic("Invalid latency config in response", "Neither quantile nor average found"),
+		}
+	}
+
+	model := ApmLatencyConfigModel{
+		Threshold:  types.Float32Value(threshold),
+		TimeWindow: types.StringValue(protoToSchemaSloWindow[timeWindow]),
+		Quantile:   quantile,
+		Average:    average,
+	}
+	return types.ObjectValueFrom(ctx, apmLatencyConfigAttr(), model)
 }
 
 func flattenGrouping(ctx context.Context, grouping *slos.V1Grouping) (types.Object, diag.Diagnostics) {
@@ -651,6 +1038,8 @@ func flattenRequestBasedSLI(ctx context.Context, sli *slos.SloRequestBasedMetric
 		Grouping:                  grouping,
 		TargetThresholdPercentage: types.Float32PointerValue(sli.TargetThresholdPercentage),
 		SLI:                       sliObj,
+		ApmSli:                    types.ObjectNull(apmSliAttr()),
+		ProductType:               types.StringValue(""),
 		Window:                    window,
 	}, diags
 }
@@ -705,6 +1094,8 @@ func flattenWindowBasedSLI(ctx context.Context, sli *slos.SloWindowBasedMetricSl
 		Grouping:                  grouping,
 		TargetThresholdPercentage: types.Float32PointerValue(sli.TargetThresholdPercentage),
 		SLI:                       sliObj,
+		ApmSli:                    types.ObjectNull(apmSliAttr()),
+		ProductType:               types.StringValue(""),
 		Window:                    window,
 		Labels:                    labels,
 	}, diags
@@ -738,5 +1129,36 @@ func sliAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"request_based_metric_sli": types.ObjectType{AttrTypes: requestBasedMetricSliAttr()},
 		"window_based_metric_sli":  types.ObjectType{AttrTypes: windowBasedMetricSliAttr()},
+	}
+}
+
+func apmFilterAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"key":    types.StringType,
+		"values": types.ListType{ElemType: types.StringType},
+	}
+}
+
+func apmQuantileAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"percentile": types.Float32Type,
+	}
+}
+
+func apmLatencyConfigAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"threshold":   types.Float32Type,
+		"time_window": types.StringType,
+		"quantile":    types.ObjectType{AttrTypes: apmQuantileAttr()},
+		"average":     types.ObjectType{AttrTypes: map[string]attr.Type{}},
+	}
+}
+
+func apmSliAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"services":       types.ListType{ElemType: types.StringType},
+		"filters":        types.ListType{ElemType: types.ObjectType{AttrTypes: apmFilterAttr()}},
+		"error_config":   types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"latency_config": types.ObjectType{AttrTypes: apmLatencyConfigAttr()},
 	}
 }
