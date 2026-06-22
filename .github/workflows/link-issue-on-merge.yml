@@ -22,6 +22,7 @@ jobs:
         with:
           script: |
             const pr = context.payload.pull_request;
+            if (pr.user.login !== 'cx-ryu[bot]') { core.info(`PR not authored by the triage bot (${pr.user.login}); skipping`); return; }
             const m = (pr.body || "").match(/<!--\s*cx-resolves-issue:\s*(\d+)\s*-->/);
             if (!m) { core.info("no cx-resolves-issue marker; nothing to do"); return; }
             const issue_number = Number(m[1]);
