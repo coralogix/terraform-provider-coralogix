@@ -7,7 +7,7 @@ name: link-issue-on-merge
 # without the marker (human PRs, non-GitHub-sourced fixes) are a no-op.
 
 on:
-  pull_request:
+  pull_request_target:
     types: [closed]
 
 permissions:
