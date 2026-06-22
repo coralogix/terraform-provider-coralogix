@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -77,6 +78,30 @@ var (
 
 func NewAlertsSchedulerResource() resource.Resource {
 	return &AlertsSchedulerResource{}
+}
+
+// alertsSchedulerRuleNotFound treats 404 and the alert-scheduler API's "rule no longer
+// exists" shape — HTTP 400 with body "Invalid uuid for alertSchedulerRule.uniqueIdentifier"
+// — as the same signal so drift can self-heal.
+func alertsSchedulerRuleNotFound(httpResp *http.Response, err error) bool {
+	if httpResp == nil {
+		return false
+	}
+	if httpResp.StatusCode == http.StatusNotFound {
+		return true
+	}
+	if httpResp.StatusCode != http.StatusBadRequest || err == nil {
+		return false
+	}
+	body := string(cxsdkOpenapi.Body(cxsdkOpenapi.NewAPIError(httpResp, err)))
+	if isMissingRuleBadRequest(body) {
+		return true
+	}
+	return isMissingRuleBadRequest(err.Error())
+}
+
+func isMissingRuleBadRequest(s string) bool {
+	return strings.Contains(s, "Invalid uuid") && strings.Contains(s, "uniqueIdentifier")
 }
 
 type AlertsSchedulerResource struct {
@@ -1374,7 +1399,7 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
 		Execute()
 	if err != nil {
-		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		if alertsSchedulerRuleNotFound(httpResp, err) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -1428,6 +1453,14 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 		UpdateAlertSchedulerRuleRequestDataStructure(updateRequest).
 		Execute()
 	if err != nil {
+		if alertsSchedulerRuleNotFound(httpResp, err) {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("alerts-scheduler %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error updating alerts-scheduler",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Update", updateRequest),
@@ -1439,7 +1472,7 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
 		Execute()
 	if err != nil {
-		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		if alertsSchedulerRuleNotFound(httpResp, err) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %s is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -1481,7 +1514,7 @@ func (r *AlertsSchedulerResource) Delete(ctx context.Context, req resource.Delet
 		AlertSchedulerRuleServiceDeleteAlertSchedulerRule(ctx, id).
 		Execute()
 	if err != nil {
-		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		if alertsSchedulerRuleNotFound(httpResp, err) {
 			return
 		}
 		resp.Diagnostics.AddError(

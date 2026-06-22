@@ -25,6 +25,7 @@ import (
 	alertscheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -198,6 +199,76 @@ func TestAccCoralogixResourceAlertsSchedulerImportDirectAlertIDNoDrift(t *testin
 			{
 				Config:   config,
 				PlanOnly: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlertsSchedulerDriftRecreate(t *testing.T) {
+	config := testAccCoralogixResourceAlertsSchedulerAlwaysActive()
+	var originalID string
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		CheckDestroy:             testAccCheckAlertsSchedulerDestroy,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "name", "permanent-suppression"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources[alertsSchedulerResourceName]
+						if !ok {
+							return fmt.Errorf("missing %s in state", alertsSchedulerResourceName)
+						}
+						originalID = rs.Primary.ID
+						if originalID == "" {
+							return fmt.Errorf("expected non-empty alert scheduler id after first apply")
+						}
+						return nil
+					},
+				),
+			},
+			{
+				PreConfig: func() {
+					if originalID == "" {
+						t.Fatal("expected captured alert scheduler id from the previous step")
+					}
+					client := testAccAlertsSchedulerClient(t)
+					if _, _, err := client.
+						AlertSchedulerRuleServiceDeleteAlertSchedulerRule(context.Background(), originalID).
+						Execute(); err != nil {
+						t.Fatalf("out-of-band delete of alert scheduler %s: %s", originalID, err)
+					}
+				},
+				Config: config,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "name", "permanent-suppression"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources[alertsSchedulerResourceName]
+						if !ok {
+							return fmt.Errorf("missing %s in state after drift recreate", alertsSchedulerResourceName)
+						}
+						if rs.Primary.ID == "" {
+							return fmt.Errorf("expected non-empty alert scheduler id after recreate")
+						}
+						if rs.Primary.ID == originalID {
+							return fmt.Errorf("expected recreated alert scheduler to have a new id, got the original %q", rs.Primary.ID)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				ResourceName:      alertsSchedulerResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
