@@ -1389,6 +1389,14 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 	alertsScheduler := getAlertsSchedulerResp.AlertSchedulerRule
+	if alertsScheduler.GetUniqueIdentifier() == "" {
+		resp.Diagnostics.AddWarning(
+			fmt.Sprintf("alerts-scheduler %q is in state, but no longer exists in Coralogix backend", id),
+			fmt.Sprintf("%s will be recreated when you apply", id),
+		)
+		resp.State.RemoveResource(ctx)
+		return
+	}
 
 	stateModel, diags := flattenAlertScheduler(ctx, alertsScheduler)
 	if diags.HasError() {
@@ -1451,6 +1459,15 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Read", id),
 			)
 		}
+		return
+	}
+
+	if getAlertsSchedulerResp.AlertSchedulerRule.GetUniqueIdentifier() == "" {
+		resp.Diagnostics.AddWarning(
+			fmt.Sprintf("alerts-scheduler %s is in state, but no longer exists in Coralogix backend", id),
+			fmt.Sprintf("%s will be recreated when you apply", id),
+		)
+		resp.State.RemoveResource(ctx)
 		return
 	}
 

@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_alerts_scheduler
+
+- FIX: Detect out-of-band deletion of an alert scheduler rule when the backend returns HTTP 200 with an empty body (instead of 404) for a deleted rule. `Read` (and the post-update `Get` inside `Update`) now treat a response with an empty `UniqueIdentifier` the same as 404 — emit the "no longer exists" warning and `RemoveResource` from state so the next plan recreates the resource cleanly. Previously the empty rule was flattened into state with `id = ""`, after which `Update` sent `UniqueIdentifier = ""` and the backend rejected the call with `[ alertSchedulerRule.uniqueIdentifier ] Invalid uuid`.
+
 #### resource/coralogix_dashboard
 
 - FIX: Every `*.query.logs.filters[*]` block (across all widget types — `data_table`, `line_chart`, `bar_chart`, `pie_chart`, `gauge`, `hexagon`, `horizontal_bar_chart`) and the top-level `filters[*].source.logs` block now accept `observation_field` as the sole filter target. `field` is `Optional` (was `Required`), and a `stringvalidator.ExactlyOneOf` on `field` keeps the field-vs-observation_field misconfiguration explicit. Configs copied from a `data "coralogix_dashboard"` whose backend filter used `observation_field` no longer fail validation with `Missing Configuration for Required Attribute`.

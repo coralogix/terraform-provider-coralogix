@@ -68,6 +68,58 @@ func TestAccCoralogixResourceResourceAlertsScheduler(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceAlertsSchedulerOutOfBandDelete(t *testing.T) {
+	config := testAccCoralogixResourceAlertsScheduler()
+	var schedulerID string
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		CheckDestroy:             testAccCheckAlertsSchedulerDestroy,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "name", "example"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources[alertsSchedulerResourceName]
+						if !ok {
+							return fmt.Errorf("missing %s in state", alertsSchedulerResourceName)
+						}
+						schedulerID = rs.Primary.ID
+						return nil
+					},
+				),
+			},
+			{
+				PreConfig: func() {
+					if schedulerID == "" {
+						t.Fatal("expected scheduler ID captured from first step")
+					}
+					client := testAccAlertsSchedulerClient(t)
+					_, _, err := client.
+						AlertSchedulerRuleServiceDeleteAlertSchedulerRule(context.Background(), schedulerID).
+						Execute()
+					if err != nil {
+						t.Fatalf("out-of-band delete of alert scheduler %s: %s", schedulerID, err)
+					}
+				},
+				Config: config,
+				Check:  resource.TestCheckResourceAttr(alertsSchedulerResourceName, "name", "example"),
+			},
+			{
+				Config:   config,
+				PlanOnly: true,
+			},
+			{
+				ResourceName:      alertsSchedulerResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceResourceAlertsSchedulerAllAlerts(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
