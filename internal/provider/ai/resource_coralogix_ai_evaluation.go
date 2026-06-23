@@ -84,12 +84,17 @@ type AIEvaluationResourceModel struct {
 }
 
 type AIEvaluationConfigModel struct {
-	AllowedTopics *AIEvaluationAllowedTopicsConfigModel `tfsdk:"allowed_topics"`
-	PII           *AIEvaluationPIIConfigModel           `tfsdk:"pii"`
-	Toxicity      *AIEvaluationToxicityConfigModel      `tfsdk:"toxicity"`
+	AllowedTopics    *AIEvaluationAllowedTopicsConfigModel    `tfsdk:"allowed_topics"`
+	PII              *AIEvaluationPIIConfigModel              `tfsdk:"pii"`
+	RestrictedTopics *AIEvaluationRestrictedTopicsConfigModel `tfsdk:"restricted_topics"`
+	Toxicity         *AIEvaluationToxicityConfigModel         `tfsdk:"toxicity"`
 }
 
 type AIEvaluationAllowedTopicsConfigModel struct {
+	Topics types.Set `tfsdk:"topics"`
+}
+
+type AIEvaluationRestrictedTopicsConfigModel struct {
 	Topics types.Set `tfsdk:"topics"`
 }
 
@@ -180,9 +185,10 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 			"config": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
-					"allowed_topics": aiEvaluationAllowedTopicsConfigAttribute(),
-					"pii":            aiEvaluationPIIConfigAttribute(),
-					"toxicity":       aiEvaluationToxicityConfigAttribute(),
+					"allowed_topics":    aiEvaluationAllowedTopicsConfigAttribute(),
+					"pii":               aiEvaluationPIIConfigAttribute(),
+					"restricted_topics": aiEvaluationRestrictedTopicsConfigAttribute(),
+					"toxicity":          aiEvaluationToxicityConfigAttribute(),
 				},
 				MarkdownDescription: "AI evaluation configuration.",
 			},
@@ -196,6 +202,7 @@ func (r *AIEvaluationResource) ConfigValidators(_ context.Context) []resource.Co
 		resourcevalidator.ExactlyOneOf(
 			path.MatchRoot("config").AtName("allowed_topics"),
 			path.MatchRoot("config").AtName("pii"),
+			path.MatchRoot("config").AtName("restricted_topics"),
 			path.MatchRoot("config").AtName("toxicity"),
 		),
 	}
@@ -341,21 +348,35 @@ func (r *AIEvaluationResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 }
 
+func aiEvaluationRestrictedTopicsConfigAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"topics": aiEvaluationTopicsAttribute("Topics that should not appear."),
+		},
+		MarkdownDescription: "Configuration for Restricted Topics evaluation.",
+	}
+}
+
 func aiEvaluationAllowedTopicsConfigAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Attributes: map[string]schema.Attribute{
-			"topics": schema.SetAttribute{
-				ElementType: types.StringType,
-				Required:    true,
-				Validators: []validator.Set{
-					setvalidator.SizeAtLeast(1),
-					setvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
-				},
-				MarkdownDescription: "Topics considered allowed.",
-			},
+			"topics": aiEvaluationTopicsAttribute("Topics considered allowed."),
 		},
 		MarkdownDescription: "Configuration for Allowed Topics evaluation.",
+	}
+}
+
+func aiEvaluationTopicsAttribute(markdownDescription string) schema.SetAttribute {
+	return schema.SetAttribute{
+		ElementType: types.StringType,
+		Required:    true,
+		Validators: []validator.Set{
+			setvalidator.SizeAtLeast(1),
+			setvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
+		},
+		MarkdownDescription: markdownDescription,
 	}
 }
 
@@ -429,6 +450,8 @@ func extractAIEvaluationConfig(ctx context.Context, model *AIEvaluationConfigMod
 		return extractAIEvaluationAllowedTopicsConfig(ctx, *model.AllowedTopics)
 	case model.PII != nil:
 		return extractAIEvaluationPIIConfig(ctx, *model.PII)
+	case model.RestrictedTopics != nil:
+		return extractAIEvaluationRestrictedTopicsConfig(ctx, *model.RestrictedTopics)
 	case model.Toxicity != nil:
 		return extractAIEvaluationToxicityConfig(), diags
 	default:
@@ -448,6 +471,22 @@ func extractAIEvaluationAllowedTopicsConfig(ctx context.Context, model AIEvaluat
 
 	config := aievaluations.EvaluationConfigAllowedTopicsAsEvaluationConfig(
 		aievaluations.NewEvaluationConfigAllowedTopics(aievaluations.AllowedTopicsConfig{Topics: topics}),
+	)
+
+	return &config, diags
+}
+
+func extractAIEvaluationRestrictedTopicsConfig(ctx context.Context, model AIEvaluationRestrictedTopicsConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var topics []string
+
+	diags.Append(model.Topics.ElementsAs(ctx, &topics, false)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	config := aievaluations.EvaluationConfigRestrictedTopicsAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigRestrictedTopics(aievaluations.RestrictedTopicsConfig{Topics: topics}),
 	)
 
 	return &config, diags
@@ -525,10 +564,14 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 		categories, categoryDiags := flattenAIEvaluationPIICategories(ctx, actualConfig.GetPii())
 		diags.Append(categoryDiags...)
 		return AIEvaluationConfigModel{PII: &AIEvaluationPIIConfigModel{Categories: categories}}, diags
+	case *aievaluations.EvaluationConfigRestrictedTopics:
+		topics, topicDiags := flattenAIEvaluationRestrictedTopics(ctx, actualConfig.GetRestrictedTopics())
+		diags.Append(topicDiags...)
+		return AIEvaluationConfigModel{RestrictedTopics: &AIEvaluationRestrictedTopicsConfigModel{Topics: topics}}, diags
 	case *aievaluations.EvaluationConfigToxicity:
 		return AIEvaluationConfigModel{Toxicity: &AIEvaluationToxicityConfigModel{}}, diags
 	default:
-		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, PII, and Toxicity AI evaluation configs are currently supported by this resource.")
+		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, PII, Restricted Topics, and Toxicity AI evaluation configs are currently supported by this resource.")
 		return AIEvaluationConfigModel{}, diags
 	}
 }
@@ -553,6 +596,14 @@ func flattenAIEvaluationAllowedTopics(ctx context.Context, allowedTopics aievalu
 	var diags diag.Diagnostics
 
 	topicsSet, setDiags := types.SetValueFrom(ctx, types.StringType, allowedTopics.GetTopics())
+	diags.Append(setDiags...)
+	return topicsSet, diags
+}
+
+func flattenAIEvaluationRestrictedTopics(ctx context.Context, restrictedTopics aievaluations.RestrictedTopicsConfig) (types.Set, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	topicsSet, setDiags := types.SetValueFrom(ctx, types.StringType, restrictedTopics.GetTopics())
 	diags.Append(setDiags...)
 	return topicsSet, diags
 }

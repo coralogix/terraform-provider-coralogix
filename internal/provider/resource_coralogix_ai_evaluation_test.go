@@ -82,6 +82,18 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 			updateChecks: testAccAIEvaluationSetChecks("config.pii.categories.*", "PHONE_NUMBER", "US_SSN"),
 		},
 		{
+			name:           "restricted_topics",
+			evaluationType: aievaluations.EVALUATIONTYPE_RESTRICTED_TOPICS,
+			createConfig: `    restricted_topics = {
+      topics = ["competitor mentions", "medical advice"]
+    }`,
+			updateConfig: `    restricted_topics = {
+      topics = ["pricing promises", "legal advice"]
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.restricted_topics.topics.*", "competitor mentions", "medical advice"),
+			updateChecks: testAccAIEvaluationSetChecks("config.restricted_topics.topics.*", "pricing promises", "legal advice"),
+		},
+		{
 			name:           "toxicity",
 			evaluationType: aievaluations.EVALUATIONTYPE_TOXICITY,
 			createConfig:   `    toxicity = {}`,

@@ -47,6 +47,23 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "restricted_topics" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     restricted_topics = {
+#       topics = [
+#         "competitor mentions",
+#         "medical advice"
+#       ]
+#     }
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "toxicity" {
 #   application = "my-chatbot"
 #   subsystem   = "production"
@@ -86,6 +103,7 @@ Optional:
 
 - `allowed_topics` (Attributes) Configuration for Allowed Topics evaluation. (see [below for nested schema](#nestedatt--config--allowed_topics))
 - `pii` (Attributes) Configuration for PII evaluation. (see [below for nested schema](#nestedatt--config--pii))
+- `restricted_topics` (Attributes) Configuration for Restricted Topics evaluation. (see [below for nested schema](#nestedatt--config--restricted_topics))
 - `toxicity` (Attributes) Configuration for Toxicity evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--toxicity))
 
 <a id="nestedatt--config--allowed_topics"></a>
@@ -102,6 +120,14 @@ Required:
 Required:
 
 - `categories` (Set of String) PII categories to detect. Can include ["CREDIT_CARD" "EMAIL_ADDRESS" "IBAN_CODE" "PHONE_NUMBER" "US_SSN"].
+
+
+<a id="nestedatt--config--restricted_topics"></a>
+### Nested Schema for `config.restricted_topics`
+
+Required:
+
+- `topics` (Set of String) Topics that should not appear.
 
 
 <a id="nestedatt--config--toxicity"></a>
