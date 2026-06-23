@@ -36,6 +36,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -88,6 +89,7 @@ type AIEvaluationConfigModel struct {
 	Competition      *AIEvaluationCompetitionConfigModel      `tfsdk:"competition"`
 	LanguageMismatch *AIEvaluationLanguageMismatchConfigModel `tfsdk:"language_mismatch"`
 	PII              *AIEvaluationPIIConfigModel              `tfsdk:"pii"`
+	PromptInjection  *AIEvaluationPromptInjectionConfigModel  `tfsdk:"prompt_injection"`
 	RestrictedTopics *AIEvaluationRestrictedTopicsConfigModel `tfsdk:"restricted_topics"`
 	Sexism           *AIEvaluationSexismConfigModel           `tfsdk:"sexism"`
 	Toxicity         *AIEvaluationToxicityConfigModel         `tfsdk:"toxicity"`
@@ -109,6 +111,10 @@ type AIEvaluationRestrictedTopicsConfigModel struct {
 
 type AIEvaluationPIIConfigModel struct {
 	Categories types.Set `tfsdk:"categories"`
+}
+
+type AIEvaluationPromptInjectionConfigModel struct {
+	AdditionalContext types.String `tfsdk:"additional_context"`
 }
 
 type AIEvaluationSexismConfigModel struct{}
@@ -200,6 +206,7 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 					"competition":       aiEvaluationCompetitionConfigAttribute(),
 					"language_mismatch": aiEvaluationLanguageMismatchConfigAttribute(),
 					"pii":               aiEvaluationPIIConfigAttribute(),
+					"prompt_injection":  aiEvaluationPromptInjectionConfigAttribute(),
 					"restricted_topics": aiEvaluationRestrictedTopicsConfigAttribute(),
 					"sexism":            aiEvaluationSexismConfigAttribute(),
 					"toxicity":          aiEvaluationToxicityConfigAttribute(),
@@ -218,6 +225,7 @@ func (r *AIEvaluationResource) ConfigValidators(_ context.Context) []resource.Co
 			path.MatchRoot("config").AtName("competition"),
 			path.MatchRoot("config").AtName("language_mismatch"),
 			path.MatchRoot("config").AtName("pii"),
+			path.MatchRoot("config").AtName("prompt_injection"),
 			path.MatchRoot("config").AtName("restricted_topics"),
 			path.MatchRoot("config").AtName("sexism"),
 			path.MatchRoot("config").AtName("toxicity"),
@@ -433,6 +441,24 @@ func aiEvaluationPIIConfigAttribute() schema.SingleNestedAttribute {
 	}
 }
 
+func aiEvaluationPromptInjectionConfigAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"additional_context": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(""),
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(0, 65536),
+				},
+				MarkdownDescription: "Additional context passed to the LLM evaluator.",
+			},
+		},
+		MarkdownDescription: "Configuration for Prompt Injection evaluation.",
+	}
+}
+
 func aiEvaluationSexismConfigAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional:            true,
@@ -497,6 +523,8 @@ func extractAIEvaluationConfig(ctx context.Context, model *AIEvaluationConfigMod
 		return extractAIEvaluationLanguageMismatchConfig(), diags
 	case model.PII != nil:
 		return extractAIEvaluationPIIConfig(ctx, *model.PII)
+	case model.PromptInjection != nil:
+		return extractAIEvaluationPromptInjectionConfig(*model.PromptInjection), diags
 	case model.RestrictedTopics != nil:
 		return extractAIEvaluationRestrictedTopicsConfig(ctx, *model.RestrictedTopics)
 	case model.Sexism != nil:
@@ -597,6 +625,19 @@ func extractAIEvaluationPIIConfig(ctx context.Context, model AIEvaluationPIIConf
 	return &config, diags
 }
 
+func extractAIEvaluationPromptInjectionConfig(model AIEvaluationPromptInjectionConfigModel) *aievaluations.EvaluationConfig {
+	promptInjectionConfig := aievaluations.PromptInjectionConfig{}
+	if !model.AdditionalContext.IsNull() {
+		promptInjectionConfig.AdditionalContext = aievaluations.PtrString(model.AdditionalContext.ValueString())
+	}
+
+	config := aievaluations.EvaluationConfigPromptInjectionAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigPromptInjection(promptInjectionConfig),
+	)
+
+	return &config
+}
+
 func extractAIEvaluationSexismConfig() *aievaluations.EvaluationConfig {
 	config := aievaluations.EvaluationConfigSexismAsEvaluationConfig(
 		aievaluations.NewEvaluationConfigSexism(map[string]interface{}{}),
@@ -651,6 +692,9 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 		categories, categoryDiags := flattenAIEvaluationPIICategories(ctx, actualConfig.GetPii())
 		diags.Append(categoryDiags...)
 		return AIEvaluationConfigModel{PII: &AIEvaluationPIIConfigModel{Categories: categories}}, diags
+	case *aievaluations.EvaluationConfigPromptInjection:
+		promptInjection := actualConfig.GetPromptInjection()
+		return AIEvaluationConfigModel{PromptInjection: &AIEvaluationPromptInjectionConfigModel{AdditionalContext: types.StringPointerValue(promptInjection.AdditionalContext)}}, diags
 	case *aievaluations.EvaluationConfigRestrictedTopics:
 		topics, topicDiags := flattenAIEvaluationRestrictedTopics(ctx, actualConfig.GetRestrictedTopics())
 		diags.Append(topicDiags...)
@@ -660,7 +704,7 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 	case *aievaluations.EvaluationConfigToxicity:
 		return AIEvaluationConfigModel{Toxicity: &AIEvaluationToxicityConfigModel{}}, diags
 	default:
-		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Language Mismatch, PII, Restricted Topics, Sexism, and Toxicity AI evaluation configs are currently supported by this resource.")
+		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, and Toxicity AI evaluation configs are currently supported by this resource.")
 		return AIEvaluationConfigModel{}, diags
 	}
 }

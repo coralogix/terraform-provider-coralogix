@@ -93,6 +93,20 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "prompt_injection" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "prompt"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     prompt_injection = {
+#       additional_context = "Only inspect the user prompt."
+#     }
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "sexism" {
 #   application = "my-chatbot"
 #   subsystem   = "production"
@@ -146,6 +160,7 @@ Optional:
 - `competition` (Attributes) Configuration for Competition evaluation. (see [below for nested schema](#nestedatt--config--competition))
 - `language_mismatch` (Attributes) Configuration for Language Mismatch evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--language_mismatch))
 - `pii` (Attributes) Configuration for PII evaluation. (see [below for nested schema](#nestedatt--config--pii))
+- `prompt_injection` (Attributes) Configuration for Prompt Injection evaluation. (see [below for nested schema](#nestedatt--config--prompt_injection))
 - `restricted_topics` (Attributes) Configuration for Restricted Topics evaluation. (see [below for nested schema](#nestedatt--config--restricted_topics))
 - `sexism` (Attributes) Configuration for Sexism evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sexism))
 - `toxicity` (Attributes) Configuration for Toxicity evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--toxicity))
@@ -176,6 +191,14 @@ Required:
 Required:
 
 - `categories` (Set of String) PII categories to detect. Can include ["CREDIT_CARD" "EMAIL_ADDRESS" "IBAN_CODE" "PHONE_NUMBER" "US_SSN"].
+
+
+<a id="nestedatt--config--prompt_injection"></a>
+### Nested Schema for `config.prompt_injection`
+
+Optional:
+
+- `additional_context` (String) Additional context passed to the LLM evaluator. Defaults to `""`.
 
 
 <a id="nestedatt--config--restricted_topics"></a>

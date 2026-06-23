@@ -78,6 +78,20 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "prompt_injection" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "prompt"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     prompt_injection = {
+#       additional_context = "Only inspect the user prompt."
+#     }
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "sexism" {
 #   application = "my-chatbot"
 #   subsystem   = "production"

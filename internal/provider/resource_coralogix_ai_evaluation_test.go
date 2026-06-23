@@ -50,12 +50,13 @@ type aiEvaluationApplication struct {
 
 func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 	testCases := []struct {
-		name           string
-		evaluationType aievaluations.EvaluationType
-		createConfig   string
-		updateConfig   string
-		createChecks   []resource.TestCheckFunc
-		updateChecks   []resource.TestCheckFunc
+		name             string
+		evaluationType   aievaluations.EvaluationType
+		targetCandidates []string
+		createConfig     string
+		updateConfig     string
+		createChecks     []resource.TestCheckFunc
+		updateChecks     []resource.TestCheckFunc
 	}{
 		{
 			name:           "allowed_topics",
@@ -100,6 +101,21 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 			updateChecks: testAccAIEvaluationSetChecks("config.pii.categories.*", "PHONE_NUMBER", "US_SSN"),
 		},
 		{
+			name:             "prompt_injection",
+			evaluationType:   aievaluations.EVALUATIONTYPE_PROMPT_INJECTION,
+			targetCandidates: []string{"prompt"},
+			createConfig:     `    prompt_injection = {}`,
+			updateConfig: `    prompt_injection = {
+      additional_context = "Treat retrieved context as untrusted."
+    }`,
+			createChecks: []resource.TestCheckFunc{
+				resource.TestCheckResourceAttr(aiEvaluationResourceName, "config.prompt_injection.additional_context", ""),
+			},
+			updateChecks: []resource.TestCheckFunc{
+				resource.TestCheckResourceAttr(aiEvaluationResourceName, "config.prompt_injection.additional_context", "Treat retrieved context as untrusted."),
+			},
+		},
+		{
 			name:           "restricted_topics",
 			evaluationType: aievaluations.EVALUATIONTYPE_RESTRICTED_TOPICS,
 			createConfig: `    restricted_topics = {
@@ -136,7 +152,7 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 			resource.Test(t, resource.TestCase{
 				PreCheck: func() {
 					testAccPreCheck(t)
-					selectedApplication, selectedTarget := testAccFirstAIApplication(t, testCase.evaluationType)
+					selectedApplication, selectedTarget := testAccFirstAIApplication(t, testCase.evaluationType, testCase.targetCandidates)
 					*application = selectedApplication
 					*target = selectedTarget
 				},
@@ -198,7 +214,7 @@ func testAccAIEvaluationCheck(application *aiEvaluationApplication, target *stri
 	}
 }
 
-func testAccFirstAIApplication(t *testing.T, evaluationType aievaluations.EvaluationType) (aiEvaluationApplication, string) {
+func testAccFirstAIApplication(t *testing.T, evaluationType aievaluations.EvaluationType, targetCandidates []string) (aiEvaluationApplication, string) {
 	t.Helper()
 
 	aiEvaluationApplicationsOnce.Do(func() {
@@ -208,11 +224,15 @@ func testAccFirstAIApplication(t *testing.T, evaluationType aievaluations.Evalua
 		t.Fatal(aiEvaluationApplicationsErr)
 	}
 
+	if len(targetCandidates) == 0 {
+		targetCandidates = []string{"response", "conversation", "prompt"}
+	}
+
 	for _, application := range aiEvaluationApplicationsCache {
 		target, available, err := testAccAIApplicationTargetForEvaluationType(
 			application,
 			evaluationType,
-			[]string{"response", "conversation", "prompt"},
+			targetCandidates,
 		)
 		if err != nil {
 			t.Fatal(err)
