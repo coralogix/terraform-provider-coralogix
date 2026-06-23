@@ -85,6 +85,7 @@ type AIEvaluationResourceModel struct {
 
 type AIEvaluationConfigModel struct {
 	AllowedTopics    *AIEvaluationAllowedTopicsConfigModel    `tfsdk:"allowed_topics"`
+	Competition      *AIEvaluationCompetitionConfigModel      `tfsdk:"competition"`
 	PII              *AIEvaluationPIIConfigModel              `tfsdk:"pii"`
 	RestrictedTopics *AIEvaluationRestrictedTopicsConfigModel `tfsdk:"restricted_topics"`
 	Toxicity         *AIEvaluationToxicityConfigModel         `tfsdk:"toxicity"`
@@ -92,6 +93,10 @@ type AIEvaluationConfigModel struct {
 
 type AIEvaluationAllowedTopicsConfigModel struct {
 	Topics types.Set `tfsdk:"topics"`
+}
+
+type AIEvaluationCompetitionConfigModel struct {
+	Competitors types.Set `tfsdk:"competitors"`
 }
 
 type AIEvaluationRestrictedTopicsConfigModel struct {
@@ -186,6 +191,7 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 				Required: true,
 				Attributes: map[string]schema.Attribute{
 					"allowed_topics":    aiEvaluationAllowedTopicsConfigAttribute(),
+					"competition":       aiEvaluationCompetitionConfigAttribute(),
 					"pii":               aiEvaluationPIIConfigAttribute(),
 					"restricted_topics": aiEvaluationRestrictedTopicsConfigAttribute(),
 					"toxicity":          aiEvaluationToxicityConfigAttribute(),
@@ -201,6 +207,7 @@ func (r *AIEvaluationResource) ConfigValidators(_ context.Context) []resource.Co
 	return []resource.ConfigValidator{
 		resourcevalidator.ExactlyOneOf(
 			path.MatchRoot("config").AtName("allowed_topics"),
+			path.MatchRoot("config").AtName("competition"),
 			path.MatchRoot("config").AtName("pii"),
 			path.MatchRoot("config").AtName("restricted_topics"),
 			path.MatchRoot("config").AtName("toxicity"),
@@ -348,11 +355,21 @@ func (r *AIEvaluationResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 }
 
+func aiEvaluationCompetitionConfigAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"competitors": aiEvaluationStringSetAttribute("Competitor names to watch for."),
+		},
+		MarkdownDescription: "Configuration for Competition evaluation.",
+	}
+}
+
 func aiEvaluationRestrictedTopicsConfigAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Attributes: map[string]schema.Attribute{
-			"topics": aiEvaluationTopicsAttribute("Topics that should not appear."),
+			"topics": aiEvaluationStringSetAttribute("Topics that should not appear."),
 		},
 		MarkdownDescription: "Configuration for Restricted Topics evaluation.",
 	}
@@ -362,13 +379,13 @@ func aiEvaluationAllowedTopicsConfigAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Attributes: map[string]schema.Attribute{
-			"topics": aiEvaluationTopicsAttribute("Topics considered allowed."),
+			"topics": aiEvaluationStringSetAttribute("Topics considered allowed."),
 		},
 		MarkdownDescription: "Configuration for Allowed Topics evaluation.",
 	}
 }
 
-func aiEvaluationTopicsAttribute(markdownDescription string) schema.SetAttribute {
+func aiEvaluationStringSetAttribute(markdownDescription string) schema.SetAttribute {
 	return schema.SetAttribute{
 		ElementType: types.StringType,
 		Required:    true,
@@ -448,6 +465,8 @@ func extractAIEvaluationConfig(ctx context.Context, model *AIEvaluationConfigMod
 	switch {
 	case model.AllowedTopics != nil:
 		return extractAIEvaluationAllowedTopicsConfig(ctx, *model.AllowedTopics)
+	case model.Competition != nil:
+		return extractAIEvaluationCompetitionConfig(ctx, *model.Competition)
 	case model.PII != nil:
 		return extractAIEvaluationPIIConfig(ctx, *model.PII)
 	case model.RestrictedTopics != nil:
@@ -471,6 +490,22 @@ func extractAIEvaluationAllowedTopicsConfig(ctx context.Context, model AIEvaluat
 
 	config := aievaluations.EvaluationConfigAllowedTopicsAsEvaluationConfig(
 		aievaluations.NewEvaluationConfigAllowedTopics(aievaluations.AllowedTopicsConfig{Topics: topics}),
+	)
+
+	return &config, diags
+}
+
+func extractAIEvaluationCompetitionConfig(ctx context.Context, model AIEvaluationCompetitionConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var competitors []string
+
+	diags.Append(model.Competitors.ElementsAs(ctx, &competitors, false)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	config := aievaluations.EvaluationConfigCompetitionAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigCompetition(aievaluations.CompetitionConfig{Competitors: competitors}),
 	)
 
 	return &config, diags
@@ -560,6 +595,10 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 		topics, topicDiags := flattenAIEvaluationAllowedTopics(ctx, actualConfig.GetAllowedTopics())
 		diags.Append(topicDiags...)
 		return AIEvaluationConfigModel{AllowedTopics: &AIEvaluationAllowedTopicsConfigModel{Topics: topics}}, diags
+	case *aievaluations.EvaluationConfigCompetition:
+		competitors, competitorDiags := flattenAIEvaluationCompetition(ctx, actualConfig.GetCompetition())
+		diags.Append(competitorDiags...)
+		return AIEvaluationConfigModel{Competition: &AIEvaluationCompetitionConfigModel{Competitors: competitors}}, diags
 	case *aievaluations.EvaluationConfigPii:
 		categories, categoryDiags := flattenAIEvaluationPIICategories(ctx, actualConfig.GetPii())
 		diags.Append(categoryDiags...)
@@ -571,7 +610,7 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 	case *aievaluations.EvaluationConfigToxicity:
 		return AIEvaluationConfigModel{Toxicity: &AIEvaluationToxicityConfigModel{}}, diags
 	default:
-		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, PII, Restricted Topics, and Toxicity AI evaluation configs are currently supported by this resource.")
+		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, PII, Restricted Topics, and Toxicity AI evaluation configs are currently supported by this resource.")
 		return AIEvaluationConfigModel{}, diags
 	}
 }
@@ -598,6 +637,14 @@ func flattenAIEvaluationAllowedTopics(ctx context.Context, allowedTopics aievalu
 	topicsSet, setDiags := types.SetValueFrom(ctx, types.StringType, allowedTopics.GetTopics())
 	diags.Append(setDiags...)
 	return topicsSet, diags
+}
+
+func flattenAIEvaluationCompetition(ctx context.Context, competition aievaluations.CompetitionConfig) (types.Set, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	competitorsSet, setDiags := types.SetValueFrom(ctx, types.StringType, competition.GetCompetitors())
+	diags.Append(setDiags...)
+	return competitorsSet, diags
 }
 
 func flattenAIEvaluationRestrictedTopics(ctx context.Context, restrictedTopics aievaluations.RestrictedTopicsConfig) (types.Set, diag.Diagnostics) {

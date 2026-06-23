@@ -70,6 +70,18 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 			updateChecks: testAccAIEvaluationSetChecks("config.allowed_topics.topics.*", "observability", "incident response"),
 		},
 		{
+			name:           "competition",
+			evaluationType: aievaluations.EVALUATIONTYPE_COMPETITION,
+			createConfig: `    competition = {
+      competitors = ["CompetitorOne", "CompetitorTwo"]
+    }`,
+			updateConfig: `    competition = {
+      competitors = ["CompetitorThree", "CompetitorFour"]
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.competition.competitors.*", "CompetitorOne", "CompetitorTwo"),
+			updateChecks: testAccAIEvaluationSetChecks("config.competition.competitors.*", "CompetitorThree", "CompetitorFour"),
+		},
+		{
 			name:           "pii",
 			evaluationType: aievaluations.EVALUATIONTYPE_PII,
 			createConfig: `    pii = {

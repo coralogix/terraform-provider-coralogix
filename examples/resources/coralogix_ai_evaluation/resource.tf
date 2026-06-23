@@ -32,6 +32,23 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "competition" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     competition = {
+#       competitors = [
+#         "CompetitorOne",
+#         "CompetitorTwo"
+#       ]
+#     }
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "restricted_topics" {
 #   application = "my-chatbot"
 #   subsystem   = "production"

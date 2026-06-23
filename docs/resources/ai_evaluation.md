@@ -47,6 +47,23 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "competition" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     competition = {
+#       competitors = [
+#         "CompetitorOne",
+#         "CompetitorTwo"
+#       ]
+#     }
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "restricted_topics" {
 #   application = "my-chatbot"
 #   subsystem   = "production"
@@ -102,6 +119,7 @@ resource "coralogix_ai_evaluation" "example" {
 Optional:
 
 - `allowed_topics` (Attributes) Configuration for Allowed Topics evaluation. (see [below for nested schema](#nestedatt--config--allowed_topics))
+- `competition` (Attributes) Configuration for Competition evaluation. (see [below for nested schema](#nestedatt--config--competition))
 - `pii` (Attributes) Configuration for PII evaluation. (see [below for nested schema](#nestedatt--config--pii))
 - `restricted_topics` (Attributes) Configuration for Restricted Topics evaluation. (see [below for nested schema](#nestedatt--config--restricted_topics))
 - `toxicity` (Attributes) Configuration for Toxicity evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--toxicity))
@@ -112,6 +130,14 @@ Optional:
 Required:
 
 - `topics` (Set of String) Topics considered allowed.
+
+
+<a id="nestedatt--config--competition"></a>
+### Nested Schema for `config.competition`
+
+Required:
+
+- `competitors` (Set of String) Competitor names to watch for.
 
 
 <a id="nestedatt--config--pii"></a>
