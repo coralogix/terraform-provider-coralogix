@@ -106,6 +106,12 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 			updateChecks: testAccAIEvaluationSetChecks("config.restricted_topics.topics.*", "pricing promises", "legal advice"),
 		},
 		{
+			name:           "sexism",
+			evaluationType: aievaluations.EVALUATIONTYPE_SEXISM,
+			createConfig:   `    sexism = {}`,
+			updateConfig:   `    sexism = {}`,
+		},
+		{
 			name:           "toxicity",
 			evaluationType: aievaluations.EVALUATIONTYPE_TOXICITY,
 			createConfig:   `    toxicity = {}`,

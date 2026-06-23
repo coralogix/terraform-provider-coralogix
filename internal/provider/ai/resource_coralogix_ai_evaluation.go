@@ -88,6 +88,7 @@ type AIEvaluationConfigModel struct {
 	Competition      *AIEvaluationCompetitionConfigModel      `tfsdk:"competition"`
 	PII              *AIEvaluationPIIConfigModel              `tfsdk:"pii"`
 	RestrictedTopics *AIEvaluationRestrictedTopicsConfigModel `tfsdk:"restricted_topics"`
+	Sexism           *AIEvaluationSexismConfigModel           `tfsdk:"sexism"`
 	Toxicity         *AIEvaluationToxicityConfigModel         `tfsdk:"toxicity"`
 }
 
@@ -106,6 +107,8 @@ type AIEvaluationRestrictedTopicsConfigModel struct {
 type AIEvaluationPIIConfigModel struct {
 	Categories types.Set `tfsdk:"categories"`
 }
+
+type AIEvaluationSexismConfigModel struct{}
 
 type AIEvaluationToxicityConfigModel struct{}
 
@@ -194,6 +197,7 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 					"competition":       aiEvaluationCompetitionConfigAttribute(),
 					"pii":               aiEvaluationPIIConfigAttribute(),
 					"restricted_topics": aiEvaluationRestrictedTopicsConfigAttribute(),
+					"sexism":            aiEvaluationSexismConfigAttribute(),
 					"toxicity":          aiEvaluationToxicityConfigAttribute(),
 				},
 				MarkdownDescription: "AI evaluation configuration.",
@@ -210,6 +214,7 @@ func (r *AIEvaluationResource) ConfigValidators(_ context.Context) []resource.Co
 			path.MatchRoot("config").AtName("competition"),
 			path.MatchRoot("config").AtName("pii"),
 			path.MatchRoot("config").AtName("restricted_topics"),
+			path.MatchRoot("config").AtName("sexism"),
 			path.MatchRoot("config").AtName("toxicity"),
 		),
 	}
@@ -415,6 +420,14 @@ func aiEvaluationPIIConfigAttribute() schema.SingleNestedAttribute {
 	}
 }
 
+func aiEvaluationSexismConfigAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional:            true,
+		Attributes:          map[string]schema.Attribute{},
+		MarkdownDescription: "Configuration for Sexism evaluation. This evaluation type has no fields.",
+	}
+}
+
 func aiEvaluationToxicityConfigAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional:            true,
@@ -471,6 +484,8 @@ func extractAIEvaluationConfig(ctx context.Context, model *AIEvaluationConfigMod
 		return extractAIEvaluationPIIConfig(ctx, *model.PII)
 	case model.RestrictedTopics != nil:
 		return extractAIEvaluationRestrictedTopicsConfig(ctx, *model.RestrictedTopics)
+	case model.Sexism != nil:
+		return extractAIEvaluationSexismConfig(), diags
 	case model.Toxicity != nil:
 		return extractAIEvaluationToxicityConfig(), diags
 	default:
@@ -559,6 +574,14 @@ func extractAIEvaluationPIIConfig(ctx context.Context, model AIEvaluationPIIConf
 	return &config, diags
 }
 
+func extractAIEvaluationSexismConfig() *aievaluations.EvaluationConfig {
+	config := aievaluations.EvaluationConfigSexismAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigSexism(map[string]interface{}{}),
+	)
+
+	return &config
+}
+
 func extractAIEvaluationToxicityConfig() *aievaluations.EvaluationConfig {
 	config := aievaluations.EvaluationConfigToxicityAsEvaluationConfig(
 		aievaluations.NewEvaluationConfigToxicity(map[string]interface{}{}),
@@ -607,10 +630,12 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 		topics, topicDiags := flattenAIEvaluationRestrictedTopics(ctx, actualConfig.GetRestrictedTopics())
 		diags.Append(topicDiags...)
 		return AIEvaluationConfigModel{RestrictedTopics: &AIEvaluationRestrictedTopicsConfigModel{Topics: topics}}, diags
+	case *aievaluations.EvaluationConfigSexism:
+		return AIEvaluationConfigModel{Sexism: &AIEvaluationSexismConfigModel{}}, diags
 	case *aievaluations.EvaluationConfigToxicity:
 		return AIEvaluationConfigModel{Toxicity: &AIEvaluationToxicityConfigModel{}}, diags
 	default:
-		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, PII, Restricted Topics, and Toxicity AI evaluation configs are currently supported by this resource.")
+		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, PII, Restricted Topics, Sexism, and Toxicity AI evaluation configs are currently supported by this resource.")
 		return AIEvaluationConfigModel{}, diags
 	}
 }

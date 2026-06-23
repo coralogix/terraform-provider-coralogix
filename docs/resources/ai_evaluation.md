@@ -81,6 +81,18 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "sexism" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     sexism = {}
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "toxicity" {
 #   application = "my-chatbot"
 #   subsystem   = "production"
@@ -122,6 +134,7 @@ Optional:
 - `competition` (Attributes) Configuration for Competition evaluation. (see [below for nested schema](#nestedatt--config--competition))
 - `pii` (Attributes) Configuration for PII evaluation. (see [below for nested schema](#nestedatt--config--pii))
 - `restricted_topics` (Attributes) Configuration for Restricted Topics evaluation. (see [below for nested schema](#nestedatt--config--restricted_topics))
+- `sexism` (Attributes) Configuration for Sexism evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sexism))
 - `toxicity` (Attributes) Configuration for Toxicity evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--toxicity))
 
 <a id="nestedatt--config--allowed_topics"></a>
@@ -154,6 +167,10 @@ Required:
 Required:
 
 - `topics` (Set of String) Topics that should not appear.
+
+
+<a id="nestedatt--config--sexism"></a>
+### Nested Schema for `config.sexism`
 
 
 <a id="nestedatt--config--toxicity"></a>
