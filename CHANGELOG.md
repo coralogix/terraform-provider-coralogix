@@ -2,7 +2,7 @@
 
 #### resource/coralogix_ai_evaluation
 
-- FEAT: Add support for managing PII AI evaluations.
+- FEAT: Add support for managing AI evaluations.
 
 #### resource/coralogix_dashboard
 

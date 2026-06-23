@@ -26,6 +26,7 @@ import (
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	aievaluations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_evaluations_service"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -41,8 +42,9 @@ import (
 )
 
 var (
-	_ resource.ResourceWithConfigure   = &AIEvaluationResource{}
-	_ resource.ResourceWithImportState = &AIEvaluationResource{}
+	_ resource.ResourceWithConfigure        = &AIEvaluationResource{}
+	_ resource.ResourceWithConfigValidators = &AIEvaluationResource{}
+	_ resource.ResourceWithImportState      = &AIEvaluationResource{}
 
 	aiEvaluationTargetSchemaToAPI = map[string]aievaluations.EvaluationTarget{
 		"prompt":       aievaluations.EVALUATIONTARGET_PROMPT,
@@ -82,12 +84,15 @@ type AIEvaluationResourceModel struct {
 }
 
 type AIEvaluationConfigModel struct {
-	PII *AIEvaluationPIIConfigModel `tfsdk:"pii"`
+	PII      *AIEvaluationPIIConfigModel      `tfsdk:"pii"`
+	Toxicity *AIEvaluationToxicityConfigModel `tfsdk:"toxicity"`
 }
 
 type AIEvaluationPIIConfigModel struct {
 	Categories types.Set `tfsdk:"categories"`
 }
+
+type AIEvaluationToxicityConfigModel struct{}
 
 func (r *AIEvaluationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_ai_evaluation"
@@ -170,12 +175,22 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 			"config": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
-					"pii": aiEvaluationPIIConfigAttribute(),
+					"pii":      aiEvaluationPIIConfigAttribute(),
+					"toxicity": aiEvaluationToxicityConfigAttribute(),
 				},
-				MarkdownDescription: "AI evaluation configuration. Only PII evaluations are currently supported.",
+				MarkdownDescription: "AI evaluation configuration.",
 			},
 		},
 		MarkdownDescription: "Coralogix AI evaluation.",
+	}
+}
+
+func (r *AIEvaluationResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(
+			path.MatchRoot("config").AtName("pii"),
+			path.MatchRoot("config").AtName("toxicity"),
+		),
 	}
 }
 
@@ -321,7 +336,7 @@ func (r *AIEvaluationResource) Delete(ctx context.Context, req resource.DeleteRe
 
 func aiEvaluationPIIConfigAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
-		Required: true,
+		Optional: true,
 		Attributes: map[string]schema.Attribute{
 			"categories": schema.SetAttribute{
 				ElementType: types.StringType,
@@ -334,6 +349,14 @@ func aiEvaluationPIIConfigAttribute() schema.SingleNestedAttribute {
 			},
 		},
 		MarkdownDescription: "Configuration for PII evaluation.",
+	}
+}
+
+func aiEvaluationToxicityConfigAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional:            true,
+		Attributes:          map[string]schema.Attribute{},
+		MarkdownDescription: "Configuration for Toxicity evaluation. This evaluation type has no fields.",
 	}
 }
 
@@ -371,12 +394,23 @@ func extractCreateAIEvaluation(ctx context.Context, plan AIEvaluationResourceMod
 
 func extractAIEvaluationConfig(ctx context.Context, model *AIEvaluationConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	if model == nil || model.PII == nil {
-		diags.AddError("Missing AI evaluation PII config", "`config.pii` must be set.")
+	if model == nil {
+		diags.AddError("Missing AI evaluation config", "`config` must be set.")
 		return nil, diags
 	}
 
-	return extractAIEvaluationPIIConfig(ctx, *model.PII)
+	switch {
+	case model.PII != nil && model.Toxicity != nil:
+		diags.AddError("Invalid AI evaluation config", "Exactly one of `config.pii` or `config.toxicity` must be set.")
+		return nil, diags
+	case model.PII != nil:
+		return extractAIEvaluationPIIConfig(ctx, *model.PII)
+	case model.Toxicity != nil:
+		return extractAIEvaluationToxicityConfig(), diags
+	default:
+		diags.AddError("Missing AI evaluation config", "Exactly one of `config.pii` or `config.toxicity` must be set.")
+		return nil, diags
+	}
 }
 
 func extractAIEvaluationPIIConfig(ctx context.Context, model AIEvaluationPIIConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
@@ -411,6 +445,14 @@ func extractAIEvaluationPIIConfig(ctx context.Context, model AIEvaluationPIIConf
 	return &config, diags
 }
 
+func extractAIEvaluationToxicityConfig() *aievaluations.EvaluationConfig {
+	config := aievaluations.EvaluationConfigToxicityAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigToxicity(map[string]interface{}{}),
+	)
+
+	return &config
+}
+
 func flattenAIEvaluation(ctx context.Context, evaluation aievaluations.AiEvaluation) (AIEvaluationResourceModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
@@ -434,15 +476,17 @@ func flattenAIEvaluation(ctx context.Context, evaluation aievaluations.AiEvaluat
 func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.EvaluationConfig) (AIEvaluationConfigModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	actualConfig, ok := config.GetActualInstance().(*aievaluations.EvaluationConfigPii)
-	if !ok {
-		diags.AddError("Unsupported AI evaluation config", "Only PII AI evaluation configs are currently supported by this resource.")
+	switch actualConfig := config.GetActualInstance().(type) {
+	case *aievaluations.EvaluationConfigPii:
+		categories, categoryDiags := flattenAIEvaluationPIICategories(ctx, actualConfig.GetPii())
+		diags.Append(categoryDiags...)
+		return AIEvaluationConfigModel{PII: &AIEvaluationPIIConfigModel{Categories: categories}}, diags
+	case *aievaluations.EvaluationConfigToxicity:
+		return AIEvaluationConfigModel{Toxicity: &AIEvaluationToxicityConfigModel{}}, diags
+	default:
+		diags.AddError("Unsupported AI evaluation config", "Only PII and Toxicity AI evaluation configs are currently supported by this resource.")
 		return AIEvaluationConfigModel{}, diags
 	}
-
-	categories, categoryDiags := flattenAIEvaluationPIICategories(ctx, actualConfig.GetPii())
-	diags.Append(categoryDiags...)
-	return AIEvaluationConfigModel{PII: &AIEvaluationPIIConfigModel{Categories: categories}}, diags
 }
 
 func flattenAIEvaluationTarget(target aievaluations.EvaluationTarget) string {

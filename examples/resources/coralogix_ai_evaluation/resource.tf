@@ -14,3 +14,15 @@ resource "coralogix_ai_evaluation" "example" {
     }
   }
 }
+
+# resource "coralogix_ai_evaluation" "toxicity" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     toxicity = {}
+#   }
+# }

@@ -49,51 +49,79 @@ type aiEvaluationApplication struct {
 }
 
 func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
-	application := &aiEvaluationApplication{}
-	target := new(string)
-	configDir := t.TempDir()
-	createConfigFile := filepath.Join(configDir, "create.tf")
-	updateConfigFile := filepath.Join(configDir, "update.tf")
-
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			selectedApplication, selectedTarget := testAccFirstAIApplication(t)
-			*application = selectedApplication
-			*target = selectedTarget
-		},
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAIEvaluationDestroy,
-		Steps: []resource.TestStep{
-			{
-				ConfigFile: testAccAIEvaluationConfigFile(t, createConfigFile, application, target, true, `    pii = {
+	testCases := []struct {
+		name           string
+		evaluationType aievaluations.EvaluationType
+		createConfig   string
+		updateConfig   string
+		createChecks   []resource.TestCheckFunc
+		updateChecks   []resource.TestCheckFunc
+	}{
+		{
+			name:           "pii",
+			evaluationType: aievaluations.EVALUATIONTYPE_PII,
+			createConfig: `    pii = {
       categories = ["EMAIL_ADDRESS", "CREDIT_CARD"]
-    }`),
-				Check: testAccAIEvaluationCheck(
-					application,
-					target,
-					true,
-					testAccAIEvaluationSetChecks("config.pii.categories.*", "EMAIL_ADDRESS", "CREDIT_CARD")...,
-				),
-			},
-			{
-				ResourceName:      aiEvaluationResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			{
-				ConfigFile: testAccAIEvaluationConfigFile(t, updateConfigFile, application, target, false, `    pii = {
+    }`,
+			updateConfig: `    pii = {
       categories = ["PHONE_NUMBER", "US_SSN"]
-    }`),
-				Check: testAccAIEvaluationCheck(
-					application,
-					target,
-					false,
-					testAccAIEvaluationSetChecks("config.pii.categories.*", "PHONE_NUMBER", "US_SSN")...,
-				),
-			},
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.pii.categories.*", "EMAIL_ADDRESS", "CREDIT_CARD"),
+			updateChecks: testAccAIEvaluationSetChecks("config.pii.categories.*", "PHONE_NUMBER", "US_SSN"),
 		},
-	})
+		{
+			name:           "toxicity",
+			evaluationType: aievaluations.EVALUATIONTYPE_TOXICITY,
+			createConfig:   `    toxicity = {}`,
+			updateConfig:   `    toxicity = {}`,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			application := &aiEvaluationApplication{}
+			target := new(string)
+			configDir := t.TempDir()
+			createConfigFile := filepath.Join(configDir, "create.tf")
+			updateConfigFile := filepath.Join(configDir, "update.tf")
+
+			resource.Test(t, resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(t)
+					selectedApplication, selectedTarget := testAccFirstAIApplication(t, testCase.evaluationType)
+					*application = selectedApplication
+					*target = selectedTarget
+				},
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				CheckDestroy:             testAccCheckAIEvaluationDestroy,
+				Steps: []resource.TestStep{
+					{
+						ConfigFile: testAccAIEvaluationConfigFile(t, createConfigFile, application, target, true, testCase.createConfig),
+						Check: testAccAIEvaluationCheck(
+							application,
+							target,
+							true,
+							testCase.createChecks...,
+						),
+					},
+					{
+						ResourceName:      aiEvaluationResourceName,
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
+					{
+						ConfigFile: testAccAIEvaluationConfigFile(t, updateConfigFile, application, target, false, testCase.updateConfig),
+						Check: testAccAIEvaluationCheck(
+							application,
+							target,
+							false,
+							testCase.updateChecks...,
+						),
+					},
+				},
+			})
+		})
+	}
 }
 
 func testAccAIEvaluationSetChecks(path string, values ...string) []resource.TestCheckFunc {
@@ -122,7 +150,7 @@ func testAccAIEvaluationCheck(application *aiEvaluationApplication, target *stri
 	}
 }
 
-func testAccFirstAIApplication(t *testing.T) (aiEvaluationApplication, string) {
+func testAccFirstAIApplication(t *testing.T, evaluationType aievaluations.EvaluationType) (aiEvaluationApplication, string) {
 	t.Helper()
 
 	aiEvaluationApplicationsOnce.Do(func() {
@@ -135,7 +163,7 @@ func testAccFirstAIApplication(t *testing.T) (aiEvaluationApplication, string) {
 	for _, application := range aiEvaluationApplicationsCache {
 		target, available, err := testAccAIApplicationTargetForEvaluationType(
 			application,
-			aievaluations.EVALUATIONTYPE_PII,
+			evaluationType,
 			[]string{"response", "conversation", "prompt"},
 		)
 		if err != nil {
@@ -146,7 +174,7 @@ func testAccFirstAIApplication(t *testing.T) (aiEvaluationApplication, string) {
 		}
 	}
 
-	t.Fatal("no AI applications found without existing PII AI evaluation for any target")
+	t.Fatalf("no AI applications found without existing %s AI evaluation for any target", evaluationType)
 	return aiEvaluationApplication{}, ""
 }
 
