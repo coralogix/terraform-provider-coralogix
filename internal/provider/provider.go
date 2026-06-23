@@ -23,6 +23,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/aaa"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/actions"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/ai"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/apm"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards"
@@ -393,6 +394,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		events2metrics.NewEvents2MetricResource,
 		actions.NewActionResource,
+		ai.NewAIEvaluationResource,
 		dataplans.NewTCOPoliciesLogsResource,
 		dataplans.NewTCOPoliciesTracesResource,
 		dataplans.NewQuotaAllocationRuleSetResource,
