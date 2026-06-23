@@ -179,6 +179,64 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "sql_allowed_tables" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     sql_allowed_tables = {
+#       tables = [
+#         "orders",
+#         "customers"
+#       ]
+#     }
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "sql_hallucination" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     sql_hallucination = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "sql_read_only" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     sql_read_only = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "sql_restricted_tables" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     sql_restricted_tables = {
+#       tables = [
+#         "secrets",
+#         "audit_logs"
+#       ]
+#     }
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "toxicity" {
 #   application = "my-chatbot"
 #   subsystem   = "production"
@@ -228,6 +286,10 @@ Optional:
 - `prompt_injection` (Attributes) Configuration for Prompt Injection evaluation. (see [below for nested schema](#nestedatt--config--prompt_injection))
 - `restricted_topics` (Attributes) Configuration for Restricted Topics evaluation. (see [below for nested schema](#nestedatt--config--restricted_topics))
 - `sexism` (Attributes) Configuration for Sexism evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sexism))
+- `sql_allowed_tables` (Attributes) Configuration for SQL Allowed Tables evaluation. (see [below for nested schema](#nestedatt--config--sql_allowed_tables))
+- `sql_hallucination` (Attributes) Configuration for SQL Hallucination evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sql_hallucination))
+- `sql_read_only` (Attributes) Configuration for SQL Read Only evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sql_read_only))
+- `sql_restricted_tables` (Attributes) Configuration for SQL Restricted Tables evaluation. (see [below for nested schema](#nestedatt--config--sql_restricted_tables))
 - `toxicity` (Attributes) Configuration for Toxicity evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--toxicity))
 
 <a id="nestedatt--config--allowed_topics"></a>
@@ -296,6 +358,30 @@ Required:
 
 <a id="nestedatt--config--sexism"></a>
 ### Nested Schema for `config.sexism`
+
+
+<a id="nestedatt--config--sql_allowed_tables"></a>
+### Nested Schema for `config.sql_allowed_tables`
+
+Required:
+
+- `tables` (Set of String) SQL table names that are allowed.
+
+
+<a id="nestedatt--config--sql_hallucination"></a>
+### Nested Schema for `config.sql_hallucination`
+
+
+<a id="nestedatt--config--sql_read_only"></a>
+### Nested Schema for `config.sql_read_only`
+
+
+<a id="nestedatt--config--sql_restricted_tables"></a>
+### Nested Schema for `config.sql_restricted_tables`
+
+Required:
+
+- `tables` (Set of String) SQL table names that are not allowed.
 
 
 <a id="nestedatt--config--toxicity"></a>

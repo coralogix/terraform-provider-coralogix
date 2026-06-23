@@ -97,6 +97,10 @@ type AIEvaluationConfigModel struct {
 	PromptInjection               *AIEvaluationPromptInjectionConfigModel               `tfsdk:"prompt_injection"`
 	RestrictedTopics              *AIEvaluationRestrictedTopicsConfigModel              `tfsdk:"restricted_topics"`
 	Sexism                        *AIEvaluationSexismConfigModel                        `tfsdk:"sexism"`
+	SQLAllowedTables              *AIEvaluationSQLAllowedTablesConfigModel              `tfsdk:"sql_allowed_tables"`
+	SQLHallucination              *AIEvaluationSQLHallucinationConfigModel              `tfsdk:"sql_hallucination"`
+	SQLReadOnly                   *AIEvaluationSQLReadOnlyConfigModel                   `tfsdk:"sql_read_only"`
+	SQLRestrictedTables           *AIEvaluationSQLRestrictedTablesConfigModel           `tfsdk:"sql_restricted_tables"`
 	Toxicity                      *AIEvaluationToxicityConfigModel                      `tfsdk:"toxicity"`
 }
 
@@ -133,6 +137,18 @@ type AIEvaluationPromptInjectionConfigModel struct {
 }
 
 type AIEvaluationSexismConfigModel struct{}
+
+type AIEvaluationSQLAllowedTablesConfigModel struct {
+	Tables types.Set `tfsdk:"tables"`
+}
+
+type AIEvaluationSQLHallucinationConfigModel struct{}
+
+type AIEvaluationSQLReadOnlyConfigModel struct{}
+
+type AIEvaluationSQLRestrictedTablesConfigModel struct {
+	Tables types.Set `tfsdk:"tables"`
+}
 
 type AIEvaluationToxicityConfigModel struct{}
 
@@ -229,6 +245,10 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 					"prompt_injection":                aiEvaluationPromptInjectionConfigAttribute(),
 					"restricted_topics":               aiEvaluationRestrictedTopicsConfigAttribute(),
 					"sexism":                          aiEvaluationSexismConfigAttribute(),
+					"sql_allowed_tables":              aiEvaluationSQLAllowedTablesConfigAttribute(),
+					"sql_hallucination":               aiEvaluationSQLHallucinationConfigAttribute(),
+					"sql_read_only":                   aiEvaluationSQLReadOnlyConfigAttribute(),
+					"sql_restricted_tables":           aiEvaluationSQLRestrictedTablesConfigAttribute(),
 					"toxicity":                        aiEvaluationToxicityConfigAttribute(),
 				},
 				MarkdownDescription: "AI evaluation configuration.",
@@ -253,6 +273,10 @@ func (r *AIEvaluationResource) ConfigValidators(_ context.Context) []resource.Co
 			path.MatchRoot("config").AtName("prompt_injection"),
 			path.MatchRoot("config").AtName("restricted_topics"),
 			path.MatchRoot("config").AtName("sexism"),
+			path.MatchRoot("config").AtName("sql_allowed_tables"),
+			path.MatchRoot("config").AtName("sql_hallucination"),
+			path.MatchRoot("config").AtName("sql_read_only"),
+			path.MatchRoot("config").AtName("sql_restricted_tables"),
 			path.MatchRoot("config").AtName("toxicity"),
 		),
 	}
@@ -504,6 +528,34 @@ func aiEvaluationSexismConfigAttribute() schema.SingleNestedAttribute {
 	return aiEvaluationEmptyConfigAttribute("Configuration for Sexism evaluation. This evaluation type has no fields.")
 }
 
+func aiEvaluationSQLAllowedTablesConfigAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"tables": aiEvaluationStringSetAttribute("SQL table names that are allowed."),
+		},
+		MarkdownDescription: "Configuration for SQL Allowed Tables evaluation.",
+	}
+}
+
+func aiEvaluationSQLHallucinationConfigAttribute() schema.SingleNestedAttribute {
+	return aiEvaluationEmptyConfigAttribute("Configuration for SQL Hallucination evaluation. This evaluation type has no fields.")
+}
+
+func aiEvaluationSQLReadOnlyConfigAttribute() schema.SingleNestedAttribute {
+	return aiEvaluationEmptyConfigAttribute("Configuration for SQL Read Only evaluation. This evaluation type has no fields.")
+}
+
+func aiEvaluationSQLRestrictedTablesConfigAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"tables": aiEvaluationStringSetAttribute("SQL table names that are not allowed."),
+		},
+		MarkdownDescription: "Configuration for SQL Restricted Tables evaluation.",
+	}
+}
+
 func aiEvaluationToxicityConfigAttribute() schema.SingleNestedAttribute {
 	return aiEvaluationEmptyConfigAttribute("Configuration for Toxicity evaluation. This evaluation type has no fields.")
 }
@@ -580,6 +632,14 @@ func extractAIEvaluationConfig(ctx context.Context, model *AIEvaluationConfigMod
 		return extractAIEvaluationRestrictedTopicsConfig(ctx, *model.RestrictedTopics)
 	case model.Sexism != nil:
 		return extractAIEvaluationSexismConfig(), diags
+	case model.SQLAllowedTables != nil:
+		return extractAIEvaluationSQLAllowedTablesConfig(ctx, *model.SQLAllowedTables)
+	case model.SQLHallucination != nil:
+		return extractAIEvaluationSQLHallucinationConfig(), diags
+	case model.SQLReadOnly != nil:
+		return extractAIEvaluationSQLReadOnlyConfig(), diags
+	case model.SQLRestrictedTables != nil:
+		return extractAIEvaluationSQLRestrictedTablesConfig(ctx, *model.SQLRestrictedTables)
 	case model.Toxicity != nil:
 		return extractAIEvaluationToxicityConfig(), diags
 	default:
@@ -737,6 +797,54 @@ func extractAIEvaluationSexismConfig() *aievaluations.EvaluationConfig {
 	return &config
 }
 
+func extractAIEvaluationSQLAllowedTablesConfig(ctx context.Context, model AIEvaluationSQLAllowedTablesConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var tables []string
+
+	diags.Append(model.Tables.ElementsAs(ctx, &tables, false)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	config := aievaluations.EvaluationConfigSqlAllowedTablesAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigSqlAllowedTables(aievaluations.SqlAllowedTablesConfig{Tables: tables}),
+	)
+
+	return &config, diags
+}
+
+func extractAIEvaluationSQLHallucinationConfig() *aievaluations.EvaluationConfig {
+	config := aievaluations.EvaluationConfigSqlHallucinationAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigSqlHallucination(map[string]interface{}{}),
+	)
+
+	return &config
+}
+
+func extractAIEvaluationSQLReadOnlyConfig() *aievaluations.EvaluationConfig {
+	config := aievaluations.EvaluationConfigSqlReadOnlyAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigSqlReadOnly(map[string]interface{}{}),
+	)
+
+	return &config
+}
+
+func extractAIEvaluationSQLRestrictedTablesConfig(ctx context.Context, model AIEvaluationSQLRestrictedTablesConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var tables []string
+
+	diags.Append(model.Tables.ElementsAs(ctx, &tables, false)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	config := aievaluations.EvaluationConfigSqlRestrictedTablesAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigSqlRestrictedTables(aievaluations.SqlRestrictedTablesConfig{Tables: tables}),
+	)
+
+	return &config, diags
+}
+
 func extractAIEvaluationToxicityConfig() *aievaluations.EvaluationConfig {
 	config := aievaluations.EvaluationConfigToxicityAsEvaluationConfig(
 		aievaluations.NewEvaluationConfigToxicity(map[string]interface{}{}),
@@ -802,10 +910,22 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 		return AIEvaluationConfigModel{RestrictedTopics: &AIEvaluationRestrictedTopicsConfigModel{Topics: topics}}, diags
 	case *aievaluations.EvaluationConfigSexism:
 		return AIEvaluationConfigModel{Sexism: &AIEvaluationSexismConfigModel{}}, diags
+	case *aievaluations.EvaluationConfigSqlAllowedTables:
+		tables, tableDiags := flattenAIEvaluationSQLAllowedTables(ctx, actualConfig.GetSqlAllowedTables())
+		diags.Append(tableDiags...)
+		return AIEvaluationConfigModel{SQLAllowedTables: &AIEvaluationSQLAllowedTablesConfigModel{Tables: tables}}, diags
+	case *aievaluations.EvaluationConfigSqlHallucination:
+		return AIEvaluationConfigModel{SQLHallucination: &AIEvaluationSQLHallucinationConfigModel{}}, diags
+	case *aievaluations.EvaluationConfigSqlReadOnly:
+		return AIEvaluationConfigModel{SQLReadOnly: &AIEvaluationSQLReadOnlyConfigModel{}}, diags
+	case *aievaluations.EvaluationConfigSqlRestrictedTables:
+		tables, tableDiags := flattenAIEvaluationSQLRestrictedTables(ctx, actualConfig.GetSqlRestrictedTables())
+		diags.Append(tableDiags...)
+		return AIEvaluationConfigModel{SQLRestrictedTables: &AIEvaluationSQLRestrictedTablesConfigModel{Tables: tables}}, diags
 	case *aievaluations.EvaluationConfigToxicity:
 		return AIEvaluationConfigModel{Toxicity: &AIEvaluationToxicityConfigModel{}}, diags
 	default:
-		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, and Toxicity AI evaluation configs are currently supported by this resource.")
+		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, SQL Allowed Tables, SQL Hallucination, SQL Read Only, SQL Restricted Tables, and Toxicity AI evaluation configs are currently supported by this resource.")
 		return AIEvaluationConfigModel{}, diags
 	}
 }
@@ -848,6 +968,22 @@ func flattenAIEvaluationRestrictedTopics(ctx context.Context, restrictedTopics a
 	topicsSet, setDiags := types.SetValueFrom(ctx, types.StringType, restrictedTopics.GetTopics())
 	diags.Append(setDiags...)
 	return topicsSet, diags
+}
+
+func flattenAIEvaluationSQLAllowedTables(ctx context.Context, sqlAllowedTables aievaluations.SqlAllowedTablesConfig) (types.Set, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	tablesSet, setDiags := types.SetValueFrom(ctx, types.StringType, sqlAllowedTables.GetTables())
+	diags.Append(setDiags...)
+	return tablesSet, diags
+}
+
+func flattenAIEvaluationSQLRestrictedTables(ctx context.Context, sqlRestrictedTables aievaluations.SqlRestrictedTablesConfig) (types.Set, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	tablesSet, setDiags := types.SetValueFrom(ctx, types.StringType, sqlRestrictedTables.GetTables())
+	diags.Append(setDiags...)
+	return tablesSet, diags
 }
 
 func flattenAIEvaluationPIICategories(ctx context.Context, pii aievaluations.PiiConfig) (types.Set, diag.Diagnostics) {

@@ -164,6 +164,42 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 			updateConfig:   `    sexism = {}`,
 		},
 		{
+			name:           "sql_allowed_tables",
+			evaluationType: aievaluations.EVALUATIONTYPE_SQL_ALLOWED_TABLES,
+			createConfig: `    sql_allowed_tables = {
+      tables = ["orders", "customers"]
+    }`,
+			updateConfig: `    sql_allowed_tables = {
+      tables = ["invoices", "payments"]
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.sql_allowed_tables.tables.*", "orders", "customers"),
+			updateChecks: testAccAIEvaluationSetChecks("config.sql_allowed_tables.tables.*", "invoices", "payments"),
+		},
+		{
+			name:           "sql_hallucination",
+			evaluationType: aievaluations.EVALUATIONTYPE_SQL_HALLUCINATION,
+			createConfig:   `    sql_hallucination = {}`,
+			updateConfig:   `    sql_hallucination = {}`,
+		},
+		{
+			name:           "sql_read_only",
+			evaluationType: aievaluations.EVALUATIONTYPE_SQL_READ_ONLY,
+			createConfig:   `    sql_read_only = {}`,
+			updateConfig:   `    sql_read_only = {}`,
+		},
+		{
+			name:           "sql_restricted_tables",
+			evaluationType: aievaluations.EVALUATIONTYPE_SQL_RESTRICTED_TABLES,
+			createConfig: `    sql_restricted_tables = {
+      tables = ["secrets", "audit_logs"]
+    }`,
+			updateConfig: `    sql_restricted_tables = {
+      tables = ["payroll", "pii_exports"]
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.sql_restricted_tables.tables.*", "secrets", "audit_logs"),
+			updateChecks: testAccAIEvaluationSetChecks("config.sql_restricted_tables.tables.*", "payroll", "pii_exports"),
+		},
+		{
 			name:           "toxicity",
 			evaluationType: aievaluations.EVALUATIONTYPE_TOXICITY,
 			createConfig:   `    toxicity = {}`,

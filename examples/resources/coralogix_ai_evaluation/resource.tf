@@ -164,6 +164,64 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "sql_allowed_tables" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     sql_allowed_tables = {
+#       tables = [
+#         "orders",
+#         "customers"
+#       ]
+#     }
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "sql_hallucination" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     sql_hallucination = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "sql_read_only" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     sql_read_only = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "sql_restricted_tables" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     sql_restricted_tables = {
+#       tables = [
+#         "secrets",
+#         "audit_logs"
+#       ]
+#     }
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "toxicity" {
 #   application = "my-chatbot"
 #   subsystem   = "production"
