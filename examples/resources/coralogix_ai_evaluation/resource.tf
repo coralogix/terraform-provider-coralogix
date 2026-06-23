@@ -15,6 +15,23 @@ resource "coralogix_ai_evaluation" "example" {
   }
 }
 
+# resource "coralogix_ai_evaluation" "allowed_topics" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     allowed_topics = {
+#       topics = [
+#         "billing",
+#         "account settings"
+#       ]
+#     }
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "toxicity" {
 #   application = "my-chatbot"
 #   subsystem   = "production"

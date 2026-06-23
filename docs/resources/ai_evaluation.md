@@ -30,6 +30,23 @@ resource "coralogix_ai_evaluation" "example" {
   }
 }
 
+# resource "coralogix_ai_evaluation" "allowed_topics" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     allowed_topics = {
+#       topics = [
+#         "billing",
+#         "account settings"
+#       ]
+#     }
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "toxicity" {
 #   application = "my-chatbot"
 #   subsystem   = "production"
@@ -67,8 +84,17 @@ resource "coralogix_ai_evaluation" "example" {
 
 Optional:
 
+- `allowed_topics` (Attributes) Configuration for Allowed Topics evaluation. (see [below for nested schema](#nestedatt--config--allowed_topics))
 - `pii` (Attributes) Configuration for PII evaluation. (see [below for nested schema](#nestedatt--config--pii))
 - `toxicity` (Attributes) Configuration for Toxicity evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--toxicity))
+
+<a id="nestedatt--config--allowed_topics"></a>
+### Nested Schema for `config.allowed_topics`
+
+Required:
+
+- `topics` (Set of String) Topics considered allowed.
+
 
 <a id="nestedatt--config--pii"></a>
 ### Nested Schema for `config.pii`

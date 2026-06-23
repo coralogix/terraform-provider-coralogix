@@ -58,6 +58,18 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 		updateChecks   []resource.TestCheckFunc
 	}{
 		{
+			name:           "allowed_topics",
+			evaluationType: aievaluations.EVALUATIONTYPE_ALLOWED_TOPICS,
+			createConfig: `    allowed_topics = {
+      topics = ["billing", "account settings"]
+    }`,
+			updateConfig: `    allowed_topics = {
+      topics = ["observability", "incident response"]
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.allowed_topics.topics.*", "billing", "account settings"),
+			updateChecks: testAccAIEvaluationSetChecks("config.allowed_topics.topics.*", "observability", "incident response"),
+		},
+		{
 			name:           "pii",
 			evaluationType: aievaluations.EVALUATIONTYPE_PII,
 			createConfig: `    pii = {
