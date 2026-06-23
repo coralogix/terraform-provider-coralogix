@@ -85,14 +85,19 @@ type AIEvaluationResourceModel struct {
 }
 
 type AIEvaluationConfigModel struct {
-	AllowedTopics    *AIEvaluationAllowedTopicsConfigModel    `tfsdk:"allowed_topics"`
-	Competition      *AIEvaluationCompetitionConfigModel      `tfsdk:"competition"`
-	LanguageMismatch *AIEvaluationLanguageMismatchConfigModel `tfsdk:"language_mismatch"`
-	PII              *AIEvaluationPIIConfigModel              `tfsdk:"pii"`
-	PromptInjection  *AIEvaluationPromptInjectionConfigModel  `tfsdk:"prompt_injection"`
-	RestrictedTopics *AIEvaluationRestrictedTopicsConfigModel `tfsdk:"restricted_topics"`
-	Sexism           *AIEvaluationSexismConfigModel           `tfsdk:"sexism"`
-	Toxicity         *AIEvaluationToxicityConfigModel         `tfsdk:"toxicity"`
+	AllowedTopics                 *AIEvaluationAllowedTopicsConfigModel                 `tfsdk:"allowed_topics"`
+	Competition                   *AIEvaluationCompetitionConfigModel                   `tfsdk:"competition"`
+	HallucinationCompleteness     *AIEvaluationHallucinationCompletenessConfigModel     `tfsdk:"hallucination_completeness"`
+	HallucinationContextAdherence *AIEvaluationHallucinationContextAdherenceConfigModel `tfsdk:"hallucination_context_adherence"`
+	HallucinationContextRelevance *AIEvaluationHallucinationContextRelevanceConfigModel `tfsdk:"hallucination_context_relevance"`
+	HallucinationCorrectness      *AIEvaluationHallucinationCorrectnessConfigModel      `tfsdk:"hallucination_correctness"`
+	HallucinationTaskAdherence    *AIEvaluationHallucinationTaskAdherenceConfigModel    `tfsdk:"hallucination_task_adherence"`
+	LanguageMismatch              *AIEvaluationLanguageMismatchConfigModel              `tfsdk:"language_mismatch"`
+	PII                           *AIEvaluationPIIConfigModel                           `tfsdk:"pii"`
+	PromptInjection               *AIEvaluationPromptInjectionConfigModel               `tfsdk:"prompt_injection"`
+	RestrictedTopics              *AIEvaluationRestrictedTopicsConfigModel              `tfsdk:"restricted_topics"`
+	Sexism                        *AIEvaluationSexismConfigModel                        `tfsdk:"sexism"`
+	Toxicity                      *AIEvaluationToxicityConfigModel                      `tfsdk:"toxicity"`
 }
 
 type AIEvaluationAllowedTopicsConfigModel struct {
@@ -102,6 +107,16 @@ type AIEvaluationAllowedTopicsConfigModel struct {
 type AIEvaluationCompetitionConfigModel struct {
 	Competitors types.Set `tfsdk:"competitors"`
 }
+
+type AIEvaluationHallucinationCompletenessConfigModel struct{}
+
+type AIEvaluationHallucinationContextAdherenceConfigModel struct{}
+
+type AIEvaluationHallucinationContextRelevanceConfigModel struct{}
+
+type AIEvaluationHallucinationCorrectnessConfigModel struct{}
+
+type AIEvaluationHallucinationTaskAdherenceConfigModel struct{}
 
 type AIEvaluationLanguageMismatchConfigModel struct{}
 
@@ -202,14 +217,19 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 			"config": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
-					"allowed_topics":    aiEvaluationAllowedTopicsConfigAttribute(),
-					"competition":       aiEvaluationCompetitionConfigAttribute(),
-					"language_mismatch": aiEvaluationLanguageMismatchConfigAttribute(),
-					"pii":               aiEvaluationPIIConfigAttribute(),
-					"prompt_injection":  aiEvaluationPromptInjectionConfigAttribute(),
-					"restricted_topics": aiEvaluationRestrictedTopicsConfigAttribute(),
-					"sexism":            aiEvaluationSexismConfigAttribute(),
-					"toxicity":          aiEvaluationToxicityConfigAttribute(),
+					"allowed_topics":                  aiEvaluationAllowedTopicsConfigAttribute(),
+					"competition":                     aiEvaluationCompetitionConfigAttribute(),
+					"hallucination_completeness":      aiEvaluationHallucinationCompletenessConfigAttribute(),
+					"hallucination_context_adherence": aiEvaluationHallucinationContextAdherenceConfigAttribute(),
+					"hallucination_context_relevance": aiEvaluationHallucinationContextRelevanceConfigAttribute(),
+					"hallucination_correctness":       aiEvaluationHallucinationCorrectnessConfigAttribute(),
+					"hallucination_task_adherence":    aiEvaluationHallucinationTaskAdherenceConfigAttribute(),
+					"language_mismatch":               aiEvaluationLanguageMismatchConfigAttribute(),
+					"pii":                             aiEvaluationPIIConfigAttribute(),
+					"prompt_injection":                aiEvaluationPromptInjectionConfigAttribute(),
+					"restricted_topics":               aiEvaluationRestrictedTopicsConfigAttribute(),
+					"sexism":                          aiEvaluationSexismConfigAttribute(),
+					"toxicity":                        aiEvaluationToxicityConfigAttribute(),
 				},
 				MarkdownDescription: "AI evaluation configuration.",
 			},
@@ -223,6 +243,11 @@ func (r *AIEvaluationResource) ConfigValidators(_ context.Context) []resource.Co
 		resourcevalidator.ExactlyOneOf(
 			path.MatchRoot("config").AtName("allowed_topics"),
 			path.MatchRoot("config").AtName("competition"),
+			path.MatchRoot("config").AtName("hallucination_completeness"),
+			path.MatchRoot("config").AtName("hallucination_context_adherence"),
+			path.MatchRoot("config").AtName("hallucination_context_relevance"),
+			path.MatchRoot("config").AtName("hallucination_correctness"),
+			path.MatchRoot("config").AtName("hallucination_task_adherence"),
 			path.MatchRoot("config").AtName("language_mismatch"),
 			path.MatchRoot("config").AtName("pii"),
 			path.MatchRoot("config").AtName("prompt_injection"),
@@ -383,12 +408,28 @@ func aiEvaluationCompetitionConfigAttribute() schema.SingleNestedAttribute {
 	}
 }
 
+func aiEvaluationHallucinationCompletenessConfigAttribute() schema.SingleNestedAttribute {
+	return aiEvaluationEmptyConfigAttribute("Configuration for Hallucination Completeness evaluation. This evaluation type has no fields.")
+}
+
+func aiEvaluationHallucinationContextAdherenceConfigAttribute() schema.SingleNestedAttribute {
+	return aiEvaluationEmptyConfigAttribute("Configuration for Hallucination Context Adherence evaluation. This evaluation type has no fields.")
+}
+
+func aiEvaluationHallucinationContextRelevanceConfigAttribute() schema.SingleNestedAttribute {
+	return aiEvaluationEmptyConfigAttribute("Configuration for Hallucination Context Relevance evaluation. This evaluation type has no fields.")
+}
+
+func aiEvaluationHallucinationCorrectnessConfigAttribute() schema.SingleNestedAttribute {
+	return aiEvaluationEmptyConfigAttribute("Configuration for Hallucination Correctness evaluation. This evaluation type has no fields.")
+}
+
+func aiEvaluationHallucinationTaskAdherenceConfigAttribute() schema.SingleNestedAttribute {
+	return aiEvaluationEmptyConfigAttribute("Configuration for Hallucination Task Adherence evaluation. This evaluation type has no fields.")
+}
+
 func aiEvaluationLanguageMismatchConfigAttribute() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Optional:            true,
-		Attributes:          map[string]schema.Attribute{},
-		MarkdownDescription: "Configuration for Language Mismatch evaluation. This evaluation type has no fields.",
-	}
+	return aiEvaluationEmptyConfigAttribute("Configuration for Language Mismatch evaluation. This evaluation type has no fields.")
 }
 
 func aiEvaluationRestrictedTopicsConfigAttribute() schema.SingleNestedAttribute {
@@ -460,18 +501,18 @@ func aiEvaluationPromptInjectionConfigAttribute() schema.SingleNestedAttribute {
 }
 
 func aiEvaluationSexismConfigAttribute() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Optional:            true,
-		Attributes:          map[string]schema.Attribute{},
-		MarkdownDescription: "Configuration for Sexism evaluation. This evaluation type has no fields.",
-	}
+	return aiEvaluationEmptyConfigAttribute("Configuration for Sexism evaluation. This evaluation type has no fields.")
 }
 
 func aiEvaluationToxicityConfigAttribute() schema.SingleNestedAttribute {
+	return aiEvaluationEmptyConfigAttribute("Configuration for Toxicity evaluation. This evaluation type has no fields.")
+}
+
+func aiEvaluationEmptyConfigAttribute(markdownDescription string) schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional:            true,
 		Attributes:          map[string]schema.Attribute{},
-		MarkdownDescription: "Configuration for Toxicity evaluation. This evaluation type has no fields.",
+		MarkdownDescription: markdownDescription,
 	}
 }
 
@@ -519,6 +560,16 @@ func extractAIEvaluationConfig(ctx context.Context, model *AIEvaluationConfigMod
 		return extractAIEvaluationAllowedTopicsConfig(ctx, *model.AllowedTopics)
 	case model.Competition != nil:
 		return extractAIEvaluationCompetitionConfig(ctx, *model.Competition)
+	case model.HallucinationCompleteness != nil:
+		return extractAIEvaluationHallucinationCompletenessConfig(), diags
+	case model.HallucinationContextAdherence != nil:
+		return extractAIEvaluationHallucinationContextAdherenceConfig(), diags
+	case model.HallucinationContextRelevance != nil:
+		return extractAIEvaluationHallucinationContextRelevanceConfig(), diags
+	case model.HallucinationCorrectness != nil:
+		return extractAIEvaluationHallucinationCorrectnessConfig(), diags
+	case model.HallucinationTaskAdherence != nil:
+		return extractAIEvaluationHallucinationTaskAdherenceConfig(), diags
 	case model.LanguageMismatch != nil:
 		return extractAIEvaluationLanguageMismatchConfig(), diags
 	case model.PII != nil:
@@ -567,6 +618,46 @@ func extractAIEvaluationCompetitionConfig(ctx context.Context, model AIEvaluatio
 	)
 
 	return &config, diags
+}
+
+func extractAIEvaluationHallucinationCompletenessConfig() *aievaluations.EvaluationConfig {
+	config := aievaluations.EvaluationConfigHallucinationCompletenessAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigHallucinationCompleteness(map[string]interface{}{}),
+	)
+
+	return &config
+}
+
+func extractAIEvaluationHallucinationContextAdherenceConfig() *aievaluations.EvaluationConfig {
+	config := aievaluations.EvaluationConfigHallucinationContextAdherenceAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigHallucinationContextAdherence(map[string]interface{}{}),
+	)
+
+	return &config
+}
+
+func extractAIEvaluationHallucinationContextRelevanceConfig() *aievaluations.EvaluationConfig {
+	config := aievaluations.EvaluationConfigHallucinationContextRelevanceAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigHallucinationContextRelevance(map[string]interface{}{}),
+	)
+
+	return &config
+}
+
+func extractAIEvaluationHallucinationCorrectnessConfig() *aievaluations.EvaluationConfig {
+	config := aievaluations.EvaluationConfigHallucinationCorrectnessAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigHallucinationCorrectness(map[string]interface{}{}),
+	)
+
+	return &config
+}
+
+func extractAIEvaluationHallucinationTaskAdherenceConfig() *aievaluations.EvaluationConfig {
+	config := aievaluations.EvaluationConfigHallucinationTaskAdherenceAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigHallucinationTaskAdherence(map[string]interface{}{}),
+	)
+
+	return &config
 }
 
 func extractAIEvaluationLanguageMismatchConfig() *aievaluations.EvaluationConfig {
@@ -686,6 +777,16 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 		competitors, competitorDiags := flattenAIEvaluationCompetition(ctx, actualConfig.GetCompetition())
 		diags.Append(competitorDiags...)
 		return AIEvaluationConfigModel{Competition: &AIEvaluationCompetitionConfigModel{Competitors: competitors}}, diags
+	case *aievaluations.EvaluationConfigHallucinationCompleteness:
+		return AIEvaluationConfigModel{HallucinationCompleteness: &AIEvaluationHallucinationCompletenessConfigModel{}}, diags
+	case *aievaluations.EvaluationConfigHallucinationContextAdherence:
+		return AIEvaluationConfigModel{HallucinationContextAdherence: &AIEvaluationHallucinationContextAdherenceConfigModel{}}, diags
+	case *aievaluations.EvaluationConfigHallucinationContextRelevance:
+		return AIEvaluationConfigModel{HallucinationContextRelevance: &AIEvaluationHallucinationContextRelevanceConfigModel{}}, diags
+	case *aievaluations.EvaluationConfigHallucinationCorrectness:
+		return AIEvaluationConfigModel{HallucinationCorrectness: &AIEvaluationHallucinationCorrectnessConfigModel{}}, diags
+	case *aievaluations.EvaluationConfigHallucinationTaskAdherence:
+		return AIEvaluationConfigModel{HallucinationTaskAdherence: &AIEvaluationHallucinationTaskAdherenceConfigModel{}}, diags
 	case *aievaluations.EvaluationConfigLanguageMismatch:
 		return AIEvaluationConfigModel{LanguageMismatch: &AIEvaluationLanguageMismatchConfigModel{}}, diags
 	case *aievaluations.EvaluationConfigPii:
@@ -704,7 +805,7 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 	case *aievaluations.EvaluationConfigToxicity:
 		return AIEvaluationConfigModel{Toxicity: &AIEvaluationToxicityConfigModel{}}, diags
 	default:
-		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, and Toxicity AI evaluation configs are currently supported by this resource.")
+		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, and Toxicity AI evaluation configs are currently supported by this resource.")
 		return AIEvaluationConfigModel{}, diags
 	}
 }

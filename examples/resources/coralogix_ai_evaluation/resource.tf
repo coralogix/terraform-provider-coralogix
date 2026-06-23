@@ -61,6 +61,66 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "hallucination_completeness" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     hallucination_completeness = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "hallucination_context_adherence" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     hallucination_context_adherence = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "hallucination_context_relevance" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     hallucination_context_relevance = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "hallucination_correctness" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     hallucination_correctness = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "hallucination_task_adherence" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     hallucination_task_adherence = {}
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "restricted_topics" {
 #   application = "my-chatbot"
 #   subsystem   = "production"

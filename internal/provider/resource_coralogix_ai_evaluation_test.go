@@ -83,6 +83,36 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 			updateChecks: testAccAIEvaluationSetChecks("config.competition.competitors.*", "CompetitorThree", "CompetitorFour"),
 		},
 		{
+			name:           "hallucination_completeness",
+			evaluationType: aievaluations.EVALUATIONTYPE_HALLUCINATION_COMPLETENESS,
+			createConfig:   `    hallucination_completeness = {}`,
+			updateConfig:   `    hallucination_completeness = {}`,
+		},
+		{
+			name:           "hallucination_context_adherence",
+			evaluationType: aievaluations.EVALUATIONTYPE_HALLUCINATION_CONTEXT_ADHERENCE,
+			createConfig:   `    hallucination_context_adherence = {}`,
+			updateConfig:   `    hallucination_context_adherence = {}`,
+		},
+		{
+			name:           "hallucination_context_relevance",
+			evaluationType: aievaluations.EVALUATIONTYPE_HALLUCINATION_CONTEXT_RELEVANCE,
+			createConfig:   `    hallucination_context_relevance = {}`,
+			updateConfig:   `    hallucination_context_relevance = {}`,
+		},
+		{
+			name:           "hallucination_correctness",
+			evaluationType: aievaluations.EVALUATIONTYPE_HALLUCINATION_CORRECTNESS,
+			createConfig:   `    hallucination_correctness = {}`,
+			updateConfig:   `    hallucination_correctness = {}`,
+		},
+		{
+			name:           "hallucination_task_adherence",
+			evaluationType: aievaluations.EVALUATIONTYPE_HALLUCINATION_TASK_ADHERENCE,
+			createConfig:   `    hallucination_task_adherence = {}`,
+			updateConfig:   `    hallucination_task_adherence = {}`,
+		},
+		{
 			name:           "language_mismatch",
 			evaluationType: aievaluations.EVALUATIONTYPE_LANGUAGE_MISMATCH,
 			createConfig:   `    language_mismatch = {}`,

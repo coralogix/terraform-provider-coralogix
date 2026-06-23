@@ -76,6 +76,66 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "hallucination_completeness" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     hallucination_completeness = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "hallucination_context_adherence" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     hallucination_context_adherence = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "hallucination_context_relevance" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     hallucination_context_relevance = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "hallucination_correctness" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     hallucination_correctness = {}
+#   }
+# }
+#
+# resource "coralogix_ai_evaluation" "hallucination_task_adherence" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     hallucination_task_adherence = {}
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "restricted_topics" {
 #   application = "my-chatbot"
 #   subsystem   = "production"
@@ -158,6 +218,11 @@ Optional:
 
 - `allowed_topics` (Attributes) Configuration for Allowed Topics evaluation. (see [below for nested schema](#nestedatt--config--allowed_topics))
 - `competition` (Attributes) Configuration for Competition evaluation. (see [below for nested schema](#nestedatt--config--competition))
+- `hallucination_completeness` (Attributes) Configuration for Hallucination Completeness evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--hallucination_completeness))
+- `hallucination_context_adherence` (Attributes) Configuration for Hallucination Context Adherence evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--hallucination_context_adherence))
+- `hallucination_context_relevance` (Attributes) Configuration for Hallucination Context Relevance evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--hallucination_context_relevance))
+- `hallucination_correctness` (Attributes) Configuration for Hallucination Correctness evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--hallucination_correctness))
+- `hallucination_task_adherence` (Attributes) Configuration for Hallucination Task Adherence evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--hallucination_task_adherence))
 - `language_mismatch` (Attributes) Configuration for Language Mismatch evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--language_mismatch))
 - `pii` (Attributes) Configuration for PII evaluation. (see [below for nested schema](#nestedatt--config--pii))
 - `prompt_injection` (Attributes) Configuration for Prompt Injection evaluation. (see [below for nested schema](#nestedatt--config--prompt_injection))
@@ -179,6 +244,26 @@ Required:
 Required:
 
 - `competitors` (Set of String) Competitor names to watch for.
+
+
+<a id="nestedatt--config--hallucination_completeness"></a>
+### Nested Schema for `config.hallucination_completeness`
+
+
+<a id="nestedatt--config--hallucination_context_adherence"></a>
+### Nested Schema for `config.hallucination_context_adherence`
+
+
+<a id="nestedatt--config--hallucination_context_relevance"></a>
+### Nested Schema for `config.hallucination_context_relevance`
+
+
+<a id="nestedatt--config--hallucination_correctness"></a>
+### Nested Schema for `config.hallucination_correctness`
+
+
+<a id="nestedatt--config--hallucination_task_adherence"></a>
+### Nested Schema for `config.hallucination_task_adherence`
 
 
 <a id="nestedatt--config--language_mismatch"></a>
