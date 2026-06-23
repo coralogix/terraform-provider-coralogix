@@ -86,6 +86,7 @@ type AIEvaluationResourceModel struct {
 type AIEvaluationConfigModel struct {
 	AllowedTopics    *AIEvaluationAllowedTopicsConfigModel    `tfsdk:"allowed_topics"`
 	Competition      *AIEvaluationCompetitionConfigModel      `tfsdk:"competition"`
+	LanguageMismatch *AIEvaluationLanguageMismatchConfigModel `tfsdk:"language_mismatch"`
 	PII              *AIEvaluationPIIConfigModel              `tfsdk:"pii"`
 	RestrictedTopics *AIEvaluationRestrictedTopicsConfigModel `tfsdk:"restricted_topics"`
 	Sexism           *AIEvaluationSexismConfigModel           `tfsdk:"sexism"`
@@ -99,6 +100,8 @@ type AIEvaluationAllowedTopicsConfigModel struct {
 type AIEvaluationCompetitionConfigModel struct {
 	Competitors types.Set `tfsdk:"competitors"`
 }
+
+type AIEvaluationLanguageMismatchConfigModel struct{}
 
 type AIEvaluationRestrictedTopicsConfigModel struct {
 	Topics types.Set `tfsdk:"topics"`
@@ -195,6 +198,7 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 				Attributes: map[string]schema.Attribute{
 					"allowed_topics":    aiEvaluationAllowedTopicsConfigAttribute(),
 					"competition":       aiEvaluationCompetitionConfigAttribute(),
+					"language_mismatch": aiEvaluationLanguageMismatchConfigAttribute(),
 					"pii":               aiEvaluationPIIConfigAttribute(),
 					"restricted_topics": aiEvaluationRestrictedTopicsConfigAttribute(),
 					"sexism":            aiEvaluationSexismConfigAttribute(),
@@ -212,6 +216,7 @@ func (r *AIEvaluationResource) ConfigValidators(_ context.Context) []resource.Co
 		resourcevalidator.ExactlyOneOf(
 			path.MatchRoot("config").AtName("allowed_topics"),
 			path.MatchRoot("config").AtName("competition"),
+			path.MatchRoot("config").AtName("language_mismatch"),
 			path.MatchRoot("config").AtName("pii"),
 			path.MatchRoot("config").AtName("restricted_topics"),
 			path.MatchRoot("config").AtName("sexism"),
@@ -370,6 +375,14 @@ func aiEvaluationCompetitionConfigAttribute() schema.SingleNestedAttribute {
 	}
 }
 
+func aiEvaluationLanguageMismatchConfigAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional:            true,
+		Attributes:          map[string]schema.Attribute{},
+		MarkdownDescription: "Configuration for Language Mismatch evaluation. This evaluation type has no fields.",
+	}
+}
+
 func aiEvaluationRestrictedTopicsConfigAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
@@ -480,6 +493,8 @@ func extractAIEvaluationConfig(ctx context.Context, model *AIEvaluationConfigMod
 		return extractAIEvaluationAllowedTopicsConfig(ctx, *model.AllowedTopics)
 	case model.Competition != nil:
 		return extractAIEvaluationCompetitionConfig(ctx, *model.Competition)
+	case model.LanguageMismatch != nil:
+		return extractAIEvaluationLanguageMismatchConfig(), diags
 	case model.PII != nil:
 		return extractAIEvaluationPIIConfig(ctx, *model.PII)
 	case model.RestrictedTopics != nil:
@@ -524,6 +539,14 @@ func extractAIEvaluationCompetitionConfig(ctx context.Context, model AIEvaluatio
 	)
 
 	return &config, diags
+}
+
+func extractAIEvaluationLanguageMismatchConfig() *aievaluations.EvaluationConfig {
+	config := aievaluations.EvaluationConfigLanguageMismatchAsEvaluationConfig(
+		aievaluations.NewEvaluationConfigLanguageMismatch(map[string]interface{}{}),
+	)
+
+	return &config
 }
 
 func extractAIEvaluationRestrictedTopicsConfig(ctx context.Context, model AIEvaluationRestrictedTopicsConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
@@ -622,6 +645,8 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 		competitors, competitorDiags := flattenAIEvaluationCompetition(ctx, actualConfig.GetCompetition())
 		diags.Append(competitorDiags...)
 		return AIEvaluationConfigModel{Competition: &AIEvaluationCompetitionConfigModel{Competitors: competitors}}, diags
+	case *aievaluations.EvaluationConfigLanguageMismatch:
+		return AIEvaluationConfigModel{LanguageMismatch: &AIEvaluationLanguageMismatchConfigModel{}}, diags
 	case *aievaluations.EvaluationConfigPii:
 		categories, categoryDiags := flattenAIEvaluationPIICategories(ctx, actualConfig.GetPii())
 		diags.Append(categoryDiags...)
@@ -635,7 +660,7 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 	case *aievaluations.EvaluationConfigToxicity:
 		return AIEvaluationConfigModel{Toxicity: &AIEvaluationToxicityConfigModel{}}, diags
 	default:
-		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, PII, Restricted Topics, Sexism, and Toxicity AI evaluation configs are currently supported by this resource.")
+		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Language Mismatch, PII, Restricted Topics, Sexism, and Toxicity AI evaluation configs are currently supported by this resource.")
 		return AIEvaluationConfigModel{}, diags
 	}
 }

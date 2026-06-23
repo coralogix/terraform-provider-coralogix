@@ -64,6 +64,18 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "language_mismatch" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     language_mismatch = {}
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "restricted_topics" {
 #   application = "my-chatbot"
 #   subsystem   = "production"
@@ -132,6 +144,7 @@ Optional:
 
 - `allowed_topics` (Attributes) Configuration for Allowed Topics evaluation. (see [below for nested schema](#nestedatt--config--allowed_topics))
 - `competition` (Attributes) Configuration for Competition evaluation. (see [below for nested schema](#nestedatt--config--competition))
+- `language_mismatch` (Attributes) Configuration for Language Mismatch evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--language_mismatch))
 - `pii` (Attributes) Configuration for PII evaluation. (see [below for nested schema](#nestedatt--config--pii))
 - `restricted_topics` (Attributes) Configuration for Restricted Topics evaluation. (see [below for nested schema](#nestedatt--config--restricted_topics))
 - `sexism` (Attributes) Configuration for Sexism evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sexism))
@@ -151,6 +164,10 @@ Required:
 Required:
 
 - `competitors` (Set of String) Competitor names to watch for.
+
+
+<a id="nestedatt--config--language_mismatch"></a>
+### Nested Schema for `config.language_mismatch`
 
 
 <a id="nestedatt--config--pii"></a>

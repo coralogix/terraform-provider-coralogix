@@ -82,6 +82,12 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 			updateChecks: testAccAIEvaluationSetChecks("config.competition.competitors.*", "CompetitorThree", "CompetitorFour"),
 		},
 		{
+			name:           "language_mismatch",
+			evaluationType: aievaluations.EVALUATIONTYPE_LANGUAGE_MISMATCH,
+			createConfig:   `    language_mismatch = {}`,
+			updateConfig:   `    language_mismatch = {}`,
+		},
+		{
 			name:           "pii",
 			evaluationType: aievaluations.EVALUATIONTYPE_PII,
 			createConfig: `    pii = {
