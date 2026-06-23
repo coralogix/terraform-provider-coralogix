@@ -479,6 +479,66 @@ func testAccCoralogixAlertsSchedulerTargetAlert(name string) string {
 `, name)
 }
 
+func TestAccCoralogixResourceAlertsSchedulerRecreateAfterOutOfBandDelete(t *testing.T) {
+	config := testAccCoralogixResourceAlertsSchedulerAlwaysActive()
+	var initialID string
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		CheckDestroy:             testAccCheckAlertsSchedulerDestroy,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "name", "permanent-suppression"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources[alertsSchedulerResourceName]
+						if !ok {
+							return fmt.Errorf("missing alerts scheduler resource after create")
+						}
+						initialID = rs.Primary.ID
+						if initialID == "" {
+							return fmt.Errorf("expected non-empty alerts scheduler ID after create")
+						}
+						return nil
+					},
+				),
+			},
+			{
+				PreConfig: func() {
+					if initialID == "" {
+						t.Fatal("missing initial alert scheduler ID")
+					}
+					client := testAccAlertsSchedulerClient(t)
+					if _, _, err := client.
+						AlertSchedulerRuleServiceDeleteAlertSchedulerRule(context.Background(), initialID).
+						Execute(); err != nil {
+						t.Fatalf("deleting alert scheduler out of band: %s", err)
+					}
+				},
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "name", "permanent-suppression"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources[alertsSchedulerResourceName]
+						if !ok {
+							return fmt.Errorf("missing alerts scheduler resource after recreate")
+						}
+						if rs.Primary.ID == "" {
+							return fmt.Errorf("expected non-empty alerts scheduler ID after recreate")
+						}
+						if rs.Primary.ID == initialID {
+							return fmt.Errorf("expected new alerts scheduler ID after out-of-band delete; still got %s", rs.Primary.ID)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceResourceAlertsSchedulerAlwaysActive(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

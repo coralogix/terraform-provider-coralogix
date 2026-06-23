@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -1374,7 +1375,7 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
 		Execute()
 	if err != nil {
-		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		if isAlertSchedulerRuleMissingFromResponse(httpResp, err) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -1386,6 +1387,14 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Read", id),
 			)
 		}
+		return
+	}
+	if isAlertSchedulerRuleEmpty(getAlertsSchedulerResp) {
+		resp.Diagnostics.AddWarning(
+			fmt.Sprintf("alerts-scheduler %q is in state, but no longer exists in Coralogix backend", id),
+			fmt.Sprintf("%s will be recreated when you apply", id),
+		)
+		resp.State.RemoveResource(ctx)
 		return
 	}
 	alertsScheduler := getAlertsSchedulerResp.AlertSchedulerRule
@@ -1439,7 +1448,7 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
 		Execute()
 	if err != nil {
-		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		if isAlertSchedulerRuleMissingFromResponse(httpResp, err) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %s is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -1451,6 +1460,14 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Read", id),
 			)
 		}
+		return
+	}
+	if isAlertSchedulerRuleEmpty(getAlertsSchedulerResp) {
+		resp.Diagnostics.AddWarning(
+			fmt.Sprintf("alerts-scheduler %s is in state, but no longer exists in Coralogix backend", id),
+			fmt.Sprintf("%s will be recreated when you apply", id),
+		)
+		resp.State.RemoveResource(ctx)
 		return
 	}
 
@@ -1490,4 +1507,18 @@ func (r *AlertsSchedulerResource) Delete(ctx context.Context, req resource.Delet
 		)
 		return
 	}
+}
+
+func isAlertSchedulerRuleMissingFromResponse(httpResp *http.Response, err error) bool {
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		return true
+	}
+	if err != nil && strings.Contains(err.Error(), "no value given for required property alertSchedulerRule") {
+		return true
+	}
+	return false
+}
+
+func isAlertSchedulerRuleEmpty(resp *alertscheduler.GetAlertSchedulerRuleResponse) bool {
+	return resp == nil || resp.AlertSchedulerRule.GetUniqueIdentifier() == ""
 }
