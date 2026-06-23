@@ -44,6 +44,7 @@ var (
 )
 
 type aiEvaluationApplication struct {
+	id          string
 	application string
 	subsystem   string
 }
@@ -332,6 +333,7 @@ func testAccDiscoverAIApplications() ([]aiEvaluationApplication, error) {
 		}
 
 		applications = append(applications, aiEvaluationApplication{
+			id:          application.GetId(),
 			application: name,
 			subsystem:   application.GetSubsystem(),
 		})
