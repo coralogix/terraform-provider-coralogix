@@ -3965,7 +3965,7 @@ func flattenDashboardOptions(_ context.Context, opts *cxsdk.DashboardSectionOpti
 	}
 
 	var color basetypes.StringValue
-	if opts.GetCustom().Color != nil {
+	if opts.GetCustom().Color != nil && int32(opts.GetCustom().Color.GetPredefined()) != 0 {
 		colorString := opts.GetCustom().Color.GetPredefined().String()
 		colors := strings.Split(colorString, "_")
 		color = types.StringValue(strings.ToLower(colors[len(colors)-1]))
