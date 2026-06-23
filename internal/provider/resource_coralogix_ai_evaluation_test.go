@@ -226,10 +226,11 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 				CheckDestroy:             testAccCheckAIEvaluationDestroy,
 				Steps: []resource.TestStep{
 					{
-						ConfigFile: testAccAIEvaluationConfigFile(t, createConfigFile, application, target, true, testCase.createConfig),
+						ConfigFile: testAccAIEvaluationConfigFile(t, createConfigFile, application, target, "0.8", true, testCase.createConfig),
 						Check: testAccAIEvaluationCheck(
 							application,
 							target,
+							"0.8",
 							true,
 							testCase.createChecks...,
 						),
@@ -240,10 +241,11 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 						ImportStateVerify: true,
 					},
 					{
-						ConfigFile: testAccAIEvaluationConfigFile(t, updateConfigFile, application, target, false, testCase.updateConfig),
+						ConfigFile: testAccAIEvaluationConfigFile(t, updateConfigFile, application, target, "0.9", false, testCase.updateConfig),
 						Check: testAccAIEvaluationCheck(
 							application,
 							target,
+							"0.9",
 							false,
 							testCase.updateChecks...,
 						),
@@ -262,13 +264,13 @@ func testAccAIEvaluationSetChecks(path string, values ...string) []resource.Test
 	return checks
 }
 
-func testAccAIEvaluationCheck(application *aiEvaluationApplication, target *string, isEnabled bool, extraChecks ...resource.TestCheckFunc) resource.TestCheckFunc {
+func testAccAIEvaluationCheck(application *aiEvaluationApplication, target *string, threshold string, isEnabled bool, extraChecks ...resource.TestCheckFunc) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		checks := []resource.TestCheckFunc{
 			resource.TestCheckResourceAttrSet(aiEvaluationResourceName, "id"),
 			resource.TestCheckResourceAttr(aiEvaluationResourceName, "application", application.application),
 			resource.TestCheckResourceAttr(aiEvaluationResourceName, "target", testAccAIEvaluationSelectedTarget(target)),
-			resource.TestCheckResourceAttr(aiEvaluationResourceName, "threshold", "0.8"),
+			resource.TestCheckResourceAttr(aiEvaluationResourceName, "threshold", threshold),
 			resource.TestCheckResourceAttr(aiEvaluationResourceName, "is_enabled", fmt.Sprintf("%t", isEnabled)),
 		}
 		if application.subsystem != "" {
@@ -435,7 +437,7 @@ func testAccAIClientSet() *clientset.ClientSet {
 	return clientset.NewClientSet(sdkEnvironment, apiKey, targetURL)
 }
 
-func testAccCoralogixResourceAIEvaluation(application aiEvaluationApplication, target string, isEnabled bool, config string) string {
+func testAccCoralogixResourceAIEvaluation(application aiEvaluationApplication, target string, threshold string, isEnabled bool, config string) string {
 	subsystem := ""
 	if application.subsystem != "" {
 		subsystem = fmt.Sprintf("  subsystem   = %q\n", application.subsystem)
@@ -444,17 +446,17 @@ func testAccCoralogixResourceAIEvaluation(application aiEvaluationApplication, t
 	return fmt.Sprintf(`resource "coralogix_ai_evaluation" "test" {
   application = %[1]q
 %[2]s  target      = %[3]q
-  threshold   = 0.8
-  is_enabled  = %[4]t
+  threshold   = %[4]s
+  is_enabled  = %[5]t
 
   config = {
-%[5]s
+%[6]s
   }
 }
-`, application.application, subsystem, target, isEnabled, config)
+`, application.application, subsystem, target, threshold, isEnabled, config)
 }
 
-func testAccAIEvaluationConfigFile(t *testing.T, filename string, application *aiEvaluationApplication, target *string, isEnabled bool, config string) testingconfig.TestStepConfigFunc {
+func testAccAIEvaluationConfigFile(t *testing.T, filename string, application *aiEvaluationApplication, target *string, threshold string, isEnabled bool, config string) testingconfig.TestStepConfigFunc {
 	return func(testingconfig.TestStepConfigRequest) string {
 		t.Helper()
 
@@ -463,7 +465,7 @@ func testAccAIEvaluationConfigFile(t *testing.T, filename string, application *a
 			app.application = "placeholder-ai-application"
 		}
 
-		err := os.WriteFile(filename, []byte(testAccCoralogixResourceAIEvaluation(app, testAccAIEvaluationSelectedTarget(target), isEnabled, config)), 0600)
+		err := os.WriteFile(filename, []byte(testAccCoralogixResourceAIEvaluation(app, testAccAIEvaluationSelectedTarget(target), threshold, isEnabled, config)), 0600)
 		if err != nil {
 			t.Fatalf("failed to write AI evaluation acceptance test config: %s", err)
 		}

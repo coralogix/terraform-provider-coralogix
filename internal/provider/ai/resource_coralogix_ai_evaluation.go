@@ -34,7 +34,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -219,9 +218,6 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 				Validators: []validator.Float64{
 					float64validator.Between(0, 1),
 				},
-				PlanModifiers: []planmodifier.Float64{
-					float64planmodifier.RequiresReplace(),
-				},
 				MarkdownDescription: "Score threshold. Must be between 0.0 and 1.0 inclusive.",
 			},
 			"is_enabled": schema.BoolAttribute{
@@ -374,6 +370,7 @@ func (r *AIEvaluationResource) Update(ctx context.Context, req resource.UpdateRe
 	rq := &aievaluations.AiEvaluationsServiceUpdateAiEvaluationRequest{
 		Config:    config,
 		IsEnabled: aievaluations.PtrBool(plan.IsEnabled.ValueBool()),
+		Threshold: aievaluations.PtrFloat64(plan.Threshold.ValueFloat64()),
 	}
 
 	result, httpResponse, err := r.client.
@@ -903,7 +900,7 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 		return AIEvaluationConfigModel{PII: &AIEvaluationPIIConfigModel{Categories: categories}}, diags
 	case *aievaluations.EvaluationConfigPromptInjection:
 		promptInjection := actualConfig.GetPromptInjection()
-		return AIEvaluationConfigModel{PromptInjection: &AIEvaluationPromptInjectionConfigModel{AdditionalContext: types.StringPointerValue(promptInjection.AdditionalContext)}}, diags
+		return AIEvaluationConfigModel{PromptInjection: &AIEvaluationPromptInjectionConfigModel{AdditionalContext: types.StringValue(promptInjection.GetAdditionalContext())}}, diags
 	case *aievaluations.EvaluationConfigRestrictedTopics:
 		topics, topicDiags := flattenAIEvaluationRestrictedTopics(ctx, actualConfig.GetRestrictedTopics())
 		diags.Append(topicDiags...)
