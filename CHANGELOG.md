@@ -4,6 +4,14 @@
 
 - FIX: `Read` and the post-update read-back in `Update` now treat an empty `GetAlertSchedulerRule` response (the backend returns HTTP 200 with body `{}` for a rule deleted out of band, not 404) as "rule gone" and call `RemoveResource` so the next plan recreates the scheduler. Both SDK shapes from an empty body are covered: success with a zero-value `AlertSchedulerRule`, and the openapi decode error `no value given for required property alertSchedulerRule`.
 
+#### resource/coralogix_ai_evaluation
+
+- FEAT: Add support for managing AI evaluations.
+
+#### resource/coralogix_ai_custom_evaluation
+
+- FEAT: Add support for managing AI custom evaluations.
+
 #### resource/coralogix_dashboard
 
 - FIX: Every `*.query.logs.filters[*]` block (across all widget types — `data_table`, `line_chart`, `bar_chart`, `pie_chart`, `gauge`, `hexagon`, `horizontal_bar_chart`) and the top-level `filters[*].source.logs` block now accept `observation_field` as the sole filter target. `field` is `Optional` (was `Required`), and a `stringvalidator.ExactlyOneOf` on `field` keeps the field-vs-observation_field misconfiguration explicit. Configs copied from a `data "coralogix_dashboard"` whose backend filter used `observation_field` no longer fail validation with `Missing Configuration for Required Attribute`.
