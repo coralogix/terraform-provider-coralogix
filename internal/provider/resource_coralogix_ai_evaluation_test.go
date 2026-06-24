@@ -294,7 +294,7 @@ func testAccFirstAIApplication(t *testing.T, evaluationType aievaluations.Evalua
 	}
 
 	if len(targetCandidates) == 0 {
-		targetCandidates = []string{"response", "conversation", "prompt"}
+		targetCandidates = []string{"response", "prompt"}
 	}
 
 	for _, application := range aiEvaluationApplicationsCache {

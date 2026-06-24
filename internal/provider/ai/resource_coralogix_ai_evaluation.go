@@ -47,9 +47,8 @@ var (
 	_ resource.ResourceWithImportState      = &AIEvaluationResource{}
 
 	aiEvaluationTargetSchemaToAPI = map[string]aievaluations.EvaluationTarget{
-		"prompt":       aievaluations.EVALUATIONTARGET_PROMPT,
-		"response":     aievaluations.EVALUATIONTARGET_RESPONSE,
-		"conversation": aievaluations.EVALUATIONTARGET_CONVERSATION,
+		"prompt":   aievaluations.EVALUATIONTARGET_PROMPT,
+		"response": aievaluations.EVALUATIONTARGET_RESPONSE,
 	}
 	aiEvaluationTargetAPIToSchema = utils.ReverseMap(aiEvaluationTargetSchemaToAPI)
 	aiEvaluationValidTargets      = utils.GetKeys(aiEvaluationTargetSchemaToAPI)
