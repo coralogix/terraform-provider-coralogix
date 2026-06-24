@@ -1,5 +1,13 @@
 # Unreleased
 
+#### resource/coralogix_ai_evaluation
+
+- FEAT: Add support for managing AI evaluations.
+
+#### resource/coralogix_ai_custom_evaluation
+
+- FEAT: Add support for managing AI custom evaluations.
+
 #### resource/coralogix_dashboard
 
 - DOCS: Document `folder.path` server-side auto-create side effect: when `path` references a folder hierarchy that does not yet exist, the dashboards backend implicitly creates the missing folders, but those folders are not tracked in Terraform state and are not removed on `terraform destroy`. The `folder.id` form (referencing a `coralogix_dashboards_folder` resource) is now called out as the recommended lifecycle-symmetric pattern in the schema descriptions and the example.
