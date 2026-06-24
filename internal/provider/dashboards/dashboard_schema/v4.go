@@ -985,6 +985,13 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 										},
 										MarkdownDescription: fmt.Sprintf("The order direction of the values. Can be one of `%s`.", strings.Join(dashboardwidgets.DashboardValidOrderDirections, "`, `")),
 									},
+									"selection_type": schema.StringAttribute{
+										Optional: true,
+										Validators: []validator.String{
+											stringvalidator.OneOf(dashboardwidgets.DashboardValidMultiSelectSelectionTypes...),
+										},
+										MarkdownDescription: fmt.Sprintf("Selection mode of the variable. Can be one of `%s`. Omit to use the API default (multi-select with an implicit \"All\" option).", strings.Join(dashboardwidgets.DashboardValidMultiSelectSelectionTypes, "`, `")),
+									},
 									"source": schema.SingleNestedAttribute{
 										Attributes: map[string]schema.Attribute{
 											"logs_path": schema.StringAttribute{

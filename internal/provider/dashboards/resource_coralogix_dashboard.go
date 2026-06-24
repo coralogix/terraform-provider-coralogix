@@ -112,6 +112,7 @@ type DashboardVariableDefinitionModel struct {
 type VariableMultiSelectModel struct {
 	SelectedValues       types.List                      `tfsdk:"selected_values"` //types.String
 	ValuesOrderDirection types.String                    `tfsdk:"values_order_direction"`
+	SelectionType        types.String                    `tfsdk:"selection_type"`
 	Source               *VariableMultiSelectSourceModel `tfsdk:"source"`
 }
 
@@ -2970,6 +2971,12 @@ func expandDashboardVariableDefinition(ctx context.Context, definition *Dashboar
 	}
 }
 
+// Wire values of variables.MultiSelect_VariableSelectionOptions_SelectionType (proto-stable).
+const (
+	multiSelectSelectionTypeMulti  = 2
+	multiSelectSelectionTypeSingle = 3
+)
+
 func expandMultiSelect(ctx context.Context, multiSelect *VariableMultiSelectModel) (*cxsdk.DashboardVariableDefinition, diag.Diagnostics) {
 	if multiSelect == nil {
 		return nil, nil
@@ -2985,13 +2992,25 @@ func expandMultiSelect(ctx context.Context, multiSelect *VariableMultiSelectMode
 		return nil, diags
 	}
 
+	ms := &cxsdk.DashboardMultiSelect{
+		Source:               source,
+		Selection:            selection,
+		ValuesOrderDirection: dashboardwidgets.DashboardOrderDirectionSchemaToProto[multiSelect.ValuesOrderDirection.ValueString()],
+	}
+
+	if !multiSelect.SelectionType.IsNull() && !multiSelect.SelectionType.IsUnknown() {
+		ms.SelectionOptions = utils.NewLike(ms.SelectionOptions)
+		switch multiSelect.SelectionType.ValueString() {
+		case "multi":
+			ms.SelectionOptions.SelectionType = multiSelectSelectionTypeMulti
+		case "single":
+			ms.SelectionOptions.SelectionType = multiSelectSelectionTypeSingle
+		}
+	}
+
 	return &cxsdk.DashboardVariableDefinition{
 		Value: &cxsdk.DashboardVariableDefinitionMultiSelect{
-			MultiSelect: &cxsdk.DashboardMultiSelect{
-				Source:               source,
-				Selection:            selection,
-				ValuesOrderDirection: dashboardwidgets.DashboardOrderDirectionSchemaToProto[multiSelect.ValuesOrderDirection.ValueString()],
-			},
+			MultiSelect: ms,
 		},
 	}, nil
 }
@@ -3864,6 +3883,7 @@ func dashboardsVariablesModelAttr() map[string]attr.Type {
 							ElemType: types.StringType,
 						},
 						"values_order_direction": types.StringType,
+						"selection_type":         types.StringType,
 						"source": types.ObjectType{
 							AttrTypes: map[string]attr.Type{
 								"logs_path": types.StringType,
@@ -5095,11 +5115,20 @@ func flattenDashboardVariableDefinitionMultiSelect(ctx context.Context, multiSel
 		return nil, diags
 	}
 
+	selectionType := types.StringNull()
+	switch multiSelect.GetSelectionOptions().GetSelectionType() {
+	case multiSelectSelectionTypeMulti:
+		selectionType = types.StringValue("multi")
+	case multiSelectSelectionTypeSingle:
+		selectionType = types.StringValue("single")
+	}
+
 	return &DashboardVariableDefinitionModel{
 		ConstantValue: types.StringNull(),
 		MultiSelect: &VariableMultiSelectModel{
 			SelectedValues:       selectedValues,
 			ValuesOrderDirection: types.StringValue(dashboardwidgets.DashboardOrderDirectionProtoToSchema[multiSelect.GetValuesOrderDirection()]),
+			SelectionType:        selectionType,
 			Source:               source,
 		},
 	}, nil

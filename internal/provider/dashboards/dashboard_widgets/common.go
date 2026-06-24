@@ -100,6 +100,11 @@ var (
 	}
 	DashboardOrderDirectionProtoToSchema = utils.ReverseMap(DashboardOrderDirectionSchemaToProto)
 	DashboardValidOrderDirections        = utils.GetKeys(DashboardOrderDirectionSchemaToProto)
+
+	DashboardValidMultiSelectSelectionTypes = []string{
+		"multi",
+		"single",
+	}
 	DashboardSchemaToProtoTooltipType    = map[string]cxsdk.LineChartTooltipType{
 		utils.UNSPECIFIED: cxsdk.LineChartToolTipTypeUnspecified,
 		"all":             cxsdk.LineChartToolTipTypeAll,

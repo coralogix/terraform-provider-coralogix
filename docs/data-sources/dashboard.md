@@ -3432,6 +3432,7 @@ Read-Only:
 Read-Only:
 
 - `selected_values` (List of String)
+- `selection_type` (String) Selection mode of the variable. Can be one of `multi`, `single`. Omit to use the API default (multi-select with an implicit "All" option).
 - `source` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source))
 - `values_order_direction` (String) The order direction of the values. Can be one of `asc`, `desc`, `unspecified`.
 
