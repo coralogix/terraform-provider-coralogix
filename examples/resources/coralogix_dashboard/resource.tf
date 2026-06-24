@@ -622,6 +622,10 @@ resource "coralogix_dashboard" "dashboard" {
   auto_refresh = {
     type = "two_minutes"
   }
+  # Recommended: reference a sibling coralogix_dashboards_folder resource via
+  # folder.id so the folder's lifecycle is owned by Terraform. The shorthand
+  # `folder = { path = "Some/Folder" }` is accepted but implicitly creates any
+  # missing folders server-side and will not destroy them with the dashboard.
   folder = {
     id = coralogix_dashboards_folder.example.id
   }
