@@ -1,5 +1,13 @@
 # Unreleased
 
+#### resource/coralogix_ai_evaluation
+
+- FEAT: Add support for managing AI evaluations.
+
+#### resource/coralogix_ai_custom_evaluation
+
+- FEAT: Add support for managing AI custom evaluations.
+
 #### resource/coralogix_dashboard
 
 - FEAT: Wire `threshold_type` (`absolute` / `relative` / `unspecified`) onto the gauge widget so the proto field `Gauge.threshold_type` (field 12) is no longer silently dropped on apply and reset to the proto default on refresh. Mirrors the existing hexagon plumbing; defaults to `unspecified` so pre-existing state round-trips clean.

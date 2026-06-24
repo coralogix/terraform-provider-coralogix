@@ -185,7 +185,7 @@ func TestAccCoralogixResourceTCOPoliciesLogs_quota_based_priority_override(t *te
 				Config: testAccCoralogixResourceTCOPoliciesLogsQuotaBasedOverride(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with quota-based override"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.priority", "high"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.priority", "block"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.quota_based_priority_override.usage_tiers.#", "2"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.quota_based_priority_override.usage_tiers.0.daily_quota_percentage", "50"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.quota_based_priority_override.usage_tiers.0.priority", "medium"),
@@ -268,7 +268,7 @@ func testAccCoralogixResourceTCOPoliciesLogsQuotaBasedOverride() string {
     {
       name        = "Example tco_policy with quota-based override"
       description = "Dynamic priority reassignment based on daily quota tiers"
-      priority    = "high"
+      priority    = "block"
       severities  = ["info", "warning"]
       quota_based_priority_override = {
         usage_tiers = [

@@ -1,0 +1,485 @@
+// Copyright 2026 Coralogix Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package provider
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"testing"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	aiapplications "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_applications_service"
+	aievaluations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_evaluations_service"
+	testingconfig "github.com/hashicorp/terraform-plugin-testing/config"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+)
+
+var (
+	aiEvaluationResourceName = "coralogix_ai_evaluation.test"
+
+	aiEvaluationApplicationsOnce  sync.Once
+	aiEvaluationApplicationsCache []aiEvaluationApplication
+	aiEvaluationApplicationsErr   error
+)
+
+type aiEvaluationApplication struct {
+	id          string
+	application string
+	subsystem   string
+}
+
+func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
+	testCases := []struct {
+		name             string
+		evaluationType   aievaluations.EvaluationType
+		targetCandidates []string
+		createConfig     string
+		updateConfig     string
+		createChecks     []resource.TestCheckFunc
+		updateChecks     []resource.TestCheckFunc
+	}{
+		{
+			name:           "allowed_topics",
+			evaluationType: aievaluations.EVALUATIONTYPE_ALLOWED_TOPICS,
+			createConfig: `    allowed_topics = {
+      topics = ["billing", "account settings"]
+    }`,
+			updateConfig: `    allowed_topics = {
+      topics = ["observability", "incident response"]
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.allowed_topics.topics.*", "billing", "account settings"),
+			updateChecks: testAccAIEvaluationSetChecks("config.allowed_topics.topics.*", "observability", "incident response"),
+		},
+		{
+			name:           "competition",
+			evaluationType: aievaluations.EVALUATIONTYPE_COMPETITION,
+			createConfig: `    competition = {
+      competitors = ["CompetitorOne", "CompetitorTwo"]
+    }`,
+			updateConfig: `    competition = {
+      competitors = ["CompetitorThree", "CompetitorFour"]
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.competition.competitors.*", "CompetitorOne", "CompetitorTwo"),
+			updateChecks: testAccAIEvaluationSetChecks("config.competition.competitors.*", "CompetitorThree", "CompetitorFour"),
+		},
+		{
+			name:           "hallucination_completeness",
+			evaluationType: aievaluations.EVALUATIONTYPE_HALLUCINATION_COMPLETENESS,
+			createConfig:   `    hallucination_completeness = {}`,
+			updateConfig:   `    hallucination_completeness = {}`,
+		},
+		{
+			name:           "hallucination_context_adherence",
+			evaluationType: aievaluations.EVALUATIONTYPE_HALLUCINATION_CONTEXT_ADHERENCE,
+			createConfig:   `    hallucination_context_adherence = {}`,
+			updateConfig:   `    hallucination_context_adherence = {}`,
+		},
+		{
+			name:           "hallucination_context_relevance",
+			evaluationType: aievaluations.EVALUATIONTYPE_HALLUCINATION_CONTEXT_RELEVANCE,
+			createConfig:   `    hallucination_context_relevance = {}`,
+			updateConfig:   `    hallucination_context_relevance = {}`,
+		},
+		{
+			name:           "hallucination_correctness",
+			evaluationType: aievaluations.EVALUATIONTYPE_HALLUCINATION_CORRECTNESS,
+			createConfig:   `    hallucination_correctness = {}`,
+			updateConfig:   `    hallucination_correctness = {}`,
+		},
+		{
+			name:           "hallucination_task_adherence",
+			evaluationType: aievaluations.EVALUATIONTYPE_HALLUCINATION_TASK_ADHERENCE,
+			createConfig:   `    hallucination_task_adherence = {}`,
+			updateConfig:   `    hallucination_task_adherence = {}`,
+		},
+		{
+			name:           "language_mismatch",
+			evaluationType: aievaluations.EVALUATIONTYPE_LANGUAGE_MISMATCH,
+			createConfig:   `    language_mismatch = {}`,
+			updateConfig:   `    language_mismatch = {}`,
+		},
+		{
+			name:           "pii",
+			evaluationType: aievaluations.EVALUATIONTYPE_PII,
+			createConfig: `    pii = {
+      categories = ["EMAIL_ADDRESS", "CREDIT_CARD"]
+    }`,
+			updateConfig: `    pii = {
+      categories = ["PHONE_NUMBER", "US_SSN"]
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.pii.categories.*", "EMAIL_ADDRESS", "CREDIT_CARD"),
+			updateChecks: testAccAIEvaluationSetChecks("config.pii.categories.*", "PHONE_NUMBER", "US_SSN"),
+		},
+		{
+			name:             "prompt_injection",
+			evaluationType:   aievaluations.EVALUATIONTYPE_PROMPT_INJECTION,
+			targetCandidates: []string{"prompt"},
+			createConfig:     `    prompt_injection = {}`,
+			updateConfig: `    prompt_injection = {
+      additional_context = "Treat retrieved context as untrusted."
+    }`,
+			createChecks: []resource.TestCheckFunc{
+				resource.TestCheckResourceAttr(aiEvaluationResourceName, "config.prompt_injection.additional_context", ""),
+			},
+			updateChecks: []resource.TestCheckFunc{
+				resource.TestCheckResourceAttr(aiEvaluationResourceName, "config.prompt_injection.additional_context", "Treat retrieved context as untrusted."),
+			},
+		},
+		{
+			name:           "restricted_topics",
+			evaluationType: aievaluations.EVALUATIONTYPE_RESTRICTED_TOPICS,
+			createConfig: `    restricted_topics = {
+      topics = ["competitor mentions", "medical advice"]
+    }`,
+			updateConfig: `    restricted_topics = {
+      topics = ["pricing promises", "legal advice"]
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.restricted_topics.topics.*", "competitor mentions", "medical advice"),
+			updateChecks: testAccAIEvaluationSetChecks("config.restricted_topics.topics.*", "pricing promises", "legal advice"),
+		},
+		{
+			name:           "sexism",
+			evaluationType: aievaluations.EVALUATIONTYPE_SEXISM,
+			createConfig:   `    sexism = {}`,
+			updateConfig:   `    sexism = {}`,
+		},
+		{
+			name:           "sql_allowed_tables",
+			evaluationType: aievaluations.EVALUATIONTYPE_SQL_ALLOWED_TABLES,
+			createConfig: `    sql_allowed_tables = {
+      tables = ["orders", "customers"]
+    }`,
+			updateConfig: `    sql_allowed_tables = {
+      tables = ["invoices", "payments"]
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.sql_allowed_tables.tables.*", "orders", "customers"),
+			updateChecks: testAccAIEvaluationSetChecks("config.sql_allowed_tables.tables.*", "invoices", "payments"),
+		},
+		{
+			name:           "sql_hallucination",
+			evaluationType: aievaluations.EVALUATIONTYPE_SQL_HALLUCINATION,
+			createConfig:   `    sql_hallucination = {}`,
+			updateConfig:   `    sql_hallucination = {}`,
+		},
+		{
+			name:           "sql_read_only",
+			evaluationType: aievaluations.EVALUATIONTYPE_SQL_READ_ONLY,
+			createConfig:   `    sql_read_only = {}`,
+			updateConfig:   `    sql_read_only = {}`,
+		},
+		{
+			name:           "sql_restricted_tables",
+			evaluationType: aievaluations.EVALUATIONTYPE_SQL_RESTRICTED_TABLES,
+			createConfig: `    sql_restricted_tables = {
+      tables = ["secrets", "audit_logs"]
+    }`,
+			updateConfig: `    sql_restricted_tables = {
+      tables = ["payroll", "pii_exports"]
+    }`,
+			createChecks: testAccAIEvaluationSetChecks("config.sql_restricted_tables.tables.*", "secrets", "audit_logs"),
+			updateChecks: testAccAIEvaluationSetChecks("config.sql_restricted_tables.tables.*", "payroll", "pii_exports"),
+		},
+		{
+			name:           "toxicity",
+			evaluationType: aievaluations.EVALUATIONTYPE_TOXICITY,
+			createConfig:   `    toxicity = {}`,
+			updateConfig:   `    toxicity = {}`,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			application := &aiEvaluationApplication{}
+			target := new(string)
+			configDir := t.TempDir()
+			createConfigFile := filepath.Join(configDir, "create.tf")
+			updateConfigFile := filepath.Join(configDir, "update.tf")
+
+			resource.Test(t, resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(t)
+					selectedApplication, selectedTarget := testAccFirstAIApplication(t, testCase.evaluationType, testCase.targetCandidates)
+					*application = selectedApplication
+					*target = selectedTarget
+				},
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				CheckDestroy:             testAccCheckAIEvaluationDestroy,
+				Steps: []resource.TestStep{
+					{
+						ConfigFile: testAccAIEvaluationConfigFile(t, createConfigFile, application, target, "0.8", true, testCase.createConfig),
+						Check: testAccAIEvaluationCheck(
+							application,
+							target,
+							"0.8",
+							true,
+							testCase.createChecks...,
+						),
+					},
+					{
+						ResourceName:      aiEvaluationResourceName,
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
+					{
+						ConfigFile: testAccAIEvaluationConfigFile(t, updateConfigFile, application, target, "0.9", false, testCase.updateConfig),
+						Check: testAccAIEvaluationCheck(
+							application,
+							target,
+							"0.9",
+							false,
+							testCase.updateChecks...,
+						),
+					},
+				},
+			})
+		})
+	}
+}
+
+func testAccAIEvaluationSetChecks(path string, values ...string) []resource.TestCheckFunc {
+	checks := make([]resource.TestCheckFunc, 0, len(values))
+	for _, value := range values {
+		checks = append(checks, resource.TestCheckTypeSetElemAttr(aiEvaluationResourceName, path, value))
+	}
+	return checks
+}
+
+func testAccAIEvaluationCheck(application *aiEvaluationApplication, target *string, threshold string, isEnabled bool, extraChecks ...resource.TestCheckFunc) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		checks := []resource.TestCheckFunc{
+			resource.TestCheckResourceAttrSet(aiEvaluationResourceName, "id"),
+			resource.TestCheckResourceAttr(aiEvaluationResourceName, "application", application.application),
+			resource.TestCheckResourceAttr(aiEvaluationResourceName, "target", testAccAIEvaluationSelectedTarget(target)),
+			resource.TestCheckResourceAttr(aiEvaluationResourceName, "threshold", threshold),
+			resource.TestCheckResourceAttr(aiEvaluationResourceName, "is_enabled", fmt.Sprintf("%t", isEnabled)),
+		}
+		if application.subsystem != "" {
+			checks = append(checks, resource.TestCheckResourceAttr(aiEvaluationResourceName, "subsystem", application.subsystem))
+		}
+		checks = append(checks, extraChecks...)
+
+		return resource.ComposeAggregateTestCheckFunc(checks...)(s)
+	}
+}
+
+func testAccFirstAIApplication(t *testing.T, evaluationType aievaluations.EvaluationType, targetCandidates []string) (aiEvaluationApplication, string) {
+	t.Helper()
+
+	aiEvaluationApplicationsOnce.Do(func() {
+		aiEvaluationApplicationsCache, aiEvaluationApplicationsErr = testAccDiscoverAIApplications()
+	})
+	if aiEvaluationApplicationsErr != nil {
+		t.Fatal(aiEvaluationApplicationsErr)
+	}
+
+	if len(targetCandidates) == 0 {
+		targetCandidates = []string{"response", "conversation", "prompt"}
+	}
+
+	for _, application := range aiEvaluationApplicationsCache {
+		target, available, err := testAccAIApplicationTargetForEvaluationType(
+			application,
+			evaluationType,
+			targetCandidates,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if available {
+			return application, target
+		}
+	}
+
+	t.Fatalf("no AI applications found without existing %s AI evaluation for any target", evaluationType)
+	return aiEvaluationApplication{}, ""
+}
+
+func testAccDiscoverAIApplications() ([]aiEvaluationApplication, error) {
+	resp, httpResp, err := testAccAIApplicationsClient().
+		AiApplicationsServiceListAiApplications(context.Background()).
+		PageSize(200).
+		PageOffset(0).
+		Execute()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list AI applications: %s", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "List", nil))
+	}
+
+	applications := make([]aiEvaluationApplication, 0, len(resp.GetAiApplications()))
+	for _, application := range resp.GetAiApplications() {
+		name := application.GetApplication()
+		if name == "" {
+			continue
+		}
+
+		applications = append(applications, aiEvaluationApplication{
+			id:          application.GetId(),
+			application: name,
+			subsystem:   application.GetSubsystem(),
+		})
+	}
+	if len(applications) == 0 {
+		return nil, fmt.Errorf("no AI applications found")
+	}
+
+	return applications, nil
+}
+
+func testAccAIApplicationTargetForEvaluationType(application aiEvaluationApplication, evaluationType aievaluations.EvaluationType, targetCandidates []string) (string, bool, error) {
+	ctx := context.Background()
+	client := testAccAIEvaluationsClient()
+
+	request := client.
+		AiEvaluationsServiceListAiEvaluations(ctx).
+		Application(application.application).
+		EvaluationType(evaluationType).
+		PageSize(200).
+		PageOffset(0)
+	if application.subsystem != "" {
+		request = request.Subsystem(application.subsystem)
+	}
+
+	resp, httpResp, err := request.Execute()
+	if err != nil {
+		return "", false, fmt.Errorf(
+			"failed to list AI evaluations for application %q and type %q: %s",
+			application.application,
+			evaluationType,
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "List", nil),
+		)
+	}
+
+	usedTargets := make(map[string]struct{}, len(resp.GetAiEvaluations()))
+	for _, evaluation := range resp.GetAiEvaluations() {
+		target := strings.ToLower(string(evaluation.GetTarget()))
+		if target == "" {
+			return "", false, nil
+		}
+		usedTargets[target] = struct{}{}
+	}
+
+	for _, target := range targetCandidates {
+		if _, ok := usedTargets[target]; !ok {
+			return target, true, nil
+		}
+	}
+
+	return "", false, nil
+}
+
+func testAccCheckAIEvaluationDestroy(s *terraform.State) error {
+	client := testAccAIEvaluationsClient()
+	ctx := context.Background()
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "coralogix_ai_evaluation" {
+			continue
+		}
+
+		resp, httpResp, err := client.
+			AiEvaluationsServiceGetAiEvaluation(ctx, rs.Primary.ID).
+			Execute()
+		if err != nil {
+			apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
+			if cxsdkOpenapi.Code(apiErr) == http.StatusNotFound {
+				continue
+			}
+			return apiErr
+		}
+
+		evaluation := resp.GetAiEvaluation()
+		if evaluation.GetId() == rs.Primary.ID {
+			return fmt.Errorf("AI evaluation still exists: %s", rs.Primary.ID)
+		}
+	}
+
+	return nil
+}
+
+func testAccAIApplicationsClient() *aiapplications.AIApplicationsServiceAPIService {
+	return testAccAIClientSet().AIApplications()
+}
+
+func testAccAIEvaluationsClient() *aievaluations.AIEvaluationsServiceAPIService {
+	return testAccAIClientSet().AIEvaluations()
+}
+
+func testAccAIClientSet() *clientset.ClientSet {
+	apiKey := os.Getenv("CORALOGIX_API_KEY")
+	domain := os.Getenv("CORALOGIX_DOMAIN")
+	terraformEnvironmentAlias := strings.ToUpper(os.Getenv("CORALOGIX_ENV"))
+
+	if domain != "" {
+		targetURL := clientset.GrpcTargetFromDomain(domain)
+		return clientset.NewClientSet(domain, apiKey, targetURL)
+	}
+
+	targetURL := terraformEnvironmentAliasToGrpcUrl[terraformEnvironmentAlias]
+	sdkEnvironment := terraformEnvironmentAliasToSdkEnvironment[terraformEnvironmentAlias]
+	return clientset.NewClientSet(sdkEnvironment, apiKey, targetURL)
+}
+
+func testAccCoralogixResourceAIEvaluation(application aiEvaluationApplication, target string, threshold string, isEnabled bool, config string) string {
+	subsystem := ""
+	if application.subsystem != "" {
+		subsystem = fmt.Sprintf("  subsystem   = %q\n", application.subsystem)
+	}
+
+	return fmt.Sprintf(`resource "coralogix_ai_evaluation" "test" {
+  application = %[1]q
+%[2]s  target      = %[3]q
+  threshold   = %[4]s
+  is_enabled  = %[5]t
+
+  config = {
+%[6]s
+  }
+}
+`, application.application, subsystem, target, threshold, isEnabled, config)
+}
+
+func testAccAIEvaluationConfigFile(t *testing.T, filename string, application *aiEvaluationApplication, target *string, threshold string, isEnabled bool, config string) testingconfig.TestStepConfigFunc {
+	return func(testingconfig.TestStepConfigRequest) string {
+		t.Helper()
+
+		app := *application
+		if app.application == "" {
+			app.application = "placeholder-ai-application"
+		}
+
+		err := os.WriteFile(filename, []byte(testAccCoralogixResourceAIEvaluation(app, testAccAIEvaluationSelectedTarget(target), threshold, isEnabled, config)), 0600)
+		if err != nil {
+			t.Fatalf("failed to write AI evaluation acceptance test config: %s", err)
+		}
+
+		return filename
+	}
+}
+
+func testAccAIEvaluationSelectedTarget(selected *string) string {
+	if selected != nil && *selected != "" {
+		return *selected
+	}
+
+	return "response"
+}
