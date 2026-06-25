@@ -521,6 +521,56 @@ EOT
 	})
 }
 
+func TestAccCoralogixResourceDashboardGaugeWidgetThresholdType(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWithWidget(`{
+  title = "gauge_threshold_type"
+  definition = {
+    gauge = {
+      unit           = "milliseconds"
+      threshold_type = "absolute"
+      thresholds = [{
+        from  = 0
+        color = "green"
+      }]
+      query = {
+        metrics = {
+          promql_query = "vector(1)"
+          time_frame = {
+            relative = {
+              duration = "seconds:900"
+            }
+          }
+        }
+      }
+    }
+  }
+}`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "gauge_threshold_type"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.threshold_type", "absolute"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

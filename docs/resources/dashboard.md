@@ -2173,6 +2173,7 @@ Optional:
 - `show_inner_arc` (Boolean)
 - `show_outer_arc` (Boolean)
 - `threshold_by` (String) The threshold by. Can be one of ["background" "unspecified" "value"].
+- `threshold_type` (String) The threshold type. Can be one of ["absolute" "relative" "unspecified"].
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query"></a>

@@ -271,6 +271,15 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		},
 																		MarkdownDescription: fmt.Sprintf("The threshold by. Can be one of %q.", dashboardwidgets.DashboardValidGaugeThresholdBy),
 																	},
+																	"threshold_type": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidThresholdTypes...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("The threshold type. Can be one of %q.", dashboardwidgets.DashboardValidThresholdTypes),
+																	},
 																	"display_series_name": schema.BoolAttribute{
 																		Optional: true,
 																		Computed: true,
