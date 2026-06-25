@@ -29,6 +29,7 @@ import (
 	aiapplications "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_applications_service"
 	aievaluations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_evaluations_service"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -188,21 +189,24 @@ func (r *AICustomEvaluationResource) Schema(_ context.Context, _ resource.Schema
 				Optional: true,
 				Computed: true,
 				Default:  setdefault.StaticValue(aiCustomEvaluationApplicationsDefaultValue()),
+				Validators: []validator.Set{
+					setvalidator.SizeAtMost(1024),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"application": schema.StringAttribute{
 							Required: true,
 							Validators: []validator.String{
-								stringvalidator.LengthAtLeast(1),
+								stringvalidator.LengthBetween(1, 256),
 							},
 							MarkdownDescription: "AI application name.",
 						},
 						"subsystem": schema.StringAttribute{
 							Required: true,
 							Validators: []validator.String{
-								stringvalidator.LengthBetween(0, 256),
+								stringvalidator.LengthBetween(1, 256),
 							},
-							MarkdownDescription: "AI application subsystem. Use an empty string only for applications without a subsystem.",
+							MarkdownDescription: "AI application subsystem.",
 						},
 					},
 				},
@@ -554,6 +558,13 @@ func extractAICustomEvaluationCriteria(ctx context.Context, model *AICustomEvalu
 	prohibitedFlags, prohibitedExamples, prohibitedDiags := extractAICustomEvaluationCriterion(ctx, prohibited)
 	diags.Append(prohibitedDiags...)
 	if diags.HasError() {
+		return nil, "", "", diags
+	}
+	if len(acceptableExamples)+len(prohibitedExamples) > 100 {
+		diags.AddError(
+			"Too many AI custom evaluation examples",
+			"Custom evaluation criteria can include at most 100 total examples across acceptable and prohibited criteria.",
+		)
 		return nil, "", "", diags
 	}
 
