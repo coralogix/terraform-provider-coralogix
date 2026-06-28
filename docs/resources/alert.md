@@ -724,7 +724,7 @@ resource "coralogix_alert" "test" {
 - `labels` (Map of String)
 - `notification_group` (Attributes) (see [below for nested schema](#nestedatt--notification_group))
 - `phantom_mode` (Boolean)
-- `priority` (String, Deprecated) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"]. This field will be removed in the future in favor of the 'override' property where possible.
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
 
 ### Read-Only

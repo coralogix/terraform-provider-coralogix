@@ -82,6 +82,55 @@ func (g GroupByValidator) ValidateList(ctx context.Context, request validator.Li
 	}
 }
 
+const priorityDeprecationMessage = "This field will be removed in the future in favor of the 'override' property where possible."
+
+type PriorityDeprecationWarning struct {
+}
+
+func (p PriorityDeprecationWarning) Description(ctx context.Context) string {
+	return "Warns that priority is deprecated for alert types that support an override block."
+}
+
+func (p PriorityDeprecationWarning) MarkdownDescription(ctx context.Context) string {
+	return "Warns that priority is deprecated for alert types that support an override block."
+}
+
+func (p PriorityDeprecationWarning) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	paths, diags := req.Config.PathMatches(ctx, path.MatchRoot("type_definition"))
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	var typeDefinition types.Object
+	diags = req.Config.GetAttribute(ctx, paths[0], &typeDefinition)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	if typeDefinition.IsNull() || typeDefinition.IsUnknown() {
+		return
+	}
+
+	var typeDefinitionModel alerttypes.AlertTypeDefinitionModel
+	if diags = typeDefinition.As(ctx, &typeDefinitionModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	if !utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsRatioThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsTimeRelativeThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.MetricThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.SloThreshold) {
+		resp.Diagnostics.AddAttributeWarning(req.Path, "Deprecated Attribute", priorityDeprecationMessage)
+	}
+}
+
 type PriorityOverrideFallback struct {
 }
 

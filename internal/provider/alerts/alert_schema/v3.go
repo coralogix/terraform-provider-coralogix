@@ -76,12 +76,12 @@ func V3() schema.Schema {
 				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(alerttypes.ValidAlertPriorities...),
+					PriorityDeprecationWarning{},
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				DeprecationMessage:  "This field will be removed in the future in favor of the 'override' property where possible.",
-				MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q.", alerttypes.ValidAlertPriorities),
+				MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q. %s", alerttypes.ValidAlertPriorities, priorityDeprecationMessage),
 			},
 			"schedule": schema.SingleNestedAttribute{
 				Optional: true,
