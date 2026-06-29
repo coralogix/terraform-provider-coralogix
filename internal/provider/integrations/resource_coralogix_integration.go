@@ -92,9 +92,6 @@ func (r *IntegrationResource) Schema(ctx context.Context, req resource.SchemaReq
 			"version": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The integration version",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"parameters": schema.DynamicAttribute{
 				Required:            true,
