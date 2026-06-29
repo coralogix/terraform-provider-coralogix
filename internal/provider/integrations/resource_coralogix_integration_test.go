@@ -19,8 +19,32 @@ import (
 	"testing"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+func TestIntegrationVersionAttributeDoesNotForceReplacement(t *testing.T) {
+	resp := &resource.SchemaResponse{}
+	NewIntegrationResource().Schema(context.Background(), resource.SchemaRequest{}, resp)
+
+	versionAttr, ok := resp.Schema.Attributes["version"].(schema.StringAttribute)
+	if !ok {
+		t.Fatalf("expected version to be a schema.StringAttribute, got %T", resp.Schema.Attributes["version"])
+	}
+	if len(versionAttr.PlanModifiers) != 0 {
+		t.Fatalf("version must carry no plan modifiers so a version change updates in place via Update; "+
+			"got %d (a RequiresReplace plan modifier forces destroy-and-recreate, which deletes the integration's managed service account)", len(versionAttr.PlanModifiers))
+	}
+
+	keyAttr, ok := resp.Schema.Attributes["integration_key"].(schema.StringAttribute)
+	if !ok {
+		t.Fatalf("expected integration_key to be a schema.StringAttribute, got %T", resp.Schema.Attributes["integration_key"])
+	}
+	if len(keyAttr.PlanModifiers) == 0 {
+		t.Fatalf("integration_key must keep its RequiresReplace plan modifier: changing the integration type is a different integration")
+	}
+}
 
 func TestKeysFromPlanAllowsImportedStateWithoutParameters(t *testing.T) {
 	model := &IntegrationResourceModel{}
