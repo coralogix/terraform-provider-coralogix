@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.6.0
+
 #### resource/coralogix_alert
 
 - FIX: The `priority` deprecation warning is now type-aware — emitted only for the alert types that embed an `override` block, and suppressed for the types where top-level `priority` is the only mechanism and is therefore not deprecated.
