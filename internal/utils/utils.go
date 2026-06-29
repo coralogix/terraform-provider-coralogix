@@ -773,6 +773,11 @@ func ReverseMap[K, V comparable](m map[K]V) map[V]K {
 	return n
 }
 
+// NewLike returns a freshly allocated value of the same pointed-to type as p,
+// without naming that type at the call site. Useful for assigning to a struct
+// field whose element type is not exported from the package that defines it.
+func NewLike[T any](_ *T) *T { return new(T) }
+
 func GetKeys[K cmp.Ordered, V comparable](m map[K]V) []K {
 	return slices.Sorted(maps.Keys(m))
 }
