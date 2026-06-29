@@ -3,6 +3,7 @@
 #### resource/coralogix_alert
 
 - FIX: The `priority` deprecation warning is now type-aware — emitted only for the alert types that embed an `override` block, and suppressed for the types where top-level `priority` is the only mechanism and is therefore not deprecated.
+- FIX: Preserve omitted `custom_evaluation_delay` as unset instead of defaulting it to `0`; existing omitted configurations previously stored as `0` will plan an update to unset the field on the next apply.
 
 #### resource/coralogix_ai_evaluation
 

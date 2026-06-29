@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	alerttypes "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_types"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
@@ -92,4 +93,56 @@ func TestFlattenTracingSimpleFilter_InvalidLatency(t *testing.T) {
 	if !found {
 		t.Errorf("expected diagnostic summary 'Invalid Latency Threshold Ms', got: %v", diags.Errors())
 	}
+}
+
+func TestExtractCustomEvaluationDelay(t *testing.T) {
+	cases := []struct {
+		name string
+		in   types.Int32
+		want *int32
+	}{
+		{
+			name: "null is omitted",
+			in:   types.Int32Null(),
+			want: nil,
+		},
+		{
+			name: "unknown is omitted",
+			in:   types.Int32Unknown(),
+			want: nil,
+		},
+		{
+			name: "explicit zero is preserved",
+			in:   types.Int32Value(0),
+			want: int32Ptr(0),
+		},
+		{
+			name: "explicit non-zero is preserved",
+			in:   types.Int32Value(60),
+			want: int32Ptr(60),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := extractCustomEvaluationDelay(tc.in)
+			if tc.want == nil {
+				if got != nil {
+					t.Fatalf("extractCustomEvaluationDelay() = %v, want nil", *got)
+				}
+				return
+			}
+
+			if got == nil {
+				t.Fatalf("extractCustomEvaluationDelay() = nil, want %v", *tc.want)
+			}
+			if *got != *tc.want {
+				t.Fatalf("extractCustomEvaluationDelay() = %v, want %v", *got, *tc.want)
+			}
+		})
+	}
+}
+
+func int32Ptr(v int32) *int32 {
+	return &v
 }
