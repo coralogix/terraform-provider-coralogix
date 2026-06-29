@@ -807,7 +807,7 @@ Required:
 
 Optional:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter))
 - `notification_payload_filter` (Set of String)
 - `percentage_of_deviation` (Number) The percentage of deviation from the baseline for triggering the alert.
@@ -1037,7 +1037,7 @@ Required:
 
 Optional:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `denominator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator))
 - `group_by_for` (String) Group by for. Valid values: ["Both" "Denominator Only" "Numerator Only"]. 'Both' by default.
 - `ignore_infinity` (Boolean) Whether to ignore infinite ratios when the denominator is zero. False by default.
@@ -1183,7 +1183,7 @@ Required:
 
 Optional:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter))
 - `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--no_data_policy))
 - `notification_payload_filter` (Set of String)
@@ -1295,7 +1295,7 @@ Required:
 
 Optional:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `ignore_infinity` (Boolean) Whether to ignore infinite ratios when the denominator is zero. False by default.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter))
 - `notification_payload_filter` (Set of String)
@@ -1482,7 +1482,7 @@ Required:
 
 Optional:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `percentage_of_deviation` (Number) The percentage of deviation from the baseline for triggering the alert.
 
 <a id="nestedatt--type_definition--metric_anomaly--metric_filter"></a>
@@ -1525,7 +1525,7 @@ Required:
 
 Optional:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--no_data_policy))
 - `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--undetected_values_management))
 

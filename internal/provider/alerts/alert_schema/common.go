@@ -31,7 +31,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -281,12 +280,10 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 func evaluationDelaySchema() schema.Attribute {
 	return schema.Int32Attribute{
 		Optional: true,
-		Computed: true,
-		Default:  int32default.StaticInt32(0),
 		Validators: []validator.Int32{
 			int32validator.AtLeast(0),
 		},
-		MarkdownDescription: "Delay evaluation of the rules by n milliseconds. Defaults to 0.",
+		MarkdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.",
 	}
 }
 
