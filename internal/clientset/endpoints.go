@@ -64,6 +64,19 @@ func ScimRestBaseURL(regionOrDomain string) string {
 	}
 }
 
+// OpenAPIHostFromDomain returns the host used for OpenAPI/management REST API calls when the
+// provider is configured with domain (CORALOGIX_DOMAIN). The management API is served from
+// api.<domain>, mirroring the ng-api-grpc./ng-api-http. prefixing of GrpcTargetFromDomain and
+// ScimRestBaseURL. AWS PrivateLink hosts (api.private.*) and domains already carrying the api.
+// prefix are returned unchanged.
+func OpenAPIHostFromDomain(domain string) string {
+	domain = normalizeProviderDomain(domain)
+	if strings.HasPrefix(domain, "api.") {
+		return domain
+	}
+	return "api." + domain
+}
+
 func normalizeProviderDomain(domain string) string {
 	domain = strings.TrimSpace(domain)
 	domain = strings.TrimPrefix(domain, "https://")

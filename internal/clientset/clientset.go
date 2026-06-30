@@ -233,7 +233,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 
 	_, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
 	if !found {
-		confBuilder.WithURL(cxsdkOpenapi.URLFromDomain(region))
+		confBuilder.WithURL(cxsdkOpenapi.URLFromDomain(OpenAPIHostFromDomain(region)))
 	} else {
 		confBuilder.WithRegion(strings.ToLower(region))
 	}

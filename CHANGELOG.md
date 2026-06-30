@@ -1,5 +1,8 @@
 # Unreleased
 
+#### provider
+- FIX: Derive the OpenAPI/management REST host as `api.<domain>` (not the bare `<domain>`) when configured with a custom `domain`, matching the `ng-api-grpc.`/`ng-api-http.` prefixing of the gRPC and SCIM clients so one base domain resolves correctly for every client family. AWS PrivateLink (`api.private.*`) and already-`api.`-prefixed domains are unchanged.
+
 #### resource/coralogix_ai_custom_evaluation
 - FIX: Correct example score mapping and clearing of empty `criteria.*.examples` lists.
 
