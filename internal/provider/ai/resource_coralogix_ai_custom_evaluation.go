@@ -48,10 +48,11 @@ import (
 )
 
 const (
-	aiCustomEvaluationAcceptableScore    = "0"
-	aiCustomEvaluationProhibitedScore    = "1"
+	aiCustomEvaluationAcceptableScore    = "1"
+	aiCustomEvaluationProhibitedScore    = "0"
 	aiCustomEvaluationPolicyTypeQuality  = "quality"
 	aiCustomEvaluationPolicyTypeSecurity = "security"
+	aiCustomEvaluationExamplesUpdateMask = "examples"
 )
 
 var (
@@ -359,6 +360,18 @@ func (r *AICustomEvaluationResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
+	updated := result.GetItem()
+	if len(rq.Examples) == 0 {
+		updated, httpResponse, err = r.clearCustomEvaluationExamples(ctx, plan.ID.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error clearing coralogix_ai_custom_evaluation examples",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq),
+			)
+			return
+		}
+	}
+
 	err = r.reconcileApplicationLinks(ctx, plan.ID.ValueString(), applicationIDsFromSet(ctx, state.ApplicationIDs), applicationIDs(applications))
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -368,7 +381,6 @@ func (r *AICustomEvaluationResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	updated := result.GetItem()
 	updated.ApplicationIds = applicationIDs(applications)
 	statePtr, diags := flattenAICustomEvaluation(ctx, updated, applications, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -537,6 +549,23 @@ func extractUpdateAICustomEvaluation(ctx context.Context, plan AICustomEvaluatio
 	}
 
 	return rq, diags
+}
+
+func (r *AICustomEvaluationResource) clearCustomEvaluationExamples(ctx context.Context, id string) (aievaluations.CustomEvaluation, *http.Response, error) {
+	rq := aievaluations.AiEvaluationsServiceUpdateCustomEvaluationRequest{
+		Examples:   []aievaluations.CustomEvaluationExample{},
+		UpdateMask: aievaluations.PtrString(aiCustomEvaluationExamplesUpdateMask),
+	}
+
+	result, httpResponse, err := r.aiEvaluationsClient.
+		AiEvaluationsServiceUpdateCustomEvaluation(ctx, id).
+		AiEvaluationsServiceUpdateCustomEvaluationRequest(rq).
+		Execute()
+	if err != nil {
+		return aievaluations.CustomEvaluation{}, httpResponse, err
+	}
+
+	return result.GetItem(), httpResponse, nil
 }
 
 func extractAICustomEvaluationCriteria(ctx context.Context, model *AICustomEvaluationCriteriaModel) ([]aievaluations.CustomEvaluationExample, string, string, diag.Diagnostics) {

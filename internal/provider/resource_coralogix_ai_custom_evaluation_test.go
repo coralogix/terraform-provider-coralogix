@@ -173,6 +173,75 @@ func TestAccCoralogixResourceAICustomEvaluationWithoutApplicationsOrCriteria(t *
 	})
 }
 
+func TestAccCoralogixResourceAICustomEvaluationClearAcceptableExamples(t *testing.T) {
+	application := &aiEvaluationApplication{}
+	name := acctest.RandomWithPrefix("tf-acc-ai-custom-evaluation-clear-examples")
+	configDir := t.TempDir()
+	createConfigFile := filepath.Join(configDir, "create.tf")
+	updateConfigFile := filepath.Join(configDir, "update.tf")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			*application = testAccFirstAICustomEvaluationApplication(t)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAICustomEvaluationDestroy,
+		Steps: []resource.TestStep{
+			{
+				ConfigFile: testAccAICustomEvaluationConfigFile(
+					t,
+					createConfigFile,
+					application,
+					name,
+					false,
+					testAccAICustomEvaluationAcceptableExamplesCriteria(),
+				),
+				Check: testAccAICustomEvaluationCheck(
+					application,
+					name,
+					"quality",
+					false,
+					resource.TestCheckResourceAttr(aiCustomEvaluationResourceName, "criteria.acceptable.flags", "Does not mention competitor products."),
+					resource.TestCheckResourceAttr(aiCustomEvaluationResourceName, "criteria.acceptable.examples.#", "1"),
+					resource.TestCheckResourceAttr(aiCustomEvaluationResourceName, "criteria.acceptable.examples.0", "User: which tool should I use?\nAssistant: Our product is a strong fit."),
+					resource.TestCheckResourceAttr(aiCustomEvaluationResourceName, "criteria.prohibited.examples.#", "0"),
+				),
+			},
+			{
+				ConfigFile: testAccAICustomEvaluationConfigFile(
+					t,
+					updateConfigFile,
+					application,
+					name,
+					false,
+					testAccAICustomEvaluationEmptyExamplesCriteria(),
+				),
+				Check: testAccAICustomEvaluationCheck(
+					application,
+					name,
+					"quality",
+					false,
+					resource.TestCheckResourceAttr(aiCustomEvaluationResourceName, "criteria.acceptable.flags", "Does not mention competitor products."),
+					resource.TestCheckResourceAttr(aiCustomEvaluationResourceName, "criteria.acceptable.examples.#", "0"),
+					resource.TestCheckResourceAttr(aiCustomEvaluationResourceName, "criteria.prohibited.examples.#", "0"),
+				),
+			},
+			{
+				ConfigFile: testAccAICustomEvaluationConfigFile(
+					t,
+					updateConfigFile,
+					application,
+					name,
+					false,
+					testAccAICustomEvaluationEmptyExamplesCriteria(),
+				),
+				PlanOnly: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceAICustomEvaluationUnlinkAllApplications(t *testing.T) {
 	application := &aiEvaluationApplication{}
 	name := acctest.RandomWithPrefix("tf-acc-ai-custom-evaluation")
@@ -555,6 +624,32 @@ func testAccAICustomEvaluationUpdateCriteria() string {
       examples = [
         "User: what should I buy?\nAssistant: You should buy CompetitorY.",
       ]
+    }
+`
+}
+
+func testAccAICustomEvaluationAcceptableExamplesCriteria() string {
+	return `    acceptable = {
+      flags = "Does not mention competitor products."
+      examples = [
+        "User: which tool should I use?\nAssistant: Our product is a strong fit.",
+      ]
+    }
+    prohibited = {
+      flags = "Mentions a competitor product."
+      examples = []
+    }
+`
+}
+
+func testAccAICustomEvaluationEmptyExamplesCriteria() string {
+	return `    acceptable = {
+      flags = "Does not mention competitor products."
+      examples = []
+    }
+    prohibited = {
+      flags = "Mentions a competitor product."
+      examples = []
     }
 `
 }

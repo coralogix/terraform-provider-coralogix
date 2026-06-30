@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_ai_custom_evaluation
+- FIX: Correct example score mapping and clearing of empty `criteria.*.examples` lists.
+
+
 # Release 3.6.0
 
 #### resource/coralogix_alert
