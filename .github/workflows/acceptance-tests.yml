@@ -16,14 +16,27 @@ on:
       - 'CLAUDE.md'
       - '**/*.md'
 
+permissions:
+  contents: read
+
 jobs:
   test:
+    name: Acceptance Tests (${{ matrix.shard }})
     env:
       GO111MODULE: on
     strategy:
+      fail-fast: false
       matrix:
-        go-version: [ 1.25.x ]
-        os: [ ubuntu-latest ]
+        include:
+          - shard: A-C
+            go-version: 1.25.x
+            os: ubuntu-latest
+          - shard: D-DAS
+            go-version: 1.25.x
+            os: ubuntu-latest
+          - shard: DAT-Z
+            go-version: 1.25.x
+            os: ubuntu-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -43,4 +56,4 @@ jobs:
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
           ARCHIVE_BUCKET: ${{ secrets.ARCHIVE_BUCKET }}
         run: |
-          make testacc
+          bash .github/scripts/run-acceptance-test-shard.sh "${{ matrix.shard }}"

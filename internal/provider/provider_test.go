@@ -15,12 +15,16 @@
 package provider
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var testAccProvider *schema.Provider
@@ -60,4 +64,18 @@ func testAccPreCheck(t *testing.T) {
 	if os.Getenv("CORALOGIX_ENV") == "" && os.Getenv("CORALOGIX_DOMAIN") == "" {
 		t.Fatalf("CORALOGIX_ENV or CORALOGIX_DOMAIN must be set for acceptance tests")
 	}
+}
+
+func testAccClientSet() (*clientset.ClientSet, error) {
+	rc := terraform2.ResourceConfig{}
+	if diags := testAccProvider.Configure(context.Background(), &rc); diags.HasError() {
+		return nil, fmt.Errorf("failed to configure acceptance test provider: %v", diags)
+	}
+
+	clientSet, ok := testAccProvider.Meta().(*clientset.ClientSet)
+	if !ok || clientSet == nil {
+		return nil, fmt.Errorf("acceptance test provider did not return a client set")
+	}
+
+	return clientSet, nil
 }
