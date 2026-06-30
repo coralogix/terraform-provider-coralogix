@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/google/uuid"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -28,16 +28,17 @@ import (
 var sloV2ResourceName = "coralogix_slo_v2.test"
 
 func TestAccCoralogixResourceSLOV2RequestBased(t *testing.T) {
+	name := fmt.Sprintf("coralogix_slo_go_example-%s", uuid.NewString())
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccSLOV2CheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:  testAccCoralogixSLOV2RequestBased(),
+				Config:  testAccCoralogixSLOV2RequestBased(name),
 				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(sloV2ResourceName, "name", "coralogix_slo_go_example"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "name", name),
 					resource.TestCheckResourceAttr(sloV2ResourceName, "description", "Example SLO for Coralogix using request-based metrics"),
 					resource.TestCheckResourceAttr(sloV2ResourceName, "target_threshold_percentage", "30"),
 				),
@@ -47,6 +48,7 @@ func TestAccCoralogixResourceSLOV2RequestBased(t *testing.T) {
 }
 
 func TestAccCoralogixResourceSLOV2WindowBased(t *testing.T) {
+	name := fmt.Sprintf("coralogix_window_based_slo-%s", uuid.NewString())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -54,10 +56,10 @@ func TestAccCoralogixResourceSLOV2WindowBased(t *testing.T) {
 		CheckDestroy:             testAccSLOV2CheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:  testAccCoralogixSLOV2WindowBased(),
+				Config:  testAccCoralogixSLOV2WindowBased(name),
 				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(sloV2ResourceName, "name", "coralogix_window_based_slo"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "name", name),
 					resource.TestCheckResourceAttr(sloV2ResourceName, "description", "Example SLO using window-based metrics"),
 					resource.TestCheckResourceAttr(sloV2ResourceName, "target_threshold_percentage", "95"),
 				),
@@ -67,7 +69,11 @@ func TestAccCoralogixResourceSLOV2WindowBased(t *testing.T) {
 }
 
 func testAccSLOV2CheckDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).SLOs()
+	clientSet, err := testAccClientSet()
+	if err != nil {
+		return err
+	}
+	client := clientSet.SLOs()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "coralogix_slo_v2" {
@@ -82,10 +88,10 @@ func testAccSLOV2CheckDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCoralogixSLOV2RequestBased() string {
-	return `
+func testAccCoralogixSLOV2RequestBased(name string) string {
+	return fmt.Sprintf(`
 resource "coralogix_slo_v2" "test" {
-  name                        = "coralogix_slo_go_example"
+  name                        = "%s"
   description                 = "Example SLO for Coralogix using request-based metrics"
   target_threshold_percentage = 30.0
   labels = {
@@ -105,13 +111,13 @@ resource "coralogix_slo_v2" "test" {
     slo_time_frame = "7_days"
   }
 }
-`
+`, name)
 }
 
-func testAccCoralogixSLOV2WindowBased() string {
-	return `
+func testAccCoralogixSLOV2WindowBased(name string) string {
+	return fmt.Sprintf(`
 resource "coralogix_slo_v2" "test" {
-  name                        = "coralogix_window_based_slo"
+  name                        = "%s"
   description                 = "Example SLO using window-based metrics"
   target_threshold_percentage = 95.0
   labels = {
@@ -132,5 +138,5 @@ resource "coralogix_slo_v2" "test" {
     slo_time_frame = "28_days"
   }
 }
-`
+`, name)
 }

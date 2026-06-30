@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -61,7 +59,11 @@ func TestAccCoralogixResourceScope(t *testing.T) {
 }
 
 func testAccCheckScopeDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Scopes()
+	clientSet, err := testAccClientSet()
+	if err != nil {
+		return err
+	}
+	client := clientSet.Scopes()
 	ctx := context.TODO()
 
 	for _, rs := range s.RootModule().Resources {

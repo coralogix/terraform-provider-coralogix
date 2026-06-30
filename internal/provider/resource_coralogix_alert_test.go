@@ -1477,7 +1477,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 
 func TestAccCoralogixResourceAlert_sloBurnRate(t *testing.T) {
 	// t.Skip("Skipping SLO v2 for now")
-	sloName := "coralogix_slo_go_example"
+	sloName := fmt.Sprintf("coralogix_slo_go_example-%s", uuid.NewString())
 	alertName := "SLO burn rate alert"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

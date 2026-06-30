@@ -15,20 +15,23 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var sloV2DataSourceName = "data." + sloV2ResourceName
 
 func TestAccCoralogixDataSourceSLOV2_basic(t *testing.T) {
+	name := fmt.Sprintf("coralogix_slo_go_example-%s", uuid.NewString())
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixSLOV2RequestBased() +
+				Config: testAccCoralogixSLOV2RequestBased(name) +
 					testAccCoralogixResourceSLOV2_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(sloV2DataSourceName, "id"),
