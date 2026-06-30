@@ -14,7 +14,11 @@
 
 package clientset
 
-import "testing"
+import (
+	"testing"
+
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+)
 
 func TestGrpcTargetFromDomain(t *testing.T) {
 	t.Parallel()
@@ -48,6 +52,75 @@ func TestGrpcTargetFromDomain(t *testing.T) {
 				t.Fatalf("GrpcTargetFromDomain(%q) = %q, want %q", tt.domain, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestOpenAPIHostFromDomain(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		domain string
+		want   string
+	}{
+		{
+			domain: "custom.example.com",
+			want:   "api.custom.example.com",
+		},
+		{
+			domain: "https://custom.example.com/",
+			want:   "api.custom.example.com",
+		},
+		{
+			domain: "http://custom.example.com",
+			want:   "api.custom.example.com",
+		},
+		{
+			domain: "api.custom.example.com",
+			want:   "api.custom.example.com",
+		},
+		{
+			domain: "api.private.eu2.coralogix.com",
+			want:   "api.private.eu2.coralogix.com",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.domain, func(t *testing.T) {
+			t.Parallel()
+			if got := OpenAPIHostFromDomain(tt.domain); got != tt.want {
+				t.Fatalf("OpenAPIHostFromDomain(%q) = %q, want %q", tt.domain, got, tt.want)
+			}
+		})
+	}
+}
+
+// A single base domain must resolve correctly for every client family: OpenAPI gets the api.
+// prefix while gRPC and SCIM keep their ng-api-grpc./ng-api-http. prefixes for the same domain.
+func TestSingleDomainResolvesAllClientFamilies(t *testing.T) {
+	t.Parallel()
+
+	const domain = "custom.example.com"
+
+	if got, want := OpenAPIHostFromDomain(domain), "api.custom.example.com"; got != want {
+		t.Fatalf("OpenAPIHostFromDomain(%q) = %q, want %q", domain, got, want)
+	}
+	if got, want := GrpcTargetFromDomain(domain), "ng-api-grpc.custom.example.com:443"; got != want {
+		t.Fatalf("GrpcTargetFromDomain(%q) = %q, want %q", domain, got, want)
+	}
+	if got, want := ScimRestBaseURL(domain), "https://ng-api-http.custom.example.com"; got != want {
+		t.Fatalf("ScimRestBaseURL(%q) = %q, want %q", domain, got, want)
+	}
+}
+
+// End-to-end guard for the actual symptom: the OpenAPI base URL the SDK is configured with for a
+// custom domain must carry the api. host prefix, not the bare domain.
+func TestOpenAPIBaseURLForCustomDomain(t *testing.T) {
+	t.Parallel()
+
+	const domain = "custom.example.com"
+
+	if got, want := cxsdkOpenapi.URLFromDomain(OpenAPIHostFromDomain(domain)), "https://api.custom.example.com/mgmt/openapi/5"; got != want {
+		t.Fatalf("OpenAPI base URL for %q = %q, want %q", domain, got, want)
 	}
 }
 
