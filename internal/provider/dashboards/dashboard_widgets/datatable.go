@@ -22,6 +22,7 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -192,7 +193,10 @@ func DataTableSchema() schema.Attribute {
 			},
 			"results_per_page": schema.Int64Attribute{
 				Required:            true,
-				MarkdownDescription: "The number of results to display per page.",
+				MarkdownDescription: "The number of results to display per page. Valid values are 10, 20, 50, or 100.",
+				Validators: []validator.Int64{
+					int64validator.OneOf(10, 20, 50, 100),
+				},
 			},
 			"row_style": schema.StringAttribute{
 				Required: true,
