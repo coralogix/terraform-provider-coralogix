@@ -31,7 +31,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -79,6 +78,55 @@ func (g GroupByValidator) ValidateList(ctx context.Context, request validator.Li
 		if !(request.ConfigValue.IsNull() || request.ConfigValue.IsUnknown()) {
 			response.Diagnostics.AddError("group_by", "Group by is not allowed for logs_immediate, logs_new_value, tracing_immediate alert types.")
 		}
+	}
+}
+
+const priorityDeprecationMessage = "This field will be removed in the future in favor of the 'override' property where possible."
+
+type PriorityDeprecationWarning struct {
+}
+
+func (p PriorityDeprecationWarning) Description(ctx context.Context) string {
+	return "Warns that priority is deprecated for alert types that support an override block."
+}
+
+func (p PriorityDeprecationWarning) MarkdownDescription(ctx context.Context) string {
+	return "Warns that priority is deprecated for alert types that support an override block."
+}
+
+func (p PriorityDeprecationWarning) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	paths, diags := req.Config.PathMatches(ctx, path.MatchRoot("type_definition"))
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	var typeDefinition types.Object
+	diags = req.Config.GetAttribute(ctx, paths[0], &typeDefinition)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	if typeDefinition.IsNull() || typeDefinition.IsUnknown() {
+		return
+	}
+
+	var typeDefinitionModel alerttypes.AlertTypeDefinitionModel
+	if diags = typeDefinition.As(ctx, &typeDefinitionModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	if !utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsRatioThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsTimeRelativeThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.MetricThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.SloThreshold) {
+		resp.Diagnostics.AddAttributeWarning(req.Path, "Deprecated Attribute", priorityDeprecationMessage)
 	}
 }
 
@@ -232,12 +280,10 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 func evaluationDelaySchema() schema.Attribute {
 	return schema.Int32Attribute{
 		Optional: true,
-		Computed: true,
-		Default:  int32default.StaticInt32(0),
 		Validators: []validator.Int32{
 			int32validator.AtLeast(0),
 		},
-		MarkdownDescription: "Delay evaluation of the rules by n milliseconds. Defaults to 0.",
+		MarkdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.",
 	}
 }
 

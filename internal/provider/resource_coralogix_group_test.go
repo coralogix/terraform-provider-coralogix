@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
@@ -31,8 +30,7 @@ import (
 var groupResourceName = "coralogix_group.test"
 
 func TestAccCoralogixResourceGroup(t *testing.T) {
-	// Use a unique username to avoid 409 Conflict (user already exists) when re-running or from other tests
-	userName := fmt.Sprintf("test-group-acc-%d@coralogix.com", time.Now().UnixNano())
+	userName := randUserName()
 	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
 	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
 	resource.Test(t, resource.TestCase{

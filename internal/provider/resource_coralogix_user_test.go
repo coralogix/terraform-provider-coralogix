@@ -21,6 +21,7 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -74,7 +75,7 @@ func testAccCheckUserDestroy(s *terraform.State) error {
 }
 
 func randUserName() string {
-	return "test@coralogix.com"
+	return fmt.Sprintf("%s@coralogix.com", acctest.RandomWithPrefix("tf-acc-user"))
 }
 
 func testAccCoralogixResourceUser(userName string) string {

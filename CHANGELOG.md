@@ -1,8 +1,34 @@
 # Unreleased
 
+#### resource/coralogix_ai_custom_evaluation
+- FIX: Correct example score mapping and clearing of empty `criteria.*.examples` lists.
+
 #### resource/coralogix_dashboard
 
 - FIX: Deprecate the dashboard variable `constant_value` attribute and fail fast on it. It maps to the API's deprecated `Constant` variant, which the backend rejects with an opaque `invalid variable definition: Constant(...)` error. A `DeprecationMessage` surfaces this at plan time, and the provider now returns a clear error (instead of letting the opaque API rejection through) directing users to a `multi_select` variable with a `constant_list` source and a single `selected_values` entry — the supported replacement.
+
+
+# Release 3.6.0
+
+#### resource/coralogix_alert
+
+- FIX: The `priority` deprecation warning is now type-aware — emitted only for the alert types that embed an `override` block, and suppressed for the types where top-level `priority` is the only mechanism and is therefore not deprecated.
+- FIX: Preserve omitted `custom_evaluation_delay` as unset instead of defaulting it to `0`; existing omitted configurations previously stored as `0` will plan an update to unset the field on the next apply.
+
+#### resource/coralogix_ai_evaluation
+
+- FEAT: Add support for managing AI evaluations.
+
+#### resource/coralogix_ai_custom_evaluation
+
+- FEAT: Add support for managing AI custom evaluations.
+
+#### resource/coralogix_dashboard
+
+- FEAT: Add Optional `selection_type` to `variables[*].definition.multi_select` (`multi`, `single`); omit to use the API default (multi-select with the implicit "All" option).
+- FEAT: Wire `threshold_type` (`absolute` / `relative` / `unspecified`) onto the gauge widget so the proto field `Gauge.threshold_type` (field 12) is no longer silently dropped on apply and reset to the proto default on refresh. Mirrors the existing hexagon plumbing; defaults to `unspecified` so pre-existing state round-trips clean.
+- FIX: Every `*.query.logs.filters[*]` block (across all widget types — `data_table`, `line_chart`, `bar_chart`, `pie_chart`, `gauge`, `hexagon`, `horizontal_bar_chart`) and the top-level `filters[*].source.logs` block now accept `observation_field` as the sole filter target. `field` is `Optional` (was `Required`), and a `stringvalidator.ExactlyOneOf` on `field` keeps the field-vs-observation_field misconfiguration explicit. Configs copied from a `data "coralogix_dashboard"` whose backend filter used `observation_field` no longer fail validation with `Missing Configuration for Required Attribute`.
+- FIX: `layout.sections[*].options.color` no longer flattens the proto zero-value (`SECTION_PREDEFINED_COLOR_UNSPECIFIED`) to the literal string `"unspecified"`. Sections with no color set now round-trip as `null`, which matches the resource schema's allowed `OneOf` values (cyan/green/blue/purple/magenta/pink/orange). Existing state containing the leaked `"unspecified"` value will refresh to `null` on the next plan; no state migration is required because the broken value was already non-applyable through the resource schema's validator.
 
 # Release 3.5.0
 
