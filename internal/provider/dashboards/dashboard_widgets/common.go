@@ -100,6 +100,11 @@ var (
 	}
 	DashboardOrderDirectionProtoToSchema = utils.ReverseMap(DashboardOrderDirectionSchemaToProto)
 	DashboardValidOrderDirections        = utils.GetKeys(DashboardOrderDirectionSchemaToProto)
+
+	DashboardValidMultiSelectSelectionTypes = []string{
+		"multi",
+		"single",
+	}
 	DashboardSchemaToProtoTooltipType    = map[string]cxsdk.LineChartTooltipType{
 		utils.UNSPECIFIED: cxsdk.LineChartToolTipTypeUnspecified,
 		"all":             cxsdk.LineChartToolTipTypeAll,
@@ -474,6 +479,7 @@ type GaugeModel struct {
 	Thresholds        types.List       `tfsdk:"thresholds"` //GaugeThresholdModel
 	DataModeType      types.String     `tfsdk:"data_mode_type"`
 	ThresholdBy       types.String     `tfsdk:"threshold_by"`
+	ThresholdType     types.String     `tfsdk:"threshold_type"`
 	DisplaySeriesName types.Bool       `tfsdk:"display_series_name"`
 	Decimal           types.Number     `tfsdk:"decimal"`
 }

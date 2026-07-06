@@ -271,6 +271,15 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		},
 																		MarkdownDescription: fmt.Sprintf("The threshold by. Can be one of %q.", dashboardwidgets.DashboardValidGaugeThresholdBy),
 																	},
+																	"threshold_type": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidThresholdTypes...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("The threshold type. Can be one of %q.", dashboardwidgets.DashboardValidThresholdTypes),
+																	},
 																	"display_series_name": schema.BoolAttribute{
 																		Optional: true,
 																		Computed: true,
@@ -984,6 +993,13 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 											stringvalidator.OneOf(dashboardwidgets.DashboardValidOrderDirections...),
 										},
 										MarkdownDescription: fmt.Sprintf("The order direction of the values. Can be one of `%s`.", strings.Join(dashboardwidgets.DashboardValidOrderDirections, "`, `")),
+									},
+									"selection_type": schema.StringAttribute{
+										Optional: true,
+										Validators: []validator.String{
+											stringvalidator.OneOf(dashboardwidgets.DashboardValidMultiSelectSelectionTypes...),
+										},
+										MarkdownDescription: fmt.Sprintf("Selection mode of the variable. Can be one of `%s`. Omit to use the API default (multi-select with an implicit \"All\" option).", strings.Join(dashboardwidgets.DashboardValidMultiSelectSelectionTypes, "`, `")),
 									},
 									"source": schema.SingleNestedAttribute{
 										Attributes: map[string]schema.Attribute{

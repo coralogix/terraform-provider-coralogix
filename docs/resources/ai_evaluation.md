@@ -257,7 +257,7 @@ resource "coralogix_ai_evaluation" "example" {
 
 - `application` (String) Name of the AI application this evaluation belongs to.
 - `config` (Attributes) AI evaluation configuration. (see [below for nested schema](#nestedatt--config))
-- `target` (String) Target span content the evaluation runs against. Can be one of ["conversation" "prompt" "response"].
+- `target` (String) Target span content the evaluation runs against. Can be one of ["prompt" "response"].
 - `threshold` (Number) Score threshold. Must be between 0.0 and 1.0 inclusive.
 
 ### Optional

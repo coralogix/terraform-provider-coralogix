@@ -17,7 +17,10 @@ package provider
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/google/uuid"
@@ -27,6 +30,10 @@ import (
 )
 
 var alertResourceName = "coralogix_alert.test"
+
+const (
+	alertCustomEvaluationDelayExplicitZeroMs int32 = 0
+)
 
 func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -305,6 +312,28 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 	},
 	)
 
+}
+
+func TestAccCoralogixResourceAlert_custom_evaluation_delay_omitted_and_explicit(t *testing.T) {
+	name := uuid.NewString()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertCustomEvaluationDelayOmittedAndExplicit(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAlertCustomEvaluationDelayUnset("coralogix_alert.more_than_omitted"),
+					resource.TestCheckNoResourceAttr("coralogix_alert.more_than_omitted", "type_definition.logs_threshold.custom_evaluation_delay"),
+					testAccCheckAlertCustomEvaluationDelayUnset("coralogix_alert.less_than_omitted"),
+					resource.TestCheckNoResourceAttr("coralogix_alert.less_than_omitted", "type_definition.logs_threshold.custom_evaluation_delay"),
+					testAccCheckAlertCustomEvaluationDelay("coralogix_alert.explicit_zero", alertCustomEvaluationDelayExplicitZeroMs),
+					resource.TestCheckResourceAttr("coralogix_alert.explicit_zero", "type_definition.logs_threshold.custom_evaluation_delay", fmt.Sprint(alertCustomEvaluationDelayExplicitZeroMs)),
+				),
+			},
+		},
+	})
 }
 
 func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
@@ -1506,6 +1535,94 @@ func testAccCheckAlertDestroy(s *terraform.State) error {
 	return nil
 }
 
+func testAccCheckAlertCustomEvaluationDelay(resourceName string, expected int32) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		delay, ok, err := testAccGetAlertCustomEvaluationDelay(s, resourceName)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("alert %q evaluation delay is unset, want %d", resourceName, expected)
+		}
+		if delay != expected {
+			return fmt.Errorf("alert %q evaluation delay = %d, want %d", resourceName, delay, expected)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAlertCustomEvaluationDelayUnset(resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		delay, ok, err := testAccGetAlertCustomEvaluationDelay(s, resourceName)
+		if err != nil {
+			return err
+		}
+		if ok {
+			return fmt.Errorf("alert %q evaluation delay = %d, want unset", resourceName, delay)
+		}
+
+		return nil
+	}
+}
+
+func testAccGetAlertCustomEvaluationDelay(s *terraform.State, resourceName string) (int32, bool, error) {
+	rs, ok := s.RootModule().Resources[resourceName]
+	if !ok {
+		return 0, false, fmt.Errorf("resource %q not found in state", resourceName)
+	}
+	if rs.Primary == nil || rs.Primary.ID == "" {
+		return 0, false, fmt.Errorf("resource %q has no ID in state", resourceName)
+	}
+
+	clientSet, err := testAccAlertClientSet()
+	if err != nil {
+		return 0, false, err
+	}
+	client := clientSet.Alerts()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	resp, _, err := client.AlertDefsServiceGetAlertDef(ctx, rs.Primary.ID).Execute()
+	if err != nil {
+		return 0, false, fmt.Errorf("read alert %q: %w", resourceName, err)
+	}
+
+	alertDef := resp.GetAlertDef()
+	properties := alertDef.GetAlertDefProperties()
+	if properties.AlertDefPropertiesLogsThreshold == nil {
+		return 0, false, fmt.Errorf("alert %q is not a logs threshold alert", resourceName)
+	}
+
+	delay, ok := properties.AlertDefPropertiesLogsThreshold.LogsThreshold.GetEvaluationDelayMsOk()
+	if !ok {
+		return 0, false, nil
+	}
+	return *delay, true, nil
+}
+
+func testAccAlertClientSet() (*clientset.ClientSet, error) {
+	apiKey := os.Getenv("CORALOGIX_API_KEY")
+	domain := os.Getenv("CORALOGIX_DOMAIN")
+	terraformEnvironmentAlias := strings.ToUpper(os.Getenv("CORALOGIX_ENV"))
+
+	if domain != "" && terraformEnvironmentAlias != "" {
+		return nil, fmt.Errorf("only one of CORALOGIX_ENV or CORALOGIX_DOMAIN can be set")
+	}
+	if domain != "" {
+		targetURL := clientset.GrpcTargetFromDomain(domain)
+		return clientset.NewClientSet(domain, apiKey, targetURL), nil
+	}
+
+	targetURL, ok := terraformEnvironmentAliasToGrpcUrl[terraformEnvironmentAlias]
+	if !ok {
+		return nil, fmt.Errorf("the Coralogix env must be one of %q", validEnvironmentAliases)
+	}
+	sdkEnvironment := terraformEnvironmentAliasToSdkEnvironment[terraformEnvironmentAlias]
+	return clientset.NewClientSet(sdkEnvironment, apiKey, targetURL), nil
+}
+
 func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
 	return `resource "coralogix_alert" "test" {
   name        = "logs immediate alert updated"
@@ -1858,6 +1975,89 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
   }
 }
 `
+}
+
+func testAccCoralogixResourceAlertCustomEvaluationDelayOmittedAndExplicit(name string) string {
+	return fmt.Sprintf(`
+resource "coralogix_alert" "more_than_omitted" {
+  name        = "custom-evaluation-delay-more-than-omitted-%[1]s"
+  description = "custom evaluation delay omitted more-than alert"
+  priority    = "P2"
+
+  type_definition = {
+    logs_threshold = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
+      rules = [
+        {
+          condition = {
+            threshold      = 2
+            time_window    = "10_MINUTES"
+            condition_type = "MORE_THAN"
+          }
+          override = {}
+        }
+      ]
+    }
+  }
+}
+
+resource "coralogix_alert" "less_than_omitted" {
+  name        = "custom-evaluation-delay-less-than-omitted-%[1]s"
+  description = "custom evaluation delay omitted less-than alert"
+  priority    = "P2"
+
+  type_definition = {
+    logs_threshold = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
+      rules = [
+        {
+          condition = {
+            threshold      = 2
+            time_window    = "10_MINUTES"
+            condition_type = "LESS_THAN"
+          }
+          override = {}
+        }
+      ]
+    }
+  }
+}
+
+resource "coralogix_alert" "explicit_zero" {
+  name        = "custom-evaluation-delay-explicit-zero-%[1]s"
+  description = "custom evaluation delay explicit zero alert"
+  priority    = "P2"
+
+  type_definition = {
+    logs_threshold = {
+      custom_evaluation_delay = 0
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
+      rules = [
+        {
+          condition = {
+            threshold      = 2
+            time_window    = "10_MINUTES"
+            condition_type = "MORE_THAN"
+          }
+          override = {}
+        }
+      ]
+    }
+  }
+}
+`, name)
 }
 
 func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) string {

@@ -29,6 +29,7 @@ import (
 	aiapplications "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_applications_service"
 	aievaluations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_evaluations_service"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -47,10 +48,11 @@ import (
 )
 
 const (
-	aiCustomEvaluationAcceptableScore    = "0"
-	aiCustomEvaluationProhibitedScore    = "1"
+	aiCustomEvaluationAcceptableScore    = "1"
+	aiCustomEvaluationProhibitedScore    = "0"
 	aiCustomEvaluationPolicyTypeQuality  = "quality"
 	aiCustomEvaluationPolicyTypeSecurity = "security"
+	aiCustomEvaluationExamplesUpdateMask = "examples"
 )
 
 var (
@@ -188,21 +190,24 @@ func (r *AICustomEvaluationResource) Schema(_ context.Context, _ resource.Schema
 				Optional: true,
 				Computed: true,
 				Default:  setdefault.StaticValue(aiCustomEvaluationApplicationsDefaultValue()),
+				Validators: []validator.Set{
+					setvalidator.SizeAtMost(1024),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"application": schema.StringAttribute{
 							Required: true,
 							Validators: []validator.String{
-								stringvalidator.LengthAtLeast(1),
+								stringvalidator.LengthBetween(1, 256),
 							},
 							MarkdownDescription: "AI application name.",
 						},
 						"subsystem": schema.StringAttribute{
 							Required: true,
 							Validators: []validator.String{
-								stringvalidator.LengthBetween(0, 256),
+								stringvalidator.LengthBetween(1, 256),
 							},
-							MarkdownDescription: "AI application subsystem. Use an empty string only for applications without a subsystem.",
+							MarkdownDescription: "AI application subsystem.",
 						},
 					},
 				},
@@ -355,6 +360,18 @@ func (r *AICustomEvaluationResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
+	updated := result.GetItem()
+	if len(rq.Examples) == 0 {
+		updated, httpResponse, err = r.clearCustomEvaluationExamples(ctx, plan.ID.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error clearing coralogix_ai_custom_evaluation examples",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq),
+			)
+			return
+		}
+	}
+
 	err = r.reconcileApplicationLinks(ctx, plan.ID.ValueString(), applicationIDsFromSet(ctx, state.ApplicationIDs), applicationIDs(applications))
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -364,7 +381,6 @@ func (r *AICustomEvaluationResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	updated := result.GetItem()
 	updated.ApplicationIds = applicationIDs(applications)
 	statePtr, diags := flattenAICustomEvaluation(ctx, updated, applications, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -535,6 +551,23 @@ func extractUpdateAICustomEvaluation(ctx context.Context, plan AICustomEvaluatio
 	return rq, diags
 }
 
+func (r *AICustomEvaluationResource) clearCustomEvaluationExamples(ctx context.Context, id string) (aievaluations.CustomEvaluation, *http.Response, error) {
+	rq := aievaluations.AiEvaluationsServiceUpdateCustomEvaluationRequest{
+		Examples:   []aievaluations.CustomEvaluationExample{},
+		UpdateMask: aievaluations.PtrString(aiCustomEvaluationExamplesUpdateMask),
+	}
+
+	result, httpResponse, err := r.aiEvaluationsClient.
+		AiEvaluationsServiceUpdateCustomEvaluation(ctx, id).
+		AiEvaluationsServiceUpdateCustomEvaluationRequest(rq).
+		Execute()
+	if err != nil {
+		return aievaluations.CustomEvaluation{}, httpResponse, err
+	}
+
+	return result.GetItem(), httpResponse, nil
+}
+
 func extractAICustomEvaluationCriteria(ctx context.Context, model *AICustomEvaluationCriteriaModel) ([]aievaluations.CustomEvaluationExample, string, string, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
@@ -554,6 +587,13 @@ func extractAICustomEvaluationCriteria(ctx context.Context, model *AICustomEvalu
 	prohibitedFlags, prohibitedExamples, prohibitedDiags := extractAICustomEvaluationCriterion(ctx, prohibited)
 	diags.Append(prohibitedDiags...)
 	if diags.HasError() {
+		return nil, "", "", diags
+	}
+	if len(acceptableExamples)+len(prohibitedExamples) > 100 {
+		diags.AddError(
+			"Too many AI custom evaluation examples",
+			"Custom evaluation criteria can include at most 100 total examples across acceptable and prohibited criteria.",
+		)
 		return nil, "", "", diags
 	}
 

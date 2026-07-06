@@ -47,9 +47,8 @@ var (
 	_ resource.ResourceWithImportState      = &AIEvaluationResource{}
 
 	aiEvaluationTargetSchemaToAPI = map[string]aievaluations.EvaluationTarget{
-		"prompt":       aievaluations.EVALUATIONTARGET_PROMPT,
-		"response":     aievaluations.EVALUATIONTARGET_RESPONSE,
-		"conversation": aievaluations.EVALUATIONTARGET_CONVERSATION,
+		"prompt":   aievaluations.EVALUATIONTARGET_PROMPT,
+		"response": aievaluations.EVALUATIONTARGET_RESPONSE,
 	}
 	aiEvaluationTargetAPIToSchema = utils.ReverseMap(aiEvaluationTargetSchemaToAPI)
 	aiEvaluationValidTargets      = utils.GetKeys(aiEvaluationTargetSchemaToAPI)
@@ -186,7 +185,7 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 			"application": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
+					stringvalidator.LengthBetween(1, 256),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -194,9 +193,9 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 				MarkdownDescription: "Name of the AI application this evaluation belongs to.",
 			},
 			"subsystem": schema.StringAttribute{
-				Optional: true,
+				Required: true,
 				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
+					stringvalidator.LengthBetween(1, 256),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -479,7 +478,8 @@ func aiEvaluationStringSetAttribute(markdownDescription string) schema.SetAttrib
 		Required:    true,
 		Validators: []validator.Set{
 			setvalidator.SizeAtLeast(1),
-			setvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
+			setvalidator.SizeAtMost(1024),
+			setvalidator.ValueStringsAre(stringvalidator.LengthBetween(1, 256)),
 		},
 		MarkdownDescription: markdownDescription,
 	}
@@ -494,6 +494,7 @@ func aiEvaluationPIIConfigAttribute() schema.SingleNestedAttribute {
 				Required:    true,
 				Validators: []validator.Set{
 					setvalidator.SizeAtLeast(1),
+					setvalidator.SizeAtMost(1024),
 					setvalidator.ValueStringsAre(stringvalidator.OneOf(aiEvaluationValidPIICategories...)),
 				},
 				MarkdownDescription: fmt.Sprintf("PII categories to detect. Can include %q.", aiEvaluationValidPIICategories),
@@ -585,13 +586,11 @@ func extractCreateAIEvaluation(ctx context.Context, plan AIEvaluationResourceMod
 
 	rq := &aievaluations.AiEvaluationsServiceCreateAiEvaluationRequest{
 		Application: aievaluations.PtrString(plan.Application.ValueString()),
+		Subsystem:   aievaluations.PtrString(plan.Subsystem.ValueString()),
 		Target:      target.Ptr(),
 		Threshold:   aievaluations.PtrFloat64(plan.Threshold.ValueFloat64()),
 		IsEnabled:   aievaluations.PtrBool(plan.IsEnabled.ValueBool()),
 		Config:      config,
-	}
-	if !plan.Subsystem.IsNull() {
-		rq.Subsystem = aievaluations.PtrString(plan.Subsystem.ValueString())
 	}
 
 	return rq, diags

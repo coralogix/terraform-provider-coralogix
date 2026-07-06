@@ -521,6 +521,56 @@ EOT
 	})
 }
 
+func TestAccCoralogixResourceDashboardGaugeWidgetThresholdType(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWithWidget(`{
+  title = "gauge_threshold_type"
+  definition = {
+    gauge = {
+      unit           = "milliseconds"
+      threshold_type = "absolute"
+      thresholds = [{
+        from  = 0
+        color = "green"
+      }]
+      query = {
+        metrics = {
+          promql_query = "vector(1)"
+          time_frame = {
+            relative = {
+              duration = "seconds:900"
+            }
+          }
+        }
+      }
+    }
+  }
+}`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "gauge_threshold_type"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.threshold_type", "absolute"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -1104,6 +1154,88 @@ func testAccCoralogixResourceDashboardCountWidget() string {
   }
   width = 0
 }`
+}
+
+func TestAccCoralogixResourceDashboardMultiSelectSelectionType(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "coralogix_dashboard" "test" {
+  name        = "selection-type-test"
+  description = "exercises multi_select selection_type round-trip"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title      = "placeholder"
+          width      = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{ type = "count" }]
+                  }
+                }
+              }]
+              legend = {
+                is_visible = false
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+  variables = [
+    {
+      name         = "environment"
+      display_name = "Environment"
+      definition = {
+        multi_select = {
+          selected_values        = ["staging"]
+          values_order_direction = "asc"
+          selection_type         = "single"
+          source = {
+            constant_list = ["staging", "test-trade"]
+          }
+        }
+      }
+    },
+  ]
+}
+`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.name", "environment"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.selection_type", "single"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.values_order_direction", "asc"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.0", "staging"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.1", "test-trade"),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
 }
 
 func TestAccCoralogixResourceDashboardLayoutColor(t *testing.T) {

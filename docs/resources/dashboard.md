@@ -2177,6 +2177,7 @@ Optional:
 - `show_inner_arc` (Boolean)
 - `show_outer_arc` (Boolean)
 - `threshold_by` (String) The threshold by. Can be one of ["background" "unspecified" "value"].
+- `threshold_type` (String) The threshold type. Can be one of ["absolute" "relative" "unspecified"].
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query"></a>
@@ -4494,6 +4495,7 @@ Required:
 Optional:
 
 - `selected_values` (List of String)
+- `selection_type` (String) Selection mode of the variable. Can be one of `multi`, `single`. Omit to use the API default (multi-select with an implicit "All" option).
 - `source` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source))
 
 <a id="nestedatt--variables--definition--multi_select--source"></a>
