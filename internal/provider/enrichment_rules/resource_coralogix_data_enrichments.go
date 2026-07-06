@@ -633,11 +633,11 @@ func extractCustomEnrichmentsDataCreate(plan *DataEnrichmentsModel) *cess.Create
 		return &cess.CreateCustomEnrichmentRequest{
 			Name:        plan.Custom.CustomEnrichmentDataModel.Name.ValueString(),
 			Description: plan.Custom.CustomEnrichmentDataModel.Description.ValueString(),
-			File: cess.FileTextualAsFile(&cess.FileTextual{
+			File: cess.File{
 				Extension: &ext,
 				Name:      plan.Custom.CustomEnrichmentDataModel.Name.ValueStringPointer(),
-				Textual:   plan.Custom.CustomEnrichmentDataModel.Contents.ValueString(),
-			}),
+				Textual:   plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer(),
+			},
 		}
 	}
 	return nil
@@ -651,11 +651,9 @@ func extractCustomEnrichmentsDataUpdate(plan *DataEnrichmentsModel) *cess.Update
 			Name:               plan.Custom.CustomEnrichmentDataModel.Name.ValueString(),
 			Description:        plan.Custom.CustomEnrichmentDataModel.Description.ValueString(),
 			File: cess.File{
-				FileTextual: &cess.FileTextual{
-					Extension: &ext,
-					Name:      plan.Custom.CustomEnrichmentDataModel.Name.ValueStringPointer(),
-					Textual:   plan.Custom.CustomEnrichmentDataModel.Contents.ValueString(),
-				},
+				Extension: &ext,
+				Name:      plan.Custom.CustomEnrichmentDataModel.Name.ValueStringPointer(),
+				Textual:   plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer(),
 			},
 		}
 	}
@@ -668,10 +666,8 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 	if plan.Aws != nil {
 		for _, f := range plan.Aws.Fields {
 			enrichmentType := ess.EnrichmentType{
-				EnrichmentTypeAws: &ess.EnrichmentTypeAws{
-					Aws: ess.AwsType{
-						ResourceType: f.Resource.ValueStringPointer(),
-					},
+				Aws: &ess.AwsType{
+					ResourceType: f.Resource.ValueStringPointer(),
 				},
 			}
 			requestModels = append(requestModels, ess.EnrichmentRequestModel{
@@ -685,13 +681,11 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 
 	if plan.GeoIp != nil {
 		enrichmentType := ess.EnrichmentType{
-			EnrichmentTypeGeoIp: &ess.EnrichmentTypeGeoIp{
-				GeoIp: *ess.NewGeoIpType(),
-			},
+			GeoIp: ess.NewGeoIpType(),
 		}
 		for _, f := range plan.GeoIp.Fields {
 			if !(f.Asn.IsNull() || f.Asn.IsUnknown()) {
-				enrichmentType.EnrichmentTypeGeoIp.GeoIp.WithAsn = f.Asn.ValueBoolPointer()
+				enrichmentType.GeoIp.WithAsn = f.Asn.ValueBoolPointer()
 			}
 			requestModels = append(requestModels, ess.EnrichmentRequestModel{
 				EnrichedFieldName: f.EnrichedFieldName.ValueStringPointer(),
@@ -704,9 +698,7 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 
 	if plan.SuspiciousIp != nil {
 		enrichmentType := ess.EnrichmentType{
-			EnrichmentTypeSuspiciousIp: &ess.EnrichmentTypeSuspiciousIp{
-				SuspiciousIp: map[string]any{},
-			},
+			SuspiciousIp: map[string]any{},
 		}
 		for _, f := range plan.SuspiciousIp.Fields {
 			requestModels = append(requestModels, ess.EnrichmentRequestModel{
@@ -723,10 +715,8 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 		for _, f := range plan.Custom.Fields {
 
 			enrichmentType := ess.EnrichmentType{
-				EnrichmentTypeCustomEnrichment: &ess.EnrichmentTypeCustomEnrichment{
-					CustomEnrichment: ess.CustomEnrichmentType{
-						Id: id,
-					},
+				CustomEnrichment: &ess.CustomEnrichmentType{
+					Id: id,
 				},
 			}
 			requestModels = append(requestModels, ess.EnrichmentRequestModel{
@@ -766,7 +756,7 @@ func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.Custo
 	}
 
 	for _, e := range enrichments {
-		if e.EnrichmentType.EnrichmentTypeAws != nil {
+		if e.EnrichmentType.Aws != nil {
 			if model.Aws == nil {
 				model.Aws = &AwsEnrichmentFieldsModel{}
 			}
@@ -774,11 +764,11 @@ func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.Custo
 				EnrichedFieldName: types.StringPointerValue(e.EnrichedFieldName),
 				SelectedColumns:   utils.StringSliceToTypeStringSet(e.SelectedColumns),
 				Name:              types.StringValue(e.FieldName),
-				Resource:          types.StringPointerValue(e.EnrichmentType.EnrichmentTypeAws.Aws.ResourceType),
+				Resource:          types.StringPointerValue(e.EnrichmentType.Aws.ResourceType),
 				ID:                types.Int64Value(e.Id),
 			})
 			id = append(id, AWS_TYPE)
-		} else if e.EnrichmentType.EnrichmentTypeGeoIp != nil {
+		} else if e.EnrichmentType.GeoIp != nil {
 			if model.GeoIp == nil {
 				model.GeoIp = &GeoIpEnrichmentFieldsModel{}
 			}
@@ -787,10 +777,10 @@ func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.Custo
 				SelectedColumns:   utils.StringSliceToTypeStringSet(e.SelectedColumns),
 				Name:              types.StringValue(e.FieldName),
 				ID:                types.Int64Value(e.Id),
-				Asn:               types.BoolPointerValue(e.EnrichmentType.EnrichmentTypeGeoIp.GeoIp.WithAsn),
+				Asn:               types.BoolPointerValue(e.EnrichmentType.GeoIp.WithAsn),
 			})
 			id = append(id, GEOIP_TYPE)
-		} else if e.EnrichmentType.EnrichmentTypeSuspiciousIp != nil {
+		} else if e.EnrichmentType.SuspiciousIp != nil {
 			if model.SuspiciousIp == nil {
 				model.SuspiciousIp = &EnrichmentFieldsModel{}
 			}
@@ -801,7 +791,7 @@ func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.Custo
 				ID:                types.Int64Value(e.Id),
 			})
 			id = append(id, SUSIP_TYPE)
-		} else if e.EnrichmentType.EnrichmentTypeCustomEnrichment != nil {
+		} else if e.EnrichmentType.CustomEnrichment != nil {
 			if model.Custom == nil {
 				model.Custom = &CustomEnrichmentFieldsModel{}
 			}
@@ -832,16 +822,16 @@ func ExtractIdsFromEnrichment(fields []CoralogixEnrichment) []uint32 {
 func FilterEnrichmentByTypes(enrichments []ess.Enrichment, t string) []ess.Enrichment {
 	results := make([]ess.Enrichment, 0)
 	for _, e := range enrichments {
-		if t == AWS_TYPE && e.EnrichmentType.EnrichmentTypeAws != nil {
+		if t == AWS_TYPE && e.EnrichmentType.Aws != nil {
 			results = append(results, e)
 		}
-		if t == GEOIP_TYPE && e.EnrichmentType.EnrichmentTypeGeoIp != nil {
+		if t == GEOIP_TYPE && e.EnrichmentType.GeoIp != nil {
 			results = append(results, e)
 		}
-		if t == SUSIP_TYPE && e.EnrichmentType.EnrichmentTypeSuspiciousIp != nil {
+		if t == SUSIP_TYPE && e.EnrichmentType.SuspiciousIp != nil {
 			results = append(results, e)
 		}
-		if t == CUSTOM_TYPE && e.EnrichmentType.EnrichmentTypeCustomEnrichment != nil {
+		if t == CUSTOM_TYPE && e.EnrichmentType.CustomEnrichment != nil {
 			results = append(results, e)
 		}
 	}

@@ -603,44 +603,68 @@ func extractAIEvaluationConfig(ctx context.Context, model *AIEvaluationConfigMod
 		return nil, diags
 	}
 
+	if config, configDiags, ok := extractAIEvaluationValuedConfig(ctx, model); ok {
+		return config, configDiags
+	}
+	if config, ok := extractAIEvaluationMarkerConfig(model); ok {
+		return config, diags
+	}
+
+	diags.AddError("Missing AI evaluation config", "Exactly one AI evaluation config block must be set.")
+	return nil, diags
+}
+
+func extractAIEvaluationValuedConfig(ctx context.Context, model *AIEvaluationConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics, bool) {
 	switch {
 	case model.AllowedTopics != nil:
-		return extractAIEvaluationAllowedTopicsConfig(ctx, *model.AllowedTopics)
+		config, diags := extractAIEvaluationAllowedTopicsConfig(ctx, *model.AllowedTopics)
+		return config, diags, true
 	case model.Competition != nil:
-		return extractAIEvaluationCompetitionConfig(ctx, *model.Competition)
-	case model.HallucinationCompleteness != nil:
-		return extractAIEvaluationHallucinationCompletenessConfig(), diags
-	case model.HallucinationContextAdherence != nil:
-		return extractAIEvaluationHallucinationContextAdherenceConfig(), diags
-	case model.HallucinationContextRelevance != nil:
-		return extractAIEvaluationHallucinationContextRelevanceConfig(), diags
-	case model.HallucinationCorrectness != nil:
-		return extractAIEvaluationHallucinationCorrectnessConfig(), diags
-	case model.HallucinationTaskAdherence != nil:
-		return extractAIEvaluationHallucinationTaskAdherenceConfig(), diags
-	case model.LanguageMismatch != nil:
-		return extractAIEvaluationLanguageMismatchConfig(), diags
+		config, diags := extractAIEvaluationCompetitionConfig(ctx, *model.Competition)
+		return config, diags, true
 	case model.PII != nil:
-		return extractAIEvaluationPIIConfig(ctx, *model.PII)
+		config, diags := extractAIEvaluationPIIConfig(ctx, *model.PII)
+		return config, diags, true
 	case model.PromptInjection != nil:
-		return extractAIEvaluationPromptInjectionConfig(*model.PromptInjection), diags
+		return extractAIEvaluationPromptInjectionConfig(*model.PromptInjection), nil, true
 	case model.RestrictedTopics != nil:
-		return extractAIEvaluationRestrictedTopicsConfig(ctx, *model.RestrictedTopics)
-	case model.Sexism != nil:
-		return extractAIEvaluationSexismConfig(), diags
+		config, diags := extractAIEvaluationRestrictedTopicsConfig(ctx, *model.RestrictedTopics)
+		return config, diags, true
 	case model.SQLAllowedTables != nil:
-		return extractAIEvaluationSQLAllowedTablesConfig(ctx, *model.SQLAllowedTables)
-	case model.SQLHallucination != nil:
-		return extractAIEvaluationSQLHallucinationConfig(), diags
-	case model.SQLReadOnly != nil:
-		return extractAIEvaluationSQLReadOnlyConfig(), diags
+		config, diags := extractAIEvaluationSQLAllowedTablesConfig(ctx, *model.SQLAllowedTables)
+		return config, diags, true
 	case model.SQLRestrictedTables != nil:
-		return extractAIEvaluationSQLRestrictedTablesConfig(ctx, *model.SQLRestrictedTables)
-	case model.Toxicity != nil:
-		return extractAIEvaluationToxicityConfig(), diags
+		config, diags := extractAIEvaluationSQLRestrictedTablesConfig(ctx, *model.SQLRestrictedTables)
+		return config, diags, true
 	default:
-		diags.AddError("Missing AI evaluation config", "Exactly one AI evaluation config block must be set.")
-		return nil, diags
+		return nil, nil, false
+	}
+}
+
+func extractAIEvaluationMarkerConfig(model *AIEvaluationConfigModel) (*aievaluations.EvaluationConfig, bool) {
+	switch {
+	case model.HallucinationCompleteness != nil:
+		return extractAIEvaluationHallucinationCompletenessConfig(), true
+	case model.HallucinationContextAdherence != nil:
+		return extractAIEvaluationHallucinationContextAdherenceConfig(), true
+	case model.HallucinationContextRelevance != nil:
+		return extractAIEvaluationHallucinationContextRelevanceConfig(), true
+	case model.HallucinationCorrectness != nil:
+		return extractAIEvaluationHallucinationCorrectnessConfig(), true
+	case model.HallucinationTaskAdherence != nil:
+		return extractAIEvaluationHallucinationTaskAdherenceConfig(), true
+	case model.LanguageMismatch != nil:
+		return extractAIEvaluationLanguageMismatchConfig(), true
+	case model.Sexism != nil:
+		return extractAIEvaluationSexismConfig(), true
+	case model.SQLHallucination != nil:
+		return extractAIEvaluationSQLHallucinationConfig(), true
+	case model.SQLReadOnly != nil:
+		return extractAIEvaluationSQLReadOnlyConfig(), true
+	case model.Toxicity != nil:
+		return extractAIEvaluationToxicityConfig(), true
+	default:
+		return nil, false
 	}
 }
 
@@ -653,11 +677,9 @@ func extractAIEvaluationAllowedTopicsConfig(ctx context.Context, model AIEvaluat
 		return nil, diags
 	}
 
-	config := aievaluations.EvaluationConfigAllowedTopicsAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigAllowedTopics(aievaluations.AllowedTopicsConfig{Topics: topics}),
-	)
-
-	return &config, diags
+	return &aievaluations.EvaluationConfig{
+		AllowedTopics: &aievaluations.AllowedTopicsConfig{Topics: topics},
+	}, diags
 }
 
 func extractAIEvaluationCompetitionConfig(ctx context.Context, model AIEvaluationCompetitionConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
@@ -669,59 +691,33 @@ func extractAIEvaluationCompetitionConfig(ctx context.Context, model AIEvaluatio
 		return nil, diags
 	}
 
-	config := aievaluations.EvaluationConfigCompetitionAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigCompetition(aievaluations.CompetitionConfig{Competitors: competitors}),
-	)
-
-	return &config, diags
+	return &aievaluations.EvaluationConfig{
+		Competition: &aievaluations.CompetitionConfig{Competitors: competitors},
+	}, diags
 }
 
 func extractAIEvaluationHallucinationCompletenessConfig() *aievaluations.EvaluationConfig {
-	config := aievaluations.EvaluationConfigHallucinationCompletenessAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigHallucinationCompleteness(map[string]interface{}{}),
-	)
-
-	return &config
+	return &aievaluations.EvaluationConfig{HallucinationCompleteness: map[string]interface{}{}}
 }
 
 func extractAIEvaluationHallucinationContextAdherenceConfig() *aievaluations.EvaluationConfig {
-	config := aievaluations.EvaluationConfigHallucinationContextAdherenceAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigHallucinationContextAdherence(map[string]interface{}{}),
-	)
-
-	return &config
+	return &aievaluations.EvaluationConfig{HallucinationContextAdherence: map[string]interface{}{}}
 }
 
 func extractAIEvaluationHallucinationContextRelevanceConfig() *aievaluations.EvaluationConfig {
-	config := aievaluations.EvaluationConfigHallucinationContextRelevanceAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigHallucinationContextRelevance(map[string]interface{}{}),
-	)
-
-	return &config
+	return &aievaluations.EvaluationConfig{HallucinationContextRelevance: map[string]interface{}{}}
 }
 
 func extractAIEvaluationHallucinationCorrectnessConfig() *aievaluations.EvaluationConfig {
-	config := aievaluations.EvaluationConfigHallucinationCorrectnessAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigHallucinationCorrectness(map[string]interface{}{}),
-	)
-
-	return &config
+	return &aievaluations.EvaluationConfig{HallucinationCorrectness: map[string]interface{}{}}
 }
 
 func extractAIEvaluationHallucinationTaskAdherenceConfig() *aievaluations.EvaluationConfig {
-	config := aievaluations.EvaluationConfigHallucinationTaskAdherenceAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigHallucinationTaskAdherence(map[string]interface{}{}),
-	)
-
-	return &config
+	return &aievaluations.EvaluationConfig{HallucinationTaskAdherence: map[string]interface{}{}}
 }
 
 func extractAIEvaluationLanguageMismatchConfig() *aievaluations.EvaluationConfig {
-	config := aievaluations.EvaluationConfigLanguageMismatchAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigLanguageMismatch(map[string]interface{}{}),
-	)
-
-	return &config
+	return &aievaluations.EvaluationConfig{LanguageMismatch: map[string]interface{}{}}
 }
 
 func extractAIEvaluationRestrictedTopicsConfig(ctx context.Context, model AIEvaluationRestrictedTopicsConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
@@ -733,11 +729,9 @@ func extractAIEvaluationRestrictedTopicsConfig(ctx context.Context, model AIEval
 		return nil, diags
 	}
 
-	config := aievaluations.EvaluationConfigRestrictedTopicsAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigRestrictedTopics(aievaluations.RestrictedTopicsConfig{Topics: topics}),
-	)
-
-	return &config, diags
+	return &aievaluations.EvaluationConfig{
+		RestrictedTopics: &aievaluations.RestrictedTopicsConfig{Topics: topics},
+	}, diags
 }
 
 func extractAIEvaluationPIIConfig(ctx context.Context, model AIEvaluationPIIConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
@@ -765,11 +759,9 @@ func extractAIEvaluationPIIConfig(ctx context.Context, model AIEvaluationPIIConf
 		return nil, diags
 	}
 
-	config := aievaluations.EvaluationConfigPiiAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigPii(aievaluations.PiiConfig{Categories: apiCategories}),
-	)
-
-	return &config, diags
+	return &aievaluations.EvaluationConfig{
+		Pii: &aievaluations.PiiConfig{Categories: apiCategories},
+	}, diags
 }
 
 func extractAIEvaluationPromptInjectionConfig(model AIEvaluationPromptInjectionConfigModel) *aievaluations.EvaluationConfig {
@@ -778,19 +770,11 @@ func extractAIEvaluationPromptInjectionConfig(model AIEvaluationPromptInjectionC
 		promptInjectionConfig.AdditionalContext = aievaluations.PtrString(model.AdditionalContext.ValueString())
 	}
 
-	config := aievaluations.EvaluationConfigPromptInjectionAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigPromptInjection(promptInjectionConfig),
-	)
-
-	return &config
+	return &aievaluations.EvaluationConfig{PromptInjection: &promptInjectionConfig}
 }
 
 func extractAIEvaluationSexismConfig() *aievaluations.EvaluationConfig {
-	config := aievaluations.EvaluationConfigSexismAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigSexism(map[string]interface{}{}),
-	)
-
-	return &config
+	return &aievaluations.EvaluationConfig{Sexism: map[string]interface{}{}}
 }
 
 func extractAIEvaluationSQLAllowedTablesConfig(ctx context.Context, model AIEvaluationSQLAllowedTablesConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
@@ -802,27 +786,17 @@ func extractAIEvaluationSQLAllowedTablesConfig(ctx context.Context, model AIEval
 		return nil, diags
 	}
 
-	config := aievaluations.EvaluationConfigSqlAllowedTablesAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigSqlAllowedTables(aievaluations.SqlAllowedTablesConfig{Tables: tables}),
-	)
-
-	return &config, diags
+	return &aievaluations.EvaluationConfig{
+		SqlAllowedTables: &aievaluations.SqlAllowedTablesConfig{Tables: tables},
+	}, diags
 }
 
 func extractAIEvaluationSQLHallucinationConfig() *aievaluations.EvaluationConfig {
-	config := aievaluations.EvaluationConfigSqlHallucinationAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigSqlHallucination(map[string]interface{}{}),
-	)
-
-	return &config
+	return &aievaluations.EvaluationConfig{SqlHallucination: map[string]interface{}{}}
 }
 
 func extractAIEvaluationSQLReadOnlyConfig() *aievaluations.EvaluationConfig {
-	config := aievaluations.EvaluationConfigSqlReadOnlyAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigSqlReadOnly(map[string]interface{}{}),
-	)
-
-	return &config
+	return &aievaluations.EvaluationConfig{SqlReadOnly: map[string]interface{}{}}
 }
 
 func extractAIEvaluationSQLRestrictedTablesConfig(ctx context.Context, model AIEvaluationSQLRestrictedTablesConfigModel) (*aievaluations.EvaluationConfig, diag.Diagnostics) {
@@ -834,19 +808,13 @@ func extractAIEvaluationSQLRestrictedTablesConfig(ctx context.Context, model AIE
 		return nil, diags
 	}
 
-	config := aievaluations.EvaluationConfigSqlRestrictedTablesAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigSqlRestrictedTables(aievaluations.SqlRestrictedTablesConfig{Tables: tables}),
-	)
-
-	return &config, diags
+	return &aievaluations.EvaluationConfig{
+		SqlRestrictedTables: &aievaluations.SqlRestrictedTablesConfig{Tables: tables},
+	}, diags
 }
 
 func extractAIEvaluationToxicityConfig() *aievaluations.EvaluationConfig {
-	config := aievaluations.EvaluationConfigToxicityAsEvaluationConfig(
-		aievaluations.NewEvaluationConfigToxicity(map[string]interface{}{}),
-	)
-
-	return &config
+	return &aievaluations.EvaluationConfig{Toxicity: map[string]interface{}{}}
 }
 
 func flattenAIEvaluation(ctx context.Context, evaluation aievaluations.AiEvaluation) (AIEvaluationResourceModel, diag.Diagnostics) {
@@ -870,59 +838,77 @@ func flattenAIEvaluation(ctx context.Context, evaluation aievaluations.AiEvaluat
 }
 
 func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.EvaluationConfig) (AIEvaluationConfigModel, diag.Diagnostics) {
-	var diags diag.Diagnostics
+	if model, diags, ok := flattenAIEvaluationValuedConfig(ctx, config); ok {
+		return model, diags
+	}
+	if model, ok := flattenAIEvaluationMarkerConfig(config); ok {
+		return model, nil
+	}
 
-	switch actualConfig := config.GetActualInstance().(type) {
-	case *aievaluations.EvaluationConfigAllowedTopics:
-		topics, topicDiags := flattenAIEvaluationAllowedTopics(ctx, actualConfig.GetAllowedTopics())
+	var diags diag.Diagnostics
+	diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, SQL Allowed Tables, SQL Hallucination, SQL Read Only, SQL Restricted Tables, and Toxicity AI evaluation configs are currently supported by this resource.")
+	return AIEvaluationConfigModel{}, diags
+}
+
+func flattenAIEvaluationValuedConfig(ctx context.Context, config aievaluations.EvaluationConfig) (AIEvaluationConfigModel, diag.Diagnostics, bool) {
+	var diags diag.Diagnostics
+	switch {
+	case config.AllowedTopics != nil:
+		topics, topicDiags := flattenAIEvaluationAllowedTopics(ctx, *config.AllowedTopics)
 		diags.Append(topicDiags...)
-		return AIEvaluationConfigModel{AllowedTopics: &AIEvaluationAllowedTopicsConfigModel{Topics: topics}}, diags
-	case *aievaluations.EvaluationConfigCompetition:
-		competitors, competitorDiags := flattenAIEvaluationCompetition(ctx, actualConfig.GetCompetition())
+		return AIEvaluationConfigModel{AllowedTopics: &AIEvaluationAllowedTopicsConfigModel{Topics: topics}}, diags, true
+	case config.Competition != nil:
+		competitors, competitorDiags := flattenAIEvaluationCompetition(ctx, *config.Competition)
 		diags.Append(competitorDiags...)
-		return AIEvaluationConfigModel{Competition: &AIEvaluationCompetitionConfigModel{Competitors: competitors}}, diags
-	case *aievaluations.EvaluationConfigHallucinationCompleteness:
-		return AIEvaluationConfigModel{HallucinationCompleteness: &AIEvaluationHallucinationCompletenessConfigModel{}}, diags
-	case *aievaluations.EvaluationConfigHallucinationContextAdherence:
-		return AIEvaluationConfigModel{HallucinationContextAdherence: &AIEvaluationHallucinationContextAdherenceConfigModel{}}, diags
-	case *aievaluations.EvaluationConfigHallucinationContextRelevance:
-		return AIEvaluationConfigModel{HallucinationContextRelevance: &AIEvaluationHallucinationContextRelevanceConfigModel{}}, diags
-	case *aievaluations.EvaluationConfigHallucinationCorrectness:
-		return AIEvaluationConfigModel{HallucinationCorrectness: &AIEvaluationHallucinationCorrectnessConfigModel{}}, diags
-	case *aievaluations.EvaluationConfigHallucinationTaskAdherence:
-		return AIEvaluationConfigModel{HallucinationTaskAdherence: &AIEvaluationHallucinationTaskAdherenceConfigModel{}}, diags
-	case *aievaluations.EvaluationConfigLanguageMismatch:
-		return AIEvaluationConfigModel{LanguageMismatch: &AIEvaluationLanguageMismatchConfigModel{}}, diags
-	case *aievaluations.EvaluationConfigPii:
-		categories, categoryDiags := flattenAIEvaluationPIICategories(ctx, actualConfig.GetPii())
+		return AIEvaluationConfigModel{Competition: &AIEvaluationCompetitionConfigModel{Competitors: competitors}}, diags, true
+	case config.Pii != nil:
+		categories, categoryDiags := flattenAIEvaluationPIICategories(ctx, *config.Pii)
 		diags.Append(categoryDiags...)
-		return AIEvaluationConfigModel{PII: &AIEvaluationPIIConfigModel{Categories: categories}}, diags
-	case *aievaluations.EvaluationConfigPromptInjection:
-		promptInjection := actualConfig.GetPromptInjection()
-		return AIEvaluationConfigModel{PromptInjection: &AIEvaluationPromptInjectionConfigModel{AdditionalContext: types.StringValue(promptInjection.GetAdditionalContext())}}, diags
-	case *aievaluations.EvaluationConfigRestrictedTopics:
-		topics, topicDiags := flattenAIEvaluationRestrictedTopics(ctx, actualConfig.GetRestrictedTopics())
+		return AIEvaluationConfigModel{PII: &AIEvaluationPIIConfigModel{Categories: categories}}, diags, true
+	case config.PromptInjection != nil:
+		promptInjection := config.PromptInjection
+		return AIEvaluationConfigModel{PromptInjection: &AIEvaluationPromptInjectionConfigModel{AdditionalContext: types.StringValue(promptInjection.GetAdditionalContext())}}, diags, true
+	case config.RestrictedTopics != nil:
+		topics, topicDiags := flattenAIEvaluationRestrictedTopics(ctx, *config.RestrictedTopics)
 		diags.Append(topicDiags...)
-		return AIEvaluationConfigModel{RestrictedTopics: &AIEvaluationRestrictedTopicsConfigModel{Topics: topics}}, diags
-	case *aievaluations.EvaluationConfigSexism:
-		return AIEvaluationConfigModel{Sexism: &AIEvaluationSexismConfigModel{}}, diags
-	case *aievaluations.EvaluationConfigSqlAllowedTables:
-		tables, tableDiags := flattenAIEvaluationSQLAllowedTables(ctx, actualConfig.GetSqlAllowedTables())
+		return AIEvaluationConfigModel{RestrictedTopics: &AIEvaluationRestrictedTopicsConfigModel{Topics: topics}}, diags, true
+	case config.SqlAllowedTables != nil:
+		tables, tableDiags := flattenAIEvaluationSQLAllowedTables(ctx, *config.SqlAllowedTables)
 		diags.Append(tableDiags...)
-		return AIEvaluationConfigModel{SQLAllowedTables: &AIEvaluationSQLAllowedTablesConfigModel{Tables: tables}}, diags
-	case *aievaluations.EvaluationConfigSqlHallucination:
-		return AIEvaluationConfigModel{SQLHallucination: &AIEvaluationSQLHallucinationConfigModel{}}, diags
-	case *aievaluations.EvaluationConfigSqlReadOnly:
-		return AIEvaluationConfigModel{SQLReadOnly: &AIEvaluationSQLReadOnlyConfigModel{}}, diags
-	case *aievaluations.EvaluationConfigSqlRestrictedTables:
-		tables, tableDiags := flattenAIEvaluationSQLRestrictedTables(ctx, actualConfig.GetSqlRestrictedTables())
+		return AIEvaluationConfigModel{SQLAllowedTables: &AIEvaluationSQLAllowedTablesConfigModel{Tables: tables}}, diags, true
+	case config.SqlRestrictedTables != nil:
+		tables, tableDiags := flattenAIEvaluationSQLRestrictedTables(ctx, *config.SqlRestrictedTables)
 		diags.Append(tableDiags...)
-		return AIEvaluationConfigModel{SQLRestrictedTables: &AIEvaluationSQLRestrictedTablesConfigModel{Tables: tables}}, diags
-	case *aievaluations.EvaluationConfigToxicity:
-		return AIEvaluationConfigModel{Toxicity: &AIEvaluationToxicityConfigModel{}}, diags
+		return AIEvaluationConfigModel{SQLRestrictedTables: &AIEvaluationSQLRestrictedTablesConfigModel{Tables: tables}}, diags, true
 	default:
-		diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, SQL Allowed Tables, SQL Hallucination, SQL Read Only, SQL Restricted Tables, and Toxicity AI evaluation configs are currently supported by this resource.")
-		return AIEvaluationConfigModel{}, diags
+		return AIEvaluationConfigModel{}, nil, false
+	}
+}
+
+func flattenAIEvaluationMarkerConfig(config aievaluations.EvaluationConfig) (AIEvaluationConfigModel, bool) {
+	switch {
+	case config.HallucinationCompleteness != nil:
+		return AIEvaluationConfigModel{HallucinationCompleteness: &AIEvaluationHallucinationCompletenessConfigModel{}}, true
+	case config.HallucinationContextAdherence != nil:
+		return AIEvaluationConfigModel{HallucinationContextAdherence: &AIEvaluationHallucinationContextAdherenceConfigModel{}}, true
+	case config.HallucinationContextRelevance != nil:
+		return AIEvaluationConfigModel{HallucinationContextRelevance: &AIEvaluationHallucinationContextRelevanceConfigModel{}}, true
+	case config.HallucinationCorrectness != nil:
+		return AIEvaluationConfigModel{HallucinationCorrectness: &AIEvaluationHallucinationCorrectnessConfigModel{}}, true
+	case config.HallucinationTaskAdherence != nil:
+		return AIEvaluationConfigModel{HallucinationTaskAdherence: &AIEvaluationHallucinationTaskAdherenceConfigModel{}}, true
+	case config.LanguageMismatch != nil:
+		return AIEvaluationConfigModel{LanguageMismatch: &AIEvaluationLanguageMismatchConfigModel{}}, true
+	case config.Sexism != nil:
+		return AIEvaluationConfigModel{Sexism: &AIEvaluationSexismConfigModel{}}, true
+	case config.SqlHallucination != nil:
+		return AIEvaluationConfigModel{SQLHallucination: &AIEvaluationSQLHallucinationConfigModel{}}, true
+	case config.SqlReadOnly != nil:
+		return AIEvaluationConfigModel{SQLReadOnly: &AIEvaluationSQLReadOnlyConfigModel{}}, true
+	case config.Toxicity != nil:
+		return AIEvaluationConfigModel{Toxicity: &AIEvaluationToxicityConfigModel{}}, true
+	default:
+		return AIEvaluationConfigModel{}, false
 	}
 }
 

@@ -474,9 +474,7 @@ func extractConditionType(ctx context.Context, conditionType types.Object) (*pre
 			return nil, diags
 		}
 		return &presets.NotificationCenterConditionType{
-			NotificationCenterConditionTypeMatchEntityType: &presets.NotificationCenterConditionTypeMatchEntityType{
-				MatchEntityType: map[string]any{},
-			},
+			MatchEntityType: map[string]any{},
 		}, nil
 	} else if matchEntityTypeAndSubType := condition.MatchEntityTypeAndSubType; !(matchEntityTypeAndSubType.IsNull() || matchEntityTypeAndSubType.IsUnknown()) {
 		var matchEntityTypeAndSubTypeModel MatchEntityTypeAndSubTypeModel
@@ -484,10 +482,8 @@ func extractConditionType(ctx context.Context, conditionType types.Object) (*pre
 			return nil, diags
 		}
 		return &presets.NotificationCenterConditionType{
-			NotificationCenterConditionTypeMatchEntityTypeAndSubType: &presets.NotificationCenterConditionTypeMatchEntityTypeAndSubType{
-				MatchEntityTypeAndSubType: presets.MatchEntityTypeAndSubTypeCondition{
-					EntitySubType: matchEntityTypeAndSubTypeModel.EntitySubType.ValueStringPointer(),
-				},
+			MatchEntityTypeAndSubType: &presets.MatchEntityTypeAndSubTypeCondition{
+				EntitySubType: matchEntityTypeAndSubTypeModel.EntitySubType.ValueStringPointer(),
 			},
 		}, nil
 	}
@@ -653,16 +649,16 @@ func flattenConditionType(ctx context.Context, condition *presets.NotificationCe
 	presetCondition.MatchEntityTypeAndSubType = types.ObjectNull(matchEntityTypeAndSubTypeAttr())
 	presetCondition.MatchEntityType = types.ObjectNull(matchEntityTypeTypeAttr())
 
-	if matchEntityType := condition.NotificationCenterConditionTypeMatchEntityType; matchEntityType != nil {
+	if condition.MatchEntityType != nil {
 		matchEntityType, diags := types.ObjectValueFrom(ctx, matchEntityTypeTypeAttr(), MatchEntityTypeModel{})
 		if diags.HasError() {
 			return types.ObjectNull(conditionTypeAttr()), diags
 		}
 		presetCondition.MatchEntityType = matchEntityType
 
-	} else if matchEntityTypeAndSubType := condition.NotificationCenterConditionTypeMatchEntityTypeAndSubType; matchEntityTypeAndSubType != nil {
+	} else if matchEntityTypeAndSubType := condition.MatchEntityTypeAndSubType; matchEntityTypeAndSubType != nil {
 		matchEntityTypeAndSubType, diags := types.ObjectValueFrom(ctx, matchEntityTypeAndSubTypeAttr(), MatchEntityTypeAndSubTypeModel{
-			EntitySubType: types.StringPointerValue(matchEntityTypeAndSubType.GetMatchEntityTypeAndSubType().EntitySubType),
+			EntitySubType: types.StringPointerValue(matchEntityTypeAndSubType.EntitySubType),
 		})
 		if diags.HasError() {
 			return types.ObjectNull(conditionTypeAttr()), diags

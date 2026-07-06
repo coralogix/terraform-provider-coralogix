@@ -529,7 +529,7 @@ func flattenGetTCOPoliciesLogsList(ctx context.Context, getResp *tcoPolicys.GetC
 }
 
 func flattenTCOLogsPolicy(ctx context.Context, policy tcoPolicys.Policy) (*TCOPolicyLogsModel, diag.Diagnostics) {
-	logsPolicy := policy.PolicyLogRules
+	logsPolicy := policy
 
 	logRules := logsPolicy.LogRules
 	applications, diags := flattenTCOPolicyRule(ctx, logsPolicy.ApplicationRule)

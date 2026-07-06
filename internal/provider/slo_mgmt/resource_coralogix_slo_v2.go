@@ -287,12 +287,9 @@ func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics = diags
 		return
 	}
-	rq := slos.SlosServiceReplaceSloRequest{
-		SloRequestBasedMetricSli: slo.SloRequestBasedMetricSli,
-		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
-	}
+	rq := extractSLOV2Payload(slo)
 
-	result, httpResponse, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceReplaceSloRequest(rq).Execute()
+	result, httpResponse, err := r.client.SlosServiceCreateSlo(ctx).Slo1(rq).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating coralogix_slo_v2",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
@@ -363,14 +360,11 @@ func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	rq := slos.SlosServiceReplaceSloRequest{
-		SloRequestBasedMetricSli: slo.SloRequestBasedMetricSli,
-		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
-	}
+	rq := extractSLOV2Payload(slo)
 
 	result, httpResponse, err := r.client.
 		SlosServiceReplaceSlo(ctx).
-		SlosServiceReplaceSloRequest(rq).
+		Slo1(rq).
 		Execute()
 
 	if err != nil {
@@ -419,7 +413,6 @@ func (r *SLOV2Resource) Delete(ctx context.Context, req resource.DeleteRequest, 
 }
 
 func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*slos.Slo, diag.Diagnostics) {
-	slo := &slos.Slo{}
 	name := plan.Name.ValueStringPointer()
 	description := plan.Description.ValueStringPointer()
 	targetThresholdPct := plan.TargetThresholdPercentage.ValueFloat32()
@@ -438,6 +431,14 @@ func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*slos.Slo, dia
 	if diags.HasError() {
 		return nil, diags
 	}
+	slo := &slos.Slo{
+		Description:               description,
+		Id:                        id,
+		Labels:                    &labels,
+		Name:                      name,
+		SloTimeFrame:              timeFrame,
+		TargetThresholdPercentage: &targetThresholdPct,
+	}
 
 	var sliModel SLIModel
 	if diags := plan.SLI.As(ctx, &sliModel, basetypes.ObjectAsOptions{}); diags.HasError() {
@@ -446,17 +447,17 @@ func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*slos.Slo, dia
 
 	if reqBased := sliModel.RequestBasedMetricSli; !(reqBased.IsNull() || reqBased.IsUnknown()) {
 
-		sli, diags := extractRequestBasedSLI(ctx, id, &labels, name, description, targetThresholdPct, timeFrame, reqBased)
+		sli, diags := extractRequestBasedSLI(ctx, reqBased)
 		if diags.HasError() {
 			return nil, diags
 		}
-		slo.SloRequestBasedMetricSli = sli
+		slo.RequestBasedMetricSli = sli
 	} else if winBased := sliModel.WindowBasedMetricSli; !(winBased.IsNull() || winBased.IsUnknown()) {
-		sli, diags := extractWindowBasedSLI(ctx, id, &labels, name, description, targetThresholdPct, timeFrame, winBased)
+		sli, diags := extractWindowBasedSLI(ctx, winBased)
 		if diags.HasError() {
 			return nil, diags
 		}
-		slo.SloWindowBasedMetricSli = sli
+		slo.WindowBasedMetricSli = sli
 	} else {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Invalid SLI configuration",
@@ -467,7 +468,20 @@ func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*slos.Slo, dia
 	return slo, nil
 }
 
-func extractRequestBasedSLI(ctx context.Context, id *string, labels *map[string]string, name *string, description *string, targetThresholdPct float32, timeFrame *slos.SloTimeFrame, reqBased types.Object) (*slos.SloRequestBasedMetricSli, diag.Diagnostics) {
+func extractSLOV2Payload(slo *slos.Slo) slos.Slo1 {
+	return slos.Slo1{
+		Description:               slo.Description,
+		Id:                        slo.Id,
+		Labels:                    slo.Labels,
+		Name:                      slo.Name,
+		RequestBasedMetricSli:     slo.RequestBasedMetricSli,
+		SloTimeFrame:              slo.SloTimeFrame,
+		TargetThresholdPercentage: slo.TargetThresholdPercentage,
+		WindowBasedMetricSli:      slo.WindowBasedMetricSli,
+	}
+}
+
+func extractRequestBasedSLI(ctx context.Context, reqBased types.Object) (*slos.RequestBasedMetricSli, diag.Diagnostics) {
 	var requestBasedModel RequestBasedMetricSliModel
 	diags := reqBased.As(ctx, &requestBasedModel, basetypes.ObjectAsOptions{})
 	if diags.HasError() {
@@ -486,25 +500,17 @@ func extractRequestBasedSLI(ctx context.Context, id *string, labels *map[string]
 		return nil, diags
 	}
 
-	return &slos.SloRequestBasedMetricSli{
-		RequestBasedMetricSli: slos.RequestBasedMetricSli{
-			GoodEvents: &slos.Metric{
-				Query: goodModel.Query.ValueStringPointer(),
-			},
-			TotalEvents: &slos.Metric{
-				Query: totalModel.Query.ValueStringPointer(),
-			},
+	return &slos.RequestBasedMetricSli{
+		GoodEvents: &slos.Metric{
+			Query: goodModel.Query.ValueStringPointer(),
 		},
-		Description:               description,
-		Id:                        id,
-		Labels:                    labels,
-		Name:                      name,
-		SloTimeFrame:              timeFrame,
-		TargetThresholdPercentage: &targetThresholdPct,
+		TotalEvents: &slos.Metric{
+			Query: totalModel.Query.ValueStringPointer(),
+		},
 	}, nil
 }
 
-func extractWindowBasedSLI(ctx context.Context, id *string, labels *map[string]string, name *string, description *string, targetThresholdPct float32, timeFrame *slos.SloTimeFrame, winBased types.Object) (*slos.SloWindowBasedMetricSli, diag.Diagnostics) {
+func extractWindowBasedSLI(ctx context.Context, winBased types.Object) (*slos.WindowBasedMetricSli, diag.Diagnostics) {
 	var windowBasedModel WindowBasedMetricSliModel
 	diags := winBased.As(ctx, &windowBasedModel, basetypes.ObjectAsOptions{})
 	if diags.HasError() {
@@ -517,21 +523,13 @@ func extractWindowBasedSLI(ctx context.Context, id *string, labels *map[string]s
 		return nil, diags
 	}
 
-	return &slos.SloWindowBasedMetricSli{
-		WindowBasedMetricSli: slos.WindowBasedMetricSli{
-			Query: &slos.Metric{
-				Query: queryModel.Query.ValueStringPointer(),
-			},
-			Window:             schemaToProtoSLOWindow[windowBasedModel.Window.ValueString()].Ptr(),
-			ComparisonOperator: schemaToProtoComparisonOperator[windowBasedModel.ComparisonOperator.ValueString()].Ptr(),
-			Threshold:          windowBasedModel.Threshold.ValueFloat32Pointer(),
+	return &slos.WindowBasedMetricSli{
+		Query: &slos.Metric{
+			Query: queryModel.Query.ValueStringPointer(),
 		},
-		Description:               description,
-		Id:                        id,
-		Labels:                    labels,
-		Name:                      name,
-		SloTimeFrame:              timeFrame,
-		TargetThresholdPercentage: &targetThresholdPct,
+		Window:             schemaToProtoSLOWindow[windowBasedModel.Window.ValueString()].Ptr(),
+		ComparisonOperator: schemaToProtoComparisonOperator[windowBasedModel.ComparisonOperator.ValueString()].Ptr(),
+		Threshold:          windowBasedModel.Threshold.ValueFloat32Pointer(),
 	}, nil
 }
 
@@ -551,10 +549,10 @@ func extractWindow(ctx context.Context, rule types.Object) (*slos.SloTimeFrame, 
 
 func flattenSLOV2(ctx context.Context, slo *slos.Slo) (*SLOV2ResourceModel, diag.Diagnostics) {
 
-	if rb := slo.SloRequestBasedMetricSli; rb != nil {
-		return flattenRequestBasedSLI(ctx, rb)
-	} else if wb := slo.SloWindowBasedMetricSli; wb != nil {
-		return flattenWindowBasedSLI(ctx, wb)
+	if slo.RequestBasedMetricSli != nil {
+		return flattenRequestBasedSLI(ctx, slo)
+	} else if slo.WindowBasedMetricSli != nil {
+		return flattenWindowBasedSLI(ctx, slo)
 	} else {
 		diags := diag.Diagnostics{}
 		log.Printf("[ERROR] Response was neither a request nor window based SLO; %s", utils.FormatJSON(slo))
@@ -591,13 +589,14 @@ func flattenWindow(ctx context.Context, tf slos.SloTimeFrame) (types.Object, dia
 	}, model)
 }
 
-func flattenRequestBasedSLI(ctx context.Context, sli *slos.SloRequestBasedMetricSli) (*SLOV2ResourceModel, diag.Diagnostics) {
+func flattenRequestBasedSLI(ctx context.Context, slo *slos.Slo) (*SLOV2ResourceModel, diag.Diagnostics) {
+	sli := slo.RequestBasedMetricSli
 	goodEvents := SLOMetricQueryModel{
-		Query: types.StringPointerValue(sli.RequestBasedMetricSli.GoodEvents.Query),
+		Query: types.StringPointerValue(sli.GoodEvents.Query),
 	}
 
 	totalEvents := SLOMetricQueryModel{
-		Query: types.StringPointerValue(sli.RequestBasedMetricSli.TotalEvents.Query),
+		Query: types.StringPointerValue(sli.TotalEvents.Query),
 	}
 
 	goodObj, diags := types.ObjectValueFrom(ctx, sloMetricQueryAttr(), goodEvents)
@@ -628,36 +627,37 @@ func flattenRequestBasedSLI(ctx context.Context, sli *slos.SloRequestBasedMetric
 		return nil, diags
 	}
 
-	labels, diags := utils.StringMapToTypeMap(ctx, sli.Labels)
+	labels, diags := utils.StringMapToTypeMap(ctx, slo.Labels)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	grouping, diags := flattenGrouping(ctx, sli.Grouping)
+	grouping, diags := flattenGrouping(ctx, slo.Grouping)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	window, diags := flattenWindow(ctx, sli.GetSloTimeFrame())
+	window, diags := flattenWindow(ctx, slo.GetSloTimeFrame())
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &SLOV2ResourceModel{
-		ID:                        types.StringPointerValue(sli.Id),
-		Name:                      types.StringPointerValue(sli.Name),
-		Description:               types.StringPointerValue(sli.Description),
+		ID:                        types.StringPointerValue(slo.Id),
+		Name:                      types.StringPointerValue(slo.Name),
+		Description:               types.StringPointerValue(slo.Description),
 		Labels:                    labels,
 		Grouping:                  grouping,
-		TargetThresholdPercentage: types.Float32PointerValue(sli.TargetThresholdPercentage),
+		TargetThresholdPercentage: types.Float32PointerValue(slo.TargetThresholdPercentage),
 		SLI:                       sliObj,
 		Window:                    window,
 	}, diags
 }
 
-func flattenWindowBasedSLI(ctx context.Context, sli *slos.SloWindowBasedMetricSli) (*SLOV2ResourceModel, diag.Diagnostics) {
+func flattenWindowBasedSLI(ctx context.Context, slo *slos.Slo) (*SLOV2ResourceModel, diag.Diagnostics) {
+	sli := slo.WindowBasedMetricSli
 	queryModel := SLOMetricQueryModel{
-		Query: types.StringPointerValue(sli.WindowBasedMetricSli.Query.Query),
+		Query: types.StringPointerValue(sli.Query.Query),
 	}
 	queryObj, diags := types.ObjectValueFrom(ctx, sloMetricQueryAttr(), queryModel)
 	if diags.HasError() {
@@ -666,9 +666,9 @@ func flattenWindowBasedSLI(ctx context.Context, sli *slos.SloWindowBasedMetricSl
 
 	model := WindowBasedMetricSliModel{
 		Query:              queryObj,
-		Window:             types.StringValue(protoToSchemaSloWindow[sli.WindowBasedMetricSli.GetWindow()]),
-		ComparisonOperator: types.StringValue(protoToSchemaComparisonOperator[sli.WindowBasedMetricSli.GetComparisonOperator()]),
-		Threshold:          types.Float32Value(sli.WindowBasedMetricSli.GetThreshold()),
+		Window:             types.StringValue(protoToSchemaSloWindow[sli.GetWindow()]),
+		ComparisonOperator: types.StringValue(protoToSchemaComparisonOperator[sli.GetComparisonOperator()]),
+		Threshold:          types.Float32Value(sli.GetThreshold()),
 	}
 	winObj, diags := types.ObjectValueFrom(ctx, windowBasedMetricSliAttr(), model)
 	if diags.HasError() {
@@ -683,27 +683,27 @@ func flattenWindowBasedSLI(ctx context.Context, sli *slos.SloWindowBasedMetricSl
 		return nil, diags
 	}
 
-	grouping, diags := flattenGrouping(ctx, sli.Grouping)
+	grouping, diags := flattenGrouping(ctx, slo.Grouping)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	window, diags := flattenWindow(ctx, sli.GetSloTimeFrame())
+	window, diags := flattenWindow(ctx, slo.GetSloTimeFrame())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	labels, diags := utils.StringMapToTypeMap(ctx, sli.Labels)
+	labels, diags := utils.StringMapToTypeMap(ctx, slo.Labels)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &SLOV2ResourceModel{
-		ID:                        types.StringPointerValue(sli.Id),
-		Name:                      types.StringPointerValue(sli.Name),
-		Description:               types.StringPointerValue(sli.Description),
+		ID:                        types.StringPointerValue(slo.Id),
+		Name:                      types.StringPointerValue(slo.Name),
+		Description:               types.StringPointerValue(slo.Description),
 		Grouping:                  grouping,
-		TargetThresholdPercentage: types.Float32PointerValue(sli.TargetThresholdPercentage),
+		TargetThresholdPercentage: types.Float32PointerValue(slo.TargetThresholdPercentage),
 		SLI:                       sliObj,
 		Window:                    window,
 		Labels:                    labels,

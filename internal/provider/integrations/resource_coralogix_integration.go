@@ -133,9 +133,9 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	if testResult.Result.TestIntegrationResultFailure != nil {
+	if testResult.Result.Failure != nil {
 		// TODO after the data structure is fixed, change to print the error message
-		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", testResult.Result.TestIntegrationResultFailure))}
+		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", testResult.Result.Failure))}
 		resp.Diagnostics.Append(newDiags...)
 		return
 	}
@@ -189,14 +189,8 @@ func KeysFromPlan(ctx context.Context, plan *IntegrationResourceModel) ([]string
 	parameters, diags := dynamicToParameters(plan.Parameters)
 	keys := make([]string, len(parameters))
 	for i, parameter := range parameters {
-		if parameter.ParameterStringList != nil {
-			keys[i] = *parameter.ParameterStringList.Key
-		} else if parameter.ParameterBooleanValue != nil {
-			keys[i] = *parameter.ParameterBooleanValue.Key
-		} else if parameter.ParameterStringValue != nil {
-			keys[i] = *parameter.ParameterStringValue.Key
-		} else if parameter.ParameterNumericValue != nil {
-			keys[i] = *parameter.ParameterNumericValue.Key
+		if parameter.Key != nil {
+			keys[i] = *parameter.Key
 		}
 	}
 	return keys, diags
@@ -247,21 +241,15 @@ func dynamicToParameters(planParameters types.Dynamic) ([]integrations.Parameter
 			param := integrations.Parameter{}
 			switch v := value.(type) {
 			case types.String:
-				param.ParameterStringValue = &integrations.ParameterStringValue{
-					StringValue: v.ValueString(),
-					Key:         &key,
-				}
+				param.StringValue = v.ValueStringPointer()
+				param.Key = &key
 			case types.Number:
 				f, _ := v.ValueBigFloat().Float64()
-				param.ParameterNumericValue = &integrations.ParameterNumericValue{
-					NumericValue: f,
-					Key:          &key,
-				}
+				param.NumericValue = &f
+				param.Key = &key
 			case types.Bool:
-				param.ParameterBooleanValue = &integrations.ParameterBooleanValue{
-					BooleanValue: v.ValueBool(),
-					Key:          &key,
-				}
+				param.BooleanValue = v.ValueBoolPointer()
+				param.Key = &key
 			case types.List:
 				stringlist, diags := collectionToParameters(v.Elements())
 				if diags.HasError() {
@@ -269,7 +257,7 @@ func dynamicToParameters(planParameters types.Dynamic) ([]integrations.Parameter
 				}
 
 				stringlist.Key = &key
-				param.ParameterStringList = stringlist
+				param = *stringlist
 			case types.Tuple:
 				stringlist, diags := collectionToParameters(v.Elements())
 
@@ -278,7 +266,7 @@ func dynamicToParameters(planParameters types.Dynamic) ([]integrations.Parameter
 				}
 
 				stringlist.Key = &key
-				param.ParameterStringList = stringlist
+				param = *stringlist
 			default:
 				return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type %v: %v", v, p))}
 			}
@@ -298,7 +286,7 @@ func hasKnownParameters(parameters types.Dynamic) bool {
 	return !parameters.IsUnderlyingValueNull() && !parameters.IsUnderlyingValueUnknown()
 }
 
-func collectionToParameters(elements []attr.Value) (*integrations.ParameterStringList, diag.Diagnostics) {
+func collectionToParameters(elements []attr.Value) (*integrations.Parameter, diag.Diagnostics) {
 	strings := make([]string, len(elements))
 	for i, value := range elements {
 		switch value := value.(type) {
@@ -310,8 +298,8 @@ func collectionToParameters(elements []attr.Value) (*integrations.ParameterStrin
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type %v: %v", value, elements))}
 		}
 	}
-	return &integrations.ParameterStringList{
-		StringList: integrations.StringList{
+	return &integrations.Parameter{
+		StringList: &integrations.StringList{
 			Values: strings,
 		},
 	}, nil
@@ -337,47 +325,53 @@ func parametersToDynamic(parameters []integrations.Parameter, keys []string) (ty
 	obj := make(map[string]attr.Value, len(parameters))
 	t := make(map[string]attr.Type, len(parameters))
 	for _, parameter := range parameters {
-
-		if parameter.ParameterStringList != nil && includeParameter(keys, parameter.ParameterStringList.Key) {
-			v := parameter.ParameterStringList
-			values := make([]attr.Value, len(v.StringList.Values))
-			assignedTypes := make([]attr.Type, len(v.StringList.Values))
-			for i, value := range v.StringList.Values {
-				values[i] = types.StringValue(value)
-				assignedTypes[i] = types.StringType
-			}
-			parameters, diags := types.TupleValue(assignedTypes, values)
-			if diags.HasError() {
-				return types.Dynamic{}, diags
-			}
-			obj[*parameter.ParameterStringList.Key] = parameters
-			t[*parameter.ParameterStringList.Key] = types.TupleType{ElemTypes: assignedTypes}
-
-		} else if parameter.ParameterBooleanValue != nil && includeParameter(keys, parameter.ParameterBooleanValue.Key) {
-			obj[*parameter.ParameterBooleanValue.Key] = types.BoolValue(parameter.ParameterBooleanValue.BooleanValue)
-			t[*parameter.ParameterBooleanValue.Key] = types.BoolType
-
-		} else if parameter.ParameterStringValue != nil && includeParameter(keys, parameter.ParameterStringValue.Key) {
-			obj[*parameter.ParameterStringValue.Key] = types.StringValue(parameter.ParameterStringValue.StringValue)
-			t[*parameter.ParameterStringValue.Key] = types.StringType
-
-		} else if parameter.ParameterNumericValue != nil && includeParameter(keys, parameter.ParameterNumericValue.Key) {
-			obj[*parameter.ParameterNumericValue.Key] = types.NumberValue(big.NewFloat(parameter.ParameterNumericValue.NumericValue))
-			t[*parameter.ParameterNumericValue.Key] = types.NumberType
-
-		} else if parameter.ParameterApiKey != nil && includeParameter(keys, parameter.ParameterApiKey.Key) {
-			obj[*parameter.ParameterApiKey.Key] = types.StringPointerValue(parameter.ParameterApiKey.ApiKey.Value)
-			t[*parameter.ParameterApiKey.Key] = types.StringType
-
-		} else if parameter.ParameterSensitiveData != nil && includeParameter(keys, parameter.ParameterSensitiveData.Key) {
-			obj[*parameter.ParameterSensitiveData.Key] = types.StringValue("<redacted>")
-			t[*parameter.ParameterSensitiveData.Key] = types.StringType
-		} else {
-			log.Printf("[WARN] Invalid parameter type: %v", utils.FormatJSON(parameter))
+		if !includeParameter(keys, parameter.Key) {
+			continue
 		}
+
+		value, valueType, diags, ok := parameterToAttr(parameter)
+		if diags.HasError() {
+			return types.Dynamic{}, diags
+		}
+		if !ok {
+			log.Printf("[WARN] Invalid parameter type: %v", utils.FormatJSON(parameter))
+			continue
+		}
+
+		obj[*parameter.Key] = value
+		t[*parameter.Key] = valueType
 	}
 	val, e := types.ObjectValue(t, obj)
 	return types.DynamicValue(val), e
+}
+
+func parameterToAttr(parameter integrations.Parameter) (attr.Value, attr.Type, diag.Diagnostics, bool) {
+	if parameter.StringList != nil {
+		values := make([]attr.Value, len(parameter.StringList.Values))
+		assignedTypes := make([]attr.Type, len(parameter.StringList.Values))
+		for i, value := range parameter.StringList.Values {
+			values[i] = types.StringValue(value)
+			assignedTypes[i] = types.StringType
+		}
+		parameters, diags := types.TupleValue(assignedTypes, values)
+		return parameters, types.TupleType{ElemTypes: assignedTypes}, diags, true
+	}
+	if parameter.BooleanValue != nil {
+		return types.BoolPointerValue(parameter.BooleanValue), types.BoolType, nil, true
+	}
+	if parameter.StringValue != nil {
+		return types.StringPointerValue(parameter.StringValue), types.StringType, nil, true
+	}
+	if parameter.NumericValue != nil {
+		return types.NumberValue(big.NewFloat(*parameter.NumericValue)), types.NumberType, nil, true
+	}
+	if parameter.ApiKey != nil {
+		return types.StringPointerValue(parameter.ApiKey.Value), types.StringType, nil, true
+	}
+	if parameter.SensitiveData != nil {
+		return types.StringValue("<redacted>"), types.StringType, nil, true
+	}
+	return nil, nil, nil, false
 }
 
 func includeParameter(keys []string, key *string) bool {
@@ -453,9 +447,9 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	if testResult.Result.TestIntegrationResultFailure != nil {
+	if testResult.Result.Failure != nil {
 		// TODO after the data structure is fixed, change to print the error message
-		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", testResult.Result.TestIntegrationResultFailure))}
+		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", testResult.Result.Failure))}
 		resp.Diagnostics.Append(newDiags...)
 		return
 	}

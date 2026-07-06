@@ -1613,11 +1613,11 @@ func testAccGetAlertCustomEvaluationDelay(s *terraform.State, resourceName strin
 
 	alertDef := resp.GetAlertDef()
 	properties := alertDef.GetAlertDefProperties()
-	if properties.AlertDefPropertiesLogsThreshold == nil {
+	if properties.LogsThreshold == nil {
 		return 0, false, fmt.Errorf("alert %q is not a logs threshold alert", resourceName)
 	}
 
-	delay, ok := properties.AlertDefPropertiesLogsThreshold.LogsThreshold.GetEvaluationDelayMsOk()
+	delay, ok := properties.LogsThreshold.GetEvaluationDelayMsOk()
 	if !ok {
 		return 0, false, nil
 	}

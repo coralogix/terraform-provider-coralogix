@@ -72,16 +72,12 @@ func TestIntegrationDetailWithNilKeysIncludesBackendParameters(t *testing.T) {
 			DefinitionVersion: &definitionVersion,
 			Parameters: []cxsdk.Parameter{
 				{
-					ParameterStringValue: &cxsdk.ParameterStringValue{
-						Key:         &applicationNameKey,
-						StringValue: "svc-as-code",
-					},
+					Key:         &applicationNameKey,
+					StringValue: cxsdk.PtrString("svc-as-code"),
 				},
 				{
-					ParameterBooleanValue: &cxsdk.ParameterBooleanValue{
-						Key:          &enabledKey,
-						BooleanValue: true,
-					},
+					Key:          &enabledKey,
+					BooleanValue: cxsdk.PtrBool(true),
 				},
 			},
 		},

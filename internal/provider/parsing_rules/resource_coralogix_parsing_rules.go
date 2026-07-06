@@ -543,17 +543,13 @@ func extractRuleMatchers(apps []types.String, subs []types.String, sevs []types.
 	ruleMatchers := make([]prgs.RuleMatcher, len(apps)+len(subs)+len(sevs))
 	for i, a := range apps {
 		ruleMatchers[i] = prgs.RuleMatcher{
-			RuleMatcherApplicationName: &prgs.RuleMatcherApplicationName{
-				ApplicationName: prgs.ApplicationNameConstraint{Value: a.ValueStringPointer()},
-			},
+			ApplicationName: &prgs.ApplicationNameConstraint{Value: a.ValueStringPointer()},
 		}
 	}
 
 	for i, s := range subs {
 		ruleMatchers[len(apps)+i] = prgs.RuleMatcher{
-			RuleMatcherSubsystemName: &prgs.RuleMatcherSubsystemName{
-				SubsystemName: prgs.SubsystemNameConstraint{Value: s.ValueStringPointer()},
-			},
+			SubsystemName: &prgs.SubsystemNameConstraint{Value: s.ValueStringPointer()},
 		}
 	}
 
@@ -561,9 +557,7 @@ func extractRuleMatchers(apps []types.String, subs []types.String, sevs []types.
 		if !(s.IsNull() && s.IsUnknown()) {
 			val := rulesSchemaSeverityToApiSeverity[s.ValueString()]
 			ruleMatchers[len(apps)+len(subs)+i] = prgs.RuleMatcher{
-				RuleMatcherSeverity: &prgs.RuleMatcherSeverity{
-					Severity: prgs.SeverityConstraint{Value: &val},
-				},
+				Severity: &prgs.SeverityConstraint{Value: &val},
 			}
 		}
 	}
@@ -788,20 +782,16 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 				var params prgs.RuleParameters
 				if r.BlockMatchingLogs.ValueBool() {
 					params = prgs.RuleParameters{
-						RuleParametersBlockParameters: &prgs.RuleParametersBlockParameters{
-							BlockParameters: prgs.BlockParameters{
-								KeepBlockedLogs: r.KeepBlockedLogs.ValueBoolPointer(),
-								Rule:            r.RegularExpression.ValueStringPointer(),
-							},
+						BlockParameters: &prgs.BlockParameters{
+							KeepBlockedLogs: r.KeepBlockedLogs.ValueBoolPointer(),
+							Rule:            r.RegularExpression.ValueStringPointer(),
 						},
 					}
 				} else {
 					params = prgs.RuleParameters{
-						RuleParametersAllowParameters: &prgs.RuleParametersAllowParameters{
-							AllowParameters: prgs.AllowParameters{
-								KeepBlockedLogs: r.KeepBlockedLogs.ValueBoolPointer(),
-								Rule:            r.RegularExpression.ValueStringPointer(),
-							},
+						AllowParameters: &prgs.AllowParameters{
+							KeepBlockedLogs: r.KeepBlockedLogs.ValueBoolPointer(),
+							Rule:            r.RegularExpression.ValueStringPointer(),
 						},
 					}
 				}
@@ -824,12 +814,10 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Order:       &order,
 					SourceField: &defaultSourceFieldName,
 					Parameters: &prgs.RuleParameters{
-						RuleParametersJsonExtractParameters: &prgs.RuleParametersJsonExtractParameters{
-							JsonExtractParameters: prgs.JsonExtractParameters{
-								DestinationFieldText: r.DestinationFieldText.ValueStringPointer(),
-								DestinationFieldType: &destinationField,
-								Rule:                 r.JsonKey.ValueStringPointer(),
-							},
+						JsonExtractParameters: &prgs.JsonExtractParameters{
+							DestinationFieldText: r.DestinationFieldText.ValueStringPointer(),
+							DestinationFieldType: &destinationField,
+							Rule:                 r.JsonKey.ValueStringPointer(),
 						},
 					},
 				})
@@ -842,12 +830,10 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Order:       &order,
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
-						RuleParametersReplaceParameters: &prgs.RuleParametersReplaceParameters{
-							ReplaceParameters: prgs.ReplaceParameters{
-								DestinationField: r.DestinationField.ValueStringPointer(),
-								ReplaceNewVal:    r.ReplacementString.ValueStringPointer(),
-								Rule:             r.RegularExpression.ValueStringPointer(),
-							},
+						ReplaceParameters: &prgs.ReplaceParameters{
+							DestinationField: r.DestinationField.ValueStringPointer(),
+							ReplaceNewVal:    r.ReplacementString.ValueStringPointer(),
+							Rule:             r.RegularExpression.ValueStringPointer(),
 						},
 					},
 				})
@@ -862,11 +848,9 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Order:       &order,
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
-						RuleParametersExtractTimestampParameters: &prgs.RuleParametersExtractTimestampParameters{
-							ExtractTimestampParameters: prgs.ExtractTimestampParameters{
-								Format:   r.TimeFormat.ValueStringPointer(),
-								Standard: &fmtStd,
-							},
+						ExtractTimestampParameters: &prgs.ExtractTimestampParameters{
+							Format:   r.TimeFormat.ValueStringPointer(),
+							Standard: &fmtStd,
 						},
 					},
 				})
@@ -880,10 +864,8 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Order:       &order,
 					SourceField: &defaultSourceFieldName,
 					Parameters: &prgs.RuleParameters{
-						RuleParametersRemoveFieldsParameters: &prgs.RuleParametersRemoveFieldsParameters{
-							RemoveFieldsParameters: prgs.RemoveFieldsParameters{
-								Fields: utils.TypeStringSliceToStringSlice(r.ExcludedFields),
-							},
+						RemoveFieldsParameters: &prgs.RemoveFieldsParameters{
+							Fields: utils.TypeStringSliceToStringSlice(r.ExcludedFields),
 						},
 					},
 				})
@@ -898,11 +880,9 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Order:       &order,
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
-						RuleParametersJsonStringifyParameters: &prgs.RuleParametersJsonStringifyParameters{
-							JsonStringifyParameters: prgs.JsonStringifyParameters{
-								DeleteSource:     &deleteSource,
-								DestinationField: r.DestinationField.ValueStringPointer(),
-							},
+						JsonStringifyParameters: &prgs.JsonStringifyParameters{
+							DeleteSource:     &deleteSource,
+							DestinationField: r.DestinationField.ValueStringPointer(),
 						},
 					},
 				})
@@ -916,10 +896,8 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Order:       &order,
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
-						RuleParametersExtractParameters: &prgs.RuleParametersExtractParameters{
-							ExtractParameters: prgs.ExtractParameters{
-								Rule: r.RegularExpression.ValueStringPointer(),
-							},
+						ExtractParameters: &prgs.ExtractParameters{
+							Rule: r.RegularExpression.ValueStringPointer(),
 						},
 					},
 				})
@@ -936,13 +914,11 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Order:       &order,
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
-						RuleParametersJsonParseParameters: &prgs.RuleParametersJsonParseParameters{
-							JsonParseParameters: prgs.JsonParseParameters{
-								DeleteSource:     &deleteSource,
-								DestinationField: r.DestinationField.ValueStringPointer(),
-								EscapedValue:     &escapeValue,
-								OverrideDest:     &overrideDestination,
-							},
+						JsonParseParameters: &prgs.JsonParseParameters{
+							DeleteSource:     &deleteSource,
+							DestinationField: r.DestinationField.ValueStringPointer(),
+							EscapedValue:     &escapeValue,
+							OverrideDest:     &overrideDestination,
 						},
 					},
 				})
@@ -956,11 +932,9 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Order:       &order,
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
-						RuleParametersParseParameters: &prgs.RuleParametersParseParameters{
-							ParseParameters: prgs.ParseParameters{
-								DestinationField: r.DestinationField.ValueStringPointer(),
-								Rule:             r.RegularExpression.ValueStringPointer(),
-							},
+						ParseParameters: &prgs.ParseParameters{
+							DestinationField: r.DestinationField.ValueStringPointer(),
+							Rule:             r.RegularExpression.ValueStringPointer(),
 						},
 					},
 				})
@@ -977,15 +951,15 @@ func flattenParsingRuleMatcher(ruleMatchers []prgs.RuleMatcher) ([]string, []str
 	severities := make([]string, 0)
 	for _, ruleMatcher := range ruleMatchers {
 
-		if ruleMatcher.RuleMatcherApplicationName != nil {
-			applications = append(applications, *ruleMatcher.RuleMatcherApplicationName.ApplicationName.Value)
+		if ruleMatcher.ApplicationName != nil {
+			applications = append(applications, *ruleMatcher.ApplicationName.Value)
 		}
-		if ruleMatcher.RuleMatcherSubsystemName != nil {
-			subsystems = append(subsystems, *ruleMatcher.RuleMatcherSubsystemName.SubsystemName.Value)
+		if ruleMatcher.SubsystemName != nil {
+			subsystems = append(subsystems, *ruleMatcher.SubsystemName.Value)
 
 		}
-		if ruleMatcher.RuleMatcherSeverity != nil {
-			severities = append(severities, rulesApiSeverityToSchemaSeverity[*ruleMatcher.RuleMatcherSeverity.Severity.Value])
+		if ruleMatcher.Severity != nil {
+			severities = append(severities, rulesApiSeverityToSchemaSeverity[*ruleMatcher.Severity.Value])
 
 		}
 	}
@@ -1007,7 +981,7 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 		for _, rule := range groups.Rules {
 			params := rule.Parameters
 
-			if p := params.RuleParametersAllowParameters; p != nil {
+			if p := params.AllowParameters; p != nil {
 				rules = append(rules, RuleSubgroupModel{
 					Block: &BlockModel{
 						ID:                types.StringPointerValue(rule.Id),
@@ -1016,13 +990,13 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						Active:            types.BoolPointerValue(rule.Enabled),
 						Order:             types.Int64PointerValue(rule.Order),
 						SourceField:       types.StringPointerValue(rule.SourceField),
-						RegularExpression: types.StringPointerValue(p.AllowParameters.Rule),
-						KeepBlockedLogs:   types.BoolPointerValue(p.AllowParameters.KeepBlockedLogs),
+						RegularExpression: types.StringPointerValue(p.Rule),
+						KeepBlockedLogs:   types.BoolPointerValue(p.KeepBlockedLogs),
 						BlockMatchingLogs: types.BoolValue(false),
 					},
 				})
 			}
-			if p := params.RuleParametersBlockParameters; p != nil {
+			if p := params.BlockParameters; p != nil {
 				rules = append(rules, RuleSubgroupModel{
 					Block: &BlockModel{
 						ID:                types.StringPointerValue(rule.Id),
@@ -1031,13 +1005,13 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						Active:            types.BoolPointerValue(rule.Enabled),
 						Order:             types.Int64PointerValue(rule.Order),
 						SourceField:       types.StringPointerValue(rule.SourceField),
-						RegularExpression: types.StringPointerValue(p.BlockParameters.Rule),
-						KeepBlockedLogs:   types.BoolPointerValue(p.BlockParameters.KeepBlockedLogs),
+						RegularExpression: types.StringPointerValue(p.Rule),
+						KeepBlockedLogs:   types.BoolPointerValue(p.KeepBlockedLogs),
 						BlockMatchingLogs: types.BoolValue(true),
 					},
 				})
 			}
-			if p := params.RuleParametersExtractParameters; p != nil {
+			if p := params.ExtractParameters; p != nil {
 				rules = append(rules, RuleSubgroupModel{
 					Extract: &ExtractModel{
 						ID:                types.StringPointerValue(rule.Id),
@@ -1046,13 +1020,13 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						Active:            types.BoolPointerValue(rule.Enabled),
 						Order:             types.Int64PointerValue(rule.Order),
 						SourceField:       types.StringPointerValue(rule.SourceField),
-						RegularExpression: types.StringPointerValue(p.ExtractParameters.Rule),
+						RegularExpression: types.StringPointerValue(p.Rule),
 					},
 				})
 
 			}
-			if p := params.RuleParametersExtractTimestampParameters; p != nil {
-				fmtStd := rulesApiFormatStandardToSchemaFormatStandard[*p.ExtractTimestampParameters.Standard]
+			if p := params.ExtractTimestampParameters; p != nil {
+				fmtStd := rulesApiFormatStandardToSchemaFormatStandard[*p.Standard]
 				rules = append(rules, RuleSubgroupModel{
 					ExtractTimestamp: &ExtractTimestampModel{
 						ID:                  types.StringPointerValue(rule.Id),
@@ -1062,12 +1036,12 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						Order:               types.Int64PointerValue(rule.Order),
 						SourceField:         types.StringPointerValue(rule.SourceField),
 						FieldFormatStandard: types.StringValue(fmtStd),
-						TimeFormat:          types.StringPointerValue(p.ExtractTimestampParameters.Format),
+						TimeFormat:          types.StringPointerValue(p.Format),
 					},
 				})
 			}
-			if p := params.RuleParametersJsonExtractParameters; p != nil {
-				destinationField := rulesApiDestinationFieldToSchemaDestinationField[*p.JsonExtractParameters.DestinationFieldType]
+			if p := params.JsonExtractParameters; p != nil {
+				destinationField := rulesApiDestinationFieldToSchemaDestinationField[*p.DestinationFieldType]
 				rules = append(rules, RuleSubgroupModel{
 					JsonExtract: &JsonExtractModel{
 						ID:                   types.StringPointerValue(rule.Id),
@@ -1076,14 +1050,14 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						Active:               types.BoolPointerValue(rule.Enabled),
 						Order:                types.Int64PointerValue(rule.Order),
 						DestinationField:     types.StringValue(destinationField),
-						DestinationFieldText: types.StringPointerValue(p.JsonExtractParameters.DestinationFieldText),
-						JsonKey:              types.StringPointerValue(p.JsonExtractParameters.Rule),
+						DestinationFieldText: types.StringPointerValue(p.DestinationFieldText),
+						JsonKey:              types.StringPointerValue(p.Rule),
 					},
 				})
 			}
-			if p := params.RuleParametersJsonParseParameters; p != nil {
-				keepSourceField := !*p.JsonParseParameters.DeleteSource
-				keepDestinationField := !*p.JsonParseParameters.OverrideDest
+			if p := params.JsonParseParameters; p != nil {
+				keepSourceField := !*p.DeleteSource
+				keepDestinationField := !*p.OverrideDest
 
 				rules = append(rules, RuleSubgroupModel{
 					ParseJsonField: &ParseJsonFieldModel{
@@ -1093,14 +1067,14 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						Active:               types.BoolPointerValue(rule.Enabled),
 						Order:                types.Int64PointerValue(rule.Order),
 						SourceField:          types.StringPointerValue(rule.SourceField),
-						DestinationField:     types.StringPointerValue(p.JsonParseParameters.DestinationField),
+						DestinationField:     types.StringPointerValue(p.DestinationField),
 						KeepSourceField:      types.BoolValue(keepSourceField),
 						KeepDestinationField: types.BoolValue(keepDestinationField),
 					},
 				})
 			}
-			if p := params.RuleParametersJsonStringifyParameters; p != nil {
-				keepSourceField := !*params.RuleParametersJsonStringifyParameters.JsonStringifyParameters.DeleteSource
+			if p := params.JsonStringifyParameters; p != nil {
+				keepSourceField := !*p.DeleteSource
 				rules = append(rules, RuleSubgroupModel{
 					JsonStringify: &JsonStringifyModel{
 						ID:               types.StringPointerValue(rule.Id),
@@ -1109,12 +1083,12 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						Active:           types.BoolPointerValue(rule.Enabled),
 						Order:            types.Int64PointerValue(rule.Order),
 						SourceField:      types.StringPointerValue(rule.SourceField),
-						DestinationField: types.StringPointerValue(p.JsonStringifyParameters.DestinationField),
+						DestinationField: types.StringPointerValue(p.DestinationField),
 						KeepSourceField:  types.BoolValue(keepSourceField),
 					},
 				})
 			}
-			if p := params.RuleParametersParseParameters; p != nil {
+			if p := params.ParseParameters; p != nil {
 				rules = append(rules, RuleSubgroupModel{
 					Parse: &ParseModel{
 						ID:                types.StringPointerValue(rule.Id),
@@ -1123,12 +1097,12 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						Active:            types.BoolPointerValue(rule.Enabled),
 						Order:             types.Int64PointerValue(rule.Order),
 						SourceField:       types.StringPointerValue(rule.SourceField),
-						DestinationField:  types.StringPointerValue(p.ParseParameters.DestinationField),
-						RegularExpression: types.StringPointerValue(p.ParseParameters.Rule),
+						DestinationField:  types.StringPointerValue(p.DestinationField),
+						RegularExpression: types.StringPointerValue(p.Rule),
 					},
 				})
 			}
-			if p := params.RuleParametersRemoveFieldsParameters; p != nil {
+			if p := params.RemoveFieldsParameters; p != nil {
 				rules = append(rules, RuleSubgroupModel{
 					RemoveFields: &RemoveFieldsModel{
 						ID:             types.StringPointerValue(rule.Id),
@@ -1136,11 +1110,11 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						Description:    types.StringPointerValue(rule.Description),
 						Active:         types.BoolPointerValue(rule.Enabled),
 						Order:          types.Int64PointerValue(rule.Order),
-						ExcludedFields: utils.StringSliceToTypeStringSlice(p.RemoveFieldsParameters.Fields),
+						ExcludedFields: utils.StringSliceToTypeStringSlice(p.Fields),
 					},
 				})
 			}
-			if p := params.RuleParametersReplaceParameters; p != nil {
+			if p := params.ReplaceParameters; p != nil {
 				rules = append(rules, RuleSubgroupModel{
 					Replace: &ReplaceModel{
 						ID:                types.StringPointerValue(rule.Id),
@@ -1149,9 +1123,9 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						Active:            types.BoolPointerValue(rule.Enabled),
 						Order:             types.Int64PointerValue(rule.Order),
 						SourceField:       types.StringPointerValue(rule.SourceField),
-						DestinationField:  types.StringPointerValue(p.ReplaceParameters.DestinationField),
-						RegularExpression: types.StringPointerValue(p.ReplaceParameters.Rule),
-						ReplacementString: types.StringPointerValue(p.ReplaceParameters.ReplaceNewVal),
+						DestinationField:  types.StringPointerValue(p.DestinationField),
+						RegularExpression: types.StringPointerValue(p.Rule),
+						ReplacementString: types.StringPointerValue(p.ReplaceNewVal),
 					},
 				})
 			}

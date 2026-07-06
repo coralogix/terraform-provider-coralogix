@@ -565,7 +565,7 @@ func flattenGetTCOTracesPoliciesList(ctx context.Context, resp *tcoPolicys.GetCo
 
 func flattenTCOTracesPolicy(ctx context.Context, policy *tcoPolicys.Policy) (*TCOPolicyTracesModel, diag.Diagnostics) {
 
-	spanPolicy := policy.PolicySpanRules
+	spanPolicy := policy
 
 	traceRules := spanPolicy.SpanRules
 	applications, diags := flattenTCOPolicyRule(ctx, spanPolicy.ApplicationRule)

@@ -40,10 +40,10 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cloudflare/circl v1.6.1 h1:zqIqSPIndyBh1bjLVVDHMPpVKqp8Su/V+6MeDzzQBQ0=
 github.com/cloudflare/circl v1.6.1/go.mod h1:uddAzsPgqdMAYatqJ0lsjX1oECcQLIlRpzZh3pJrofs=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
-github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260707082655-e45a5bb1f4cb h1:4maoARuj5E6mkca1jOrltr1UI6qQzHXYzEA6vNyyBjA=
-github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260707082655-e45a5bb1f4cb/go.mod h1:hC1w7mD+AZhGGw6krKRYEsKst+pYfH6SuUYM001X+tk=
-github.com/coralogix/grpc-gateway/v2 v2.0.0-20251015134251-4d8694a21a7c h1:aOfG9Pwe7Fp/m+tdybObODwgeK5st/+9df/QUw0dzBQ=
-github.com/coralogix/grpc-gateway/v2 v2.0.0-20251015134251-4d8694a21a7c/go.mod h1:bqGO/kNOHTFiDIfPmXLQcox10aWQs5Q3b9sXUFoaFFk=
+github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260706130708-908aad88acaf h1:rFHCQEsexPeWYDpaDAjtiFY45MC4+smV/kLt7rhbnMU=
+github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260706130708-908aad88acaf/go.mod h1:hC1w7mD+AZhGGw6krKRYEsKst+pYfH6SuUYM001X+tk=
+github.com/coralogix/grpc-gateway/v2 v2.0.0-20251017075809-7f84c876b2e5 h1:mqmL/WJA8Cdzim6r3jmXY8uiPn9KX4AvqxjEPDRXKj4=
+github.com/coralogix/grpc-gateway/v2 v2.0.0-20251017075809-7f84c876b2e5/go.mod h1:bqGO/kNOHTFiDIfPmXLQcox10aWQs5Q3b9sXUFoaFFk=
 github.com/cyphar/filepath-securejoin v0.4.1 h1:JyxxyPEaktOD+GAnqIqTf9A8tHyAG22rowi7HkoSU1s=
 github.com/cyphar/filepath-securejoin v0.4.1/go.mod h1:Sdj7gXlvMcPZsbhwhQ33GguGLDGQL7h7bg04C/+u9jI=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -395,8 +395,6 @@ gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=
-gopkg.in/validator.v2 v2.0.1 h1:xF0KWyGWXm/LM2G1TrEjqOu4pa6coO9AlWSf3msVfDY=
-gopkg.in/validator.v2 v2.0.1/go.mod h1:lIUZBlB3Im4s/eYp39Ry/wkR02yOPhZ9IwIRBjuPuG8=
 gopkg.in/warnings.v0 v0.1.2 h1:wFXVbFY8DY5/xOe1ECiWdKCzZlxgshcYVNkBHstARME=
 gopkg.in/warnings.v0 v0.1.2/go.mod h1:jksf8JmL6Qr/oQM2OXTHunEvvTAsrWBLb6OOjuVWRNI=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
