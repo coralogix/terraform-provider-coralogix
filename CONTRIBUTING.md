@@ -116,6 +116,25 @@ $ make testacc
 In general, adding test coverage (unit tests and acceptance tests) to new features or bug fixes in your PRs, and sharing
 the logs of a successful test run on your branch will greatly speed up the acceptance of your PR.
 
+### Commit hooks
+
+This repository uses [pre-commit](https://pre-commit.com/) for local commit hooks, including Gitleaks secret scanning.
+Install `pre-commit` and enable the hooks once after cloning:
+
+```sh
+$ brew install pre-commit
+$ pre-commit install
+```
+
+To test the Gitleaks hook without committing:
+
+```sh
+$ pre-commit run gitleaks --all-files
+```
+
+If `pre-commit install` fails because `core.hooksPath` is set, Git is using another hook manager; configure that manager
+to run `pre-commit run --hook-stage pre-commit`.
+
 ### Documentations
 
 We use [terraform-plugin-docs](https://github.com/hashicorp/terraform-plugin-docs) for generating documentations

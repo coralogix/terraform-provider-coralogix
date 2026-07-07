@@ -20,6 +20,7 @@ import (
 	"time"
 
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -28,8 +29,48 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+type NormalizeEmptyListToNull struct{}
+
+func (m NormalizeEmptyListToNull) Description(_ context.Context) string {
+	return "Treats an explicit empty list as null so the backend's equivalent representations don't trigger an inconsistent-result diff."
+}
+
+func (m NormalizeEmptyListToNull) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m NormalizeEmptyListToNull) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
+	if req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
+		return
+	}
+	if len(req.PlanValue.Elements()) == 0 {
+		resp.PlanValue = types.ListNull(req.PlanValue.ElementType(ctx))
+	}
+}
+
+type PreserveStateForEquivalentJSON struct{}
+
+func (m PreserveStateForEquivalentJSON) Description(_ context.Context) string {
+	return "Preserves the previous state value when the configured JSON is semantically equivalent."
+}
+
+func (m PreserveStateForEquivalentJSON) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m PreserveStateForEquivalentJSON) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+		return
+	}
+	if utils.JSONStringsEqual(req.ConfigValue.ValueString(), req.StateValue.ValueString()) {
+		resp.PlanValue = req.StateValue
+	}
+}
 
 var (
 	JSONUnmarshal = protojson.UnmarshalOptions{

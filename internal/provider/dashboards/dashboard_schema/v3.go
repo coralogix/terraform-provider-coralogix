@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -478,6 +479,15 @@ func dashboardSchemaAttributesV3() map[string]schema.Attribute {
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidGaugeThresholdBy...),
 																		},
 																		MarkdownDescription: fmt.Sprintf("The threshold by. Can be one of %q.", dashboardwidgets.DashboardValidGaugeThresholdBy),
+																	},
+																	"threshold_type": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidThresholdTypes...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("The threshold type. Can be one of %q.", dashboardwidgets.DashboardValidThresholdTypes),
 																	},
 																	"display_series_name": schema.BoolAttribute{
 																		Optional: true,
@@ -1110,10 +1120,13 @@ func dashboardSchemaAttributesV3() map[string]schema.Attribute {
 														MarkdownDescription: fmt.Sprintf("The widget definition. Can contain one of %v", dashboardwidgets.SupportedWidgetTypes),
 													},
 													"width": schema.Int64Attribute{
-														Optional:            true,
-														Computed:            true,
-														Default:             int64default.StaticInt64(0),
-														MarkdownDescription: "The width of the chart.",
+														Optional: true,
+														Computed: true,
+														PlanModifiers: []planmodifier.Int64{
+															int64planmodifier.UseStateForUnknown(),
+														},
+														DeprecationMessage:  "Widget appearance.width is ignored by the API and has no effect.",
+														MarkdownDescription: "Deprecated: the widget appearance.width field is ignored by the API and has no effect.",
 													},
 												},
 											},

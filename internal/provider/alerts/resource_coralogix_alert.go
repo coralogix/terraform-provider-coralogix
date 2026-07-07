@@ -283,6 +283,14 @@ func extractAlertProperties(ctx context.Context, plan *alerttypes.AlertResourceM
 	return alertProperties, nil
 }
 
+func extractCustomEvaluationDelay(delay types.Int32) *int32 {
+	if delay.IsNull() || delay.IsUnknown() {
+		return nil
+	}
+
+	return delay.ValueInt32Pointer()
+}
+
 func extractIncidentsSettings(ctx context.Context, incidentsSettingsObject types.Object) (*alerts.AlertDefIncidentSettings, diag.Diagnostics) {
 	if incidentsSettingsObject.IsNull() || incidentsSettingsObject.IsUnknown() {
 		return nil, nil
@@ -604,6 +612,12 @@ func expandAlertNotificationByRetriggeringPeriod(ctx context.Context, alertNotif
 	return alertNotification, nil
 }
 
+func dayDelta(from, to time.Time) int {
+	fromDay := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
+	toDay := time.Date(to.Year(), to.Month(), to.Day(), 0, 0, 0, 0, time.UTC)
+	return int(toDay.Sub(fromDay).Hours() / 24)
+}
+
 func expandActiveOnSchedule(ctx context.Context, scheduleObject types.Object) (*alerts.ActivitySchedule, diag.Diagnostics) {
 	if utils.ObjIsNullOrUnknown(scheduleObject) {
 		return nil, nil
@@ -645,9 +659,6 @@ func expandActiveOnSchedule(ctx context.Context, scheduleObject types.Object) (*
 	if e != nil {
 		diags.AddError("Failed to parse end time", e.Error())
 	}
-	if endTime.Before(startTime) {
-		diags.AddError("End time is before start time", "End time is before start time")
-	}
 
 	if diags.HasError() {
 		return nil, diags
@@ -659,6 +670,10 @@ func expandActiveOnSchedule(ctx context.Context, scheduleObject types.Object) (*
 	startMinute := int32(startTimeUtc.Minute())
 	endHour := int32(endTimeUtc.Hour())
 	endMinute := int32(endTimeUtc.Minute())
+
+	if dayShift := dayDelta(startTime, startTimeUtc); dayShift != 0 {
+		daysOfWeek = alerttypes.ShiftDaysOfWeek(daysOfWeek, dayShift)
+	}
 	return &alerts.ActivitySchedule{
 		DayOfWeek: daysOfWeek,
 		StartTime: &alerts.TimeOfDay{
@@ -1020,7 +1035,7 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *alerts.A
 		NotificationPayloadFilter:  notificationPayloadFilter,
 		UndetectedValuesManagement: undetected,
 		NoDataPolicy:               noDataPolicy,
-		EvaluationDelayMs:          thresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:          extractCustomEvaluationDelay(thresholdModel.CustomEvaluationDelay),
 	}
 
 	properties.AlertDefPropertiesLogsThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_THRESHOLD.Ptr()
@@ -1211,7 +1226,7 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alert
 		LogsFilter:                logsFilter,
 		Rules:                     rules,
 		NotificationPayloadFilter: notificationPayloadFilter,
-		EvaluationDelayMs:         anomalyModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:         extractCustomEvaluationDelay(anomalyModel.CustomEvaluationDelay),
 		AnomalyAlertSettings:      anomalyAlertSettings,
 	}
 
@@ -1337,7 +1352,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 		Rules:                     rules,
 		NotificationPayloadFilter: notificationPayloadFilter,
 		GroupByFor:                alerttypes.LogsRatioGroupByForSchemaToProtoMap[groupByFor].Ptr(),
-		EvaluationDelayMs:         ratioThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:         extractCustomEvaluationDelay(ratioThresholdModel.CustomEvaluationDelay),
 		IgnoreInfinity:            ratioThresholdModel.IgnoreInfinity.ValueBoolPointer(),
 	}
 	properties.AlertDefPropertiesLogsRatioThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD.Ptr()
@@ -1724,7 +1739,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 		Rules:                      rules,
 		NotificationPayloadFilter:  notificationPayloadFilter,
 		UndetectedValuesManagement: undetected,
-		EvaluationDelayMs:          relativeThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:          extractCustomEvaluationDelay(relativeThresholdModel.CustomEvaluationDelay),
 		IgnoreInfinity:             relativeThresholdModel.IgnoreInfinity.ValueBoolPointer(),
 	}
 	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD.Ptr()
@@ -1850,7 +1865,7 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *a
 		MissingValues:              missingValues,
 		UndetectedValuesManagement: undetected,
 		NoDataPolicy:               noDataPolicy,
-		EvaluationDelayMs:          metricThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:          extractCustomEvaluationDelay(metricThresholdModel.CustomEvaluationDelay),
 	}
 	properties.AlertDefPropertiesMetricThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_THRESHOLD.Ptr()
 
@@ -2316,7 +2331,7 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *ale
 	properties.AlertDefPropertiesMetricAnomaly.MetricAnomaly = alerts.MetricAnomalyType{
 		MetricFilter:         metricFilter,
 		Rules:                rules,
-		EvaluationDelayMs:    metricAnomalyModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:    extractCustomEvaluationDelay(metricAnomalyModel.CustomEvaluationDelay),
 		AnomalyAlertSettings: anomalyAlertSettings,
 	}
 	properties.AlertDefPropertiesMetricAnomaly.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_ANOMALY.Ptr()
@@ -3710,8 +3725,8 @@ func flattenNoDataPolicy(ctx context.Context, noDataPolicy *alerts.NoDataPolicy)
 	if noDataPolicy == nil {
 		return types.ObjectValueFrom(ctx, alertschema.NoDataPolicyAttr(), model)
 	}
-	if noDataPolicy.AutoRetireSeconds != nil {
-		model.AutoRetireSeconds = types.Int64Value(int64(*noDataPolicy.AutoRetireSeconds))
+	if autoRetireSeconds, ok := noDataPolicy.GetAutoRetireSecondsOk(); ok {
+		model.AutoRetireSeconds = types.Int64Value(int64(*autoRetireSeconds))
 	}
 	if noDataPolicy.State != nil {
 		model.State = types.StringValue(alerttypes.NoDataPolicyStateProtoToSchemaMap[*noDataPolicy.State])
@@ -4077,19 +4092,25 @@ func getActiveOn(alertProperties alerts.AlertDefProperties) (*alerts.ActivitySch
 }
 
 func flattenActiveOn(ctx context.Context, activeOn alerts.ActivitySchedule, utcOffset string) (types.Object, diag.Diagnostics) {
-	daysOfWeek, diags := flattenDaysOfWeek(ctx, activeOn.DayOfWeek)
-	if diags.HasError() {
-		return types.ObjectNull(alertschema.AlertScheduleActiveOnAttr()), diags
-	}
 	offset, err := time.Parse(OFFSET_FORMAT, utcOffset)
-
 	if err != nil {
 		return types.ObjectNull(alertschema.AlertScheduleActiveOnAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid UTC Offset", fmt.Sprintf("UTC Offset %v is not valid", utcOffset))}
 	}
 	zoneName, offsetSecs := offset.Zone() // Name is probably empty
 	zone := time.FixedZone(zoneName, offsetSecs)
-	startTime := time.Date(2021, 2, 1, int(*activeOn.StartTime.Hours), int(*activeOn.StartTime.Minutes), 0, 0, time.UTC).In(zone)
-	endTime := time.Date(2021, 2, 1, int(*activeOn.EndTime.Hours), int(*activeOn.EndTime.Minutes), 0, 0, time.UTC).In(zone)
+	startTimeUtc := time.Date(2021, 2, 1, int(*activeOn.StartTime.Hours), int(*activeOn.StartTime.Minutes), 0, 0, time.UTC)
+	endTimeUtc := time.Date(2021, 2, 1, int(*activeOn.EndTime.Hours), int(*activeOn.EndTime.Minutes), 0, 0, time.UTC)
+	startTime := startTimeUtc.In(zone)
+	endTime := endTimeUtc.In(zone)
+
+	daysOfWeekProto := activeOn.DayOfWeek
+	if dayShift := dayDelta(startTimeUtc, startTime); dayShift != 0 {
+		daysOfWeekProto = alerttypes.ShiftDaysOfWeek(daysOfWeekProto, dayShift)
+	}
+	daysOfWeek, diags := flattenDaysOfWeek(ctx, daysOfWeekProto)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.AlertScheduleActiveOnAttr()), diags
+	}
 
 	activeOnModel := alerttypes.ActiveOnModel{
 		DaysOfWeek: daysOfWeek,

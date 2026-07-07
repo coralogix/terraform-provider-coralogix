@@ -15,6 +15,18 @@ provider "coralogix" {
 resource "coralogix_dashboard" "dashboard" {
   name        = "portal monitoring"
   description = "<insert description>"
+  access_policy = jsonencode({
+    version = "2025-01-01"
+    default = {
+      permissions = {
+        "team-dashboards:Read"               = "grant"
+        "team-dashboards:ReadAccessPolicy"   = "grant"
+        "team-dashboards:Update"             = "grant"
+        "team-dashboards:UpdateAccessPolicy" = "grant"
+      }
+    }
+    rules = []
+  })
   layout = {
     sections = [
       {
@@ -142,7 +154,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 10
               },
             ]
           },
@@ -184,7 +195,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 10
               },
               {
                 title = "gauge"
@@ -237,7 +247,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 0
               },
               {
                 title = "Last failed SF queries DBs"
@@ -271,7 +280,6 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                   }
                 }
-                width = 0
               },
               {
                 title = "Avg configuration service query times"
@@ -672,7 +680,6 @@ resource "coralogix_dashboard" "widgets" {
               }
             }
           }
-          width = 0
         }]
       }]
     }]

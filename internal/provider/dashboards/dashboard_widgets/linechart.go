@@ -41,8 +41,9 @@ import (
 
 var (
 	lineChartStackedLineProtoToSchemaMap = map[cxsdk.LineChartStackedLine]string{
-		cxsdk.LineChartStackedLineAbsolute: "absolute",
-		cxsdk.LineChartStackedLineRelative: "relative",
+		cxsdk.LineChartStackedLineUnspecified: utils.UNSPECIFIED,
+		cxsdk.LineChartStackedLineAbsolute:    "absolute",
+		cxsdk.LineChartStackedLineRelative:    "relative",
 	}
 	lineChartStackedLineSchemaToProtoMap      = utils.ReverseMap(lineChartStackedLineProtoToSchemaMap)
 	DashboardValidLineChartStackedLineOptions = utils.GetKeys(lineChartStackedLineSchemaToProtoMap)
@@ -76,6 +77,7 @@ func LineChartSchema() schema.Attribute {
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidLineChartStackedLineOptions...),
 				},
+				Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 				MarkdownDescription: fmt.Sprintf("Option to show lines as stacked. Possible values: %v", strings.Join(DashboardValidLineChartStackedLineOptions, ", ")),
 			},
 			"query_definitions": schema.ListNestedAttribute{
@@ -355,19 +357,12 @@ func FlattenLineChart(ctx context.Context, lineChart *cxsdk.LineChart) (*WidgetD
 		return nil, diags
 	}
 
-	var stackedLine types.String
-	if lineChart.StackedLine != cxsdk.LineChartStackedLineUnspecified {
-		stackedLine = types.StringValue(lineChartStackedLineProtoToSchemaMap[lineChart.StackedLine])
-	} else {
-		stackedLine = types.StringNull()
-	}
-
 	return &WidgetDefinitionModel{
 		LineChart: &LineChartModel{
 			Legend:           FlattenLegend(lineChart.GetLegend()),
 			Tooltip:          flattenTooltip(lineChart.GetTooltip()),
 			QueryDefinitions: queryDefinitions,
-			StackedLine:      stackedLine,
+			StackedLine:      types.StringValue(lineChartStackedLineProtoToSchemaMap[lineChart.StackedLine]),
 		},
 	}, nil
 }

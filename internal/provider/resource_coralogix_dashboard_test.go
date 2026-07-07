@@ -29,7 +29,10 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 var dashboardResourceName = "coralogix_dashboard.test"
@@ -108,6 +111,95 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccCoralogixResourceDashboardAccessPolicy(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()) +
+					testAccCoralogixDataSourceDashboard_read(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "access_policy"),
+					testAccCheckDashboardAccessPolicy(dashboardDataSourceName, testAccCoralogixDashboardAccessPolicyPretty()),
+				),
+			},
+			{
+				Config:   testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()),
+				PlanOnly: true,
+			},
+			{
+				Config:   testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyReorderedObjectKeys()),
+				PlanOnly: true,
+			},
+			{
+				Config: testAccCoralogixResourceDashboardWithoutAccessPolicy("test-access-policy-updated") +
+					testAccCoralogixDataSourceDashboard_read(),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectKnownValue(
+							dashboardResourceName,
+							tfjsonpath.New("access_policy"),
+							knownvalue.StringFunc(func(got string) error {
+								if !utils.JSONStringsEqual(got, testAccCoralogixDashboardAccessPolicyPretty()) {
+									return fmt.Errorf("planned access_policy = %q, want JSON equivalent to %q", got, testAccCoralogixDashboardAccessPolicyPretty())
+								}
+
+								return nil
+							}),
+						),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "name", "test-access-policy-updated"),
+					testAccCheckDashboardAccessPolicy(dashboardResourceName, testAccCoralogixDashboardAccessPolicyPretty()),
+					testAccCheckDashboardAccessPolicy(dashboardDataSourceName, testAccCoralogixDashboardAccessPolicyPretty()),
+				),
+			},
+			{
+				ResourceName:            dashboardResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"access_policy"},
+				ImportStateCheck:        testAccCheckImportedDashboardAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()),
+			},
+		},
+	})
+}
+
+func testAccCheckDashboardAccessPolicy(resourceName, expected string) resource.TestCheckFunc {
+	return func(state *terraform.State) error {
+		resourceState, ok := state.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource %s not found", resourceName)
+		}
+
+		got := resourceState.Primary.Attributes["access_policy"]
+		if !utils.JSONStringsEqual(got, expected) {
+			return fmt.Errorf("%s access_policy = %q, want JSON equivalent to %q", resourceName, got, expected)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckImportedDashboardAccessPolicy(expected string) resource.ImportStateCheckFunc {
+	return func(states []*terraform.InstanceState) error {
+		for _, state := range states {
+			if got, ok := state.Attributes["access_policy"]; ok {
+				if !utils.JSONStringsEqual(got, expected) {
+					return fmt.Errorf("imported access_policy = %q, want JSON equivalent to %q", got, expected)
+				}
+				return nil
+			}
+		}
+
+		return fmt.Errorf("imported access_policy not found in %d state entries", len(states))
+	}
 }
 
 func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
@@ -429,6 +521,56 @@ EOT
 	})
 }
 
+func TestAccCoralogixResourceDashboardGaugeWidgetThresholdType(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWithWidget(`{
+  title = "gauge_threshold_type"
+  definition = {
+    gauge = {
+      unit           = "milliseconds"
+      threshold_type = "absolute"
+      thresholds = [{
+        from  = 0
+        color = "green"
+      }]
+      query = {
+        metrics = {
+          promql_query = "vector(1)"
+          time_frame = {
+            relative = {
+              duration = "seconds:900"
+            }
+          }
+        }
+      }
+    }
+  }
+}`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "gauge_threshold_type"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.threshold_type", "absolute"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -469,6 +611,89 @@ func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 		},
 	})
 }
+
+func TestAccCoralogixResourceDashboardDataTableWidgetObservationFieldFilter(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "coralogix_dashboard" "test" {
+  name        = "issue-496-observation-field-filter"
+  description = "Reproducer for #496"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      options = {
+        name        = "section-without-color"
+        description = "Exercises flattenDashboardOptions when color is unset."
+      }
+      rows = [{
+        height = 19
+        widgets = [{
+          title = "logs-with-observation-field"
+          definition = {
+            data_table = {
+              results_per_page = 100
+              row_style        = "one_line"
+              columns = [
+                { field = "coralogix.timestamp" },
+                { field = "coralogix.text" },
+                { field = "coralogix.metadata.subsystemName" },
+              ]
+              query = {
+                logs = {
+                  filters = [{
+                    observation_field = {
+                      keypath = ["subsystemname"]
+                      scope   = "label"
+                    }
+                    operator = {
+                      type            = "equals"
+                      selected_values = ["pubby-publisher"]
+                    }
+                  }]
+                }
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.name", "section-without-color"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.options.color"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.field"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.observation_field.keypath.0", "subsystemname"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.observation_field.scope", "label"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.operator.type", "equals"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.operator.selected_values.0", "pubby-publisher"),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -842,6 +1067,175 @@ layout = {
 }
 }
 `, widget)
+}
+
+func testAccCoralogixResourceDashboardWithAccessPolicy(accessPolicy string) string {
+	return testAccCoralogixResourceDashboardAccessPolicyConfig(
+		"test-access-policy",
+		fmt.Sprintf(`  access_policy = <<EOT
+%s
+EOT
+`, accessPolicy),
+	)
+}
+
+func testAccCoralogixResourceDashboardWithoutAccessPolicy(name string) string {
+	return testAccCoralogixResourceDashboardAccessPolicyConfig(name, "")
+}
+
+func testAccCoralogixResourceDashboardAccessPolicyConfig(name, accessPolicyBlock string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" test {
+  name = %q
+
+%s
+
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  auto_refresh = {
+    type = "off"
+  }
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [
+          %s
+        ]
+      }]
+    }]
+  }
+}
+`, name, accessPolicyBlock, testAccCoralogixResourceDashboardCountWidget())
+}
+
+func testAccCoralogixDashboardAccessPolicyPretty() string {
+	return `{
+  "version": "2025-01-01",
+  "default": {
+    "permissions": {
+      "team-dashboards:UpdateAccessPolicy": "grant",
+      "team-dashboards:Read": "grant",
+      "team-dashboards:Update": "grant",
+      "team-dashboards:ReadAccessPolicy": "grant"
+    }
+  },
+  "rules": []
+}`
+}
+
+func testAccCoralogixDashboardAccessPolicyReorderedObjectKeys() string {
+	return `{"rules":[],"default":{"permissions":{"team-dashboards:Update":"grant","team-dashboards:ReadAccessPolicy":"grant","team-dashboards:UpdateAccessPolicy":"grant","team-dashboards:Read":"grant"}},"version":"2025-01-01"}`
+}
+
+func testAccCoralogixResourceDashboardCountWidget() string {
+	return `{
+  title = "count"
+  definition = {
+    line_chart = {
+      query_definitions = [{
+        query = {
+          logs = {
+            aggregations = [{
+              type = "count"
+            }]
+          }
+        }
+      }]
+      legend = {
+        is_visible = false
+        placement  = "unspecified"
+      }
+    }
+  }
+  width = 0
+}`
+}
+
+func TestAccCoralogixResourceDashboardMultiSelectSelectionType(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "coralogix_dashboard" "test" {
+  name        = "selection-type-test"
+  description = "exercises multi_select selection_type round-trip"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title      = "placeholder"
+          width      = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{ type = "count" }]
+                  }
+                }
+              }]
+              legend = {
+                is_visible = false
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+  variables = [
+    {
+      name         = "environment"
+      display_name = "Environment"
+      definition = {
+        multi_select = {
+          selected_values        = ["staging"]
+          values_order_direction = "asc"
+          selection_type         = "single"
+          source = {
+            constant_list = ["staging", "test-trade"]
+          }
+        }
+      }
+    },
+  ]
+}
+`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.name", "environment"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.selection_type", "single"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.values_order_direction", "asc"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.0", "staging"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.1", "test-trade"),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
 }
 
 func TestAccCoralogixResourceDashboardLayoutColor(t *testing.T) {
