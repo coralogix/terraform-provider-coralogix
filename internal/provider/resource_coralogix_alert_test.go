@@ -1104,12 +1104,8 @@ func TestAccCoralogixResourceAlert_metric_threshold_no_data_policy_omit_auto_ret
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.no_data_policy.state", "KEEP_LAST"),
 				),
-			},
-			{
-				Config:   testAccCoralogixResourceAlertMetricThresholdNoDataPolicyOmitAutoRetire(),
-				PlanOnly: true,
 				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PreApply: []plancheck.PlanCheck{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),
 					},
 				},
@@ -3303,6 +3299,9 @@ func testAccCoralogixResourceAlertMetricThresholdNoDataPolicyOmitAutoRetire() st
         replace_with_zero = true
       }
       rules = [{
+        override = {
+          priority = "P2"
+        }
         condition = {
           threshold      = 2
           for_over_pct   = 10
@@ -3317,6 +3316,7 @@ func testAccCoralogixResourceAlertMetricThresholdNoDataPolicyOmitAutoRetire() st
   }
 }
 `
+}
 
 func testAccCoralogixResourceAlertMetricsLessThanUsual() string {
 	return `resource "coralogix_alert" "test" {
