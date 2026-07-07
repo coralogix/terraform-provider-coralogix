@@ -26,6 +26,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -1090,6 +1091,31 @@ func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
 		},
 	},
 	)
+}
+
+func TestAccCoralogixResourceAlert_metric_threshold_no_data_policy_omit_auto_retire(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertMetricThresholdNoDataPolicyOmitAutoRetire(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.no_data_policy.state", "KEEP_LAST"),
+				),
+			},
+			{
+				Config:   testAccCoralogixResourceAlertMetricThresholdNoDataPolicyOmitAutoRetire(),
+				PlanOnly: true,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+		},
+	})
 }
 
 func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
@@ -3261,6 +3287,36 @@ func testAccCoralogixResourceAlertMetricLessThanUpdated() string {
 }
 `
 }
+
+func testAccCoralogixResourceAlertMetricThresholdNoDataPolicyOmitAutoRetire() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "metric-threshold-no-data-policy-omit-auto-retire"
+  description = "metric_threshold alert with no_data_policy state only"
+  priority    = "P3"
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+      }
+      missing_values = {
+        replace_with_zero = true
+      }
+      rules = [{
+        condition = {
+          threshold      = 2
+          for_over_pct   = 10
+          of_the_last    = "10m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+      }]
+      no_data_policy = {
+        state = "KEEP_LAST"
+      }
+    }
+  }
+}
+`
 
 func testAccCoralogixResourceAlertMetricsLessThanUsual() string {
 	return `resource "coralogix_alert" "test" {
