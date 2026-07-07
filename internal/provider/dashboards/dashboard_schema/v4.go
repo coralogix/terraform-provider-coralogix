@@ -271,6 +271,15 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		},
 																		MarkdownDescription: fmt.Sprintf("The threshold by. Can be one of %q.", dashboardwidgets.DashboardValidGaugeThresholdBy),
 																	},
+																	"threshold_type": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidThresholdTypes...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("The threshold type. Can be one of %q.", dashboardwidgets.DashboardValidThresholdTypes),
+																	},
 																	"display_series_name": schema.BoolAttribute{
 																		Optional: true,
 																		Computed: true,
@@ -985,6 +994,13 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 										},
 										MarkdownDescription: fmt.Sprintf("The order direction of the values. Can be one of `%s`.", strings.Join(dashboardwidgets.DashboardValidOrderDirections, "`, `")),
 									},
+									"selection_type": schema.StringAttribute{
+										Optional: true,
+										Validators: []validator.String{
+											stringvalidator.OneOf(dashboardwidgets.DashboardValidMultiSelectSelectionTypes...),
+										},
+										MarkdownDescription: fmt.Sprintf("Selection mode of the variable. Can be one of `%s`. Omit to use the API default (multi-select with an implicit \"All\" option).", strings.Join(dashboardwidgets.DashboardValidMultiSelectSelectionTypes, "`, `")),
+									},
 									"source": schema.SingleNestedAttribute{
 										Attributes: map[string]schema.Attribute{
 											"logs_path": schema.StringAttribute{
@@ -1335,6 +1351,12 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 				stringplanmodifier.RequiresReplaceIf(utils.JSONStringsEqualPlanModifier, "", ""),
 			},
 			Description: "an option to set the dashboard content from a json file.",
+		},
+		"access_policy": schema.StringAttribute{
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{PreserveStateForEquivalentJSON{}, stringplanmodifier.UseStateForUnknown()},
+			MarkdownDescription: "JSON-encoded access policy for this dashboard.",
 		},
 	}
 }

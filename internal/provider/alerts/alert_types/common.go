@@ -413,7 +413,7 @@ type LogsThresholdModel struct {
 	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
-	NoDataPolicy               types.Object `tfsdk:"no_data_policy"`              // NoDataPolicyModel
+	NoDataPolicy               types.Object `tfsdk:"no_data_policy"`               // NoDataPolicyModel
 	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 

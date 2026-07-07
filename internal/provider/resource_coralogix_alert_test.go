@@ -17,16 +17,24 @@ package provider
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/google/uuid"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 var alertResourceName = "coralogix_alert.test"
+
+const (
+	alertCustomEvaluationDelayExplicitZeroMs int32 = 0
+)
 
 func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -305,6 +313,28 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 	},
 	)
 
+}
+
+func TestAccCoralogixResourceAlert_custom_evaluation_delay_omitted_and_explicit(t *testing.T) {
+	name := uuid.NewString()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertCustomEvaluationDelayOmittedAndExplicit(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAlertCustomEvaluationDelayUnset("coralogix_alert.more_than_omitted"),
+					resource.TestCheckNoResourceAttr("coralogix_alert.more_than_omitted", "type_definition.logs_threshold.custom_evaluation_delay"),
+					testAccCheckAlertCustomEvaluationDelayUnset("coralogix_alert.less_than_omitted"),
+					resource.TestCheckNoResourceAttr("coralogix_alert.less_than_omitted", "type_definition.logs_threshold.custom_evaluation_delay"),
+					testAccCheckAlertCustomEvaluationDelay("coralogix_alert.explicit_zero", alertCustomEvaluationDelayExplicitZeroMs),
+					resource.TestCheckResourceAttr("coralogix_alert.explicit_zero", "type_definition.logs_threshold.custom_evaluation_delay", fmt.Sprint(alertCustomEvaluationDelayExplicitZeroMs)),
+				),
+			},
+		},
+	})
 }
 
 func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
@@ -1063,6 +1093,27 @@ func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
 	)
 }
 
+func TestAccCoralogixResourceAlert_metric_threshold_no_data_policy_omit_auto_retire(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertMetricThresholdNoDataPolicyOmitAutoRetire(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.no_data_policy.state", "KEEP_LAST"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -1506,6 +1557,94 @@ func testAccCheckAlertDestroy(s *terraform.State) error {
 	return nil
 }
 
+func testAccCheckAlertCustomEvaluationDelay(resourceName string, expected int32) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		delay, ok, err := testAccGetAlertCustomEvaluationDelay(s, resourceName)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("alert %q evaluation delay is unset, want %d", resourceName, expected)
+		}
+		if delay != expected {
+			return fmt.Errorf("alert %q evaluation delay = %d, want %d", resourceName, delay, expected)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAlertCustomEvaluationDelayUnset(resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		delay, ok, err := testAccGetAlertCustomEvaluationDelay(s, resourceName)
+		if err != nil {
+			return err
+		}
+		if ok {
+			return fmt.Errorf("alert %q evaluation delay = %d, want unset", resourceName, delay)
+		}
+
+		return nil
+	}
+}
+
+func testAccGetAlertCustomEvaluationDelay(s *terraform.State, resourceName string) (int32, bool, error) {
+	rs, ok := s.RootModule().Resources[resourceName]
+	if !ok {
+		return 0, false, fmt.Errorf("resource %q not found in state", resourceName)
+	}
+	if rs.Primary == nil || rs.Primary.ID == "" {
+		return 0, false, fmt.Errorf("resource %q has no ID in state", resourceName)
+	}
+
+	clientSet, err := testAccAlertClientSet()
+	if err != nil {
+		return 0, false, err
+	}
+	client := clientSet.Alerts()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	resp, _, err := client.AlertDefsServiceGetAlertDef(ctx, rs.Primary.ID).Execute()
+	if err != nil {
+		return 0, false, fmt.Errorf("read alert %q: %w", resourceName, err)
+	}
+
+	alertDef := resp.GetAlertDef()
+	properties := alertDef.GetAlertDefProperties()
+	if properties.AlertDefPropertiesLogsThreshold == nil {
+		return 0, false, fmt.Errorf("alert %q is not a logs threshold alert", resourceName)
+	}
+
+	delay, ok := properties.AlertDefPropertiesLogsThreshold.LogsThreshold.GetEvaluationDelayMsOk()
+	if !ok {
+		return 0, false, nil
+	}
+	return *delay, true, nil
+}
+
+func testAccAlertClientSet() (*clientset.ClientSet, error) {
+	apiKey := os.Getenv("CORALOGIX_API_KEY")
+	domain := os.Getenv("CORALOGIX_DOMAIN")
+	terraformEnvironmentAlias := strings.ToUpper(os.Getenv("CORALOGIX_ENV"))
+
+	if domain != "" && terraformEnvironmentAlias != "" {
+		return nil, fmt.Errorf("only one of CORALOGIX_ENV or CORALOGIX_DOMAIN can be set")
+	}
+	if domain != "" {
+		targetURL := clientset.GrpcTargetFromDomain(domain)
+		return clientset.NewClientSet(domain, apiKey, targetURL), nil
+	}
+
+	targetURL, ok := terraformEnvironmentAliasToGrpcUrl[terraformEnvironmentAlias]
+	if !ok {
+		return nil, fmt.Errorf("the Coralogix env must be one of %q", validEnvironmentAliases)
+	}
+	sdkEnvironment := terraformEnvironmentAliasToSdkEnvironment[terraformEnvironmentAlias]
+	return clientset.NewClientSet(sdkEnvironment, apiKey, targetURL), nil
+}
+
 func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
 	return `resource "coralogix_alert" "test" {
   name        = "logs immediate alert updated"
@@ -1858,6 +1997,89 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
   }
 }
 `
+}
+
+func testAccCoralogixResourceAlertCustomEvaluationDelayOmittedAndExplicit(name string) string {
+	return fmt.Sprintf(`
+resource "coralogix_alert" "more_than_omitted" {
+  name        = "custom-evaluation-delay-more-than-omitted-%[1]s"
+  description = "custom evaluation delay omitted more-than alert"
+  priority    = "P2"
+
+  type_definition = {
+    logs_threshold = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
+      rules = [
+        {
+          condition = {
+            threshold      = 2
+            time_window    = "10_MINUTES"
+            condition_type = "MORE_THAN"
+          }
+          override = {}
+        }
+      ]
+    }
+  }
+}
+
+resource "coralogix_alert" "less_than_omitted" {
+  name        = "custom-evaluation-delay-less-than-omitted-%[1]s"
+  description = "custom evaluation delay omitted less-than alert"
+  priority    = "P2"
+
+  type_definition = {
+    logs_threshold = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
+      rules = [
+        {
+          condition = {
+            threshold      = 2
+            time_window    = "10_MINUTES"
+            condition_type = "LESS_THAN"
+          }
+          override = {}
+        }
+      ]
+    }
+  }
+}
+
+resource "coralogix_alert" "explicit_zero" {
+  name        = "custom-evaluation-delay-explicit-zero-%[1]s"
+  description = "custom evaluation delay explicit zero alert"
+  priority    = "P2"
+
+  type_definition = {
+    logs_threshold = {
+      custom_evaluation_delay = 0
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
+      rules = [
+        {
+          condition = {
+            threshold      = 2
+            time_window    = "10_MINUTES"
+            condition_type = "MORE_THAN"
+          }
+          override = {}
+        }
+      ]
+    }
+  }
+}
+`, name)
 }
 
 func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) string {
@@ -3062,6 +3284,40 @@ func testAccCoralogixResourceAlertMetricLessThanUpdated() string {
 `
 }
 
+func testAccCoralogixResourceAlertMetricThresholdNoDataPolicyOmitAutoRetire() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "metric-threshold-no-data-policy-omit-auto-retire"
+  description = "metric_threshold alert with no_data_policy state only"
+  priority    = "P3"
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+      }
+      missing_values = {
+        replace_with_zero = true
+      }
+      rules = [{
+        override = {
+          priority = "P2"
+        }
+        condition = {
+          threshold      = 2
+          for_over_pct   = 10
+          of_the_last    = "10m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+      }]
+      no_data_policy = {
+        state = "KEEP_LAST"
+      }
+    }
+  }
+}
+`
+}
+
 func testAccCoralogixResourceAlertMetricsLessThanUsual() string {
 	return `resource "coralogix_alert" "test" {
 name        = "metric-less-than-usual alert example"
@@ -3953,6 +4209,314 @@ func testAccCoralogixResourceAlertWebhooksSettingsNoNotifications() string {
 	return `resource "coralogix_alert" "test" {
   name     = "bugv2-5323-webhook-to-router"
   priority = "P3"
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(increase(calls_total{}[2m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 1000
+          for_over_pct   = 100
+          of_the_last    = "5m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+        override = { priority = "P3" }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
+`
+}
+
+func TestAccCoralogixResourceAlert_group_by_keys_deletion(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertGroupByKeysSet(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-group-by-keys-delete"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.group_by_keys.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.group_by_keys.0", "environment"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertGroupByKeysCleared(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-group-by-keys-delete"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "notification_group.group_by_keys.#"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.notify_on", "Triggered Only"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertGroupByKeysPhantom(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-group-by-keys-delete"),
+					resource.TestCheckResourceAttr(alertResourceName, "phantom_mode", "true"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertGroupByKeysSet() string {
+	return `resource "coralogix_alert" "test" {
+  name     = "issue-552-group-by-keys-delete"
+  priority = "P3"
+
+  notification_group = {
+    group_by_keys = ["environment"]
+    router = {
+      notify_on = "Triggered Only"
+    }
+  }
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(increase(calls_total{}[2m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 1000
+          for_over_pct   = 100
+          of_the_last    = "5m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+        override = { priority = "P3" }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertGroupByKeysCleared() string {
+	return `resource "coralogix_alert" "test" {
+  name     = "issue-552-group-by-keys-delete"
+  priority = "P3"
+
+  notification_group = {
+    router = {
+      notify_on = "Triggered Only"
+    }
+  }
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(increase(calls_total{}[2m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 1000
+          for_over_pct   = 100
+          of_the_last    = "5m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+        override = { priority = "P3" }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertGroupByKeysPhantom() string {
+	return `resource "coralogix_alert" "test" {
+  name         = "issue-552-group-by-keys-delete"
+  priority     = "P3"
+  phantom_mode = true
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(increase(calls_total{}[2m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 1000
+          for_over_pct   = 100
+          of_the_last    = "5m"
+          condition_type = "MORE_THAN_OR_EQUALS"
+        }
+        override = { priority = "P3" }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
+`
+}
+
+func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
+	name := uuid.NewString()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertDestinationsSet(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-destinations-delete"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "1"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertDestinationsCleared(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-destinations-delete"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "notification_group.destinations.#"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.notify_on", "Triggered Only"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertDestinationsPhantom(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-destinations-delete"),
+					resource.TestCheckResourceAttr(alertResourceName, "phantom_mode", "true"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertDestinationsFixtures(name string) string {
+	return fmt.Sprintf(`
+  resource "coralogix_connector" "slack_example" {
+    id               = "%[1]v"
+    name             = "%[1]v"
+    type             = "slack"
+    description      = "slack connector example"
+    connector_config = {
+      fields = [
+        { field_name = "integrationId",   value = "luigis-testing-grounds" },
+        { field_name = "fallbackChannel", value = "luigis-testing-grounds" },
+        { field_name = "channel",         value = "luigis-testing-grounds" }
+      ]
+    }
+  }
+
+  resource "coralogix_preset" "slack_example" {
+    id               = "%[1]v"
+    name             = "%[1]v"
+    description      = "slack preset example"
+    entity_type      = "alerts"
+    connector_type   = "slack"
+    parent_id        = "preset_system_slack_alerts_basic"
+    config_overrides = [
+      {
+        condition_type = {
+          match_entity_type_and_sub_type = {
+            entity_sub_type = "logsImmediateResolved"
+          }
+        }
+        message_config = {
+          fields = [
+            { field_name = "title",       template = "{{alert.status}} {{alertDef.priority}} - {{alertDef.name}}" },
+            { field_name = "description", template = "{{alertDef.description}}" }
+          ]
+        }
+      }
+    ]
+  }
+`, name)
+}
+
+func testAccCoralogixResourceAlertDestinationsSet(name string) string {
+	return testAccCoralogixResourceAlertDestinationsFixtures(name) + `
+  resource "coralogix_alert" "test" {
+    name     = "issue-552-destinations-delete"
+    priority = "P3"
+
+    notification_group = {
+      destinations = [
+        {
+          connector_id = coralogix_connector.slack_example.id
+          preset_id    = coralogix_preset.slack_example.id
+        }
+      ]
+    }
+
+    type_definition = {
+      metric_threshold = {
+        metric_filter = {
+          promql = "sum(increase(calls_total{}[2m]))"
+        }
+        rules = [{
+          condition = {
+            threshold      = 1000
+            for_over_pct   = 100
+            of_the_last    = "5m"
+            condition_type = "MORE_THAN_OR_EQUALS"
+          }
+          override = { priority = "P3" }
+        }]
+        missing_values = {
+          replace_with_zero = true
+        }
+      }
+    }
+  }
+`
+}
+
+func testAccCoralogixResourceAlertDestinationsCleared(name string) string {
+	return testAccCoralogixResourceAlertDestinationsFixtures(name) + `
+  resource "coralogix_alert" "test" {
+    name     = "issue-552-destinations-delete"
+    priority = "P3"
+
+    notification_group = {
+      router = {
+        notify_on = "Triggered Only"
+      }
+    }
+
+    type_definition = {
+      metric_threshold = {
+        metric_filter = {
+          promql = "sum(increase(calls_total{}[2m]))"
+        }
+        rules = [{
+          condition = {
+            threshold      = 1000
+            for_over_pct   = 100
+            of_the_last    = "5m"
+            condition_type = "MORE_THAN_OR_EQUALS"
+          }
+          override = { priority = "P3" }
+        }]
+        missing_values = {
+          replace_with_zero = true
+        }
+      }
+    }
+  }
+`
+}
+
+func testAccCoralogixResourceAlertDestinationsPhantom() string {
+	return `resource "coralogix_alert" "test" {
+  name         = "issue-552-destinations-delete"
+  priority     = "P3"
+  phantom_mode = true
 
   type_definition = {
     metric_threshold = {

@@ -22,6 +22,8 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	actionss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/actions_service"
+	aiapplications "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_applications_service"
+	aievaluations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_evaluations_service"
 	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
 	alertScheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
@@ -82,6 +84,8 @@ type ClientSet struct {
 	globalRouters         *globalRouters.GlobalRoutersServiceAPIService
 	ipaccess              *ipaccess.IPAccessServiceAPIService
 	integrations          *integrations.IntegrationServiceAPIService
+	aiApplications        *aiapplications.AIApplicationsServiceAPIService
+	aiEvaluations         *aievaluations.AIEvaluationsServiceAPIService
 	grafana               *GrafanaClient
 	groups                *GroupsClient
 }
@@ -105,6 +109,15 @@ func (c *ClientSet) APIKeys() *apiKeys.APIKeysServiceAPIService {
 func (c *ClientSet) Actions() *actionss.ActionsServiceAPIService {
 	return c.actions
 }
+
+func (c *ClientSet) AIApplications() *aiapplications.AIApplicationsServiceAPIService {
+	return c.aiApplications
+}
+
+func (c *ClientSet) AIEvaluations() *aievaluations.AIEvaluationsServiceAPIService {
+	return c.aiEvaluations
+}
+
 func (c *ClientSet) Enrichments() *cxsdk.EnrichmentsClient {
 	return c.enrichments
 }
@@ -269,6 +282,8 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		apikeys:               cs.APIKeys(),
 		webhooks:              cs.Webhooks(),
 		ipaccess:              cs.IPAccess(),
+		aiApplications:        cs.AIApplications(),
+		aiEvaluations:         cs.AIEvaluations(),
 		dataEnrichments:       cs.Enrichments(),
 		customDataEnrichments: cs.CustomEnrichments(),
 		alertScheduler:        cs.AlertScheduler(),

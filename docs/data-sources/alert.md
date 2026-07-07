@@ -30,7 +30,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 - `name` (String) Alert name.
 - `notification_group` (Attributes) (see [below for nested schema](#nestedatt--notification_group))
 - `phantom_mode` (Boolean)
-- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"]. This field will be removed in the future in favor of the 'override' property where possible.
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
 - `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold. (see [below for nested schema](#nestedatt--type_definition))
 
@@ -238,7 +238,7 @@ Read-Only:
 
 Read-Only:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter))
 - `notification_payload_filter` (Set of String)
 - `percentage_of_deviation` (Number) The percentage of deviation from the baseline for triggering the alert.
@@ -439,7 +439,7 @@ Read-Only:
 
 Read-Only:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `denominator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator))
 - `denominator_alias` (String)
 - `group_by_for` (String) Group by for. Valid values: ["Both" "Denominator Only" "Numerator Only"]. 'Both' by default.
@@ -572,7 +572,7 @@ Read-Only:
 
 Read-Only:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter))
 - `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--no_data_policy))
 - `notification_payload_filter` (Set of String)
@@ -675,7 +675,7 @@ Read-Only:
 
 Read-Only:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `ignore_infinity` (Boolean) Whether to ignore infinite ratios when the denominator is zero. False by default.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter))
 - `notification_payload_filter` (Set of String)
@@ -843,7 +843,7 @@ Read-Only:
 
 Read-Only:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--metric_filter))
 - `percentage_of_deviation` (Number) The percentage of deviation from the baseline for triggering the alert.
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--rules))
@@ -882,7 +882,7 @@ Read-Only:
 
 Read-Only:
 
-- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--metric_filter))
 - `missing_values` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--missing_values))
 - `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--no_data_policy))

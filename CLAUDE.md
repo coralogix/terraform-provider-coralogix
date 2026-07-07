@@ -47,11 +47,11 @@ Both implementations live in `internal/provider/provider.go`. To add a new resou
 
 ## Pre-commit
 
-`.pre-commit-config.yaml` runs `gofmt`, `goimports`, `go vet`, `golangci-lint`, `go-cyclo` (limit 15), `go-mod-tidy`, `go-build`, and `go-unit-tests` on every commit.
+`.pre-commit-config.yaml` runs Gitleaks, `gofmt`, `goimports`, `go vet`, `golangci-lint`, `go-cyclo` (limit 15), `go-mod-tidy`, `go-build`, and `go-unit-tests` on every commit.
 
 ## Adding API support / SDK considerations
 
-The provider depends on the public Go SDK at [`coralogix/coralogix-management-sdk`](https://github.com/coralogix/coralogix-management-sdk). That SDK is the authoritative surface for "is this API field available to me?".
+The provider depends on the public Go SDK at [`coralogix/coralogix-management-sdk`](https://github.com/coralogix/coralogix-management-sdk). That SDK is the authoritative surface for "is this API field available to me?". This repo does not commit `.proto` files.
 
 **To check whether a field exists in the pinned SDK:**
 
@@ -61,6 +61,8 @@ grep -rn "FieldName" ~/go/pkg/mod/github.com/coralogix/coralogix-management-sdk@
 ```
 
 If the SDK's generated Go types don't include the field, an SDK release has to land first. If they do, wire the schema, model, extractor, and flatten in the relevant `internal/provider/<domain>/` package.
+
+If generated SDK types are ambiguous about presence, defaults, validation, or required fields, do not guess from Go zero values alone. Verify behavior against the API before adding Terraform validators or schema defaults.
 
 When the resource has a paired data source (`data_source_*.go`), check whether it delegates to the resource's `Schema()` method — many in this repo do, which means new attributes flow through automatically. Quick check: `grep "var r.*Resource" internal/provider/<domain>/data_source_*.go`.
 
@@ -80,6 +82,8 @@ A bump usually requires adapting many resource files to the new SDK API surface 
 ## Changelog
 
 Every PR must update `CHANGELOG.md`. The CI `changelog-check` workflow enforces this and will block merges if the file is untouched. Add a `skip changelog` label to the PR to bypass the check.
+
+Exception: non-user-facing repository hygiene changes, such as pre-commit hook updates or CI-only changes, do not need a changelog entry unless the user explicitly asks for one.
 
 **Where to add your entry:**
 
@@ -111,6 +115,15 @@ A simple grep before committing catches leakage:
 ```bash
 git diff master.. -- internal docs examples | grep -iE "BUGV2-|CX-[0-9]" || echo "✓ none"
 ```
+
+## Review instructions
+
+- **Set/unset semantics:** Check that removing an attribute from HCL really clears it when intended. Be suspicious of `Optional+Computed` plus `UseStateForUnknown()` on fields users may remove; it can silently preserve prior state. Also verify explicit empty lists are either accepted and round-trip, or rejected with a clear validator.
+- **Plan/state round-trip:** For every schema field touched, trace schema → model → extract/expand → API → flatten → state. Watch for defaults that the API ignores, backend-generated IDs that need `Optional+Computed`, proto `UNSPECIFIED` enum values leaking into state, null vs empty list drift, and schema versions that were not updated together.
+- **Null, unknown, and import safety:** Validators and extractors must tolerate `null`, `unknown`, and variable-derived values without panics. Import reads often start with only an ID, so dynamic or required-looking nested values must be hydrated from the backend before conversion.
+- **CRUD error paths:** After `resp.Diagnostics.AddError`, return immediately. A failed create/update must not continue into flatten/state writes, because empty IDs or zero-value state can poison later reads and plans.
+- **API behavior hidden by generated types:** Do not infer semantics from Go zero values alone. Check for exact numeric/string conversions, time windows that cross midnight, host/domain routing special cases, backend-only defaults, and hard-coded request values that users cannot express in schema.
+- **Regression coverage:** Prefer tests that exercise apply → read → second plan, set → change → remove for optional fields, import, unknown/variable config, and API-returned optional blocks. Many past bugs only appeared on the second plan or on update/import, not on initial create.
 
 ## Skill maintenance (dynamic)
 

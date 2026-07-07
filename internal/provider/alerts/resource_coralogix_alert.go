@@ -283,6 +283,14 @@ func extractAlertProperties(ctx context.Context, plan *alerttypes.AlertResourceM
 	return alertProperties, nil
 }
 
+func extractCustomEvaluationDelay(delay types.Int32) *int32 {
+	if delay.IsNull() || delay.IsUnknown() {
+		return nil
+	}
+
+	return delay.ValueInt32Pointer()
+}
+
 func extractIncidentsSettings(ctx context.Context, incidentsSettingsObject types.Object) (*alerts.AlertDefIncidentSettings, diag.Diagnostics) {
 	if incidentsSettingsObject.IsNull() || incidentsSettingsObject.IsUnknown() {
 		return nil, nil
@@ -1027,7 +1035,7 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *alerts.A
 		NotificationPayloadFilter:  notificationPayloadFilter,
 		UndetectedValuesManagement: undetected,
 		NoDataPolicy:               noDataPolicy,
-		EvaluationDelayMs:          thresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:          extractCustomEvaluationDelay(thresholdModel.CustomEvaluationDelay),
 	}
 
 	properties.AlertDefPropertiesLogsThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_THRESHOLD.Ptr()
@@ -1218,7 +1226,7 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alert
 		LogsFilter:                logsFilter,
 		Rules:                     rules,
 		NotificationPayloadFilter: notificationPayloadFilter,
-		EvaluationDelayMs:         anomalyModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:         extractCustomEvaluationDelay(anomalyModel.CustomEvaluationDelay),
 		AnomalyAlertSettings:      anomalyAlertSettings,
 	}
 
@@ -1344,7 +1352,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 		Rules:                     rules,
 		NotificationPayloadFilter: notificationPayloadFilter,
 		GroupByFor:                alerttypes.LogsRatioGroupByForSchemaToProtoMap[groupByFor].Ptr(),
-		EvaluationDelayMs:         ratioThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:         extractCustomEvaluationDelay(ratioThresholdModel.CustomEvaluationDelay),
 		IgnoreInfinity:            ratioThresholdModel.IgnoreInfinity.ValueBoolPointer(),
 	}
 	properties.AlertDefPropertiesLogsRatioThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD.Ptr()
@@ -1731,7 +1739,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 		Rules:                      rules,
 		NotificationPayloadFilter:  notificationPayloadFilter,
 		UndetectedValuesManagement: undetected,
-		EvaluationDelayMs:          relativeThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:          extractCustomEvaluationDelay(relativeThresholdModel.CustomEvaluationDelay),
 		IgnoreInfinity:             relativeThresholdModel.IgnoreInfinity.ValueBoolPointer(),
 	}
 	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD.Ptr()
@@ -1857,7 +1865,7 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *a
 		MissingValues:              missingValues,
 		UndetectedValuesManagement: undetected,
 		NoDataPolicy:               noDataPolicy,
-		EvaluationDelayMs:          metricThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:          extractCustomEvaluationDelay(metricThresholdModel.CustomEvaluationDelay),
 	}
 	properties.AlertDefPropertiesMetricThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_THRESHOLD.Ptr()
 
@@ -2323,7 +2331,7 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *ale
 	properties.AlertDefPropertiesMetricAnomaly.MetricAnomaly = alerts.MetricAnomalyType{
 		MetricFilter:         metricFilter,
 		Rules:                rules,
-		EvaluationDelayMs:    metricAnomalyModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		EvaluationDelayMs:    extractCustomEvaluationDelay(metricAnomalyModel.CustomEvaluationDelay),
 		AnomalyAlertSettings: anomalyAlertSettings,
 	}
 	properties.AlertDefPropertiesMetricAnomaly.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_ANOMALY.Ptr()
@@ -3717,8 +3725,8 @@ func flattenNoDataPolicy(ctx context.Context, noDataPolicy *alerts.NoDataPolicy)
 	if noDataPolicy == nil {
 		return types.ObjectValueFrom(ctx, alertschema.NoDataPolicyAttr(), model)
 	}
-	if noDataPolicy.AutoRetireSeconds != nil {
-		model.AutoRetireSeconds = types.Int64Value(int64(*noDataPolicy.AutoRetireSeconds))
+	if autoRetireSeconds, ok := noDataPolicy.GetAutoRetireSecondsOk(); ok {
+		model.AutoRetireSeconds = types.Int64Value(int64(*autoRetireSeconds))
 	}
 	if noDataPolicy.State != nil {
 		model.State = types.StringValue(alerttypes.NoDataPolicyStateProtoToSchemaMap[*noDataPolicy.State])
