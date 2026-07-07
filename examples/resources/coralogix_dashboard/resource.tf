@@ -618,6 +618,20 @@ resource "coralogix_dashboard" "dashboard" {
         }
       }
     },
+    {
+      name = "manual_threshold_band"
+      source = {
+        manual = {
+          orientation = "horizontal"
+          strategy = {
+            range = {
+              start_value = 45
+              end_value   = 80
+            }
+          }
+        }
+      }
+    },
   ]
   auto_refresh = {
     type = "two_minutes"

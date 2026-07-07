@@ -1288,6 +1288,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 									objectvalidator.ExactlyOneOf(
 										path.MatchRelative().AtParent().AtName("logs"),
 										path.MatchRelative().AtParent().AtName("spans"),
+										path.MatchRelative().AtParent().AtName("manual"),
 									),
 								},
 							},
@@ -1298,6 +1299,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 									objectvalidator.ExactlyOneOf(
 										path.MatchRelative().AtParent().AtName("metrics"),
 										path.MatchRelative().AtParent().AtName("spans"),
+										path.MatchRelative().AtParent().AtName("manual"),
 									),
 								},
 							},
@@ -1308,9 +1310,11 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 									objectvalidator.ExactlyOneOf(
 										path.MatchRelative().AtParent().AtName("metrics"),
 										path.MatchRelative().AtParent().AtName("logs"),
+										path.MatchRelative().AtParent().AtName("manual"),
 									),
 								},
 							},
+							"manual": manualAnnotationSourceAttribute(),
 						},
 						Required: true,
 					},
