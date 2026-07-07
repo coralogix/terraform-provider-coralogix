@@ -693,6 +693,7 @@ func upgradeAnnotationSourceV0(ctx context.Context, source types.Object) (types.
 		Metrics: priorSource.Metric,
 		Logs:    types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
 		Spans:   types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
+		Manual:  types.ObjectNull(annotationsManualSourceModelAttr()),
 	}
 
 	return types.ObjectValueFrom(ctx, annotationSourceModelAttr(), upgradeSource)
