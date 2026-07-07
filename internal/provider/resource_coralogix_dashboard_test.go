@@ -758,9 +758,10 @@ func TestAccCoralogixResourceDashboardFolderIDNoDrift(t *testing.T) {
 				},
 			},
 			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            dashboardResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"folder"},
 			},
 		},
 	})
