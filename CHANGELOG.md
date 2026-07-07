@@ -1,5 +1,8 @@
 # Unreleased
 
+#### provider
+- CHORE: Bump `coralogix-management-sdk` to expose the manual dashboard annotation source types (`cxsdk.AnnotationSourceManual` and its strategy aliases), unblocking manual annotation support in `coralogix_dashboard`.
+
 #### resource/coralogix_ai_custom_evaluation
 - FIX: Correct example score mapping and clearing of empty `criteria.*.examples` lists.
 
