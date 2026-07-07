@@ -4,7 +4,7 @@
 - FIX: Stop perpetual `(known after apply)` drift on `no_data_policy.auto_retire_seconds` when the field is omitted from configuration.
 
 #### provider
-- CHORE: Bump `coralogix-management-sdk` to expose the manual dashboard annotation source types (`cxsdk.AnnotationSourceManual` and its strategy aliases), unblocking manual annotation support in `coralogix_dashboard`.
+- CHORE: Bump `coralogix-management-sdk`.
 
 #### resource/coralogix_ai_custom_evaluation
 - FIX: Correct example score mapping and clearing of empty `criteria.*.examples` lists.
