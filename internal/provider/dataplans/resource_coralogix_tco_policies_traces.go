@@ -296,6 +296,8 @@ func (r *TCOPoliciesTracesResource) ValidateConfig(ctx context.Context, req reso
 		}
 		validateTCORuleModelModel(tcoPolicy.Subsystems, "subsystems", resp)
 		validateTCORuleModelModel(tcoPolicy.Applications, "applications", resp)
+		validateTCORuleModelModel(tcoPolicy.Services, "services", resp)
+		validateTCORuleModelModel(tcoPolicy.Actions, "actions", resp)
 	}
 }
 
@@ -616,10 +618,10 @@ func validateTCORuleModelModel(rule types.Object, root string, resp *resource.Va
 	ruleType := ruleModel.RuleType.ValueString()
 	nameLength := len(ruleModel.Names.Elements())
 	if (ruleType == "starts_with" || ruleType == "includes") && nameLength > 1 {
-		resp.Diagnostics.AddAttributeWarning(
+		resp.Diagnostics.AddAttributeError(
 			path.Root(root),
 			"Conflicting Attributes Values Configuration",
-			fmt.Sprintf("Currently, rule_type \"%s\" supports only one value, but \"names\" has %d elements. Remove all but one to remove this warning.", ruleType, nameLength),
+			fmt.Sprintf("rule_type \"%s\" supports only one value, but \"names\" has %d elements. Remove all but one.", ruleType, nameLength),
 		)
 	}
 }

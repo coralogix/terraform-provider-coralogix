@@ -1,5 +1,11 @@
 # Unreleased
 
+#### resource/coralogix_tco_policies_logs
+- FIX: Reject a rule with `rule_type` `starts_with`/`includes` and more than one `names` element at plan time instead of emitting a non-blocking warning and applying a mangled policy.
+
+#### resource/coralogix_tco_policies_traces
+- FIX: Reject a rule with `rule_type` `starts_with`/`includes` and more than one `names` element at plan time instead of emitting a non-blocking warning and applying a mangled policy.
+
 #### resource/coralogix_dashboard
 - FEAT: Add support for the `manual` annotation source, allowing static `instant`/`range` threshold annotations with configurable `orientation`, `unit`, and `message_template`.
 

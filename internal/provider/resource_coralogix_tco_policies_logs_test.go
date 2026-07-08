@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -148,6 +149,36 @@ policies = [{
 	subsystems      = {
 		rule_type   = "is"
 		names       = ["mobile", "web"]
+	}
+}]
+}
+	`
+}
+
+func TestAccCoralogixResourceTCOPoliciesLogs_multi_value_starts_with_rejected(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixResourceTCOPoliciesLogsMultiValueStartsWith(),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile("supports only one value"),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceTCOPoliciesLogsMultiValueStartsWith() string {
+	return `resource "coralogix_tco_policies_logs" test {
+policies = [{
+	name         = "Example tco_policy from terraform 1"
+	priority     = "medium"
+	severities   = ["error", "info", "warning"]
+	applications = {
+		rule_type = "starts_with"
+		names     = ["one", "two"]
 	}
 }]
 }
