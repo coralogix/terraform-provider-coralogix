@@ -2,6 +2,14 @@
 
 #### provider
 - FIX: Derive the OpenAPI/management REST host as `api.<domain>` (not the bare `<domain>`) when configured with a custom `domain`, matching the `ng-api-grpc.`/`ng-api-http.` prefixing of the gRPC and SCIM clients so one base domain resolves correctly for every client family. AWS PrivateLink (`api.private.*`) and already-`api.`-prefixed domains are unchanged.
+#### resource/coralogix_dashboard
+- FEAT: Add support for the `manual` annotation source, allowing static `instant`/`range` threshold annotations with configurable `orientation`, `unit`, and `message_template`.
+
+#### resource/coralogix_alert
+- FIX: Stop perpetual `(known after apply)` drift on `no_data_policy.auto_retire_seconds` when the field is omitted from configuration.
+
+#### provider
+- CHORE: Bump `coralogix-management-sdk`.
 
 #### resource/coralogix_ai_custom_evaluation
 - FIX: Correct example score mapping and clearing of empty `criteria.*.examples` lists.

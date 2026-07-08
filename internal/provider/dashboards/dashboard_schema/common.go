@@ -25,11 +25,13 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -193,5 +195,73 @@ func observationFieldSingleNestedAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Attributes: dashboardwidgets.ObservationFieldSchema(),
 		Required:   true,
+	}
+}
+
+func manualAnnotationSourceAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes: map[string]schema.Attribute{
+			"orientation": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString("vertical"),
+				Validators: []validator.String{
+					stringvalidator.OneOf("vertical", "horizontal"),
+				},
+			},
+			"message_template": schema.StringAttribute{
+				Optional: true,
+			},
+			"strategy": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"instant": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"value": schema.Float64Attribute{
+								Optional: true,
+							},
+							"unit": dashboardwidgets.UnitSchema(),
+							"custom_unit": schema.StringAttribute{
+								Optional: true,
+							},
+						},
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("range"),
+							),
+						},
+					},
+					"range": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"start_value": schema.Float64Attribute{
+								Optional: true,
+							},
+							"end_value": schema.Float64Attribute{
+								Optional: true,
+							},
+							"unit": dashboardwidgets.UnitSchema(),
+							"custom_unit": schema.StringAttribute{
+								Optional: true,
+							},
+						},
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("instant"),
+							),
+						},
+					},
+				},
+				Required: true,
+			},
+		},
+		Optional: true,
+		Validators: []validator.Object{
+			objectvalidator.ExactlyOneOf(
+				path.MatchRelative().AtParent().AtName("metrics"),
+				path.MatchRelative().AtParent().AtName("logs"),
+				path.MatchRelative().AtParent().AtName("spans"),
+			),
+		},
 	}
 }
