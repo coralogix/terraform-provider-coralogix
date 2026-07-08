@@ -32,6 +32,7 @@ data "coralogix_preset" "generic_https_example_data_by_name" {
 
 ### Read-Only
 
+- `attachment_config` (String) Controls whether notification payloads include attachments. Valid values are: AUTO, ENABLED, DISABLED. Defaults to AUTO.
 - `config_overrides` (Attributes List) (see [below for nested schema](#nestedatt--config_overrides))
 - `connector_type` (String) The type of connector for the preset. Valid values are: email, generic_https, pagerduty, service_now, slack, unspecified
 - `description` (String)

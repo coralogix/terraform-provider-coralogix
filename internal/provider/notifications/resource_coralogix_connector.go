@@ -41,12 +41,13 @@ import (
 var (
 	_                        resource.ResourceWithImportState = &ConnectorResource{}
 	connectorTypeSchemaToApi                                  = map[string]connectors.NotificationCenterConnectorType{
-		utils.UNSPECIFIED: connectors.NOTIFICATIONCENTERCONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
-		"slack":           connectors.NOTIFICATIONCENTERCONNECTORTYPE_SLACK,
-		"generic_https":   connectors.NOTIFICATIONCENTERCONNECTORTYPE_GENERIC_HTTPS,
-		"pagerduty":       connectors.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY,
-		"email":           connectors.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
-		"service_now":     connectors.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
+		utils.UNSPECIFIED:     connectors.NOTIFICATIONCENTERCONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
+		"slack":               connectors.NOTIFICATIONCENTERCONNECTORTYPE_SLACK,
+		"generic_https":       connectors.NOTIFICATIONCENTERCONNECTORTYPE_GENERIC_HTTPS,
+		"pagerduty":           connectors.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY,
+		"pagerduty_incidents": connectors.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY_INCIDENTS,
+		"email":               connectors.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
+		"service_now":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
 	}
 	connectorTypeApiToSchema       = utils.ReverseMap(connectorTypeSchemaToApi)
 	validConnectorTypesSchemaToApi = utils.GetKeys(connectorTypeSchemaToApi)

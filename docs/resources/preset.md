@@ -28,12 +28,13 @@ provider "coralogix" {
 }
 
 resource "coralogix_preset" "generic_https_example" {
-  id             = "generic_https_example"
-  name           = "generic_https example"
-  description    = "generic_https preset example"
-  entity_type    = "alerts"
-  connector_type = "generic_https"
-  parent_id      = "preset_system_generic_https_alerts_empty"
+  id                = "generic_https_example"
+  name              = "generic_https example"
+  description       = "generic_https preset example"
+  entity_type       = "alerts"
+  connector_type    = "generic_https"
+  parent_id         = "preset_system_generic_https_alerts_empty"
+  attachment_config = "ENABLED"
   config_overrides = [
     {
       condition_type = {
@@ -174,6 +175,7 @@ resource "coralogix_preset" "email_example" {
 
 ### Optional
 
+- `attachment_config` (String) Controls whether notification payloads include attachments. Valid values are: AUTO, ENABLED, DISABLED. Defaults to AUTO.
 - `config_overrides` (Attributes List) (see [below for nested schema](#nestedatt--config_overrides))
 - `description` (String)
 - `id` (String) The ID of the Preset. Can be set to a custom value, or left empty to auto-generate. Requires recreation in case of change.

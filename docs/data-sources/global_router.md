@@ -33,8 +33,10 @@ data "coralogix_global_router" "example_data_by_name" {
 ### Read-Only
 
 - `description` (String) Description of the GlobalRouter.
+- `disabled` (Boolean) Disables the router without deleting it. Defaults to false.
 - `entity_labels` (Map of String)
 - `fallback` (Attributes List) Fallback routing targets. (see [below for nested schema](#nestedatt--fallback))
+- `fallback_targets` (Attributes List) Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. (see [below for nested schema](#nestedatt--fallback_targets))
 - `routing_labels` (Attributes) Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique. Labels matching is linked with AND, so an alert has to have all labels specified below. (see [below for nested schema](#nestedatt--routing_labels))
 - `rules` (Attributes List) Routing rules for the GlobalRouter. (see [below for nested schema](#nestedatt--rules))
 
@@ -46,6 +48,25 @@ Read-Only:
 - `connector_id` (String) ID of the connector.
 - `custom_details` (Map of String) Custom details for the target.
 - `preset_id` (String) ID of the preset.
+
+
+<a id="nestedatt--fallback_targets"></a>
+### Nested Schema for `fallback_targets`
+
+Read-Only:
+
+- `entity_type` (String) The entity type this fallback applies to.
+- `target` (Attributes) The fallback routing target. (see [below for nested schema](#nestedatt--fallback_targets--target))
+
+<a id="nestedatt--fallback_targets--target"></a>
+### Nested Schema for `fallback_targets.target`
+
+Read-Only:
+
+- `connector_id` (String) ID of the connector.
+- `custom_details` (Map of String) Custom details for the target.
+- `preset_id` (String) ID of the preset.
+
 
 
 <a id="nestedatt--routing_labels"></a>

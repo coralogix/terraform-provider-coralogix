@@ -36,6 +36,13 @@ func RoutingTargetAttr() map[string]attr.Type {
 	}
 }
 
+func FallbackTargetAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"entity_type": types.StringType,
+		"target":      types.ObjectType{AttrTypes: RoutingTargetAttr()},
+	}
+}
+
 func MessageConfigFieldAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"field_name": types.StringType,
