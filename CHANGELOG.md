@@ -3,6 +3,20 @@
 #### resource/coralogix_integration
 
 - FIX: Changing `version` now plans as an in-place update instead of forcing a destroy-and-recreate. The `RequiresReplace()` plan modifier was removed from `version`; version bumps flow through the existing `Update` method, preserving the integration's identity (and, for managed integrations, its provisioned service account) instead of deleting and re-provisioning it.
+#### resource/coralogix_dashboard
+- FEAT: Add support for the `manual` annotation source, allowing static `instant`/`range` threshold annotations with configurable `orientation`, `unit`, and `message_template`.
+
+#### resource/coralogix_alert
+- FIX: Stop perpetual `(known after apply)` drift on `no_data_policy.auto_retire_seconds` when the field is omitted from configuration.
+
+#### provider
+- CHORE: Bump `coralogix-management-sdk`.
+
+#### resource/coralogix_ai_custom_evaluation
+- FIX: Correct example score mapping and clearing of empty `criteria.*.examples` lists.
+
+
+# Release 3.6.0
 
 #### resource/coralogix_alert
 

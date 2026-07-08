@@ -586,7 +586,6 @@ func noDataPolicySchema() schema.SingleNestedAttribute {
 		Attributes: map[string]schema.Attribute{
 			"auto_retire_seconds": schema.Int64Attribute{
 				Optional:            true,
-				Computed:            true,
 				MarkdownDescription: "The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds.",
 			},
 			"state": schema.StringAttribute{

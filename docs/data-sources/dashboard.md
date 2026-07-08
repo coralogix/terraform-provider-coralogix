@@ -49,6 +49,7 @@ Read-Only:
 Read-Only:
 
 - `logs` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs))
+- `manual` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual))
 - `metrics` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics))
 - `spans` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans))
 
@@ -149,6 +150,46 @@ Read-Only:
 - `keypath` (List of String)
 - `scope` (String)
 
+
+
+
+
+<a id="nestedatt--annotations--source--manual"></a>
+### Nested Schema for `annotations.source.manual`
+
+Read-Only:
+
+- `message_template` (String)
+- `orientation` (String)
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy))
+
+<a id="nestedatt--annotations--source--manual--strategy"></a>
+### Nested Schema for `annotations.source.manual.strategy`
+
+Read-Only:
+
+- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy--instant))
+- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy--range))
+
+<a id="nestedatt--annotations--source--manual--strategy--instant"></a>
+### Nested Schema for `annotations.source.manual.strategy.instant`
+
+Read-Only:
+
+- `custom_unit` (String)
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value` (Number)
+
+
+<a id="nestedatt--annotations--source--manual--strategy--range"></a>
+### Nested Schema for `annotations.source.manual.strategy.range`
+
+Read-Only:
+
+- `custom_unit` (String)
+- `end_value` (Number)
+- `start_value` (Number)
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
 
 
 
