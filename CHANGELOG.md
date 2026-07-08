@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+- FEAT: Add support for the `manual` annotation source, allowing static `instant`/`range` threshold annotations with configurable `orientation`, `unit`, and `message_template`.
+
 #### resource/coralogix_alert
 - FIX: Stop perpetual `(known after apply)` drift on `no_data_policy.auto_retire_seconds` when the field is omitted from configuration.
 
