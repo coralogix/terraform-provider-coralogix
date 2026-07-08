@@ -168,7 +168,7 @@ resource "coralogix_preset" "email_example" {
 
 ### Required
 
-- `connector_type` (String) The type of connector for the preset. Valid values are: email, generic_https, pagerduty, service_now, slack, unspecified
+- `connector_type` (String) The type of connector for the preset. Valid values are: email, generic_https, pagerduty, pagerduty_incidents, service_now, slack, unspecified
 - `entity_type` (String) The type of entity for the preset. Valid values are: alerts, cases, test_notifications, unspecified
 - `name` (String)
 - `parent_id` (String)

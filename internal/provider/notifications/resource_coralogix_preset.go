@@ -45,12 +45,13 @@ var (
 	_                              resource.ResourceWithConfigure   = &PresetResource{}
 	_                              resource.ResourceWithImportState = &PresetResource{}
 	presetConnectorTypeSchemaToApi                                  = map[string]presets.NotificationCenterConnectorType{
-		utils.UNSPECIFIED: presets.NOTIFICATIONCENTERCONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
-		"slack":           presets.NOTIFICATIONCENTERCONNECTORTYPE_SLACK,
-		"generic_https":   presets.NOTIFICATIONCENTERCONNECTORTYPE_GENERIC_HTTPS,
-		"pagerduty":       presets.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY,
-		"service_now":     presets.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
-		"email":           presets.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
+		utils.UNSPECIFIED:     presets.NOTIFICATIONCENTERCONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
+		"slack":               presets.NOTIFICATIONCENTERCONNECTORTYPE_SLACK,
+		"generic_https":       presets.NOTIFICATIONCENTERCONNECTORTYPE_GENERIC_HTTPS,
+		"pagerduty":           presets.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY,
+		"pagerduty_incidents": presets.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY_INCIDENTS,
+		"service_now":         presets.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
+		"email":               presets.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
 	}
 	presetConnectorTypeApiToSchema = utils.ReverseMap(presetConnectorTypeSchemaToApi)
 	validConnectorTypes            = utils.GetKeys(presetConnectorTypeSchemaToApi)
