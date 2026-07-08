@@ -633,6 +633,20 @@ resource "coralogix_dashboard" "dashboard" {
         }
       }
     },
+    {
+      name = "manual_threshold_band"
+      source = {
+        manual = {
+          orientation = "horizontal"
+          strategy = {
+            range = {
+              start_value = 45
+              end_value   = 80
+            }
+          }
+        }
+      }
+    },
   ]
   auto_refresh = {
     type = "two_minutes"
@@ -749,6 +763,7 @@ Optional:
 Optional:
 
 - `logs` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs))
+- `manual` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual))
 - `metrics` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics))
 - `spans` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans))
 
@@ -853,6 +868,49 @@ Required:
 
 - `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
 - `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--annotations--source--manual"></a>
+### Nested Schema for `annotations.source.manual`
+
+Required:
+
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy))
+
+Optional:
+
+- `message_template` (String)
+- `orientation` (String)
+
+<a id="nestedatt--annotations--source--manual--strategy"></a>
+### Nested Schema for `annotations.source.manual.strategy`
+
+Optional:
+
+- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy--instant))
+- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy--range))
+
+<a id="nestedatt--annotations--source--manual--strategy--instant"></a>
+### Nested Schema for `annotations.source.manual.strategy.instant`
+
+Optional:
+
+- `custom_unit` (String)
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value` (Number)
+
+
+<a id="nestedatt--annotations--source--manual--strategy--range"></a>
+### Nested Schema for `annotations.source.manual.strategy.range`
+
+Optional:
+
+- `custom_unit` (String)
+- `end_value` (Number)
+- `start_value` (Number)
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+
 
 
 

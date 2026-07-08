@@ -45,6 +45,12 @@ var (
 	//_ resource.ResourceWithConfigValidators = &DashboardResource{}
 	_ resource.ResourceWithImportState  = &DashboardResource{}
 	_ resource.ResourceWithUpgradeState = &DashboardResource{}
+
+	dashboardManualAnnotationOrientationToProto = map[string]cxsdk.AnnotationOrientation{
+		"vertical":   cxsdk.AnnotationOrientationVerticalUnspecified,
+		"horizontal": cxsdk.AnnotationOrientationHorizontal,
+	}
+	dashboardManualAnnotationOrientationToSchema = utils.ReverseMap(dashboardManualAnnotationOrientationToProto)
 )
 
 type DashboardResourceModel struct {
@@ -217,6 +223,31 @@ type DashboardAnnotationSourceModel struct {
 	Metrics types.Object `tfsdk:"metrics"` //DashboardAnnotationMetricSourceModel
 	Spans   types.Object `tfsdk:"spans"`   //DashboardAnnotationSpansOrLogsSourceModel
 	Logs    types.Object `tfsdk:"logs"`    //DashboardAnnotationSpansOrLogsSourceModel
+	Manual  types.Object `tfsdk:"manual"`  //DashboardAnnotationManualSourceModel
+}
+
+type DashboardAnnotationManualSourceModel struct {
+	Orientation     types.String `tfsdk:"orientation"`
+	MessageTemplate types.String `tfsdk:"message_template"`
+	Strategy        types.Object `tfsdk:"strategy"` //DashboardAnnotationManualStrategyModel
+}
+
+type DashboardAnnotationManualStrategyModel struct {
+	Instant types.Object `tfsdk:"instant"` //DashboardAnnotationManualInstantStrategyModel
+	Range   types.Object `tfsdk:"range"`   //DashboardAnnotationManualRangeStrategyModel
+}
+
+type DashboardAnnotationManualInstantStrategyModel struct {
+	Value      types.Float64 `tfsdk:"value"`
+	Unit       types.String  `tfsdk:"unit"`
+	CustomUnit types.String  `tfsdk:"custom_unit"`
+}
+
+type DashboardAnnotationManualRangeStrategyModel struct {
+	StartValue types.Float64 `tfsdk:"start_value"`
+	EndValue   types.Float64 `tfsdk:"end_value"`
+	Unit       types.String  `tfsdk:"unit"`
+	CustomUnit types.String  `tfsdk:"custom_unit"`
 }
 
 type DashboardAnnotationMetricSourceModel struct {
@@ -662,6 +693,7 @@ func upgradeAnnotationSourceV0(ctx context.Context, source types.Object) (types.
 		Metrics: priorSource.Metric,
 		Logs:    types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
 		Spans:   types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
+		Manual:  types.ObjectNull(annotationsManualSourceModelAttr()),
 	}
 
 	return types.ObjectValueFrom(ctx, annotationSourceModelAttr(), upgradeSource)
@@ -920,9 +952,105 @@ func expandAnnotationSource(ctx context.Context, source types.Object) (*cxsdk.An
 			return nil, diags
 		}
 		return &cxsdk.AnnotationSource{Value: spansSource}, nil
+	case !(sourceObject.Manual.IsNull() || sourceObject.Manual.IsUnknown()):
+		manualSource, diags := expandManualSource(ctx, sourceObject.Manual)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &cxsdk.AnnotationSource{Value: manualSource}, nil
 	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Annotation Source", "Annotation Source must be either Logs or Metric")}
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Annotation Source", "Annotation Source must be either Logs, Metric, Spans or Manual")}
 	}
+}
+
+func expandManualSource(ctx context.Context, manual types.Object) (*cxsdk.AnnotationSourceManual, diag.Diagnostics) {
+	if manual.IsNull() || manual.IsUnknown() {
+		return nil, nil
+	}
+	var manualObject DashboardAnnotationManualSourceModel
+	diags := manual.As(ctx, &manualObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	strategy, diags := expandManualSourceStrategy(ctx, manualObject.Strategy)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &cxsdk.AnnotationSourceManual{
+		Manual: &cxsdk.AnnotationManualSource{
+			Strategy:        strategy,
+			MessageTemplate: utils.TypeStringToWrapperspbString(manualObject.MessageTemplate),
+			Orientation:     expandManualAnnotationOrientation(manualObject.Orientation),
+		},
+	}, nil
+}
+
+func expandManualSourceStrategy(ctx context.Context, strategy types.Object) (*cxsdk.AnnotationManualSourceStrategy, diag.Diagnostics) {
+	var strategyObject DashboardAnnotationManualStrategyModel
+	diags := strategy.As(ctx, &strategyObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	switch {
+	case !utils.ObjIsNullOrUnknown(strategyObject.Instant):
+		return expandManualSourceInstantStrategy(ctx, strategyObject.Instant)
+	case !utils.ObjIsNullOrUnknown(strategyObject.Range):
+		return expandManualSourceRangeStrategy(ctx, strategyObject.Range)
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Manual Source Strategy", "Manual Source Strategy must be either Instant or Range")}
+	}
+}
+
+func expandManualSourceInstantStrategy(ctx context.Context, instant types.Object) (*cxsdk.AnnotationManualSourceStrategy, diag.Diagnostics) {
+	var instantObject DashboardAnnotationManualInstantStrategyModel
+	if diags := instant.As(ctx, &instantObject, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	return &cxsdk.AnnotationManualSourceStrategy{
+		Value: &cxsdk.AnnotationManualSourceStrategyInstant{
+			Instant: &cxsdk.AnnotationManualSourceStrategyInstantInner{
+				Value:      utils.TypeFloat64ToWrapperspbDouble(instantObject.Value),
+				Unit:       dashboardwidgets.DashboardSchemaToProtoUnit[instantObject.Unit.ValueString()],
+				CustomUnit: utils.TypeStringToWrapperspbString(instantObject.CustomUnit),
+			},
+		},
+	}, nil
+}
+
+func expandManualSourceRangeStrategy(ctx context.Context, object types.Object) (*cxsdk.AnnotationManualSourceStrategy, diag.Diagnostics) {
+	var rangeObject DashboardAnnotationManualRangeStrategyModel
+	if diags := object.As(ctx, &rangeObject, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	return &cxsdk.AnnotationManualSourceStrategy{
+		Value: &cxsdk.AnnotationManualSourceStrategyRange{
+			Range: &cxsdk.AnnotationManualSourceStrategyRangeInner{
+				StartValue: utils.TypeFloat64ToWrapperspbDouble(rangeObject.StartValue),
+				EndValue:   utils.TypeFloat64ToWrapperspbDouble(rangeObject.EndValue),
+				Unit:       dashboardwidgets.DashboardSchemaToProtoUnit[rangeObject.Unit.ValueString()],
+				CustomUnit: utils.TypeStringToWrapperspbString(rangeObject.CustomUnit),
+			},
+		},
+	}, nil
+}
+
+func expandManualAnnotationOrientation(orientation types.String) cxsdk.AnnotationOrientation {
+	if o, ok := dashboardManualAnnotationOrientationToProto[orientation.ValueString()]; ok {
+		return o
+	}
+	return cxsdk.AnnotationOrientationVerticalUnspecified
+}
+
+func flattenManualAnnotationOrientation(orientation cxsdk.AnnotationOrientation) types.String {
+	if s, ok := dashboardManualAnnotationOrientationToSchema[orientation]; ok {
+		return types.StringValue(s)
+	}
+	return types.StringValue("vertical")
 }
 
 func expandLogsSource(ctx context.Context, logs types.Object) (*cxsdk.AnnotationSourceLogs, diag.Diagnostics) {
@@ -3787,6 +3915,47 @@ func annotationSourceModelAttr() map[string]attr.Type {
 		"spans": types.ObjectType{
 			AttrTypes: annotationsLogsAndSpansSourceModelAttr(),
 		},
+		"manual": types.ObjectType{
+			AttrTypes: annotationsManualSourceModelAttr(),
+		},
+	}
+}
+
+func annotationsManualSourceModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"orientation":      types.StringType,
+		"message_template": types.StringType,
+		"strategy": types.ObjectType{
+			AttrTypes: manualStrategyModelAttr(),
+		},
+	}
+}
+
+func manualStrategyModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"instant": types.ObjectType{
+			AttrTypes: manualInstantStrategyModelAttr(),
+		},
+		"range": types.ObjectType{
+			AttrTypes: manualRangeStrategyModelAttr(),
+		},
+	}
+}
+
+func manualInstantStrategyModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"value":       types.Float64Type,
+		"unit":        types.StringType,
+		"custom_unit": types.StringType,
+	}
+}
+
+func manualRangeStrategyModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"start_value": types.Float64Type,
+		"end_value":   types.Float64Type,
+		"unit":        types.StringType,
+		"custom_unit": types.StringType,
 	}
 }
 
@@ -5789,14 +5958,22 @@ func flattenDashboardAnnotationSource(ctx context.Context, source *cxsdk.Annotat
 		sourceObject.Metrics, diags = flattenDashboardAnnotationMetricSourceModel(ctx, source.GetMetrics())
 		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
 		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+		sourceObject.Manual = types.ObjectNull(annotationsManualSourceModelAttr())
 	case *cxsdk.AnnotationSourceLogs:
 		sourceObject.Logs, diags = flattenDashboardAnnotationLogsSourceModel(ctx, source.GetLogs())
 		sourceObject.Metrics = types.ObjectNull(annotationsMetricsSourceModelAttr())
 		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+		sourceObject.Manual = types.ObjectNull(annotationsManualSourceModelAttr())
 	case *cxsdk.AnnotationSourceSpans:
 		sourceObject.Spans, diags = flattenDashboardAnnotationSpansSourceModel(ctx, source.GetSpans())
 		sourceObject.Metrics = types.ObjectNull(annotationsMetricsSourceModelAttr())
 		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+		sourceObject.Manual = types.ObjectNull(annotationsManualSourceModelAttr())
+	case *cxsdk.AnnotationSourceManual:
+		sourceObject.Manual, diags = flattenDashboardAnnotationManualSourceModel(ctx, source.GetManual())
+		sourceObject.Metrics = types.ObjectNull(annotationsMetricsSourceModelAttr())
+		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
 	default:
 		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Annotation Source", fmt.Sprintf("unknown annotation source type %T", source.Value))}
 	}
@@ -5806,6 +5983,79 @@ func flattenDashboardAnnotationSource(ctx context.Context, source *cxsdk.Annotat
 	}
 
 	return types.ObjectValueFrom(ctx, annotationSourceModelAttr(), sourceObject)
+}
+
+func flattenDashboardAnnotationManualSourceModel(ctx context.Context, manual *cxsdk.AnnotationManualSource) (types.Object, diag.Diagnostics) {
+	if manual == nil {
+		return types.ObjectNull(annotationsManualSourceModelAttr()), nil
+	}
+
+	strategy, diags := flattenAnnotationManualStrategy(ctx, manual.GetStrategy())
+	if diags.HasError() {
+		return types.ObjectNull(annotationsManualSourceModelAttr()), diags
+	}
+
+	manualObject := &DashboardAnnotationManualSourceModel{
+		Orientation:     flattenManualAnnotationOrientation(manual.GetOrientation()),
+		MessageTemplate: utils.WrapperspbStringToTypeString(manual.GetMessageTemplate()),
+		Strategy:        strategy,
+	}
+
+	return types.ObjectValueFrom(ctx, annotationsManualSourceModelAttr(), manualObject)
+}
+
+func flattenAnnotationManualStrategy(ctx context.Context, strategy *cxsdk.AnnotationManualSourceStrategy) (types.Object, diag.Diagnostics) {
+	if strategy == nil {
+		return types.ObjectNull(manualStrategyModelAttr()), nil
+	}
+
+	var strategyModel DashboardAnnotationManualStrategyModel
+	var diags diag.Diagnostics
+	switch strategy.Value.(type) {
+	case *cxsdk.AnnotationManualSourceStrategyInstant:
+		strategyModel.Instant, diags = flattenManualStrategyInstant(ctx, strategy.GetInstant())
+		strategyModel.Range = types.ObjectNull(manualRangeStrategyModelAttr())
+	case *cxsdk.AnnotationManualSourceStrategyRange:
+		strategyModel.Range, diags = flattenManualStrategyRange(ctx, strategy.GetRange())
+		strategyModel.Instant = types.ObjectNull(manualInstantStrategyModelAttr())
+	default:
+		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Annotation Manual Strategy", fmt.Sprintf("unknown annotation manual strategy type %T", strategy.Value))}
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(manualStrategyModelAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, manualStrategyModelAttr(), strategyModel)
+}
+
+func flattenManualStrategyInstant(ctx context.Context, instant *cxsdk.AnnotationManualSourceStrategyInstantInner) (types.Object, diag.Diagnostics) {
+	if instant == nil {
+		return types.ObjectNull(manualInstantStrategyModelAttr()), nil
+	}
+
+	instantStrategy := &DashboardAnnotationManualInstantStrategyModel{
+		Value:      utils.WrapperspbDoubleToTypeFloat64(instant.GetValue()),
+		Unit:       types.StringValue(dashboardwidgets.DashboardProtoToSchemaUnit[instant.GetUnit()]),
+		CustomUnit: utils.WrapperspbStringToTypeString(instant.GetCustomUnit()),
+	}
+
+	return types.ObjectValueFrom(ctx, manualInstantStrategyModelAttr(), instantStrategy)
+}
+
+func flattenManualStrategyRange(ctx context.Context, getRange *cxsdk.AnnotationManualSourceStrategyRangeInner) (types.Object, diag.Diagnostics) {
+	if getRange == nil {
+		return types.ObjectNull(manualRangeStrategyModelAttr()), nil
+	}
+
+	rangeStrategy := &DashboardAnnotationManualRangeStrategyModel{
+		StartValue: utils.WrapperspbDoubleToTypeFloat64(getRange.GetStartValue()),
+		EndValue:   utils.WrapperspbDoubleToTypeFloat64(getRange.GetEndValue()),
+		Unit:       types.StringValue(dashboardwidgets.DashboardProtoToSchemaUnit[getRange.GetUnit()]),
+		CustomUnit: utils.WrapperspbStringToTypeString(getRange.GetCustomUnit()),
+	}
+
+	return types.ObjectValueFrom(ctx, manualRangeStrategyModelAttr(), rangeStrategy)
 }
 
 func flattenDashboardAnnotationSpansSourceModel(ctx context.Context, spans *cxsdk.AnnotationSpansSource) (types.Object, diag.Diagnostics) {

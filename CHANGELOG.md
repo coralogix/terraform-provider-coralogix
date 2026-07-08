@@ -3,6 +3,7 @@
 #### resource/coralogix_dashboard
 
 - DOCS: Clarify when to use `observation_field` over the bare `field` string in logs filters, logs aggregations, and dashboard variables. `observation_field` is required for flat field identifiers whose name contains literal dots (e.g. `log.level`) and for disambiguating fields that share a name across multiple scopes; the bare `field` value is resolved by the backend via dot-split, which silently fails to match literal-dot identifiers.
+- FEAT: Add support for the `manual` annotation source, allowing static `instant`/`range` threshold annotations with configurable `orientation`, `unit`, and `message_template`.
 
 #### resource/coralogix_alert
 - FIX: Stop perpetual `(known after apply)` drift on `no_data_policy.auto_retire_seconds` when the field is omitted from configuration.
