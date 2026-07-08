@@ -298,6 +298,7 @@ func (r *TCOPoliciesTracesResource) ValidateConfig(ctx context.Context, req reso
 		validateTCORuleModelModel(tcoPolicy.Applications, "applications", resp)
 		validateTCORuleModelModel(tcoPolicy.Services, "services", resp)
 		validateTCORuleModelModel(tcoPolicy.Actions, "actions", resp)
+		validateTCOPolicyTags(tcoPolicy.Tags, resp)
 	}
 }
 
@@ -601,6 +602,23 @@ func flattenTCOTracesPolicy(ctx context.Context, policy *tcoPolicys.Policy) (*TC
 		Actions:            actions,
 		Tags:               flattenTCOPolicyTags(ctx, traceRules.TagRules),
 	}, nil
+}
+
+func validateTCOPolicyTags(tags types.Map, resp *resource.ValidateConfigResponse) {
+	if tags.IsNull() || tags.IsUnknown() {
+		return
+	}
+
+	var tagsMap map[string]types.Object
+	diags := tags.ElementsAs(context.Background(), &tagsMap, true)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	for tagName, tagRule := range tagsMap {
+		validateTCORuleModelModel(tagRule, fmt.Sprintf("tags.%s", tagName), resp)
+	}
 }
 
 func validateTCORuleModelModel(rule types.Object, root string, resp *resource.ValidateConfigResponse) {
