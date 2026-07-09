@@ -17,6 +17,7 @@ package globalrouterschema
 import (
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -130,9 +131,11 @@ func V1() schema.Schema {
 			},
 			"fallback": schema.ListNestedAttribute{
 				Optional:           true,
-				Computed:           true,
-				Description:        "Fallback routing targets.",
+				Description:        "Fallback routing targets. Removing the block clears them.",
 				DeprecationMessage: "Use `fallback_targets` instead, which supports per-entity-type fallback.",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"connector_id": schema.StringAttribute{
@@ -154,7 +157,10 @@ func V1() schema.Schema {
 			},
 			"fallback_targets": schema.ListNestedAttribute{
 				Optional:    true,
-				Description: "Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. Removing the block clears the fallback targets.",
+				Description: "Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. Omit the block to clear the fallback targets.",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"entity_type": schema.StringAttribute{
