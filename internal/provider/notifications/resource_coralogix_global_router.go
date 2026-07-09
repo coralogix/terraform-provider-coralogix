@@ -42,13 +42,20 @@ type GlobalRouterResource struct {
 }
 
 type GlobalRouterResourceModel struct {
-	ID            types.String        `tfsdk:"id"`
-	Name          types.String        `tfsdk:"name"`
-	Description   types.String        `tfsdk:"description"`
-	Rules         types.List          `tfsdk:"rules"`    // RoutingRuleModel
-	FallBack      types.List          `tfsdk:"fallback"` // RoutingTargetModel
-	EntityLabels  types.Map           `tfsdk:"entity_labels"`
-	RoutingLabels *RoutingLabelsModel `tfsdk:"routing_labels"`
+	ID              types.String        `tfsdk:"id"`
+	Name            types.String        `tfsdk:"name"`
+	Description     types.String        `tfsdk:"description"`
+	Rules           types.List          `tfsdk:"rules"`            // RoutingRuleModel
+	FallBack        types.List          `tfsdk:"fallback"`         // RoutingTargetModel (deprecated)
+	FallbackTargets types.List          `tfsdk:"fallback_targets"` // FallbackTargetModel
+	Disabled        types.Bool          `tfsdk:"disabled"`
+	EntityLabels    types.Map           `tfsdk:"entity_labels"`
+	RoutingLabels   *RoutingLabelsModel `tfsdk:"routing_labels"`
+}
+
+type FallbackTargetModel struct {
+	EntityType types.String `tfsdk:"entity_type"`
+	Target     types.Object `tfsdk:"target"` // RoutingTargetModel
 }
 
 type RoutingRuleModel struct {
@@ -295,6 +302,11 @@ func extractGlobalRouter(ctx context.Context, plan *GlobalRouterResourceModel) (
 		return nil, diags
 	}
 
+	fallbackTargets, diags := extractFallbackTargets(ctx, plan.FallbackTargets)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	entityLabels, diags := utils.TypeMapToStringMap(ctx, plan.EntityLabels)
 	if diags.HasError() {
 		return nil, diags
@@ -308,14 +320,54 @@ func extractGlobalRouter(ctx context.Context, plan *GlobalRouterResourceModel) (
 	}
 
 	return &globalRouters.GlobalRouter{
-		Id:            routerId,
-		Name:          plan.Name.ValueStringPointer(),
-		Description:   plan.Description.ValueStringPointer(),
-		Rules:         rules,
-		Fallback:      fallback,
-		EntityLabels:  &entityLabels,
-		RoutingLabels: routingLabels,
+		Id:              routerId,
+		Name:            plan.Name.ValueStringPointer(),
+		Description:     plan.Description.ValueStringPointer(),
+		Rules:           rules,
+		Fallback:        fallback,
+		FallbackTargets: fallbackTargets,
+		Disabled:        plan.Disabled.ValueBoolPointer(),
+		EntityLabels:    &entityLabels,
+		RoutingLabels:   routingLabels,
 	}, nil
+}
+
+func extractFallbackTargets(ctx context.Context, list types.List) ([]globalRouters.FallbackTarget, diag.Diagnostics) {
+	if list.IsNull() || list.IsUnknown() {
+		return nil, nil
+	}
+	var diags diag.Diagnostics
+	var objs []types.Object
+	list.ElementsAs(ctx, &objs, true)
+	extracted := make([]globalRouters.FallbackTarget, 0, len(objs))
+	for _, o := range objs {
+		var model FallbackTargetModel
+		if dg := o.As(ctx, &model, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		var targetModel RoutingTargetModel
+		if dg := model.Target.As(ctx, &targetModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		target, dg := extractRoutingTarget(ctx, targetModel)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		entityType := globalrouterschema.GlobalRouterEntityTypeSchemaToApi[model.EntityType.ValueString()]
+		extracted = append(extracted, globalRouters.FallbackTarget{
+			EntityType: &entityType,
+			Target:     target,
+		})
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return extracted, diags
 }
 
 func extractGlobalRouterRules(ctx context.Context, rules types.List) ([]globalRouters.RoutingRule, diag.Diagnostics) {
@@ -448,15 +500,57 @@ func flattenGlobalRouter(ctx context.Context, globalRouter *globalRouters.Global
 	if diags.HasError() {
 		return nil, diags
 	}
+
+	fallbackTargets, diags := flattenFallbackTargets(ctx, globalRouter.FallbackTargets)
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &GlobalRouterResourceModel{
-		ID:            types.StringValue(globalRouter.GetId()),
-		Name:          types.StringValue(globalRouter.GetName()),
-		Description:   types.StringValue(globalRouter.GetDescription()),
-		Rules:         rules,
-		FallBack:      fallback,
-		EntityLabels:  entityLabels,
-		RoutingLabels: routingLabels,
+		ID:              types.StringValue(globalRouter.GetId()),
+		Name:            types.StringValue(globalRouter.GetName()),
+		Description:     types.StringValue(globalRouter.GetDescription()),
+		Rules:           rules,
+		FallBack:        fallback,
+		FallbackTargets: fallbackTargets,
+		Disabled:        types.BoolValue(globalRouter.GetDisabled()),
+		EntityLabels:    entityLabels,
+		RoutingLabels:   routingLabels,
 	}, nil
+}
+
+func flattenFallbackTargets(ctx context.Context, targets []globalRouters.FallbackTarget) (types.List, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	// The API returns an empty list (not absent) when no fallback targets are set;
+	// normalize that to null so an unset/removed `fallback_targets` block does not
+	// drift against the empty list returned by the backend.
+	if len(targets) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.FallbackTargetAttr()}), diags
+	}
+	targetList := make([]types.Object, 0, len(targets))
+	for _, t := range targets {
+		targetObject, dg := flattenRoutingTarget(ctx, t.Target)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		entityType := globalrouterschema.GlobalRouterNotificationCenterEntityTypeApiToSchema[t.GetEntityType()]
+		model := FallbackTargetModel{
+			EntityType: types.StringValue(entityType),
+			Target:     targetObject,
+		}
+		object, dg := types.ObjectValueFrom(ctx, globalrouterschema.FallbackTargetAttr(), model)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		targetList = append(targetList, object)
+	}
+
+	if diags.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.FallbackTargetAttr()}), diags
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: globalrouterschema.FallbackTargetAttr()}, targetList)
 }
 
 func flattenGlobalRouterRules(ctx context.Context, rules []globalRouters.RoutingRule) (types.List, diag.Diagnostics) {
@@ -480,7 +574,10 @@ func flattenGlobalRouterRules(ctx context.Context, rules []globalRouters.Routing
 
 func flattenFallback(ctx context.Context, targets []globalRouters.RoutingTarget) (types.List, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	if targets == nil {
+	// The API returns an empty list (not absent) when no fallback is set; normalize
+	// that to null so an unset/removed `fallback` block does not drift, and so an
+	// existing deprecated `fallback` is actually cleared on removal.
+	if len(targets) == 0 {
 		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}), diags
 	}
 	fallbackTargetList := make([]types.Object, 0, len(targets))

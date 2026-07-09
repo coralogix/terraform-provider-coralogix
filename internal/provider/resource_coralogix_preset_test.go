@@ -43,6 +43,7 @@ func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "entity_type", "alerts"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "connector_type", "generic_https"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "parent_id", "preset_system_generic_https_alerts_empty"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "attachment_config", "ENABLED"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "config_overrides.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(genericHttpsPresetResourceName, "config_overrides.*", map[string]string{
 						"condition_type.match_entity_type_and_sub_type.entity_sub_type": "logsImmediateResolved",
@@ -69,6 +70,8 @@ func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "id", name),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "name", "generic_https example updated"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "description", "generic_https preset example"),
+					// attachment_config was ENABLED on create and is omitted here; it must reset to AUTO.
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "attachment_config", "AUTO"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "entity_type", "alerts"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "connector_type", "generic_https"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "parent_id", "preset_system_generic_https_alerts_empty"),
@@ -281,12 +284,13 @@ func TestAccCoralogixResourceEmailPreset(t *testing.T) {
 func testAccResourceCoralogixGenericHttpsPreset(name string) string {
 	return fmt.Sprintf(`
 	resource "coralogix_preset" "generic_https_example" {
-      id               = "%[1]v"
-      name             = "%[1]v"
-      description      = "generic_https preset example"
-      entity_type      = "alerts"
-      connector_type   = "generic_https"
-      parent_id        = "preset_system_generic_https_alerts_empty"
+      id                = "%[1]v"
+      name              = "%[1]v"
+      description       = "generic_https preset example"
+      entity_type       = "alerts"
+      connector_type    = "generic_https"
+      parent_id         = "preset_system_generic_https_alerts_empty"
+      attachment_config = "ENABLED"
       config_overrides = [
         {
           condition_type = {

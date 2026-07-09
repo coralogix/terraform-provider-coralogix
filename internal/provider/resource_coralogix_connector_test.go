@@ -173,6 +173,38 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourcePagerdutyIncidentsConnector(t *testing.T) {
+	name := uuid.NewString()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceCoralogixPagerdutyIncidentsConnector(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "pagerduty_incidents"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", name),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty incidents connector"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "integrationId",
+						"value":      "integration-id-example",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "service",
+						"value":      "PXXXXXX",
+					}),
+				),
+			},
+			{
+				ResourceName:      connectorResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceEmailConnector(t *testing.T) {
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
@@ -336,6 +368,27 @@ func testAccResourceCoralogixPagerdutyConnectorUpdate(name string) string {
        {
          field_name = "integrationKey"
          value      = "integration-key-example"
+       }
+     ]
+   }
+ }`, name)
+}
+
+func testAccResourceCoralogixPagerdutyIncidentsConnector(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
+   type             = "pagerduty_incidents"
+   name             = "%[1]v"
+   description      = "test pagerduty incidents connector"
+   connector_config = {
+     fields = [
+       {
+         field_name = "integrationId"
+         value      = "integration-id-example"
+       },
+       {
+         field_name = "service"
+         value      = "PXXXXXX"
        }
      ]
    }

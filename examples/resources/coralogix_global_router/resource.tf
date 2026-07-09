@@ -12,6 +12,7 @@ resource "coralogix_global_router" "example" {
   # id          = "router_default" # specify your own or leave blank for custom routers. router_default refers to the "global" router
   name        = "global router example"
   description = "global router example"
+  disabled    = false
 
   routing_labels = {
     environment = "production"
@@ -28,4 +29,11 @@ resource "coralogix_global_router" "example" {
     }]
     }
   ]
+  # Per-entity-type fallback used when no rule matches. Replaces the deprecated `fallback`.
+  fallback_targets = [{
+    entity_type = "alerts"
+    target = {
+      connector_id = "<some_connector_id>"
+    }
+  }]
 }

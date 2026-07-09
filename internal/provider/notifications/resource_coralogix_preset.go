@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
@@ -45,12 +46,13 @@ var (
 	_                              resource.ResourceWithConfigure   = &PresetResource{}
 	_                              resource.ResourceWithImportState = &PresetResource{}
 	presetConnectorTypeSchemaToApi                                  = map[string]presets.NotificationCenterConnectorType{
-		utils.UNSPECIFIED: presets.NOTIFICATIONCENTERCONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
-		"slack":           presets.NOTIFICATIONCENTERCONNECTORTYPE_SLACK,
-		"generic_https":   presets.NOTIFICATIONCENTERCONNECTORTYPE_GENERIC_HTTPS,
-		"pagerduty":       presets.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY,
-		"service_now":     presets.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
-		"email":           presets.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
+		utils.UNSPECIFIED:     presets.NOTIFICATIONCENTERCONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
+		"slack":               presets.NOTIFICATIONCENTERCONNECTORTYPE_SLACK,
+		"generic_https":       presets.NOTIFICATIONCENTERCONNECTORTYPE_GENERIC_HTTPS,
+		"pagerduty":           presets.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY,
+		"pagerduty_incidents": presets.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY_INCIDENTS,
+		"service_now":         presets.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
+		"email":               presets.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
 	}
 	presetConnectorTypeApiToSchema = utils.ReverseMap(presetConnectorTypeSchemaToApi)
 	validConnectorTypes            = utils.GetKeys(presetConnectorTypeSchemaToApi)
@@ -62,6 +64,11 @@ var (
 	}
 	presetsNotificationCenterEntityTypeApiToSchema       = utils.ReverseMap(presetEntityTypeSchemaToApi)
 	presetsValidNotificationCenterEntityTypesSchemaToApi = utils.GetKeys(presetEntityTypeSchemaToApi)
+	validAttachmentConfigPolicies                        = []string{
+		string(presets.ATTACHMENTCONFIGPOLICY_AUTO),
+		string(presets.ATTACHMENTCONFIGPOLICY_ENABLED),
+		string(presets.ATTACHMENTCONFIGPOLICY_DISABLED),
+	}
 )
 
 func NewPresetResource() resource.Resource {
@@ -73,13 +80,14 @@ type PresetResource struct {
 }
 
 type PresetResourceModel struct {
-	ID              types.String `tfsdk:"id"`
-	EntityType      types.String `tfsdk:"entity_type"`
-	ConnectorType   types.String `tfsdk:"connector_type"`
-	ConfigOverrides types.List   `tfsdk:"config_overrides"` // PresetConfigOverrideModel
-	Name            types.String `tfsdk:"name"`
-	ParentId        types.String `tfsdk:"parent_id"`
-	Description     types.String `tfsdk:"description"`
+	ID               types.String `tfsdk:"id"`
+	EntityType       types.String `tfsdk:"entity_type"`
+	ConnectorType    types.String `tfsdk:"connector_type"`
+	ConfigOverrides  types.List   `tfsdk:"config_overrides"` // PresetConfigOverrideModel
+	Name             types.String `tfsdk:"name"`
+	ParentId         types.String `tfsdk:"parent_id"`
+	Description      types.String `tfsdk:"description"`
+	AttachmentConfig types.String `tfsdk:"attachment_config"`
 }
 
 type PresetConfigOverrideModel struct {
@@ -221,6 +229,15 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"parent_id": schema.StringAttribute{
 				Required: true,
+			},
+			"attachment_config": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(string(presets.ATTACHMENTCONFIGPOLICY_AUTO)),
+				Validators: []validator.String{
+					stringvalidator.OneOf(validAttachmentConfigPolicies...),
+				},
+				MarkdownDescription: fmt.Sprintf("Controls whether notification payloads include attachments. Valid values are: %s. Defaults to AUTO. Removing the attribute resets it to AUTO.", strings.Join(validAttachmentConfigPolicies, ", ")),
 			},
 		},
 		MarkdownDescription: "Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/. **NOTE:** This resource is in Beta stage.",
@@ -384,7 +401,7 @@ func extractPreset(ctx context.Context, plan *PresetResourceModel) (*presets.Pre
 	if diags.HasError() {
 		return nil, diags
 	}
-	return &presets.Preset{
+	preset := &presets.Preset{
 		Id:              utils.TypeStringToStringPointer(plan.ID),
 		EntityType:      &entityType,
 		ConnectorType:   &connectorType,
@@ -393,7 +410,12 @@ func extractPreset(ctx context.Context, plan *PresetResourceModel) (*presets.Pre
 		Description:     plan.Description.ValueStringPointer(),
 		PresetType:      &presetType,
 		ParentId:        utils.TypeStringToStringPointer(plan.ParentId),
-	}, nil
+	}
+	if !plan.AttachmentConfig.IsNull() && !plan.AttachmentConfig.IsUnknown() {
+		policy := presets.AttachmentConfigPolicy(plan.AttachmentConfig.ValueString())
+		preset.AttachmentConfig = &presets.AttachmentConfig{Policy: &policy}
+	}
+	return preset, nil
 }
 func extractPresetConfigOverrides(ctx context.Context, overrides types.List) ([]presets.ConfigOverrides, diag.Diagnostics) {
 	var diags diag.Diagnostics
@@ -528,15 +550,21 @@ func flattenPreset(ctx context.Context, preset *presets.Preset) (*PresetResource
 		connectorType = string(*preset.ConnectorType)
 	}
 
-	return &PresetResourceModel{
-		ID:              utils.StringPointerToTypeString(preset.Id),
-		EntityType:      types.StringValue(presetsNotificationCenterEntityTypeApiToSchema[*preset.EntityType]),
-		ConnectorType:   types.StringValue(connectorType),
-		ConfigOverrides: configOverrides,
-		Name:            types.StringPointerValue(preset.Name),
-		ParentId:        utils.StringPointerToTypeString(preset.ParentId),
-		Description:     types.StringPointerValue(preset.Description),
-	}, nil
+	model := &PresetResourceModel{
+		ID:               utils.StringPointerToTypeString(preset.Id),
+		EntityType:       types.StringValue(presetsNotificationCenterEntityTypeApiToSchema[*preset.EntityType]),
+		ConnectorType:    types.StringValue(connectorType),
+		ConfigOverrides:  configOverrides,
+		Name:             types.StringPointerValue(preset.Name),
+		ParentId:         utils.StringPointerToTypeString(preset.ParentId),
+		Description:      types.StringPointerValue(preset.Description),
+		// Normalize a missing policy to the schema default (AUTO) to avoid drift.
+		AttachmentConfig: types.StringValue(string(presets.ATTACHMENTCONFIGPOLICY_AUTO)),
+	}
+	if preset.AttachmentConfig != nil && preset.AttachmentConfig.Policy != nil {
+		model.AttachmentConfig = types.StringValue(string(*preset.AttachmentConfig.Policy))
+	}
+	return model, nil
 
 }
 

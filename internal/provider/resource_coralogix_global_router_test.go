@@ -35,6 +35,12 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(globalRouterResourceName, "name", name),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", name),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "disabled", "true"),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "fallback_targets.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "fallback_targets.*", map[string]string{
+						"entity_type":         "alerts",
+						"target.connector_id": fmt.Sprintf("http-%v", name),
+					}),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*", map[string]string{
 						"name":      "rule-name",
 						"condition": "alertDef.priority == \"P1\"",
@@ -63,6 +69,10 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(globalRouterResourceName, "name", fmt.Sprintf("%s updated", name)),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", name),
+					// disabled was true and fallback_targets was set on create; both are omitted
+					// here, so they must reset (disabled -> false, fallback_targets cleared).
+					resource.TestCheckResourceAttr(globalRouterResourceName, "disabled", "false"),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "fallback_targets.#", "0"),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*", map[string]string{
 						"name":      "rule-name",
 						"condition": "alertDef.priority == \"P1\"",
@@ -252,8 +262,9 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
     resource "coralogix_global_router" "example" {
       name        = "%[1]v"
       description = "%[1]v"
+      disabled    = true
       routing_labels = {
-        environment = "%[1]v" 
+        environment = "%[1]v"
       }
       rules       = [
         {
@@ -274,6 +285,14 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
               preset_id      = coralogix_preset.pagerduty_example.id
             }
           ]
+        }
+      ]
+      fallback_targets = [
+        {
+          entity_type = "alerts"
+          target = {
+            connector_id = coralogix_connector.generic_https_example.id
+          }
         }
       ]
     }

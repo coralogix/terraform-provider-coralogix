@@ -183,6 +183,24 @@ resource "coralogix_connector" "email_example" {
   }
 }
 
+resource "coralogix_connector" "pagerduty_incidents_example" {
+  type        = "pagerduty_incidents"
+  name        = "pagerduty incidents connector"
+  description = "pagerduty incidents connector example"
+  connector_config = {
+    fields = [
+      {
+        field_name = "integrationId"
+        value      = "integrationId-example"
+      },
+      {
+        field_name = "service"
+        value      = "PXXXXXX"
+      }
+    ]
+  }
+}
+
 resource "coralogix_connector" "service_now_example" {
   type        = "service_now"
   name        = "service now connector"
@@ -212,7 +230,7 @@ resource "coralogix_connector" "service_now_example" {
 ### Required
 
 - `name` (String) Connector name.
-- `type` (String) Connector type. Valid values are: [email generic_https pagerduty service_now slack unspecified]
+- `type` (String) Connector type. Valid values are: [email generic_https pagerduty pagerduty_incidents service_now slack unspecified]
 
 ### Optional
 

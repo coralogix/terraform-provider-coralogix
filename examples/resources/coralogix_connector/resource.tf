@@ -168,6 +168,24 @@ resource "coralogix_connector" "email_example" {
   }
 }
 
+resource "coralogix_connector" "pagerduty_incidents_example" {
+  type        = "pagerduty_incidents"
+  name        = "pagerduty incidents connector"
+  description = "pagerduty incidents connector example"
+  connector_config = {
+    fields = [
+      {
+        field_name = "integrationId"
+        value      = "integrationId-example"
+      },
+      {
+        field_name = "service"
+        value      = "PXXXXXX"
+      }
+    ]
+  }
+}
+
 resource "coralogix_connector" "service_now_example" {
   type        = "service_now"
   name        = "service now connector"

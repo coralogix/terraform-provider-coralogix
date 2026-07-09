@@ -17,7 +17,9 @@ package globalrouterschema
 import (
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -128,9 +130,12 @@ func V1() schema.Schema {
 				},
 			},
 			"fallback": schema.ListNestedAttribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "Fallback routing targets.",
+				Optional:           true,
+				Description:        "Fallback routing targets. Removing the block clears them.",
+				DeprecationMessage: "Use `fallback_targets` instead, which supports per-entity-type fallback.",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"connector_id": schema.StringAttribute{
@@ -149,6 +154,50 @@ func V1() schema.Schema {
 						},
 					},
 				},
+			},
+			"fallback_targets": schema.ListNestedAttribute{
+				Optional:    true,
+				Description: "Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. Omit the block to clear the fallback targets.",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"entity_type": schema.StringAttribute{
+							Required:    true,
+							Description: "The entity type this fallback applies to.",
+							Validators: []validator.String{
+								stringvalidator.OneOf(GlobalRouterValidNotificationCenterEntityTypesSchemaToApi...),
+							},
+						},
+						"target": schema.SingleNestedAttribute{
+							Required:    true,
+							Description: "The fallback routing target.",
+							Attributes: map[string]schema.Attribute{
+								"connector_id": schema.StringAttribute{
+									Required:    true,
+									Description: "ID of the connector.",
+								},
+								"preset_id": schema.StringAttribute{
+									Optional:    true,
+									Description: "ID of the preset.",
+								},
+								"custom_details": schema.MapAttribute{
+									Optional:    true,
+									Computed:    true,
+									ElementType: types.StringType,
+									Description: "Custom details for the target.",
+								},
+							},
+						},
+					},
+				},
+			},
+			"disabled": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+				MarkdownDescription: "Disables the router without deleting it. Defaults to false.",
 			},
 			"entity_labels": schema.MapAttribute{
 				Optional:    true,

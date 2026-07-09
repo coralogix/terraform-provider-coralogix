@@ -13,12 +13,13 @@ provider "coralogix" {
 }
 
 resource "coralogix_preset" "generic_https_example" {
-  id             = "generic_https_example"
-  name           = "generic_https example"
-  description    = "generic_https preset example"
-  entity_type    = "alerts"
-  connector_type = "generic_https"
-  parent_id      = "preset_system_generic_https_alerts_empty"
+  id                = "generic_https_example"
+  name              = "generic_https example"
+  description       = "generic_https preset example"
+  entity_type       = "alerts"
+  connector_type    = "generic_https"
+  parent_id         = "preset_system_generic_https_alerts_empty"
+  attachment_config = "ENABLED"
   config_overrides = [
     {
       condition_type = {
