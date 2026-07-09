@@ -558,7 +558,8 @@ func flattenPreset(ctx context.Context, preset *presets.Preset) (*PresetResource
 		Name:             types.StringPointerValue(preset.Name),
 		ParentId:         utils.StringPointerToTypeString(preset.ParentId),
 		Description:      types.StringPointerValue(preset.Description),
-		AttachmentConfig: types.StringNull(),
+		// Normalize a missing policy to the schema default (AUTO) to avoid drift.
+		AttachmentConfig: types.StringValue(string(presets.ATTACHMENTCONFIGPOLICY_AUTO)),
 	}
 	if preset.AttachmentConfig != nil && preset.AttachmentConfig.Policy != nil {
 		model.AttachmentConfig = types.StringValue(string(*preset.AttachmentConfig.Policy))
