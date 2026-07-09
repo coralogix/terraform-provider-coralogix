@@ -178,3 +178,47 @@ description: "Use when <concrete trigger — resource names, error strings, file
 2. If yes, check `.claude/skills/` — is there an existing skill to extend?
 3. Otherwise, create a new skill. Keep it tight; one specific lesson per skill beats a sprawling catch-all.
 4. Commit the skill alongside the fix so reviewers can sanity-check the captured lesson.
+
+## Repo map / where to look first
+
+Use this map to choose the smallest useful reading set before opening broad directories.
+
+- `main.go` wires the muxed provider binary. Read it only when changing provider startup, muxing, or protocol setup.
+- `internal/provider/provider.go` is the provider registry and configuration entry point. Start here when adding/removing resources, data sources, provider-level config, or Coralogix region/domain behavior.
+- `internal/provider/<domain>/resource_coralogix_<name>.go` and `data_source_coralogix_<name>.go` contain the Terraform schema, model conversion, CRUD/read logic, and flatten/expand behavior for one resource/data source family.
+- `internal/provider/*_test.go` at the provider root are acceptance-test entry points. `internal/provider/<domain>/*_test.go` holds package-local tests and fixtures when they exist.
+- `internal/clientset/` builds backend API clients and endpoint/auth call properties. Read it when changing SDK client construction, REST clients, region endpoints, provider version, or auth metadata.
+- `internal/utils/` holds small shared helpers and constants. Check here before adding cross-resource utilities, but prefer local helpers for resource-specific behavior.
+- `examples/resources/coralogix_<name>/resource.tf` and `examples/data-sources/coralogix_<name>/data-source.tf` are user-facing examples and generated-doc inputs. Update them with schema changes that affect configuration.
+- `docs/resources/` and `docs/data-sources/` are generated from schemas/examples. Do not hand-edit them; run `make generate` after changing generated docs inputs.
+- `docs/guides/` is hand-written documentation and is preserved by the docs generation workflow.
+- `.claude/skills/<skill-name>/SKILL.md` stores short, reusable lessons for agent workflows and bug patterns; update or add one only when the fix teaches a repeatable non-obvious lesson.
+
+Provider domain index:
+
+- `aaa/` — API keys, users, teams, groups, group attachments, custom roles, scopes, and IP access.
+- `actions/` — notification-center actions.
+- `ai/` — AI evaluations and custom evaluations.
+- `alerts/` — alerts and alerts scheduler.
+- `apm/` — legacy SLO resource/data source (`coralogix_slo`).
+- `dashboards/` — dashboards and dashboard folders.
+- `data_exploration/` — hosted dashboards and Grafana folders.
+- `dataengine/` — archive retentions.
+- `dataplans/` — quota allocation rule sets and TCO policy resources.
+- `enrichment_rules/` — enrichments, data enrichments, and data sets.
+- `events2metrics/` — events-to-metric resources.
+- `integrations/` — integrations and webhooks.
+- `logs/` — log archive resources.
+- `metrics/` — metric archive resources.
+- `notifications/` — connectors, presets, and global router.
+- `parsing_rules/` — parsing rules and rules groups.
+- `recording_rules/` — recording rules group sets.
+- `slo_mgmt/` — SLO v2 resource/data source (`coralogix_slo_v2`).
+
+Quick navigation patterns:
+
+```bash
+rg "coralogix_<resource_name>" internal/provider examples
+rg "NewClientSet|<client_or_service_name>" internal/clientset internal/provider
+rg "<schema_attribute_name>" internal/provider/<domain> examples
+```
