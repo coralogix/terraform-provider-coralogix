@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_integration
+
+- FIX: Changing `version` now plans as an in-place update instead of forcing a destroy-and-recreate. The `RequiresReplace()` plan modifier was removed from `version`; version bumps flow through the existing `Update` method, preserving the integration's identity (and, for managed integrations, its provisioned service account) instead of deleting and re-provisioning it.
 #### resource/coralogix_dashboard
 
 - DOCS: Clarify when to use `observation_field` over the bare `field` string in logs filters, logs aggregations, and dashboard variables. `observation_field` is required for flat field identifiers whose name contains literal dots (e.g. `log.level`) and for disambiguating fields that share a name across multiple scopes; the bare `field` value is resolved by the backend via dot-split, which silently fails to match literal-dot identifiers.
