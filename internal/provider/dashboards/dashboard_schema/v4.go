@@ -980,6 +980,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 								Validators: []validator.String{
 									stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("multi_select")),
 								},
+								DeprecationMessage: "`constant_value` is deprecated and rejected by the Coralogix API. " +
+									"Use a `multi_select` variable with a `constant_list` source and a single `selected_values` entry instead, " +
+									"e.g. `multi_select = { source = { constant_list = [\"value\"] }, selected_values = [\"value\"], values_order_direction = \"asc\" }`.",
 							},
 							"multi_select": schema.SingleNestedAttribute{
 								Attributes: map[string]schema.Attribute{

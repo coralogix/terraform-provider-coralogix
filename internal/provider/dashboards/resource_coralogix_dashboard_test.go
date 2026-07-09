@@ -16,6 +16,7 @@ package dashboards
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -74,6 +75,41 @@ func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
 				t.Fatalf("expected access policy %q, got %v", *tt.want, got)
 			}
 		})
+	}
+}
+
+func TestExpandDashboardVariableDefinition_ConstantValueDeprecated(t *testing.T) {
+	def := &DashboardVariableDefinitionModel{
+		ConstantValue: types.StringValue("production"),
+	}
+
+	_, diags := expandDashboardVariableDefinition(context.Background(), def)
+	if !diags.HasError() {
+		t.Fatalf("expected an error for the deprecated constant_value, got none")
+	}
+
+	msg := diags.Errors()[0].Summary() + " " + diags.Errors()[0].Detail()
+	if !strings.Contains(msg, "constant_value") || !strings.Contains(msg, "multi_select") {
+		t.Fatalf("expected the error to direct users from constant_value to multi_select, got: %s", msg)
+	}
+}
+
+func TestFlattenDashboardVariableDefinition_LegacyConstantBecomesMultiSelect(t *testing.T) {
+	def := &cxsdk.DashboardVariableDefinition{
+		Value: &cxsdk.DashboardVariableDefinitionConstant{
+			Constant: &cxsdk.DashboardConstant{Value: wrapperspb.String("production")},
+		},
+	}
+
+	got, diags := flattenDashboardVariableDefinition(context.Background(), def)
+	if diags.HasError() {
+		t.Fatalf("unexpected error flattening legacy constant: %v", diags)
+	}
+	if got.MultiSelect == nil {
+		t.Fatalf("expected legacy Constant to flatten into multi_select, got %+v", got)
+	}
+	if !got.ConstantValue.IsNull() {
+		t.Fatalf("expected constant_value to be null after remap, got %q", got.ConstantValue.ValueString())
 	}
 }
 

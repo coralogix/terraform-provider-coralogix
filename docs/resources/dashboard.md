@@ -4536,7 +4536,7 @@ Optional:
 
 Optional:
 
-- `constant_value` (String)
+- `constant_value` (String, Deprecated)
 - `multi_select` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select))
 
 <a id="nestedatt--variables--definition--multi_select"></a>
