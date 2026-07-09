@@ -1230,6 +1230,10 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 							path.MatchRelative().AtParent().AtName("path"),
 						),
 					},
+					MarkdownDescription: "ID of the dashboards folder this dashboard belongs to. " +
+						"When authoring a `coralogix_dashboard` resource, this is the lifecycle-safe " +
+						"choice: reference a `coralogix_dashboards_folder` resource's `id` so the " +
+						"folder is created and destroyed by Terraform alongside the dashboard.",
 				},
 				"path": schema.StringAttribute{
 					Optional: true,
@@ -1238,9 +1242,22 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 							path.MatchRelative().AtParent().AtName("id"),
 						),
 					},
+					MarkdownDescription: "Slash-separated folder path (e.g. `Team/Subteam`). When set " +
+						"on a `coralogix_dashboard` resource and the path does not already exist, the " +
+						"Coralogix dashboards service implicitly creates the missing folder hierarchy " +
+						"as a server-side side-effect of placing the dashboard. **That auto-created " +
+						"folder is not tracked in Terraform state and is not removed when the " +
+						"dashboard is destroyed — it will be left behind as an orphan in the Coralogix " +
+						"UI.** Use `folder.id` (referencing a `coralogix_dashboards_folder` resource) " +
+						"for symmetric apply/destroy semantics.",
 				},
 			},
 			Optional: true,
+			MarkdownDescription: "The dashboards folder this dashboard belongs to. Exactly one of " +
+				"`id` or `path` is set. When authoring a `coralogix_dashboard` resource, `id` (pointing " +
+				"at a `coralogix_dashboards_folder` resource) is the recommended form; `path` is " +
+				"accepted but can trigger implicit server-side folder creation that Terraform will " +
+				"not clean up on destroy — see the `path` attribute description for details.",
 		},
 		"annotations": schema.ListNestedAttribute{
 			Optional: true,
