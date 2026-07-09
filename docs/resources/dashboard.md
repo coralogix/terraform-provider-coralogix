@@ -633,6 +633,20 @@ resource "coralogix_dashboard" "dashboard" {
         }
       }
     },
+    {
+      name = "manual_threshold_band"
+      source = {
+        manual = {
+          orientation = "horizontal"
+          strategy = {
+            range = {
+              start_value = 45
+              end_value   = 80
+            }
+          }
+        }
+      }
+    },
   ]
   auto_refresh = {
     type = "two_minutes"
@@ -749,6 +763,7 @@ Optional:
 Optional:
 
 - `logs` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs))
+- `manual` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual))
 - `metrics` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics))
 - `spans` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans))
 
@@ -787,8 +802,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 <a id="nestedatt--annotations--source--logs--strategy--duration--start_timestamp_field"></a>
@@ -796,8 +811,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -813,8 +828,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -831,8 +846,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 <a id="nestedatt--annotations--source--logs--strategy--range--start_timestamp_field"></a>
@@ -840,8 +855,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -851,8 +866,51 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--annotations--source--manual"></a>
+### Nested Schema for `annotations.source.manual`
+
+Required:
+
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy))
+
+Optional:
+
+- `message_template` (String)
+- `orientation` (String)
+
+<a id="nestedatt--annotations--source--manual--strategy"></a>
+### Nested Schema for `annotations.source.manual.strategy`
+
+Optional:
+
+- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy--instant))
+- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual--strategy--range))
+
+<a id="nestedatt--annotations--source--manual--strategy--instant"></a>
+### Nested Schema for `annotations.source.manual.strategy.instant`
+
+Optional:
+
+- `custom_unit` (String)
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value` (Number)
+
+
+<a id="nestedatt--annotations--source--manual--strategy--range"></a>
+### Nested Schema for `annotations.source.manual.strategy.range`
+
+Optional:
+
+- `custom_unit` (String)
+- `end_value` (Number)
+- `start_value` (Number)
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+
 
 
 
@@ -917,8 +975,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 <a id="nestedatt--annotations--source--spans--strategy--duration--start_timestamp_field"></a>
@@ -926,8 +984,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -943,8 +1001,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -961,8 +1019,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 <a id="nestedatt--annotations--source--spans--strategy--range--start_timestamp_field"></a>
@@ -970,8 +1028,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -981,8 +1039,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -1027,7 +1085,7 @@ Required:
 Optional:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--filters--source--logs--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--filters--source--logs--observation_field))
 
 <a id="nestedatt--filters--source--logs--operator"></a>
 ### Nested Schema for `filters.source.logs.operator`
@@ -1046,8 +1104,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -1247,7 +1305,7 @@ Required:
 Optional:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.operator`
@@ -1266,8 +1324,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -1381,7 +1439,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation--observation_field"></a>
@@ -1389,8 +1447,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -1404,7 +1462,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.operator`
@@ -1423,8 +1481,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -1433,8 +1491,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--stacked_group_name_field"></a>
@@ -1442,8 +1500,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame"></a>
@@ -1725,7 +1783,7 @@ Required:
 Optional:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.operator`
@@ -1744,8 +1802,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -1852,7 +1910,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.filters.operator`
@@ -1871,8 +1929,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -1907,7 +1965,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation--observation_field"></a>
@@ -1915,8 +1973,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -1926,8 +1984,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -2214,7 +2272,7 @@ Required:
 Optional:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.operator`
@@ -2233,8 +2291,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -2344,7 +2402,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation--observation_field"></a>
@@ -2352,8 +2410,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -2367,7 +2425,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.filters.operator`
@@ -2386,8 +2444,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -2630,7 +2688,7 @@ Required:
 Optional:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.operator`
@@ -2649,8 +2707,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -2761,7 +2819,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation--observation_field"></a>
@@ -2769,8 +2827,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -2784,7 +2842,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.filters.operator`
@@ -2803,8 +2861,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -2813,8 +2871,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame"></a>
@@ -3084,7 +3142,7 @@ Required:
 Optional:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.operator`
@@ -3103,8 +3161,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -3218,7 +3276,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation--observation_field"></a>
@@ -3226,8 +3284,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -3241,7 +3299,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.operator`
@@ -3260,8 +3318,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -3270,8 +3328,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--stacked_group_name_field"></a>
@@ -3279,8 +3337,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame"></a>
@@ -3558,7 +3616,7 @@ Required:
 Optional:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.operator`
@@ -3577,8 +3635,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -3689,7 +3747,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations--observation_field"></a>
@@ -3697,8 +3755,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -3712,7 +3770,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.operator`
@@ -3731,8 +3789,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -4030,7 +4088,7 @@ Required:
 Optional:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.operator`
@@ -4049,8 +4107,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -4164,7 +4222,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation--observation_field"></a>
@@ -4172,8 +4230,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -4187,7 +4245,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.operator`
@@ -4206,8 +4264,8 @@ Optional:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 
@@ -4216,8 +4274,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--stacked_group_name_field"></a>
@@ -4225,8 +4283,8 @@ Required:
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame"></a>
@@ -4559,15 +4617,15 @@ Required:
 
 Required:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs--field_value--observation_field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs--field_value--observation_field))
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query--logs--field_value--observation_field"></a>
 ### Nested Schema for `variables.definition.multi_select.source.query.query.logs.field_value.observation_field`
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
 
 

@@ -3725,8 +3725,8 @@ func flattenNoDataPolicy(ctx context.Context, noDataPolicy *alerts.NoDataPolicy)
 	if noDataPolicy == nil {
 		return types.ObjectValueFrom(ctx, alertschema.NoDataPolicyAttr(), model)
 	}
-	if noDataPolicy.AutoRetireSeconds != nil {
-		model.AutoRetireSeconds = types.Int64Value(int64(*noDataPolicy.AutoRetireSeconds))
+	if autoRetireSeconds, ok := noDataPolicy.GetAutoRetireSecondsOk(); ok {
+		model.AutoRetireSeconds = types.Int64Value(int64(*autoRetireSeconds))
 	}
 	if noDataPolicy.State != nil {
 		model.State = types.StringValue(alerttypes.NoDataPolicyStateProtoToSchemaMap[*noDataPolicy.State])

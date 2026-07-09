@@ -1517,7 +1517,6 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 			Attributes: map[string]schema.Attribute{
 				"id": schema.StringAttribute{
 					Optional: true,
-					Computed: true,
 					Validators: []validator.String{
 						stringvalidator.ExactlyOneOf(
 							path.MatchRelative().AtParent().AtName("path"),
@@ -1526,7 +1525,6 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 				},
 				"path": schema.StringAttribute{
 					Optional: true,
-					Computed: true,
 					Validators: []validator.String{
 						stringvalidator.ExactlyOneOf(
 							path.MatchRelative().AtParent().AtName("id"),

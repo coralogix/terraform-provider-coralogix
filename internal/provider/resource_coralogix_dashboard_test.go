@@ -739,6 +739,81 @@ func TestAccCoralogixResourceDashboardFromJsonWithFolder(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceDashboardFolderIDNoDrift(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardFolderIDNoDrift(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "folder.id"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:            dashboardResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"folder"},
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceDashboardFolderIDNoDrift() string {
+	return `
+resource "coralogix_dashboards_folder" "test_folder" {
+  name = "issue-426-folder-id-drift"
+}
+
+resource "coralogix_dashboard" "test" {
+  name        = "issue-426-folder-id-drift"
+  description = "Dashboard with folder.id should not drift on next plan"
+
+  layout = {
+    sections = [
+      {
+        rows = [
+          {
+            height = 19
+            widgets = [
+              {
+                title = "placeholder"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          metrics = {
+                            promql_query = "up"
+                          }
+                        }
+                      },
+                    ]
+                  }
+                }
+              },
+            ]
+          },
+        ]
+      },
+    ]
+  }
+
+  folder = {
+    id = coralogix_dashboards_folder.test_folder.id
+  }
+}
+`
+}
+
 func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -1295,6 +1370,90 @@ resource "coralogix_dashboard" "test" {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.color", "cyan"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.description", "Checking color"),
 				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardManualAnnotation(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "coralogix_dashboard" "test" {
+  name        = "manual-annotation-test"
+  description = "Testing manual annotation source"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  annotations = [{
+    name    = "manual threshold band"
+    enabled = true
+    source = {
+      manual = {
+        orientation = "horizontal"
+        strategy = {
+          range = {
+            start_value = 45
+            end_value   = 80
+          }
+        }
+      }
+    }
+  }]
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          width = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{
+                      type = "count"
+                    }]
+                  }
+                }
+              }]
+              legend = {
+                is_visible = false
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.name", "manual threshold band"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.manual.orientation", "horizontal"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.manual.strategy.range.start_value", "45"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.manual.strategy.range.end_value", "80"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 			},
 			{
 				ResourceName:      dashboardResourceName,

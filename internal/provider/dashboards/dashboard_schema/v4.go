@@ -1054,8 +1054,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		Optional: true,
 																		Attributes: map[string]schema.Attribute{
 																			"observation_field": schema.SingleNestedAttribute{
-																				Attributes: dashboardwidgets.ObservationFieldSchema(),
-																				Required:   true,
+																				Attributes:          dashboardwidgets.ObservationFieldSchema(),
+																				Required:            true,
+																				MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 																			},
 																		},
 																	},
@@ -1224,7 +1225,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 			Attributes: map[string]schema.Attribute{
 				"id": schema.StringAttribute{
 					Optional: true,
-					Computed: true,
 					Validators: []validator.String{
 						stringvalidator.ExactlyOneOf(
 							path.MatchRelative().AtParent().AtName("path"),
@@ -1233,7 +1233,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 				},
 				"path": schema.StringAttribute{
 					Optional: true,
-					Computed: true,
 					Validators: []validator.String{
 						stringvalidator.ExactlyOneOf(
 							path.MatchRelative().AtParent().AtName("id"),
@@ -1291,6 +1290,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 									objectvalidator.ExactlyOneOf(
 										path.MatchRelative().AtParent().AtName("logs"),
 										path.MatchRelative().AtParent().AtName("spans"),
+										path.MatchRelative().AtParent().AtName("manual"),
 									),
 								},
 							},
@@ -1301,6 +1301,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 									objectvalidator.ExactlyOneOf(
 										path.MatchRelative().AtParent().AtName("metrics"),
 										path.MatchRelative().AtParent().AtName("spans"),
+										path.MatchRelative().AtParent().AtName("manual"),
 									),
 								},
 							},
@@ -1311,9 +1312,11 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 									objectvalidator.ExactlyOneOf(
 										path.MatchRelative().AtParent().AtName("metrics"),
 										path.MatchRelative().AtParent().AtName("logs"),
+										path.MatchRelative().AtParent().AtName("manual"),
 									),
 								},
 							},
+							"manual": manualAnnotationSourceAttribute(),
 						},
 						Required: true,
 					},

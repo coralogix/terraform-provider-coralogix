@@ -1,11 +1,23 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+
+- DOCS: Clarify when to use `observation_field` over the bare `field` string in logs filters, logs aggregations, and dashboard variables. `observation_field` is required for flat field identifiers whose name contains literal dots (e.g. `log.level`) and for disambiguating fields that share a name across multiple scopes; the bare `field` value is resolved by the backend via dot-split, which silently fails to match literal-dot identifiers.
+- FEAT: Add support for the `manual` annotation source, allowing static `instant`/`range` threshold annotations with configurable `orientation`, `unit`, and `message_template`.
+
+#### resource/coralogix_alert
+- FIX: Stop perpetual `(known after apply)` drift on `no_data_policy.auto_retire_seconds` when the field is omitted from configuration.
+
+#### provider
+- CHORE: Bump `coralogix-management-sdk`.
+
 #### resource/coralogix_ai_custom_evaluation
 - FIX: Correct example score mapping and clearing of empty `criteria.*.examples` lists.
 
 #### resource/coralogix_dashboard
 
 - FIX: Deprecate the dashboard variable `constant_value` attribute and fail fast on it. It maps to the API's deprecated `Constant` variant, which the backend rejects with an opaque `invalid variable definition: Constant(...)` error. A `DeprecationMessage` surfaces this at plan time, and the provider now returns a clear error (instead of letting the opaque API rejection through) directing users to a `multi_select` variable with a `constant_list` source and a single `selected_values` entry — the supported replacement.
+- FIX: `folder.id` and `folder.path` no longer perpetually show `(known after apply)` on plans after a successful apply. Dropped `Computed: true` from both inner attributes (they remain `Optional` with the existing `ExactlyOneOf` mutual-exclusion validator) and updated `flattenDashboardFolder` to mirror whichever field the user set in config, so state matches config cleanly on every refresh. Users whose state was previously double-populated with both `folder.id` and `folder.path` by the buggy flatten will see a one-time diff on the first plan after upgrade as the unused field returns to null; the subsequent apply self-heals.
 
 
 # Release 3.6.0
