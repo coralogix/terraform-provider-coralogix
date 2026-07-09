@@ -69,6 +69,10 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(globalRouterResourceName, "name", fmt.Sprintf("%s updated", name)),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", name),
+					// disabled was true and fallback_targets was set on create; both are omitted
+					// here, so they must reset (disabled -> false, fallback_targets cleared).
+					resource.TestCheckResourceAttr(globalRouterResourceName, "disabled", "false"),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "fallback_targets.#", "0"),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*", map[string]string{
 						"name":      "rule-name",
 						"condition": "alertDef.priority == \"P1\"",

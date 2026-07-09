@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
@@ -232,13 +233,11 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			"attachment_config": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				Default:  stringdefault.StaticString(string(presets.ATTACHMENTCONFIGPOLICY_AUTO)),
 				Validators: []validator.String{
 					stringvalidator.OneOf(validAttachmentConfigPolicies...),
 				},
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				MarkdownDescription: fmt.Sprintf("Controls whether notification payloads include attachments. Valid values are: %s. Defaults to AUTO.", strings.Join(validAttachmentConfigPolicies, ", ")),
+				MarkdownDescription: fmt.Sprintf("Controls whether notification payloads include attachments. Valid values are: %s. Defaults to AUTO. Removing the attribute resets it to AUTO.", strings.Join(validAttachmentConfigPolicies, ", ")),
 			},
 		},
 		MarkdownDescription: "Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/. **NOTE:** This resource is in Beta stage.",

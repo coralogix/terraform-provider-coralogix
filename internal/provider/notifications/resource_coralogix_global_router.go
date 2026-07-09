@@ -520,7 +520,10 @@ func flattenGlobalRouter(ctx context.Context, globalRouter *globalRouters.Global
 
 func flattenFallbackTargets(ctx context.Context, targets []globalRouters.FallbackTarget) (types.List, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	if targets == nil {
+	// The API returns an empty list (not absent) when no fallback targets are set;
+	// normalize that to null so an unset/removed `fallback_targets` block does not
+	// drift against the empty list returned by the backend.
+	if len(targets) == 0 {
 		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.FallbackTargetAttr()}), diags
 	}
 	targetList := make([]types.Object, 0, len(targets))

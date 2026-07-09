@@ -154,8 +154,7 @@ func V1() schema.Schema {
 			},
 			"fallback_targets": schema.ListNestedAttribute{
 				Optional:    true,
-				Computed:    true,
-				Description: "Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`.",
+				Description: "Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. Removing the block clears the fallback targets.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"entity_type": schema.StringAttribute{

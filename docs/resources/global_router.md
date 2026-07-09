@@ -67,7 +67,7 @@ resource "coralogix_global_router" "example" {
 - `disabled` (Boolean) Disables the router without deleting it. Defaults to false.
 - `entity_labels` (Map of String)
 - `fallback` (Attributes List, Deprecated) Fallback routing targets. (see [below for nested schema](#nestedatt--fallback))
-- `fallback_targets` (Attributes List) Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. (see [below for nested schema](#nestedatt--fallback_targets))
+- `fallback_targets` (Attributes List) Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. Removing the block clears the fallback targets. (see [below for nested schema](#nestedatt--fallback_targets))
 - `id` (String) The ID of the GlobalRouter. Use `router_default` for the default; leave empty for auto generated or provide your own (unique) id.
 - `routing_labels` (Attributes) Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique. Labels matching is linked with AND, so an alert has to have all labels specified below. (see [below for nested schema](#nestedatt--routing_labels))
 - `rules` (Attributes List) Routing rules for the GlobalRouter. (see [below for nested schema](#nestedatt--rules))

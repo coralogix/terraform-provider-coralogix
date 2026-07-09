@@ -70,6 +70,8 @@ func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "id", name),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "name", "generic_https example updated"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "description", "generic_https preset example"),
+					// attachment_config was ENABLED on create and is omitted here; it must reset to AUTO.
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "attachment_config", "AUTO"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "entity_type", "alerts"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "connector_type", "generic_https"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "parent_id", "preset_system_generic_https_alerts_empty"),
