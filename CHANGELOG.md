@@ -14,6 +14,9 @@
 #### resource/coralogix_ai_custom_evaluation
 - FIX: Correct example score mapping and clearing of empty `criteria.*.examples` lists.
 
+#### resource/coralogix_dashboard
+- FIX: `folder.id` and `folder.path` no longer perpetually show `(known after apply)` on plans after a successful apply. Dropped `Computed: true` from both inner attributes (they remain `Optional` with the existing `ExactlyOneOf` mutual-exclusion validator) and updated `flattenDashboardFolder` to mirror whichever field the user set in config, so state matches config cleanly on every refresh. Users whose state was previously double-populated with both `folder.id` and `folder.path` by the buggy flatten will see a one-time diff on the first plan after upgrade as the unused field returns to null; the subsequent apply self-heals.
+
 
 # Release 3.6.0
 

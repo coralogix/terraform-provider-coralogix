@@ -5875,33 +5875,46 @@ func flattenDashboardFilter(ctx context.Context, filter *cxsdk.DashboardFilter) 
 }
 
 func flattenDashboardFolder(ctx context.Context, planedDashboard types.Object, dashboard *cxsdk.Dashboard) (types.Object, diag.Diagnostics) {
-	if dashboard.FolderId != nil {
-		path := types.StringNull()
-		if !utils.ObjIsNullOrUnknown(planedDashboard) {
-			var folderModel DashboardFolderModel
-			dgs := planedDashboard.As(context.Background(), &folderModel, basetypes.ObjectAsOptions{})
-			if dgs.HasError() {
-				return types.ObjectNull(dashboardFolderModelAttr()), dgs
-			}
-			if !(folderModel.Path.IsUnknown() || folderModel.Path.IsNull()) {
-				path = folderModel.Path
-			}
+	planPath := types.StringNull()
+	planID := types.StringNull()
+	if !utils.ObjIsNullOrUnknown(planedDashboard) {
+		var folderModel DashboardFolderModel
+		dgs := planedDashboard.As(ctx, &folderModel, basetypes.ObjectAsOptions{})
+		if dgs.HasError() {
+			return types.ObjectNull(dashboardFolderModelAttr()), dgs
 		}
+		if !(folderModel.Path.IsUnknown() || folderModel.Path.IsNull()) {
+			planPath = folderModel.Path
+		}
+		if !(folderModel.ID.IsUnknown() || folderModel.ID.IsNull()) {
+			planID = folderModel.ID
+		}
+	}
 
-		folderObject := &DashboardFolderModel{
-			ID:   types.StringValue(dashboard.FolderId.GetValue()),
-			Path: path,
+	if dashboard.FolderId != nil {
+		if !planPath.IsNull() {
+			return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), &DashboardFolderModel{
+				ID:   types.StringNull(),
+				Path: planPath,
+			})
 		}
-		return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), folderObject)
+		return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), &DashboardFolderModel{
+			ID:   types.StringValue(dashboard.FolderId.GetValue()),
+			Path: types.StringNull(),
+		})
 	} else if dashboard.FolderPath != nil {
-		folderObject := &DashboardFolderModel{
+		if !planID.IsNull() {
+			return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), &DashboardFolderModel{
+				ID:   planID,
+				Path: types.StringNull(),
+			})
+		}
+		return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), &DashboardFolderModel{
 			ID:   types.StringNull(),
 			Path: types.StringValue(strings.Join(dashboard.FolderPath.GetSegments(), "/")),
-		}
-		return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), folderObject)
-	} else {
-		return types.ObjectNull(dashboardFolderModelAttr()), nil
+		})
 	}
+	return types.ObjectNull(dashboardFolderModelAttr()), nil
 }
 
 func flattenDashboardAnnotations(ctx context.Context, annotations []*cxsdk.Annotation) (types.List, diag.Diagnostics) {
