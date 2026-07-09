@@ -1051,8 +1051,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		Optional: true,
 																		Attributes: map[string]schema.Attribute{
 																			"observation_field": schema.SingleNestedAttribute{
-																				Attributes: dashboardwidgets.ObservationFieldSchema(),
-																				Required:   true,
+																				Attributes:          dashboardwidgets.ObservationFieldSchema(),
+																				Required:            true,
+																				MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 																			},
 																		},
 																	},
