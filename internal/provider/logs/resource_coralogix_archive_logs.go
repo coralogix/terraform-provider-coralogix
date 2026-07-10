@@ -164,7 +164,7 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveLogs(targetS3 *archiveLogs.S3TargetSpec, archiveSpec *archiveLogs.ArchiveSpec, id string) *ArchiveLogsResourceModel {
+func flattenArchiveLogs(targetS3 *archiveLogs.S3TargetSpec, archiveSpec archiveLogs.ArchiveSpec, id string) *ArchiveLogsResourceModel {
 	if targetS3 == nil {
 		return nil
 	}
