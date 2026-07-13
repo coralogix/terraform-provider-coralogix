@@ -76,11 +76,16 @@ func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
 }
 
 func TestAccCoralogixResourceSlackConnector(t *testing.T) {
-	t.Skip("Skipping test due to a breaking change in BE")
-
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccRequiredEnvVarsPreCheck(
+				t,
+				"SLACK_INTEGRATION_ID",
+				"SLACK_INTEGRATION_CHANNEL",
+				"SLACK_INTEGRATION_CHANNEL_UPDATED",
+			)
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -92,15 +97,15 @@ func TestAccCoralogixResourceSlackConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationId",
-						"value":      "luigis-testing-grounds",
+						"value":      slackIntegrationId,
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "channel",
-						"value":      "luigis-testing-grounds",
+						"value":      slackIntegrationChannel,
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "fallbackChannel",
-						"value":      "luigis-testing-grounds",
+						"value":      slackIntegrationChannel,
 					}),
 				),
 			},
@@ -118,15 +123,15 @@ func TestAccCoralogixResourceSlackConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationId",
-						"value":      "luigis-testing-grounds-updated",
+						"value":      slackIntegrationId,
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "channel",
-						"value":      "luigis-testing-grounds-updated",
+						"value":      slackIntegrationChannelUpdated,
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "fallbackChannel",
-						"value":      "luigis-testing-grounds-updated",
+						"value":      slackIntegrationChannelUpdated,
 					}),
 				),
 			},
@@ -137,7 +142,12 @@ func TestAccCoralogixResourceSlackConnector(t *testing.T) {
 func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccRequiredEnvVarsPreCheck(
+				t,
+				"PD_INTEGRATION_ID",
+			)
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -149,7 +159,7 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationKey",
-						"value":      "integration-key-example",
+						"value":      pagerDutyIntegrationId,
 					}),
 				),
 			},
@@ -167,7 +177,7 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector updated"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationKey",
-						"value":      "integration-key-example",
+						"value":      pagerDutyIntegrationId,
 					}),
 				),
 			},
@@ -176,10 +186,9 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 }
 
 func TestAccCoralogixResourcePagerdutyIncidentsConnector(t *testing.T) {
-	t.Skip("Skipping test due to a breaking change in BE")
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { testAccRequiredEnvVarsPreCheck(t, "PD_INTEGRATION_ID") },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -191,7 +200,7 @@ func TestAccCoralogixResourcePagerdutyIncidentsConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty incidents connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationId",
-						"value":      "integration-id-example",
+						"value":      pagerDutyIntegrationId,
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "service",
@@ -303,19 +312,19 @@ func testAccResourceCoralogixSlackConnector(name string) string {
      fields = [
        {
          field_name = "integrationId"
-         value      = "luigis-testing-grounds"
+         value      = "%[2]v"
        },
 	   {
 	   	  field_name = "channel"
-		  value      = "luigis-testing-grounds"
+		  value      = "%[3]v"
 	   },
 	   {
 	   	  field_name = "fallbackChannel"
-		  value      = "luigis-testing-grounds"
+		  value      = "%[3]v"
 	   },
      ]
    }
- }`, name)
+ }`, name, slackIntegrationId, slackIntegrationChannel)
 }
 
 func testAccResourceCoralogixSlackConnectorUpdate(name string) string {
@@ -328,19 +337,19 @@ func testAccResourceCoralogixSlackConnectorUpdate(name string) string {
      fields = [
        {
          field_name = "integrationId"
-         value      = "luigis-testing-grounds-updated"
+         value      = "%[2]v"
        },
 	   {
 	   	  field_name = "channel"
-		  value      = "luigis-testing-grounds-updated"
+		  value      = "%[3]v"
 	   },
 	   {
 	   	  field_name = "fallbackChannel"
-		  value      = "luigis-testing-grounds-updated"
+		  value      = "%[3]v"
 	   },
      ]
    }
- }`, name)
+ }`, name, slackIntegrationId, slackIntegrationChannelUpdated)
 }
 
 func testAccResourceCoralogixPagerdutyConnector(name string) string {
@@ -353,11 +362,11 @@ func testAccResourceCoralogixPagerdutyConnector(name string) string {
      fields = [
        {
          field_name = "integrationKey"
-         value      = "integration-key-example"
+         value      = "%[2]v"
        }
      ]
    }
- }`, name)
+ }`, name, pagerDutyIntegrationId)
 }
 
 func testAccResourceCoralogixPagerdutyConnectorUpdate(name string) string {
@@ -370,11 +379,11 @@ func testAccResourceCoralogixPagerdutyConnectorUpdate(name string) string {
      fields = [
        {
          field_name = "integrationKey"
-         value      = "integration-key-example"
+         value      = "%[2]v"
        }
      ]
    }
- }`, name)
+ }`, name, pagerDutyIntegrationId)
 }
 
 func testAccResourceCoralogixPagerdutyIncidentsConnector(name string) string {
@@ -387,7 +396,7 @@ func testAccResourceCoralogixPagerdutyIncidentsConnector(name string) string {
      fields = [
        {
          field_name = "integrationId"
-         value      = "integration-id-example"
+         value      = "%[2]v"
        },
        {
          field_name = "service"
@@ -395,7 +404,7 @@ func testAccResourceCoralogixPagerdutyIncidentsConnector(name string) string {
        }
      ]
    }
- }`, name)
+ }`, name, pagerDutyIntegrationId)
 }
 
 func testAccResourceCoralogixEmailConnector(name string) string {

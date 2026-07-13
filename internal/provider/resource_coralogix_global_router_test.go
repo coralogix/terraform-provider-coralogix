@@ -16,6 +16,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/google/uuid"
@@ -24,12 +25,23 @@ import (
 
 const globalRouterResourceName = "coralogix_global_router.example"
 
-func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
-	t.Skip("Skipping test due to a breaking change in BE")
+var slackIntegrationId = os.Getenv("SLACK_INTEGRATION_ID")
+var slackIntegrationChannel = os.Getenv("SLACK_INTEGRATION_CHANNEL")
+var slackIntegrationChannelUpdated = os.Getenv("SLACK_INTEGRATION_CHANNEL_UPDATED")
+var pagerDutyIntegrationId = os.Getenv("PD_INTEGRATION_ID")
 
+func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccRequiredEnvVarsPreCheck(
+				t,
+				"SLACK_INTEGRATION_ID",
+				"SLACK_INTEGRATION_CHANNEL",
+				"SLACK_INTEGRATION_CHANNEL_UPDATED",
+				"PD_INTEGRATION_ID",
+			)
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -127,15 +139,15 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
         fields = [
           {
             field_name = "integrationId"
-            value      = "luigis-testing-grounds"
+            value      = "%[2]v"
           },
           {
             field_name = "fallbackChannel"
-            value      = "luigis-testing-grounds"
+            value      = "%[3]v"
           },
           {
             field_name = "channel"
-            value      = "luigis-testing-grounds"
+            value      = "%[3]v"
           }
         ]
       }
@@ -150,7 +162,7 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
         fields = [
           {
             field_name = "integrationKey"
-            value      = "integrationKey-eample"
+            value      = "%[4]v"
           }
         ]
       }
@@ -298,7 +310,7 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
         }
       ]
     }
-  `, name)
+  `, name, slackIntegrationId, slackIntegrationChannel, pagerDutyIntegrationId)
 }
 
 func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
@@ -331,15 +343,15 @@ func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
         fields = [
           {
             field_name = "integrationId"
-            value      = "luigis-testing-grounds"
+            value      = "%[2]v"
           },
           {
             field_name = "fallbackChannel"
-            value      = "luigis-testing-grounds"
+            value      = "%[3]v"
           },
           {
             field_name = "channel"
-            value      = "luigis-testing-grounds"
+            value      = "%[3]v"
           }
         ]
       }
@@ -354,7 +366,7 @@ func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
         fields = [
           {
             field_name = "integrationKey"
-            value      = "integrationKey-eample"
+            value      = "%[4]v"
           }
         ]
       }
@@ -494,5 +506,5 @@ func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
         }
       ]
     }
-  `, name)
+  `, name, slackIntegrationId, slackIntegrationChannelUpdated, pagerDutyIntegrationId)
 }

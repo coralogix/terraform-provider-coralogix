@@ -61,3 +61,13 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatalf("CORALOGIX_ENV or CORALOGIX_DOMAIN must be set for acceptance tests")
 	}
 }
+
+func testAccRequiredEnvVarsPreCheck(t *testing.T, envVars ...string) {
+	testAccPreCheck(t)
+
+	for _, envVar := range envVars {
+		if os.Getenv(envVar) == "" {
+			t.Fatalf("%s must be set for acceptance tests", envVar)
+		}
+	}
+}

@@ -42,5 +42,9 @@ jobs:
           TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}          
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
           ARCHIVE_BUCKET: ${{ secrets.ARCHIVE_BUCKET }}
+          SLACK_INTEGRATION_ID: ${{ secrets.SLACK_INTEGRATION_ID }}
+          SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
+          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
+          PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
         run: |
           make testacc

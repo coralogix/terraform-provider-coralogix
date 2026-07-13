@@ -24,7 +24,6 @@ import (
 var globalRouterDataSourceName = "data." + globalRouterResourceName
 
 func TestAccCoralogixDataSourceGlobalRouter_basic(t *testing.T) {
-	t.Skip("Skipping test due to a breaking change in BE")
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -42,8 +41,6 @@ func TestAccCoralogixDataSourceGlobalRouter_basic(t *testing.T) {
 }
 
 func TestAccCoralogixDataSourceGlobalRouterByName(t *testing.T) {
-	t.Skip("Skipping test due to a breaking change in BE")
-
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
