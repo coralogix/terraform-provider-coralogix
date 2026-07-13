@@ -338,6 +338,8 @@ func TestAccCoralogixResourceAlert_custom_evaluation_delay_omitted_and_explicit(
 }
 
 func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
+	t.Skip("Skipping test due to a breaking change in BE")
+
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -4234,6 +4236,8 @@ func testAccCoralogixResourceAlertWebhooksSettingsNoNotifications() string {
 }
 
 func TestAccCoralogixResourceAlert_group_by_keys_deletion(t *testing.T) {
+	t.Skip("Skipping test due to a breaking change in BE")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -4365,6 +4369,8 @@ func testAccCoralogixResourceAlertGroupByKeysPhantom() string {
 }
 
 func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
+	t.Skip("Skipping test due to a breaking change in BE")
+
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

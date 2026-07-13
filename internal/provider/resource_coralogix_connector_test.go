@@ -76,6 +76,8 @@ func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
 }
 
 func TestAccCoralogixResourceSlackConnector(t *testing.T) {
+	t.Skip("Skipping test due to a breaking change in BE")
+
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -174,6 +176,7 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 }
 
 func TestAccCoralogixResourcePagerdutyIncidentsConnector(t *testing.T) {
+	t.Skip("Skipping test due to a breaking change in BE")
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
