@@ -154,7 +154,7 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	plan = flattenArchiveLogs(result.Target.V2TargetS3, RESOURCE_ID_ARCHIVE_LOGS)
+	plan = flattenArchiveLogs(result.Target.S3, result.Target.ArchiveSpec, RESOURCE_ID_ARCHIVE_LOGS)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -164,24 +164,24 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveLogs(targetS3 *archiveLogs.V2TargetS3, id string) *ArchiveLogsResourceModel {
+func flattenArchiveLogs(targetS3 *archiveLogs.S3TargetSpec, archiveSpec archiveLogs.ArchiveSpec, id string) *ArchiveLogsResourceModel {
 	if targetS3 == nil {
 		return nil
 	}
 	return &ArchiveLogsResourceModel{
 		ID:                types.StringValue(id),
-		Active:            types.BoolValue(targetS3.ArchiveSpec.GetIsActive()),
-		Bucket:            types.StringValue(targetS3.GetS3().Bucket),
-		Region:            types.StringPointerValue(targetS3.GetS3().Region),
-		ArchivingFormatId: types.StringValue(targetS3.ArchiveSpec.GetArchivingFormatId()),
-		EnableTags:        types.BoolValue(targetS3.ArchiveSpec.GetEnableTags()),
+		Active:            types.BoolValue(archiveSpec.GetIsActive()),
+		Bucket:            types.StringValue(targetS3.Bucket),
+		Region:            types.StringPointerValue(targetS3.Region),
+		ArchivingFormatId: types.StringValue(archiveSpec.GetArchivingFormatId()),
+		EnableTags:        types.BoolValue(archiveSpec.GetEnableTags()),
 	}
 }
 
 func extractArchiveLogs(plan ArchiveLogsResourceModel) archiveLogs.SetTargetResponse {
 	return archiveLogs.SetTargetResponse{
 		IsActive: plan.Active.ValueBool(),
-		S3: &archiveLogs.S3TargetSpec{
+		S3: archiveLogs.S3TargetSpec{
 			Bucket: plan.Bucket.ValueString(),
 			Region: utils.TypeStringToStringPointer(plan.Region),
 		},
@@ -215,7 +215,7 @@ func (r *ArchiveLogsResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	state = flattenArchiveLogs(result.Target.V2TargetS3, id)
+	state = flattenArchiveLogs(result.Target.S3, result.Target.ArchiveSpec, id)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -251,7 +251,7 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	plan = flattenArchiveLogs(result.Target.V2TargetS3, plan.ID.ValueString())
+	plan = flattenArchiveLogs(result.Target.S3, result.Target.ArchiveSpec, plan.ID.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

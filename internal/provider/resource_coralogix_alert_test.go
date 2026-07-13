@@ -340,7 +340,14 @@ func TestAccCoralogixResourceAlert_custom_evaluation_delay_omitted_and_explicit(
 func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccRequiredEnvVarsPreCheck(
+				t,
+				"SLACK_INTEGRATION_ID",
+				"SLACK_INTEGRATION_CHANNEL",
+				"SLACK_INTEGRATION_CHANNEL_UPDATED",
+			)
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
@@ -1613,11 +1620,11 @@ func testAccGetAlertCustomEvaluationDelay(s *terraform.State, resourceName strin
 
 	alertDef := resp.GetAlertDef()
 	properties := alertDef.GetAlertDefProperties()
-	if properties.AlertDefPropertiesLogsThreshold == nil {
+	if properties.LogsThreshold == nil {
 		return 0, false, fmt.Errorf("alert %q is not a logs threshold alert", resourceName)
 	}
 
-	delay, ok := properties.AlertDefPropertiesLogsThreshold.LogsThreshold.GetEvaluationDelayMsOk()
+	delay, ok := properties.LogsThreshold.GetEvaluationDelayMsOk()
 	if !ok {
 		return 0, false, nil
 	}
@@ -2093,15 +2100,15 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
       fields = [
         {
           field_name = "integrationId"
-          value      = "luigis-testing-grounds"
+          value      = "%[2]v"
         },
         {
           field_name = "fallbackChannel"
-          value      = "luigis-testing-grounds"
+          value      = "%[3]v"
         },
         {
           field_name = "channel"
-          value      = "luigis-testing-grounds"
+          value      = "%[3]v"
         }
       ]
     }
@@ -2225,7 +2232,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
     }
   }
 }
-`, name)
+`, name, slackIntegrationId, slackIntegrationChannelUpdated)
 }
 
 func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
@@ -2239,15 +2246,15 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
       fields = [
         {
           field_name = "integrationId"
-          value      = "luigis-testing-grounds"
+          value      = "%[2]v"
         },
         {
           field_name = "fallbackChannel"
-          value      = "luigis-testing-grounds"
+          value      = "%[3]v"
         },
         {
           field_name = "channel"
-          value      = "luigis-testing-grounds"
+          value      = "%[3]v"
         }
       ]
     }
@@ -2377,7 +2384,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
       ]
     }
   }
-}`, name)
+}`, name, slackIntegrationId, slackIntegrationChannel)
 }
 
 func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
@@ -4367,7 +4374,13 @@ func testAccCoralogixResourceAlertGroupByKeysPhantom() string {
 func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccRequiredEnvVarsPreCheck(
+				t,
+				"SLACK_INTEGRATION_ID",
+				"SLACK_INTEGRATION_CHANNEL",
+			)
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
@@ -4406,9 +4419,9 @@ func testAccCoralogixResourceAlertDestinationsFixtures(name string) string {
     description      = "slack connector example"
     connector_config = {
       fields = [
-        { field_name = "integrationId",   value = "luigis-testing-grounds" },
-        { field_name = "fallbackChannel", value = "luigis-testing-grounds" },
-        { field_name = "channel",         value = "luigis-testing-grounds" }
+        { field_name = "integrationId",   value = "%[2]v" },
+        { field_name = "fallbackChannel", value = "%[3]v" },
+        { field_name = "channel",         value = "%[3]v" }
       ]
     }
   }
@@ -4436,7 +4449,7 @@ func testAccCoralogixResourceAlertDestinationsFixtures(name string) string {
       }
     ]
   }
-`, name)
+`, name, slackIntegrationId, slackIntegrationChannel)
 }
 
 func testAccCoralogixResourceAlertDestinationsSet(name string) string {

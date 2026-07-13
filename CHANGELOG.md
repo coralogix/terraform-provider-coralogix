@@ -22,7 +22,7 @@
 - FIX: Stop perpetual `(known after apply)` drift on `no_data_policy.auto_retire_seconds` when the field is omitted from configuration.
 
 #### provider
-- CHORE: Bump `coralogix-management-sdk`.
+- CHORE: Bump `coralogix-management-sdk` and adapt OpenAPI-backed resources to the regenerated oneOf SDK models.
 
 #### resource/coralogix_ai_custom_evaluation
 - FIX: Correct example score mapping and clearing of empty `criteria.*.examples` lists.

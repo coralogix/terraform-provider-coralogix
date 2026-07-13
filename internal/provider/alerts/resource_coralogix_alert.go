@@ -574,9 +574,7 @@ func extractAdvancedTargetSetting(ctx context.Context, webhooksSettingsModel ale
 			return nil, diag
 		}
 		advancedTargetSettings.Integration = &alerts.V3IntegrationType{
-			V3IntegrationTypeIntegrationId: &alerts.V3IntegrationTypeIntegrationId{
-				IntegrationId: *integrationId,
-			},
+			IntegrationId: integrationId,
 		}
 	} else if !webhooksSettingsModel.Recipients.IsNull() && !webhooksSettingsModel.Recipients.IsUnknown() {
 		emails, diags := utils.TypeStringElementsToStringSlice(ctx, webhooksSettingsModel.Recipients.Elements())
@@ -584,10 +582,8 @@ func extractAdvancedTargetSetting(ctx context.Context, webhooksSettingsModel ale
 			return nil, diags
 		}
 		advancedTargetSettings.Integration = &alerts.V3IntegrationType{
-			V3IntegrationTypeRecipients: &alerts.V3IntegrationTypeRecipients{
-				Recipients: alerts.Recipients{
-					Emails: emails,
-				},
+			Recipients: &alerts.Recipients{
+				Emails: emails,
 			},
 		}
 	}
@@ -718,61 +714,75 @@ func expandAlertsTypeDefinition(ctx context.Context, alertProperties *alerts.Ale
 		return nil, diags
 	}
 
-	var diags diag.Diagnostics
-
-	if logsImmediate := alertDefinitionModel.LogsImmediate; !utils.ObjIsNullOrUnknown(logsImmediate) {
-		// LogsImmediate
-		alertProperties, diags = expandLogsImmediateAlertTypeDefinition(ctx, alertProperties, logsImmediate, alertResourceModel)
-	} else if logsThreshold := alertDefinitionModel.LogsThreshold; !utils.ObjIsNullOrUnknown(logsThreshold) {
-		// LogsThreshold
-		alertProperties, diags = expandLogsThresholdTypeDefinition(ctx, alertProperties, logsThreshold, alertResourceModel)
-	} else if logsAnomaly := alertDefinitionModel.LogsAnomaly; !utils.ObjIsNullOrUnknown(logsAnomaly) {
-		// LogsAnomaly
-		alertProperties, diags = expandLogsAnomalyAlertTypeDefinition(ctx, alertProperties, logsAnomaly, alertResourceModel)
-	} else if logsRatioThreshold := alertDefinitionModel.LogsRatioThreshold; !utils.ObjIsNullOrUnknown(logsRatioThreshold) {
-		// LogsRatioThreshold
-		alertProperties, diags = expandLogsRatioThresholdTypeDefinition(ctx, alertProperties, logsRatioThreshold, alertResourceModel)
-	} else if logsNewValue := alertDefinitionModel.LogsNewValue; !utils.ObjIsNullOrUnknown(logsNewValue) {
-		// LogsNewValue
-		alertProperties, diags = expandLogsNewValueAlertTypeDefinition(ctx, alertProperties, logsNewValue, alertResourceModel)
-	} else if logsUniqueCount := alertDefinitionModel.LogsUniqueCount; !utils.ObjIsNullOrUnknown(logsUniqueCount) {
-		// LogsUniqueCount
-		alertProperties, diags = expandLogsUniqueCountAlertTypeDefinition(ctx, alertProperties, logsUniqueCount, alertResourceModel)
-	} else if logsTimeRelativeThreshold := alertDefinitionModel.LogsTimeRelativeThreshold; !utils.ObjIsNullOrUnknown(logsTimeRelativeThreshold) {
-		// LogsTimeRelativeThreshold
-		alertProperties, diags = expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx, alertProperties, logsTimeRelativeThreshold, alertResourceModel)
-	} else if metricThreshold := alertDefinitionModel.MetricThreshold; !utils.ObjIsNullOrUnknown(metricThreshold) {
-		// MetricsThreshold
-		alertProperties, diags = expandMetricThresholdAlertTypeDefinition(ctx, alertProperties, metricThreshold, alertResourceModel)
-	} else if metricAnomaly := alertDefinitionModel.MetricAnomaly; !utils.ObjIsNullOrUnknown(metricAnomaly) {
-		// MetricsAnomaly
-		alertProperties, diags = expandMetricAnomalyAlertTypeDefinition(ctx, alertProperties, metricAnomaly, alertResourceModel)
-	} else if tracingImmediate := alertDefinitionModel.TracingImmediate; !utils.ObjIsNullOrUnknown(tracingImmediate) {
-		// TracingImmediate
-		alertProperties, diags = expandTracingImmediateTypeDefinition(ctx, alertProperties, tracingImmediate, alertResourceModel)
-	} else if tracingThreshold := alertDefinitionModel.TracingThreshold; !utils.ObjIsNullOrUnknown(tracingThreshold) {
-		// TracingThreshold
-		alertProperties, diags = expandTracingThresholdTypeDefinition(ctx, alertProperties, tracingThreshold, alertResourceModel)
-	} else if flow := alertDefinitionModel.Flow; !utils.ObjIsNullOrUnknown(flow) {
-		// Flow
-		alertProperties, diags = expandFlowAlertTypeDefinition(ctx, alertProperties, flow, alertResourceModel)
-	} else if sloThreshold := alertDefinitionModel.SloThreshold; !utils.ObjIsNullOrUnknown(sloThreshold) {
-		// SLOThreshold
-		alertProperties, diags = expandSloThresholdAlertTypeDefinition(ctx, alertProperties, sloThreshold, alertResourceModel)
-	} else {
+	updatedProperties, handled, diags := expandLogsAlertsTypeDefinition(ctx, alertProperties, alertDefinitionModel, alertResourceModel)
+	if !handled {
+		updatedProperties, handled, diags = expandNonLogsAlertsTypeDefinition(ctx, alertProperties, alertDefinitionModel, alertResourceModel)
+	}
+	if !handled {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Type Definition", "Alert Type Definition is not valid")}
 	}
-
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return alertProperties, nil
+	return updatedProperties, nil
+}
+
+func expandLogsAlertsTypeDefinition(ctx context.Context, alertProperties *alerts.AlertDefProperties, alertDefinitionModel alerttypes.AlertTypeDefinitionModel, alertResourceModel alerttypes.AlertResourceModel) (*alerts.AlertDefProperties, bool, diag.Diagnostics) {
+	switch {
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.LogsImmediate):
+		properties, diags := expandLogsImmediateAlertTypeDefinition(ctx, alertProperties, alertDefinitionModel.LogsImmediate, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.LogsThreshold):
+		properties, diags := expandLogsThresholdTypeDefinition(ctx, alertProperties, alertDefinitionModel.LogsThreshold, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.LogsAnomaly):
+		properties, diags := expandLogsAnomalyAlertTypeDefinition(ctx, alertProperties, alertDefinitionModel.LogsAnomaly, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.LogsRatioThreshold):
+		properties, diags := expandLogsRatioThresholdTypeDefinition(ctx, alertProperties, alertDefinitionModel.LogsRatioThreshold, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.LogsNewValue):
+		properties, diags := expandLogsNewValueAlertTypeDefinition(ctx, alertProperties, alertDefinitionModel.LogsNewValue, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.LogsUniqueCount):
+		properties, diags := expandLogsUniqueCountAlertTypeDefinition(ctx, alertProperties, alertDefinitionModel.LogsUniqueCount, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.LogsTimeRelativeThreshold):
+		properties, diags := expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx, alertProperties, alertDefinitionModel.LogsTimeRelativeThreshold, alertResourceModel)
+		return properties, true, diags
+	default:
+		return alertProperties, false, nil
+	}
+}
+
+func expandNonLogsAlertsTypeDefinition(ctx context.Context, alertProperties *alerts.AlertDefProperties, alertDefinitionModel alerttypes.AlertTypeDefinitionModel, alertResourceModel alerttypes.AlertResourceModel) (*alerts.AlertDefProperties, bool, diag.Diagnostics) {
+	switch {
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.MetricThreshold):
+		properties, diags := expandMetricThresholdAlertTypeDefinition(ctx, alertProperties, alertDefinitionModel.MetricThreshold, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.MetricAnomaly):
+		properties, diags := expandMetricAnomalyAlertTypeDefinition(ctx, alertProperties, alertDefinitionModel.MetricAnomaly, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.TracingImmediate):
+		properties, diags := expandTracingImmediateTypeDefinition(ctx, alertProperties, alertDefinitionModel.TracingImmediate, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.TracingThreshold):
+		properties, diags := expandTracingThresholdTypeDefinition(ctx, alertProperties, alertDefinitionModel.TracingThreshold, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.Flow):
+		properties, diags := expandFlowAlertTypeDefinition(ctx, alertProperties, alertDefinitionModel.Flow, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.SloThreshold):
+		properties, diags := expandSloThresholdAlertTypeDefinition(ctx, alertProperties, alertDefinitionModel.SloThreshold, alertResourceModel)
+		return properties, true, diags
+	default:
+		return alertProperties, false, nil
+	}
 }
 
 func expandLogsImmediateAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, logsImmediateObject types.Object, alertResourceModel alerttypes.AlertResourceModel) (*alerts.AlertDefProperties, diag.Diagnostics) {
 	var immediateModel alerttypes.LogsImmediateModel
-	properties.AlertDefPropertiesLogsImmediate = &alerts.AlertDefPropertiesLogsImmediate{}
 	if diags := logsImmediateObject.As(ctx, &immediateModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
 	}
@@ -809,22 +819,22 @@ func expandLogsImmediateAlertTypeDefinition(ctx context.Context, properties *ale
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 
-	properties.AlertDefPropertiesLogsImmediate.LogsImmediate = alerts.LogsImmediateType{
+	properties.LogsImmediate = &alerts.LogsImmediateType{
 		LogsFilter:                logsFilter,
 		NotificationPayloadFilter: notificationPayloadFilter,
 	}
-	properties.AlertDefPropertiesLogsImmediate.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED.Ptr()
 	return properties, nil
 }
 
@@ -1001,17 +1011,16 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *alerts.A
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsThreshold = &alerts.AlertDefPropertiesLogsThreshold{}
-	properties.AlertDefPropertiesLogsThreshold.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsThreshold.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesLogsThreshold.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsThreshold.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsThreshold.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsThreshold.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsThreshold.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(thresholdObject) {
 		return properties, nil
 	}
@@ -1029,7 +1038,7 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *alerts.A
 		return nil, diags
 	}
 
-	properties.AlertDefPropertiesLogsThreshold.LogsThreshold = alerts.LogsThresholdType{
+	properties.LogsThreshold = &alerts.LogsThresholdType{
 		LogsFilter:                 logsFilter,
 		Rules:                      rules,
 		NotificationPayloadFilter:  notificationPayloadFilter,
@@ -1038,7 +1047,7 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *alerts.A
 		EvaluationDelayMs:          extractCustomEvaluationDelay(thresholdModel.CustomEvaluationDelay),
 	}
 
-	properties.AlertDefPropertiesLogsThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_THRESHOLD.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_THRESHOLD.Ptr()
 	return properties, nil
 }
 
@@ -1194,17 +1203,16 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alert
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsAnomaly = &alerts.AlertDefPropertiesLogsAnomaly{}
-	properties.AlertDefPropertiesLogsAnomaly.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsAnomaly.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsAnomaly.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsAnomaly.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesLogsAnomaly.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsAnomaly.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsAnomaly.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsAnomaly.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsAnomaly.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsAnomaly.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(anomaly) {
 		return properties, nil
 	}
@@ -1222,7 +1230,7 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alert
 		}
 	}
 
-	properties.AlertDefPropertiesLogsAnomaly.LogsAnomaly = alerts.LogsAnomalyType{
+	properties.LogsAnomaly = &alerts.LogsAnomalyType{
 		LogsFilter:                logsFilter,
 		Rules:                     rules,
 		NotificationPayloadFilter: notificationPayloadFilter,
@@ -1230,7 +1238,7 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alert
 		AnomalyAlertSettings:      anomalyAlertSettings,
 	}
 
-	properties.AlertDefPropertiesLogsAnomaly.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_ANOMALY.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_ANOMALY.Ptr()
 	return properties, nil
 }
 
@@ -1310,17 +1318,16 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsRatioThreshold = &alerts.AlertDefPropertiesLogsRatioThreshold{}
-	properties.AlertDefPropertiesLogsRatioThreshold.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsRatioThreshold.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsRatioThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsRatioThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesLogsRatioThreshold.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsRatioThreshold.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsRatioThreshold.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsRatioThreshold.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsRatioThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsRatioThreshold.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(ratioThreshold) {
 		return properties, nil
 	}
@@ -1344,7 +1351,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 	if groupByFor == "" {
 		groupByFor = alerttypes.LogsRatioGroupByForProtoToSchemaMap[alerts.LOGSRATIOGROUPBYFOR_LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED]
 	}
-	properties.AlertDefPropertiesLogsRatioThreshold.LogsRatioThreshold = alerts.LogsRatioThresholdType{
+	properties.LogsRatioThreshold = &alerts.LogsRatioThresholdType{
 		Numerator:                 numeratorLogsFilter,
 		NumeratorAlias:            ratioThresholdModel.NumeratorAlias.ValueStringPointer(),
 		Denominator:               denominatorLogsFilter,
@@ -1355,7 +1362,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 		EvaluationDelayMs:         extractCustomEvaluationDelay(ratioThresholdModel.CustomEvaluationDelay),
 		IgnoreInfinity:            ratioThresholdModel.IgnoreInfinity.ValueBoolPointer(),
 	}
-	properties.AlertDefPropertiesLogsRatioThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD.Ptr()
 	return properties, nil
 }
 
@@ -1471,17 +1478,16 @@ func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *aler
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsNewValue = &alerts.AlertDefPropertiesLogsNewValue{}
-	properties.AlertDefPropertiesLogsNewValue.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsNewValue.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsNewValue.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsNewValue.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesLogsNewValue.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsNewValue.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsNewValue.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsNewValue.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsNewValue.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsNewValue.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if newValue.IsNull() || newValue.IsUnknown() {
 		return properties, nil
 	}
@@ -1490,12 +1496,12 @@ func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *aler
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsNewValue.LogsNewValue = alerts.LogsNewValueType{
+	properties.LogsNewValue = &alerts.LogsNewValueType{
 		LogsFilter:                logsFilter,
 		Rules:                     rules,
 		NotificationPayloadFilter: notificationPayloadFilter,
 	}
-	properties.AlertDefPropertiesLogsNewValue.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_NEW_VALUE.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_NEW_VALUE.Ptr()
 	return properties, nil
 }
 
@@ -1587,17 +1593,16 @@ func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *a
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsUniqueCount = &alerts.AlertDefPropertiesLogsUniqueCount{}
-	properties.AlertDefPropertiesLogsUniqueCount.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsUniqueCount.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsUniqueCount.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsUniqueCount.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesLogsUniqueCount.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsUniqueCount.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsUniqueCount.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsUniqueCount.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsUniqueCount.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsUniqueCount.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(uniqueCount) {
 		return properties, nil
 	}
@@ -1612,14 +1617,14 @@ func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *a
 		val := strconv.FormatInt(uniqueCountModel.MaxUniqueCountPerGroupByKey.ValueInt64(), 10)
 		maxUniqueCountPerGroupByKey = &val
 	}
-	properties.AlertDefPropertiesLogsUniqueCount.LogsUniqueCount = alerts.LogsUniqueCountType{
+	properties.LogsUniqueCount = &alerts.LogsUniqueCountType{
 		LogsFilter:                  logsFilter,
 		Rules:                       rules,
 		NotificationPayloadFilter:   notificationPayloadFilter,
 		MaxUniqueCountPerGroupByKey: maxUniqueCountPerGroupByKey,
 		UniqueCountKeypath:          uniqueCountModel.UniqueCountKeypath.ValueStringPointer(),
 	}
-	properties.AlertDefPropertiesLogsUniqueCount.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT.Ptr()
 	return properties, nil
 }
 
@@ -1710,17 +1715,16 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold = &alerts.AlertDefPropertiesLogsTimeRelativeThreshold{}
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(relativeThreshold) {
 		return properties, nil
 	}
@@ -1734,7 +1738,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.LogsTimeRelativeThreshold = alerts.LogsTimeRelativeThresholdType{
+	properties.LogsTimeRelativeThreshold = &alerts.LogsTimeRelativeThresholdType{
 		LogsFilter:                 logsFilter,
 		Rules:                      rules,
 		NotificationPayloadFilter:  notificationPayloadFilter,
@@ -1742,7 +1746,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 		EvaluationDelayMs:          extractCustomEvaluationDelay(relativeThresholdModel.CustomEvaluationDelay),
 		IgnoreInfinity:             relativeThresholdModel.IgnoreInfinity.ValueBoolPointer(),
 	}
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD.Ptr()
 	return properties, nil
 }
 
@@ -1821,17 +1825,16 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *a
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesMetricThreshold = &alerts.AlertDefPropertiesMetricThreshold{}
-	properties.AlertDefPropertiesMetricThreshold.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesMetricThreshold.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesMetricThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesMetricThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesMetricThreshold.GroupByKeys = groupBy
-	properties.AlertDefPropertiesMetricThreshold.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesMetricThreshold.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesMetricThreshold.EntityLabels = &labels
-	properties.AlertDefPropertiesMetricThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesMetricThreshold.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(metricThreshold) {
 		return properties, nil
 	}
@@ -1859,7 +1862,7 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *a
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesMetricThreshold.MetricThreshold = alerts.MetricThresholdType{
+	properties.MetricThreshold = &alerts.MetricThresholdType{
 		MetricFilter:               metricFilter,
 		Rules:                      rules,
 		MissingValues:              missingValues,
@@ -1867,7 +1870,7 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *a
 		NoDataPolicy:               noDataPolicy,
 		EvaluationDelayMs:          extractCustomEvaluationDelay(metricThresholdModel.CustomEvaluationDelay),
 	}
-	properties.AlertDefPropertiesMetricThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_THRESHOLD.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_THRESHOLD.Ptr()
 
 	return properties, nil
 }
@@ -1884,15 +1887,11 @@ func extractMetricThresholdMissingValues(ctx context.Context, values types.Objec
 
 	if replaceWithZero := valuesModel.ReplaceWithZero; !(replaceWithZero.IsNull() || replaceWithZero.IsUnknown()) {
 		return &alerts.MetricMissingValues{
-			MetricMissingValuesReplaceWithZero: &alerts.MetricMissingValuesReplaceWithZero{
-				ReplaceWithZero: replaceWithZero.ValueBool(),
-			},
+			ReplaceWithZero: replaceWithZero.ValueBoolPointer(),
 		}, nil
 	} else if retainMissingValues := valuesModel.MinNonNullValuesPct; !(retainMissingValues.IsNull() || retainMissingValues.IsUnknown()) {
 		return &alerts.MetricMissingValues{
-			MetricMissingValuesMinNonNullValuesPct: &alerts.MetricMissingValuesMinNonNullValuesPct{
-				MinNonNullValuesPct: retainMissingValues.ValueInt64(),
-			},
+			MinNonNullValuesPct: retainMissingValues.ValueInt64Pointer(),
 		}, nil
 	} else {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Metric Missing Values", "Metric Missing Values is not valid")}
@@ -1990,17 +1989,16 @@ func expandTracingImmediateTypeDefinition(ctx context.Context, properties *alert
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesTracingImmediate = &alerts.AlertDefPropertiesTracingImmediate{}
-	properties.AlertDefPropertiesTracingImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesTracingImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesTracingImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesTracingImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesTracingImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesTracingImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesTracingImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesTracingImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesTracingImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesTracingImmediate.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(tracingImmediate) {
 		return properties, nil
 	}
@@ -2014,13 +2012,13 @@ func expandTracingImmediateTypeDefinition(ctx context.Context, properties *alert
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesTracingImmediate.TracingImmediate = alerts.TracingImmediateType{
+	properties.TracingImmediate = &alerts.TracingImmediateType{
 		TracingFilter: &alerts.TracingFilter{
 			SimpleFilter: tracingQuery,
 		},
 		NotificationPayloadFilter: notificationPayloadFilter,
 	}
-	properties.AlertDefPropertiesTracingImmediate.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_TRACING_IMMEDIATE.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_TRACING_IMMEDIATE.Ptr()
 
 	return properties, nil
 }
@@ -2053,17 +2051,16 @@ func expandTracingThresholdTypeDefinition(ctx context.Context, properties *alert
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesTracingThreshold = &alerts.AlertDefPropertiesTracingThreshold{}
-	properties.AlertDefPropertiesTracingThreshold.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesTracingThreshold.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesTracingThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesTracingThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesTracingThreshold.GroupByKeys = groupBy
-	properties.AlertDefPropertiesTracingThreshold.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesTracingThreshold.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesTracingThreshold.EntityLabels = &labels
-	properties.AlertDefPropertiesTracingThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesTracingThreshold.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(tracingThreshold) {
 		return properties, nil
 	}
@@ -2083,14 +2080,14 @@ func expandTracingThresholdTypeDefinition(ctx context.Context, properties *alert
 		return nil, diags
 	}
 
-	properties.AlertDefPropertiesTracingThreshold.TracingThreshold = alerts.TracingThresholdType{
+	properties.TracingThreshold = &alerts.TracingThresholdType{
 		TracingFilter: &alerts.TracingFilter{
 			SimpleFilter: tracingQuery,
 		},
 		NotificationPayloadFilter: notificationPayloadFilter,
 		Rules:                     rules,
 	}
-	properties.AlertDefPropertiesTracingThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_TRACING_THRESHOLD.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_TRACING_THRESHOLD.Ptr()
 
 	return properties, nil
 }
@@ -2295,17 +2292,16 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *ale
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesMetricAnomaly = &alerts.AlertDefPropertiesMetricAnomaly{}
-	properties.AlertDefPropertiesMetricAnomaly.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesMetricAnomaly.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesMetricAnomaly.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesMetricAnomaly.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesMetricAnomaly.GroupByKeys = groupBy
-	properties.AlertDefPropertiesMetricAnomaly.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesMetricAnomaly.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesMetricAnomaly.EntityLabels = &labels
-	properties.AlertDefPropertiesMetricAnomaly.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesMetricAnomaly.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(metricAnomaly) {
 		return properties, nil
 	}
@@ -2328,13 +2324,13 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *ale
 		}
 	}
 
-	properties.AlertDefPropertiesMetricAnomaly.MetricAnomaly = alerts.MetricAnomalyType{
+	properties.MetricAnomaly = &alerts.MetricAnomalyType{
 		MetricFilter:         metricFilter,
 		Rules:                rules,
 		EvaluationDelayMs:    extractCustomEvaluationDelay(metricAnomalyModel.CustomEvaluationDelay),
 		AnomalyAlertSettings: anomalyAlertSettings,
 	}
-	properties.AlertDefPropertiesMetricAnomaly.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_ANOMALY.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_ANOMALY.Ptr()
 
 	return properties, nil
 }
@@ -2370,9 +2366,7 @@ func extractMetricAnomalyRules(ctx context.Context, elements types.Set) ([]alert
 				Threshold:  condition.Threshold.ValueFloat64Pointer(),
 				ForOverPct: condition.ForOverPct.ValueInt64Pointer(),
 				OfTheLast: &alerts.MetricTimeWindow{
-					MetricTimeWindowMetricTimeWindowSpecificValue: &alerts.MetricTimeWindowMetricTimeWindowSpecificValue{
-						MetricTimeWindowSpecificValue: alerttypes.MetricTimeWindowValueSchemaToProtoMap[ofTheLast],
-					},
+					MetricTimeWindowSpecificValue: alerttypes.MetricTimeWindowValueSchemaToProtoMap[ofTheLast].Ptr(),
 				},
 				ConditionType:       conditionType.Ptr(),
 				MinNonNullValuesPct: condition.MinNonNullValuesPct.ValueInt64Pointer(),
@@ -2388,31 +2382,23 @@ func extractMetricAnomalyRules(ctx context.Context, elements types.Set) ([]alert
 func expandMetricTimeWindow(metricTimeWindow types.String) *alerts.MetricTimeWindow {
 	if metricTimeWindow.IsNull() || metricTimeWindow.IsUnknown() {
 		return &alerts.MetricTimeWindow{
-			MetricTimeWindowMetricTimeWindowSpecificValue: &alerts.MetricTimeWindowMetricTimeWindowSpecificValue{
-				MetricTimeWindowSpecificValue: alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED,
-			},
+			MetricTimeWindowSpecificValue: alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED.Ptr(),
 		}
 	}
 	timeWindowStr := metricTimeWindow.ValueString()
 	if timeWindowStr == "" {
 		timeWindowStr = alerttypes.MetricFilterOperationTypeProtoToSchemaMap[alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED]
 		return &alerts.MetricTimeWindow{
-			MetricTimeWindowMetricTimeWindowSpecificValue: &alerts.MetricTimeWindowMetricTimeWindowSpecificValue{
-				MetricTimeWindowSpecificValue: alerttypes.MetricTimeWindowValueSchemaToProtoMap[timeWindowStr],
-			},
+			MetricTimeWindowSpecificValue: alerttypes.MetricTimeWindowValueSchemaToProtoMap[timeWindowStr].Ptr(),
 		}
 	} else if timeWindow, ok := alerttypes.MetricTimeWindowValueSchemaToProtoMap[timeWindowStr]; ok {
 		return &alerts.MetricTimeWindow{
-			MetricTimeWindowMetricTimeWindowSpecificValue: &alerts.MetricTimeWindowMetricTimeWindowSpecificValue{
-				MetricTimeWindowSpecificValue: timeWindow,
-			},
+			MetricTimeWindowSpecificValue: timeWindow.Ptr(),
 		}
 
 	} else {
 		return &alerts.MetricTimeWindow{
-			MetricTimeWindowMetricTimeWindowDynamicDuration: &alerts.MetricTimeWindowMetricTimeWindowDynamicDuration{
-				MetricTimeWindowDynamicDuration: timeWindowStr,
-			},
+			MetricTimeWindowDynamicDuration: &timeWindowStr,
 		}
 	}
 }
@@ -2445,17 +2431,16 @@ func expandFlowAlertTypeDefinition(ctx context.Context, properties *alerts.Alert
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesFlow = &alerts.AlertDefPropertiesFlow{}
-	properties.AlertDefPropertiesFlow.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesFlow.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesFlow.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesFlow.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesFlow.GroupByKeys = groupBy
-	properties.AlertDefPropertiesFlow.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesFlow.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesFlow.EntityLabels = &labels
-	properties.AlertDefPropertiesFlow.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesFlow.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(flow) {
 		return properties, nil
 	}
@@ -2465,11 +2450,11 @@ func expandFlowAlertTypeDefinition(ctx context.Context, properties *alerts.Alert
 		return nil, diags
 	}
 
-	properties.AlertDefPropertiesFlow.Flow = alerts.FlowType{
+	properties.Flow = &alerts.FlowType{
 		Stages:             stages,
 		EnforceSuppression: flowModel.EnforceSuppression.ValueBoolPointer(),
 	}
-	properties.AlertDefPropertiesFlow.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_FLOW.Ptr()
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_FLOW.Ptr()
 	return properties, nil
 }
 
@@ -2608,17 +2593,16 @@ func expandSloThresholdAlertTypeDefinition(ctx context.Context, properties *aler
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesSloThreshold = &alerts.AlertDefPropertiesSloThreshold{}
-	properties.AlertDefPropertiesSloThreshold.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesSloThreshold.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesSloThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesSloThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
-	properties.AlertDefPropertiesSloThreshold.GroupByKeys = groupBy
-	properties.AlertDefPropertiesSloThreshold.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesSloThreshold.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesSloThreshold.EntityLabels = &labels
-	properties.AlertDefPropertiesSloThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesSloThreshold.ActiveOn = schedule
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = &labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(sloThreshold) {
 		return properties, nil
 	}
@@ -2635,19 +2619,21 @@ func expandSloThresholdAlertTypeDefinition(ctx context.Context, properties *aler
 		if diags.HasError() {
 			return nil, diags
 		}
-		sloThresholdType.SloThresholdTypeErrorBudget = &alerts.SloThresholdTypeErrorBudget{ErrorBudget: *errorBudget, SloDefinition: sloDef}
+		sloThresholdType.ErrorBudget = errorBudget
+		sloThresholdType.SloDefinition = sloDef
 	} else if !utils.ObjIsNullOrUnknown(sloThresholdModel.BurnRate) {
 		burnRate, diags := extractSloBurnRateThreshold(ctx, sloThresholdModel.BurnRate)
 		if diags.HasError() {
 			return nil, diags
 		}
-		sloThresholdType.SloThresholdTypeBurnRate = &alerts.SloThresholdTypeBurnRate{BurnRate: *burnRate, SloDefinition: sloDef}
+		sloThresholdType.BurnRate = burnRate
+		sloThresholdType.SloDefinition = sloDef
 	} else {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid SLO Threshold Type", "SLO Threshold must have either ErrorBudget or BurnRate defined")}
 	}
 
-	properties.AlertDefPropertiesSloThreshold.SloThreshold = sloThresholdType
-	properties.AlertDefPropertiesSloThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_SLO_THRESHOLD.Ptr()
+	properties.SloThreshold = &sloThresholdType
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_SLO_THRESHOLD.Ptr()
 	return properties, nil
 }
 
@@ -2694,13 +2680,15 @@ func extractSloBurnRateThreshold(ctx context.Context, obj types.Object) (*alerts
 		if diags.HasError() {
 			return nil, diags
 		}
-		burnRate.BurnRateThresholdDual = &alerts.BurnRateThresholdDual{Dual: alerts.BurnRateTypeDual{TimeDuration: timeDuration}, Rules: rules}
+		burnRate.Dual = &alerts.BurnRateTypeDual{TimeDuration: timeDuration}
+		burnRate.Rules = rules
 	} else if !utils.ObjIsNullOrUnknown(model.Single) {
 		timeDuration, diags := extractSloTimeDuration(ctx, model.Single)
 		if diags.HasError() {
 			return nil, diags
 		}
-		burnRate.BurnRateThresholdSingle = &alerts.BurnRateThresholdSingle{Single: alerts.BurnRateTypeSingle{TimeDuration: timeDuration}, Rules: rules}
+		burnRate.Single = &alerts.BurnRateTypeSingle{TimeDuration: timeDuration}
+		burnRate.Rules = rules
 	} else {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid SLO Burn Rate Type", "SLO Burn Rate must have either Dual or Single defined")}
 	}
@@ -2851,223 +2839,223 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 }
 
 func getAlertName(alertDefProperties *alerts.AlertDefProperties) *string {
-	if alertDefProperties.AlertDefPropertiesFlow != nil {
-		return alertDefProperties.AlertDefPropertiesFlow.Name
-	} else if alertDefProperties.AlertDefPropertiesLogsImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesLogsImmediate.Name
-	} else if alertDefProperties.AlertDefPropertiesMetricAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesMetricAnomaly.Name
-	} else if alertDefProperties.AlertDefPropertiesSloThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesSloThreshold.Name
-	} else if alertDefProperties.AlertDefPropertiesTracingThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesTracingThreshold.Name
-	} else if alertDefProperties.AlertDefPropertiesLogsUniqueCount != nil {
-		return alertDefProperties.AlertDefPropertiesLogsUniqueCount.Name
-	} else if alertDefProperties.AlertDefPropertiesLogsThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsThreshold.Name
-	} else if alertDefProperties.AlertDefPropertiesMetricThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesMetricThreshold.Name
-	} else if alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold.Name
-	} else if alertDefProperties.AlertDefPropertiesLogsNewValue != nil {
-		return alertDefProperties.AlertDefPropertiesLogsNewValue.Name
-	} else if alertDefProperties.AlertDefPropertiesLogsRatioThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsRatioThreshold.Name
-	} else if alertDefProperties.AlertDefPropertiesLogsAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesLogsAnomaly.Name
-	} else if alertDefProperties.AlertDefPropertiesTracingImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesTracingImmediate.Name
+	if alertDefProperties.Flow != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.LogsImmediate != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.MetricAnomaly != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.SloThreshold != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.TracingThreshold != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.LogsUniqueCount != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.LogsThreshold != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.MetricThreshold != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.LogsTimeRelativeThreshold != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.LogsNewValue != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.LogsRatioThreshold != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.LogsAnomaly != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.Name
 	} else {
 		return nil
 	}
 }
 
 func getAlertDescription(alertDefProperties *alerts.AlertDefProperties) *string {
-	if alertDefProperties.AlertDefPropertiesFlow != nil {
-		return alertDefProperties.AlertDefPropertiesFlow.Description
-	} else if alertDefProperties.AlertDefPropertiesLogsImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesLogsImmediate.Description
-	} else if alertDefProperties.AlertDefPropertiesMetricAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesMetricAnomaly.Description
-	} else if alertDefProperties.AlertDefPropertiesSloThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesSloThreshold.Description
-	} else if alertDefProperties.AlertDefPropertiesTracingThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesTracingThreshold.Description
-	} else if alertDefProperties.AlertDefPropertiesLogsUniqueCount != nil {
-		return alertDefProperties.AlertDefPropertiesLogsUniqueCount.Description
-	} else if alertDefProperties.AlertDefPropertiesLogsThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsThreshold.Description
-	} else if alertDefProperties.AlertDefPropertiesMetricThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesMetricThreshold.Description
-	} else if alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold.Description
-	} else if alertDefProperties.AlertDefPropertiesLogsNewValue != nil {
-		return alertDefProperties.AlertDefPropertiesLogsNewValue.Description
-	} else if alertDefProperties.AlertDefPropertiesLogsRatioThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsRatioThreshold.Description
-	} else if alertDefProperties.AlertDefPropertiesLogsAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesLogsAnomaly.Description
-	} else if alertDefProperties.AlertDefPropertiesTracingImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesTracingImmediate.Description
+	if alertDefProperties.Flow != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.LogsImmediate != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.MetricAnomaly != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.SloThreshold != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.TracingThreshold != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.LogsUniqueCount != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.LogsThreshold != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.MetricThreshold != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.LogsTimeRelativeThreshold != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.LogsNewValue != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.LogsRatioThreshold != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.LogsAnomaly != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.Description
 	} else {
 		return nil
 	}
 }
 
 func getAlertEnabled(alertDefProperties *alerts.AlertDefProperties) *bool {
-	if alertDefProperties.AlertDefPropertiesFlow != nil {
-		return alertDefProperties.AlertDefPropertiesFlow.Enabled
-	} else if alertDefProperties.AlertDefPropertiesLogsImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesLogsImmediate.Enabled
-	} else if alertDefProperties.AlertDefPropertiesMetricAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesMetricAnomaly.Enabled
-	} else if alertDefProperties.AlertDefPropertiesSloThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesSloThreshold.Enabled
-	} else if alertDefProperties.AlertDefPropertiesTracingThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesTracingThreshold.Enabled
-	} else if alertDefProperties.AlertDefPropertiesLogsUniqueCount != nil {
-		return alertDefProperties.AlertDefPropertiesLogsUniqueCount.Enabled
-	} else if alertDefProperties.AlertDefPropertiesLogsThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsThreshold.Enabled
-	} else if alertDefProperties.AlertDefPropertiesMetricThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesMetricThreshold.Enabled
-	} else if alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold.Enabled
-	} else if alertDefProperties.AlertDefPropertiesLogsNewValue != nil {
-		return alertDefProperties.AlertDefPropertiesLogsNewValue.Enabled
-	} else if alertDefProperties.AlertDefPropertiesLogsRatioThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsRatioThreshold.Enabled
-	} else if alertDefProperties.AlertDefPropertiesLogsAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesLogsAnomaly.Enabled
-	} else if alertDefProperties.AlertDefPropertiesTracingImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesTracingImmediate.Enabled
+	if alertDefProperties.Flow != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.LogsImmediate != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.MetricAnomaly != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.SloThreshold != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.TracingThreshold != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.LogsUniqueCount != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.LogsThreshold != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.MetricThreshold != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.LogsTimeRelativeThreshold != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.LogsNewValue != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.LogsRatioThreshold != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.LogsAnomaly != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.Enabled
 	} else {
 		return nil
 	}
 }
 func getAlertIncidentSettings(alertDefProperties *alerts.AlertDefProperties) *alerts.AlertDefIncidentSettings {
-	if alertDefProperties.AlertDefPropertiesFlow != nil {
-		return alertDefProperties.AlertDefPropertiesFlow.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesLogsImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesLogsImmediate.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesMetricAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesMetricAnomaly.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesSloThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesSloThreshold.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesTracingThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesTracingThreshold.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesLogsUniqueCount != nil {
-		return alertDefProperties.AlertDefPropertiesLogsUniqueCount.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesLogsThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsThreshold.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesMetricThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesMetricThreshold.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesLogsNewValue != nil {
-		return alertDefProperties.AlertDefPropertiesLogsNewValue.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesLogsRatioThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsRatioThreshold.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesLogsAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesLogsAnomaly.IncidentsSettings
-	} else if alertDefProperties.AlertDefPropertiesTracingImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesTracingImmediate.IncidentsSettings
+	if alertDefProperties.Flow != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.LogsImmediate != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.MetricAnomaly != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.SloThreshold != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.TracingThreshold != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.LogsUniqueCount != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.LogsThreshold != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.MetricThreshold != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.LogsTimeRelativeThreshold != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.LogsNewValue != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.LogsRatioThreshold != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.LogsAnomaly != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.IncidentsSettings
 	} else {
 		return nil
 	}
 }
 
 func getAlertEntityLabels(alertDefProperties *alerts.AlertDefProperties) *map[string]string {
-	if alertDefProperties.AlertDefPropertiesFlow != nil {
-		return alertDefProperties.AlertDefPropertiesFlow.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesLogsImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesLogsImmediate.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesMetricAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesMetricAnomaly.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesSloThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesSloThreshold.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesTracingThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesTracingThreshold.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesLogsUniqueCount != nil {
-		return alertDefProperties.AlertDefPropertiesLogsUniqueCount.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesLogsThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsThreshold.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesMetricThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesMetricThreshold.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesLogsNewValue != nil {
-		return alertDefProperties.AlertDefPropertiesLogsNewValue.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesLogsRatioThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsRatioThreshold.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesLogsAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesLogsAnomaly.EntityLabels
-	} else if alertDefProperties.AlertDefPropertiesTracingImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesTracingImmediate.EntityLabels
+	if alertDefProperties.Flow != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.LogsImmediate != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.MetricAnomaly != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.SloThreshold != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.TracingThreshold != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.LogsUniqueCount != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.LogsThreshold != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.MetricThreshold != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.LogsTimeRelativeThreshold != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.LogsNewValue != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.LogsRatioThreshold != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.LogsAnomaly != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.EntityLabels
 	} else {
 		return nil
 	}
 }
 
 func getAlertNotificationGroup(alertDefProperties *alerts.AlertDefProperties) *alerts.AlertDefNotificationGroup {
-	if alertDefProperties.AlertDefPropertiesFlow != nil {
-		return alertDefProperties.AlertDefPropertiesFlow.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesLogsImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesLogsImmediate.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesMetricAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesMetricAnomaly.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesSloThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesSloThreshold.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesTracingThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesTracingThreshold.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesLogsUniqueCount != nil {
-		return alertDefProperties.AlertDefPropertiesLogsUniqueCount.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesLogsThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsThreshold.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesMetricThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesMetricThreshold.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesLogsNewValue != nil {
-		return alertDefProperties.AlertDefPropertiesLogsNewValue.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesLogsRatioThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsRatioThreshold.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesLogsAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesLogsAnomaly.NotificationGroup
-	} else if alertDefProperties.AlertDefPropertiesTracingImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesTracingImmediate.NotificationGroup
+	if alertDefProperties.Flow != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.LogsImmediate != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.MetricAnomaly != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.SloThreshold != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.TracingThreshold != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.LogsUniqueCount != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.LogsThreshold != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.MetricThreshold != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.LogsTimeRelativeThreshold != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.LogsNewValue != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.LogsRatioThreshold != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.LogsAnomaly != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.NotificationGroup
 	} else {
 		return nil
 	}
 }
 
 func getAlertPriority(alertDefProperties *alerts.AlertDefProperties) *alerts.AlertDefPriority {
-	if alertDefProperties.AlertDefPropertiesFlow != nil {
-		return alertDefProperties.AlertDefPropertiesFlow.Priority
-	} else if alertDefProperties.AlertDefPropertiesLogsImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesLogsImmediate.Priority
-	} else if alertDefProperties.AlertDefPropertiesMetricAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesMetricAnomaly.Priority
-	} else if alertDefProperties.AlertDefPropertiesSloThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesSloThreshold.Priority
-	} else if alertDefProperties.AlertDefPropertiesTracingThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesTracingThreshold.Priority
-	} else if alertDefProperties.AlertDefPropertiesLogsUniqueCount != nil {
-		return alertDefProperties.AlertDefPropertiesLogsUniqueCount.Priority
-	} else if alertDefProperties.AlertDefPropertiesLogsThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsThreshold.Priority
-	} else if alertDefProperties.AlertDefPropertiesMetricThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesMetricThreshold.Priority
-	} else if alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold.Priority
-	} else if alertDefProperties.AlertDefPropertiesLogsNewValue != nil {
-		return alertDefProperties.AlertDefPropertiesLogsNewValue.Priority
-	} else if alertDefProperties.AlertDefPropertiesLogsRatioThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsRatioThreshold.Priority
-	} else if alertDefProperties.AlertDefPropertiesLogsAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesLogsAnomaly.Priority
-	} else if alertDefProperties.AlertDefPropertiesTracingImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesTracingImmediate.Priority
+	if alertDefProperties.Flow != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.LogsImmediate != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.MetricAnomaly != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.SloThreshold != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.TracingThreshold != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.LogsUniqueCount != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.LogsThreshold != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.MetricThreshold != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.LogsTimeRelativeThreshold != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.LogsNewValue != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.LogsRatioThreshold != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.LogsAnomaly != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.Priority
 	} else {
 		return alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED.Ptr()
 	}
@@ -3091,102 +3079,102 @@ func groupByKeysToStateValue(keys []string, alertDefProperties *alerts.AlertDefP
 // plan modifier (unknown when state null, state value when state set). Only for these do we
 // normalize empty group_by to [] instead of null on read.
 func alertTypeUsesGroupByPlanModifier(alertDefProperties *alerts.AlertDefProperties) bool {
-	return alertDefProperties.AlertDefPropertiesSloThreshold != nil ||
-		alertDefProperties.AlertDefPropertiesTracingThreshold != nil ||
-		alertDefProperties.AlertDefPropertiesFlow != nil
+	return alertDefProperties.SloThreshold != nil ||
+		alertDefProperties.TracingThreshold != nil ||
+		alertDefProperties.Flow != nil
 }
 
 func getAlertGroupByKeys(alertDefProperties *alerts.AlertDefProperties) []string {
-	if alertDefProperties.AlertDefPropertiesFlow != nil {
-		return alertDefProperties.AlertDefPropertiesFlow.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesLogsImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesLogsImmediate.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesMetricAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesMetricAnomaly.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesSloThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesSloThreshold.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesTracingThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesTracingThreshold.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesLogsUniqueCount != nil {
-		return alertDefProperties.AlertDefPropertiesLogsUniqueCount.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesLogsThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsThreshold.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesMetricThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesMetricThreshold.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesLogsNewValue != nil {
-		return alertDefProperties.AlertDefPropertiesLogsNewValue.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesLogsRatioThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsRatioThreshold.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesLogsAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesLogsAnomaly.GroupByKeys
-	} else if alertDefProperties.AlertDefPropertiesTracingImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesTracingImmediate.GroupByKeys
+	if alertDefProperties.Flow != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.LogsImmediate != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.MetricAnomaly != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.SloThreshold != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.TracingThreshold != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.LogsUniqueCount != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.LogsThreshold != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.MetricThreshold != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.LogsTimeRelativeThreshold != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.LogsNewValue != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.LogsRatioThreshold != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.LogsAnomaly != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.GroupByKeys
 	} else {
 		return nil
 	}
 }
 
 func getAlertPhantomMode(alertDefProperties *alerts.AlertDefProperties) *bool {
-	if alertDefProperties.AlertDefPropertiesFlow != nil {
-		return alertDefProperties.AlertDefPropertiesFlow.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesLogsImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesLogsImmediate.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesMetricAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesMetricAnomaly.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesSloThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesSloThreshold.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesTracingThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesTracingThreshold.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesLogsUniqueCount != nil {
-		return alertDefProperties.AlertDefPropertiesLogsUniqueCount.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesLogsThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsThreshold.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesMetricThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesMetricThreshold.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesLogsNewValue != nil {
-		return alertDefProperties.AlertDefPropertiesLogsNewValue.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesLogsRatioThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsRatioThreshold.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesLogsAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesLogsAnomaly.PhantomMode
-	} else if alertDefProperties.AlertDefPropertiesTracingImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesTracingImmediate.PhantomMode
+	if alertDefProperties.Flow != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.LogsImmediate != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.MetricAnomaly != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.SloThreshold != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.TracingThreshold != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.LogsUniqueCount != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.LogsThreshold != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.MetricThreshold != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.LogsTimeRelativeThreshold != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.LogsNewValue != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.LogsRatioThreshold != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.LogsAnomaly != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.PhantomMode
 	} else {
 		return nil
 	}
 }
 
 func getAlertDeleted(alertDefProperties *alerts.AlertDefProperties) *bool {
-	if alertDefProperties.AlertDefPropertiesFlow != nil {
-		return alertDefProperties.AlertDefPropertiesFlow.Deleted
-	} else if alertDefProperties.AlertDefPropertiesLogsImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesLogsImmediate.Deleted
-	} else if alertDefProperties.AlertDefPropertiesMetricAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesMetricAnomaly.Deleted
-	} else if alertDefProperties.AlertDefPropertiesSloThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesSloThreshold.Deleted
-	} else if alertDefProperties.AlertDefPropertiesTracingThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesTracingThreshold.Deleted
-	} else if alertDefProperties.AlertDefPropertiesLogsUniqueCount != nil {
-		return alertDefProperties.AlertDefPropertiesLogsUniqueCount.Deleted
-	} else if alertDefProperties.AlertDefPropertiesLogsThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsThreshold.Deleted
-	} else if alertDefProperties.AlertDefPropertiesMetricThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesMetricThreshold.Deleted
-	} else if alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsTimeRelativeThreshold.Deleted
-	} else if alertDefProperties.AlertDefPropertiesLogsNewValue != nil {
-		return alertDefProperties.AlertDefPropertiesLogsNewValue.Deleted
-	} else if alertDefProperties.AlertDefPropertiesLogsRatioThreshold != nil {
-		return alertDefProperties.AlertDefPropertiesLogsRatioThreshold.Deleted
-	} else if alertDefProperties.AlertDefPropertiesLogsAnomaly != nil {
-		return alertDefProperties.AlertDefPropertiesLogsAnomaly.Deleted
-	} else if alertDefProperties.AlertDefPropertiesTracingImmediate != nil {
-		return alertDefProperties.AlertDefPropertiesTracingImmediate.Deleted
+	if alertDefProperties.Flow != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.LogsImmediate != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.MetricAnomaly != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.SloThreshold != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.TracingThreshold != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.LogsUniqueCount != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.LogsThreshold != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.MetricThreshold != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.LogsTimeRelativeThreshold != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.LogsNewValue != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.LogsRatioThreshold != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.LogsAnomaly != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.Deleted
 	} else {
 		return nil
 	}
@@ -3250,11 +3238,11 @@ func flattenAdvancedTargetSettings(ctx context.Context, webhooksSettings []alert
 
 		integration := notification.Integration
 		if integration != nil {
-			if integrationIdType := integration.V3IntegrationTypeIntegrationId; integrationIdType != nil {
-				integrationID := strconv.FormatInt(integrationIdType.IntegrationId, 10)
+			if integration.IntegrationId != nil {
+				integrationID := strconv.FormatInt(*integration.IntegrationId, 10)
 				notificationModel.IntegrationID = types.StringValue(integrationID)
-			} else if integrationRecipientsType := integration.V3IntegrationTypeRecipients; integrationRecipientsType != nil {
-				notificationModel.Recipients = utils.StringSliceToTypeStringSet(integrationRecipientsType.Recipients.Emails)
+			} else if integration.Recipients != nil {
+				notificationModel.Recipients = utils.StringSliceToTypeStringSet(integration.Recipients.Emails)
 			}
 		}
 		notificationsModel = append(notificationsModel, &notificationModel)
@@ -3416,7 +3404,23 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDef
 		return types.ObjectNull(alertschema.AlertTypeDefinitionAttr()), nil
 	}
 
-	alertTypeDefinitionModel := alerttypes.AlertTypeDefinitionModel{
+	alertTypeDefinitionModel := emptyAlertTypeDefinitionModel()
+	diags, handled := flattenLogsAlertTypeDefinition(ctx, properties, &alertTypeDefinitionModel)
+	if !handled {
+		diags, handled = flattenNonLogsAlertTypeDefinition(ctx, properties, &alertTypeDefinitionModel)
+	}
+	if !handled {
+		return types.ObjectNull(alertschema.AlertTypeDefinitionAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Type Definition", "Alert Type Definition is not valid")}
+	}
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.AlertTypeDefinitionAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, alertschema.AlertTypeDefinitionAttr(), alertTypeDefinitionModel)
+}
+
+func emptyAlertTypeDefinitionModel() alerttypes.AlertTypeDefinitionModel {
+	return alerttypes.AlertTypeDefinitionModel{
 		LogsImmediate:             types.ObjectNull(alertschema.LogsImmediateAttr()),
 		LogsThreshold:             types.ObjectNull(alertschema.LogsThresholdAttr()),
 		LogsAnomaly:               types.ObjectNull(alertschema.LogsAnomalyAttr()),
@@ -3431,42 +3435,72 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDef
 		Flow:                      types.ObjectNull(alertschema.FlowAttr()),
 		SloThreshold:              types.ObjectNull(alertschema.SloThresholdAttr()),
 	}
-	var diags diag.Diagnostics
-	if logsImmediate := properties.AlertDefPropertiesLogsImmediate; logsImmediate != nil {
-		alertTypeDefinitionModel.LogsImmediate, diags = flattenLogsImmediate(ctx, &logsImmediate.LogsImmediate)
-	} else if logsThreshold := properties.AlertDefPropertiesLogsThreshold; logsThreshold != nil {
-		alertTypeDefinitionModel.LogsThreshold, diags = flattenLogsThreshold(ctx, &logsThreshold.LogsThreshold)
-	} else if logsAnomaly := properties.AlertDefPropertiesLogsAnomaly; logsAnomaly != nil {
-		alertTypeDefinitionModel.LogsAnomaly, diags = flattenLogsAnomaly(ctx, &logsAnomaly.LogsAnomaly)
-	} else if logsRatioThreshold := properties.AlertDefPropertiesLogsRatioThreshold; logsRatioThreshold != nil {
-		alertTypeDefinitionModel.LogsRatioThreshold, diags = flattenLogsRatioThreshold(ctx, &logsRatioThreshold.LogsRatioThreshold)
-	} else if logsNewValue := properties.AlertDefPropertiesLogsNewValue; logsNewValue != nil {
-		alertTypeDefinitionModel.LogsNewValue, diags = flattenLogsNewValue(ctx, &logsNewValue.LogsNewValue)
-	} else if logsUniqueCount := properties.AlertDefPropertiesLogsUniqueCount; logsUniqueCount != nil {
-		alertTypeDefinitionModel.LogsUniqueCount, diags = flattenLogsUniqueCount(ctx, &logsUniqueCount.LogsUniqueCount)
-	} else if logsTimeRelativeThreshold := properties.AlertDefPropertiesLogsTimeRelativeThreshold; logsTimeRelativeThreshold != nil {
-		alertTypeDefinitionModel.LogsTimeRelativeThreshold, diags = flattenLogsTimeRelativeThreshold(ctx, &logsTimeRelativeThreshold.LogsTimeRelativeThreshold)
-	} else if metricThreshold := properties.AlertDefPropertiesMetricThreshold; metricThreshold != nil {
-		alertTypeDefinitionModel.MetricThreshold, diags = flattenMetricThreshold(ctx, &metricThreshold.MetricThreshold)
-	} else if metricAnomaly := properties.AlertDefPropertiesMetricAnomaly; metricAnomaly != nil {
-		alertTypeDefinitionModel.MetricAnomaly, diags = flattenMetricAnomaly(ctx, &metricAnomaly.MetricAnomaly)
-	} else if tracingImmediate := properties.AlertDefPropertiesTracingImmediate; tracingImmediate != nil {
-		alertTypeDefinitionModel.TracingImmediate, diags = flattenTracingImmediate(ctx, &tracingImmediate.TracingImmediate)
-	} else if tracingThreshold := properties.AlertDefPropertiesTracingThreshold; tracingThreshold != nil {
-		alertTypeDefinitionModel.TracingThreshold, diags = flattenTracingThreshold(ctx, &tracingThreshold.TracingThreshold)
-	} else if flow := properties.AlertDefPropertiesFlow; flow != nil {
-		alertTypeDefinitionModel.Flow, diags = flattenFlow(ctx, &flow.Flow)
-	} else if sloThreshold := properties.AlertDefPropertiesSloThreshold; sloThreshold != nil {
-		alertTypeDefinitionModel.SloThreshold, diags = flattenSloThreshold(ctx, &sloThreshold.SloThreshold)
-	} else {
-		return types.ObjectNull(alertschema.AlertTypeDefinitionAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Type Definition", "Alert Type Definition is not valid")}
-	}
+}
 
-	if diags.HasError() {
-		return types.ObjectNull(alertschema.AlertTypeDefinitionAttr()), diags
+func flattenLogsAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, model *alerttypes.AlertTypeDefinitionModel) (diag.Diagnostics, bool) {
+	switch {
+	case properties.LogsImmediate != nil:
+		diags := diag.Diagnostics(nil)
+		model.LogsImmediate, diags = flattenLogsImmediate(ctx, properties.LogsImmediate)
+		return diags, true
+	case properties.LogsThreshold != nil:
+		diags := diag.Diagnostics(nil)
+		model.LogsThreshold, diags = flattenLogsThreshold(ctx, properties.LogsThreshold)
+		return diags, true
+	case properties.LogsAnomaly != nil:
+		diags := diag.Diagnostics(nil)
+		model.LogsAnomaly, diags = flattenLogsAnomaly(ctx, properties.LogsAnomaly)
+		return diags, true
+	case properties.LogsRatioThreshold != nil:
+		diags := diag.Diagnostics(nil)
+		model.LogsRatioThreshold, diags = flattenLogsRatioThreshold(ctx, properties.LogsRatioThreshold)
+		return diags, true
+	case properties.LogsNewValue != nil:
+		diags := diag.Diagnostics(nil)
+		model.LogsNewValue, diags = flattenLogsNewValue(ctx, properties.LogsNewValue)
+		return diags, true
+	case properties.LogsUniqueCount != nil:
+		diags := diag.Diagnostics(nil)
+		model.LogsUniqueCount, diags = flattenLogsUniqueCount(ctx, properties.LogsUniqueCount)
+		return diags, true
+	case properties.LogsTimeRelativeThreshold != nil:
+		diags := diag.Diagnostics(nil)
+		model.LogsTimeRelativeThreshold, diags = flattenLogsTimeRelativeThreshold(ctx, properties.LogsTimeRelativeThreshold)
+		return diags, true
+	default:
+		return nil, false
 	}
+}
 
-	return types.ObjectValueFrom(ctx, alertschema.AlertTypeDefinitionAttr(), alertTypeDefinitionModel)
+func flattenNonLogsAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, model *alerttypes.AlertTypeDefinitionModel) (diag.Diagnostics, bool) {
+	switch {
+	case properties.MetricThreshold != nil:
+		diags := diag.Diagnostics(nil)
+		model.MetricThreshold, diags = flattenMetricThreshold(ctx, properties.MetricThreshold)
+		return diags, true
+	case properties.MetricAnomaly != nil:
+		diags := diag.Diagnostics(nil)
+		model.MetricAnomaly, diags = flattenMetricAnomaly(ctx, properties.MetricAnomaly)
+		return diags, true
+	case properties.TracingImmediate != nil:
+		diags := diag.Diagnostics(nil)
+		model.TracingImmediate, diags = flattenTracingImmediate(ctx, properties.TracingImmediate)
+		return diags, true
+	case properties.TracingThreshold != nil:
+		diags := diag.Diagnostics(nil)
+		model.TracingThreshold, diags = flattenTracingThreshold(ctx, properties.TracingThreshold)
+		return diags, true
+	case properties.Flow != nil:
+		diags := diag.Diagnostics(nil)
+		model.Flow, diags = flattenFlow(ctx, properties.Flow)
+		return diags, true
+	case properties.SloThreshold != nil:
+		diags := diag.Diagnostics(nil)
+		model.SloThreshold, diags = flattenSloThreshold(ctx, properties.SloThreshold)
+		return diags, true
+	default:
+		return nil, false
+	}
 }
 
 func flattenLogsImmediate(ctx context.Context, immediate *alerts.LogsImmediateType) (types.Object, diag.Diagnostics) {
@@ -4061,32 +4095,32 @@ func flattenAlertSchedule(ctx context.Context, alertProperties alerts.AlertDefPr
 }
 
 func getActiveOn(alertProperties alerts.AlertDefProperties) (*alerts.ActivitySchedule, diag.Diagnostics) {
-	if alertProperties.AlertDefPropertiesFlow != nil {
-		return alertProperties.AlertDefPropertiesFlow.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesLogsAnomaly != nil {
-		return alertProperties.AlertDefPropertiesLogsAnomaly.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesMetricAnomaly != nil {
-		return alertProperties.AlertDefPropertiesMetricAnomaly.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesLogsNewValue != nil {
-		return alertProperties.AlertDefPropertiesLogsNewValue.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesLogsUniqueCount != nil {
-		return alertProperties.AlertDefPropertiesLogsUniqueCount.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesLogsRatioThreshold != nil {
-		return alertProperties.AlertDefPropertiesLogsRatioThreshold.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesLogsTimeRelativeThreshold != nil {
-		return alertProperties.AlertDefPropertiesLogsTimeRelativeThreshold.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesMetricThreshold != nil {
-		return alertProperties.AlertDefPropertiesMetricThreshold.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesTracingThreshold != nil {
-		return alertProperties.AlertDefPropertiesTracingThreshold.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesLogsThreshold != nil {
-		return alertProperties.AlertDefPropertiesLogsThreshold.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesTracingImmediate != nil {
-		return alertProperties.AlertDefPropertiesTracingImmediate.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesLogsImmediate != nil {
-		return alertProperties.AlertDefPropertiesLogsImmediate.ActiveOn, nil
-	} else if alertProperties.AlertDefPropertiesSloThreshold != nil {
-		return alertProperties.AlertDefPropertiesSloThreshold.ActiveOn, nil
+	if alertProperties.Flow != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.LogsAnomaly != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.MetricAnomaly != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.LogsNewValue != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.LogsUniqueCount != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.LogsRatioThreshold != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.LogsTimeRelativeThreshold != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.MetricThreshold != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.TracingThreshold != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.LogsThreshold != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.TracingImmediate != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.LogsImmediate != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.SloThreshold != nil {
+		return alertProperties.ActiveOn, nil
 	}
 	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Unsupported Alert Type", "Received an unsupported alert type from the server.")}
 }
@@ -4269,13 +4303,13 @@ func flattenMissingValuesManagement(ctx context.Context, missingValues *alerts.M
 	if missingValues == nil {
 		return types.ObjectNull(alertschema.MissingValuesAttr()), nil
 	}
-	if replaceWithZero := missingValues.MetricMissingValuesReplaceWithZero; replaceWithZero != nil {
+	if replaceWithZero := missingValues.ReplaceWithZero; replaceWithZero != nil {
 		return types.ObjectValueFrom(ctx, alertschema.MissingValuesAttr(), alerttypes.MissingValuesModel{
-			ReplaceWithZero: types.BoolValue(replaceWithZero.ReplaceWithZero),
+			ReplaceWithZero: types.BoolPointerValue(replaceWithZero),
 		})
-	} else if minNonNullValuesPct := missingValues.MetricMissingValuesMinNonNullValuesPct; minNonNullValuesPct != nil {
+	} else if minNonNullValuesPct := missingValues.MinNonNullValuesPct; minNonNullValuesPct != nil {
 		return types.ObjectValueFrom(ctx, alertschema.MissingValuesAttr(), alerttypes.MissingValuesModel{
-			MinNonNullValuesPct: types.Int64Value(minNonNullValuesPct.MinNonNullValuesPct),
+			MinNonNullValuesPct: types.Int64PointerValue(minNonNullValuesPct),
 		})
 	} else {
 		return types.ObjectNull(alertschema.MissingValuesAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Missing Values Management", "Missing Values Management strategy not supported")}
@@ -4303,14 +4337,14 @@ func flattenMetricTimeWindow(timeWindow *alerts.MetricTimeWindow) types.String {
 	if timeWindow == nil {
 		return types.StringValue(alerttypes.MetricFilterOperationTypeProtoToSchemaMap[alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED])
 	}
-	if specificValue := timeWindow.MetricTimeWindowMetricTimeWindowSpecificValue; specificValue != nil {
-		metricTimeWindowSpecificValue := specificValue.MetricTimeWindowSpecificValue
+	if specificValue := timeWindow.MetricTimeWindowSpecificValue; specificValue != nil {
+		metricTimeWindowSpecificValue := *specificValue
 		if metricTimeWindowSpecificValue == "" {
 			metricTimeWindowSpecificValue = alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED
 		}
 		return types.StringValue(alerttypes.MetricFilterOperationTypeProtoToSchemaMap[metricTimeWindowSpecificValue])
-	} else if dynamicDuration := timeWindow.MetricTimeWindowMetricTimeWindowDynamicDuration; dynamicDuration != nil {
-		return types.StringValue(dynamicDuration.MetricTimeWindowDynamicDuration)
+	} else if dynamicDuration := timeWindow.MetricTimeWindowDynamicDuration; dynamicDuration != nil {
+		return types.StringPointerValue(dynamicDuration)
 	} else {
 		return types.StringValue(alerttypes.MetricFilterOperationTypeProtoToSchemaMap[alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED])
 	}
@@ -4743,15 +4777,15 @@ func flattenSloThreshold(ctx context.Context, slo *alerts.SloThresholdType) (typ
 		BurnRate:      types.ObjectNull(alertschema.SloBurnRateAttr()),
 	}
 
-	if burnRate := slo.SloThresholdTypeBurnRate; burnRate != nil {
-		burnRate, diags := flattenSloBurnRate(ctx, &burnRate.BurnRate)
+	if burnRate := slo.BurnRate; burnRate != nil {
+		burnRate, diags := flattenSloBurnRate(ctx, burnRate)
 		if diags.HasError() {
 			return types.ObjectNull(alertschema.SloThresholdAttr()), diags
 		}
 		sloModel.BurnRate = burnRate
 
-	} else if errorBudget := slo.SloThresholdTypeErrorBudget; errorBudget != nil {
-		errBudget, diags := flattenSloErrorBudget(ctx, &errorBudget.ErrorBudget)
+	} else if errorBudget := slo.ErrorBudget; errorBudget != nil {
+		errBudget, diags := flattenSloErrorBudget(ctx, errorBudget)
 		if diags.HasError() {
 			return types.ObjectNull(alertschema.SloThresholdAttr()), diags
 		}
@@ -4762,23 +4796,10 @@ func flattenSloThreshold(ctx context.Context, slo *alerts.SloThresholdType) (typ
 }
 
 func getSloId(slo *alerts.SloThresholdType) *string {
-	if errorBudget := slo.SloThresholdTypeErrorBudget; errorBudget != nil {
-		if errorBudget.SloDefinition != nil {
-			return errorBudget.SloDefinition.SloId
-
-		} else {
-			return nil
-		}
-	} else if burnRate := slo.SloThresholdTypeBurnRate; burnRate != nil {
-		if burnRate.SloDefinition != nil {
-			return burnRate.SloDefinition.SloId
-
-		} else {
-			return nil
-		}
-	} else {
-		return nil
+	if slo.SloDefinition != nil {
+		return slo.SloDefinition.SloId
 	}
+	return nil
 }
 
 func flattenSloErrorBudget(ctx context.Context, errBudget *alerts.ErrorBudgetThreshold) (types.Object, diag.Diagnostics) {
@@ -4802,15 +4823,15 @@ func flattenSloBurnRate(ctx context.Context, burnRate *alerts.BurnRateThreshold)
 		Single: types.ObjectNull(alertschema.SloDurationWrapperAttr()),
 	}
 
-	if dual := burnRate.BurnRateThresholdDual; dual != nil {
-		td, diags := flattenSloTimeDuration(ctx, dual.Dual.TimeDuration)
+	if dual := burnRate.Dual; dual != nil {
+		td, diags := flattenSloTimeDuration(ctx, dual.TimeDuration)
 		if diags.HasError() {
 			return types.ObjectNull(alertschema.SloBurnRateAttr()), diags
 		}
 		burnRateModel.Dual = td
 
-	} else if single := burnRate.BurnRateThresholdSingle; single != nil {
-		td, diags := flattenSloTimeDuration(ctx, single.Single.TimeDuration)
+	} else if single := burnRate.Single; single != nil {
+		td, diags := flattenSloTimeDuration(ctx, single.TimeDuration)
 		if diags.HasError() {
 			return types.ObjectNull(alertschema.SloBurnRateAttr()), diags
 		}
@@ -4822,13 +4843,7 @@ func flattenSloBurnRate(ctx context.Context, burnRate *alerts.BurnRateThreshold)
 }
 
 func getBurnRateThresholdRules(slo *alerts.BurnRateThreshold) []alerts.SloThresholdRule {
-	if dual := slo.BurnRateThresholdDual; dual != nil {
-		return dual.Rules
-	} else if single := slo.BurnRateThresholdSingle; single != nil {
-		return single.Rules
-	} else {
-		return []alerts.SloThresholdRule{}
-	}
+	return slo.Rules
 }
 
 func flattenSloThresholdRules(ctx context.Context, rules []alerts.SloThresholdRule) (types.List, diag.Diagnostics) {

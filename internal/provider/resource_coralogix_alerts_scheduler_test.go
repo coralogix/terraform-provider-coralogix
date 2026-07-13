@@ -283,19 +283,13 @@ func testAccBackendAlertsScheduler(name string, alertIDs []string) alertschedule
 		Description: alertscheduler.PtrString("Imported parity scheduler"),
 		Enabled:     alertscheduler.PtrBool(true),
 		Filter: &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-			AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
-				WhatExpression: alertscheduler.PtrString("source logs | filter true"),
-				AlertUniqueIds: alertscheduler.AlertUniqueIds{Value: alertIDs},
-			},
+			WhatExpression: alertscheduler.PtrString("source logs | filter true"),
+			AlertUniqueIds: &alertscheduler.AlertUniqueIds{Value: alertIDs},
 		},
 		Schedule: &alertscheduler.Schedule{
-			ScheduleRecurring: &alertscheduler.ScheduleRecurring{
-				ScheduleOperation: &operation,
-				Recurring: alertscheduler.Recurring{
-					RecurringAlwaysActive: &alertscheduler.RecurringAlwaysActive{
-						AlwaysActive: map[string]interface{}{},
-					},
-				},
+			ScheduleOperation: &operation,
+			Recurring: &alertscheduler.Recurring{
+				AlwaysActive: map[string]interface{}{},
 			},
 		},
 	}

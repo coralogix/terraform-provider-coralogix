@@ -2,12 +2,12 @@ module github.com/coralogix/terraform-provider-coralogix
 
 go 1.24.0
 
-replace github.com/grpc-ecosystem/grpc-gateway/v2 => github.com/coralogix/grpc-gateway/v2 v2.0.0-20251015134251-4d8694a21a7c
+replace github.com/grpc-ecosystem/grpc-gateway/v2 => github.com/coralogix/grpc-gateway/v2 v2.0.0-20251017075809-7f84c876b2e5
 
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
 	github.com/cenkalti/backoff/v5 v5.0.3
-	github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260707082655-e45a5bb1f4cb
+	github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260710130404-1b9d69a25d39
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
@@ -93,6 +93,5 @@ require (
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251014184007-4626949a642f // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251014184007-4626949a642f // indirect
-	gopkg.in/validator.v2 v2.0.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

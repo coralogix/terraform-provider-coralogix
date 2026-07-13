@@ -202,7 +202,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 	}
 	_, httpResponse, err := r.client.
 		MetricsConfiguratorPublicServiceConfigureTenant(ctx).
-		MetricsConfiguratorPublicServiceConfigureTenantRequest(*rq).
+		ConfigureTenantRequest(*rq).
 		Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating coralogix_archive_metrics",
@@ -285,7 +285,7 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 	}
 	_, httpResponse, err := r.client.
 		MetricsConfiguratorPublicServiceConfigureTenant(ctx).
-		MetricsConfiguratorPublicServiceConfigureTenantRequest(*rq).
+		ConfigureTenantRequest(*rq).
 		Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error update coralogix_archive_metrics",
@@ -341,15 +341,15 @@ func flattenRetentionPolicy(ctx context.Context, policy *ams.RetentionPolicyRequ
 }
 
 func flattenStorageConfig(ctx context.Context, metricConfig *ams.TenantConfigV2) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
-	if c := metricConfig.TenantConfigV2Ibm; c != nil {
-		retentionPolicy, diags := flattenRetentionPolicy(ctx, c.RetentionPolicy)
+	if metricConfig.Ibm != nil {
+		retentionPolicy, diags := flattenRetentionPolicy(ctx, metricConfig.RetentionPolicy)
 		if diags.HasError() {
 			return nil, diags
 		}
 
 		ibmConfig := &IBMConfigModel{
-			Endpoint: types.StringPointerValue(c.Ibm.Endpoint),
-			Crn:      types.StringPointerValue(c.Ibm.Crn),
+			Endpoint: types.StringPointerValue(metricConfig.Ibm.Endpoint),
+			Crn:      types.StringPointerValue(metricConfig.Ibm.Crn),
 		}
 		ibmConfigObject, diags := types.ObjectValueFrom(ctx, ibmConfigModelAttr(), ibmConfig)
 		if diags.HasError() {
@@ -357,29 +357,29 @@ func flattenStorageConfig(ctx context.Context, metricConfig *ams.TenantConfigV2)
 		}
 
 		return &ArchiveMetricsResourceModel{
-			TenantID:        types.Int64PointerValue(c.TenantId),
-			Prefix:          types.StringPointerValue(c.Prefix),
+			TenantID:        types.Int64PointerValue(metricConfig.TenantId),
+			Prefix:          types.StringPointerValue(metricConfig.Prefix),
 			RetentionPolicy: retentionPolicy,
 			IBM:             ibmConfigObject,
 			S3:              types.ObjectNull(s3ConfigModelAttr()),
 		}, diags
-	} else if c := metricConfig.TenantConfigV2S3; c != nil {
-		retentionPolicy, diags := flattenRetentionPolicy(ctx, c.RetentionPolicy)
+	} else if metricConfig.S3 != nil {
+		retentionPolicy, diags := flattenRetentionPolicy(ctx, metricConfig.RetentionPolicy)
 		if diags.HasError() {
 			return nil, diags
 		}
 
 		s3Config := &S3ConfigModel{
-			Bucket: types.StringPointerValue(c.S3.Bucket),
-			Region: types.StringPointerValue(c.S3.Region),
+			Bucket: types.StringPointerValue(metricConfig.S3.Bucket),
+			Region: types.StringPointerValue(metricConfig.S3.Region),
 		}
 		s3ConfigObject, diags := types.ObjectValueFrom(ctx, s3ConfigModelAttr(), s3Config)
 		if diags.HasError() {
 			return nil, diags
 		}
 		return &ArchiveMetricsResourceModel{
-			TenantID:        types.Int64PointerValue(c.TenantId),
-			Prefix:          types.StringPointerValue(c.Prefix),
+			TenantID:        types.Int64PointerValue(metricConfig.TenantId),
+			Prefix:          types.StringPointerValue(metricConfig.Prefix),
 			S3:              s3ConfigObject,
 			RetentionPolicy: retentionPolicy,
 			IBM:             types.ObjectNull(ibmConfigModelAttr()),
@@ -411,8 +411,8 @@ func s3ConfigModelAttr() map[string]attr.Type {
 	}
 }
 
-func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel) (*ams.MetricsConfiguratorPublicServiceConfigureTenantRequest, diag.Diagnostics) {
-	tenantConfig := ams.MetricsConfiguratorPublicServiceConfigureTenantRequest{}
+func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel) (*ams.ConfigureTenantRequest, diag.Diagnostics) {
+	tenantConfig := ams.ConfigureTenantRequest{}
 	retentionPolicy, diags := extractRetentionPolicies(ctx, plan.RetentionPolicy)
 	if diags.HasError() {
 		return nil, diags
@@ -423,26 +423,22 @@ func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel
 		if diags.HasError() {
 			return nil, diags
 		}
-		tenantConfig.ConfigureTenantRequestIbm = &ams.ConfigureTenantRequestIbm{
-			Ibm: ams.IbmConfigV2{
-				Endpoint: ibmConfig.Endpoint.ValueStringPointer(),
-				Crn:      ibmConfig.Crn.ValueStringPointer(),
-			},
+		tenantConfig.Ibm = &ams.IbmConfigV2{
+			Endpoint: ibmConfig.Endpoint.ValueStringPointer(),
+			Crn:      ibmConfig.Crn.ValueStringPointer(),
 		}
-		tenantConfig.ConfigureTenantRequestIbm.RetentionPolicy = retentionPolicy
+		tenantConfig.RetentionPolicy = retentionPolicy
 	} else if !plan.S3.IsNull() {
 		var s3Config S3ConfigModel
 		diags := plan.S3.As(ctx, &s3Config, basetypes.ObjectAsOptions{})
 		if diags.HasError() {
 			return nil, diags
 		}
-		tenantConfig.ConfigureTenantRequestS3 = &ams.ConfigureTenantRequestS3{
-			S3: ams.S3Config{
-				Bucket: s3Config.Bucket.ValueStringPointer(),
-				Region: s3Config.Region.ValueStringPointer(),
-			},
+		tenantConfig.S3 = &ams.S3Config{
+			Bucket: s3Config.Bucket.ValueStringPointer(),
+			Region: s3Config.Region.ValueStringPointer(),
 		}
-		tenantConfig.ConfigureTenantRequestS3.RetentionPolicy = retentionPolicy
+		tenantConfig.RetentionPolicy = retentionPolicy
 	}
 	return &tenantConfig, nil
 }

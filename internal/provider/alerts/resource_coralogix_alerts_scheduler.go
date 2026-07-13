@@ -406,6 +406,7 @@ func mergeScheduleFromPlan(ctx context.Context, stateModel *AlertsSchedulerResou
 	if utils.ObjIsNullOrUnknown(stateModel.Schedule) || utils.ObjIsNullOrUnknown(plan.Schedule) {
 		return nil
 	}
+
 	var stateSchedule ScheduleModel
 	if diags := stateModel.Schedule.As(ctx, &stateSchedule, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return diags
@@ -414,117 +415,144 @@ func mergeScheduleFromPlan(ctx context.Context, stateModel *AlertsSchedulerResou
 	if diags := plan.Schedule.As(ctx, &planSchedule, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return diags
 	}
-	// Recurring.dynamic.time_frame
-	if !(stateSchedule.Recurring.IsNull() || stateSchedule.Recurring.IsUnknown()) &&
-		!(planSchedule.Recurring.IsNull() || planSchedule.Recurring.IsUnknown()) {
-		var stateRecurring RecurringModel
-		if diags := stateSchedule.Recurring.As(ctx, &stateRecurring, basetypes.ObjectAsOptions{}); diags.HasError() {
-			return diags
-		}
-		var planRecurring RecurringModel
-		if diags := planSchedule.Recurring.As(ctx, &planRecurring, basetypes.ObjectAsOptions{}); diags.HasError() {
-			return diags
-		}
-		if !(stateRecurring.Dynamic.IsNull() || stateRecurring.Dynamic.IsUnknown()) &&
-			!(planRecurring.Dynamic.IsNull() || planRecurring.Dynamic.IsUnknown()) {
-			var stateDynamic DynamicModel
-			if diags := stateRecurring.Dynamic.As(ctx, &stateDynamic, basetypes.ObjectAsOptions{}); diags.HasError() {
-				return diags
-			}
-			var planDynamic DynamicModel
-			if diags := planRecurring.Dynamic.As(ctx, &planDynamic, basetypes.ObjectAsOptions{}); diags.HasError() {
-				return diags
-			}
-			if !(stateDynamic.TimeFrame.IsNull() || stateDynamic.TimeFrame.IsUnknown()) &&
-				!(planDynamic.TimeFrame.IsNull() || planDynamic.TimeFrame.IsUnknown()) {
-				var stateTF TimeFrameModel
-				if diags := stateDynamic.TimeFrame.As(ctx, &stateTF, basetypes.ObjectAsOptions{}); diags.HasError() {
-					return diags
-				}
-				var planTF TimeFrameModel
-				if diags := planDynamic.TimeFrame.As(ctx, &planTF, basetypes.ObjectAsOptions{}); diags.HasError() {
-					return diags
-				}
-				// Use plan's start_time when semantically equal so state matches plan.
-				if !planTF.StartTime.IsNull() && !planTF.StartTime.IsUnknown() &&
-					startTimeSemanticallyEqual(planTF.StartTime.ValueString(), stateTF.StartTime.ValueString()) {
-					stateTF.StartTime = planTF.StartTime
-				}
-				// Use plan's time_zone when equivalent (e.g. plan "UTC" vs state "UTC+0").
-				if !planTF.TimeZone.IsNull() && !planTF.TimeZone.IsUnknown() &&
-					timeZoneEquivalent(planTF.TimeZone.ValueString(), stateTF.TimeZone.ValueString()) {
-					stateTF.TimeZone = planTF.TimeZone
-				}
-				newTF, diags := types.ObjectValueFrom(ctx, timeFrameModelAttr(), stateTF)
-				if diags.HasError() {
-					return diags
-				}
-				stateDynamic.TimeFrame = newTF
-				newDynamic, diags := types.ObjectValueFrom(ctx, dynamicModelAttr(), stateDynamic)
-				if diags.HasError() {
-					return diags
-				}
-				stateRecurring.Dynamic = newDynamic
-				newRecurring, diags := types.ObjectValueFrom(ctx, recurringModelAttr(), stateRecurring)
-				if diags.HasError() {
-					return diags
-				}
-				stateSchedule.Recurring = newRecurring
-				newSchedule, diags := types.ObjectValueFrom(ctx, scheduleModelAttr(), stateSchedule)
-				if diags.HasError() {
-					return diags
-				}
-				stateModel.Schedule = newSchedule
-			}
-		}
+
+	recurringChanged, diags := mergeRecurringScheduleFromPlan(ctx, &stateSchedule, planSchedule)
+	if diags.HasError() {
+		return diags
 	}
-	// One_time.time_frame (same idea if we ever need it)
-	if !(stateSchedule.OneTime.IsNull() || stateSchedule.OneTime.IsUnknown()) &&
-		!(planSchedule.OneTime.IsNull() || planSchedule.OneTime.IsUnknown()) {
-		var stateOneTime OneTimeModel
-		if diags := stateSchedule.OneTime.As(ctx, &stateOneTime, basetypes.ObjectAsOptions{}); diags.HasError() {
-			return diags
-		}
-		var planOneTime OneTimeModel
-		if diags := planSchedule.OneTime.As(ctx, &planOneTime, basetypes.ObjectAsOptions{}); diags.HasError() {
-			return diags
-		}
-		if !(stateOneTime.TimeFrame.IsNull() || stateOneTime.TimeFrame.IsUnknown()) &&
-			!(planOneTime.TimeFrame.IsNull() || planOneTime.TimeFrame.IsUnknown()) {
-			var stateTF TimeFrameModel
-			if diags := stateOneTime.TimeFrame.As(ctx, &stateTF, basetypes.ObjectAsOptions{}); diags.HasError() {
-				return diags
-			}
-			var planTF TimeFrameModel
-			if diags := planOneTime.TimeFrame.As(ctx, &planTF, basetypes.ObjectAsOptions{}); diags.HasError() {
-				return diags
-			}
-			if !planTF.StartTime.IsNull() && !planTF.StartTime.IsUnknown() &&
-				startTimeSemanticallyEqual(planTF.StartTime.ValueString(), stateTF.StartTime.ValueString()) {
-				stateTF.StartTime = planTF.StartTime
-			}
-			if !planTF.TimeZone.IsNull() && !planTF.TimeZone.IsUnknown() &&
-				timeZoneEquivalent(planTF.TimeZone.ValueString(), stateTF.TimeZone.ValueString()) {
-				stateTF.TimeZone = planTF.TimeZone
-			}
-			newTF, diags := types.ObjectValueFrom(ctx, timeFrameModelAttr(), stateTF)
-			if diags.HasError() {
-				return diags
-			}
-			stateOneTime.TimeFrame = newTF
-			newOneTime, diags := types.ObjectValueFrom(ctx, oneTimeModelAttr(), stateOneTime)
-			if diags.HasError() {
-				return diags
-			}
-			stateSchedule.OneTime = newOneTime
-			newSchedule, diags := types.ObjectValueFrom(ctx, scheduleModelAttr(), stateSchedule)
-			if diags.HasError() {
-				return diags
-			}
-			stateModel.Schedule = newSchedule
-		}
+	oneTimeChanged, diags := mergeOneTimeScheduleFromPlan(ctx, &stateSchedule, planSchedule)
+	if diags.HasError() {
+		return diags
 	}
+	if !recurringChanged && !oneTimeChanged {
+		return nil
+	}
+
+	newSchedule, diags := types.ObjectValueFrom(ctx, scheduleModelAttr(), stateSchedule)
+	if diags.HasError() {
+		return diags
+	}
+	stateModel.Schedule = newSchedule
 	return nil
+}
+
+func mergeRecurringScheduleFromPlan(ctx context.Context, stateSchedule *ScheduleModel, planSchedule ScheduleModel) (bool, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(stateSchedule.Recurring) || utils.ObjIsNullOrUnknown(planSchedule.Recurring) {
+		return false, nil
+	}
+
+	var stateRecurring RecurringModel
+	if diags := stateSchedule.Recurring.As(ctx, &stateRecurring, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return false, diags
+	}
+	var planRecurring RecurringModel
+	if diags := planSchedule.Recurring.As(ctx, &planRecurring, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return false, diags
+	}
+	if utils.ObjIsNullOrUnknown(stateRecurring.Dynamic) || utils.ObjIsNullOrUnknown(planRecurring.Dynamic) {
+		return false, nil
+	}
+
+	var stateDynamic DynamicModel
+	if diags := stateRecurring.Dynamic.As(ctx, &stateDynamic, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return false, diags
+	}
+	var planDynamic DynamicModel
+	if diags := planRecurring.Dynamic.As(ctx, &planDynamic, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return false, diags
+	}
+
+	newTimeFrame, changed, diags := mergeTimeFrameFromPlan(ctx, stateDynamic.TimeFrame, planDynamic.TimeFrame)
+	if diags.HasError() || !changed {
+		return changed, diags
+	}
+
+	stateDynamic.TimeFrame = newTimeFrame
+	newDynamic, diags := types.ObjectValueFrom(ctx, dynamicModelAttr(), stateDynamic)
+	if diags.HasError() {
+		return false, diags
+	}
+	stateRecurring.Dynamic = newDynamic
+	newRecurring, diags := types.ObjectValueFrom(ctx, recurringModelAttr(), stateRecurring)
+	if diags.HasError() {
+		return false, diags
+	}
+	stateSchedule.Recurring = newRecurring
+	return true, nil
+}
+
+func mergeOneTimeScheduleFromPlan(ctx context.Context, stateSchedule *ScheduleModel, planSchedule ScheduleModel) (bool, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(stateSchedule.OneTime) || utils.ObjIsNullOrUnknown(planSchedule.OneTime) {
+		return false, nil
+	}
+
+	var stateOneTime OneTimeModel
+	if diags := stateSchedule.OneTime.As(ctx, &stateOneTime, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return false, diags
+	}
+	var planOneTime OneTimeModel
+	if diags := planSchedule.OneTime.As(ctx, &planOneTime, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return false, diags
+	}
+
+	newTimeFrame, changed, diags := mergeTimeFrameFromPlan(ctx, stateOneTime.TimeFrame, planOneTime.TimeFrame)
+	if diags.HasError() || !changed {
+		return changed, diags
+	}
+
+	stateOneTime.TimeFrame = newTimeFrame
+	newOneTime, diags := types.ObjectValueFrom(ctx, oneTimeModelAttr(), stateOneTime)
+	if diags.HasError() {
+		return false, diags
+	}
+	stateSchedule.OneTime = newOneTime
+	return true, nil
+}
+
+func mergeTimeFrameFromPlan(ctx context.Context, stateTimeFrame types.Object, planTimeFrame types.Object) (types.Object, bool, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(stateTimeFrame) || utils.ObjIsNullOrUnknown(planTimeFrame) {
+		return stateTimeFrame, false, nil
+	}
+
+	var stateTF TimeFrameModel
+	if diags := stateTimeFrame.As(ctx, &stateTF, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return stateTimeFrame, false, diags
+	}
+	var planTF TimeFrameModel
+	if diags := planTimeFrame.As(ctx, &planTF, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return stateTimeFrame, false, diags
+	}
+
+	changed := mergeStartTimeFromPlan(&stateTF, planTF)
+	changed = mergeTimeZoneFromPlan(&stateTF, planTF) || changed
+	if !changed {
+		return stateTimeFrame, false, nil
+	}
+
+	newTimeFrame, diags := types.ObjectValueFrom(ctx, timeFrameModelAttr(), stateTF)
+	return newTimeFrame, !diags.HasError(), diags
+}
+
+func mergeStartTimeFromPlan(stateTF *TimeFrameModel, planTF TimeFrameModel) bool {
+	if planTF.StartTime.IsNull() || planTF.StartTime.IsUnknown() {
+		return false
+	}
+	if !startTimeSemanticallyEqual(planTF.StartTime.ValueString(), stateTF.StartTime.ValueString()) {
+		return false
+	}
+	stateTF.StartTime = planTF.StartTime
+	return true
+}
+
+func mergeTimeZoneFromPlan(stateTF *TimeFrameModel, planTF TimeFrameModel) bool {
+	if planTF.TimeZone.IsNull() || planTF.TimeZone.IsUnknown() {
+		return false
+	}
+	if !timeZoneEquivalent(planTF.TimeZone.ValueString(), stateTF.TimeZone.ValueString()) {
+		return false
+	}
+	stateTF.TimeZone = planTF.TimeZone
+	return true
 }
 
 func timeFrameAttributes() map[string]schema.Attribute {
@@ -678,18 +706,18 @@ func flattenFilter(ctx context.Context, filter *alertscheduler.AlertSchedulerRul
 	}
 
 	var filterModel FilterModel
-	if filter.AlertSchedulerRuleProtobufV1FilterAlertMetaLabels != nil {
-		metaLabels, diags := flattenAlertsSchedulerMetaLabels(ctx, filter.AlertSchedulerRuleProtobufV1FilterAlertMetaLabels.AlertMetaLabels.GetValue())
+	if filter.AlertMetaLabels != nil {
+		metaLabels, diags := flattenAlertsSchedulerMetaLabels(ctx, filter.AlertMetaLabels.GetValue())
 		if diags.HasError() {
 			return types.ObjectNull(filterModelAttr()), diags
 		}
 		filterModel.MetaLabels = metaLabels
 		filterModel.AlertsUniqueIDs = types.SetNull(types.StringType)
-		filterModel.WhatExpression = types.StringValue(filter.AlertSchedulerRuleProtobufV1FilterAlertMetaLabels.GetWhatExpression())
-	} else if filter.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds != nil {
-		filterModel.AlertsUniqueIDs = utils.StringSliceToTypeStringSet(filter.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds.AlertUniqueIds.GetValue())
+		filterModel.WhatExpression = types.StringValue(filter.GetWhatExpression())
+	} else if filter.AlertUniqueIds != nil {
+		filterModel.AlertsUniqueIDs = utils.StringSliceToTypeStringSet(filter.AlertUniqueIds.GetValue())
 		filterModel.MetaLabels = types.SetNull(types.ObjectType{AttrTypes: labelModelAttr()})
-		filterModel.WhatExpression = types.StringValue(filter.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds.GetWhatExpression())
+		filterModel.WhatExpression = types.StringValue(filter.GetWhatExpression())
 	} else {
 		return types.ObjectNull(filterModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten filter", "unknown filter type")}
 	}
@@ -715,17 +743,17 @@ func flattenSchedule(ctx context.Context, schedule *alertscheduler.Schedule) (ty
 	}
 
 	var scheduleModel ScheduleModel
-	if schedule.ScheduleOneTime != nil {
-		scheduleModel.Operation = types.StringValue(protoToSchemaScheduleOperation[schedule.ScheduleOneTime.GetScheduleOperation()])
-		oneTime, diags := flattenOneTime(ctx, &schedule.ScheduleOneTime.OneTime)
+	if schedule.OneTime != nil {
+		scheduleModel.Operation = types.StringValue(protoToSchemaScheduleOperation[schedule.GetScheduleOperation()])
+		oneTime, diags := flattenOneTime(ctx, schedule.OneTime)
 		if diags.HasError() {
 			return types.ObjectNull(scheduleModelAttr()), diags
 		}
 		scheduleModel.OneTime = oneTime
 		scheduleModel.Recurring = types.ObjectNull(recurringModelAttr())
-	} else if schedule.ScheduleRecurring != nil {
-		scheduleModel.Operation = types.StringValue(protoToSchemaScheduleOperation[schedule.ScheduleRecurring.GetScheduleOperation()])
-		recurring, diags := flattenRecurring(ctx, &schedule.ScheduleRecurring.Recurring)
+	} else if schedule.Recurring != nil {
+		scheduleModel.Operation = types.StringValue(protoToSchemaScheduleOperation[schedule.GetScheduleOperation()])
+		recurring, diags := flattenRecurring(ctx, schedule.Recurring)
 		if diags.HasError() {
 			return types.ObjectNull(scheduleModelAttr()), diags
 		}
@@ -744,14 +772,14 @@ func flattenRecurring(ctx context.Context, recurring *alertscheduler.Recurring) 
 	}
 
 	var recurringModel RecurringModel
-	if recurring.RecurringSchedule != nil {
-		dynamic, diags := flattenDynamic(ctx, &recurring.RecurringSchedule.Schedule)
+	if recurring.Schedule != nil {
+		dynamic, diags := flattenDynamic(ctx, recurring.Schedule)
 		if diags.HasError() {
 			return types.ObjectNull(recurringModelAttr()), diags
 		}
 		recurringModel.Dynamic = dynamic
 		recurringModel.AlwaysActive = types.BoolNull()
-	} else if recurring.RecurringAlwaysActive != nil {
+	} else if recurring.AlwaysActive != nil {
 		recurringModel.Dynamic = types.ObjectNull(dynamicModelAttr())
 		recurringModel.AlwaysActive = types.BoolValue(true)
 	} else {
@@ -775,27 +803,27 @@ func flattenDynamic(ctx context.Context, dynamic *alertscheduler.RecurringDynami
 	var repeatEvery int32
 	var terminationDate string
 
-	if dynamic.RecurringDynamicDaily != nil {
-		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.RecurringDynamicDaily.Timeframe)
+	if dynamic.Daily != nil {
+		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.Timeframe)
 		if diags.HasError() {
 			return types.ObjectNull(dynamicModelAttr()), diags
 		}
-		repeatEvery = dynamic.RecurringDynamicDaily.GetRepeatEvery()
-		terminationDate = dynamic.RecurringDynamicDaily.GetTerminationDate()
-	} else if dynamic.RecurringDynamicWeekly != nil {
-		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.RecurringDynamicWeekly.Timeframe)
+		repeatEvery = dynamic.GetRepeatEvery()
+		terminationDate = dynamic.GetTerminationDate()
+	} else if dynamic.Weekly != nil {
+		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.Timeframe)
 		if diags.HasError() {
 			return types.ObjectNull(dynamicModelAttr()), diags
 		}
-		repeatEvery = dynamic.RecurringDynamicWeekly.GetRepeatEvery()
-		terminationDate = dynamic.RecurringDynamicWeekly.GetTerminationDate()
-	} else if dynamic.RecurringDynamicMonthly != nil {
-		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.RecurringDynamicMonthly.Timeframe)
+		repeatEvery = dynamic.GetRepeatEvery()
+		terminationDate = dynamic.GetTerminationDate()
+	} else if dynamic.Monthly != nil {
+		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.Timeframe)
 		if diags.HasError() {
 			return types.ObjectNull(dynamicModelAttr()), diags
 		}
-		repeatEvery = dynamic.RecurringDynamicMonthly.GetRepeatEvery()
-		terminationDate = dynamic.RecurringDynamicMonthly.GetTerminationDate()
+		repeatEvery = dynamic.GetRepeatEvery()
+		terminationDate = dynamic.GetTerminationDate()
 	} else {
 		return types.ObjectNull(dynamicModelAttr()), nil
 	}
@@ -816,20 +844,20 @@ func flattenFrequency(ctx context.Context, dynamic *alertscheduler.RecurringDyna
 	}
 
 	var frequencyModel FrequencyModel
-	if dynamic.RecurringDynamicDaily != nil {
+	if dynamic.Daily != nil {
 		frequencyModel.Daily = types.ObjectNull(map[string]attr.Type{})
 		frequencyModel.Weekly = types.ObjectNull(weeklyModelAttr())
 		frequencyModel.Monthly = types.ObjectNull(monthlyModelAttr())
-	} else if dynamic.RecurringDynamicWeekly != nil {
-		weekly, diags := flattenWeekly(ctx, &dynamic.RecurringDynamicWeekly.Weekly)
+	} else if dynamic.Weekly != nil {
+		weekly, diags := flattenWeekly(ctx, dynamic.Weekly)
 		if diags.HasError() {
 			return types.ObjectNull(frequencyModelAttr()), diags
 		}
 		frequencyModel.Weekly = weekly
 		frequencyModel.Daily = types.ObjectNull(map[string]attr.Type{})
 		frequencyModel.Monthly = types.ObjectNull(monthlyModelAttr())
-	} else if dynamic.RecurringDynamicMonthly != nil {
-		monthly, diags := flattenMonthly(ctx, &dynamic.RecurringDynamicMonthly.Monthly)
+	} else if dynamic.Monthly != nil {
+		monthly, diags := flattenMonthly(ctx, dynamic.Monthly)
 		if diags.HasError() {
 			return types.ObjectNull(frequencyModelAttr()), diags
 		}
@@ -895,17 +923,17 @@ func flattenAlertsSchedulerTimeFrame(ctx context.Context, timeFrame *alertschedu
 	}
 
 	var timeFrameModel TimeFrameModel
-	if timeFrame.TimeframeEndTime != nil {
+	if timeFrame.EndTime != nil {
 		// Normalize start_time to the format the API uses (no Z) so state is consistent after apply.
-		timeFrameModel.StartTime = types.StringValue(normalizeStartTimeFromAPI(timeFrame.TimeframeEndTime.GetStartTime()))
-		timeFrameModel.TimeZone = types.StringValue(timeFrame.TimeframeEndTime.GetTimezone())
-		timeFrameModel.EndTime = types.StringValue(timeFrame.TimeframeEndTime.GetEndTime())
+		timeFrameModel.StartTime = types.StringValue(normalizeStartTimeFromAPI(timeFrame.GetStartTime()))
+		timeFrameModel.TimeZone = types.StringValue(timeFrame.GetTimezone())
+		timeFrameModel.EndTime = types.StringPointerValue(timeFrame.EndTime)
 		timeFrameModel.Duration = types.ObjectNull(durationModelAttr())
-	} else if timeFrame.TimeframeDuration != nil {
-		timeFrameModel.StartTime = types.StringValue(normalizeStartTimeFromAPI(timeFrame.TimeframeDuration.GetStartTime()))
-		timeFrameModel.TimeZone = types.StringValue(timeFrame.TimeframeDuration.GetTimezone())
+	} else if timeFrame.Duration != nil {
+		timeFrameModel.StartTime = types.StringValue(normalizeStartTimeFromAPI(timeFrame.GetStartTime()))
+		timeFrameModel.TimeZone = types.StringValue(timeFrame.GetTimezone())
 		var diags diag.Diagnostics
-		timeFrameModel.Duration, diags = flattenAlertsSchedulerDuration(ctx, &timeFrame.TimeframeDuration.Duration)
+		timeFrameModel.Duration, diags = flattenAlertsSchedulerDuration(ctx, timeFrame.Duration)
 		if diags.HasError() {
 			return types.ObjectNull(timeFrameModelAttr()), diags
 		}
@@ -1087,11 +1115,9 @@ func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.Al
 			return nil, diags
 		}
 		return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-			AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
-				WhatExpression: alertscheduler.PtrString(whatExpression),
-				AlertUniqueIds: alertscheduler.AlertUniqueIds{
-					Value: ids,
-				},
+			WhatExpression: alertscheduler.PtrString(whatExpression),
+			AlertUniqueIds: &alertscheduler.AlertUniqueIds{
+				Value: ids,
 			},
 		}, nil
 	} else if !(filterModel.MetaLabels.IsNull() || filterModel.MetaLabels.IsUnknown()) {
@@ -1100,21 +1126,17 @@ func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.Al
 			return nil, diags
 		}
 		return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-			AlertSchedulerRuleProtobufV1FilterAlertMetaLabels: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertMetaLabels{
-				WhatExpression: alertscheduler.PtrString(whatExpression),
-				AlertMetaLabels: alertscheduler.MetaLabels{
-					Value: metaLabels,
-				},
+			WhatExpression: alertscheduler.PtrString(whatExpression),
+			AlertMetaLabels: &alertscheduler.MetaLabels{
+				Value: metaLabels,
 			},
 		}, nil
 	}
 
 	return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-		AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
-			WhatExpression: alertscheduler.PtrString(whatExpression),
-			AlertUniqueIds: alertscheduler.AlertUniqueIds{
-				Value: nil,
-			},
+		WhatExpression: alertscheduler.PtrString(whatExpression),
+		AlertUniqueIds: &alertscheduler.AlertUniqueIds{
+			Value: nil,
 		},
 	}, nil
 }
@@ -1137,10 +1159,8 @@ func extractSchedule(ctx context.Context, schedule types.Object) (*alertschedule
 			return nil, diags
 		}
 		return &alertscheduler.Schedule{
-			ScheduleOneTime: &alertscheduler.ScheduleOneTime{
-				OneTime:           *oneTime,
-				ScheduleOperation: &operation,
-			},
+			OneTime:           oneTime,
+			ScheduleOperation: &operation,
 		}, nil
 	} else if !(scheduleModel.Recurring.IsNull() || scheduleModel.Recurring.IsUnknown()) {
 		recurring, diags := extractRecurring(ctx, scheduleModel.Recurring)
@@ -1148,10 +1168,8 @@ func extractSchedule(ctx context.Context, schedule types.Object) (*alertschedule
 			return nil, diags
 		}
 		return &alertscheduler.Schedule{
-			ScheduleRecurring: &alertscheduler.ScheduleRecurring{
-				Recurring:         *recurring,
-				ScheduleOperation: &operation,
-			},
+			Recurring:         recurring,
+			ScheduleOperation: &operation,
 		}, nil
 	}
 
@@ -1201,19 +1219,15 @@ func extractTimeFrame(ctx context.Context, timeFrame types.Object) (*alertschedu
 			return nil, diags
 		}
 		return &alertscheduler.Timeframe{
-			TimeframeDuration: &alertscheduler.TimeframeDuration{
-				StartTime: alertscheduler.PtrString(startTime),
-				Timezone:  alertscheduler.PtrString(timezone),
-				Duration:  *duration,
-			},
+			StartTime: alertscheduler.PtrString(startTime),
+			Timezone:  alertscheduler.PtrString(timezone),
+			Duration:  duration,
 		}, nil
 	} else if !(timeFrameModel.EndTime.IsNull() || timeFrameModel.EndTime.IsUnknown()) {
 		return &alertscheduler.Timeframe{
-			TimeframeEndTime: &alertscheduler.TimeframeEndTime{
-				StartTime: alertscheduler.PtrString(startTime),
-				Timezone:  alertscheduler.PtrString(timezone),
-				EndTime:   timeFrameModel.EndTime.ValueString(),
-			},
+			StartTime: alertscheduler.PtrString(startTime),
+			Timezone:  alertscheduler.PtrString(timezone),
+			EndTime:   timeFrameModel.EndTime.ValueStringPointer(),
 		}, nil
 	}
 
@@ -1251,18 +1265,14 @@ func extractRecurring(ctx context.Context, recurring types.Object) (*alertschedu
 			return nil, diags
 		}
 		return &alertscheduler.Recurring{
-			RecurringSchedule: &alertscheduler.RecurringSchedule{
-				Schedule: *dynamic,
-			},
+			Schedule: dynamic,
 		}, nil
 	}
 
 	// Handle always_active - permanent suppression rule
 	if !recurringModel.AlwaysActive.IsNull() && !recurringModel.AlwaysActive.IsUnknown() && recurringModel.AlwaysActive.ValueBool() {
 		return &alertscheduler.Recurring{
-			RecurringAlwaysActive: &alertscheduler.RecurringAlwaysActive{
-				AlwaysActive: map[string]interface{}{},
-			},
+			AlwaysActive: map[string]interface{}{},
 		}, nil
 	}
 
@@ -1301,12 +1311,10 @@ func expandFrequency(ctx context.Context, frequency types.Object, timeFrame *ale
 
 	if daily := frequencyModel.Daily; !(daily.IsNull() || daily.IsUnknown()) {
 		return &alertscheduler.RecurringDynamic{
-			RecurringDynamicDaily: &alertscheduler.RecurringDynamicDaily{
-				Daily:           make(map[string]interface{}),
-				Timeframe:       timeFrame,
-				RepeatEvery:     &repeatEvery,
-				TerminationDate: terminationDate,
-			},
+			Daily:           make(map[string]interface{}),
+			Timeframe:       timeFrame,
+			RepeatEvery:     &repeatEvery,
+			TerminationDate: terminationDate,
 		}, nil
 	} else if weekly := frequencyModel.Weekly; !(weekly.IsNull() || weekly.IsUnknown()) {
 		var weeklyModel WeeklyModel
@@ -1324,14 +1332,12 @@ func expandFrequency(ctx context.Context, frequency types.Object, timeFrame *ale
 		}
 
 		return &alertscheduler.RecurringDynamic{
-			RecurringDynamicWeekly: &alertscheduler.RecurringDynamicWeekly{
-				Weekly: alertscheduler.Weekly{
-					DaysOfWeek: daysValues,
-				},
-				Timeframe:       timeFrame,
-				RepeatEvery:     &repeatEvery,
-				TerminationDate: terminationDate,
+			Weekly: &alertscheduler.Weekly{
+				DaysOfWeek: daysValues,
 			},
+			Timeframe:       timeFrame,
+			RepeatEvery:     &repeatEvery,
+			TerminationDate: terminationDate,
 		}, nil
 	} else if monthly := frequencyModel.Monthly; !(monthly.IsNull() || monthly.IsUnknown()) {
 		var monthlyModel MonthlyModel
@@ -1345,14 +1351,12 @@ func expandFrequency(ctx context.Context, frequency types.Object, timeFrame *ale
 		}
 
 		return &alertscheduler.RecurringDynamic{
-			RecurringDynamicMonthly: &alertscheduler.RecurringDynamicMonthly{
-				Monthly: alertscheduler.Monthly{
-					DaysOfMonth: days,
-				},
-				Timeframe:       timeFrame,
-				RepeatEvery:     &repeatEvery,
-				TerminationDate: terminationDate,
+			Monthly: &alertscheduler.Monthly{
+				DaysOfMonth: days,
 			},
+			Timeframe:       timeFrame,
+			RepeatEvery:     &repeatEvery,
+			TerminationDate: terminationDate,
 		}, nil
 	}
 

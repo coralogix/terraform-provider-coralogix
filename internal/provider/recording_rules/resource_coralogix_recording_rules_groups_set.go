@@ -766,7 +766,7 @@ func expandRecordingRuleGroup(ctx context.Context, group RecordingRuleGroupModel
 	}
 
 	return &recRuless.InRuleGroup{
-		Name:     group.Name.ValueStringPointer(),
+		Name:     group.Name.ValueString(),
 		Interval: interval,
 		Limit:    limit,
 		Rules:    rules,
@@ -803,8 +803,8 @@ func expandRecordingRule(ctx context.Context, rule RecordingRuleModel) (*recRule
 	}
 
 	return &recRuless.InRule{
-		Record: rule.Record.ValueStringPointer(),
-		Expr:   rule.Expr.ValueStringPointer(),
+		Record: rule.Record.ValueString(),
+		Expr:   rule.Expr.ValueString(),
 		Labels: &labels,
 	}, nil
 }
@@ -830,7 +830,7 @@ func (v recordingRulesGroupYamlContentValidator) ValidateString(_ context.Contex
 	}
 
 	for i, group := range set.Groups {
-		if group.Name == nil || *group.Name == "" {
+		if group.Name == "" {
 			resp.Diagnostics.AddError("error on validating yaml_content", fmt.Sprintf("groups[%d] name can not be empty", i))
 		}
 	}

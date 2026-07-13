@@ -138,10 +138,8 @@ func TestFlattenFilterTreatsNilOrEmptyAlertIDsAsAllAlerts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			filter := &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-				AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
-					WhatExpression: alertscheduler.PtrString("source logs | filter true"),
-					AlertUniqueIds: alertscheduler.AlertUniqueIds{Value: tt.ids},
-				},
+				WhatExpression: alertscheduler.PtrString("source logs | filter true"),
+				AlertUniqueIds: &alertscheduler.AlertUniqueIds{Value: tt.ids},
 			}
 
 			got, diags := flattenFilter(ctx, filter)
@@ -170,10 +168,8 @@ func TestFlattenFilterTreatsNilOrEmptyAlertIDsAsAllAlerts(t *testing.T) {
 func TestFlattenFilterPreservesDirectAlertIDs(t *testing.T) {
 	ctx := context.Background()
 	filter := &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-		AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
-			WhatExpression: alertscheduler.PtrString("source logs | filter true"),
-			AlertUniqueIds: alertscheduler.AlertUniqueIds{Value: []string{"alert-id-1", "alert-id-2"}},
-		},
+		WhatExpression: alertscheduler.PtrString("source logs | filter true"),
+		AlertUniqueIds: &alertscheduler.AlertUniqueIds{Value: []string{"alert-id-1", "alert-id-2"}},
 	}
 
 	got, diags := flattenFilter(ctx, filter)
@@ -211,10 +207,10 @@ func TestExtractFilterOmitsAlertIDsForAllAlerts(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("extractFilter returned diagnostics: %v", diags)
 	}
-	if got.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds == nil {
+	if got.AlertUniqueIds == nil {
 		t.Fatal("extractFilter did not produce alert unique IDs filter for all-alert config")
 	}
-	if ids := got.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds.AlertUniqueIds.Value; ids != nil {
+	if ids := got.AlertUniqueIds.Value; ids != nil {
 		t.Fatalf("all-alert config should extract nil alert IDs, got %#v", ids)
 	}
 }
