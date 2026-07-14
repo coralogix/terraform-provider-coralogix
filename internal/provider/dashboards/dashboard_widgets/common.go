@@ -17,6 +17,7 @@ package dashboard_widgets
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"slices"
 	"time"
 
@@ -1018,6 +1019,44 @@ func int64ToInt32Pointer(value types.Int64) *int32 {
 	}
 	converted := int32(value.ValueInt64())
 	return &converted
+}
+
+func int32PointerToInt64Type(value *int32) types.Int64 {
+	if value == nil {
+		return types.Int64Null()
+	}
+	return types.Int64Value(int64(*value))
+}
+
+func numberTypeToFloat64Pointer(value types.Number) *float64 {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	converted, _ := value.ValueBigFloat().Float64()
+	return &converted
+}
+
+func float64PointerToNumberType(value *float64) types.Number {
+	if value == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(*value))
+}
+
+func numberTypeToInt32Pointer(value types.Number) *int32 {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	converted, _ := value.ValueBigFloat().Int64()
+	result := int32(converted)
+	return &result
+}
+
+func int32PointerToNumberType(value *int32) types.Number {
+	if value == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(float64(*value)))
 }
 
 func FlattenDashboardFiltersSources(ctx context.Context, sources []dashboardservice.FilterSource) (types.List, diag.Diagnostics) {

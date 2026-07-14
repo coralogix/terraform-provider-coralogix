@@ -20,7 +20,7 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -381,12 +381,12 @@ func dataTableColumnModelAttr() map[string]attr.Type {
 	}
 }
 
-func FlattenDataTable(ctx context.Context, table *cxsdk.DashboardDataTable) (*WidgetDefinitionModel, diag.Diagnostics) {
+func FlattenDataTable(ctx context.Context, table *dashboardservice.DataTable) (*WidgetDefinitionModel, diag.Diagnostics) {
 	if table == nil {
 		return nil, nil
 	}
 
-	query, diags := flattenDataTableQuery(ctx, table.GetQuery())
+	query, diags := flattenDataTableQuery(ctx, table.Query)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -399,50 +399,50 @@ func FlattenDataTable(ctx context.Context, table *cxsdk.DashboardDataTable) (*Wi
 	return &WidgetDefinitionModel{
 		DataTable: &DataTableModel{
 			Query:          query,
-			ResultsPerPage: utils.WrapperspbInt32ToTypeInt64(table.GetResultsPerPage()),
-			RowStyle:       types.StringValue(ProtoDashboardRowStyleProtoToSchema[table.GetRowStyle()]),
+			ResultsPerPage: int32PointerToInt64Type(table.ResultsPerPage),
+			RowStyle:       types.StringValue(DashboardRowStyleProtoToSchema[table.GetRowStyle()]),
 			Columns:        columns,
-			OrderBy:        flattenOrderBy(table.GetOrderBy()),
-			DataModeType:   types.StringValue(ProtoDashboardProtoToSchemaDataModeType[table.GetDataModeType()]),
+			OrderBy:        flattenOrderBy(table.OrderBy),
+			DataModeType:   types.StringValue(DashboardProtoToSchemaDataModeType[table.GetDataModeType()]),
 		},
 	}, nil
 }
 
-func flattenDataTableQuery(ctx context.Context, query *cxsdk.DashboardDataTableQuery) (*DataTableQueryModel, diag.Diagnostics) {
+func flattenDataTableQuery(ctx context.Context, query *dashboardservice.DataTableQuery) (*DataTableQueryModel, diag.Diagnostics) {
 	if query == nil {
 		return nil, nil
 	}
 
-	switch query.GetValue().(type) {
-	case *cxsdk.DashboardDataTableQueryLogs:
-		return flattenDataTableLogsQuery(ctx, query.GetLogs())
-	case *cxsdk.DashboardDataTableQueryMetrics:
-		return flattenDataTableMetricsQuery(ctx, query.GetMetrics())
-	case *cxsdk.DashboardDataTableQuerySpans:
-		return flattenDataTableSpansQuery(ctx, query.GetSpans())
-	case *cxsdk.DashboardDataTableQueryDataprime:
-		return flattenDataTableDataPrimeQuery(ctx, query.GetDataprime())
+	switch {
+	case query.Logs != nil:
+		return flattenDataTableLogsQuery(ctx, query.Logs)
+	case query.Metrics != nil:
+		return flattenDataTableMetricsQuery(ctx, query.Metrics)
+	case query.Spans != nil:
+		return flattenDataTableSpansQuery(ctx, query.Spans)
+	case query.Dataprime != nil:
+		return flattenDataTableDataPrimeQuery(ctx, query.Dataprime)
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Data Table Query", "unknown data table query type")}
 	}
 }
 
-func flattenDataTableDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.DashboardDataTableDataprimeQuery) (*DataTableQueryModel, diag.Diagnostics) {
+func flattenDataTableDataPrimeQuery(ctx context.Context, dataPrime *dashboardservice.DataTableDataprimeQuery) (*DataTableQueryModel, diag.Diagnostics) {
 	if dataPrime == nil {
 		return nil, nil
 	}
 
 	dataPrimeQuery := types.StringNull()
-	if dataPrime.GetDataprimeQuery() != nil {
-		dataPrimeQuery = types.StringValue(dataPrime.GetDataprimeQuery().GetText())
+	if dataPrime.DataprimeQuery != nil && dataPrime.DataprimeQuery.Text != nil {
+		dataPrimeQuery = types.StringPointerValue(dataPrime.DataprimeQuery.Text)
 	}
 
-	filters, diags := ProtoFlattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
+	filters, diags := FlattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := ProtoFlattenTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	timeFrame, diags := FlattenTimeFrameSelect(ctx, dataPrime.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -456,29 +456,29 @@ func flattenDataTableDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.Dashbo
 	}, nil
 }
 
-func flattenDataTableLogsQuery(ctx context.Context, logs *cxsdk.DashboardDataTableLogsQuery) (*DataTableQueryModel, diag.Diagnostics) {
+func flattenDataTableLogsQuery(ctx context.Context, logs *dashboardservice.DataTableLogsQuery) (*DataTableQueryModel, diag.Diagnostics) {
 	if logs == nil {
 		return nil, nil
 	}
 
-	filters, diags := ProtoFlattenLogsFilters(ctx, logs.GetFilters())
+	filters, diags := FlattenLogsFilters(ctx, logs.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	grouping, diags := flattenDataTableLogsQueryGrouping(ctx, logs.GetGrouping())
+	grouping, diags := flattenDataTableLogsQueryGrouping(ctx, logs.Grouping)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := ProtoFlattenTimeFrameSelect(ctx, logs.TimeFrame)
+	timeFrame, diags := FlattenTimeFrameSelect(ctx, logs.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &DataTableQueryModel{
 		Logs: &DataTableQueryLogsModel{
-			LuceneQuery: utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+			LuceneQuery: flattenLuceneQuery(logs.LuceneQuery),
 			Filters:     filters,
 			Grouping:    grouping,
 			TimeFrame:   timeFrame,
@@ -486,7 +486,7 @@ func flattenDataTableLogsQuery(ctx context.Context, logs *cxsdk.DashboardDataTab
 	}, nil
 }
 
-func flattenDataTableLogsQueryGrouping(ctx context.Context, grouping *cxsdk.DashboardDataTableLogsQueryGrouping) (*DataTableLogsQueryGroupingModel, diag.Diagnostics) {
+func flattenDataTableLogsQueryGrouping(ctx context.Context, grouping *dashboardservice.LogsQueryGrouping) (*DataTableLogsQueryGroupingModel, diag.Diagnostics) {
 	if grouping == nil {
 		return nil, nil
 	}
@@ -496,7 +496,7 @@ func flattenDataTableLogsQueryGrouping(ctx context.Context, grouping *cxsdk.Dash
 		return nil, diags
 	}
 
-	groupBys, diags := ProtoFlattenObservationFields(ctx, grouping.GetGroupBys())
+	groupBys, diags := FlattenObservationFields(ctx, grouping.GetGroupBys())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -507,53 +507,53 @@ func flattenDataTableLogsQueryGrouping(ctx context.Context, grouping *cxsdk.Dash
 	}, nil
 }
 
-func flattenDataTableMetricsQuery(ctx context.Context, metrics *cxsdk.DashboardDataTableMetricsQuery) (*DataTableQueryModel, diag.Diagnostics) {
+func flattenDataTableMetricsQuery(ctx context.Context, metrics *dashboardservice.DataTableMetricsQuery) (*DataTableQueryModel, diag.Diagnostics) {
 	if metrics == nil {
 		return nil, nil
 	}
 
-	filters, diags := ProtoFlattenMetricsFilters(ctx, metrics.GetFilters())
+	filters, diags := FlattenMetricsFilters(ctx, metrics.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
-	timeFrame, diags := ProtoFlattenTimeFrameSelect(ctx, metrics.TimeFrame)
+	timeFrame, diags := FlattenTimeFrameSelect(ctx, metrics.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &DataTableQueryModel{
 		Metrics: &QueryMetricsModel{
-			PromqlQueryType: types.StringValue(ProtoDashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
-			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+			PromqlQueryType: types.StringValue(DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
+			PromqlQuery:     flattenPromqlQuery(metrics.PromqlQuery),
 			Filters:         filters,
 			TimeFrame:       timeFrame,
 		},
 	}, nil
 }
 
-func flattenDataTableSpansQuery(ctx context.Context, spans *cxsdk.DashboardDataTableSpansQuery) (*DataTableQueryModel, diag.Diagnostics) {
+func flattenDataTableSpansQuery(ctx context.Context, spans *dashboardservice.DataTableSpansQuery) (*DataTableQueryModel, diag.Diagnostics) {
 	if spans == nil {
 		return nil, nil
 	}
 
-	filters, diags := ProtoFlattenSpansFilters(ctx, spans.GetFilters())
+	filters, diags := FlattenSpansFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	grouping, diags := flattenDataTableSpansQueryGrouping(ctx, spans.GetGrouping())
+	grouping, diags := flattenDataTableSpansQueryGrouping(ctx, spans.Grouping)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := ProtoFlattenTimeFrameSelect(ctx, spans.TimeFrame)
+	timeFrame, diags := FlattenTimeFrameSelect(ctx, spans.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &DataTableQueryModel{
 		Spans: &DataTableQuerySpansModel{
-			LuceneQuery: utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+			LuceneQuery: flattenLuceneQuery(spans.LuceneQuery),
 			Filters:     filters,
 			Grouping:    grouping,
 			TimeFrame:   timeFrame,
@@ -561,7 +561,7 @@ func flattenDataTableSpansQuery(ctx context.Context, spans *cxsdk.DashboardDataT
 	}, nil
 }
 
-func flattenDataTableSpansQueryGrouping(ctx context.Context, grouping *cxsdk.DashboardDataTableSpansQueryGrouping) (*DataTableSpansQueryGroupingModel, diag.Diagnostics) {
+func flattenDataTableSpansQueryGrouping(ctx context.Context, grouping *dashboardservice.SpansQueryGrouping) (*DataTableSpansQueryGroupingModel, diag.Diagnostics) {
 	if grouping == nil {
 		return nil, nil
 	}
@@ -571,7 +571,7 @@ func flattenDataTableSpansQueryGrouping(ctx context.Context, grouping *cxsdk.Das
 		return nil, diags
 	}
 
-	groupBy, diags := ProtoFlattenSpansFields(ctx, grouping.GetGroupBy())
+	groupBy, diags := FlattenSpansFields(ctx, grouping.GetGroupBy())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -581,14 +581,14 @@ func flattenDataTableSpansQueryGrouping(ctx context.Context, grouping *cxsdk.Das
 	}, nil
 }
 
-func flattenDataTableSpansQueryAggregations(ctx context.Context, aggregations []*cxsdk.DashboardDataTableSpansQueryAggregation) (types.List, diag.Diagnostics) {
+func flattenDataTableSpansQueryAggregations(ctx context.Context, aggregations []dashboardservice.SpansQueryAggregation) (types.List, diag.Diagnostics) {
 	if len(aggregations) == 0 {
 		return types.ListNull(types.ObjectType{AttrTypes: SpansAggregationModelAttr()}), nil
 	}
 	var diagnostics diag.Diagnostics
 	aggregationElements := make([]attr.Value, 0)
 	for _, aggregation := range aggregations {
-		flattenedAggregation, dg := flattenDataTableSpansQueryAggregation(aggregation)
+		flattenedAggregation, dg := flattenDataTableSpansQueryAggregation(&aggregation)
 		if dg != nil {
 			diagnostics.Append(dg)
 			continue
@@ -608,25 +608,25 @@ func flattenDataTableSpansQueryAggregations(ctx context.Context, aggregations []
 	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: SpansAggregationModelAttr()}, aggregationElements)
 }
 
-func flattenDataTableSpansQueryAggregation(spanAggregation *cxsdk.DashboardDataTableSpansQueryAggregation) (*DataTableSpansAggregationModel, diag.Diagnostic) {
+func flattenDataTableSpansQueryAggregation(spanAggregation *dashboardservice.SpansQueryAggregation) (*DataTableSpansAggregationModel, diag.Diagnostic) {
 	if spanAggregation == nil {
 		return nil, nil
 	}
 
-	aggregation, dg := ProtoFlattenSpansAggregation(spanAggregation.GetAggregation())
+	aggregation, dg := FlattenSpansAggregation(spanAggregation.Aggregation)
 	if dg != nil {
 		return nil, dg
 	}
 
 	return &DataTableSpansAggregationModel{
-		ID:          utils.WrapperspbStringToTypeString(spanAggregation.GetId()),
-		Name:        utils.WrapperspbStringToTypeString(spanAggregation.GetName()),
-		IsVisible:   utils.WrapperspbBoolToTypeBool(spanAggregation.GetIsVisible()),
+		ID:          utils.StringPointerToTypeString(spanAggregation.Id),
+		Name:        utils.StringPointerToTypeString(spanAggregation.Name),
+		IsVisible:   types.BoolPointerValue(spanAggregation.IsVisible),
 		Aggregation: aggregation,
 	}, nil
 }
 
-func flattenDataTableColumns(ctx context.Context, columns []*cxsdk.DashboardDataTableColumn) (types.List, diag.Diagnostics) {
+func flattenDataTableColumns(ctx context.Context, columns []dashboardservice.DataTableColumn) (types.List, diag.Diagnostics) {
 	if len(columns) == 0 {
 		return types.ListNull(types.ObjectType{AttrTypes: dataTableColumnModelAttr()}), nil
 	}
@@ -634,7 +634,7 @@ func flattenDataTableColumns(ctx context.Context, columns []*cxsdk.DashboardData
 	var diagnostics diag.Diagnostics
 	columnElements := make([]attr.Value, 0)
 	for _, column := range columns {
-		flattenedColumn := flattenDataTableColumn(column)
+		flattenedColumn := flattenDataTableColumn(&column)
 		columnElement, diags := types.ObjectValueFrom(ctx, dataTableColumnModelAttr(), flattenedColumn)
 		if diags.HasError() {
 			diagnostics = append(diagnostics, diags...)
@@ -650,17 +650,17 @@ func flattenDataTableColumns(ctx context.Context, columns []*cxsdk.DashboardData
 	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dataTableColumnModelAttr()}, columnElements)
 }
 
-func flattenDataTableColumn(column *cxsdk.DashboardDataTableColumn) *DataTableColumnModel {
+func flattenDataTableColumn(column *dashboardservice.DataTableColumn) *DataTableColumnModel {
 	if column == nil {
 		return nil
 	}
 	return &DataTableColumnModel{
-		Field: utils.WrapperspbStringToTypeString(column.GetField()),
-		Width: utils.WrapperspbInt32ToTypeInt64(column.GetWidth()),
+		Field: utils.StringPointerToTypeString(column.Field),
+		Width: int32PointerToInt64Type(column.Width),
 	}
 }
 
-func ExpandDataTable(ctx context.Context, table *DataTableModel) (*cxsdk.WidgetDefinition, diag.Diagnostics) {
+func ExpandDataTable(ctx context.Context, table *DataTableModel) (*dashboardservice.WidgetDefinition, diag.Diagnostics) {
 	query, diags := expandDataTableQuery(ctx, table.Query)
 	if diags.HasError() {
 		return nil, diags
@@ -671,21 +671,19 @@ func ExpandDataTable(ctx context.Context, table *DataTableModel) (*cxsdk.WidgetD
 		return nil, diags
 	}
 
-	return &cxsdk.WidgetDefinition{
-		Value: &cxsdk.WidgetDefinitionDataTable{
-			DataTable: &cxsdk.DashboardDataTable{
-				Query:          query,
-				ResultsPerPage: utils.TypeInt64ToWrappedInt32(table.ResultsPerPage),
-				RowStyle:       ProtoDashboardRowStyleSchemaToProto[table.RowStyle.ValueString()],
-				Columns:        columns,
-				OrderBy:        expandOrderBy(table.OrderBy),
-				DataModeType:   ProtoDashboardSchemaToProtoDataModeType[table.DataModeType.ValueString()],
-			},
+	return &dashboardservice.WidgetDefinition{
+		DataTable: &dashboardservice.DataTable{
+			Query:          query,
+			ResultsPerPage: int64ToInt32Pointer(table.ResultsPerPage),
+			RowStyle:       DashboardRowStyleSchemaToProto[table.RowStyle.ValueString()].Ptr(),
+			Columns:        columns,
+			OrderBy:        expandOrderBy(table.OrderBy),
+			DataModeType:   DashboardSchemaToProtoDataModeType[table.DataModeType.ValueString()].Ptr(),
 		},
 	}, nil
 }
 
-func expandDataTableQuery(ctx context.Context, dataTableQuery *DataTableQueryModel) (*cxsdk.DashboardDataTableQuery, diag.Diagnostics) {
+func expandDataTableQuery(ctx context.Context, dataTableQuery *DataTableQueryModel) (*dashboardservice.DataTableQuery, diag.Diagnostics) {
 	if dataTableQuery == nil {
 		return nil, nil
 	}
@@ -695,108 +693,104 @@ func expandDataTableQuery(ctx context.Context, dataTableQuery *DataTableQueryMod
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.DashboardDataTableQuery{
-			Value: metrics,
+		return &dashboardservice.DataTableQuery{
+			Metrics: metrics,
 		}, nil
 	case dataTableQuery.Logs != nil:
 		logs, diags := expandDataTableLogsQuery(ctx, dataTableQuery.Logs)
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.DashboardDataTableQuery{
-			Value: logs,
+		return &dashboardservice.DataTableQuery{
+			Logs: logs,
 		}, nil
 	case dataTableQuery.Spans != nil:
 		spans, diags := expandDataTableSpansQuery(ctx, dataTableQuery.Spans)
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.DashboardDataTableQuery{
-			Value: spans,
+		return &dashboardservice.DataTableQuery{
+			Spans: spans,
 		}, nil
 	case dataTableQuery.DataPrime != nil:
 		dataPrime, diags := expandDataTableDataPrimeQuery(ctx, dataTableQuery.DataPrime)
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.DashboardDataTableQuery{
-			Value: dataPrime,
+		return &dashboardservice.DataTableQuery{
+			Dataprime: dataPrime,
 		}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand DataTable Query", fmt.Sprintf("unknown data table query type %#v", dataTableQuery))}
 	}
 }
 
-func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeModel) (*cxsdk.DashboardDataTableQueryDataprime, diag.Diagnostics) {
+func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeModel) (*dashboardservice.DataTableDataprimeQuery, diag.Diagnostics) {
 	if dataPrime == nil {
 		return nil, nil
 	}
 
-	filters, diags := ProtoExpandDashboardFiltersSources(ctx, dataPrime.Filters)
+	filters, diags := ExpandDashboardFiltersSources(ctx, dataPrime.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	var dataPrimeQuery *cxsdk.DashboardDataprimeQuery
+	var dataPrimeQuery *dashboardservice.CommonDataprimeQuery
 	if !dataPrime.Query.IsNull() {
-		dataPrimeQuery = &cxsdk.DashboardDataprimeQuery{
-			Text: dataPrime.Query.ValueString(),
+		dataPrimeQuery = &dashboardservice.CommonDataprimeQuery{
+			Text: dataPrime.Query.ValueStringPointer(),
 		}
 	}
 
-	timeFrame, diags := ProtoExpandTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	timeFrame, diags := ExpandTimeFrameSelect(ctx, dataPrime.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardDataTableQueryDataprime{
-		Dataprime: &cxsdk.DashboardDataTableDataprimeQuery{
-			DataprimeQuery: dataPrimeQuery,
-			Filters:        filters,
-			TimeFrame:      timeFrame,
-		},
+	return &dashboardservice.DataTableDataprimeQuery{
+		DataprimeQuery: dataPrimeQuery,
+		Filters:        filters,
+		TimeFrame:      timeFrame,
 	}, nil
 }
 
-func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *QueryMetricsModel) (*cxsdk.DashboardDataTableQueryMetrics, diag.Diagnostics) {
+func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *QueryMetricsModel) (*dashboardservice.DataTableMetricsQuery, diag.Diagnostics) {
 	if dataTableQueryMetric == nil {
 		return nil, nil
 	}
 
-	filters, diags := ProtoExpandMetricsFilters(ctx, dataTableQueryMetric.Filters)
+	filters, diags := ExpandMetricsFilters(ctx, dataTableQueryMetric.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := ProtoExpandTimeFrameSelect(ctx, dataTableQueryMetric.TimeFrame)
+	timeFrame, diags := ExpandTimeFrameSelect(ctx, dataTableQueryMetric.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardDataTableQueryMetrics{
-		Metrics: &cxsdk.DashboardDataTableMetricsQuery{
-			PromqlQuery:     ProtoExpandPromqlQuery(dataTableQueryMetric.PromqlQuery),
-			Filters:         filters,
-			PromqlQueryType: expandPromqlQueryType(dataTableQueryMetric.PromqlQueryType),
-			TimeFrame:       timeFrame,
-		},
+	return &dashboardservice.DataTableMetricsQuery{
+		PromqlQuery:     ExpandPromqlQuery(dataTableQueryMetric.PromqlQuery),
+		Filters:         filters,
+		PromqlQueryType: expandPromqlQueryType(dataTableQueryMetric.PromqlQueryType).Ptr(),
+		TimeFrame:       timeFrame,
 	}, nil
 }
 
-func expandPromqlQueryType(promqlQueryType basetypes.StringValue) cxsdk.PromQLQueryType {
-	ty, found := ProtoDashboardSchemaToProtoPromQLQueryType[promqlQueryType.ValueString()]
+func expandPromqlQueryType(promqlQueryType basetypes.StringValue) dashboardservice.PromQLQueryType {
+	ty, found := DashboardSchemaToProtoPromQLQueryType[promqlQueryType.ValueString()]
 	if found {
 		return ty
 	}
-	return cxsdk.PromQLQueryTypeUnspecified
+	return dashboardservice.PROMQLQUERYTYPE_PROM_QL_QUERY_TYPE_UNSPECIFIED
 }
 
-func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *DataTableQueryLogsModel) (*cxsdk.DashboardDataTableQueryLogs, diag.Diagnostics) {
+func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *DataTableQueryLogsModel) (*dashboardservice.DataTableLogsQuery, diag.Diagnostics) {
 	if dataTableQueryLogs == nil {
 		return nil, nil
 	}
 
-	filters, diags := ProtoExpandLogsFilters(ctx, dataTableQueryLogs.Filters)
+	filters, diags := ExpandLogsFilters(ctx, dataTableQueryLogs.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -806,21 +800,19 @@ func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *DataTable
 		return nil, diags
 	}
 
-	timeframe, diags := ProtoExpandTimeFrameSelect(ctx, dataTableQueryLogs.TimeFrame)
+	timeframe, diags := ExpandTimeFrameSelect(ctx, dataTableQueryLogs.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
-	return &cxsdk.DashboardDataTableQueryLogs{
-		Logs: &cxsdk.DashboardDataTableLogsQuery{
-			LuceneQuery: ProtoExpandLuceneQuery(dataTableQueryLogs.LuceneQuery),
-			Filters:     filters,
-			Grouping:    grouping,
-			TimeFrame:   timeframe,
-		},
+	return &dashboardservice.DataTableLogsQuery{
+		LuceneQuery: ExpandLuceneQuery(dataTableQueryLogs.LuceneQuery),
+		Filters:     filters,
+		Grouping:    grouping,
+		TimeFrame:   timeframe,
 	}, nil
 }
 
-func expandDataTableLogsGrouping(ctx context.Context, grouping *DataTableLogsQueryGroupingModel) (*cxsdk.DashboardDataTableLogsQueryGrouping, diag.Diagnostics) {
+func expandDataTableLogsGrouping(ctx context.Context, grouping *DataTableLogsQueryGroupingModel) (*dashboardservice.LogsQueryGrouping, diag.Diagnostics) {
 	if grouping == nil {
 		return nil, nil
 	}
@@ -830,21 +822,21 @@ func expandDataTableLogsGrouping(ctx context.Context, grouping *DataTableLogsQue
 		return nil, diags
 	}
 
-	groupBys, diags := ProtoExpandObservationFields(ctx, grouping.GroupBys)
+	groupBys, diags := ExpandObservationFields(ctx, grouping.GroupBys)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardDataTableLogsQueryGrouping{
+	return &dashboardservice.LogsQueryGrouping{
 		Aggregations: aggregations,
 		GroupBys:     groupBys,
 	}, nil
 
 }
 
-func expandDataTableLogsAggregations(ctx context.Context, aggregations types.List) ([]*cxsdk.DashboardDataTableLogsQueryAggregation, diag.Diagnostics) {
+func expandDataTableLogsAggregations(ctx context.Context, aggregations types.List) ([]dashboardservice.LogsQueryAggregation, diag.Diagnostics) {
 	var aggregationsObjects []types.Object
-	var expandedAggregations []*cxsdk.DashboardDataTableLogsQueryAggregation
+	var expandedAggregations []dashboardservice.LogsQueryAggregation
 	diags := aggregations.ElementsAs(ctx, &aggregationsObjects, true)
 	if diags.HasError() {
 		return nil, diags
@@ -860,36 +852,36 @@ func expandDataTableLogsAggregations(ctx context.Context, aggregations types.Lis
 			diags.Append(expandDiags...)
 			continue
 		}
-		expandedAggregations = append(expandedAggregations, expandedAggregation)
+		expandedAggregations = append(expandedAggregations, *expandedAggregation)
 	}
 
 	return expandedAggregations, diags
 }
 
-func expandDataTableLogsAggregation(ctx context.Context, aggregation *DataTableLogsAggregationModel) (*cxsdk.DashboardDataTableLogsQueryAggregation, diag.Diagnostics) {
+func expandDataTableLogsAggregation(ctx context.Context, aggregation *DataTableLogsAggregationModel) (*dashboardservice.LogsQueryAggregation, diag.Diagnostics) {
 	if aggregation == nil {
 		return nil, nil
 	}
 
-	logsAggregation, diags := ProtoExpandLogsAggregation(ctx, aggregation.Aggregation)
+	logsAggregation, diags := ExpandLogsAggregation(ctx, aggregation.Aggregation)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardDataTableLogsQueryAggregation{
-		Id:          utils.TypeStringToWrapperspbString(aggregation.ID),
-		Name:        utils.TypeStringToWrapperspbString(aggregation.Name),
-		IsVisible:   utils.TypeBoolToWrapperspbBool(aggregation.IsVisible),
+	return &dashboardservice.LogsQueryAggregation{
+		Id:          utils.TypeStringToStringPointer(aggregation.ID),
+		Name:        utils.TypeStringToStringPointer(aggregation.Name),
+		IsVisible:   aggregation.IsVisible.ValueBoolPointer(),
 		Aggregation: logsAggregation,
 	}, nil
 }
 
-func expandDataTableSpansQuery(ctx context.Context, dataTableQuerySpans *DataTableQuerySpansModel) (*cxsdk.DashboardDataTableQuerySpans, diag.Diagnostics) {
+func expandDataTableSpansQuery(ctx context.Context, dataTableQuerySpans *DataTableQuerySpansModel) (*dashboardservice.DataTableSpansQuery, diag.Diagnostics) {
 	if dataTableQuerySpans == nil {
 		return nil, nil
 	}
 
-	filters, diags := ProtoExpandSpansFilters(ctx, dataTableQuerySpans.Filters)
+	filters, diags := ExpandSpansFilters(ctx, dataTableQuerySpans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -899,27 +891,25 @@ func expandDataTableSpansQuery(ctx context.Context, dataTableQuerySpans *DataTab
 		return nil, diags
 	}
 
-	timeFrame, diags := ProtoExpandTimeFrameSelect(ctx, dataTableQuerySpans.TimeFrame)
+	timeFrame, diags := ExpandTimeFrameSelect(ctx, dataTableQuerySpans.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardDataTableQuerySpans{
-		Spans: &cxsdk.DashboardDataTableSpansQuery{
-			LuceneQuery: ProtoExpandLuceneQuery(dataTableQuerySpans.LuceneQuery),
-			Filters:     filters,
-			Grouping:    grouping,
-			TimeFrame:   timeFrame,
-		},
+	return &dashboardservice.DataTableSpansQuery{
+		LuceneQuery: ExpandLuceneQuery(dataTableQuerySpans.LuceneQuery),
+		Filters:     filters,
+		Grouping:    grouping,
+		TimeFrame:   timeFrame,
 	}, nil
 }
 
-func expandDataTableSpansGrouping(ctx context.Context, grouping *DataTableSpansQueryGroupingModel) (*cxsdk.DashboardDataTableSpansQueryGrouping, diag.Diagnostics) {
+func expandDataTableSpansGrouping(ctx context.Context, grouping *DataTableSpansQueryGroupingModel) (*dashboardservice.SpansQueryGrouping, diag.Diagnostics) {
 	if grouping == nil {
 		return nil, nil
 	}
 
-	groupBy, diags := ProtoExpandSpansFields(ctx, grouping.GroupBy)
+	groupBy, diags := ExpandSpansFields(ctx, grouping.GroupBy)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -929,15 +919,15 @@ func expandDataTableSpansGrouping(ctx context.Context, grouping *DataTableSpansQ
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardDataTableSpansQueryGrouping{
+	return &dashboardservice.SpansQueryGrouping{
 		GroupBy:      groupBy,
 		Aggregations: aggregations,
 	}, nil
 }
 
-func expandDataTableSpansAggregations(ctx context.Context, spansAggregations types.List) ([]*cxsdk.DashboardDataTableSpansQueryAggregation, diag.Diagnostics) {
+func expandDataTableSpansAggregations(ctx context.Context, spansAggregations types.List) ([]dashboardservice.SpansQueryAggregation, diag.Diagnostics) {
 	var spansAggregationsObjects []types.Object
-	var expandedSpansAggregations []*cxsdk.DashboardDataTableSpansQueryAggregation
+	var expandedSpansAggregations []dashboardservice.SpansQueryAggregation
 	diags := spansAggregations.ElementsAs(ctx, &spansAggregationsObjects, true)
 	if diags.HasError() {
 		return nil, diags
@@ -953,33 +943,33 @@ func expandDataTableSpansAggregations(ctx context.Context, spansAggregations typ
 			diags.Append(expandDiag)
 			continue
 		}
-		expandedSpansAggregations = append(expandedSpansAggregations, expandedSpansAggregation)
+		expandedSpansAggregations = append(expandedSpansAggregations, *expandedSpansAggregation)
 	}
 
 	return expandedSpansAggregations, diags
 }
 
-func expandDataTableSpansAggregation(aggregation *DataTableSpansAggregationModel) (*cxsdk.DashboardDataTableSpansQueryAggregation, diag.Diagnostic) {
+func expandDataTableSpansAggregation(aggregation *DataTableSpansAggregationModel) (*dashboardservice.SpansQueryAggregation, diag.Diagnostic) {
 	if aggregation == nil {
 		return nil, nil
 	}
 
-	spansAggregation, dg := ProtoExpandSpansAggregation(aggregation.Aggregation)
+	spansAggregation, dg := ExpandSpansAggregation(aggregation.Aggregation)
 	if dg != nil {
 		return nil, dg
 	}
 
-	return &cxsdk.DashboardDataTableSpansQueryAggregation{
-		Id:          utils.TypeStringToWrapperspbString(aggregation.ID),
-		Name:        utils.TypeStringToWrapperspbString(aggregation.Name),
-		IsVisible:   utils.TypeBoolToWrapperspbBool(aggregation.IsVisible),
+	return &dashboardservice.SpansQueryAggregation{
+		Id:          utils.TypeStringToStringPointer(aggregation.ID),
+		Name:        utils.TypeStringToStringPointer(aggregation.Name),
+		IsVisible:   aggregation.IsVisible.ValueBoolPointer(),
 		Aggregation: spansAggregation,
 	}, nil
 }
 
-func expandDataTableColumns(ctx context.Context, columns types.List) ([]*cxsdk.DashboardDataTableColumn, diag.Diagnostics) {
+func expandDataTableColumns(ctx context.Context, columns types.List) ([]dashboardservice.DataTableColumn, diag.Diagnostics) {
 	var columnsObjects []types.Object
-	var expandedColumns []*cxsdk.DashboardDataTableColumn
+	var expandedColumns []dashboardservice.DataTableColumn
 	diags := columns.ElementsAs(ctx, &columnsObjects, true)
 	if diags.HasError() {
 		return nil, diags
@@ -991,40 +981,40 @@ func expandDataTableColumns(ctx context.Context, columns types.List) ([]*cxsdk.D
 			continue
 		}
 		expandedColumn := expandDataTableColumn(column)
-		expandedColumns = append(expandedColumns, expandedColumn)
+		expandedColumns = append(expandedColumns, *expandedColumn)
 	}
 
 	return expandedColumns, diags
 }
 
-func expandDataTableColumn(column DataTableColumnModel) *cxsdk.DashboardDataTableColumn {
-	return &cxsdk.DashboardDataTableColumn{
-		Field: utils.TypeStringToWrapperspbString(column.Field),
-		Width: utils.TypeInt64ToWrappedInt32(column.Width),
+func expandDataTableColumn(column DataTableColumnModel) *dashboardservice.DataTableColumn {
+	return &dashboardservice.DataTableColumn{
+		Field: utils.TypeStringToStringPointer(column.Field),
+		Width: int64ToInt32Pointer(column.Width),
 	}
 }
 
-func expandOrderBy(orderBy *OrderByModel) *cxsdk.DashboardOrderingField {
+func expandOrderBy(orderBy *OrderByModel) *dashboardservice.OrderingField {
 	if orderBy == nil {
 		return nil
 	}
-	return &cxsdk.DashboardOrderingField{
-		Field:          utils.TypeStringToWrapperspbString(orderBy.Field),
-		OrderDirection: ProtoDashboardOrderDirectionSchemaToProto[orderBy.OrderDirection.ValueString()],
+	return &dashboardservice.OrderingField{
+		Field:          utils.TypeStringToStringPointer(orderBy.Field),
+		OrderDirection: DashboardOrderDirectionSchemaToProto[orderBy.OrderDirection.ValueString()].Ptr(),
 	}
 }
 
-func flattenOrderBy(orderBy *cxsdk.DashboardOrderingField) *OrderByModel {
+func flattenOrderBy(orderBy *dashboardservice.OrderingField) *OrderByModel {
 	if orderBy == nil {
 		return nil
 	}
 	return &OrderByModel{
-		Field:          utils.WrapperspbStringToTypeString(orderBy.GetField()),
-		OrderDirection: types.StringValue(ProtoDashboardOrderDirectionProtoToSchema[orderBy.GetOrderDirection()]),
+		Field:          utils.StringPointerToTypeString(orderBy.Field),
+		OrderDirection: types.StringValue(DashboardOrderDirectionProtoToSchema[orderBy.GetOrderDirection()]),
 	}
 }
 
-func flattenGroupingAggregations(ctx context.Context, aggregations []*cxsdk.DashboardDataTableLogsQueryAggregation) (types.List, diag.Diagnostics) {
+func flattenGroupingAggregations(ctx context.Context, aggregations []dashboardservice.LogsQueryAggregation) (types.List, diag.Diagnostics) {
 	if len(aggregations) == 0 {
 		return types.ListNull(types.ObjectType{AttrTypes: GroupingAggregationModelAttr()}), nil
 	}
@@ -1032,7 +1022,7 @@ func flattenGroupingAggregations(ctx context.Context, aggregations []*cxsdk.Dash
 	var diagnostics diag.Diagnostics
 	aggregationElements := make([]attr.Value, 0)
 	for _, aggregation := range aggregations {
-		flattenedAggregation, diags := flattenGroupingAggregation(ctx, aggregation)
+		flattenedAggregation, diags := flattenGroupingAggregation(ctx, &aggregation)
 		if diags.HasError() {
 			diagnostics.Append(diags...)
 			continue
@@ -1048,16 +1038,16 @@ func flattenGroupingAggregations(ctx context.Context, aggregations []*cxsdk.Dash
 	return types.ListValueMust(types.ObjectType{AttrTypes: GroupingAggregationModelAttr()}, aggregationElements), diagnostics
 }
 
-func flattenGroupingAggregation(ctx context.Context, dataTableAggregation *cxsdk.DashboardDataTableLogsQueryAggregation) (*DataTableLogsAggregationModel, diag.Diagnostics) {
-	aggregation, diags := ProtoFlattenLogsAggregation(ctx, dataTableAggregation.GetAggregation())
+func flattenGroupingAggregation(ctx context.Context, dataTableAggregation *dashboardservice.LogsQueryAggregation) (*DataTableLogsAggregationModel, diag.Diagnostics) {
+	aggregation, diags := FlattenLogsAggregation(ctx, dataTableAggregation.Aggregation)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &DataTableLogsAggregationModel{
-		ID:          utils.WrapperspbStringToTypeString(dataTableAggregation.GetId()),
-		Name:        utils.WrapperspbStringToTypeString(dataTableAggregation.GetName()),
-		IsVisible:   utils.WrapperspbBoolToTypeBool(dataTableAggregation.GetIsVisible()),
+		ID:          utils.StringPointerToTypeString(dataTableAggregation.Id),
+		Name:        utils.StringPointerToTypeString(dataTableAggregation.Name),
+		IsVisible:   types.BoolPointerValue(dataTableAggregation.IsVisible),
 		Aggregation: aggregation,
 	}, nil
 }
