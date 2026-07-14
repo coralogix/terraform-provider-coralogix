@@ -24,9 +24,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -843,7 +841,7 @@ func testAccCheckDashboardDestroy(s *terraform.State) error {
 	if meta == nil {
 		return nil
 	}
-	client := meta.(*clientset.ClientSet).Dashboards()
+	client := meta.(*clientset.ClientSet).DashboardsOpenAPI()
 
 	ctx := context.TODO()
 
@@ -852,13 +850,20 @@ func testAccCheckDashboardDestroy(s *terraform.State) error {
 			continue
 		}
 
-		dashboardId := wrapperspb.String(rs.Primary.ID)
-		resp, err := client.Get(ctx, &cxsdk.GetDashboardRequest{DashboardId: dashboardId})
+		resp, httpResp, err := client.DashboardsServiceGetDashboard(ctx, rs.Primary.ID).Execute()
 		if err == nil {
-			if resp.GetDashboard().GetId().GetValue() == rs.Primary.ID {
+			dashboard := resp.GetDashboard()
+			if dashboard.GetId() == rs.Primary.ID {
 				return fmt.Errorf("dashboard still exists: %s", rs.Primary.ID)
 			}
+			continue
 		}
+
+		apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
+		if cxsdkOpenapi.Code(apiErr) == 404 {
+			continue
+		}
+		return fmt.Errorf("error checking dashboard destroy for %s: %s", rs.Primary.ID, utils.FormatOpenAPIErrors(apiErr, "Get", rs.Primary.ID))
 	}
 
 	return nil

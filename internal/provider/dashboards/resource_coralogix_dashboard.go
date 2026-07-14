@@ -732,33 +732,40 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	createDashboardReq := &cxsdk.CreateDashboardRequest{
-		Dashboard:    dashboard,
-		AccessPolicy: dashboardAccessPolicyForRequest(plan.AccessPolicy),
-	}
-	dashboardStr := protojson.Format(createDashboardReq)
+	accessPolicy := dashboardAccessPolicyForRequest(plan.AccessPolicy)
+	dashboardStr := protojson.Format(dashboard)
 	log.Printf("[INFO] Creating new Dashboard: %s", dashboardStr)
-	createResponse, err := r.client.Create(ctx, createDashboardReq)
+	createResponse, err := r.openAPIClient.Create(ctx, dashboard, accessPolicy)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Dashboard",
-			utils.FormatRpcErrors(err, cxsdk.CreateDashboardRPC, dashboardStr),
+			err.Error(),
 		)
 		return
 	}
 
-	getDashboardReq := &cxsdk.GetDashboardRequest{
-		DashboardId: createResponse.DashboardId,
+	dashboardID := createResponse.GetDashboardId()
+	if dashboardID == "" {
+		resp.Diagnostics.AddError(
+			"Error creating Dashboard",
+			"OpenAPI create response did not include dashboardId",
+		)
+		return
 	}
-	getDashboardResp, err := r.client.Get(ctx, getDashboardReq)
+
+	openAPIGetDashboardResp, err := r.openAPIClient.Get(ctx, dashboardID)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		reqStr := protojson.Format(getDashboardReq)
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
-			utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, reqStr),
+			err.Error(),
 		)
+		return
+	}
+	getDashboardResp, err := dashboardOpenAPIGetResponseToProto(openAPIGetDashboardResp)
+	if err != nil {
+		resp.Diagnostics.AddError("Error getting Dashboard", err.Error())
 		return
 	}
 	createDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
@@ -6504,11 +6511,10 @@ func (r *DashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Dashboard %s", id)
-	deleteReq := &cxsdk.DeleteDashboardRequest{DashboardId: wrapperspb.String(id)}
-	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
+	if err := r.openAPIClient.Delete(ctx, id); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Dashboard %s", id),
-			utils.FormatRpcErrors(err, cxsdk.DeleteDashboardRPC, protojson.Format(deleteReq)),
+			err.Error(),
 		)
 		return
 	}
