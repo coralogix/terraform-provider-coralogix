@@ -16,6 +16,7 @@ package dashboards
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -28,6 +29,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -35,7 +37,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -356,7 +357,7 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 		}
 		return
 	}
-	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp.Dashboard))
+	log.Printf("[INFO] Received Dashboard: %s", dashboardLogString(getDashboardResp.OpenAPIDashboard))
 
 	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp)
 	if diags != nil {
@@ -727,9 +728,8 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	accessPolicy := dashboardAccessPolicyForRequest(plan.AccessPolicy)
-	dashboardStr := protojson.Format(dashboard)
-	log.Printf("[INFO] Creating new Dashboard: %s", dashboardStr)
-	createResponse, err := r.openAPIClient.Create(ctx, dashboard, accessPolicy)
+	log.Printf("[INFO] Creating new Dashboard: %s", dashboardLogString(dashboard))
+	createResponse, err := r.createDashboard(ctx, dashboard, accessPolicy)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -757,8 +757,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		)
 		return
 	}
-	createDashboardRespStr := protojson.Format(getDashboardResp.Dashboard)
-	log.Printf("[INFO] Submitted new Dashboard: %s", createDashboardRespStr)
+	log.Printf("[INFO] Submitted new Dashboard: %s", dashboardLogString(getDashboardResp.OpenAPIDashboard))
 
 	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp)
 	if diags.HasError() {
@@ -788,14 +787,44 @@ func dashboardAccessPolicyForConfiguredRequest(configAccessPolicy, planAccessPol
 	return dashboardAccessPolicyForRequest(planAccessPolicy)
 }
 
-func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*cxsdk.Dashboard, diag.Diagnostics) {
+func (r DashboardResource) createDashboard(ctx context.Context, dashboard any, accessPolicy *string) (*dashboardservice.CreateDashboardResponse, error) {
+	switch d := dashboard.(type) {
+	case *dashboardservice.Dashboard:
+		return r.openAPIClient.CreateOpenAPI(ctx, d, accessPolicy)
+	case *cxsdk.Dashboard:
+		return r.openAPIClient.Create(ctx, d, accessPolicy)
+	default:
+		return nil, fmt.Errorf("unsupported dashboard type %T", dashboard)
+	}
+}
+
+func (r DashboardResource) replaceDashboard(ctx context.Context, dashboard any, accessPolicy *string) error {
+	switch d := dashboard.(type) {
+	case *dashboardservice.Dashboard:
+		return r.openAPIClient.ReplaceOpenAPI(ctx, d, accessPolicy)
+	case *cxsdk.Dashboard:
+		return r.openAPIClient.Replace(ctx, d, accessPolicy)
+	default:
+		return fmt.Errorf("unsupported dashboard type %T", dashboard)
+	}
+}
+
+func dashboardLogString(dashboard any) string {
+	content, err := json.Marshal(dashboard)
+	if err != nil {
+		return fmt.Sprintf("%+v", dashboard)
+	}
+	return string(content)
+}
+
+func extractDashboard(ctx context.Context, plan DashboardResourceModel) (any, diag.Diagnostics) {
 	if !plan.ContentJson.IsNull() {
-		dashboard := new(cxsdk.Dashboard)
-		if err := dashboardschema.JSONUnmarshal.Unmarshal([]byte(plan.ContentJson.ValueString()), dashboard); err != nil {
+		dashboard := new(dashboardservice.Dashboard)
+		if err := json.Unmarshal([]byte(plan.ContentJson.ValueString()), dashboard); err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error unmarshalling dashboard content json", err.Error())}
 		}
 
-		dashboard, diags := expandDashboardFolder(ctx, dashboard, plan.Folder)
+		dashboard, diags := expandOpenAPIDashboardFolder(ctx, dashboard, plan.Folder)
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -3287,6 +3316,25 @@ func expandDashboardFolder(ctx context.Context, dashboard *cxsdk.Dashboard, fold
 	return dashboard, nil
 }
 
+func expandOpenAPIDashboardFolder(ctx context.Context, dashboard *dashboardservice.Dashboard, folder types.Object) (*dashboardservice.Dashboard, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(folder) {
+		return dashboard, nil
+	}
+	var folderModel DashboardFolderModel
+	dgs := folder.As(ctx, &folderModel, basetypes.ObjectAsOptions{})
+	if dgs.HasError() {
+		return nil, dgs
+	}
+
+	if !(folderModel.ID.IsNull() || folderModel.ID.IsUnknown()) {
+		dashboard.FolderId = &dashboardservice.UUID{Value: folderModel.ID.ValueStringPointer()}
+	} else if !(folderModel.Path.IsNull() || folderModel.Path.IsUnknown()) {
+		dashboard.FolderPath = &dashboardservice.FolderPath{Segments: strings.Split(folderModel.Path.ValueString(), "/")}
+	}
+
+	return dashboard, nil
+}
+
 func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response *dashboardOpenAPIReadResult) (*DashboardResourceModel, diag.Diagnostics) {
 	dashboard := response.Dashboard
 	folder, diags := flattenDashboardFolder(ctx, plan.Folder, dashboard)
@@ -3298,11 +3346,20 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response
 		return nil, diags
 	}
 	if !(plan.ContentJson.IsNull() || plan.ContentJson.IsUnknown()) {
+		openAPIDashboard := response.OpenAPIDashboard
+		if openAPIDashboard == nil {
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", "OpenAPI response did not include dashboard")}
+		}
 
-		var unmarshalledDashboard = new(cxsdk.Dashboard)
+		folder, diags = flattenOpenAPIDashboardFolder(ctx, plan.Folder, openAPIDashboard)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		unmarshalledDashboard := new(dashboardservice.Dashboard)
 		// Users can set the folder in the dashbaord's json. In that case, the server will return a folder, but we're not supposed to set it in the plan,
 		// or terraform will panic.
-		err := dashboardschema.JSONUnmarshal.Unmarshal([]byte(plan.ContentJson.ValueString()), unmarshalledDashboard)
+		err := json.Unmarshal([]byte(plan.ContentJson.ValueString()), unmarshalledDashboard)
 		if err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Unmarshal Dashboard", err.Error())}
 		}
@@ -3310,7 +3367,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response
 			folder = types.ObjectNull(dashboardFolderModelAttr())
 		}
 
-		_, err = protojson.Marshal(dashboard)
+		_, err = json.Marshal(openAPIDashboard)
 		if err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", err.Error())}
 		}
@@ -3321,7 +3378,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response
 
 		return &DashboardResourceModel{
 			ContentJson:  types.StringValue(plan.ContentJson.ValueString()),
-			ID:           types.StringValue(dashboard.GetId().GetValue()),
+			ID:           types.StringValue(openAPIDashboard.GetId()),
 			Name:         types.StringNull(),
 			Description:  types.StringNull(),
 			Layout:       types.ObjectNull(layoutModelAttr()),
@@ -5935,6 +5992,49 @@ func flattenDashboardFolder(ctx context.Context, planedDashboard types.Object, d
 	return types.ObjectNull(dashboardFolderModelAttr()), nil
 }
 
+func flattenOpenAPIDashboardFolder(ctx context.Context, planedDashboard types.Object, dashboard *dashboardservice.Dashboard) (types.Object, diag.Diagnostics) {
+	planPath := types.StringNull()
+	planID := types.StringNull()
+	if !utils.ObjIsNullOrUnknown(planedDashboard) {
+		var folderModel DashboardFolderModel
+		dgs := planedDashboard.As(ctx, &folderModel, basetypes.ObjectAsOptions{})
+		if dgs.HasError() {
+			return types.ObjectNull(dashboardFolderModelAttr()), dgs
+		}
+		if !(folderModel.Path.IsUnknown() || folderModel.Path.IsNull()) {
+			planPath = folderModel.Path
+		}
+		if !(folderModel.ID.IsUnknown() || folderModel.ID.IsNull()) {
+			planID = folderModel.ID
+		}
+	}
+
+	if dashboard.FolderId != nil {
+		if !planPath.IsNull() {
+			return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), &DashboardFolderModel{
+				ID:   types.StringNull(),
+				Path: planPath,
+			})
+		}
+		return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), &DashboardFolderModel{
+			ID:   types.StringValue(dashboard.FolderId.GetValue()),
+			Path: types.StringNull(),
+		})
+	} else if dashboard.FolderPath != nil {
+		if !planID.IsNull() {
+			return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), &DashboardFolderModel{
+				ID:   planID,
+				Path: types.StringNull(),
+			})
+		}
+		return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), &DashboardFolderModel{
+			ID:   types.StringNull(),
+			Path: types.StringValue(strings.Join(dashboard.FolderPath.GetSegments(), "/")),
+		})
+	}
+	return types.ObjectNull(dashboardFolderModelAttr()), nil
+}
+
 func flattenDashboardAnnotations(ctx context.Context, annotations []*cxsdk.Annotation) (types.List, diag.Diagnostics) {
 	if len(annotations) == 0 {
 		return types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}), nil
@@ -6408,7 +6508,7 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 		}
 		return
 	}
-	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp.Dashboard))
+	log.Printf("[INFO] Received Dashboard: %s", dashboardLogString(getDashboardResp.OpenAPIDashboard))
 
 	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp)
 	if diags != nil {
@@ -6443,9 +6543,8 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	accessPolicy := dashboardAccessPolicyForConfiguredRequest(configAccessPolicy, plan.AccessPolicy)
-	dashboardStr := protojson.Format(dashboard)
-	log.Printf("[INFO] Updating Dashboard: %s", dashboardStr)
-	err := r.openAPIClient.Replace(ctx, dashboard, accessPolicy)
+	log.Printf("[INFO] Updating Dashboard: %s", dashboardLogString(dashboard))
+	err := r.replaceDashboard(ctx, dashboard, accessPolicy)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -6464,8 +6563,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		)
 		return
 	}
-	updateDashboardRespStr := protojson.Format(getDashboardResp.Dashboard)
-	log.Printf("[INFO] Submitted updated Dashboard: %s", updateDashboardRespStr)
+	log.Printf("[INFO] Submitted updated Dashboard: %s", dashboardLogString(getDashboardResp.OpenAPIDashboard))
 
 	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp)
 	if diags.HasError() {

@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -71,6 +72,60 @@ func TestPreserveStateForEquivalentJSON(t *testing.T) {
 
 			if !resp.PlanValue.Equal(tt.config) {
 				t.Fatalf("expected PlanValue to remain config %v, got %v", tt.config, resp.PlanValue)
+			}
+		})
+	}
+}
+
+func TestContentJsonValidator(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		value     types.String
+		wantError bool
+	}{
+		{
+			name:      "valid OpenAPI dashboard",
+			value:     types.StringValue(`{"name":"dashboard","layout":{"sections":[]}}`),
+			wantError: false,
+		},
+		{
+			name:      "missing required OpenAPI field",
+			value:     types.StringValue(`{"layout":{"sections":[]}}`),
+			wantError: true,
+		},
+		{
+			name:      "invalid json",
+			value:     types.StringValue(`{"name":`),
+			wantError: true,
+		},
+		{
+			name:      "null is ignored",
+			value:     types.StringNull(),
+			wantError: false,
+		},
+		{
+			name:      "unknown is ignored",
+			value:     types.StringUnknown(),
+			wantError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resp := &validator.StringResponse{}
+			ContentJsonValidator{}.ValidateString(context.Background(), validator.StringRequest{
+				ConfigValue: tt.value,
+			}, resp)
+
+			if tt.wantError && !resp.Diagnostics.HasError() {
+				t.Fatal("expected validator error")
+			}
+			if !tt.wantError && resp.Diagnostics.HasError() {
+				t.Fatalf("expected no validator error, got %v", resp.Diagnostics)
 			}
 		})
 	}

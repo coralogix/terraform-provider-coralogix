@@ -46,8 +46,9 @@ type dashboardOpenAPIClient struct {
 }
 
 type dashboardOpenAPIReadResult struct {
-	Dashboard    *cxsdk.Dashboard
-	AccessPolicy *string
+	Dashboard        *cxsdk.Dashboard
+	OpenAPIDashboard *dashboardservice.Dashboard
+	AccessPolicy     *string
 }
 
 func newDashboardOpenAPIClient(client *dashboardservice.DashboardServiceAPIService) *dashboardOpenAPIClient {
@@ -60,6 +61,20 @@ func (c *dashboardOpenAPIClient) Create(ctx context.Context, dashboard *cxsdk.Da
 		return nil, err
 	}
 
+	response, httpResponse, err := c.client.
+		DashboardsServiceCreateDashboard(ctx).
+		CreateDashboardRequestDataStructure(request).
+		Execute()
+
+	return response, formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationCreate, request)
+}
+
+func (c *dashboardOpenAPIClient) CreateOpenAPI(ctx context.Context, dashboard *dashboardservice.Dashboard, accessPolicy *string) (*dashboardservice.CreateDashboardResponse, error) {
+	if dashboard == nil {
+		return nil, fmt.Errorf("dashboard is required")
+	}
+
+	request := newDashboardOpenAPICreateRequest(*dashboard, accessPolicy)
 	response, httpResponse, err := c.client.
 		DashboardsServiceCreateDashboard(ctx).
 		CreateDashboardRequestDataStructure(request).
@@ -93,6 +108,20 @@ func (c *dashboardOpenAPIClient) Replace(ctx context.Context, dashboard *cxsdk.D
 		return err
 	}
 
+	_, httpResponse, err := c.client.
+		DashboardsServiceReplaceDashboard(ctx).
+		ReplaceDashboardRequestDataStructure(request).
+		Execute()
+
+	return formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationReplace, request)
+}
+
+func (c *dashboardOpenAPIClient) ReplaceOpenAPI(ctx context.Context, dashboard *dashboardservice.Dashboard, accessPolicy *string) error {
+	if dashboard == nil {
+		return fmt.Errorf("dashboard is required")
+	}
+
+	request := newDashboardOpenAPIReplaceRequest(*dashboard, accessPolicy)
 	_, httpResponse, err := c.client.
 		DashboardsServiceReplaceDashboard(ctx).
 		ReplaceDashboardRequestDataStructure(request).
@@ -198,8 +227,9 @@ func dashboardOpenAPIGetResponseToReadResult(response *dashboardservice.GetDashb
 	}
 
 	return &dashboardOpenAPIReadResult{
-		Dashboard:    &dashboard,
-		AccessPolicy: response.AccessPolicy,
+		Dashboard:        &dashboard,
+		OpenAPIDashboard: response.Dashboard,
+		AccessPolicy:     response.AccessPolicy,
 	}, nil
 }
 

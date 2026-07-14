@@ -16,14 +16,14 @@ package dashboard_schema
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"google.golang.org/protobuf/encoding/protojson"
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -74,13 +74,6 @@ func (m PreserveStateForEquivalentJSON) PlanModifyString(_ context.Context, req 
 	}
 }
 
-var (
-	JSONUnmarshal = protojson.UnmarshalOptions{
-		DiscardUnknown: true,
-		AllowPartial:   true,
-	}
-)
-
 type intervalValidator struct{}
 
 func (i intervalValidator) Description(_ context.Context) string {
@@ -116,7 +109,7 @@ func (c ContentJsonValidator) ValidateString(_ context.Context, request validato
 		return
 	}
 
-	err := JSONUnmarshal.Unmarshal([]byte(request.ConfigValue.ValueString()), &cxsdk.Dashboard{})
+	err := json.Unmarshal([]byte(request.ConfigValue.ValueString()), &dashboardservice.Dashboard{})
 	if err != nil {
 		response.Diagnostics.Append(diag.NewErrorDiagnostic("content_json validation failed", fmt.Sprintf("json content is not matching layout schema. got an err while unmarshalling - %s", err)))
 	}
