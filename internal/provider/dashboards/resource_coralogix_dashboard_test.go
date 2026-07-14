@@ -19,9 +19,8 @@ import (
 	"strings"
 	"testing"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
@@ -95,10 +94,8 @@ func TestExpandDashboardVariableDefinition_ConstantValueDeprecated(t *testing.T)
 }
 
 func TestFlattenDashboardVariableDefinition_LegacyConstantBecomesMultiSelect(t *testing.T) {
-	def := &cxsdk.DashboardVariableDefinition{
-		Value: &cxsdk.DashboardVariableDefinitionConstant{
-			Constant: &cxsdk.DashboardConstant{Value: wrapperspb.String("production")},
-		},
+	def := &dashboardservice.VariableDefinition{
+		Constant: &dashboardservice.Constant{Value: ptr("production")},
 	}
 
 	got, diags := flattenDashboardVariableDefinition(context.Background(), def)
@@ -116,7 +113,7 @@ func TestFlattenDashboardVariableDefinition_LegacyConstantBecomesMultiSelect(t *
 func TestFlattenDashboardOptionsColor(t *testing.T) {
 	tests := []struct {
 		name       string
-		color      *cxsdk.DashboardSectionColor
+		color      *dashboardservice.SectionColor
 		wantNull   bool
 		wantString string
 	}{
@@ -127,24 +124,20 @@ func TestFlattenDashboardOptionsColor(t *testing.T) {
 		},
 		{
 			name: "predefined unspecified (zero value) is null",
-			color: &cxsdk.DashboardSectionColor{
-				Value: &cxsdk.DashboardSectionColorPredefined{
-					Predefined: cxsdk.DashboardSectionColorPredefinedColor(0),
-				},
+			color: &dashboardservice.SectionColor{
+				Predefined: dashboardservice.SECTIONPREDEFINEDCOLOR_SECTION_PREDEFINED_COLOR_UNSPECIFIED.Ptr(),
 			},
 			wantNull: true,
 		},
 		{
 			name:     "color wrapper present but value oneof unset is null",
-			color:    &cxsdk.DashboardSectionColor{},
+			color:    &dashboardservice.SectionColor{},
 			wantNull: true,
 		},
 		{
 			name: "predefined cyan flattens to lowercase string",
-			color: &cxsdk.DashboardSectionColor{
-				Value: &cxsdk.DashboardSectionColorPredefined{
-					Predefined: cxsdk.DashboardSectionColorPredefinedColor(cxsdk.DashboardSectionPredefinedColorValueLookup["SECTION_PREDEFINED_COLOR_CYAN"]),
-				},
+			color: &dashboardservice.SectionColor{
+				Predefined: dashboardservice.SECTIONPREDEFINEDCOLOR_SECTION_PREDEFINED_COLOR_CYAN.Ptr(),
 			},
 			wantString: "cyan",
 		},
@@ -152,12 +145,10 @@ func TestFlattenDashboardOptionsColor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			opts := &cxsdk.DashboardSectionOptions{
-				Value: &cxsdk.DashboardSectionOptionsCustom{
-					Custom: &cxsdk.CustomSectionOptions{
-						Name:  wrapperspb.String("section"),
-						Color: tt.color,
-					},
+			opts := &dashboardservice.SectionOptions{
+				Custom: &dashboardservice.CustomSectionOptions{
+					Name:  ptr("section"),
+					Color: tt.color,
 				},
 			}
 			model, diags := flattenDashboardOptions(context.Background(), opts)

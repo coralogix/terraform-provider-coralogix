@@ -24,7 +24,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var _ datasource.DataSourceWithConfigure = &DashboardDataSource{}
@@ -85,7 +84,7 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 		)
 		return
 	}
-	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp.Dashboard))
+	log.Printf("[INFO] Received Dashboard: %s", dashboardLogString(getDashboardResp.Dashboard))
 
 	dashboard, diags := flattenDashboard(ctx, DashboardResourceModel{}, getDashboardResp)
 	if diags.HasError() {

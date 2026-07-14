@@ -75,12 +75,6 @@ func TestNewDashboardOpenAPIReplaceRequest(t *testing.T) {
 	}
 }
 
-func TestDashboardProtoToOpenAPIRequiresDashboard(t *testing.T) {
-	if _, err := dashboardProtoToOpenAPI(nil); err == nil {
-		t.Fatal("expected an error for nil dashboard")
-	}
-}
-
 func TestDashboardOpenAPIGetResponseToReadResult(t *testing.T) {
 	accessPolicy := `{"version":"2025-01-01"}`
 	openAPIResponse := &dashboardservice.GetDashboardResponse{
@@ -98,11 +92,11 @@ func TestDashboardOpenAPIGetResponseToReadResult(t *testing.T) {
 		t.Fatalf("unexpected error converting dashboard response: %s", err)
 	}
 
-	if got.Dashboard.GetId().GetValue() != openAPIResponse.Dashboard.GetId() {
-		t.Fatalf("expected id %q, got %q", openAPIResponse.Dashboard.GetId(), got.Dashboard.GetId().GetValue())
+	if got.Dashboard.GetId() != openAPIResponse.Dashboard.GetId() {
+		t.Fatalf("expected id %q, got %q", openAPIResponse.Dashboard.GetId(), got.Dashboard.GetId())
 	}
-	if got.Dashboard.GetName().GetValue() != openAPIResponse.Dashboard.GetName() {
-		t.Fatalf("expected name %q, got %q", openAPIResponse.Dashboard.GetName(), got.Dashboard.GetName().GetValue())
+	if got.Dashboard.GetName() != openAPIResponse.Dashboard.GetName() {
+		t.Fatalf("expected name %q, got %q", openAPIResponse.Dashboard.GetName(), got.Dashboard.GetName())
 	}
 	if got.AccessPolicy == nil || *got.AccessPolicy != accessPolicy {
 		t.Fatalf("expected access policy %q, got %v", accessPolicy, got.AccessPolicy)
