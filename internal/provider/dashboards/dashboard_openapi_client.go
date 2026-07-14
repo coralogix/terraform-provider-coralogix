@@ -16,9 +16,13 @@ package dashboards
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
+	"strings"
+	"unicode"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
@@ -117,6 +121,7 @@ func (c *dashboardOpenAPIClient) Delete(ctx context.Context, id string) error {
 }
 
 func newDashboardOpenAPICreateRequest(dashboard dashboardservice.Dashboard, accessPolicy *string) dashboardservice.CreateDashboardRequestDataStructure {
+	discardOpenAPIAdditionalProperties(&dashboard)
 	request := dashboardservice.CreateDashboardRequestDataStructure{
 		Dashboard: dashboard,
 		RequestId: newDashboardOpenAPIRequestID(dashboardOpenAPIOperationCreate),
@@ -129,6 +134,7 @@ func newDashboardOpenAPICreateRequest(dashboard dashboardservice.Dashboard, acce
 }
 
 func newDashboardOpenAPIReplaceRequest(dashboard dashboardservice.Dashboard, accessPolicy *string) dashboardservice.ReplaceDashboardRequestDataStructure {
+	discardOpenAPIAdditionalProperties(&dashboard)
 	request := dashboardservice.ReplaceDashboardRequestDataStructure{
 		Dashboard: dashboard,
 		RequestId: newDashboardOpenAPIRequestID(dashboardOpenAPIOperationReplace),
@@ -138,6 +144,133 @@ func newDashboardOpenAPIReplaceRequest(dashboard dashboardservice.Dashboard, acc
 	}
 
 	return request
+}
+
+// discardOpenAPIAdditionalProperties restores protojson's historical
+// DiscardUnknown behavior for content_json. OpenAPI Generator captures unknown
+// JSON fields in AdditionalProperties, but the protobuf HTTP endpoint rejects
+// them when they are sent back.
+func discardOpenAPIAdditionalProperties(value any) {
+	discardAdditionalPropertiesValue(reflect.ValueOf(value))
+}
+
+// restoreOpenAPIProtoFieldNames promotes protobuf's accepted snake_case JSON
+// field names from AdditionalProperties into the generated OpenAPI model's
+// lowerCamelCase fields. This must run before unknown properties are discarded.
+func restoreOpenAPIProtoFieldNames(value any) error {
+	return restoreProtoFieldNamesValue(reflect.ValueOf(value))
+}
+
+func restoreProtoFieldNamesValue(value reflect.Value) error {
+	if !value.IsValid() {
+		return nil
+	}
+
+	switch value.Kind() {
+	case reflect.Interface, reflect.Pointer:
+		if value.IsNil() {
+			return nil
+		}
+		return restoreProtoFieldNamesValue(value.Elem())
+	case reflect.Struct:
+		if value.Type().PkgPath() != reflect.TypeOf(dashboardservice.Dashboard{}).PkgPath() {
+			return nil
+		}
+		if err := promoteProtoFieldAliases(value); err != nil {
+			return err
+		}
+		for i := 0; i < value.NumField(); i++ {
+			if err := restoreProtoFieldNamesValue(value.Field(i)); err != nil {
+				return err
+			}
+		}
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < value.Len(); i++ {
+			if err := restoreProtoFieldNamesValue(value.Index(i)); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func promoteProtoFieldAliases(value reflect.Value) error {
+	additionalProperties := value.FieldByName("AdditionalProperties")
+	if !additionalProperties.IsValid() || additionalProperties.IsNil() {
+		return nil
+	}
+
+	for i := 0; i < value.NumField(); i++ {
+		fieldDefinition := value.Type().Field(i)
+		jsonName := strings.Split(fieldDefinition.Tag.Get("json"), ",")[0]
+		if jsonName == "" || jsonName == "-" {
+			continue
+		}
+
+		alias := protobufJSONFieldName(jsonName)
+		additionalValue := additionalProperties.MapIndex(reflect.ValueOf(alias))
+		if !additionalValue.IsValid() {
+			continue
+		}
+
+		encoded, err := json.Marshal(additionalValue.Interface())
+		if err != nil {
+			return fmt.Errorf("marshal protobuf JSON field %q: %w", alias, err)
+		}
+		if err := json.Unmarshal(encoded, value.Field(i).Addr().Interface()); err != nil {
+			return fmt.Errorf("unmarshal protobuf JSON field %q: %w", alias, err)
+		}
+	}
+
+	return nil
+}
+
+func protobufJSONFieldName(jsonName string) string {
+	var result strings.Builder
+	for i, character := range jsonName {
+		if unicode.IsUpper(character) {
+			if i > 0 {
+				result.WriteByte('_')
+			}
+			character = unicode.ToLower(character)
+		}
+		result.WriteRune(character)
+	}
+	return result.String()
+}
+
+func discardAdditionalPropertiesValue(value reflect.Value) {
+	if !value.IsValid() {
+		return
+	}
+
+	switch value.Kind() {
+	case reflect.Interface, reflect.Pointer:
+		if !value.IsNil() {
+			discardAdditionalPropertiesValue(value.Elem())
+		}
+	case reflect.Struct:
+		if value.Type().PkgPath() != reflect.TypeOf(dashboardservice.Dashboard{}).PkgPath() {
+			return
+		}
+		for i := 0; i < value.NumField(); i++ {
+			field := value.Field(i)
+			if value.Type().Field(i).Name == "AdditionalProperties" && field.CanSet() {
+				field.SetZero()
+				continue
+			}
+			discardAdditionalPropertiesValue(field)
+		}
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < value.Len(); i++ {
+			discardAdditionalPropertiesValue(value.Index(i))
+		}
+	case reflect.Map:
+		for _, key := range value.MapKeys() {
+			discardAdditionalPropertiesValue(value.MapIndex(key))
+		}
+	}
 }
 
 func newDashboardOpenAPIRequestID(operation string) string {

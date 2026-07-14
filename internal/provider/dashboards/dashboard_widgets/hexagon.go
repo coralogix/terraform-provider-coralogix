@@ -716,10 +716,10 @@ func ExpandHexagon(ctx context.Context, hexagon *HexagonModel) (*dashboardservic
 			Max:           numberTypeToFloat64Pointer(hexagon.Max),
 			CustomUnit:    utils.TypeStringToStringPointer(hexagon.CustomUnit),
 			Decimal:       numberTypeToInt32Pointer(hexagon.Decimal),
-			LegendBy:      DashboardSchemaToProtoLegendBy[hexagon.LegendBy.ValueString()].Ptr(),
-			ThresholdType: DashboardSchemaToProtoThresholdType[hexagon.ThresholdType.ValueString()].Ptr(),
-			Unit:          DashboardSchemaToProtoUnit[hexagon.Unit.ValueString()].Ptr(),
-			DataModeType:  DashboardSchemaToProtoDataModeType[hexagon.DataModeType.ValueString()].Ptr(),
+			LegendBy:      OptionalEnumPointer(hexagon.LegendBy, DashboardSchemaToProtoLegendBy),
+			ThresholdType: OptionalEnumPointer(hexagon.ThresholdType, DashboardSchemaToProtoThresholdType),
+			Unit:          OptionalEnumPointer(hexagon.Unit, DashboardSchemaToProtoUnit),
+			DataModeType:  OptionalEnumPointer(hexagon.DataModeType, DashboardSchemaToProtoDataModeType),
 			Thresholds:    thresholds,
 			Legend:        legend,
 			Query:         query,
@@ -852,8 +852,8 @@ func expandHexagonMetricsQuery(ctx context.Context, queryMetrics *HexagonQueryMe
 		PromqlQuery:     ExpandPromqlQuery(queryMetrics.PromqlQuery),
 		Filters:         filters,
 		TimeFrame:       timeframe,
-		PromqlQueryType: DashboardSchemaToProtoPromQLQueryType[queryMetrics.PromqlQueryType.ValueString()].Ptr(),
-		Aggregation:     DashboardSchemaToProtoHexagonAggregation[queryMetrics.Aggregation.ValueString()].Ptr(),
+		PromqlQueryType: OptionalEnumPointer(queryMetrics.PromqlQueryType, DashboardSchemaToProtoPromQLQueryType),
+		Aggregation:     OptionalEnumPointer(queryMetrics.Aggregation, DashboardSchemaToProtoHexagonAggregation),
 	}, nil
 }
 

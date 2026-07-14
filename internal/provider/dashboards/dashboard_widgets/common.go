@@ -33,6 +33,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 var (
@@ -277,6 +279,87 @@ var (
 		"markdown",
 	}
 )
+
+// OptionalEnumPointer converts a Terraform string to an OpenAPI enum pointer.
+// Null and unknown values must remain absent instead of becoming a pointer to
+// the enum's empty Go value, which is not valid protobuf JSON.
+func OptionalEnumPointer[T ~string](value types.String, values map[string]T) *T {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+
+	converted, ok := values[value.ValueString()]
+	if !ok {
+		return nil
+	}
+
+	return &converted
+}
+
+func legacyDurationToOpenAPI(value, fieldName string) (*string, diag.Diagnostic) {
+	duration, diagnostic := utils.ParseDuration(value, fieldName)
+	if diagnostic != nil {
+		return nil, diagnostic
+	}
+
+	return durationToOpenAPI(*duration), nil
+}
+
+func durationToOpenAPI(duration time.Duration) *string {
+	encoded, err := protojson.Marshal(durationpb.New(duration))
+	if err != nil {
+		return nil
+	}
+
+	value := string(encoded[1 : len(encoded)-1])
+	return &value
+}
+
+func openAPIDurationToLegacy(value *string) basetypes.StringValue {
+	if value == nil {
+		return types.StringNull()
+	}
+
+	duration := new(durationpb.Duration)
+	if err := protojson.Unmarshal([]byte(fmt.Sprintf("%q", *value)), duration); err != nil {
+		return types.StringValue(*value)
+	}
+	if duration.Seconds == 0 && duration.Nanos == 0 {
+		return types.StringValue("seconds:0")
+	}
+
+	return types.StringValue(duration.String())
+}
+
+// GoDurationToOpenAPI converts the Go duration syntax used by bar-chart x-axis
+// intervals to the protobuf JSON duration syntax expected by the HTTP API.
+func GoDurationToOpenAPI(value types.String, fieldName string) (*string, diag.Diagnostic) {
+	if value.IsNull() || value.IsUnknown() {
+		return nil, nil
+	}
+
+	duration, err := time.ParseDuration(value.ValueString())
+	if err != nil {
+		return nil, diag.NewErrorDiagnostic(fmt.Sprintf("Error expand %s", fieldName), err.Error())
+	}
+
+	return durationToOpenAPI(duration), nil
+}
+
+// OpenAPIDurationToGo converts protobuf JSON duration syntax back to the Go
+// duration syntax historically stored for bar-chart x-axis intervals.
+func OpenAPIDurationToGo(value *string) basetypes.StringValue {
+	if value == nil {
+		return types.StringNull()
+	}
+
+	duration := new(durationpb.Duration)
+	if err := protojson.Unmarshal([]byte(fmt.Sprintf("%q", *value)), duration); err != nil {
+		return types.StringValue(*value)
+	}
+
+	return types.StringValue(duration.AsDuration().String())
+}
 
 type QueryMetricsModel struct {
 	PromqlQuery     types.String    `tfsdk:"promql_query"`
@@ -936,7 +1019,7 @@ func ExpandLegend(ctx context.Context, legend *LegendModel) (*dashboardservice.L
 		IsVisible:    legend.IsVisible.ValueBoolPointer(),
 		Columns:      columns,
 		GroupByQuery: legend.GroupByQuery.ValueBoolPointer(),
-		Placement:    DashboardLegendPlacementSchemaToProto[legend.Placement.ValueString()].Ptr(),
+		Placement:    OptionalEnumPointer(legend.Placement, DashboardLegendPlacementSchemaToProto),
 	}, nil
 }
 
@@ -1215,10 +1298,7 @@ func FlattenLogsFieldModel(field *dashboardservice.ObservationField) *Observatio
 }
 
 func flattenDuration(timeFrame *string) basetypes.StringValue {
-	if timeFrame == nil {
-		return types.StringNull()
-	}
-	return types.StringValue(*timeFrame)
+	return openAPIDurationToLegacy(timeFrame)
 }
 
 func flattenAbsoluteTimeFrame(ctx context.Context, timeFrame *dashboardservice.TimeFrame) (*TimeFrameModel, diag.Diagnostics) {
@@ -1578,7 +1658,7 @@ func ExpandSpansField(spansFilterField *SpansFieldModel) (*dashboardservice.Span
 	switch spansFilterField.Type.ValueString() {
 	case "metadata":
 		return &dashboardservice.SpanField{
-			MetadataField: DashboardSchemaToProtoSpanFieldMetadataField[spansFilterField.Value.ValueString()].Ptr(),
+			MetadataField: OptionalEnumPointer(spansFilterField.Value, DashboardSchemaToProtoSpanFieldMetadataField),
 		}, nil
 	case "tag":
 		return &dashboardservice.SpanField{
@@ -1774,10 +1854,11 @@ func ExpandDashboardTimeFrame(ctx context.Context, dashboard *dashboardservice.D
 }
 
 func expandRelativeTimeFrame(ctx context.Context, timeFrame *TimeFrameRelativeModel) (*string, diag.Diagnostics) {
-	if _, dg := utils.ParseDuration(timeFrame.Duration.ValueString(), "Relative Dashboard Time Frame"); dg != nil {
+	duration, dg := legacyDurationToOpenAPI(timeFrame.Duration.ValueString(), "Relative Dashboard Time Frame")
+	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
-	return timeFrame.Duration.ValueStringPointer(), nil
+	return duration, nil
 }
 
 func expandAbsoluteTimeFrame(ctx context.Context, timeFrame *TimeFrameAbsoluteModel) (*dashboardservice.TimeFrame, diag.Diagnostics) {
@@ -1840,12 +1921,13 @@ func ExpandResolution(ctx context.Context, resolution types.Object) (*dashboards
 	}
 
 	if !(resolutionModel.Interval.IsNull() || resolutionModel.Interval.IsUnknown()) {
-		if _, dg := utils.ParseDuration(resolutionModel.Interval.ValueString(), "resolution.interval"); dg != nil {
+		interval, dg := legacyDurationToOpenAPI(resolutionModel.Interval.ValueString(), "resolution.interval")
+		if dg != nil {
 			return nil, diag.Diagnostics{dg}
 		}
 
 		return &dashboardservice.LineChartResolution{
-			Interval: resolutionModel.Interval.ValueStringPointer(),
+			Interval: interval,
 		}, nil
 	}
 

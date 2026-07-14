@@ -282,15 +282,15 @@ func ExpandSpansAggregation(spansAggregation *SpansAggregationModel) (*dashboard
 	case "metric":
 		return &dashboardservice.SpansAggregation{
 			MetricAggregation: &dashboardservice.MetricAggregation{
-				MetricField:     DashboardSchemaToProtoSpansAggregationMetricField[spansAggregation.Field.ValueString()].Ptr(),
-				AggregationType: DashboardSchemaToProtoSpansAggregationMetricAggregationType[spansAggregation.AggregationType.ValueString()].Ptr(),
+				MetricField:     OptionalEnumPointer(spansAggregation.Field, DashboardSchemaToProtoSpansAggregationMetricField),
+				AggregationType: OptionalEnumPointer(spansAggregation.AggregationType, DashboardSchemaToProtoSpansAggregationMetricAggregationType),
 			},
 		}, nil
 	case "dimension":
 		return &dashboardservice.SpansAggregation{
 			DimensionAggregation: &dashboardservice.DimensionAggregation{
-				DimensionField:  DashboardProtoToSchemaSpansAggregationDimensionField[spansAggregation.Field.ValueString()].Ptr(),
-				AggregationType: DashboardSchemaToProtoSpansAggregationDimensionAggregationType[spansAggregation.AggregationType.ValueString()].Ptr(),
+				DimensionField:  OptionalEnumPointer(spansAggregation.Field, DashboardProtoToSchemaSpansAggregationDimensionField),
+				AggregationType: OptionalEnumPointer(spansAggregation.AggregationType, DashboardSchemaToProtoSpansAggregationDimensionAggregationType),
 			},
 		}, nil
 	default:

@@ -675,10 +675,10 @@ func ExpandDataTable(ctx context.Context, table *DataTableModel) (*dashboardserv
 		DataTable: &dashboardservice.DataTable{
 			Query:          query,
 			ResultsPerPage: int64ToInt32Pointer(table.ResultsPerPage),
-			RowStyle:       DashboardRowStyleSchemaToProto[table.RowStyle.ValueString()].Ptr(),
+			RowStyle:       OptionalEnumPointer(table.RowStyle, DashboardRowStyleSchemaToProto),
 			Columns:        columns,
 			OrderBy:        expandOrderBy(table.OrderBy),
-			DataModeType:   DashboardSchemaToProtoDataModeType[table.DataModeType.ValueString()].Ptr(),
+			DataModeType:   OptionalEnumPointer(table.DataModeType, DashboardSchemaToProtoDataModeType),
 		},
 	}, nil
 }
@@ -1000,7 +1000,7 @@ func expandOrderBy(orderBy *OrderByModel) *dashboardservice.OrderingField {
 	}
 	return &dashboardservice.OrderingField{
 		Field:          utils.TypeStringToStringPointer(orderBy.Field),
-		OrderDirection: DashboardOrderDirectionSchemaToProto[orderBy.OrderDirection.ValueString()].Ptr(),
+		OrderDirection: OptionalEnumPointer(orderBy.OrderDirection, DashboardOrderDirectionSchemaToProto),
 	}
 }
 

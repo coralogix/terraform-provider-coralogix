@@ -19,6 +19,7 @@ import (
 	"strings"
 	"testing"
 
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -99,3 +100,89 @@ func TestLogsAggregationValidator(t *testing.T) {
 	}
 }
 
+func TestOptionalEnumPointer(t *testing.T) {
+	tests := []struct {
+		name  string
+		value types.String
+		want  *dashboardservice.LegendPlacement
+	}{
+		{name: "null", value: types.StringNull()},
+		{name: "unknown", value: types.StringUnknown()},
+		{name: "invalid", value: types.StringValue("invalid")},
+		{
+			name:  "configured",
+			value: types.StringValue("auto"),
+			want:  dashboardservice.LEGENDPLACEMENT_LEGEND_PLACEMENT_AUTO.Ptr(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := OptionalEnumPointer(tt.value, DashboardLegendPlacementSchemaToProto)
+			if tt.want == nil {
+				if got != nil {
+					t.Fatalf("expected nil enum, got %q", *got)
+				}
+				return
+			}
+			if got == nil || *got != *tt.want {
+				t.Fatalf("expected enum %q, got %v", *tt.want, got)
+			}
+		})
+	}
+}
+
+func TestExpandLegendOmitsUnsetPlacement(t *testing.T) {
+	legend, diags := ExpandLegend(context.Background(), &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListNull(types.StringType),
+		GroupByQuery: types.BoolValue(false),
+		Placement:    types.StringNull(),
+	})
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if legend.Placement != nil {
+		t.Fatalf("expected placement to be omitted, got %q", *legend.Placement)
+	}
+}
+
+func TestLegacyDurationOpenAPIRoundTrip(t *testing.T) {
+	tests := []struct {
+		configured string
+		openAPI    string
+		state      string
+	}{
+		{configured: "seconds:900", openAPI: "900s", state: "seconds:900"},
+		{configured: "minutes:15", openAPI: "900s", state: "seconds:900"},
+		{configured: "seconds:0", openAPI: "0s", state: "seconds:0"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.configured, func(t *testing.T) {
+			got, diagnostic := legacyDurationToOpenAPI(tt.configured, "test duration")
+			if diagnostic != nil {
+				t.Fatalf("unexpected diagnostic: %s", diagnostic.Detail())
+			}
+			if got == nil || *got != tt.openAPI {
+				t.Fatalf("expected OpenAPI duration %q, got %v", tt.openAPI, got)
+			}
+			if state := openAPIDurationToLegacy(got); state.ValueString() != tt.state {
+				t.Fatalf("expected state duration %q, got %q", tt.state, state.ValueString())
+			}
+		})
+	}
+}
+
+func TestGoDurationOpenAPIRoundTrip(t *testing.T) {
+	got, diagnostic := GoDurationToOpenAPI(types.StringValue("1m0s"), "test interval")
+	if diagnostic != nil {
+		t.Fatalf("unexpected diagnostic: %s", diagnostic.Detail())
+	}
+	if got == nil || *got != "60s" {
+		t.Fatalf("expected OpenAPI duration %q, got %v", "60s", got)
+	}
+	if state := OpenAPIDurationToGo(got); state.ValueString() != "1m0s" {
+		t.Fatalf("expected state duration %q, got %q", "1m0s", state.ValueString())
+	}
+}

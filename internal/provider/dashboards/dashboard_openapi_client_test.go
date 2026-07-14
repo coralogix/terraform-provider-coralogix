@@ -15,6 +15,7 @@
 package dashboards
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -37,6 +38,80 @@ func TestNewDashboardOpenAPICreateRequest(t *testing.T) {
 		t.Fatalf("expected access policy %q, got %v", accessPolicy, request.AccessPolicy)
 	}
 	assertDashboardOpenAPIRequestID(t, request.RequestId, dashboardOpenAPIOperationCreate)
+}
+
+func TestNewDashboardOpenAPIRequestDiscardsUnknownProperties(t *testing.T) {
+	dashboard := dashboardservice.Dashboard{
+		Name: "test",
+		Layout: dashboardservice.Layout{
+			AdditionalProperties: map[string]interface{}{"unknownNested": true},
+		},
+		AdditionalProperties: map[string]interface{}{"unknownKey": "should-not-fail"},
+	}
+
+	request := newDashboardOpenAPICreateRequest(dashboard, nil)
+	content, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("failed to marshal request: %s", err)
+	}
+
+	for _, unknownField := range []string{"unknownKey", "unknownNested"} {
+		if strings.Contains(string(content), unknownField) {
+			t.Fatalf("expected %q to be discarded, got request %s", unknownField, content)
+		}
+	}
+}
+
+func TestRestoreOpenAPIProtoFieldNames(t *testing.T) {
+	content := []byte(`{
+		"name": "test",
+		"layout": {
+			"sections": [{
+				"rows": [{
+					"widgets": [{
+						"definition": {
+							"data_table": {
+								"results_per_page": 10,
+								"row_style": "ROW_STYLE_ONE_LINE"
+							}
+						}
+					}]
+				}]
+			}]
+		},
+		"unknownKey": "should-not-fail"
+	}`)
+
+	dashboard := new(dashboardservice.Dashboard)
+	if err := json.Unmarshal(content, dashboard); err != nil {
+		t.Fatalf("failed to unmarshal dashboard: %s", err)
+	}
+	if err := restoreOpenAPIProtoFieldNames(dashboard); err != nil {
+		t.Fatalf("failed to restore protobuf field names: %s", err)
+	}
+
+	definition := dashboard.Layout.Sections[0].Rows[0].Widgets[0].Definition
+	if definition.DataTable == nil {
+		t.Fatal("expected data_table to be promoted to dataTable")
+	}
+	if definition.DataTable.ResultsPerPage == nil || *definition.DataTable.ResultsPerPage != 10 {
+		t.Fatalf("expected results_per_page to be promoted, got %v", definition.DataTable.ResultsPerPage)
+	}
+	if definition.DataTable.RowStyle == nil || *definition.DataTable.RowStyle != dashboardservice.ROWSTYLE_ROW_STYLE_ONE_LINE {
+		t.Fatalf("expected row_style to be promoted, got %v", definition.DataTable.RowStyle)
+	}
+
+	request := newDashboardOpenAPICreateRequest(*dashboard, nil)
+	encoded, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("failed to marshal request: %s", err)
+	}
+	if strings.Contains(string(encoded), "unknownKey") {
+		t.Fatalf("expected unknown field to be discarded, got request %s", encoded)
+	}
+	if !strings.Contains(string(encoded), `"dataTable"`) {
+		t.Fatalf("expected normalized dataTable definition, got request %s", encoded)
+	}
 }
 
 func TestNewDashboardOpenAPIReplaceRequest(t *testing.T) {

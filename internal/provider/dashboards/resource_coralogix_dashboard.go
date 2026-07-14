@@ -890,6 +890,9 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 		if err := json.Unmarshal([]byte(plan.ContentJson.ValueString()), dashboard); err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error unmarshalling dashboard content json", err.Error())}
 		}
+		if err := restoreOpenAPIProtoFieldNames(dashboard); err != nil {
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error normalizing dashboard content json", err.Error())}
+		}
 
 		dashboard, diags := expandOpenAPIDashboardFolder(ctx, dashboard, plan.Folder)
 		if diags.HasError() {
@@ -1012,7 +1015,7 @@ func expandAnnotation(ctx context.Context, annotation DashboardAnnotationModel) 
 	}
 
 	return &dashboardservice.Annotation{
-		Id:      utils.TypeStringToStringPointer(annotation.ID),
+		Id:      dashboardwidgets.ExpandDashboardIDs(annotation.ID),
 		Name:    utils.TypeStringToStringPointer(annotation.Name),
 		Enabled: typeBoolToBoolPointer(annotation.Enabled),
 		Source:  source,
@@ -1646,15 +1649,15 @@ func expandHorizontalBarChart(ctx context.Context, chart *dashboardwidgets.Horiz
 			Query:             query,
 			StackDefinition:   expandHorizontalBarChartStackDefinition(chart.StackDefinition),
 			MaxBarsPerChart:   typeInt64ToInt32Pointer(chart.MaxBarsPerChart),
-			ScaleType:         dashboardwidgets.DashboardSchemaToProtoScaleType[chart.ScaleType.ValueString()].Ptr(),
+			ScaleType:         dashboardwidgets.OptionalEnumPointer(chart.ScaleType, dashboardwidgets.DashboardSchemaToProtoScaleType),
 			GroupNameTemplate: utils.TypeStringToStringPointer(chart.GroupNameTemplate),
-			Unit:              dashboardwidgets.DashboardSchemaToProtoUnit[chart.Unit.ValueString()].Ptr(),
+			Unit:              dashboardwidgets.OptionalEnumPointer(chart.Unit, dashboardwidgets.DashboardSchemaToProtoUnit),
 			ColorsBy:          expandColorsBy(chart.ColorsBy),
 			DisplayOnBar:      typeBoolToBoolPointer(chart.DisplayOnBar),
 			YAxisViewBy:       expandYAxisViewBy(chart.YAxisViewBy),
-			SortBy:            dashboardwidgets.DashboardSchemaToProtoSortBy[chart.SortBy.ValueString()].Ptr(),
+			SortBy:            dashboardwidgets.OptionalEnumPointer(chart.SortBy, dashboardwidgets.DashboardSchemaToProtoSortBy),
 			ColorScheme:       utils.TypeStringToStringPointer(chart.ColorScheme),
-			DataModeType:      dashboardwidgets.DashboardSchemaToProtoDataModeType[chart.DataModeType.ValueString()].Ptr(),
+			DataModeType:      dashboardwidgets.OptionalEnumPointer(chart.DataModeType, dashboardwidgets.DashboardSchemaToProtoDataModeType),
 		},
 	}, nil
 }
@@ -1691,9 +1694,9 @@ func expandPieChart(ctx context.Context, pieChart *dashboardwidgets.PieChartMode
 			LabelDefinition:    expandLabelDefinition(pieChart.LabelDefinition),
 			ShowLegend:         typeBoolToBoolPointer(pieChart.ShowLegend),
 			GroupNameTemplate:  utils.TypeStringToStringPointer(pieChart.GroupNameTemplate),
-			Unit:               dashboardwidgets.DashboardSchemaToProtoUnit[pieChart.Unit.ValueString()].Ptr(),
+			Unit:               dashboardwidgets.OptionalEnumPointer(pieChart.Unit, dashboardwidgets.DashboardSchemaToProtoUnit),
 			ColorScheme:        utils.TypeStringToStringPointer(pieChart.ColorScheme),
-			DataModeType:       dashboardwidgets.DashboardSchemaToProtoDataModeType[pieChart.DataModeType.ValueString()].Ptr(),
+			DataModeType:       dashboardwidgets.OptionalEnumPointer(pieChart.DataModeType, dashboardwidgets.DashboardSchemaToProtoDataModeType),
 		},
 	}, nil
 }
@@ -1737,7 +1740,7 @@ func expandLabelDefinition(labelDefinition *dashboardwidgets.LabelDefinitionMode
 	}
 
 	return &dashboardservice.WidgetsPieChartLabelDefinition{
-		LabelSource:    dashboardwidgets.DashboardSchemaToProtoPieChartLabelSource[labelDefinition.LabelSource.ValueString()].Ptr(),
+		LabelSource:    dashboardwidgets.OptionalEnumPointer(labelDefinition.LabelSource, dashboardwidgets.DashboardSchemaToProtoPieChartLabelSource),
 		IsVisible:      typeBoolToBoolPointer(labelDefinition.IsVisible),
 		ShowName:       typeBoolToBoolPointer(labelDefinition.ShowName),
 		ShowValue:      typeBoolToBoolPointer(labelDefinition.ShowValue),
@@ -1765,11 +1768,11 @@ func expandGauge(ctx context.Context, gauge *dashboardwidgets.GaugeModel) (*dash
 			Max:               typeFloat64ToFloat64Pointer(gauge.Max),
 			ShowInnerArc:      typeBoolToBoolPointer(gauge.ShowInnerArc),
 			ShowOuterArc:      typeBoolToBoolPointer(gauge.ShowOuterArc),
-			Unit:              dashboardwidgets.DashboardSchemaToProtoGaugeUnit[gauge.Unit.ValueString()].Ptr(),
+			Unit:              dashboardwidgets.OptionalEnumPointer(gauge.Unit, dashboardwidgets.DashboardSchemaToProtoGaugeUnit),
 			Thresholds:        thresholds,
-			DataModeType:      dashboardwidgets.DashboardSchemaToProtoDataModeType[gauge.DataModeType.ValueString()].Ptr(),
-			ThresholdBy:       dashboardwidgets.DashboardSchemaToProtoGaugeThresholdBy[gauge.ThresholdBy.ValueString()].Ptr(),
-			ThresholdType:     dashboardwidgets.DashboardSchemaToProtoThresholdType[gauge.ThresholdType.ValueString()].Ptr(),
+			DataModeType:      dashboardwidgets.OptionalEnumPointer(gauge.DataModeType, dashboardwidgets.DashboardSchemaToProtoDataModeType),
+			ThresholdBy:       dashboardwidgets.OptionalEnumPointer(gauge.ThresholdBy, dashboardwidgets.DashboardSchemaToProtoGaugeThresholdBy),
+			ThresholdType:     dashboardwidgets.OptionalEnumPointer(gauge.ThresholdType, dashboardwidgets.DashboardSchemaToProtoThresholdType),
 			DisplaySeriesName: typeBoolToBoolPointer(gauge.DisplaySeriesName),
 			Decimal:           typeNumberToInt32Pointer(gauge.Decimal),
 		},
@@ -1920,7 +1923,7 @@ func expandMultiSelectSourceQuery(ctx context.Context, sourceQuery types.Object)
 	return &dashboardservice.MultiSelectSource{
 		Query: &dashboardservice.MultiSelectQuerySource{
 			Query:               query,
-			RefreshStrategy:     dashboardwidgets.DashboardSchemaToProtoRefreshStrategy[queryObject.RefreshStrategy.ValueString()].Ptr(),
+			RefreshStrategy:     dashboardwidgets.OptionalEnumPointer(queryObject.RefreshStrategy, dashboardwidgets.DashboardSchemaToProtoRefreshStrategy),
 			ValueDisplayOptions: valueDisplayOptions,
 		},
 	}, nil
@@ -2350,7 +2353,7 @@ func expandGaugeQueryMetrics(ctx context.Context, gaugeQueryMetrics *dashboardwi
 
 	return &dashboardservice.GaugeMetricsQuery{
 		PromqlQuery: dashboardwidgets.ExpandPromqlQuery(gaugeQueryMetrics.PromqlQuery),
-		Aggregation: dashboardwidgets.DashboardSchemaToProtoGaugeAggregation[gaugeQueryMetrics.Aggregation.ValueString()].Ptr(),
+		Aggregation: dashboardwidgets.OptionalEnumPointer(gaugeQueryMetrics.Aggregation, dashboardwidgets.DashboardSchemaToProtoGaugeAggregation),
 		Filters:     filters,
 		TimeFrame:   timeFrame,
 	}, nil
@@ -2399,13 +2402,13 @@ func expandBarChart(ctx context.Context, chart *dashboardwidgets.BarChartModel) 
 			MaxBarsPerChart:   typeInt64ToInt32Pointer(chart.MaxBarsPerChart),
 			GroupNameTemplate: utils.TypeStringToStringPointer(chart.GroupNameTemplate),
 			StackDefinition:   expandBarChartStackDefinition(chart.StackDefinition),
-			ScaleType:         dashboardwidgets.DashboardSchemaToProtoScaleType[chart.ScaleType.ValueString()].Ptr(),
+			ScaleType:         dashboardwidgets.OptionalEnumPointer(chart.ScaleType, dashboardwidgets.DashboardSchemaToProtoScaleType),
 			ColorsBy:          expandColorsBy(chart.ColorsBy),
 			XAxis:             xaxis,
-			Unit:              dashboardwidgets.DashboardSchemaToProtoUnit[chart.Unit.ValueString()].Ptr(),
-			SortBy:            dashboardwidgets.DashboardSchemaToProtoSortBy[chart.SortBy.ValueString()].Ptr(),
+			Unit:              dashboardwidgets.OptionalEnumPointer(chart.Unit, dashboardwidgets.DashboardSchemaToProtoUnit),
+			SortBy:            dashboardwidgets.OptionalEnumPointer(chart.SortBy, dashboardwidgets.DashboardSchemaToProtoSortBy),
 			ColorScheme:       utils.TypeStringToStringPointer(chart.ColorScheme),
-			DataModeType:      dashboardwidgets.DashboardSchemaToProtoDataModeType[chart.DataModeType.ValueString()].Ptr(),
+			DataModeType:      dashboardwidgets.OptionalEnumPointer(chart.DataModeType, dashboardwidgets.DashboardSchemaToProtoDataModeType),
 		},
 	}, nil
 }
@@ -2436,9 +2439,13 @@ func expandXAis(xaxis *dashboardwidgets.BarChartXAxisModel) (*dashboardservice.X
 
 	switch {
 	case xaxis.Time != nil:
+		interval, diagnostic := dashboardwidgets.GoDurationToOpenAPI(xaxis.Time.Interval, "bar chart x axis")
+		if diagnostic != nil {
+			return nil, diagnostic
+		}
 		return &dashboardservice.XAxis{
 			Time: &dashboardservice.XAxisByTime{
-				Interval:         utils.TypeStringToStringPointer(xaxis.Time.Interval),
+				Interval:         interval,
 				BucketsPresented: typeInt64ToInt32Pointer(xaxis.Time.BucketsPresented),
 			},
 		}, nil
@@ -4962,7 +4969,7 @@ func flattenBarChartXAxis(axis *dashboardservice.XAxis) (*dashboardwidgets.BarCh
 	case axis.Time != nil:
 		return &dashboardwidgets.BarChartXAxisModel{
 			Time: &dashboardwidgets.BarChartXAxisTimeModel{
-				Interval:         utils.StringPointerToTypeString(axis.Time.Interval),
+				Interval:         dashboardwidgets.OpenAPIDurationToGo(axis.Time.Interval),
 				BucketsPresented: int32PointerToTypeInt64(axis.Time.BucketsPresented),
 			},
 		}, nil

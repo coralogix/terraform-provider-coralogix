@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -76,6 +77,44 @@ func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
 			}
 			if got == nil || *got != *tt.want {
 				t.Fatalf("expected access policy %q, got %v", *tt.want, got)
+			}
+		})
+	}
+}
+
+func TestExpandAnnotationID(t *testing.T) {
+	tests := []struct {
+		name   string
+		id     types.String
+		wantID string
+	}{
+		{name: "generates ID when omitted", id: types.StringNull()},
+		{name: "preserves existing ID", id: types.StringValue("existing-id"), wantID: "existing-id"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			annotation, diags := expandAnnotation(context.Background(), DashboardAnnotationModel{
+				ID:      tt.id,
+				Name:    types.StringValue("test"),
+				Enabled: types.BoolValue(true),
+				Source:  types.ObjectNull(annotationSourceModelAttr()),
+			})
+			if diags.HasError() {
+				t.Fatalf("unexpected diagnostics: %v", diags)
+			}
+			if annotation.Id == nil {
+				t.Fatal("expected annotation ID, got nil")
+			}
+
+			if tt.wantID != "" {
+				if *annotation.Id != tt.wantID {
+					t.Fatalf("expected ID %q, got %q", tt.wantID, *annotation.Id)
+				}
+				return
+			}
+			if _, err := uuid.Parse(*annotation.Id); err != nil {
+				t.Fatalf("expected generated UUID, got %q: %s", *annotation.Id, err)
 			}
 		})
 	}

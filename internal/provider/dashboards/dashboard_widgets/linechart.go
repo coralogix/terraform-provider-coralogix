@@ -442,7 +442,7 @@ func flattenLineChartQueryResolution(ctx context.Context, resolution *dashboards
 
 	interval := types.StringNull()
 	if resolution.Interval != nil {
-		interval = types.StringPointerValue(resolution.Interval)
+		interval = flattenDuration(resolution.Interval)
 	}
 	bucketsPresented := int32PointerToInt64Type(resolution.BucketsPresented)
 
@@ -689,7 +689,7 @@ func expandLineChartTooltip(tooltip *TooltipModel) *dashboardservice.Tooltip {
 
 	return &dashboardservice.Tooltip{
 		ShowLabels: tooltip.ShowLabels.ValueBoolPointer(),
-		Type:       DashboardSchemaToProtoTooltipType[tooltip.Type.ValueString()].Ptr(),
+		Type:       OptionalEnumPointer(tooltip.Type, DashboardSchemaToProtoTooltipType),
 	}
 }
 
@@ -736,13 +736,13 @@ func expandLineChartQueryDefinition(ctx context.Context, queryDefinition *LineCh
 		Query:              query,
 		SeriesNameTemplate: utils.TypeStringToStringPointer(queryDefinition.SeriesNameTemplate),
 		SeriesCountLimit:   int64ToStringPointer(queryDefinition.SeriesCountLimit),
-		Unit:               DashboardSchemaToProtoUnit[queryDefinition.Unit.ValueString()].Ptr(),
-		ScaleType:          DashboardSchemaToProtoScaleType[queryDefinition.ScaleType.ValueString()].Ptr(),
+		Unit:               OptionalEnumPointer(queryDefinition.Unit, DashboardSchemaToProtoUnit),
+		ScaleType:          OptionalEnumPointer(queryDefinition.ScaleType, DashboardSchemaToProtoScaleType),
 		Name:               utils.TypeStringToStringPointer(queryDefinition.Name),
 		IsVisible:          queryDefinition.IsVisible.ValueBoolPointer(),
 		ColorScheme:        utils.TypeStringToStringPointer(queryDefinition.ColorScheme),
 		Resolution:         resolution,
-		DataModeType:       DashboardSchemaToProtoDataModeType[queryDefinition.DataModeType.ValueString()].Ptr(),
+		DataModeType:       OptionalEnumPointer(queryDefinition.DataModeType, DashboardSchemaToProtoDataModeType),
 	}, nil
 }
 
