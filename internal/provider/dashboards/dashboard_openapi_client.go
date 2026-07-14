@@ -17,6 +17,7 @@ package dashboards
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -37,6 +38,8 @@ const (
 
 	dashboardOpenAPIRequestIDPrefix = "terraform-provider-coralogix-dashboard"
 )
+
+var errDashboardOpenAPINotFound = errors.New("dashboard not found")
 
 type dashboardOpenAPIClient struct {
 	client *dashboardservice.DashboardServiceAPIService
@@ -64,6 +67,13 @@ func (c *dashboardOpenAPIClient) Get(ctx context.Context, id string) (*dashboard
 	response, httpResponse, err := c.client.
 		DashboardsServiceGetDashboard(ctx, id).
 		Execute()
+	if isDashboardOpenAPINotFound(httpResponse, err) {
+		formattedErr := formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationGet, id)
+		if formattedErr == nil {
+			return response, errDashboardOpenAPINotFound
+		}
+		return response, fmt.Errorf("%w: %s", errDashboardOpenAPINotFound, formattedErr)
+	}
 
 	return response, formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationGet, id)
 }
@@ -155,6 +165,27 @@ func dashboardProtoToOpenAPI(dashboard *cxsdk.Dashboard) (dashboardservice.Dashb
 	}
 
 	return openAPIDashboard, nil
+}
+
+// dashboardOpenAPIGetResponseToProto is a migration-only bridge while the
+// dashboard schema and flatteners still use the protobuf SDK model. Remove it
+// once the resource boundary is fully OpenAPI-native.
+func dashboardOpenAPIGetResponseToProto(response *dashboardservice.GetDashboardResponse) (*cxsdk.GetDashboardResponse, error) {
+	if response == nil {
+		return nil, fmt.Errorf("dashboard response is required")
+	}
+
+	openAPIJSON, err := json.Marshal(response)
+	if err != nil {
+		return nil, fmt.Errorf("marshal OpenAPI dashboard response for protobuf flattener: %w", err)
+	}
+
+	var protoResponse cxsdk.GetDashboardResponse
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(openAPIJSON, &protoResponse); err != nil {
+		return nil, fmt.Errorf("unmarshal OpenAPI dashboard response into protobuf flattener: %w", err)
+	}
+
+	return &protoResponse, nil
 }
 
 func formatDashboardOpenAPIError(httpResponse *http.Response, err error, operation string, request any) error {

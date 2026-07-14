@@ -16,6 +16,7 @@ package dashboards
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -34,7 +35,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -299,7 +299,8 @@ func NewDashboardResource() resource.Resource {
 }
 
 type DashboardResource struct {
-	client *cxsdk.DashboardsClient
+	client        *cxsdk.DashboardsClient
+	openAPIClient *dashboardOpenAPIClient
 }
 
 func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
@@ -315,19 +316,19 @@ func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.St
 		2: {
 			PriorSchema: &schemaV2,
 			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				upgradeDashboardStateV3ToV4(ctx, req, resp, r.client)
+				upgradeDashboardStateV3ToV4(ctx, req, resp, r.openAPIClient)
 			},
 		},
 		3: {
 			PriorSchema: &schemaV3,
 			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				upgradeDashboardStateV3ToV4(ctx, req, resp, r.client)
+				upgradeDashboardStateV3ToV4(ctx, req, resp, r.openAPIClient)
 			},
 		},
 	}
 }
 
-func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse, client *cxsdk.DashboardsClient) {
+func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse, client *dashboardOpenAPIClient) {
 	log.Printf("[INFO] Upgrading state from v%v", req.State.Schema.GetVersion())
 	var state DashboardResourceModel
 	diags := req.State.Get(ctx, &state)
@@ -339,11 +340,10 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 	//Get refreshed Dashboard value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
-	getDashboardReq := &cxsdk.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
-	getDashboardResp, err := client.Get(ctx, getDashboardReq)
+	openAPIGetDashboardResp, err := client.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if errors.Is(err, errDashboardOpenAPINotFound) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Dashboard %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -352,9 +352,14 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
-				utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+				err.Error(),
 			)
 		}
+		return
+	}
+	getDashboardResp, err := dashboardOpenAPIGetResponseToProto(openAPIGetDashboardResp)
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading Dashboard", err.Error())
 		return
 	}
 	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
@@ -6390,11 +6395,10 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 	//Get refreshed Dashboard value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
-	getDashboardReq := &cxsdk.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
-	getDashboardResp, err := r.client.Get(ctx, getDashboardReq)
+	openAPIGetDashboardResp, err := r.openAPIClient.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if errors.Is(err, errDashboardOpenAPINotFound) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Dashboard %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -6403,9 +6407,14 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
-				utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+				err.Error(),
 			)
 		}
+		return
+	}
+	getDashboardResp, err := dashboardOpenAPIGetResponseToProto(openAPIGetDashboardResp)
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading Dashboard", err.Error())
 		return
 	}
 	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
@@ -6521,4 +6530,5 @@ func (r *DashboardResource) Configure(_ context.Context, req resource.ConfigureR
 	}
 
 	r.client = clientSet.Dashboards()
+	r.openAPIClient = newDashboardOpenAPIClient(clientSet.DashboardsOpenAPI())
 }
