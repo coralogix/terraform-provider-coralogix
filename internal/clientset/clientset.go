@@ -55,7 +55,6 @@ type ClientSet struct {
 	enrichments    *cxsdk.EnrichmentsClient
 	dataSet        *cxsdk.DataSetClient
 	legacySlos     *cxsdk.LegacySLOsClient
-	dashboards     *cxsdk.DashboardsClient
 	ruleGroups     *cxsdk.RuleGroupsClient
 	users          *UsersClient
 	events2Metrics *cxsdk.Events2MetricsClient
@@ -126,10 +125,6 @@ func (c *ClientSet) Enrichments() *cxsdk.EnrichmentsClient {
 
 func (c *ClientSet) DataSet() *cxsdk.DataSetClient {
 	return c.dataSet
-}
-
-func (c *ClientSet) Dashboards() *cxsdk.DashboardsClient {
-	return c.dashboards
 }
 
 func (c *ClientSet) DashboardsOpenAPI() *dashboardsOpenapi.DashboardServiceAPIService {
@@ -263,8 +258,6 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 
 		users: NewUsersClient(region, apiKey),
 
-		// TODO
-		dashboards:     cxsdk.NewDashboardsClient(grpcCreator),
 		events2Metrics: cxsdk.NewEvents2MetricsClient(grpcCreator),
 		groupGrpc:      cxsdk.NewGroupsClient(grpcCreator),
 

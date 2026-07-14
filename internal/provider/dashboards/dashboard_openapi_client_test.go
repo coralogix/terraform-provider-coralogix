@@ -20,10 +20,8 @@ import (
 	"strings"
 	"testing"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	"github.com/google/uuid"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestNewDashboardOpenAPICreateRequest(t *testing.T) {
@@ -77,38 +75,13 @@ func TestNewDashboardOpenAPIReplaceRequest(t *testing.T) {
 	}
 }
 
-func TestDashboardProtoToOpenAPI(t *testing.T) {
-	description := "migration bridge"
-	protoDashboard := &cxsdk.Dashboard{
-		Id:          wrapperspb.String("dashboard-id"),
-		Name:        wrapperspb.String("dashboard-name"),
-		Description: wrapperspb.String(description),
-		Layout:      &cxsdk.DashboardLayout{},
-	}
-
-	got, err := dashboardProtoToOpenAPI(protoDashboard)
-	if err != nil {
-		t.Fatalf("unexpected error converting dashboard: %s", err)
-	}
-
-	if got.GetId() != protoDashboard.GetId().GetValue() {
-		t.Fatalf("expected id %q, got %q", protoDashboard.GetId().GetValue(), got.GetId())
-	}
-	if got.GetName() != protoDashboard.GetName().GetValue() {
-		t.Fatalf("expected name %q, got %q", protoDashboard.GetName().GetValue(), got.GetName())
-	}
-	if got.GetDescription() != description {
-		t.Fatalf("expected description %q, got %q", description, got.GetDescription())
-	}
-}
-
 func TestDashboardProtoToOpenAPIRequiresDashboard(t *testing.T) {
 	if _, err := dashboardProtoToOpenAPI(nil); err == nil {
 		t.Fatal("expected an error for nil dashboard")
 	}
 }
 
-func TestDashboardOpenAPIGetResponseToProto(t *testing.T) {
+func TestDashboardOpenAPIGetResponseToReadResult(t *testing.T) {
 	accessPolicy := `{"version":"2025-01-01"}`
 	openAPIResponse := &dashboardservice.GetDashboardResponse{
 		AccessPolicy: &accessPolicy,
@@ -120,25 +93,31 @@ func TestDashboardOpenAPIGetResponseToProto(t *testing.T) {
 		},
 	}
 
-	got, err := dashboardOpenAPIGetResponseToProto(openAPIResponse)
+	got, err := dashboardOpenAPIGetResponseToReadResult(openAPIResponse)
 	if err != nil {
 		t.Fatalf("unexpected error converting dashboard response: %s", err)
 	}
 
-	if got.GetDashboard().GetId().GetValue() != openAPIResponse.Dashboard.GetId() {
-		t.Fatalf("expected id %q, got %q", openAPIResponse.Dashboard.GetId(), got.GetDashboard().GetId().GetValue())
+	if got.Dashboard.GetId().GetValue() != openAPIResponse.Dashboard.GetId() {
+		t.Fatalf("expected id %q, got %q", openAPIResponse.Dashboard.GetId(), got.Dashboard.GetId().GetValue())
 	}
-	if got.GetDashboard().GetName().GetValue() != openAPIResponse.Dashboard.GetName() {
-		t.Fatalf("expected name %q, got %q", openAPIResponse.Dashboard.GetName(), got.GetDashboard().GetName().GetValue())
+	if got.Dashboard.GetName().GetValue() != openAPIResponse.Dashboard.GetName() {
+		t.Fatalf("expected name %q, got %q", openAPIResponse.Dashboard.GetName(), got.Dashboard.GetName().GetValue())
 	}
 	if got.AccessPolicy == nil || *got.AccessPolicy != accessPolicy {
 		t.Fatalf("expected access policy %q, got %v", accessPolicy, got.AccessPolicy)
 	}
 }
 
-func TestDashboardOpenAPIGetResponseToProtoRequiresResponse(t *testing.T) {
-	if _, err := dashboardOpenAPIGetResponseToProto(nil); err == nil {
+func TestDashboardOpenAPIGetResponseToReadResultRequiresResponse(t *testing.T) {
+	if _, err := dashboardOpenAPIGetResponseToReadResult(nil); err == nil {
 		t.Fatal("expected an error for nil response")
+	}
+}
+
+func TestDashboardOpenAPIGetResponseToReadResultRequiresDashboard(t *testing.T) {
+	if _, err := dashboardOpenAPIGetResponseToReadResult(&dashboardservice.GetDashboardResponse{}); err == nil {
+		t.Fatal("expected an error for missing dashboard")
 	}
 }
 

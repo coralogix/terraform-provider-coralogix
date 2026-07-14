@@ -22,10 +22,9 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var _ datasource.DataSourceWithConfigure = &DashboardDataSource{}
@@ -77,7 +76,7 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 	//Get refreshed Dashboard value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
-	openAPIGetDashboardResp, err := d.client.Get(ctx, id)
+	getDashboardResp, err := d.client.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -86,12 +85,7 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 		)
 		return
 	}
-	getDashboardResp, err := dashboardOpenAPIGetResponseToProto(openAPIGetDashboardResp)
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading Dashboard", err.Error())
-		return
-	}
-	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
+	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp.Dashboard))
 
 	dashboard, diags := flattenDashboard(ctx, DashboardResourceModel{}, getDashboardResp)
 	if diags.HasError() {

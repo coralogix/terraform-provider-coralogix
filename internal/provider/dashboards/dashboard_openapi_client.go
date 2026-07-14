@@ -45,6 +45,11 @@ type dashboardOpenAPIClient struct {
 	client *dashboardservice.DashboardServiceAPIService
 }
 
+type dashboardOpenAPIReadResult struct {
+	Dashboard    *cxsdk.Dashboard
+	AccessPolicy *string
+}
+
 func newDashboardOpenAPIClient(client *dashboardservice.DashboardServiceAPIService) *dashboardOpenAPIClient {
 	return &dashboardOpenAPIClient{client: client}
 }
@@ -63,19 +68,23 @@ func (c *dashboardOpenAPIClient) Create(ctx context.Context, dashboard *cxsdk.Da
 	return response, formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationCreate, request)
 }
 
-func (c *dashboardOpenAPIClient) Get(ctx context.Context, id string) (*dashboardservice.GetDashboardResponse, error) {
+func (c *dashboardOpenAPIClient) Get(ctx context.Context, id string) (*dashboardOpenAPIReadResult, error) {
 	response, httpResponse, err := c.client.
 		DashboardsServiceGetDashboard(ctx, id).
 		Execute()
 	if isDashboardOpenAPINotFound(httpResponse, err) {
 		formattedErr := formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationGet, id)
 		if formattedErr == nil {
-			return response, errDashboardOpenAPINotFound
+			return nil, errDashboardOpenAPINotFound
 		}
-		return response, fmt.Errorf("%w: %s", errDashboardOpenAPINotFound, formattedErr)
+		return nil, fmt.Errorf("%w: %s", errDashboardOpenAPINotFound, formattedErr)
 	}
 
-	return response, formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationGet, id)
+	if err := formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationGet, id); err != nil {
+		return nil, err
+	}
+
+	return dashboardOpenAPIGetResponseToReadResult(response)
 }
 
 func (c *dashboardOpenAPIClient) Replace(ctx context.Context, dashboard *cxsdk.Dashboard, accessPolicy *string) error {
@@ -167,25 +176,31 @@ func dashboardProtoToOpenAPI(dashboard *cxsdk.Dashboard) (dashboardservice.Dashb
 	return openAPIDashboard, nil
 }
 
-// dashboardOpenAPIGetResponseToProto is a migration-only bridge while the
-// dashboard schema and flatteners still use the protobuf SDK model. Remove it
-// once the resource boundary is fully OpenAPI-native.
-func dashboardOpenAPIGetResponseToProto(response *dashboardservice.GetDashboardResponse) (*cxsdk.GetDashboardResponse, error) {
+// dashboardOpenAPIGetResponseToReadResult is a migration-only bridge while the
+// dashboard schema, widget helpers, and flatteners still use the protobuf SDK
+// dashboard model. Remove it once the resource boundary is fully OpenAPI-native.
+func dashboardOpenAPIGetResponseToReadResult(response *dashboardservice.GetDashboardResponse) (*dashboardOpenAPIReadResult, error) {
 	if response == nil {
 		return nil, fmt.Errorf("dashboard response is required")
 	}
+	if response.Dashboard == nil {
+		return nil, fmt.Errorf("dashboard response did not include dashboard")
+	}
 
-	openAPIJSON, err := json.Marshal(response)
+	openAPIJSON, err := json.Marshal(response.Dashboard)
 	if err != nil {
-		return nil, fmt.Errorf("marshal OpenAPI dashboard response for protobuf flattener: %w", err)
+		return nil, fmt.Errorf("marshal OpenAPI dashboard for protobuf flattener: %w", err)
 	}
 
-	var protoResponse cxsdk.GetDashboardResponse
-	if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(openAPIJSON, &protoResponse); err != nil {
-		return nil, fmt.Errorf("unmarshal OpenAPI dashboard response into protobuf flattener: %w", err)
+	var dashboard cxsdk.Dashboard
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(openAPIJSON, &dashboard); err != nil {
+		return nil, fmt.Errorf("unmarshal OpenAPI dashboard into protobuf flattener: %w", err)
 	}
 
-	return &protoResponse, nil
+	return &dashboardOpenAPIReadResult{
+		Dashboard:    &dashboard,
+		AccessPolicy: response.AccessPolicy,
+	}, nil
 }
 
 func formatDashboardOpenAPIError(httpResponse *http.Response, err error, operation string, request any) error {

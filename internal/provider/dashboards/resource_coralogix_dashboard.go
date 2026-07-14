@@ -299,7 +299,6 @@ func NewDashboardResource() resource.Resource {
 }
 
 type DashboardResource struct {
-	client        *cxsdk.DashboardsClient
 	openAPIClient *dashboardOpenAPIClient
 }
 
@@ -340,7 +339,7 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 	//Get refreshed Dashboard value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
-	openAPIGetDashboardResp, err := client.Get(ctx, id)
+	getDashboardResp, err := client.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if errors.Is(err, errDashboardOpenAPINotFound) {
@@ -357,12 +356,7 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 		}
 		return
 	}
-	getDashboardResp, err := dashboardOpenAPIGetResponseToProto(openAPIGetDashboardResp)
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading Dashboard", err.Error())
-		return
-	}
-	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
+	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp.Dashboard))
 
 	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp)
 	if diags != nil {
@@ -754,7 +748,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	openAPIGetDashboardResp, err := r.openAPIClient.Get(ctx, dashboardID)
+	getDashboardResp, err := r.openAPIClient.Get(ctx, dashboardID)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -763,12 +757,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		)
 		return
 	}
-	getDashboardResp, err := dashboardOpenAPIGetResponseToProto(openAPIGetDashboardResp)
-	if err != nil {
-		resp.Diagnostics.AddError("Error getting Dashboard", err.Error())
-		return
-	}
-	createDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
+	createDashboardRespStr := protojson.Format(getDashboardResp.Dashboard)
 	log.Printf("[INFO] Submitted new Dashboard: %s", createDashboardRespStr)
 
 	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp)
@@ -3298,8 +3287,8 @@ func expandDashboardFolder(ctx context.Context, dashboard *cxsdk.Dashboard, fold
 	return dashboard, nil
 }
 
-func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response *cxsdk.GetDashboardResponse) (*DashboardResourceModel, diag.Diagnostics) {
-	dashboard := response.GetDashboard()
+func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response *dashboardOpenAPIReadResult) (*DashboardResourceModel, diag.Diagnostics) {
+	dashboard := response.Dashboard
 	folder, diags := flattenDashboardFolder(ctx, plan.Folder, dashboard)
 	if diags.HasError() {
 		return nil, diags
@@ -6402,7 +6391,7 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 	//Get refreshed Dashboard value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
-	openAPIGetDashboardResp, err := r.openAPIClient.Get(ctx, id)
+	getDashboardResp, err := r.openAPIClient.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if errors.Is(err, errDashboardOpenAPINotFound) {
@@ -6419,12 +6408,7 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 		}
 		return
 	}
-	getDashboardResp, err := dashboardOpenAPIGetResponseToProto(openAPIGetDashboardResp)
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading Dashboard", err.Error())
-		return
-	}
-	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
+	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp.Dashboard))
 
 	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp)
 	if diags != nil {
@@ -6471,7 +6455,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	openAPIGetDashboardResp, err := r.openAPIClient.Get(ctx, plan.ID.ValueString())
+	getDashboardResp, err := r.openAPIClient.Get(ctx, plan.ID.ValueString())
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -6480,13 +6464,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		)
 		return
 	}
-	getDashboardResp, err := dashboardOpenAPIGetResponseToProto(openAPIGetDashboardResp)
-	if err != nil {
-		resp.Diagnostics.AddError("Error getting Dashboard", err.Error())
-		return
-	}
-
-	updateDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
+	updateDashboardRespStr := protojson.Format(getDashboardResp.Dashboard)
 	log.Printf("[INFO] Submitted updated Dashboard: %s", updateDashboardRespStr)
 
 	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp)
@@ -6534,6 +6512,5 @@ func (r *DashboardResource) Configure(_ context.Context, req resource.ConfigureR
 		return
 	}
 
-	r.client = clientSet.Dashboards()
 	r.openAPIClient = newDashboardOpenAPIClient(clientSet.DashboardsOpenAPI())
 }
