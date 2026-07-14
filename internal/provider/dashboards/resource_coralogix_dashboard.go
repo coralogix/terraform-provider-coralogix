@@ -6458,32 +6458,31 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	updateReq := &cxsdk.ReplaceDashboardRequest{
-		Dashboard:    dashboard,
-		AccessPolicy: dashboardAccessPolicyForConfiguredRequest(configAccessPolicy, plan.AccessPolicy),
-	}
-	reqStr := protojson.Format(updateReq)
-	log.Printf("[INFO] Updating Dashboard: %s", reqStr)
-	_, err := r.client.Replace(ctx, updateReq)
+	accessPolicy := dashboardAccessPolicyForConfiguredRequest(configAccessPolicy, plan.AccessPolicy)
+	dashboardStr := protojson.Format(dashboard)
+	log.Printf("[INFO] Updating Dashboard: %s", dashboardStr)
+	err := r.openAPIClient.Replace(ctx, dashboard, accessPolicy)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Dashboard",
-			utils.FormatRpcErrors(err, cxsdk.ReplaceDashboardRPC, reqStr),
+			err.Error(),
 		)
 		return
 	}
 
-	getDashboardReq := &cxsdk.GetDashboardRequest{
-		DashboardId: dashboard.GetId(),
-	}
-	getDashboardResp, err := r.client.Get(ctx, getDashboardReq)
+	openAPIGetDashboardResp, err := r.openAPIClient.Get(ctx, plan.ID.ValueString())
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
-			utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+			err.Error(),
 		)
+		return
+	}
+	getDashboardResp, err := dashboardOpenAPIGetResponseToProto(openAPIGetDashboardResp)
+	if err != nil {
+		resp.Diagnostics.AddError("Error getting Dashboard", err.Error())
 		return
 	}
 

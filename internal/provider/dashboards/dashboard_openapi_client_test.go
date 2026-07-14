@@ -43,16 +43,38 @@ func TestNewDashboardOpenAPICreateRequest(t *testing.T) {
 
 func TestNewDashboardOpenAPIReplaceRequest(t *testing.T) {
 	dashboard := dashboardservice.Dashboard{Name: "test"}
+	accessPolicy := `{"version":"2025-01-01"}`
 
-	request := newDashboardOpenAPIReplaceRequest(dashboard, nil)
+	tests := []struct {
+		name         string
+		accessPolicy *string
+	}{
+		{
+			name: "omits nil access policy",
+		},
+		{
+			name:         "includes configured access policy",
+			accessPolicy: &accessPolicy,
+		},
+	}
 
-	if request.Dashboard.Name != dashboard.Name {
-		t.Fatalf("expected dashboard name %q, got %q", dashboard.Name, request.Dashboard.Name)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := newDashboardOpenAPIReplaceRequest(dashboard, tt.accessPolicy)
+
+			if request.Dashboard.Name != dashboard.Name {
+				t.Fatalf("expected dashboard name %q, got %q", dashboard.Name, request.Dashboard.Name)
+			}
+			if tt.accessPolicy == nil {
+				if request.AccessPolicy != nil {
+					t.Fatalf("expected nil access policy, got %q", *request.AccessPolicy)
+				}
+			} else if request.AccessPolicy == nil || *request.AccessPolicy != *tt.accessPolicy {
+				t.Fatalf("expected access policy %q, got %v", *tt.accessPolicy, request.AccessPolicy)
+			}
+			assertDashboardOpenAPIRequestID(t, request.RequestId, dashboardOpenAPIOperationReplace)
+		})
 	}
-	if request.AccessPolicy != nil {
-		t.Fatalf("expected nil access policy, got %q", *request.AccessPolicy)
-	}
-	assertDashboardOpenAPIRequestID(t, request.RequestId, dashboardOpenAPIOperationReplace)
 }
 
 func TestDashboardProtoToOpenAPI(t *testing.T) {
