@@ -400,10 +400,10 @@ func FlattenDataTable(ctx context.Context, table *cxsdk.DashboardDataTable) (*Wi
 		DataTable: &DataTableModel{
 			Query:          query,
 			ResultsPerPage: utils.WrapperspbInt32ToTypeInt64(table.GetResultsPerPage()),
-			RowStyle:       types.StringValue(DashboardRowStyleProtoToSchema[table.GetRowStyle()]),
+			RowStyle:       types.StringValue(ProtoDashboardRowStyleProtoToSchema[table.GetRowStyle()]),
 			Columns:        columns,
 			OrderBy:        flattenOrderBy(table.GetOrderBy()),
-			DataModeType:   types.StringValue(DashboardProtoToSchemaDataModeType[table.GetDataModeType()]),
+			DataModeType:   types.StringValue(ProtoDashboardProtoToSchemaDataModeType[table.GetDataModeType()]),
 		},
 	}, nil
 }
@@ -437,12 +437,12 @@ func flattenDataTableDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.Dashbo
 		dataPrimeQuery = types.StringValue(dataPrime.GetDataprimeQuery().GetText())
 	}
 
-	filters, diags := FlattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
+	filters, diags := ProtoFlattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := FlattenTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	timeFrame, diags := ProtoFlattenTimeFrameSelect(ctx, dataPrime.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -461,7 +461,7 @@ func flattenDataTableLogsQuery(ctx context.Context, logs *cxsdk.DashboardDataTab
 		return nil, nil
 	}
 
-	filters, diags := FlattenLogsFilters(ctx, logs.GetFilters())
+	filters, diags := ProtoFlattenLogsFilters(ctx, logs.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -471,7 +471,7 @@ func flattenDataTableLogsQuery(ctx context.Context, logs *cxsdk.DashboardDataTab
 		return nil, diags
 	}
 
-	timeFrame, diags := FlattenTimeFrameSelect(ctx, logs.TimeFrame)
+	timeFrame, diags := ProtoFlattenTimeFrameSelect(ctx, logs.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -496,7 +496,7 @@ func flattenDataTableLogsQueryGrouping(ctx context.Context, grouping *cxsdk.Dash
 		return nil, diags
 	}
 
-	groupBys, diags := FlattenObservationFields(ctx, grouping.GetGroupBys())
+	groupBys, diags := ProtoFlattenObservationFields(ctx, grouping.GetGroupBys())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -512,18 +512,18 @@ func flattenDataTableMetricsQuery(ctx context.Context, metrics *cxsdk.DashboardD
 		return nil, nil
 	}
 
-	filters, diags := FlattenMetricsFilters(ctx, metrics.GetFilters())
+	filters, diags := ProtoFlattenMetricsFilters(ctx, metrics.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
-	timeFrame, diags := FlattenTimeFrameSelect(ctx, metrics.TimeFrame)
+	timeFrame, diags := ProtoFlattenTimeFrameSelect(ctx, metrics.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &DataTableQueryModel{
 		Metrics: &QueryMetricsModel{
-			PromqlQueryType: types.StringValue(DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
+			PromqlQueryType: types.StringValue(ProtoDashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
 			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Filters:         filters,
 			TimeFrame:       timeFrame,
@@ -536,7 +536,7 @@ func flattenDataTableSpansQuery(ctx context.Context, spans *cxsdk.DashboardDataT
 		return nil, nil
 	}
 
-	filters, diags := FlattenSpansFilters(ctx, spans.GetFilters())
+	filters, diags := ProtoFlattenSpansFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -546,7 +546,7 @@ func flattenDataTableSpansQuery(ctx context.Context, spans *cxsdk.DashboardDataT
 		return nil, diags
 	}
 
-	timeFrame, diags := FlattenTimeFrameSelect(ctx, spans.TimeFrame)
+	timeFrame, diags := ProtoFlattenTimeFrameSelect(ctx, spans.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -571,7 +571,7 @@ func flattenDataTableSpansQueryGrouping(ctx context.Context, grouping *cxsdk.Das
 		return nil, diags
 	}
 
-	groupBy, diags := FlattenSpansFields(ctx, grouping.GetGroupBy())
+	groupBy, diags := ProtoFlattenSpansFields(ctx, grouping.GetGroupBy())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -613,7 +613,7 @@ func flattenDataTableSpansQueryAggregation(spanAggregation *cxsdk.DashboardDataT
 		return nil, nil
 	}
 
-	aggregation, dg := FlattenSpansAggregation(spanAggregation.GetAggregation())
+	aggregation, dg := ProtoFlattenSpansAggregation(spanAggregation.GetAggregation())
 	if dg != nil {
 		return nil, dg
 	}
@@ -676,10 +676,10 @@ func ExpandDataTable(ctx context.Context, table *DataTableModel) (*cxsdk.WidgetD
 			DataTable: &cxsdk.DashboardDataTable{
 				Query:          query,
 				ResultsPerPage: utils.TypeInt64ToWrappedInt32(table.ResultsPerPage),
-				RowStyle:       DashboardRowStyleSchemaToProto[table.RowStyle.ValueString()],
+				RowStyle:       ProtoDashboardRowStyleSchemaToProto[table.RowStyle.ValueString()],
 				Columns:        columns,
 				OrderBy:        expandOrderBy(table.OrderBy),
-				DataModeType:   DashboardSchemaToProtoDataModeType[table.DataModeType.ValueString()],
+				DataModeType:   ProtoDashboardSchemaToProtoDataModeType[table.DataModeType.ValueString()],
 			},
 		},
 	}, nil
@@ -732,7 +732,7 @@ func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeMode
 		return nil, nil
 	}
 
-	filters, diags := ExpandDashboardFiltersSources(ctx, dataPrime.Filters)
+	filters, diags := ProtoExpandDashboardFiltersSources(ctx, dataPrime.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -744,7 +744,7 @@ func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeMode
 		}
 	}
 
-	timeFrame, diags := ExpandTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	timeFrame, diags := ProtoExpandTimeFrameSelect(ctx, dataPrime.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -763,19 +763,19 @@ func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *Quer
 		return nil, nil
 	}
 
-	filters, diags := ExpandMetricsFilters(ctx, dataTableQueryMetric.Filters)
+	filters, diags := ProtoExpandMetricsFilters(ctx, dataTableQueryMetric.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := ExpandTimeFrameSelect(ctx, dataTableQueryMetric.TimeFrame)
+	timeFrame, diags := ProtoExpandTimeFrameSelect(ctx, dataTableQueryMetric.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.DashboardDataTableQueryMetrics{
 		Metrics: &cxsdk.DashboardDataTableMetricsQuery{
-			PromqlQuery:     ExpandPromqlQuery(dataTableQueryMetric.PromqlQuery),
+			PromqlQuery:     ProtoExpandPromqlQuery(dataTableQueryMetric.PromqlQuery),
 			Filters:         filters,
 			PromqlQueryType: expandPromqlQueryType(dataTableQueryMetric.PromqlQueryType),
 			TimeFrame:       timeFrame,
@@ -784,7 +784,7 @@ func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *Quer
 }
 
 func expandPromqlQueryType(promqlQueryType basetypes.StringValue) cxsdk.PromQLQueryType {
-	ty, found := DashboardSchemaToProtoPromQLQueryType[promqlQueryType.ValueString()]
+	ty, found := ProtoDashboardSchemaToProtoPromQLQueryType[promqlQueryType.ValueString()]
 	if found {
 		return ty
 	}
@@ -796,7 +796,7 @@ func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *DataTable
 		return nil, nil
 	}
 
-	filters, diags := ExpandLogsFilters(ctx, dataTableQueryLogs.Filters)
+	filters, diags := ProtoExpandLogsFilters(ctx, dataTableQueryLogs.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -806,13 +806,13 @@ func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *DataTable
 		return nil, diags
 	}
 
-	timeframe, diags := ExpandTimeFrameSelect(ctx, dataTableQueryLogs.TimeFrame)
+	timeframe, diags := ProtoExpandTimeFrameSelect(ctx, dataTableQueryLogs.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 	return &cxsdk.DashboardDataTableQueryLogs{
 		Logs: &cxsdk.DashboardDataTableLogsQuery{
-			LuceneQuery: ExpandLuceneQuery(dataTableQueryLogs.LuceneQuery),
+			LuceneQuery: ProtoExpandLuceneQuery(dataTableQueryLogs.LuceneQuery),
 			Filters:     filters,
 			Grouping:    grouping,
 			TimeFrame:   timeframe,
@@ -830,7 +830,7 @@ func expandDataTableLogsGrouping(ctx context.Context, grouping *DataTableLogsQue
 		return nil, diags
 	}
 
-	groupBys, diags := ExpandObservationFields(ctx, grouping.GroupBys)
+	groupBys, diags := ProtoExpandObservationFields(ctx, grouping.GroupBys)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -871,7 +871,7 @@ func expandDataTableLogsAggregation(ctx context.Context, aggregation *DataTableL
 		return nil, nil
 	}
 
-	logsAggregation, diags := ExpandLogsAggregation(ctx, aggregation.Aggregation)
+	logsAggregation, diags := ProtoExpandLogsAggregation(ctx, aggregation.Aggregation)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -889,7 +889,7 @@ func expandDataTableSpansQuery(ctx context.Context, dataTableQuerySpans *DataTab
 		return nil, nil
 	}
 
-	filters, diags := ExpandSpansFilters(ctx, dataTableQuerySpans.Filters)
+	filters, diags := ProtoExpandSpansFilters(ctx, dataTableQuerySpans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -899,14 +899,14 @@ func expandDataTableSpansQuery(ctx context.Context, dataTableQuerySpans *DataTab
 		return nil, diags
 	}
 
-	timeFrame, diags := ExpandTimeFrameSelect(ctx, dataTableQuerySpans.TimeFrame)
+	timeFrame, diags := ProtoExpandTimeFrameSelect(ctx, dataTableQuerySpans.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.DashboardDataTableQuerySpans{
 		Spans: &cxsdk.DashboardDataTableSpansQuery{
-			LuceneQuery: ExpandLuceneQuery(dataTableQuerySpans.LuceneQuery),
+			LuceneQuery: ProtoExpandLuceneQuery(dataTableQuerySpans.LuceneQuery),
 			Filters:     filters,
 			Grouping:    grouping,
 			TimeFrame:   timeFrame,
@@ -919,7 +919,7 @@ func expandDataTableSpansGrouping(ctx context.Context, grouping *DataTableSpansQ
 		return nil, nil
 	}
 
-	groupBy, diags := ExpandSpansFields(ctx, grouping.GroupBy)
+	groupBy, diags := ProtoExpandSpansFields(ctx, grouping.GroupBy)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -964,7 +964,7 @@ func expandDataTableSpansAggregation(aggregation *DataTableSpansAggregationModel
 		return nil, nil
 	}
 
-	spansAggregation, dg := ExpandSpansAggregation(aggregation.Aggregation)
+	spansAggregation, dg := ProtoExpandSpansAggregation(aggregation.Aggregation)
 	if dg != nil {
 		return nil, dg
 	}
@@ -1010,7 +1010,7 @@ func expandOrderBy(orderBy *OrderByModel) *cxsdk.DashboardOrderingField {
 	}
 	return &cxsdk.DashboardOrderingField{
 		Field:          utils.TypeStringToWrapperspbString(orderBy.Field),
-		OrderDirection: DashboardOrderDirectionSchemaToProto[orderBy.OrderDirection.ValueString()],
+		OrderDirection: ProtoDashboardOrderDirectionSchemaToProto[orderBy.OrderDirection.ValueString()],
 	}
 }
 
@@ -1020,7 +1020,7 @@ func flattenOrderBy(orderBy *cxsdk.DashboardOrderingField) *OrderByModel {
 	}
 	return &OrderByModel{
 		Field:          utils.WrapperspbStringToTypeString(orderBy.GetField()),
-		OrderDirection: types.StringValue(DashboardOrderDirectionProtoToSchema[orderBy.GetOrderDirection()]),
+		OrderDirection: types.StringValue(ProtoDashboardOrderDirectionProtoToSchema[orderBy.GetOrderDirection()]),
 	}
 }
 
@@ -1049,7 +1049,7 @@ func flattenGroupingAggregations(ctx context.Context, aggregations []*cxsdk.Dash
 }
 
 func flattenGroupingAggregation(ctx context.Context, dataTableAggregation *cxsdk.DashboardDataTableLogsQueryAggregation) (*DataTableLogsAggregationModel, diag.Diagnostics) {
-	aggregation, diags := FlattenLogsAggregation(ctx, dataTableAggregation.GetAggregation())
+	aggregation, diags := ProtoFlattenLogsAggregation(ctx, dataTableAggregation.GetAggregation())
 	if diags.HasError() {
 		return nil, diags
 	}

@@ -359,7 +359,7 @@ func FlattenLineChart(ctx context.Context, lineChart *cxsdk.LineChart) (*WidgetD
 
 	return &WidgetDefinitionModel{
 		LineChart: &LineChartModel{
-			Legend:           FlattenLegend(lineChart.GetLegend()),
+			Legend:           ProtoFlattenLegend(lineChart.GetLegend()),
 			Tooltip:          flattenTooltip(lineChart.GetTooltip()),
 			QueryDefinitions: queryDefinitions,
 			StackedLine:      types.StringValue(lineChartStackedLineProtoToSchemaMap[lineChart.StackedLine]),
@@ -373,7 +373,7 @@ func flattenTooltip(tooltip *cxsdk.LineChartTooltip) *TooltipModel {
 	}
 	return &TooltipModel{
 		ShowLabels: utils.WrapperspbBoolToTypeBool(tooltip.GetShowLabels()),
-		Type:       types.StringValue(DashboardProtoToSchemaTooltipType[tooltip.GetType()]),
+		Type:       types.StringValue(ProtoDashboardProtoToSchemaTooltipType[tooltip.GetType()]),
 	}
 }
 
@@ -424,13 +424,13 @@ func flattenLineChartQueryDefinition(ctx context.Context, definition *cxsdk.Line
 		Query:              query,
 		SeriesNameTemplate: utils.WrapperspbStringToTypeString(definition.GetSeriesNameTemplate()),
 		SeriesCountLimit:   utils.WrapperspbInt64ToTypeInt64(definition.GetSeriesCountLimit()),
-		Unit:               types.StringValue(DashboardProtoToSchemaUnit[definition.GetUnit()]),
-		ScaleType:          types.StringValue(DashboardProtoToSchemaScaleType[definition.GetScaleType()]),
+		Unit:               types.StringValue(ProtoDashboardProtoToSchemaUnit[definition.GetUnit()]),
+		ScaleType:          types.StringValue(ProtoDashboardProtoToSchemaScaleType[definition.GetScaleType()]),
 		Name:               utils.WrapperspbStringToTypeString(definition.GetName()),
 		IsVisible:          utils.WrapperspbBoolToTypeBool(definition.GetIsVisible()),
 		ColorScheme:        utils.WrapperspbStringToTypeString(definition.GetColorScheme()),
 		Resolution:         resolution,
-		DataModeType:       types.StringValue(DashboardProtoToSchemaDataModeType[definition.GetDataModeType()]),
+		DataModeType:       types.StringValue(ProtoDashboardProtoToSchemaDataModeType[definition.GetDataModeType()]),
 	}, nil
 }
 
@@ -488,12 +488,12 @@ func flattenLineChartDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.LineCh
 		dataPrimeQuery = types.StringValue(dataPrime.GetDataprimeQuery().GetText())
 	}
 
-	filters, diags := FlattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
+	filters, diags := ProtoFlattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeframe, diags := FlattenTimeFrameSelect(ctx, dataPrime.GetTimeFrame())
+	timeframe, diags := ProtoFlattenTimeFrameSelect(ctx, dataPrime.GetTimeFrame())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -517,12 +517,12 @@ func flattenLineChartQueryLogs(ctx context.Context, logs *cxsdk.LineChartLogsQue
 		return nil, diags
 	}
 
-	filters, diags := FlattenLogsFilters(ctx, logs.GetFilters())
+	filters, diags := ProtoFlattenLogsFilters(ctx, logs.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := FlattenTimeFrameSelect(ctx, logs.GetTimeFrame())
+	timeFrame, diags := ProtoFlattenTimeFrameSelect(ctx, logs.GetTimeFrame())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -546,7 +546,7 @@ func flattenAggregations(ctx context.Context, aggregations []*cxsdk.LogsAggregat
 	var diagnostics diag.Diagnostics
 	aggregationsElements := make([]attr.Value, 0, len(aggregations))
 	for _, aggregation := range aggregations {
-		flattenedAggregation, diags := FlattenLogsAggregation(ctx, aggregation)
+		flattenedAggregation, diags := ProtoFlattenLogsAggregation(ctx, aggregation)
 		if diags.HasError() {
 			diagnostics.Append(diags...)
 			continue
@@ -569,12 +569,12 @@ func flattenLineChartQueryMetrics(ctx context.Context, metrics *cxsdk.LineChartM
 		return nil, nil
 	}
 
-	filters, diags := FlattenMetricsFilters(ctx, metrics.GetFilters())
+	filters, diags := ProtoFlattenMetricsFilters(ctx, metrics.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := FlattenTimeFrameSelect(ctx, metrics.GetTimeFrame())
+	timeFrame, diags := ProtoFlattenTimeFrameSelect(ctx, metrics.GetTimeFrame())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -594,12 +594,12 @@ func flattenLineChartQuerySpans(ctx context.Context, spans *cxsdk.LineChartSpans
 		return nil, nil
 	}
 
-	groupBy, diags := FlattenSpansFields(ctx, spans.GetGroupBy())
+	groupBy, diags := ProtoFlattenSpansFields(ctx, spans.GetGroupBy())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	filters, diags := FlattenSpansFilters(ctx, spans.GetFilters())
+	filters, diags := ProtoFlattenSpansFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -609,7 +609,7 @@ func flattenLineChartQuerySpans(ctx context.Context, spans *cxsdk.LineChartSpans
 		return nil, diags
 	}
 
-	timeFrame, diags := FlattenTimeFrameSelect(ctx, spans.GetTimeFrame())
+	timeFrame, diags := ProtoFlattenTimeFrameSelect(ctx, spans.GetTimeFrame())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -633,7 +633,7 @@ func flattenLineChartSpansAggregation(ctx context.Context, aggregations []*cxsdk
 	var diagnostics diag.Diagnostics
 	columnElements := make([]attr.Value, 0, len(aggregations))
 	for _, column := range aggregations {
-		flattenedColumn, _ := FlattenSpansAggregation(column)
+		flattenedColumn, _ := ProtoFlattenSpansAggregation(column)
 		columnElement, diags := types.ObjectValueFrom(ctx, SpansAggregationModelAttr(), flattenedColumn)
 		if diags.HasError() {
 			diagnostics = append(diagnostics, diags...)
@@ -654,7 +654,7 @@ func ExpandLineChart(ctx context.Context, lineChart *LineChartModel) (*cxsdk.Wid
 		return nil, nil
 	}
 
-	legend, diags := ExpandLegend(ctx, lineChart.Legend)
+	legend, diags := ProtoExpandLegend(ctx, lineChart.Legend)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -690,7 +690,7 @@ func expandLineChartTooltip(tooltip *TooltipModel) *cxsdk.LineChartTooltip {
 
 	return &cxsdk.LineChartTooltip{
 		ShowLabels: utils.TypeBoolToWrapperspbBool(tooltip.ShowLabels),
-		Type:       DashboardSchemaToProtoTooltipType[tooltip.Type.ValueString()],
+		Type:       ProtoDashboardSchemaToProtoTooltipType[tooltip.Type.ValueString()],
 	}
 }
 
@@ -727,23 +727,23 @@ func expandLineChartQueryDefinition(ctx context.Context, queryDefinition *LineCh
 		return nil, diags
 	}
 
-	resolution, diags := ExpandResolution(ctx, queryDefinition.Resolution)
+	resolution, diags := ProtoExpandResolution(ctx, queryDefinition.Resolution)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.LineChartQueryDefinition{
-		Id:                 ExpandDashboardIDs(queryDefinition.ID),
+		Id:                 ProtoExpandDashboardIDs(queryDefinition.ID),
 		Query:              query,
 		SeriesNameTemplate: utils.TypeStringToWrapperspbString(queryDefinition.SeriesNameTemplate),
 		SeriesCountLimit:   utils.TypeInt64ToWrappedInt64(queryDefinition.SeriesCountLimit),
-		Unit:               DashboardSchemaToProtoUnit[queryDefinition.Unit.ValueString()],
-		ScaleType:          DashboardSchemaToProtoScaleType[queryDefinition.ScaleType.ValueString()],
+		Unit:               ProtoDashboardSchemaToProtoUnit[queryDefinition.Unit.ValueString()],
+		ScaleType:          ProtoDashboardSchemaToProtoScaleType[queryDefinition.ScaleType.ValueString()],
 		Name:               utils.TypeStringToWrapperspbString(queryDefinition.Name),
 		IsVisible:          utils.TypeBoolToWrapperspbBool(queryDefinition.IsVisible),
 		ColorScheme:        utils.TypeStringToWrapperspbString(queryDefinition.ColorScheme),
 		Resolution:         resolution,
-		DataModeType:       DashboardSchemaToProtoDataModeType[queryDefinition.DataModeType.ValueString()],
+		DataModeType:       ProtoDashboardSchemaToProtoDataModeType[queryDefinition.DataModeType.ValueString()],
 	}, nil
 }
 
@@ -795,12 +795,12 @@ func expandLineChartDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeMode
 		return nil, nil
 	}
 
-	filters, diags := ExpandDashboardFiltersSources(ctx, dataPrime.Filters)
+	filters, diags := ProtoExpandDashboardFiltersSources(ctx, dataPrime.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := ExpandTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	timeFrame, diags := ProtoExpandTimeFrameSelect(ctx, dataPrime.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -827,24 +827,24 @@ func expandLineChartLogsQuery(ctx context.Context, logs *LineChartQueryLogsModel
 		return nil, diags
 	}
 
-	aggregations, diags := ExpandLogsAggregations(ctx, logs.Aggregations)
+	aggregations, diags := ProtoExpandLogsAggregations(ctx, logs.Aggregations)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	filters, diags := ExpandLogsFilters(ctx, logs.Filters)
+	filters, diags := ProtoExpandLogsFilters(ctx, logs.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := ExpandTimeFrameSelect(ctx, logs.TimeFrame)
+	timeFrame, diags := ProtoExpandTimeFrameSelect(ctx, logs.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.LineChartQueryLogs{
 		Logs: &cxsdk.LineChartLogsQuery{
-			LuceneQuery:  ExpandLuceneQuery(logs.LuceneQuery),
+			LuceneQuery:  ProtoExpandLuceneQuery(logs.LuceneQuery),
 			GroupBy:      groupBy,
 			Aggregations: aggregations,
 			Filters:      filters,
@@ -858,19 +858,19 @@ func expandLineChartMetricsQuery(ctx context.Context, metrics *QueryMetricsModel
 		return nil, nil
 	}
 
-	filters, diags := ExpandMetricsFilters(ctx, metrics.Filters)
+	filters, diags := ProtoExpandMetricsFilters(ctx, metrics.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := ExpandTimeFrameSelect(ctx, metrics.TimeFrame)
+	timeFrame, diags := ProtoExpandTimeFrameSelect(ctx, metrics.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.LineChartQueryMetrics{
 		Metrics: &cxsdk.LineChartMetricsQuery{
-			PromqlQuery: ExpandPromqlQuery(metrics.PromqlQuery),
+			PromqlQuery: ProtoExpandPromqlQuery(metrics.PromqlQuery),
 			Filters:     filters,
 			TimeFrame:   timeFrame,
 		},
@@ -882,29 +882,29 @@ func expandLineChartSpansQuery(ctx context.Context, spans *LineChartQuerySpansMo
 		return nil, nil
 	}
 
-	groupBy, diags := ExpandSpansFields(ctx, spans.GroupBy)
+	groupBy, diags := ProtoExpandSpansFields(ctx, spans.GroupBy)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	aggregations, diags := ExpandSpansAggregations(ctx, spans.Aggregations)
+	aggregations, diags := ProtoExpandSpansAggregations(ctx, spans.Aggregations)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	filters, diags := ExpandSpansFilters(ctx, spans.Filters)
+	filters, diags := ProtoExpandSpansFilters(ctx, spans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	timeFrame, diags := ExpandTimeFrameSelect(ctx, spans.TimeFrame)
+	timeFrame, diags := ProtoExpandTimeFrameSelect(ctx, spans.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.LineChartQuerySpans{
 		Spans: &cxsdk.LineChartSpansQuery{
-			LuceneQuery:  ExpandLuceneQuery(spans.LuceneQuery),
+			LuceneQuery:  ProtoExpandLuceneQuery(spans.LuceneQuery),
 			GroupBy:      groupBy,
 			Aggregations: aggregations,
 			Filters:      filters,
