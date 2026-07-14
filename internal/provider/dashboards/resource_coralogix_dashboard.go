@@ -869,11 +869,11 @@ func dashboardAccessPolicyForConfiguredRequest(configAccessPolicy, planAccessPol
 }
 
 func (r DashboardResource) createDashboard(ctx context.Context, dashboard *dashboardservice.Dashboard, accessPolicy *string) (*dashboardservice.CreateDashboardResponse, error) {
-	return r.openAPIClient.CreateOpenAPI(ctx, dashboard, accessPolicy)
+	return r.openAPIClient.Create(ctx, dashboard, accessPolicy)
 }
 
 func (r DashboardResource) replaceDashboard(ctx context.Context, dashboard *dashboardservice.Dashboard, accessPolicy *string) error {
-	return r.openAPIClient.ReplaceOpenAPI(ctx, dashboard, accessPolicy)
+	return r.openAPIClient.Replace(ctx, dashboard, accessPolicy)
 }
 
 func dashboardLogString(dashboard any) string {

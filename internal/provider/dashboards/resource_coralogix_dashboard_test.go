@@ -23,6 +23,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+func ptr[T any](v T) *T {
+	return &v
+}
+
 func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
 	policy := types.StringValue(`{"version":"2025-01-01"}`)
 

@@ -51,7 +51,7 @@ func newDashboardOpenAPIClient(client *dashboardservice.DashboardServiceAPIServi
 	return &dashboardOpenAPIClient{client: client}
 }
 
-func (c *dashboardOpenAPIClient) CreateOpenAPI(ctx context.Context, dashboard *dashboardservice.Dashboard, accessPolicy *string) (*dashboardservice.CreateDashboardResponse, error) {
+func (c *dashboardOpenAPIClient) Create(ctx context.Context, dashboard *dashboardservice.Dashboard, accessPolicy *string) (*dashboardservice.CreateDashboardResponse, error) {
 	if dashboard == nil {
 		return nil, fmt.Errorf("dashboard is required")
 	}
@@ -81,10 +81,20 @@ func (c *dashboardOpenAPIClient) Get(ctx context.Context, id string) (*dashboard
 		return nil, err
 	}
 
-	return dashboardOpenAPIGetResponseToReadResult(response)
+	if response == nil {
+		return nil, fmt.Errorf("dashboard response is required")
+	}
+	if response.Dashboard == nil {
+		return nil, fmt.Errorf("dashboard response did not include dashboard")
+	}
+
+	return &dashboardOpenAPIReadResult{
+		Dashboard:    response.Dashboard,
+		AccessPolicy: response.AccessPolicy,
+	}, nil
 }
 
-func (c *dashboardOpenAPIClient) ReplaceOpenAPI(ctx context.Context, dashboard *dashboardservice.Dashboard, accessPolicy *string) error {
+func (c *dashboardOpenAPIClient) Replace(ctx context.Context, dashboard *dashboardservice.Dashboard, accessPolicy *string) error {
 	if dashboard == nil {
 		return fmt.Errorf("dashboard is required")
 	}
@@ -132,20 +142,6 @@ func newDashboardOpenAPIReplaceRequest(dashboard dashboardservice.Dashboard, acc
 
 func newDashboardOpenAPIRequestID(operation string) string {
 	return fmt.Sprintf("%s-%s-%s", dashboardOpenAPIRequestIDPrefix, operation, uuid.NewString())
-}
-
-func dashboardOpenAPIGetResponseToReadResult(response *dashboardservice.GetDashboardResponse) (*dashboardOpenAPIReadResult, error) {
-	if response == nil {
-		return nil, fmt.Errorf("dashboard response is required")
-	}
-	if response.Dashboard == nil {
-		return nil, fmt.Errorf("dashboard response did not include dashboard")
-	}
-
-	return &dashboardOpenAPIReadResult{
-		Dashboard:    response.Dashboard,
-		AccessPolicy: response.AccessPolicy,
-	}, nil
 }
 
 func formatDashboardOpenAPIError(httpResponse *http.Response, err error, operation string, request any) error {

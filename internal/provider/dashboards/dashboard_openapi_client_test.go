@@ -75,46 +75,6 @@ func TestNewDashboardOpenAPIReplaceRequest(t *testing.T) {
 	}
 }
 
-func TestDashboardOpenAPIGetResponseToReadResult(t *testing.T) {
-	accessPolicy := `{"version":"2025-01-01"}`
-	openAPIResponse := &dashboardservice.GetDashboardResponse{
-		AccessPolicy: &accessPolicy,
-		Dashboard: &dashboardservice.Dashboard{
-			Id:          ptr("dashboard-id"),
-			Name:        "dashboard-name",
-			Description: ptr("migration bridge"),
-			Layout:      *dashboardservice.NewLayout(),
-		},
-	}
-
-	got, err := dashboardOpenAPIGetResponseToReadResult(openAPIResponse)
-	if err != nil {
-		t.Fatalf("unexpected error converting dashboard response: %s", err)
-	}
-
-	if got.Dashboard.GetId() != openAPIResponse.Dashboard.GetId() {
-		t.Fatalf("expected id %q, got %q", openAPIResponse.Dashboard.GetId(), got.Dashboard.GetId())
-	}
-	if got.Dashboard.GetName() != openAPIResponse.Dashboard.GetName() {
-		t.Fatalf("expected name %q, got %q", openAPIResponse.Dashboard.GetName(), got.Dashboard.GetName())
-	}
-	if got.AccessPolicy == nil || *got.AccessPolicy != accessPolicy {
-		t.Fatalf("expected access policy %q, got %v", accessPolicy, got.AccessPolicy)
-	}
-}
-
-func TestDashboardOpenAPIGetResponseToReadResultRequiresResponse(t *testing.T) {
-	if _, err := dashboardOpenAPIGetResponseToReadResult(nil); err == nil {
-		t.Fatal("expected an error for nil response")
-	}
-}
-
-func TestDashboardOpenAPIGetResponseToReadResultRequiresDashboard(t *testing.T) {
-	if _, err := dashboardOpenAPIGetResponseToReadResult(&dashboardservice.GetDashboardResponse{}); err == nil {
-		t.Fatal("expected an error for missing dashboard")
-	}
-}
-
 func TestFormatDashboardOpenAPIError(t *testing.T) {
 	err := formatDashboardOpenAPIError(&http.Response{StatusCode: http.StatusBadRequest}, errors.New("api failed"), dashboardOpenAPIOperationCreate, map[string]string{"name": "test"})
 	if err == nil {
@@ -177,8 +137,4 @@ func assertDashboardOpenAPIRequestID(t *testing.T, requestID string, operation s
 	if _, err := uuid.Parse(uuidPart); err != nil {
 		t.Fatalf("expected request ID to end with UUID, got %q: %s", uuidPart, err)
 	}
-}
-
-func ptr[T any](v T) *T {
-	return &v
 }
