@@ -411,15 +411,15 @@ func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.St
 
 func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse, client *dashboardOpenAPIClient) {
 	log.Printf("[INFO] Upgrading state from v%v", req.State.Schema.GetVersion())
-	var state DashboardResourceModel
-	diags := req.State.Get(ctx, &state)
+	var stateID types.String
+	diags := req.State.GetAttribute(ctx, path.Root("id"), &stateID)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	//Get refreshed Dashboard value from Coralogix
-	id := state.ID.ValueString()
+	id := stateID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
 	getDashboardResp, err := client.Get(ctx, id)
 	if err != nil {
@@ -439,6 +439,13 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 		return
 	}
 	log.Printf("[INFO] Received Dashboard: %s", dashboardLogString(getDashboardResp.Dashboard))
+
+	var state DashboardResourceModel
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp)
 	if diags != nil {
@@ -846,6 +853,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 			"Error getting Dashboard",
 			err.Error(),
 		)
+		r.cleanupDashboardAfterFailedCreate(ctx, dashboardID, &resp.Diagnostics)
 		return
 	}
 	log.Printf("[INFO] Submitted new Dashboard: %s", dashboardLogString(getDashboardResp.Dashboard))
@@ -853,6 +861,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
+		r.cleanupDashboardAfterFailedCreate(ctx, dashboardID, &resp.Diagnostics)
 		return
 	}
 	log.Printf("[INFO] Flattened Dashboard: %v", flattenedDashboard)
@@ -860,6 +869,18 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		r.cleanupDashboardAfterFailedCreate(ctx, dashboardID, &resp.Diagnostics)
+	}
+}
+
+func (r DashboardResource) cleanupDashboardAfterFailedCreate(ctx context.Context, dashboardID string, diagnostics *diag.Diagnostics) {
+	if err := r.openAPIClient.Delete(ctx, dashboardID); err != nil {
+		diagnostics.AddError(
+			"Error cleaning up Dashboard after failed create",
+			fmt.Sprintf("Dashboard %q was created but could not be saved to Terraform state. Automatic cleanup failed: %s. Delete this dashboard before retrying.", dashboardID, err),
+		)
+	}
 }
 
 func dashboardAccessPolicyForRequest(accessPolicy types.String) *string {

@@ -15,9 +15,11 @@
 package dashboards
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -198,6 +200,125 @@ func TestIsDashboardOpenAPINotFound(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDashboardOpenAPIClientCreateRejectionPreservesErrorContext(t *testing.T) {
+	const (
+		apiKey        = "test-api-key-must-not-leak"
+		backendDetail = "dashboard layout violates a backend business rule"
+	)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/dashboards/dashboards/v1" {
+			t.Fatalf("request = %s %s, want POST /dashboards/dashboards/v1", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"code":400,"message":"` + backendDetail + `"}`))
+	}))
+	t.Cleanup(server.Close)
+
+	client := newDashboardOpenAPITestClient(server, apiKey)
+	response, err := client.Create(context.Background(), &dashboardservice.Dashboard{Name: "invalid-but-serializable"}, nil)
+	if response != nil {
+		t.Fatalf("Create() response = %#v, want nil", response)
+	}
+	if err == nil {
+		t.Fatal("Create() error = nil, want backend rejection")
+	}
+	for _, context := range []string{dashboardOpenAPIOperationCreate, "400", backendDetail} {
+		if !strings.Contains(err.Error(), context) {
+			t.Errorf("Create() error = %q, want context %q", err, context)
+		}
+	}
+	if strings.Contains(err.Error(), apiKey) {
+		t.Fatalf("Create() error exposed API key: %q", err)
+	}
+}
+
+func TestDashboardOpenAPIClientReplaceRejectionLeavesPriorDashboardReadable(t *testing.T) {
+	const (
+		dashboardID   = "123456789012345678901"
+		backendDetail = "replacement dashboard was rejected"
+	)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPut && r.URL.Path == "/dashboards/dashboards/v1":
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = w.Write([]byte(`{"code":422,"message":"` + backendDetail + `"}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/dashboards/dashboards/v1/"+dashboardID:
+			_, _ = w.Write([]byte(`{"dashboard":{"id":"` + dashboardID + `","name":"prior dashboard","layout":{"sections":[]}}}`))
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	client := newDashboardOpenAPITestClient(server, "")
+	err := client.Replace(context.Background(), &dashboardservice.Dashboard{Id: ptr(dashboardID), Name: "rejected replacement"}, nil)
+	if err == nil {
+		t.Fatal("Replace() error = nil, want backend rejection")
+	}
+	for _, context := range []string{dashboardOpenAPIOperationReplace, "422", backendDetail} {
+		if !strings.Contains(err.Error(), context) {
+			t.Errorf("Replace() error = %q, want context %q", err, context)
+		}
+	}
+
+	readResult, err := client.Get(context.Background(), dashboardID)
+	if err != nil {
+		t.Fatalf("Get() after rejected replacement error = %v", err)
+	}
+	if got := readResult.Dashboard.GetName(); got != "prior dashboard" {
+		t.Fatalf("Get() after rejected replacement name = %q, want prior dashboard", got)
+	}
+}
+
+func TestDashboardOpenAPIClientDeleteAlreadyAbsentIsIdempotent(t *testing.T) {
+	const dashboardID = "123456789012345678901"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete || r.URL.Path != "/dashboards/dashboards/v1/"+dashboardID {
+			t.Fatalf("request = %s %s, want dashboard DELETE", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"code":404,"message":"dashboard is already absent"}`))
+	}))
+	t.Cleanup(server.Close)
+
+	if err := newDashboardOpenAPITestClient(server, "").Delete(context.Background(), dashboardID); err != nil {
+		t.Fatalf("Delete() already-absent dashboard error = %v, want nil", err)
+	}
+}
+
+func TestDashboardOpenAPIClientGetNotFoundRetainsRESTContext(t *testing.T) {
+	const dashboardID = "123456789012345678901"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"code":404,"message":"dashboard no longer exists"}`))
+	}))
+	t.Cleanup(server.Close)
+
+	_, err := newDashboardOpenAPITestClient(server, "").Get(context.Background(), dashboardID)
+	if !errors.Is(err, errDashboardOpenAPINotFound) {
+		t.Fatalf("Get() error = %v, want errDashboardOpenAPINotFound", err)
+	}
+	for _, context := range []string{dashboardOpenAPIOperationGet, "404", "dashboard no longer exists"} {
+		if !strings.Contains(err.Error(), context) {
+			t.Errorf("Get() error = %q, want context %q", err, context)
+		}
+	}
+}
+
+func newDashboardOpenAPITestClient(server *httptest.Server, apiKey string) *dashboardOpenAPIClient {
+	configuration := dashboardservice.NewConfiguration()
+	configuration.HTTPClient = server.Client()
+	configuration.Servers = dashboardservice.ServerConfigurations{{URL: server.URL}}
+	if apiKey != "" {
+		configuration.AddDefaultHeader("Authorization", "Bearer "+apiKey)
+	}
+	return newDashboardOpenAPIClient(dashboardservice.NewAPIClient(configuration).DashboardServiceAPI)
 }
 
 func assertDashboardOpenAPIRequestID(t *testing.T, requestID string, operation string) {

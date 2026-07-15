@@ -116,6 +116,9 @@ func (c *dashboardOpenAPIClient) Delete(ctx context.Context, id string) error {
 	_, httpResponse, err := c.client.
 		DashboardsServiceDeleteDashboard(ctx, id).
 		Execute()
+	if isDashboardOpenAPINotFound(httpResponse, err) {
+		return nil
+	}
 
 	return formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationDelete, id)
 }
@@ -283,7 +286,7 @@ func formatDashboardOpenAPIError(httpResponse *http.Response, err error, operati
 	}
 
 	apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
-	return fmt.Errorf("%s", utils.FormatOpenAPIErrors(apiErr, operation, request))
+	return fmt.Errorf("dashboard REST %s failed: %s", operation, utils.FormatOpenAPIErrors(apiErr, operation, request))
 }
 
 func isDashboardOpenAPINotFound(httpResponse *http.Response, err error) bool {
