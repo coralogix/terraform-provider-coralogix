@@ -200,12 +200,12 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			ProtoSource:    "ast/dashboard.proto#Dashboard.auto_refresh + ast/dashboard.proto#Dashboard.time_frame",
 			Reconciliation: "the OpenAPI generator places both protobuf oneofs on the single Dashboard REST model",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"off":               covered("auto_refresh.type=off", "TestAccCoralogixResourceDashboardAccessPolicy"),
+				"off":               covered("auto_refresh.type=off", dashboardOpenAPIBackendHydrationTestName),
 				"twoMinutes":        covered("auto_refresh.type=two_minutes", dashboardOpenAPINestedPresentationTestName),
 				"fiveMinutes":       covered("auto_refresh.type=five_minutes", dashboardOpenAPINestedPresentationTestName),
 				"oneMinute":         apiOnly("auto_refresh.type=one_minute", false, "dashboard.proto and the REST model expose one_minute, but the provider validator and both auto-refresh converters support only off, two_minutes, and five_minutes"),
 				"fifteenMinutes":    apiOnly("auto_refresh.type=fifteen_minutes", false, "dashboard.proto and the REST model expose fifteen_minutes, but the provider validator and both auto-refresh converters support only off, two_minutes, and five_minutes"),
-				"absoluteTimeFrame": covered("time_frame.absolute", dashboardOpenAPINestedPresentationTestName),
+				"absoluteTimeFrame": covered("time_frame.absolute", dashboardOpenAPIBackendHydrationTestName),
 				"relativeTimeFrame": covered("time_frame.relative", "TestAccCoralogixResourceDashboard"),
 			},
 		},
@@ -273,7 +273,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"GaugeQuery": {
 			ProtoSource: "ast/widgets/gauge.proto#Gauge.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"metrics":   covered(widget+".gauge.query.metrics", dashboardOpenAPIMetricsQueryTestName),
+				"metrics":   covered(widget+".gauge.query.metrics", dashboardOpenAPIBackendHydrationTestName),
 				"logs":      covered(widget+".gauge.query.logs", dashboardOpenAPILogsQueryTestName),
 				"spans":     covered(widget+".gauge.query.spans", dashboardOpenAPISpansQueryTestName),
 				"dataprime": covered(widget+".gauge.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
@@ -530,7 +530,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			ProtoSource: "common/time_frame.proto#TimeFrameSelect.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"absoluteTimeFrame": covered("time_frame.absolute (also available on query-level time_frame blocks)", dashboardOpenAPINestedPresentationTestName),
-				"relativeTimeFrame": covered("time_frame.relative (also available on query-level time_frame blocks)", "TestAccCoralogixResourceDashboard"),
+				"relativeTimeFrame": covered("time_frame.relative (also available on query-level time_frame blocks)", dashboardOpenAPIBackendHydrationTestName),
 			},
 		},
 		"VariableDefinition": {
@@ -568,7 +568,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"lineChart":          covered(widget+".line_chart", dashboardOpenAPILogsQueryTestName),
 				"dataTable":          covered(widget+".data_table", dashboardOpenAPILogsQueryTestName),
-				"gauge":              covered(widget+".gauge", dashboardOpenAPILogsQueryTestName),
+				"gauge":              covered(widget+".gauge", dashboardOpenAPIBackendHydrationTestName),
 				"pieChart":           covered(widget+".pie_chart", dashboardOpenAPILogsQueryTestName),
 				"barChart":           covered(widget+".bar_chart", dashboardOpenAPILogsQueryTestName),
 				"horizontalBarChart": covered(widget+".horizontal_bar_chart", dashboardOpenAPILogsQueryTestName),

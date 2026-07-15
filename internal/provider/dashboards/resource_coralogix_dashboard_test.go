@@ -124,6 +124,37 @@ func TestExtractDashboardContentJSONPreservesDynamicQueriesTable(t *testing.T) {
 	}
 }
 
+func TestFlattenDashboardRejectsDynamicWidgetWithoutPartialState(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join("..", "testdata", "dashboards", "content_json_dynamic_queries_table.json"))
+	if err != nil {
+		t.Fatalf("read dynamic content_json fixture: %s", err)
+	}
+
+	dashboard := new(dashboardservice.Dashboard)
+	if err := json.Unmarshal(content, dashboard); err != nil {
+		t.Fatalf("unmarshal dynamic dashboard response: %s", err)
+	}
+
+	flattened, diags := flattenDashboard(context.Background(), DashboardResourceModel{
+		ID:           types.StringValue("backend-dashboard-id"),
+		Folder:       types.ObjectNull(dashboardFolderModelAttr()),
+		ContentJson:  types.StringNull(),
+		AccessPolicy: types.StringNull(),
+	}, &dashboardOpenAPIReadResult{Dashboard: dashboard})
+	if flattened != nil {
+		t.Fatalf("flatten dynamic dashboard returned partial state: %#v", flattened)
+	}
+	if !diags.HasError() {
+		t.Fatal("flatten dynamic dashboard returned no error diagnostic")
+	}
+	detail := diags.Errors()[0].Summary() + ": " + diags.Errors()[0].Detail()
+	for _, expected := range []string{"Unsupported Dashboard Widget Definition", "dynamic", "content_json", "import", "data-source"} {
+		if !strings.Contains(detail, expected) {
+			t.Errorf("dynamic dashboard diagnostic %q does not contain %q", detail, expected)
+		}
+	}
+}
+
 func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
 	policy := types.StringValue(`{"version":"2025-01-01"}`)
 

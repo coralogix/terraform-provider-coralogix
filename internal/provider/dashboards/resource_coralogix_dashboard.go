@@ -4283,6 +4283,11 @@ func flattenDashboardWidgetDefinition(ctx context.Context, definition *dashboard
 		return flattenHorizontalBarChart(ctx, definition.HorizontalBarChart)
 	case definition.Markdown != nil:
 		return flattenMarkdown(definition.Markdown), nil
+	case definition.Dynamic != nil:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Unsupported Dashboard Widget Definition",
+			"The backend returned a dynamic widget. Dynamic widgets are supported only when configuring content_json; import and data-source reads cannot reconstruct content_json as structured Terraform state.",
+		)}
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Widget Definition", "unknown widget definition type")}
 	}
