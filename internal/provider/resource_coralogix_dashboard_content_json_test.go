@@ -20,10 +20,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -46,6 +48,8 @@ var dashboardContentJSONUnknownFields = []string{
 	"unknownMetrics",
 	"unknownPromqlQuery",
 }
+
+var dashboardContentJSONUUIDPattern = regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
 
 type dashboardContentJSONFixture struct {
 	path    string
@@ -148,7 +152,7 @@ func TestAccCoralogixResourceDashboardContentJSONDynamicQueriesTable(t *testing.
 	fixture := dashboardContentJSONDynamicQueriesTableTestName
 	identity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
 	dashboardName := dashboardOpenAPIFixtureName(fixture)
-	dynamic := dashboardContentJSONFixtureFor(t, "content_json_dynamic_queries_table.json")
+	dynamic := dashboardContentJSONUniqueUUIDsFixtureFor(t, "content_json_dynamic_queries_table.json")
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -225,6 +229,23 @@ func dashboardContentJSONNamedFixtureFor(t *testing.T, name, dashboardName strin
 	fixturePath := filepath.Join(t.TempDir(), name)
 	if err := os.WriteFile(fixturePath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write dashboard content_json fixture %q: %s", name, err)
+	}
+
+	return dashboardContentJSONFixture{path: fixturePath, content: content}
+}
+
+func dashboardContentJSONUniqueUUIDsFixtureFor(t *testing.T, name string) dashboardContentJSONFixture {
+	t.Helper()
+	fixture := dashboardContentJSONFixtureFor(t, name)
+	content := dashboardContentJSONUUIDPattern.ReplaceAllStringFunc(fixture.content, func(string) string {
+		return uuid.NewString()
+	})
+	if content == fixture.content {
+		t.Fatalf("dashboard content_json fixture %q has no UUIDs to randomize", name)
+	}
+	fixturePath := filepath.Join(t.TempDir(), name)
+	if err := os.WriteFile(fixturePath, []byte(content), 0o600); err != nil {
+		t.Fatalf("write dashboard content_json fixture %q with unique UUIDs: %s", name, err)
 	}
 
 	return dashboardContentJSONFixture{path: fixturePath, content: content}
