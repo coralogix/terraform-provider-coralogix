@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -53,7 +54,7 @@ func TestDashboardOpenAPIStructuredWidgetQueryMatrix(t *testing.T) {
 		"logs":      7,
 		"metrics":   7,
 		"spans":     7,
-		"dataprime": 6,
+		"dataprime": 7,
 	}
 	total := 0
 	for branch, wantCount := range wantCounts {
@@ -61,15 +62,10 @@ func TestDashboardOpenAPIStructuredWidgetQueryMatrix(t *testing.T) {
 		if len(widgets) != wantCount {
 			t.Errorf("%s structured query widgets = %d, want %d", branch, len(widgets), wantCount)
 		}
-		for _, widget := range widgets {
-			if branch == "dataprime" && widget.name == "horizontal_bar_chart" {
-				t.Error("horizontal_bar_chart.dataprime must remain outside the positive structured query matrix")
-			}
-		}
 		total += len(widgets)
 	}
-	if total != 27 {
-		t.Errorf("HCL-reachable structured widget query branches = %d, want 27", total)
+	if total != 28 {
+		t.Errorf("HCL-reachable structured widget query branches = %d, want 28", total)
 	}
 	if got := len(dashboardOpenAPIStructuredWidgetsForBranch("logs")) + 1; got != 8 {
 		t.Errorf("structured WidgetDefinition branches including markdown = %d, want 8", got)
@@ -98,13 +94,40 @@ func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string
 	ctx := context.Background()
 	var client *dashboardservice.DashboardServiceAPIService
 	dashboardName := dashboardOpenAPIFixtureName(fixture)
-	stateChecks := dashboardOpenAPIStructuredQueryStateChecks(queryBranch, includeMarkdown)
-	stateChecks = append(stateChecks, func(state *terraform.State) error {
-		dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
-		if err != nil {
-			return err
-		}
-		return dashboardOpenAPIAssertStructuredQueryWidgets(dashboard, queryBranch, includeMarkdown, fixture)
+	dashboardIdentity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
+	checks := func(updated bool, identityCheck resource.TestCheckFunc) resource.TestCheckFunc {
+		stateChecks := dashboardOpenAPIStructuredQueryStateChecks(queryBranch, includeMarkdown, updated)
+		stateChecks = append(stateChecks, identityCheck, func(state *terraform.State) error {
+			dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
+			if err != nil {
+				return err
+			}
+			return dashboardOpenAPIAssertStructuredQueryWidgets(dashboard, queryBranch, includeMarkdown, fixture, updated)
+		})
+		return resource.ComposeAggregateTestCheckFunc(stateChecks...)
+	}
+
+	steps := []resource.TestStep{{
+		Config: dashboardOpenAPIStructuredDashboardConfig(dashboardName, queryBranch, includeMarkdown),
+		Check:  checks(false, dashboardIdentity.Capture()),
+		ConfigPlanChecks: resource.ConfigPlanChecks{
+			PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+		},
+	}}
+	if queryBranch == "dataprime" {
+		steps = append(steps, resource.TestStep{
+			Config: dashboardOpenAPIStructuredDashboardUpdateConfig(dashboardName, queryBranch, includeMarkdown),
+			Check:  checks(true, dashboardIdentity.AssertUnchanged()),
+			ConfigPlanChecks: resource.ConfigPlanChecks{
+				PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+			},
+		})
+	}
+	steps = append(steps, resource.TestStep{
+		ResourceName:      dashboardResourceName,
+		ImportState:       true,
+		ImportStateVerify: true,
+		Check:             dashboardIdentity.AssertUnchanged(),
 	})
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -114,26 +137,11 @@ func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckDashboardDestroy(t),
-		Steps: []resource.TestStep{
-			{
-				Config: dashboardOpenAPIStructuredDashboardConfig(dashboardName, queryBranch, includeMarkdown),
-				Check:  resource.ComposeAggregateTestCheckFunc(stateChecks...),
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PostApplyPostRefresh: []plancheck.PlanCheck{
-						plancheck.ExpectEmptyPlan(),
-					},
-				},
-			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		Steps:                    steps,
 	})
 }
 
-func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkdown bool) []resource.TestCheckFunc {
+func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkdown, updated bool) []resource.TestCheckFunc {
 	widgets := dashboardOpenAPIStructuredWidgetsForBranch(queryBranch)
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
@@ -170,6 +178,23 @@ func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkd
 					dashboardOpenAPIDataPrimeFilterStateValue(filterBranch),
 				),
 			)
+		}
+		if queryBranch == "dataprime" && widget.name == "horizontal_bar_chart" {
+			queryPath := basePath + ".definition.horizontal_bar_chart.query.data_prime"
+			checks = append(checks,
+				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".filters.#", "0"),
+				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".group_names.#", "1"),
+				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".group_names.0", "application"),
+				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".stacked_group_name", "severity"),
+			)
+			if updated {
+				checks = append(checks,
+					resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".time_frame.absolute.start", "2026-02-01T00:00:00Z"),
+					resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".time_frame.absolute.end", "2026-02-01T00:15:00Z"),
+				)
+			} else {
+				checks = append(checks, resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".time_frame.relative.duration", "seconds:900"))
+			}
 		}
 	}
 
@@ -231,13 +256,16 @@ func dashboardOpenAPIQueryStateValue(widget, queryBranch string) string {
 	case "spans":
 		return "unique_count"
 	case "dataprime":
+		if widget == "horizontal_bar_chart" {
+			return dashboardOpenAPIHorizontalBarDataPrimeQuery()
+		}
 		return dashboardOpenAPIDataPrimeQuery()
 	default:
 		panic(fmt.Sprintf("unsupported structured dashboard query branch %q", queryBranch))
 	}
 }
 
-func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Dashboard, queryBranch string, includeMarkdown bool, fixture string) error {
+func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Dashboard, queryBranch string, includeMarkdown bool, fixture string, updated bool) error {
 	if dashboard == nil {
 		return fmt.Errorf("dashboard fixture %q: fetched dashboard is nil", fixture)
 	}
@@ -271,6 +299,15 @@ func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Da
 		if err := dashboardOpenAPIAssertOneOfBranch(queryCarrier, spec.queryModel, queryBranch, dashboardID, fixture); err != nil {
 			return err
 		}
+		if queryBranch == "dataprime" && spec.name == "horizontal_bar_chart" {
+			query, ok := queryCarrier.(*dashboardservice.HorizontalBarChartQuery)
+			if !ok || query.Dataprime == nil {
+				return fmt.Errorf("dashboard fixture %q (dashboard %q): horizontal-bar Dataprime query has type %T", fixture, dashboardID, queryCarrier)
+			}
+			if err := dashboardOpenAPIAssertHorizontalBarDataPrime(query.Dataprime, updated); err != nil {
+				return fmt.Errorf("dashboard fixture %q (dashboard %q): %w", fixture, dashboardID, err)
+			}
+		}
 		if queryBranch == "dataprime" && index < 3 {
 			filterBranch := []string{"logs", "spans", "metrics"}[index]
 			filter, err := dashboardOpenAPIDataPrimeFilter(queryCarrier)
@@ -296,6 +333,40 @@ func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Da
 		}
 	}
 
+	return nil
+}
+
+func dashboardOpenAPIAssertHorizontalBarDataPrime(query *dashboardservice.HorizontalBarChartDataprimeQuery, updated bool) error {
+	dataPrimeQuery, ok := query.GetDataprimeQueryOk()
+	if !ok || dataPrimeQuery.GetText() != dashboardOpenAPIHorizontalBarDataPrimeQuery() {
+		return fmt.Errorf("horizontal-bar Dataprime query text did not round-trip")
+	}
+	if len(query.GetFilters()) != 0 {
+		return fmt.Errorf("horizontal-bar Dataprime filters = %d, want omitted/empty", len(query.GetFilters()))
+	}
+	groupNames := query.GetGroupNames()
+	if len(groupNames) != 1 || groupNames[0] != "application" {
+		return fmt.Errorf("horizontal-bar Dataprime group names = %v, want [application]", groupNames)
+	}
+	if query.GetStackedGroupName() != "severity" {
+		return fmt.Errorf("horizontal-bar Dataprime stacked group name = %q, want severity", query.GetStackedGroupName())
+	}
+	if query.TimeFrame == nil {
+		return fmt.Errorf("horizontal-bar Dataprime time frame is nil")
+	}
+	if !updated {
+		if query.TimeFrame.GetRelativeTimeFrame() != "900s" || query.TimeFrame.AbsoluteTimeFrame != nil {
+			return fmt.Errorf("horizontal-bar Dataprime initial time frame = %#v, want relative 900s", query.TimeFrame)
+		}
+		return nil
+	}
+
+	wantStart := time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC)
+	wantEnd := time.Date(2026, time.February, 1, 0, 15, 0, 0, time.UTC)
+	if query.TimeFrame.RelativeTimeFrame != nil || query.TimeFrame.AbsoluteTimeFrame == nil ||
+		query.TimeFrame.AbsoluteTimeFrame.GetFrom() != wantStart || query.TimeFrame.AbsoluteTimeFrame.GetTo() != wantEnd {
+		return fmt.Errorf("horizontal-bar Dataprime updated time frame = %#v, want absolute %s to %s", query.TimeFrame, wantStart, wantEnd)
+	}
 	return nil
 }
 
@@ -342,13 +413,21 @@ func dashboardOpenAPIStructuredQueryCarrier(definition *dashboardservice.WidgetD
 }
 
 func dashboardOpenAPIStructuredDashboardConfig(name, queryBranch string, includeMarkdown bool) string {
+	return dashboardOpenAPIStructuredDashboardConfigVariant(name, queryBranch, includeMarkdown, false)
+}
+
+func dashboardOpenAPIStructuredDashboardUpdateConfig(name, queryBranch string, includeMarkdown bool) string {
+	return dashboardOpenAPIStructuredDashboardConfigVariant(name, queryBranch, includeMarkdown, true)
+}
+
+func dashboardOpenAPIStructuredDashboardConfigVariant(name, queryBranch string, includeMarkdown, updated bool) string {
 	widgets := ""
 	widgetSpecs := dashboardOpenAPIStructuredWidgetsForBranch(queryBranch)
 	for index, widget := range widgetSpecs {
 		if index > 0 {
 			widgets += ",\n"
 		}
-		widgets += dashboardOpenAPIStructuredWidgetConfig(widget.name, queryBranch)
+		widgets += dashboardOpenAPIStructuredWidgetConfig(widget.name, queryBranch, updated)
 	}
 	if includeMarkdown {
 		widgets += `,
@@ -384,8 +463,8 @@ resource "coralogix_dashboard" "test" {
 `, name, widgets)
 }
 
-func dashboardOpenAPIStructuredWidgetConfig(widget, queryBranch string) string {
-	query := dashboardOpenAPIStructuredQueryConfig(widget, queryBranch)
+func dashboardOpenAPIStructuredWidgetConfig(widget, queryBranch string, updated bool) string {
+	query := dashboardOpenAPIStructuredQueryConfigVariant(widget, queryBranch, updated)
 	widgetBody := fmt.Sprintf("query = {\n%s\n            }", query)
 
 	switch widget {
@@ -429,6 +508,10 @@ func dashboardOpenAPIStructuredWidgetConfig(widget, queryBranch string) string {
 }
 
 func dashboardOpenAPIStructuredQueryConfig(widget, queryBranch string) string {
+	return dashboardOpenAPIStructuredQueryConfigVariant(widget, queryBranch, false)
+}
+
+func dashboardOpenAPIStructuredQueryConfigVariant(widget, queryBranch string, updated bool) string {
 	const indent = "                "
 	switch queryBranch {
 	case "logs":
@@ -484,6 +567,23 @@ func dashboardOpenAPIStructuredQueryConfig(widget, queryBranch string) string {
 		groupNames := ""
 		if widget == "pie_chart" {
 			groupNames = "\n                  group_names = [\"c\"]"
+		}
+		if widget == "horizontal_bar_chart" {
+			timeFrame := `relative = { duration = "seconds:900" }`
+			if updated {
+				timeFrame = `absolute = {
+                      start = "2026-02-01T00:00:00Z"
+                      end   = "2026-02-01T00:15:00Z"
+                    }`
+			}
+			return fmt.Sprintf(`%sdata_prime = {
+                  query              = %q
+                  group_names        = ["application"]
+                  stacked_group_name = "severity"
+                  time_frame = {
+                    %s
+                  }
+                }`, indent, dashboardOpenAPIHorizontalBarDataPrimeQuery(), timeFrame)
 		}
 		return fmt.Sprintf("%sdata_prime = {\n                  query = %q%s%s\n                }", indent, dashboardOpenAPIDataPrimeQuery(), groupNames, filter)
 	default:
@@ -605,18 +705,17 @@ func dashboardOpenAPIDataPrimeQuery() string {
 	return "source logs\n| filter 1 == 1\n| aggregate count() as c\n| choose c"
 }
 
-func dashboardOpenAPIStructuredWidgetsForBranch(queryBranch string) []dashboardStructuredWidgetSpec {
-	if queryBranch != "dataprime" {
-		return dashboardStructuredQueryWidgets
-	}
+func dashboardOpenAPIHorizontalBarDataPrimeQuery() string {
+	return "source logs\n| filter 1 == 1\n| groupby $l.applicationname as application, $m.severity as severity aggregate count() as c"
+}
 
-	widgets := make([]dashboardStructuredWidgetSpec, 0, len(dashboardStructuredQueryWidgets)-1)
-	for _, widget := range dashboardStructuredQueryWidgets {
-		if widget.name != "horizontal_bar_chart" {
-			widgets = append(widgets, widget)
-		}
+func dashboardOpenAPIStructuredWidgetsForBranch(queryBranch string) []dashboardStructuredWidgetSpec {
+	switch queryBranch {
+	case "logs", "metrics", "spans", "dataprime":
+		return dashboardStructuredQueryWidgets
+	default:
+		panic(fmt.Sprintf("unsupported structured dashboard query branch %q", queryBranch))
 	}
-	return widgets
 }
 
 func dashboardOpenAPIFirstSectionRowCount(sections []dashboardservice.Section) int {

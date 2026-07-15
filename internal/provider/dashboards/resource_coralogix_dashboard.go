@@ -2558,9 +2558,54 @@ func expandHorizontalBarChartQuery(ctx context.Context, query *dashboardwidgets.
 		return &dashboardservice.HorizontalBarChartQuery{
 			Spans: spansQuery,
 		}, nil
+	case !query.DataPrime.IsNull() && !query.DataPrime.IsUnknown():
+		dataPrimeQuery, diags := expandHorizontalBarChartDataPrimeQuery(ctx, query.DataPrime)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.HorizontalBarChartQuery{
+			Dataprime: dataPrimeQuery,
+		}, nil
 	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expand bar chart query", "unknown bar chart query type")}
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expand horizontal bar chart query", "unknown horizontal bar chart query type")}
 	}
+}
+
+func expandHorizontalBarChartDataPrimeQuery(ctx context.Context, dataPrime types.Object) (*dashboardservice.HorizontalBarChartDataprimeQuery, diag.Diagnostics) {
+	if dataPrime.IsNull() || dataPrime.IsUnknown() {
+		return nil, nil
+	}
+
+	var dataPrimeObject dashboardwidgets.BarChartQueryDataPrimeModel
+	diags := dataPrime.As(ctx, &dataPrimeObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	filters, diags := dashboardwidgets.ExpandDashboardFiltersSources(ctx, dataPrimeObject.Filters)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	groupNames, diags := typeStringValuesToStringSlice(ctx, dataPrimeObject.GroupNames.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	timeFrame, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataPrimeObject.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboardservice.HorizontalBarChartDataprimeQuery{
+		DataprimeQuery: &dashboardservice.CommonDataprimeQuery{
+			Text: utils.TypeStringToStringPointer(dataPrimeObject.Query),
+		},
+		Filters:          filters,
+		GroupNames:       groupNames,
+		StackedGroupName: utils.TypeStringToStringPointer(dataPrimeObject.StackedGroupName),
+		TimeFrame:        timeFrame,
+	}, nil
 }
 
 func expandHorizontalBarChartLogsQuery(ctx context.Context, logs types.Object) (*dashboardservice.HorizontalBarChartLogsQuery, diag.Diagnostics) {

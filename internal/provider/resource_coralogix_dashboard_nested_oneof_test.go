@@ -45,6 +45,7 @@ func TestDashboardOpenAPINestedAcceptanceConfigsParse(t *testing.T) {
 		"variables":             dashboardOpenAPIVariablesConfig("dashboard"),
 		"annotations":           dashboardOpenAPIAnnotationsConfig("dashboard"),
 		"dataprime-filters":     dashboardOpenAPIStructuredDashboardConfig("dashboard", "dataprime", false),
+		"dataprime-update":      dashboardOpenAPIStructuredDashboardUpdateConfig("dashboard", "dataprime", false),
 		"dynamic-content-json":  dashboardContentJSONDynamicConfig("dashboard.json", "dashboard", ""),
 	}
 	for name, config := range configs {

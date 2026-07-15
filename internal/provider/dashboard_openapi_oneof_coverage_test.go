@@ -311,11 +311,10 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"HorizontalBarChartQuery": {
 			ProtoSource: "ast/widgets/horizontal_bar_chart.proto#HorizontalBarChart.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"logs":    covered(widget+".horizontal_bar_chart.query.logs", dashboardOpenAPILogsQueryTestName),
-				"spans":   covered(widget+".horizontal_bar_chart.query.spans", dashboardOpenAPISpansQueryTestName),
-				"metrics": covered(widget+".horizontal_bar_chart.query.metrics", dashboardOpenAPIMetricsQueryTestName),
-				"dataprime": apiOnly(widget+".horizontal_bar_chart.query.data_prime", true,
-					"the schema and flattenHorizontalBarChartQueryDataPrime can hydrate this branch, but expandHorizontalBarChartQuery has no DataPrime case"),
+				"logs":      covered(widget+".horizontal_bar_chart.query.logs", dashboardOpenAPILogsQueryTestName),
+				"spans":     covered(widget+".horizontal_bar_chart.query.spans", dashboardOpenAPISpansQueryTestName),
+				"metrics":   covered(widget+".horizontal_bar_chart.query.metrics", dashboardOpenAPIMetricsQueryTestName),
+				"dataprime": covered(widget+".horizontal_bar_chart.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
 		"HorizontalBarChartYAxisViewBy": {
@@ -681,7 +680,6 @@ func TestDashboardOpenAPIOneOfCoverageManifest(t *testing.T) {
 	}
 
 	assertDashboardAPIOnlyBranch(t, "WidgetDefinition", "dynamic", false)
-	assertDashboardAPIOnlyBranch(t, "HorizontalBarChartQuery", "dataprime", true)
 	assertDashboardAPIOnlyBranch(t, "AnnotationSource", "dataprime", false)
 	assertDashboardAPIOnlyBranch(t, "AnnotationSource", "eventRecurrence", false)
 	assertDashboardAPIOnlyBranch(t, "Dashboard", "oneMinute", false)
