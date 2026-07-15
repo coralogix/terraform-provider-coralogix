@@ -1,0 +1,311 @@
+// Copyright 2026 Coralogix Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package provider
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+)
+
+const dashboardContentJSONCompatibilityTestName = "TestAccCoralogixResourceDashboardContentJSONProtobufSpellings"
+
+var dashboardContentJSONUnknownFields = []string{
+	"unknownRoot",
+	"unknownLayout",
+	"unknownSection",
+	"unknownRow",
+	"unknownWidget",
+	"unknownDefinition",
+	"unknownDataTable",
+	"unknownQuery",
+	"unknownMetrics",
+	"unknownPromqlQuery",
+}
+
+type dashboardContentJSONFixture struct {
+	path    string
+	content string
+}
+
+func TestAccCoralogixResourceDashboardContentJSONProtobufSpellings(t *testing.T) {
+	ctx := context.Background()
+	var client *dashboardservice.DashboardServiceAPIService
+	fixture := dashboardContentJSONCompatibilityTestName
+	identity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
+	snakeCase := dashboardContentJSONFixtureFor(t, "content_json_snake_case.json")
+	canonical := dashboardContentJSONFixtureFor(t, "content_json_canonical.json")
+	unknownFields := dashboardContentJSONFixtureFor(t, "content_json_unknown_fields.json")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			client = dashboardOpenAPIAcceptanceClient(t)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: dashboardContentJSONConfig(snakeCase.path),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					identity.Capture(),
+					resource.TestCheckResourceAttr(dashboardResourceName, "content_json", snakeCase.content),
+					dashboardContentJSONCheckDashboard(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
+						return dashboardOpenAPIAssertContentJSONTransport(dashboard, fixture)
+					}),
+				),
+				ConfigPlanChecks: dashboardContentJSONPlanChecks(false),
+			},
+			{
+				Config: dashboardContentJSONConfig(canonical.path),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					dashboardContentJSONAssertReplaced(identity),
+					resource.TestCheckResourceAttr(dashboardResourceName, "content_json", canonical.content),
+					dashboardContentJSONCheckDashboard(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
+						return dashboardOpenAPIAssertContentJSONTransport(dashboard, fixture)
+					}),
+				),
+				ConfigPlanChecks: dashboardContentJSONPlanChecks(true),
+			},
+			{
+				Config: dashboardContentJSONConfig(unknownFields.path),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					dashboardContentJSONAssertReplaced(identity),
+					resource.TestCheckResourceAttr(dashboardResourceName, "content_json", unknownFields.content),
+					dashboardContentJSONCheckDashboard(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
+						if err := dashboardOpenAPIAssertContentJSONTransport(dashboard, fixture); err != nil {
+							return err
+						}
+						return dashboardOpenAPIAssertUnknownContentJSONFieldsDiscarded(dashboard, fixture)
+					}),
+				),
+				ConfigPlanChecks: dashboardContentJSONPlanChecks(true),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardContentJSONFolderOverride(t *testing.T) {
+	ctx := context.Background()
+	var client *dashboardservice.DashboardServiceAPIService
+	fixture := "TestAccCoralogixResourceDashboardContentJSONFolderOverride"
+	folderName := dashboardOpenAPIFixtureName(fixture + "-folder")
+	canonical := dashboardContentJSONFixtureFor(t, "content_json_canonical.json")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			client = dashboardOpenAPIAcceptanceClient(t)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: dashboardContentJSONFolderOverrideConfig(canonical.path, folderName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "content_json", canonical.content),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "folder.id"),
+					dashboardContentJSONCheckDashboard(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
+						return dashboardOpenAPIAssertContentJSONTransport(dashboard, fixture)
+					}),
+					dashboardOpenAPICheckContentJSONFolderOverride(ctx, &client, fixture),
+				),
+				ConfigPlanChecks: dashboardContentJSONPlanChecks(false),
+			},
+		},
+	})
+}
+
+func dashboardContentJSONFixtureFor(t *testing.T, name string) dashboardContentJSONFixture {
+	t.Helper()
+
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("get dashboard test working directory: %s", err)
+	}
+	fixturePath := filepath.Join(workingDirectory, "testdata", "dashboards", name)
+	content, err := os.ReadFile(fixturePath)
+	if err != nil {
+		t.Fatalf("read dashboard content_json fixture %q: %s", name, err)
+	}
+
+	return dashboardContentJSONFixture{path: fixturePath, content: string(content)}
+}
+
+func dashboardContentJSONConfig(fixturePath string) string {
+	return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  content_json = file(%q)
+}
+`, fixturePath)
+}
+
+func dashboardContentJSONFolderOverrideConfig(fixturePath, folderName string) string {
+	return fmt.Sprintf(`
+resource "coralogix_dashboards_folder" "test_folder" {
+  name = %q
+}
+
+resource "coralogix_dashboard" "test" {
+  content_json = file(%q)
+  folder = {
+    id = coralogix_dashboards_folder.test_folder.id
+  }
+}
+`, folderName, fixturePath)
+}
+
+func dashboardContentJSONPlanChecks(expectReplacement bool) resource.ConfigPlanChecks {
+	checks := resource.ConfigPlanChecks{
+		PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+	}
+	if expectReplacement {
+		checks.PreApply = []plancheck.PlanCheck{
+			plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionReplace),
+		}
+	}
+
+	return checks
+}
+
+func dashboardContentJSONAssertReplaced(identity *dashboardOpenAPIIDTracker) resource.TestCheckFunc {
+	return func(state *terraform.State) error {
+		id, err := dashboardOpenAPIResourceID(state, identity.resourceName, identity.fixture)
+		if err != nil {
+			return err
+		}
+		if identity.id == "" {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): resource ID was not captured before replacement", identity.fixture, id)
+		}
+		if id == identity.id {
+			return fmt.Errorf("dashboard fixture %q: resource ID did not change across required replacement: got %q", identity.fixture, id)
+		}
+		identity.id = id
+
+		return nil
+	}
+}
+
+func dashboardContentJSONCheckDashboard(
+	ctx context.Context,
+	client **dashboardservice.DashboardServiceAPIService,
+	fixture string,
+	check func(*dashboardservice.Dashboard) error,
+) resource.TestCheckFunc {
+	return func(state *terraform.State) error {
+		if client == nil {
+			return fmt.Errorf("dashboard fixture %q: OpenAPI client reference is nil", fixture)
+		}
+		dashboard, err := dashboardOpenAPIFetchDashboard(ctx, *client, state, dashboardResourceName, fixture)
+		if err != nil {
+			return err
+		}
+		if check == nil {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): check callback is nil", fixture, dashboard.GetId())
+		}
+
+		return check(dashboard)
+	}
+}
+
+func dashboardOpenAPIAssertContentJSONTransport(dashboard *dashboardservice.Dashboard, fixture string) error {
+	if dashboard == nil {
+		return fmt.Errorf("dashboard fixture %q: REST read returned no dashboard", fixture)
+	}
+	if dashboard.RelativeTimeFrame == nil || *dashboard.RelativeTimeFrame != "900s" {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): relativeTimeFrame = %v, want protobuf JSON duration 900s", fixture, dashboard.GetId(), dashboard.RelativeTimeFrame)
+	}
+	if len(dashboard.Layout.Sections) != 1 || len(dashboard.Layout.Sections[0].Rows) != 1 || len(dashboard.Layout.Sections[0].Rows[0].Widgets) != 1 {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): REST layout does not contain exactly one section, row, and widget", fixture, dashboard.GetId())
+	}
+
+	widget := dashboard.Layout.Sections[0].Rows[0].Widgets[0]
+	if widget.LayoutColumns == nil || *widget.LayoutColumns != 12 {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): layoutColumns = %v, want 12", fixture, dashboard.GetId(), widget.LayoutColumns)
+	}
+	if widget.Definition == nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): widget definition is nil", fixture, dashboard.GetId())
+	}
+	if err := dashboardOpenAPIAssertOneOfBranch(widget.Definition, "WidgetDefinition", "dataTable", dashboard.GetId(), fixture); err != nil {
+		return err
+	}
+
+	dataTable := widget.Definition.DataTable
+	if dataTable.ResultsPerPage == nil || *dataTable.ResultsPerPage != 10 {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): dataTable.resultsPerPage = %v, want 10", fixture, dashboard.GetId(), dataTable.ResultsPerPage)
+	}
+	if dataTable.RowStyle == nil || *dataTable.RowStyle != dashboardservice.ROWSTYLE_ROW_STYLE_ONE_LINE {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): dataTable.rowStyle = %v, want ROW_STYLE_ONE_LINE", fixture, dashboard.GetId(), dataTable.RowStyle)
+	}
+	if dataTable.Query == nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): dataTable.query is nil", fixture, dashboard.GetId())
+	}
+	if err := dashboardOpenAPIAssertOneOfBranch(dataTable.Query, "DataTableQuery", "metrics", dashboard.GetId(), fixture); err != nil {
+		return err
+	}
+	if dataTable.Query.Metrics.PromqlQuery == nil || dataTable.Query.Metrics.PromqlQuery.GetValue() != "vector(1)" {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): typed dataTable metrics promqlQuery was not hydrated", fixture, dashboard.GetId())
+	}
+
+	return nil
+}
+
+func dashboardOpenAPIAssertUnknownContentJSONFieldsDiscarded(dashboard *dashboardservice.Dashboard, fixture string) error {
+	encoded, err := json.Marshal(dashboard)
+	if err != nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): marshal REST dashboard: %w", fixture, dashboard.GetId(), err)
+	}
+	for _, field := range dashboardContentJSONUnknownFields {
+		if strings.Contains(string(encoded), fmt.Sprintf("%q", field)) {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): unknown property %q survived in REST AdditionalProperties", fixture, dashboard.GetId(), field)
+		}
+	}
+
+	return nil
+}
+
+func dashboardOpenAPICheckContentJSONFolderOverride(
+	ctx context.Context,
+	client **dashboardservice.DashboardServiceAPIService,
+	fixture string,
+) resource.TestCheckFunc {
+	return func(state *terraform.State) error {
+		if client == nil {
+			return fmt.Errorf("dashboard fixture %q: OpenAPI client reference is nil", fixture)
+		}
+		dashboard, err := dashboardOpenAPIFetchDashboard(ctx, *client, state, dashboardResourceName, fixture)
+		if err != nil {
+			return err
+		}
+		folderState, ok := state.RootModule().Resources[folderResourceName]
+		if !ok || folderState.Primary == nil || folderState.Primary.ID == "" {
+			return fmt.Errorf("dashboard fixture %q: managed folder state is absent", fixture)
+		}
+		if dashboard.FolderId == nil || dashboard.FolderId.GetValue() != folderState.Primary.ID {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): REST folder ID = %v, want %q", fixture, dashboard.GetId(), dashboard.FolderId, folderState.Primary.ID)
+		}
+
+		return nil
+	}
+}

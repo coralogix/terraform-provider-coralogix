@@ -16,6 +16,9 @@ package dashboards
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -28,6 +31,49 @@ import (
 
 func ptr[T any](v T) *T {
 	return &v
+}
+
+func TestExtractDashboardContentJSONRestoresAliasesBeforeDiscardingUnknownFields(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join("..", "testdata", "dashboards", "content_json_unknown_fields.json"))
+	if err != nil {
+		t.Fatalf("read content_json unknown-fields fixture: %s", err)
+	}
+
+	dashboard, diags := extractDashboard(context.Background(), DashboardResourceModel{
+		ContentJson: types.StringValue(string(content)),
+		Folder:      types.ObjectNull(dashboardFolderModelAttr()),
+	})
+	if diags.HasError() {
+		t.Fatalf("extract content_json dashboard: %v", diags)
+	}
+	definition := dashboard.Layout.Sections[0].Rows[0].Widgets[0].Definition
+	if definition == nil || definition.DataTable == nil {
+		t.Fatal("expected data_table alias to be restored into the typed dataTable field")
+	}
+	dataTable := definition.DataTable
+	if dataTable.ResultsPerPage == nil || *dataTable.ResultsPerPage != 10 {
+		t.Fatalf("expected results_per_page alias to be restored, got %v", dataTable.ResultsPerPage)
+	}
+	if dataTable.RowStyle == nil || *dataTable.RowStyle != dashboardservice.ROWSTYLE_ROW_STYLE_ONE_LINE {
+		t.Fatalf("expected row_style alias to be restored, got %v", dataTable.RowStyle)
+	}
+	if dataTable.Query == nil || dataTable.Query.Metrics == nil || dataTable.Query.Metrics.PromqlQuery == nil {
+		t.Fatal("expected nested query and promql_query aliases to be restored into typed fields")
+	}
+
+	request := newDashboardOpenAPICreateRequest(*dashboard, nil)
+	encoded, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("marshal normalized content_json request: %s", err)
+	}
+	for _, unknownField := range []string{
+		"unknownRoot", "unknownLayout", "unknownSection", "unknownRow", "unknownWidget",
+		"unknownDefinition", "unknownDataTable", "unknownQuery", "unknownMetrics", "unknownPromqlQuery",
+	} {
+		if strings.Contains(string(encoded), unknownField) {
+			t.Fatalf("expected unknown property %q to be discarded from request %s", unknownField, encoded)
+		}
+	}
 }
 
 func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
