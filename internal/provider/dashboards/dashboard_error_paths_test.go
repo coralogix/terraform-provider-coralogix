@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -100,6 +101,66 @@ func TestDashboardResourceFailedPostCreateReadCleansUpPartialDashboard(t *testin
 	}
 }
 
+func TestDashboardResourceFailedPostCreateReadAndCleanupReportsRecoverableID(t *testing.T) {
+	const apiKey = "test-api-key-must-not-leak"
+	requests := make([]string, 0, 3)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r.Method+" "+r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodPost:
+			_, _ = w.Write([]byte(`{"dashboardId":"` + dashboardErrorPathTestID + `"}`))
+		case http.MethodGet:
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"code":500,"message":"read after create failed"}`))
+		case http.MethodDelete:
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"code":503,"message":"cleanup temporarily unavailable"}`))
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	ctx := context.Background()
+	resourceSchema := dashboardschema.V4()
+	plan := dashboardErrorPathPlan(ctx, resourceSchema, "", `{"name":"orphaned dashboard","layout":{"sections":[]}}`)
+	response := frameworkresource.CreateResponse{State: tfsdk.State{Raw: plan.Raw, Schema: resourceSchema}}
+	resource := DashboardResource{openAPIClient: newDashboardOpenAPITestClient(server, apiKey)}
+
+	resource.Create(ctx, frameworkresource.CreateRequest{Plan: plan}, &response)
+
+	if got, want := response.Diagnostics.ErrorsCount(), 2; got != want {
+		t.Fatalf("Create() error diagnostic count = %d, want primary read and cleanup errors; diagnostics: %v", got, response.Diagnostics)
+	}
+	assertDashboardRawStateEqual(t, response.State, tfsdk.State{Raw: plan.Raw, Schema: resourceSchema})
+	assertDashboardStateID(t, ctx, response.State, "")
+	diagnosticText := dashboardDiagnosticText(response.Diagnostics)
+	for _, want := range []string{
+		"Error getting Dashboard",
+		"read after create failed",
+		"Error cleaning up Dashboard after failed create",
+		"cleanup temporarily unavailable",
+		dashboardErrorPathTestID,
+		"Delete this dashboard before retrying",
+	} {
+		if !strings.Contains(diagnosticText, want) {
+			t.Errorf("Create() diagnostics = %q, want context %q", diagnosticText, want)
+		}
+	}
+	if strings.Contains(diagnosticText, apiKey) {
+		t.Fatalf("Create() diagnostics exposed API key: %q", diagnosticText)
+	}
+	wantRequests := []string{
+		"POST /dashboards/dashboards/v1",
+		"GET /dashboards/dashboards/v1/" + dashboardErrorPathTestID,
+		"DELETE /dashboards/dashboards/v1/" + dashboardErrorPathTestID,
+	}
+	if got, want := strings.Join(requests, ", "), strings.Join(wantRequests, ", "); got != want {
+		t.Fatalf("requests after failed cleanup = %q, want %q", got, want)
+	}
+}
+
 func TestDashboardResourceRejectedReplaceKeepsPriorStateUsableOnRefresh(t *testing.T) {
 	requests := make([]string, 0, 2)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -145,6 +206,55 @@ func TestDashboardResourceRejectedReplaceKeepsPriorStateUsableOnRefresh(t *testi
 	}
 }
 
+func TestDashboardResourcePostReplaceReadFailurePreservesPriorState(t *testing.T) {
+	requests := make([]string, 0, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r.Method+" "+r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodPut:
+			_, _ = w.Write([]byte(`{}`))
+		case http.MethodGet:
+			w.WriteHeader(http.StatusBadGateway)
+			_, _ = w.Write([]byte(`{"code":502,"message":"updated dashboard is temporarily unreadable"}`))
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	ctx := context.Background()
+	resourceSchema := dashboardschema.V4()
+	priorState := dashboardErrorPathState(ctx, resourceSchema, dashboardErrorPathTestID, `{"id":"`+dashboardErrorPathTestID+`","name":"prior remote dashboard","layout":{"sections":[]}}`)
+	plan := dashboardErrorPathPlan(ctx, resourceSchema, dashboardErrorPathTestID, `{"id":"`+dashboardErrorPathTestID+`","name":"updated remote dashboard","layout":{"sections":[]}}`)
+	response := frameworkresource.UpdateResponse{State: priorState}
+	resource := DashboardResource{openAPIClient: newDashboardOpenAPITestClient(server, "")}
+
+	resource.Update(ctx, frameworkresource.UpdateRequest{
+		Config: tfsdk.Config{Raw: plan.Raw, Schema: resourceSchema},
+		Plan:   plan,
+		State:  priorState,
+	}, &response)
+
+	if !response.Diagnostics.HasError() {
+		t.Fatal("Update() diagnostics have no error, want post-replace read failure")
+	}
+	assertDashboardRawStateEqual(t, response.State, priorState)
+	assertDashboardStateID(t, ctx, response.State, dashboardErrorPathTestID)
+	for _, want := range []string{"Error getting Dashboard", "502", "updated dashboard is temporarily unreadable"} {
+		if !strings.Contains(dashboardDiagnosticText(response.Diagnostics), want) {
+			t.Errorf("Update() diagnostics = %q, want context %q", dashboardDiagnosticText(response.Diagnostics), want)
+		}
+	}
+	wantRequests := []string{
+		"PUT /dashboards/dashboards/v1",
+		"GET /dashboards/dashboards/v1/" + dashboardErrorPathTestID,
+	}
+	if got, want := strings.Join(requests, ", "), strings.Join(wantRequests, ", "); got != want {
+		t.Fatalf("requests after post-replace read failure = %q, want %q", got, want)
+	}
+}
+
 func TestDashboardResourceReadNotFoundRemovesStateWithWarning(t *testing.T) {
 	server := dashboardNotFoundTestServer(t)
 	defer server.Close()
@@ -165,6 +275,47 @@ func TestDashboardResourceReadNotFoundRemovesStateWithWarning(t *testing.T) {
 	}
 	if !response.State.Raw.IsNull() {
 		t.Fatalf("Read() state = %#v, want removed resource", response.State.Raw)
+	}
+}
+
+func TestDashboardResourceTransientReadFailurePreservesPriorState(t *testing.T) {
+	const apiKey = "test-api-key-must-not-leak"
+	requests := make([]string, 0, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r.Method+" "+r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"code":503,"message":"dashboard read temporarily unavailable"}`))
+	}))
+	t.Cleanup(server.Close)
+
+	ctx := context.Background()
+	resourceSchema := dashboardschema.V4()
+	state := dashboardErrorPathState(ctx, resourceSchema, dashboardErrorPathTestID, `{"id":"`+dashboardErrorPathTestID+`","name":"prior dashboard","layout":{"sections":[]}}`)
+	response := frameworkresource.ReadResponse{State: state}
+	resource := DashboardResource{openAPIClient: newDashboardOpenAPITestClient(server, apiKey)}
+
+	resource.Read(ctx, frameworkresource.ReadRequest{State: state}, &response)
+
+	if !response.Diagnostics.HasError() {
+		t.Fatal("Read() diagnostics have no error, want transient backend failure")
+	}
+	if response.Diagnostics.WarningsCount() != 0 {
+		t.Fatalf("Read() warning count = %d, want 0 for a retryable failure", response.Diagnostics.WarningsCount())
+	}
+	assertDashboardRawStateEqual(t, response.State, state)
+	assertDashboardStateID(t, ctx, response.State, dashboardErrorPathTestID)
+	diagnosticText := dashboardDiagnosticText(response.Diagnostics)
+	for _, want := range []string{"Error reading Dashboard", "503", "dashboard read temporarily unavailable"} {
+		if !strings.Contains(diagnosticText, want) {
+			t.Errorf("Read() diagnostics = %q, want context %q", diagnosticText, want)
+		}
+	}
+	if strings.Contains(diagnosticText, apiKey) {
+		t.Fatalf("Read() diagnostics exposed API key: %q", diagnosticText)
+	}
+	if got, want := strings.Join(requests, ", "), "GET /dashboards/dashboards/v1/"+dashboardErrorPathTestID; got != want {
+		t.Fatalf("requests after transient read failure = %q, want %q", got, want)
 	}
 }
 
@@ -189,6 +340,52 @@ func TestDashboardResourceDeleteAlreadyAbsentSucceeds(t *testing.T) {
 
 	if response.Diagnostics.HasError() {
 		t.Fatalf("Delete() already-absent dashboard diagnostics = %v, want success", response.Diagnostics)
+	}
+}
+
+func TestDashboardResourceDeleteFailurePreservesStateForRetry(t *testing.T) {
+	requests := make([]string, 0, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r.Method+" "+r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		if len(requests) == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"code":503,"message":"delete temporarily unavailable"}`))
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+
+	ctx := context.Background()
+	resourceSchema := dashboardschema.V4()
+	state := dashboardErrorPathState(ctx, resourceSchema, dashboardErrorPathTestID, `{"id":"`+dashboardErrorPathTestID+`"}`)
+	resource := DashboardResource{openAPIClient: newDashboardOpenAPITestClient(server, "")}
+
+	failedResponse := frameworkresource.DeleteResponse{State: state}
+	resource.Delete(ctx, frameworkresource.DeleteRequest{State: state}, &failedResponse)
+	if !failedResponse.Diagnostics.HasError() {
+		t.Fatal("Delete() diagnostics have no error, want transient backend failure")
+	}
+	assertDashboardRawStateEqual(t, failedResponse.State, state)
+	assertDashboardStateID(t, ctx, failedResponse.State, dashboardErrorPathTestID)
+	for _, want := range []string{"Error Deleting Dashboard " + dashboardErrorPathTestID, "503", "delete temporarily unavailable"} {
+		if !strings.Contains(dashboardDiagnosticText(failedResponse.Diagnostics), want) {
+			t.Errorf("Delete() diagnostics = %q, want context %q", dashboardDiagnosticText(failedResponse.Diagnostics), want)
+		}
+	}
+
+	retryResponse := frameworkresource.DeleteResponse{State: failedResponse.State}
+	resource.Delete(ctx, frameworkresource.DeleteRequest{State: failedResponse.State}, &retryResponse)
+	if retryResponse.Diagnostics.HasError() {
+		t.Fatalf("Delete() retry diagnostics = %v, want success", retryResponse.Diagnostics)
+	}
+	wantRequests := []string{
+		"DELETE /dashboards/dashboards/v1/" + dashboardErrorPathTestID,
+		"DELETE /dashboards/dashboards/v1/" + dashboardErrorPathTestID,
+	}
+	if got, want := strings.Join(requests, ", "), strings.Join(wantRequests, ", "); got != want {
+		t.Fatalf("delete attempt sequence = %q, want %q", got, want)
 	}
 }
 
@@ -281,4 +478,22 @@ func assertDashboardStateID(t *testing.T, ctx context.Context, state tfsdk.State
 	if id.ValueString() != want {
 		t.Fatalf("state ID = %q, want %q", id.ValueString(), want)
 	}
+}
+
+func assertDashboardRawStateEqual(t *testing.T, got, want tfsdk.State) {
+	t.Helper()
+	if !got.Raw.Equal(want.Raw) {
+		t.Fatalf("raw state changed after failed operation\ngot:  %#v\nwant: %#v", got.Raw, want.Raw)
+	}
+}
+
+func dashboardDiagnosticText(diagnostics diag.Diagnostics) string {
+	var text strings.Builder
+	for _, diagnostic := range diagnostics {
+		text.WriteString(diagnostic.Summary())
+		text.WriteByte('\n')
+		text.WriteString(diagnostic.Detail())
+		text.WriteByte('\n')
+	}
+	return text.String()
 }
