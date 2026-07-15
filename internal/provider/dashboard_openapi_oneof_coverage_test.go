@@ -135,9 +135,9 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"AnnotationSource": {
 			ProtoSource: "ast/annotations/annotation.proto#Annotation.Source.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"metrics":         gap("annotations[*].source.metrics"),
-				"logs":            gap("annotations[*].source.logs"),
-				"spans":           gap("annotations[*].source.spans"),
+				"metrics":         covered("annotations[*].source.metrics", dashboardOpenAPIAnnotationsTestName),
+				"logs":            covered("annotations[*].source.logs", dashboardOpenAPIAnnotationsTestName),
+				"spans":           covered("annotations[*].source.spans", dashboardOpenAPIAnnotationsTestName),
 				"manual":          covered("annotations[*].source.manual", "TestAccCoralogixResourceDashboardManualAnnotation"),
 				"dataprime":       apiOnly(dashboardNoProviderPath, false, "annotation.proto declares dataprime, but annotationSourceModelAttr and both annotation converters expose only metrics, logs, spans, and manual"),
 				"eventRecurrence": apiOnly(dashboardNoProviderPath, false, "annotation.proto declares event_recurrence, but annotationSourceModelAttr and both annotation converters expose only metrics, logs, spans, and manual"),
@@ -170,9 +170,9 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"ColorsBy": {
 			ProtoSource: "ast/widgets/common/colors_by.proto#ColorsBy.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"stack":       gap(widget + ".{bar_chart,horizontal_bar_chart}.colors_by=stack"),
-				"groupBy":     gap(widget + ".{bar_chart,horizontal_bar_chart}.colors_by=group_by"),
-				"aggregation": gap(widget + ".{bar_chart,horizontal_bar_chart}.colors_by=aggregation"),
+				"stack":       covered(widget+".{bar_chart,horizontal_bar_chart}.colors_by=stack", dashboardOpenAPINestedPresentationTestName),
+				"groupBy":     covered(widget+".{bar_chart,horizontal_bar_chart}.colors_by=group_by", dashboardOpenAPINestedPresentationTestName),
+				"aggregation": covered(widget+".{bar_chart,horizontal_bar_chart}.colors_by=aggregation", dashboardOpenAPINestedPresentationTestName),
 				"query":       apiOnly(widget+".{bar_chart,horizontal_bar_chart}.colors_by", false, "ColorsBy.query is declared in colors_by.proto but expandColorsBy and flattenBarChartColorsBy handle only stack, group_by, and aggregation"),
 				"category":    apiOnly(widget+".{bar_chart,horizontal_bar_chart}.colors_by", false, "ColorsBy.category is declared in colors_by.proto but expandColorsBy and flattenBarChartColorsBy handle only stack, group_by, and aggregation"),
 			},
@@ -182,11 +182,11 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			Reconciliation: "the OpenAPI generator places both protobuf oneofs on the single Dashboard REST model",
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"off":               covered("auto_refresh.type=off", "TestAccCoralogixResourceDashboardAccessPolicy"),
-				"twoMinutes":        gap("auto_refresh.type=two_minutes"),
-				"fiveMinutes":       gap("auto_refresh.type=five_minutes"),
+				"twoMinutes":        covered("auto_refresh.type=two_minutes", dashboardOpenAPINestedPresentationTestName),
+				"fiveMinutes":       covered("auto_refresh.type=five_minutes", dashboardOpenAPINestedPresentationTestName),
 				"oneMinute":         apiOnly("auto_refresh.type=one_minute", false, "dashboard.proto and the REST model expose one_minute, but the provider validator and both auto-refresh converters support only off, two_minutes, and five_minutes"),
 				"fifteenMinutes":    apiOnly("auto_refresh.type=fifteen_minutes", false, "dashboard.proto and the REST model expose fifteen_minutes, but the provider validator and both auto-refresh converters support only off, two_minutes, and five_minutes"),
-				"absoluteTimeFrame": gap("time_frame.absolute"),
+				"absoluteTimeFrame": covered("time_frame.absolute", dashboardOpenAPINestedPresentationTestName),
 				"relativeTimeFrame": covered("time_frame.relative", "TestAccCoralogixResourceDashboard"),
 			},
 		},
@@ -217,7 +217,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"EqualsSelection": {
 			ProtoSource: "ast/filters/filter.proto#Filter.Equals.Selection.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"all":  gap(filter + ".operator.selected_values=[]"),
+				"all":  covered(filter+".operator.selected_values=[]", dashboardOpenAPISpansAndFiltersTestName),
 				"list": covered(filter+".operator.selected_values", "TestAccCoralogixResourceDashboard"),
 			},
 		},
@@ -230,7 +230,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			ProtoSource: "ast/filters/filter.proto#Filter.Operator.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"equals":    covered(filter+".operator.type=equals", "TestAccCoralogixResourceDashboard"),
-				"notEquals": gap(filter + ".operator.type=not_equals"),
+				"notEquals": covered(filter+".operator.type=not_equals", dashboardOpenAPISpansAndFiltersTestName),
 			},
 		},
 		"FilterPathAndValues": {
@@ -244,9 +244,9 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"FilterSource": {
 			ProtoSource: "ast/filters/filter.proto#Filter.Source.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"logs":    gap(widget + ".*.query.data_prime.filters[*].logs"),
-				"spans":   gap(widget + ".*.query.data_prime.filters[*].spans"),
-				"metrics": gap(widget + ".*.query.data_prime.filters[*].metrics"),
+				"logs":    covered(widget+".*.query.data_prime.filters[*].logs", dashboardOpenAPIDataPrimeQueryTestName),
+				"spans":   covered(widget+".*.query.data_prime.filters[*].spans", dashboardOpenAPIDataPrimeQueryTestName),
+				"metrics": covered(widget+".*.query.data_prime.filters[*].metrics", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
 		"GaugeQuery": {
@@ -300,8 +300,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"HorizontalBarChartYAxisViewBy": {
 			ProtoSource: "ast/widgets/horizontal_bar_chart.proto#HorizontalBarChart.YAxisViewBy.y_axis_view",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"category": gap(widget + ".horizontal_bar_chart.y_axis_view_by=category"),
-				"value":    gap(widget + ".horizontal_bar_chart.y_axis_view_by=value"),
+				"category": covered(widget+".horizontal_bar_chart.y_axis_view_by=category", dashboardOpenAPINestedPresentationTestName),
+				"value":    covered(widget+".horizontal_bar_chart.y_axis_view_by=value", dashboardOpenAPINestedPresentationTestName),
 			},
 		},
 		"IntervalResolution": apiOnlyModel(
@@ -322,26 +322,26 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			ProtoSource: "common/logs_aggregation.proto#LogsAggregation.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"count":         covered(widget+".*.query.logs.aggregation.type=count", "TestAccCoralogixResourceDashboard"),
-				"countDistinct": gap(widget + ".*.query.logs.aggregation.type=count_distinct"),
-				"sum":           gap(widget + ".*.query.logs.aggregation.type=sum"),
-				"average":       gap(widget + ".*.query.logs.aggregation.type=avg"),
-				"min":           gap(widget + ".*.query.logs.aggregation.type=min"),
-				"max":           gap(widget + ".*.query.logs.aggregation.type=max"),
-				"percentile":    gap(widget + ".*.query.logs.aggregation.type=percentile"),
+				"countDistinct": covered(widget+".*.query.logs.aggregation.type=count_distinct", dashboardOpenAPILogsAggregationTestName),
+				"sum":           covered(widget+".*.query.logs.aggregation.type=sum", dashboardOpenAPILogsAggregationTestName),
+				"average":       covered(widget+".*.query.logs.aggregation.type=avg", dashboardOpenAPILogsAggregationTestName),
+				"min":           covered(widget+".*.query.logs.aggregation.type=min", dashboardOpenAPILogsAggregationTestName),
+				"max":           covered(widget+".*.query.logs.aggregation.type=max", dashboardOpenAPILogsAggregationTestName),
+				"percentile":    covered(widget+".*.query.logs.aggregation.type=percentile", dashboardOpenAPILogsAggregationTestName),
 			},
 		},
 		"LogsSourceStrategy": {
 			ProtoSource: "ast/annotations/annotation.proto#Annotation.LogsSource.Strategy.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"instant":  gap("annotations[*].source.logs.strategy.instant"),
-				"range":    gap("annotations[*].source.logs.strategy.range"),
-				"duration": gap("annotations[*].source.logs.strategy.duration"),
+				"instant":  covered("annotations[*].source.logs.strategy.instant", dashboardOpenAPIAnnotationsTestName),
+				"range":    covered("annotations[*].source.logs.strategy.range", dashboardOpenAPIAnnotationsTestName),
+				"duration": covered("annotations[*].source.logs.strategy.duration", dashboardOpenAPIAnnotationsTestName),
 			},
 		},
 		"ManualSourceStrategy": {
 			ProtoSource: "ast/annotations/annotation.proto#Annotation.ManualSource.Strategy.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"instant": gap("annotations[*].source.manual.strategy.instant"),
+				"instant": covered("annotations[*].source.manual.strategy.instant", dashboardOpenAPIAnnotationsTestName),
 				"range":   covered("annotations[*].source.manual.strategy.range", "TestAccCoralogixResourceDashboardManualAnnotation"),
 			},
 		},
@@ -353,25 +353,25 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"MultiSelectQuery": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"logsQuery":    gap(variableQuery + ".logs"),
+				"logsQuery":    covered(variableQuery+".logs", dashboardOpenAPIVariablesTestName),
 				"metricsQuery": covered(variableQuery+".metrics", "TestAccCoralogixResourceDashboard"),
-				"spansQuery":   gap(variableQuery + ".spans"),
+				"spansQuery":   covered(variableQuery+".spans", dashboardOpenAPIVariablesTestName),
 			},
 		},
 		"MultiSelectSelection": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Selection.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"all":  gap(variable + ".selected_values=[]"),
+				"all":  covered(variable+".selected_values=[]", dashboardOpenAPIVariablesTestName),
 				"list": covered(variable+".selected_values", "TestAccCoralogixResourceDashboard"),
 			},
 		},
 		"MultiSelectSource": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Source.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"logsPath":     gap(variable + ".source.logs_path"),
-				"metricLabel":  gap(variable + ".source.metric_label"),
+				"logsPath":     covered(variable+".source.logs_path", dashboardOpenAPIVariablesTestName),
+				"metricLabel":  covered(variable+".source.metric_label", dashboardOpenAPIVariablesTestName),
 				"constantList": covered(variable+".source.constant_list", "TestAccCoralogixResourceDashboard"),
-				"spanField":    gap(variable + ".source.span_field"),
+				"spanField":    covered(variable+".source.span_field", dashboardOpenAPIVariablesTestName),
 				"query":        covered(variable+".source.query", "TestAccCoralogixResourceDashboard"),
 			},
 		},
@@ -397,29 +397,29 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"QueryLogsQueryType": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.LogsQuery.Type.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"fieldName":  gap(variableQuery + ".logs.field_name"),
-				"fieldValue": gap(variableQuery + ".logs.field_value"),
+				"fieldName":  covered(variableQuery+".logs.field_name", dashboardOpenAPIVariablesTestName),
+				"fieldValue": covered(variableQuery+".logs.field_value", dashboardOpenAPIVariablesTestName),
 			},
 		},
 		"QueryMetricsQueryOperator": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.MetricsQuery.Operator.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"equals":    covered(variableQuery+".metrics.*.label_filters[*].operator.type=equals", "TestAccCoralogixResourceDashboard"),
-				"notEquals": gap(variableQuery + ".metrics.*.label_filters[*].operator.type=not_equals"),
+				"notEquals": covered(variableQuery+".metrics.*.label_filters[*].operator.type=not_equals", dashboardOpenAPIVariablesTestName),
 			},
 		},
 		"QueryMetricsQueryStringOrVariable": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.MetricsQuery.StringOrVariable.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"stringValue":  covered(variableQuery+".metrics.*.*.string_value", "TestAccCoralogixResourceDashboard"),
-				"variableName": gap(variableQuery + ".metrics.*.*.variable_name"),
+				"variableName": covered(variableQuery+".metrics.*.*.variable_name", dashboardOpenAPIVariablesTestName),
 			},
 		},
 		"QueryMetricsQueryType": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.MetricsQuery.Type.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"metricName": gap(variableQuery + ".metrics.metric_name"),
-				"labelName":  gap(variableQuery + ".metrics.label_name"),
+				"metricName": covered(variableQuery+".metrics.metric_name", dashboardOpenAPIVariablesTestName),
+				"labelName":  covered(variableQuery+".metrics.label_name", dashboardOpenAPIVariablesTestName),
 				"labelValue": covered(variableQuery+".metrics.label_value", "TestAccCoralogixResourceDashboard"),
 			},
 		},
@@ -451,8 +451,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"QuerySpansQueryType": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.SpansQuery.Type.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"fieldName":  gap(variableQuery + ".spans.field_name"),
-				"fieldValue": gap(variableQuery + ".spans.field_value"),
+				"fieldName":  covered(variableQuery+".spans.field_name", dashboardOpenAPIVariablesTestName),
+				"fieldValue": covered(variableQuery+".spans.field_value", dashboardOpenAPIVariablesTestName),
 			},
 		},
 		"RuleScope": apiOnlyModel(
@@ -477,22 +477,22 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"metadataField":   covered(widget+".*.query.spans.*.field.type=metadata", "TestAccCoralogixResourceDashboardLinechartWidget"),
 				"tagField":        covered(widget+".*.query.spans.*.field.type=tag", "TestAccCoralogixResourceDashboardLinechartWidget"),
-				"processTagField": gap(widget + ".*.query.spans.*.field.type=process_tag"),
+				"processTagField": covered(widget+".*.query.spans.*.field.type=process_tag", dashboardOpenAPISpansAndFiltersTestName),
 			},
 		},
 		"SpansAggregation": {
 			ProtoSource: "common/spans_aggregation.proto#SpansAggregation.aggregation",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"metricAggregation":    gap(widget + ".*.query.spans.aggregations[*].type=metric"),
+				"metricAggregation":    covered(widget+".*.query.spans.aggregations[*].type=metric", dashboardOpenAPISpansAndFiltersTestName),
 				"dimensionAggregation": covered(widget+".*.query.spans.aggregations[*].type=dimension", "TestAccCoralogixResourceDashboardLinechartWidget"),
 			},
 		},
 		"SpansSourceStrategy": {
 			ProtoSource: "ast/annotations/annotation.proto#Annotation.SpansSource.Strategy.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"instant":  gap("annotations[*].source.spans.strategy.instant"),
-				"range":    gap("annotations[*].source.spans.strategy.range"),
-				"duration": gap("annotations[*].source.spans.strategy.duration"),
+				"instant":  covered("annotations[*].source.spans.strategy.instant", dashboardOpenAPIAnnotationsTestName),
+				"range":    covered("annotations[*].source.spans.strategy.range", dashboardOpenAPIAnnotationsTestName),
+				"duration": covered("annotations[*].source.spans.strategy.duration", dashboardOpenAPIAnnotationsTestName),
 			},
 		},
 		"StatVisualElement": apiOnlyModel(
@@ -508,7 +508,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"TimeFrameSelect": {
 			ProtoSource: "common/time_frame.proto#TimeFrameSelect.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"absoluteTimeFrame": gap("time_frame.absolute (also available on query-level time_frame blocks)"),
+				"absoluteTimeFrame": covered("time_frame.absolute (also available on query-level time_frame blocks)", dashboardOpenAPINestedPresentationTestName),
 				"relativeTimeFrame": covered("time_frame.relative (also available on query-level time_frame blocks)", "TestAccCoralogixResourceDashboard"),
 			},
 		},
@@ -558,8 +558,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"XAxis": {
 			ProtoSource: "ast/widgets/bar_chart.proto#BarChart.XAxis.type",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"value":       gap(widget + ".bar_chart.xaxis.value"),
-				"time":        gap(widget + ".bar_chart.xaxis.time"),
+				"value":       covered(widget+".bar_chart.xaxis.value", dashboardOpenAPINestedPresentationTestName),
+				"time":        covered(widget+".bar_chart.xaxis.time", dashboardOpenAPINestedPresentationTestName),
 				"timeBuckets": apiOnly(dashboardNoProviderPath, false, "bar_chart.proto retains time_buckets, but the schema model and both XAxis converters support only value and time"),
 			},
 		},

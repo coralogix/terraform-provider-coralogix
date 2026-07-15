@@ -156,6 +156,21 @@ func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkd
 				resource.TestCheckResourceAttr(dashboardResourceName, basePath+".definition.hexagon.max", "100"),
 			)
 		}
+		if queryBranch == "dataprime" && index < 3 {
+			filterBranch := []string{"logs", "spans", "metrics"}[index]
+			checks = append(checks,
+				resource.TestCheckResourceAttr(
+					dashboardResourceName,
+					basePath+dashboardOpenAPIDataPrimeFiltersStatePath(widget.name)+".#",
+					"1",
+				),
+				resource.TestCheckResourceAttr(
+					dashboardResourceName,
+					basePath+dashboardOpenAPIDataPrimeFilterStatePath(widget.name, filterBranch),
+					dashboardOpenAPIDataPrimeFilterStateValue(filterBranch),
+				),
+			)
+		}
 	}
 
 	if includeMarkdown {
@@ -255,6 +270,19 @@ func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Da
 		}
 		if err := dashboardOpenAPIAssertOneOfBranch(queryCarrier, spec.queryModel, queryBranch, dashboardID, fixture); err != nil {
 			return err
+		}
+		if queryBranch == "dataprime" && index < 3 {
+			filterBranch := []string{"logs", "spans", "metrics"}[index]
+			filter, err := dashboardOpenAPIDataPrimeFilter(queryCarrier)
+			if err != nil {
+				return fmt.Errorf("dashboard fixture %q (dashboard %q): widget %q: %w", fixture, dashboardID, spec.name, err)
+			}
+			if err := dashboardOpenAPIAssertOneOfBranch(filter, "FilterSource", filterBranch, dashboardID, fixture); err != nil {
+				return err
+			}
+			if err := dashboardOpenAPIAssertDataPrimeFilterValue(filter, filterBranch); err != nil {
+				return fmt.Errorf("dashboard fixture %q (dashboard %q): widget %q: %w", fixture, dashboardID, spec.name, err)
+			}
 		}
 	}
 
@@ -452,14 +480,125 @@ func dashboardOpenAPIStructuredQueryConfig(widget, queryBranch string) string {
 			return fmt.Sprintf("%sspans = {\n                  aggregation = %s\n                }", indent, aggregation)
 		}
 	case "dataprime":
+		filter := dashboardOpenAPIDataPrimeFilterConfig(widget)
 		groupNames := ""
 		if widget == "pie_chart" {
 			groupNames = "\n                  group_names = [\"c\"]"
 		}
-		return fmt.Sprintf("%sdata_prime = {\n                  query = %q%s\n                }", indent, dashboardOpenAPIDataPrimeQuery(), groupNames)
+		return fmt.Sprintf("%sdata_prime = {\n                  query = %q%s%s\n                }", indent, dashboardOpenAPIDataPrimeQuery(), groupNames, filter)
 	default:
 		panic(fmt.Sprintf("unsupported structured dashboard query branch %q", queryBranch))
 	}
+}
+
+func dashboardOpenAPIDataPrimeFilterConfig(widget string) string {
+	switch widget {
+	case "line_chart":
+		return `
+                  filters = [{
+                    logs = {
+                      field    = "coralogix.metadata.applicationName"
+                      operator = { type = "equals", selected_values = ["api"] }
+                    }
+                  }]`
+	case "data_table":
+		return `
+                  filters = [{
+                    spans = {
+                      field    = { type = "metadata", value = "service_name" }
+                      operator = { type = "equals", selected_values = ["api"] }
+                    }
+                  }]`
+	case "gauge":
+		return `
+                  filters = [{
+                    metrics = {
+                      metric_name = "http_requests_total"
+                      label       = "service"
+                      operator    = { type = "equals", selected_values = ["api"] }
+                    }
+                  }]`
+	default:
+		return ""
+	}
+}
+
+func dashboardOpenAPIDataPrimeFilterStatePath(widget, branch string) string {
+	queryPath := dashboardOpenAPIDataPrimeFiltersStatePath(widget) + ".0."
+	switch branch {
+	case "logs":
+		return queryPath + "logs.field"
+	case "spans":
+		return queryPath + "spans.field.type"
+	case "metrics":
+		return queryPath + "metrics.metric_name"
+	default:
+		panic(fmt.Sprintf("unsupported Dataprime filter branch %q", branch))
+	}
+}
+
+func dashboardOpenAPIDataPrimeFiltersStatePath(widget string) string {
+	if widget == "line_chart" {
+		return ".definition.line_chart.query_definitions.0.query.data_prime.filters"
+	}
+	return ".definition." + widget + ".query.data_prime.filters"
+}
+
+func dashboardOpenAPIDataPrimeFilterStateValue(branch string) string {
+	switch branch {
+	case "logs":
+		return "coralogix.metadata.applicationName"
+	case "spans":
+		return "metadata"
+	case "metrics":
+		return "http_requests_total"
+	default:
+		panic(fmt.Sprintf("unsupported Dataprime filter branch %q", branch))
+	}
+}
+
+func dashboardOpenAPIDataPrimeFilter(queryCarrier any) (*dashboardservice.FilterSource, error) {
+	var filters []dashboardservice.FilterSource
+	switch query := queryCarrier.(type) {
+	case *dashboardservice.LineChartQuery:
+		if query.Dataprime != nil {
+			filters = query.Dataprime.Filters
+		}
+	case *dashboardservice.DataTableQuery:
+		if query.Dataprime != nil {
+			filters = query.Dataprime.Filters
+		}
+	case *dashboardservice.GaugeQuery:
+		if query.Dataprime != nil {
+			filters = query.Dataprime.Filters
+		}
+	default:
+		return nil, fmt.Errorf("unsupported Dataprime query carrier %T", queryCarrier)
+	}
+	if len(filters) != 1 {
+		return nil, fmt.Errorf("REST Dataprime filters = %d, want 1", len(filters))
+	}
+	return &filters[0], nil
+}
+
+func dashboardOpenAPIAssertDataPrimeFilterValue(filter *dashboardservice.FilterSource, branch string) error {
+	switch branch {
+	case "logs":
+		if filter.Logs == nil || filter.Logs.GetField() != "coralogix.metadata.applicationName" {
+			return fmt.Errorf("REST logs filter field did not round-trip")
+		}
+	case "spans":
+		if filter.Spans == nil || filter.Spans.Field == nil || filter.Spans.Field.MetadataField == nil {
+			return fmt.Errorf("REST spans filter field did not round-trip")
+		}
+	case "metrics":
+		if filter.Metrics == nil || filter.Metrics.GetMetric() != "http_requests_total" || filter.Metrics.GetLabel() != "service" {
+			return fmt.Errorf("REST metrics filter target did not round-trip")
+		}
+	default:
+		return fmt.Errorf("unsupported Dataprime filter branch %q", branch)
+	}
+	return nil
 }
 
 func dashboardOpenAPIDataPrimeQuery() string {

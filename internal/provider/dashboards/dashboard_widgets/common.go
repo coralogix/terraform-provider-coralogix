@@ -873,8 +873,9 @@ func (f filterOperatorValidator) ValidateObject(ctx context.Context, req validat
 		return
 	}
 
-	if filter.Type.ValueString() == "not_equals" && filter.SelectedValues.IsNull() {
-		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when type is `not_equals`, `selected_values` must be set"))
+	if filter.Type.ValueString() == "not_equals" &&
+		(filter.SelectedValues.IsNull() || (!filter.SelectedValues.IsUnknown() && len(filter.SelectedValues.Elements()) == 0)) {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when type is `not_equals`, `selected_values` must contain at least one value"))
 	}
 }
 
@@ -1382,7 +1383,7 @@ func FlattenFilterOperator(operator *dashboardservice.FilterOperator) (*FilterOp
 		case operator.Equals.Selection != nil && operator.Equals.Selection.All != nil:
 			return &FilterOperatorModel{
 				Type:           types.StringValue("equals"),
-				SelectedValues: types.ListNull(types.StringType),
+				SelectedValues: types.ListValueMust(types.StringType, []attr.Value{}),
 			}, nil
 		case operator.Equals.Selection != nil && operator.Equals.Selection.List != nil:
 			return &FilterOperatorModel{

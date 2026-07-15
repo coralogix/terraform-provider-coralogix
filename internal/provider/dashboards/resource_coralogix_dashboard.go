@@ -273,8 +273,8 @@ type DashboardAnnotationInstantStrategyModel struct {
 }
 
 type DashboardAnnotationRangeStrategyModel struct {
-	StartTimestampField types.Object `tfsdk:"start_time_timestamp_field"` //dashboard_widgets.ObservationFieldModel
-	EndTimestampField   types.Object `tfsdk:"end_time_timestamp_field"`   //dashboard_widgets.ObservationFieldModel
+	StartTimestampField types.Object `tfsdk:"start_timestamp_field"` //dashboard_widgets.ObservationFieldModel
+	EndTimestampField   types.Object `tfsdk:"end_timestamp_field"`   //dashboard_widgets.ObservationFieldModel
 }
 
 type DashboardAnnotationDurationStrategyModel struct {
@@ -5711,10 +5711,10 @@ func flattenDashboardVariableDefinitionMultiSelectQuerySpansModel(ctx context.Co
 
 func flattenMultiSelectQuerySpansFieldName(ctx context.Context, name *dashboardservice.QuerySpansQueryTypeFieldName) (types.Object, diag.Diagnostics) {
 	if name == nil {
-		return types.ObjectNull(multiSelectQuerySpansQueryModelAttr()), nil
+		return types.ObjectNull(spansQueryFieldNameAttr()), nil
 	}
 
-	return types.ObjectValueFrom(ctx, multiSelectQuerySpansQueryModelAttr(), &SpanFieldNameModel{
+	return types.ObjectValueFrom(ctx, spansQueryFieldNameAttr(), &SpanFieldNameModel{
 		SpanRegex: utils.StringPointerToTypeString(name.SpanRegex),
 	})
 }
@@ -5867,7 +5867,7 @@ func flattenDashboardVariableSelectedValues(selection *dashboardservice.MultiSel
 	case selection.List != nil:
 		return utils.StringSliceToTypeStringList(selection.List.Values), nil
 	case selection.All != nil:
-		return types.ListNull(types.StringType), nil
+		return types.ListValueMust(types.StringType, []attr.Value{}), nil
 	default:
 		return types.ListNull(types.StringType), diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Variable Definition Multi Select Selection", fmt.Sprintf("unknown variable definition multi select selection type %T", selection))}
 	}

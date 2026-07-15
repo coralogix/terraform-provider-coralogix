@@ -20,7 +20,9 @@ import (
 	"testing"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
 	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -150,6 +152,121 @@ func TestFlattenDashboardVariableDefinition_LegacyConstantBecomesMultiSelect(t *
 	}
 	if !got.ConstantValue.IsNull() {
 		t.Fatalf("expected constant_value to be null after remap, got %q", got.ConstantValue.ValueString())
+	}
+}
+
+func TestMultiSelectSpansFieldNameRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	query := &dashboardservice.QuerySpansQuery{
+		Type: &dashboardservice.QuerySpansQueryType{
+			FieldName: &dashboardservice.QuerySpansQueryTypeFieldName{
+				SpanRegex: ptr(".*"),
+			},
+		},
+	}
+
+	flattened, diags := flattenDashboardVariableDefinitionMultiSelectQuerySpansModel(ctx, query)
+	if diags.HasError() {
+		t.Fatalf("flattening spans field-name query: %v", diags)
+	}
+
+	expanded, diags := expandMultiSelectSpansQuery(ctx, flattened)
+	if diags.HasError() {
+		t.Fatalf("expanding spans field-name query: %v", diags)
+	}
+	if expanded == nil || expanded.Type == nil || expanded.Type.FieldName == nil || expanded.Type.FieldName.GetSpanRegex() != ".*" {
+		t.Fatalf("expected spans field-name regex to round-trip, got %#v", expanded)
+	}
+}
+
+func TestMultiSelectAllSelectionRoundTripUsesEmptyList(t *testing.T) {
+	expanded, diags := expandMultiSelectSelection(context.Background(), []attr.Value{})
+	if diags.HasError() {
+		t.Fatalf("expanding all selection: %v", diags)
+	}
+	if expanded == nil || expanded.All == nil {
+		t.Fatalf("expected all selection, got %#v", expanded)
+	}
+
+	flattened, diags := flattenDashboardVariableSelectedValues(expanded)
+	if diags.HasError() {
+		t.Fatalf("flattening all selection: %v", diags)
+	}
+	if flattened.IsNull() || flattened.IsUnknown() || len(flattened.Elements()) != 0 {
+		t.Fatalf("expected a known empty selected_values list, got %s", flattened)
+	}
+}
+
+func TestAnnotationRangeStrategyRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	observationField := func(key string) types.Object {
+		return types.ObjectValueMust(dashboardwidgets.ObservationFieldAttr(), map[string]attr.Value{
+			"keypath": types.ListValueMust(types.StringType, []attr.Value{types.StringValue(key)}),
+			"scope":   types.StringValue("metadata"),
+		})
+	}
+	rangeValue := types.ObjectValueMust(rangeStrategyModelAttr(), map[string]attr.Value{
+		"start_timestamp_field": observationField("start"),
+		"end_timestamp_field":   observationField("end"),
+	})
+
+	logs, diags := expandLogsSourceRangeStrategy(ctx, rangeValue)
+	if diags.HasError() {
+		t.Fatalf("expanding logs range strategy: %v", diags)
+	}
+	if logs == nil || logs.Range == nil {
+		t.Fatalf("expected logs range strategy, got %#v", logs)
+	}
+	if _, diags := flattenLogsStrategyRange(ctx, logs.Range); diags.HasError() {
+		t.Fatalf("flattening logs range strategy: %v", diags)
+	}
+
+	spans, diags := expandSpansSourceRangeStrategy(ctx, rangeValue)
+	if diags.HasError() {
+		t.Fatalf("expanding spans range strategy: %v", diags)
+	}
+	if spans == nil || spans.Range == nil {
+		t.Fatalf("expected spans range strategy, got %#v", spans)
+	}
+	if _, diags := flattenSpansStrategyRange(ctx, spans.Range); diags.HasError() {
+		t.Fatalf("flattening spans range strategy: %v", diags)
+	}
+}
+
+func TestAnnotationLogsAndSpansExpansionOmitsDataModeType(t *testing.T) {
+	ctx := context.Background()
+	observationField := types.ObjectValueMust(dashboardwidgets.ObservationFieldAttr(), map[string]attr.Value{
+		"keypath": types.ListValueMust(types.StringType, []attr.Value{types.StringValue("timestamp")}),
+		"scope":   types.StringValue("metadata"),
+	})
+	strategy := types.ObjectValueMust(logsAndSpansStrategyModelAttr(), map[string]attr.Value{
+		"instant": types.ObjectValueMust(instantStrategyModelAttr(), map[string]attr.Value{
+			"timestamp_field": observationField,
+		}),
+		"range":    types.ObjectNull(rangeStrategyModelAttr()),
+		"duration": types.ObjectNull(durationStrategyModelAttr()),
+	})
+	source := types.ObjectValueMust(annotationsLogsAndSpansSourceModelAttr(), map[string]attr.Value{
+		"lucene_query":     types.StringValue("*"),
+		"strategy":         strategy,
+		"message_template": types.StringNull(),
+		"label_fields":     types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.ObservationFieldAttr()}),
+	})
+
+	logs, diags := expandLogsSource(ctx, source)
+	if diags.HasError() {
+		t.Fatalf("expanding logs annotation source: %v", diags)
+	}
+	if logs == nil || logs.DataModeType != nil {
+		t.Fatalf("expected logs data_mode_type to be omitted from the request, got %#v", logs)
+	}
+
+	spans, diags := expandSpansSource(ctx, source)
+	if diags.HasError() {
+		t.Fatalf("expanding spans annotation source: %v", diags)
+	}
+	if spans == nil || spans.DataModeType != nil {
+		t.Fatalf("expected spans data_mode_type to be omitted from the request, got %#v", spans)
 	}
 }
 
