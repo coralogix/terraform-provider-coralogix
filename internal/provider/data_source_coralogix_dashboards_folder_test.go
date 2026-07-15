@@ -17,18 +17,20 @@ package provider
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var dashboardsFolderDataSourceName = "data." + dashboardsFolderResourceName
 
 func TestAccCoralogixDataSourceDashboardsFolder_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := acctest.RandomWithPrefix("tf-acc-dashboards-folder-data")
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardsFolder() +
+				Config: testAccCoralogixResourceDashboardsFolder(name) +
 					testAccCoralogixDataSourceDashboardsFolder_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardsFolderDataSourceName, "id"),
@@ -39,12 +41,13 @@ func TestAccCoralogixDataSourceDashboardsFolder_basic(t *testing.T) {
 }
 
 func TestAccCoralogixDataSourceDashboardsFolder_by_name(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := acctest.RandomWithPrefix("tf-acc-dashboards-folder-by-name")
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardsFolder() +
+				Config: testAccCoralogixResourceDashboardsFolder(name) +
 					testAccCoralogixDataSourceDashboardsFolder_read_by_name(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardsFolderDataSourceName, "name"),

@@ -26,10 +26,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
-	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -531,25 +528,26 @@ func dashboardOpenAPISafeRequestError(operation, fixture, dashboardID string, re
 	return fmt.Errorf("dashboard fixture %q (dashboard %q): %s failed without an HTTP response (%T)", fixture, dashboardID, operation, requestErr)
 }
 
-// dashboardOpenAPIAcceptanceClient configures the SDKv2 test provider so the
-// same DashboardsOpenAPI client used by acceptance tests is available to
-// direct fixture setup and resource.TestCheckFunc callbacks.
+// dashboardOpenAPIAcceptanceClient configures a fresh SDKv2 provider so a
+// DashboardsOpenAPI client is available to direct fixture setup and
+// resource.TestCheckFunc callbacks without mutating the shared test provider.
 func dashboardOpenAPIAcceptanceClient(t *testing.T) *dashboardservice.DashboardServiceAPIService {
 	t.Helper()
-	resourceConfig := terraform2.ResourceConfig{}
-	if diagnostics := testAccProvider.Configure(context.Background(), &resourceConfig); diagnostics.HasError() {
-		t.Fatalf("configure dashboard acceptance client: %s", diagnostics[0].Summary)
-	}
-	meta := testAccProvider.Meta()
-	if meta == nil {
-		t.Fatal("configure dashboard acceptance client: provider metadata is nil")
-	}
-	clients, ok := meta.(*clientset.ClientSet)
-	if !ok {
-		t.Fatalf("configure dashboard acceptance client: provider metadata has type %T", meta)
+	client, err := dashboardOpenAPINewAcceptanceClient()
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	return clients.DashboardsOpenAPI()
+	return client
+}
+
+func dashboardOpenAPINewAcceptanceClient() (*dashboardservice.DashboardServiceAPIService, error) {
+	clients, err := testAccNewClientSet()
+	if err != nil {
+		return nil, err
+	}
+
+	return clients.DashboardsOpenAPI(), nil
 }
 
 func TestDashboardOpenAPIAssertOneOfBranchHelper(t *testing.T) {

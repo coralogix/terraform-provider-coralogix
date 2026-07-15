@@ -15,12 +15,17 @@
 package provider
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"testing"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var testAccProvider *schema.Provider
@@ -35,7 +40,9 @@ func init() {
 		},
 	}
 	testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-		"coralogix": providerserver.NewProtocol6WithError(NewCoralogixProvider()),
+		"coralogix": func() (tfprotov6.ProviderServer, error) {
+			return providerserver.NewProtocol6WithError(NewCoralogixProvider())()
+		},
 	}
 }
 
@@ -70,4 +77,22 @@ func testAccRequiredEnvVarsPreCheck(t *testing.T, envVars ...string) {
 			t.Fatalf("%s must be set for acceptance tests", envVar)
 		}
 	}
+}
+
+func testAccNewClientSet() (*clientset.ClientSet, error) {
+	provider := OldProvider()
+	resourceConfig := terraform2.ResourceConfig{}
+	if diagnostics := provider.Configure(context.Background(), &resourceConfig); diagnostics.HasError() {
+		return nil, fmt.Errorf("configure acceptance client: %s", diagnostics[0].Summary)
+	}
+	meta := provider.Meta()
+	if meta == nil {
+		return nil, fmt.Errorf("configure acceptance client: provider metadata is nil")
+	}
+	clients, ok := meta.(*clientset.ClientSet)
+	if !ok {
+		return nil, fmt.Errorf("configure acceptance client: provider metadata has type %T", meta)
+	}
+
+	return clients, nil
 }

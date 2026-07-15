@@ -125,7 +125,7 @@ func TestAccCoralogixResourceDashboardRESTCreatedHydration(t *testing.T) {
 	variables := config.Variables{}
 	var dashboardID string
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			if dashboardID != "" {
@@ -175,7 +175,7 @@ func TestAccCoralogixResourceDashboardRESTCreatedUnsupportedDynamicHydration(t *
 	var dashboardID string
 	diagnostic := regexp.MustCompile(`(?s)Unsupported Dashboard Widget Definition.*dynamic.*content_json.*import.*data-source`)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			if dashboardID != "" {

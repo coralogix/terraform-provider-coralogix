@@ -167,13 +167,13 @@ func TestAccCoralogixResourceDashboardOpenAPIOneOfTransitions(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			client = dashboardOpenAPIAcceptanceClient(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps:                    steps,
 	})
 }

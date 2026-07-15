@@ -60,7 +60,7 @@ func TestAccCoralogixResourceDashboardMigrationFromV360(t *testing.T) {
 			testAccPreCheck(t)
 			identity.client = dashboardOpenAPIAcceptanceClient(t)
 		},
-		CheckDestroy: testAccCheckDashboardDestroy,
+		CheckDestroy: testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config:            initialConfig,
@@ -130,7 +130,7 @@ func TestAccCoralogixResourceDashboardMigrationFromSchemaV3(t *testing.T) {
 			testAccPreCheck(t)
 			identity.client = dashboardOpenAPIAcceptanceClient(t)
 		},
-		CheckDestroy: testAccCheckDashboardDestroy,
+		CheckDestroy: testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config:            initialConfig,

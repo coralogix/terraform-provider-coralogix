@@ -23,15 +23,16 @@ import (
 var dashboardDataSourceName = "data." + dashboardResourceName
 
 func TestAccCoralogixDataSourceDashboard_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboard() +
+				Config: testAccCoralogixResourceDashboard(name) +
 					testAccCoralogixDataSourceDashboard_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(dashboardDataSourceName, "name", "test"),
+					resource.TestCheckResourceAttr(dashboardDataSourceName, "name", name),
 				),
 			},
 		},
@@ -39,12 +40,13 @@ func TestAccCoralogixDataSourceDashboard_basic(t *testing.T) {
 }
 
 func TestAccCoralogixDataSourceDashboardAccessPolicy(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()) +
+				Config: testAccCoralogixResourceDashboardWithAccessPolicy(name, testAccCoralogixDashboardAccessPolicyPretty()) +
 					testAccCoralogixDataSourceDashboard_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckDashboardAccessPolicy(dashboardDataSourceName, testAccCoralogixDashboardAccessPolicyPretty()),

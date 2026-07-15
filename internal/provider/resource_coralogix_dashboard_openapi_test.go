@@ -107,13 +107,13 @@ func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string
 		return dashboardOpenAPIAssertStructuredQueryWidgets(dashboard, queryBranch, includeMarkdown, fixture)
 	})
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			client = dashboardOpenAPIAcceptanceClient(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dashboardOpenAPIStructuredDashboardConfig(dashboardName, queryBranch, includeMarkdown),

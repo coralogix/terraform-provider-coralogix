@@ -21,11 +21,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
@@ -36,18 +36,43 @@ import (
 var dashboardResourceName = "coralogix_dashboard.test"
 var folderResourceName = "coralogix_dashboards_folder.test_folder"
 
+func TestDashboardLegacyAcceptanceConfigsParse(t *testing.T) {
+	t.Parallel()
+	name := "tf-acc-dashboard-parse"
+	configs := map[string]string{
+		"structured":       testAccCoralogixResourceDashboard(name),
+		"content-json":     testAccCoralogixResourceDashboardFromJson("/tmp/dashboard.json", name),
+		"content-folder":   testAccCoralogixResourceDashboardFromJsonWithFolder("/tmp/dashboard.json", name, name+"-folder"),
+		"content-variable": testAccCoralogixResourceDashboardFromJsonWithVar("/tmp/dashboard.json", name),
+		"widget":           testAccCoralogixResourceDashboardWithWidget(name, testAccCoralogixResourceDashboardCountWidget()),
+		"access-policy":    testAccCoralogixResourceDashboardWithAccessPolicy(name, testAccCoralogixDashboardAccessPolicyPretty()),
+		"folder-id":        testAccCoralogixResourceDashboardFolderIDNoDrift(name, name+"-folder"),
+	}
+	for fixture, config := range configs {
+		fixture, config := fixture, config
+		t.Run(fixture, func(t *testing.T) {
+			t.Parallel()
+			_, diagnostics := hclsyntax.ParseConfig([]byte(config), fixture+".tf", hcl.InitialPos)
+			if diagnostics.HasErrors() {
+				t.Fatalf("legacy dashboard acceptance config is invalid HCL:\n%s", diagnostics.Error())
+			}
+		})
+	}
+}
+
 func TestAccCoralogixResourceDashboard(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 
-				Config: testAccCoralogixResourceDashboard(),
+				Config: testAccCoralogixResourceDashboard(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "name", "test"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "name", name),
 					resource.TestCheckResourceAttr(dashboardResourceName, "description", "dashboards team is messing with this 🗿"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.name", "Status"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.color", "blue"),
@@ -112,13 +137,15 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 }
 
 func TestAccCoralogixResourceDashboardAccessPolicy(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	updatedName := name + "-updated"
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()) +
+				Config: testAccCoralogixResourceDashboardWithAccessPolicy(name, testAccCoralogixDashboardAccessPolicyPretty()) +
 					testAccCoralogixDataSourceDashboard_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
@@ -127,15 +154,15 @@ func TestAccCoralogixResourceDashboardAccessPolicy(t *testing.T) {
 				),
 			},
 			{
-				Config:   testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()),
+				Config:   testAccCoralogixResourceDashboardWithAccessPolicy(name, testAccCoralogixDashboardAccessPolicyPretty()),
 				PlanOnly: true,
 			},
 			{
-				Config:   testAccCoralogixResourceDashboardWithAccessPolicy(testAccCoralogixDashboardAccessPolicyReorderedObjectKeys()),
+				Config:   testAccCoralogixResourceDashboardWithAccessPolicy(name, testAccCoralogixDashboardAccessPolicyReorderedObjectKeys()),
 				PlanOnly: true,
 			},
 			{
-				Config: testAccCoralogixResourceDashboardWithoutAccessPolicy("test-access-policy-updated") +
+				Config: testAccCoralogixResourceDashboardWithoutAccessPolicy(updatedName) +
 					testAccCoralogixDataSourceDashboard_read(),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
@@ -153,7 +180,7 @@ func TestAccCoralogixResourceDashboardAccessPolicy(t *testing.T) {
 					},
 				},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(dashboardResourceName, "name", "test-access-policy-updated"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "name", updatedName),
 					testAccCheckDashboardAccessPolicy(dashboardResourceName, testAccCoralogixDashboardAccessPolicyPretty()),
 					testAccCheckDashboardAccessPolicy(dashboardDataSourceName, testAccCoralogixDashboardAccessPolicyPretty()),
 				),
@@ -201,14 +228,15 @@ func testAccCheckImportedDashboardAccessPolicy(expected string) resource.ImportS
 }
 
 func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 
-				Config: testAccCoralogixResourceDashboardWithWidget(`{
+				Config: testAccCoralogixResourceDashboardWithWidget(name, `{
             title      = "hexagon"
             definition = {
               hexagon = {
@@ -294,13 +322,14 @@ func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
 }
 
 func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardWithWidget(`{
+				Config: testAccCoralogixResourceDashboardWithWidget(name, `{
             title      = "line-chart"
             definition = {
               line_chart = {
@@ -413,14 +442,15 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
 }
 
 func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 
-				Config: testAccCoralogixResourceDashboardWithWidget(`{
+				Config: testAccCoralogixResourceDashboardWithWidget(name, `{
                 title      = "gauge"
                 definition = {
                   gauge = {
@@ -466,13 +496,14 @@ func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
 }
 
 func TestAccCoralogixResourceDashboardGaugeWidgetDataPrime(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardWithWidget(`{
+				Config: testAccCoralogixResourceDashboardWithWidget(name, `{
   title = "gauge_dataprime"
   definition = {
     gauge = {
@@ -520,13 +551,14 @@ EOT
 }
 
 func TestAccCoralogixResourceDashboardGaugeWidgetThresholdType(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardWithWidget(`{
+				Config: testAccCoralogixResourceDashboardWithWidget(name, `{
   title = "gauge_threshold_type"
   definition = {
     gauge = {
@@ -570,14 +602,15 @@ func TestAccCoralogixResourceDashboardGaugeWidgetThresholdType(t *testing.T) {
 }
 
 func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 
-				Config: testAccCoralogixResourceDashboardWithWidget(`{
+				Config: testAccCoralogixResourceDashboardWithWidget(name, `{
   title = "data_table"
   definition = {
     data_table = {
@@ -611,15 +644,16 @@ func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 }
 
 func TestAccCoralogixResourceDashboardDataTableWidgetObservationFieldFilter(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: `
+				Config: fmt.Sprintf(`
 resource "coralogix_dashboard" "test" {
-  name        = "issue-496-observation-field-filter"
+  name        = %q
   description = "Reproducer for #496"
   time_frame = {
     relative = {
@@ -666,7 +700,7 @@ resource "coralogix_dashboard" "test" {
     }]
   }
 }
-`,
+`, name),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PostApplyPostRefresh: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),
@@ -693,19 +727,20 @@ resource "coralogix_dashboard" "test" {
 }
 
 func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
 	wd, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
 	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_dashboard/dashboard.json"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardFromJson(filePath),
+				Config: testAccCoralogixResourceDashboardFromJson(filePath, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 				),
@@ -715,18 +750,21 @@ func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 }
 
 func TestAccCoralogixResourceDashboardFromJsonWithFolder(t *testing.T) {
+	dashboardName := dashboardOpenAPIFixtureName(t.Name())
+	folderName := dashboardOpenAPIFixtureName(t.Name() + "-folder")
 	wd, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
 	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_dashboard/dashboard.json"
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardFromJsonWithFolder(filePath),
+				Config: testAccCoralogixResourceDashboardFromJsonWithFolder(filePath, dashboardName, folderName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "folder.id"),
@@ -738,13 +776,15 @@ func TestAccCoralogixResourceDashboardFromJsonWithFolder(t *testing.T) {
 }
 
 func TestAccCoralogixResourceDashboardFolderIDNoDrift(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	dashboardName := dashboardOpenAPIFixtureName(t.Name())
+	folderName := dashboardOpenAPIFixtureName(t.Name() + "-folder")
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardFolderIDNoDrift(),
+				Config: testAccCoralogixResourceDashboardFolderIDNoDrift(dashboardName, folderName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "folder.id"),
@@ -765,14 +805,14 @@ func TestAccCoralogixResourceDashboardFolderIDNoDrift(t *testing.T) {
 	})
 }
 
-func testAccCoralogixResourceDashboardFolderIDNoDrift() string {
-	return `
+func testAccCoralogixResourceDashboardFolderIDNoDrift(dashboardName, folderName string) string {
+	return fmt.Sprintf(`
 resource "coralogix_dashboards_folder" "test_folder" {
-  name = "issue-426-folder-id-drift"
+  name = %q
 }
 
 resource "coralogix_dashboard" "test" {
-  name        = "issue-426-folder-id-drift"
+  name        = %q
   description = "Dashboard with folder.id should not drift on next plan"
 
   layout = {
@@ -809,10 +849,11 @@ resource "coralogix_dashboard" "test" {
     id = coralogix_dashboards_folder.test_folder.id
   }
 }
-`
+`, folderName, dashboardName)
 }
 
 func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
 	wd, err := os.Getwd()
 	if err != nil {
 		panic(err)
@@ -820,58 +861,57 @@ func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
 	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_dashboard/dashboard_with_var_path.json"
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDashboardFromJsonWithVar(filePath),
+				Config: testAccCoralogixResourceDashboardFromJsonWithVar(filePath, name),
 				Check:  resource.ComposeAggregateTestCheckFunc(),
 			},
 		},
 	})
 }
 
-func testAccCheckDashboardDestroy(s *terraform.State) error {
-	// Configure the SDK provider so Meta() is set (ProtoV6 tests don't configure testAccProvider).
-	rc := terraform2.ResourceConfig{}
-	_ = testAccProvider.Configure(context.Background(), &rc)
-	meta := testAccProvider.Meta()
-	if meta == nil {
+func testAccCheckDashboardDestroy(t *testing.T) resource.TestCheckFunc {
+	t.Helper()
+	return func(s *terraform.State) error {
+		client, err := dashboardOpenAPINewAcceptanceClient()
+		if err != nil {
+			return err
+		}
+
+		ctx := context.TODO()
+
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "coralogix_dashboard" {
+				continue
+			}
+
+			resp, httpResp, err := client.DashboardsServiceGetDashboard(ctx, rs.Primary.ID).Execute()
+			if err == nil {
+				dashboard := resp.GetDashboard()
+				if dashboard.GetId() == rs.Primary.ID {
+					return fmt.Errorf("dashboard still exists: %s", rs.Primary.ID)
+				}
+				continue
+			}
+
+			apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
+			if cxsdkOpenapi.Code(apiErr) == 404 {
+				continue
+			}
+			return fmt.Errorf("error checking dashboard destroy for %s: %s", rs.Primary.ID, utils.FormatOpenAPIErrors(apiErr, "Get", rs.Primary.ID))
+		}
+
 		return nil
 	}
-	client := meta.(*clientset.ClientSet).DashboardsOpenAPI()
-
-	ctx := context.TODO()
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "coralogix_dashboard" {
-			continue
-		}
-
-		resp, httpResp, err := client.DashboardsServiceGetDashboard(ctx, rs.Primary.ID).Execute()
-		if err == nil {
-			dashboard := resp.GetDashboard()
-			if dashboard.GetId() == rs.Primary.ID {
-				return fmt.Errorf("dashboard still exists: %s", rs.Primary.ID)
-			}
-			continue
-		}
-
-		apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
-		if cxsdkOpenapi.Code(apiErr) == 404 {
-			continue
-		}
-		return fmt.Errorf("error checking dashboard destroy for %s: %s", rs.Primary.ID, utils.FormatOpenAPIErrors(apiErr, "Get", rs.Primary.ID))
-	}
-
-	return nil
 }
 
-func testAccCoralogixResourceDashboard() string {
-	return `resource "coralogix_dashboard" test {
-  name        = "test"
+func testAccCoralogixResourceDashboard(name string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" test {
+  name        = %q
   description = "dashboards team is messing with this 🗿"
   time_frame = {
       relative = {
@@ -1078,41 +1118,41 @@ func testAccCoralogixResourceDashboard() string {
     },
   ]
 }
-`
+`, name)
 }
 
-func testAccCoralogixResourceDashboardFromJson(jsonFilePath string) string {
+func testAccCoralogixResourceDashboardFromJson(jsonFilePath, name string) string {
 	return fmt.Sprintf(`resource "coralogix_dashboard" test {
-   		content_json = file("%s")
+		content_json = jsonencode(merge(jsondecode(file(%q)), { name = %q }))
 	}
-`, jsonFilePath)
+`, jsonFilePath, name)
 }
 
-func testAccCoralogixResourceDashboardFromJsonWithFolder(jsonFilePath string) string {
+func testAccCoralogixResourceDashboardFromJsonWithFolder(jsonFilePath, dashboardName, folderName string) string {
 	return fmt.Sprintf(`
   resource "coralogix_dashboards_folder" test_folder {
-    name = "test_folder"
+    name = %q
   }
   resource "coralogix_dashboard" test {
-      content_json = file("%s")
+      content_json = jsonencode(merge(jsondecode(file(%q)), { name = %q }))
       folder = {
         id = coralogix_dashboards_folder.test_folder.id
       }
   }
-`, jsonFilePath)
+`, folderName, jsonFilePath, dashboardName)
 }
 
-func testAccCoralogixResourceDashboardFromJsonWithVar(jsonFilePath string) string {
+func testAccCoralogixResourceDashboardFromJsonWithVar(jsonFilePath, name string) string {
 	return fmt.Sprintf(`
 variable "dashboard_json_path" {
   type    = string
-  default = "%s"
+  default = %q
 }
 
 resource "coralogix_dashboard" test {
-  content_json = file(var.dashboard_json_path)
+  content_json = jsonencode(merge(jsondecode(file(var.dashboard_json_path)), { name = %q }))
 }
-`, jsonFilePath)
+`, jsonFilePath, name)
 }
 
 func TestParseRelativeTimeDuration(t *testing.T) {
@@ -1126,9 +1166,9 @@ func TestParseRelativeTimeDuration(t *testing.T) {
 	}
 }
 
-func testAccCoralogixResourceDashboardWithWidget(widget string) string {
+func testAccCoralogixResourceDashboardWithWidget(name, widget string) string {
 	return fmt.Sprintf(`resource "coralogix_dashboard" test {
-name        = "test-the-widget"
+name        = %q
 description = "Widget Tester!"
 time_frame = {
   relative = {
@@ -1146,12 +1186,12 @@ layout = {
   }]
 }
 }
-`, widget)
+`, name, widget)
 }
 
-func testAccCoralogixResourceDashboardWithAccessPolicy(accessPolicy string) string {
+func testAccCoralogixResourceDashboardWithAccessPolicy(name, accessPolicy string) string {
 	return testAccCoralogixResourceDashboardAccessPolicyConfig(
-		"test-access-policy",
+		name,
 		fmt.Sprintf(`  access_policy = <<EOT
 %s
 EOT
@@ -1237,15 +1277,16 @@ func testAccCoralogixResourceDashboardCountWidget() string {
 }
 
 func TestAccCoralogixResourceDashboardMultiSelectSelectionType(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: `
+				Config: fmt.Sprintf(`
 resource "coralogix_dashboard" "test" {
-  name        = "selection-type-test"
+  name        = %q
   description = "exercises multi_select selection_type round-trip"
   time_frame = {
     relative = {
@@ -1294,7 +1335,7 @@ resource "coralogix_dashboard" "test" {
     },
   ]
 }
-`,
+`, name),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PostApplyPostRefresh: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),
@@ -1319,14 +1360,16 @@ resource "coralogix_dashboard" "test" {
 }
 
 func TestAccCoralogixResourceDashboardLayoutColor(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: `
+				Config: fmt.Sprintf(`
 resource "coralogix_dashboard" "test" {
-  name        = "layout-color-test"
+  name        = %q
   description = "Testing layout section color option"
   time_frame = {
     relative = {
@@ -1368,7 +1411,7 @@ resource "coralogix_dashboard" "test" {
     }]
   }
 }
-				`,
+				`, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.name", "Color Test Section"),
@@ -1386,15 +1429,16 @@ resource "coralogix_dashboard" "test" {
 }
 
 func TestAccCoralogixResourceDashboardManualAnnotation(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: `
+				Config: fmt.Sprintf(`
 resource "coralogix_dashboard" "test" {
-  name        = "manual-annotation-test"
+  name        = %q
   description = "Testing manual annotation source"
   time_frame = {
     relative = {
@@ -1446,7 +1490,7 @@ resource "coralogix_dashboard" "test" {
     }]
   }
 }
-				`,
+`, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.name", "manual threshold band"),

@@ -56,18 +56,19 @@ func TestAccCoralogixResourceDashboardContentJSONProtobufSpellings(t *testing.T)
 	ctx := context.Background()
 	var client *dashboardservice.DashboardServiceAPIService
 	fixture := dashboardContentJSONCompatibilityTestName
+	dashboardName := dashboardOpenAPIFixtureName(fixture)
 	identity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
-	snakeCase := dashboardContentJSONFixtureFor(t, "content_json_snake_case.json")
-	canonical := dashboardContentJSONFixtureFor(t, "content_json_canonical.json")
-	unknownFields := dashboardContentJSONFixtureFor(t, "content_json_unknown_fields.json")
+	snakeCase := dashboardContentJSONNamedFixtureFor(t, "content_json_snake_case.json", dashboardName)
+	canonical := dashboardContentJSONNamedFixtureFor(t, "content_json_canonical.json", dashboardName)
+	unknownFields := dashboardContentJSONNamedFixtureFor(t, "content_json_unknown_fields.json", dashboardName)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			client = dashboardOpenAPIAcceptanceClient(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dashboardContentJSONConfig(snakeCase.path),
@@ -113,16 +114,17 @@ func TestAccCoralogixResourceDashboardContentJSONFolderOverride(t *testing.T) {
 	ctx := context.Background()
 	var client *dashboardservice.DashboardServiceAPIService
 	fixture := "TestAccCoralogixResourceDashboardContentJSONFolderOverride"
+	dashboardName := dashboardOpenAPIFixtureName(fixture)
 	folderName := dashboardOpenAPIFixtureName(fixture + "-folder")
-	canonical := dashboardContentJSONFixtureFor(t, "content_json_canonical.json")
+	canonical := dashboardContentJSONNamedFixtureFor(t, "content_json_canonical.json", dashboardName)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			client = dashboardOpenAPIAcceptanceClient(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dashboardContentJSONFolderOverrideConfig(canonical.path, folderName),
@@ -148,13 +150,13 @@ func TestAccCoralogixResourceDashboardContentJSONDynamicQueriesTable(t *testing.
 	dashboardName := dashboardOpenAPIFixtureName(fixture)
 	dynamic := dashboardContentJSONFixtureFor(t, "content_json_dynamic_queries_table.json")
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			client = dashboardOpenAPIAcceptanceClient(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dashboardContentJSONDynamicConfig(dynamic.path, dashboardName, ""),
@@ -199,6 +201,33 @@ func dashboardContentJSONFixtureFor(t *testing.T, name string) dashboardContentJ
 	}
 
 	return dashboardContentJSONFixture{path: fixturePath, content: string(content)}
+}
+
+func dashboardContentJSONNamedFixtureFor(t *testing.T, name, dashboardName string) dashboardContentJSONFixture {
+	t.Helper()
+	fixture := dashboardContentJSONFixtureFor(t, name)
+	var metadata struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal([]byte(fixture.content), &metadata); err != nil {
+		t.Fatalf("decode dashboard content_json fixture %q: %s", name, err)
+	}
+	if metadata.Name == "" {
+		t.Fatalf("dashboard content_json fixture %q has no name", name)
+	}
+
+	oldName := fmt.Sprintf("\"name\": %q", metadata.Name)
+	newName := fmt.Sprintf("\"name\": %q", dashboardName)
+	content := strings.Replace(fixture.content, oldName, newName, 1)
+	if content == fixture.content {
+		t.Fatalf("replace dashboard name in content_json fixture %q", name)
+	}
+	fixturePath := filepath.Join(t.TempDir(), name)
+	if err := os.WriteFile(fixturePath, []byte(content), 0o600); err != nil {
+		t.Fatalf("write dashboard content_json fixture %q: %s", name, err)
+	}
+
+	return dashboardContentJSONFixture{path: fixturePath, content: content}
 }
 
 func dashboardContentJSONConfig(fixturePath string) string {

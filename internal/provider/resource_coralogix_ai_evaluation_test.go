@@ -216,7 +216,7 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 			createConfigFile := filepath.Join(configDir, "create.tf")
 			updateConfigFile := filepath.Join(configDir, "update.tf")
 
-			resource.Test(t, resource.TestCase{
+			resource.ParallelTest(t, resource.TestCase{
 				PreCheck: func() {
 					testAccPreCheck(t)
 					selectedApplication, selectedTarget := testAccFirstAIApplication(t, testCase.evaluationType, testCase.targetCandidates)

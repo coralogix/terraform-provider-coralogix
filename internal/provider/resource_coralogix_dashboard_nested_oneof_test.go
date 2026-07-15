@@ -88,13 +88,13 @@ func TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches(t *testi
 		}
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			client = dashboardOpenAPIAcceptanceClient(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dashboardOpenAPIPresentationConfig(dashboardName, folderName, "relative", "absolute", "two_minutes", "id"),
@@ -770,13 +770,13 @@ func TestAccCoralogixResourceDashboardOpenAPIAnnotationBranches(t *testing.T) {
 		annotationIDs.CaptureOrAssert(),
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			client = dashboardOpenAPIAcceptanceClient(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dashboardOpenAPIAnnotationsConfig(name),
@@ -1035,13 +1035,13 @@ func dashboardOpenAPIRunNestedScenario(
 		return apiCheck(dashboard)
 	})
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 			client = dashboardOpenAPIAcceptanceClient(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config:           config(name),
