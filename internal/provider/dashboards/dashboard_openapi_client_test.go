@@ -18,8 +18,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -149,6 +151,191 @@ func TestNewDashboardOpenAPIReplaceRequest(t *testing.T) {
 			}
 			assertDashboardOpenAPIRequestID(t, request.RequestId, dashboardOpenAPIOperationReplace)
 		})
+	}
+}
+
+func TestDashboardOpenAPIClientCreateAndReplaceRequestSerialization(t *testing.T) {
+	const content = `{
+		"id": "123456789012345678901",
+		"name": "request serialization",
+		"relative_time_frame": "900s",
+		"unknownRoot": "discard me",
+		"layout": {
+			"unknownLayout": "discard me",
+			"sections": [{
+				"rows": [{
+					"widgets": [{
+						"layout_columns": 12,
+						"definition": {
+							"unknownDefinition": "discard me",
+							"data_table": {
+								"results_per_page": 10,
+								"row_style": "ROW_STYLE_ONE_LINE",
+								"query": {
+									"metrics": {
+										"promql_query": {"value": "vector(1)"},
+										"promql_query_type": "PROM_QL_QUERY_TYPE_INSTANT"
+									}
+								}
+							}
+						}
+					}]
+				}]
+			}]
+		}
+	}`
+
+	tests := []struct {
+		name       string
+		method     string
+		callClient func(context.Context, *dashboardOpenAPIClient, *dashboardservice.Dashboard) error
+	}{
+		{
+			name:   "create",
+			method: http.MethodPost,
+			callClient: func(ctx context.Context, client *dashboardOpenAPIClient, dashboard *dashboardservice.Dashboard) error {
+				_, err := client.Create(ctx, dashboard, nil)
+				return err
+			},
+		},
+		{
+			name:   "replace",
+			method: http.MethodPut,
+			callClient: func(ctx context.Context, client *dashboardOpenAPIClient, dashboard *dashboardservice.Dashboard) error {
+				return client.Replace(ctx, dashboard, nil)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dashboard := new(dashboardservice.Dashboard)
+			if err := json.Unmarshal([]byte(content), dashboard); err != nil {
+				t.Fatalf("unmarshal protobuf-spelled dashboard: %s", err)
+			}
+			if err := restoreOpenAPIProtoFieldNames(dashboard); err != nil {
+				t.Fatalf("restore protobuf field aliases: %s", err)
+			}
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != tt.method || r.URL.Path != "/dashboards/dashboards/v1" {
+					t.Errorf("request = %s %s, want %s /dashboards/dashboards/v1", r.Method, r.URL.Path, tt.method)
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+
+				var request map[string]interface{}
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Errorf("decode captured request: %s", err)
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				assertDashboardOpenAPIWireRequest(t, request)
+
+				w.Header().Set("Content-Type", "application/json")
+				if tt.method == http.MethodPost {
+					_, _ = w.Write([]byte(`{"dashboardId":"123456789012345678901"}`))
+					return
+				}
+				_, _ = w.Write([]byte(`{}`))
+			}))
+			t.Cleanup(server.Close)
+
+			if err := tt.callClient(context.Background(), newDashboardOpenAPITestClient(server, ""), dashboard); err != nil {
+				t.Fatalf("%s dashboard: %s", tt.name, err)
+			}
+		})
+	}
+}
+
+func assertDashboardOpenAPIWireRequest(t *testing.T, request map[string]interface{}) {
+	t.Helper()
+
+	encoded, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("marshal captured request: %s", err)
+	}
+	wire := string(encoded)
+	for _, required := range []string{
+		`"relativeTimeFrame"`, `"layoutColumns"`, `"dataTable"`, `"resultsPerPage"`,
+		`"rowStyle"`, `"promqlQuery"`, `"promqlQueryType"`,
+	} {
+		if !strings.Contains(wire, required) {
+			t.Errorf("captured request does not contain lowerCamelCase field %s: %s", required, wire)
+		}
+	}
+	for _, forbidden := range []string{
+		"relative_time_frame", "layout_columns", "data_table", "results_per_page", "row_style",
+		"promql_query", "promql_query_type", "unknownRoot", "unknownLayout", "unknownDefinition",
+	} {
+		if strings.Contains(wire, forbidden) {
+			t.Errorf("captured request contains discarded or protobuf-spelled field %q: %s", forbidden, wire)
+		}
+	}
+
+	dashboard := requestObject(t, request, "dashboard")
+	layout := requestObject(t, dashboard, "layout")
+	section := requestObjectAt(t, layout, "sections", 0)
+	row := requestObjectAt(t, section, "rows", 0)
+	widget := requestObjectAt(t, row, "widgets", 0)
+	definition := requestObject(t, widget, "definition")
+	if len(definition) != 1 || definition["dataTable"] == nil {
+		t.Errorf("widget definition serialized branches = %v, want exactly dataTable", sortedRequestKeys(definition))
+	}
+	dataTable := requestObject(t, definition, "dataTable")
+	query := requestObject(t, dataTable, "query")
+	if len(query) != 1 || query["metrics"] == nil {
+		t.Errorf("data table query serialized branches = %v, want exactly metrics", sortedRequestKeys(query))
+	}
+	assertNoEmptyStrings(t, request, "request")
+}
+
+func requestObject(t *testing.T, parent map[string]interface{}, key string) map[string]interface{} {
+	t.Helper()
+	value, ok := parent[key].(map[string]interface{})
+	if !ok {
+		t.Fatalf("captured request field %q = %#v, want object", key, parent[key])
+	}
+	return value
+}
+
+func requestObjectAt(t *testing.T, parent map[string]interface{}, key string, index int) map[string]interface{} {
+	t.Helper()
+	values, ok := parent[key].([]interface{})
+	if !ok || len(values) <= index {
+		t.Fatalf("captured request field %q = %#v, want array containing index %d", key, parent[key], index)
+	}
+	value, ok := values[index].(map[string]interface{})
+	if !ok {
+		t.Fatalf("captured request field %s[%d] = %#v, want object", key, index, values[index])
+	}
+	return value
+}
+
+func sortedRequestKeys(value map[string]interface{}) []string {
+	keys := make([]string, 0, len(value))
+	for key := range value {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	return keys
+}
+
+func assertNoEmptyStrings(t *testing.T, value interface{}, path string) {
+	t.Helper()
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		for key, nested := range typed {
+			assertNoEmptyStrings(t, nested, path+"."+key)
+		}
+	case []interface{}:
+		for index, nested := range typed {
+			assertNoEmptyStrings(t, nested, fmt.Sprintf("%s[%d]", path, index))
+		}
+	case string:
+		if typed == "" {
+			t.Errorf("captured request contains empty string at %s", path)
+		}
 	}
 }
 
