@@ -81,6 +81,21 @@ type dashboardOneOfModelCoverage struct {
 // the value changes the generated request shape.
 var dashboardOpenAPIOneOfCoverage = dashboardOpenAPIOneOfCoverageManifest()
 
+// Tests classified here must use the enforced create/read/update/import/destroy
+// lifecycle in addition to satisfying the broader acceptance-covered policy.
+var dashboardStructuredAcceptanceLifecycleTests = []string{
+	dashboardOpenAPILogsQueryTestName,
+	dashboardOpenAPIMetricsQueryTestName,
+	dashboardOpenAPISpansQueryTestName,
+	dashboardOpenAPIDataPrimeQueryTestName,
+	dashboardOpenAPINestedPresentationTestName,
+	dashboardOpenAPILogsAggregationTestName,
+	dashboardOpenAPISpansAndFiltersTestName,
+	dashboardOpenAPIVariablesTestName,
+	dashboardOpenAPIAnnotationsTestName,
+	dashboardOpenAPITransitionTestName,
+}
+
 func covered(path, testName string) dashboardOneOfBranchCoverage {
 	return dashboardOneOfBranchCoverage{
 		ProviderPath:        path,
@@ -205,7 +220,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"metrics":         covered("annotations[*].source.metrics", dashboardOpenAPIAnnotationsTestName),
 				"logs":            covered("annotations[*].source.logs", dashboardOpenAPIAnnotationsTestName),
 				"spans":           covered("annotations[*].source.spans", dashboardOpenAPIAnnotationsTestName),
-				"manual":          covered("annotations[*].source.manual", "TestAccCoralogixResourceDashboardManualAnnotation"),
+				"manual":          covered("annotations[*].source.manual", dashboardOpenAPIAnnotationsTestName),
 				"dataprime":       apiOnly(dashboardNoProviderPath, false, "annotation.proto declares dataprime, but annotationSourceModelAttr and both annotation converters expose only metrics, logs, spans, and manual"),
 				"eventRecurrence": apiOnly(dashboardNoProviderPath, false, "annotation.proto declares event_recurrence, but annotationSourceModelAttr and both annotation converters expose only metrics, logs, spans, and manual"),
 			},
@@ -479,7 +494,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"QueryMetricsQueryStringOrVariable": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.MetricsQuery.StringOrVariable.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"stringValue":  covered(variableQuery+".metrics.*.*.string_value", "TestAccCoralogixResourceDashboard"),
+				"stringValue":  covered(variableQuery+".metrics.*.*.string_value", dashboardOpenAPIVariablesTestName),
 				"variableName": covered(variableQuery+".metrics.*.*.variable_name", dashboardOpenAPIVariablesTestName),
 			},
 		},
@@ -488,7 +503,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"metricName": covered(variableQuery+".metrics.metric_name", dashboardOpenAPIVariablesTestName),
 				"labelName":  covered(variableQuery+".metrics.label_name", dashboardOpenAPIVariablesTestName),
-				"labelValue": covered(variableQuery+".metrics.label_value", "TestAccCoralogixResourceDashboard"),
+				"labelValue": covered(variableQuery+".metrics.label_value", dashboardOpenAPIVariablesTestName),
 			},
 		},
 		"QuerySourceLogsQueryType": apiOnlyModel(
@@ -552,7 +567,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			ProtoSource: "common/spans_aggregation.proto#SpansAggregation.aggregation",
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"metricAggregation":    covered(widget+".*.query.spans.aggregations[*].type=metric", dashboardOpenAPISpansAndFiltersTestName),
-				"dimensionAggregation": covered(widget+".*.query.spans.aggregations[*].type=dimension", "TestAccCoralogixResourceDashboardLinechartWidget"),
+				"dimensionAggregation": covered(widget+".*.query.spans.aggregations[*].type=dimension", dashboardOpenAPISpansAndFiltersTestName),
 			},
 		},
 		"SpansSourceStrategy": {
@@ -585,7 +600,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"constant": legacyMigration("variables[*].definition.constant_value", "TestExpandDashboardVariableDefinition_ConstantValueDeprecated",
 					"constant is deprecated in variable.proto; new configuration is rejected and backend/old-state values normalize to a one-item multi_select constant_list"),
-				"multiSelect": covered("variables[*].definition.multi_select", "TestAccCoralogixResourceDashboard"),
+				"multiSelect": covered("variables[*].definition.multi_select", dashboardOpenAPIVariablesTestName),
 			},
 		},
 		"VariableSourceV2": apiOnlyModel(
@@ -732,6 +747,19 @@ func TestDashboardOpenAPIOneOfCoverageManifest(t *testing.T) {
 	assertDashboardAPIOnlyBranch(t, "AnnotationSource", "eventRecurrence", false)
 	assertDashboardAPIOnlyBranch(t, "Dashboard", "oneMinute", false)
 	assertDashboardAPIOnlyBranch(t, "Dashboard", "fifteenMinutes", false)
+}
+
+func TestDashboardOpenAPIStructuredAcceptanceLifecycleDelegation(t *testing.T) {
+	calls := dashboardTestFunctionCalls(t)
+	for _, testName := range dashboardStructuredAcceptanceLifecycleTests {
+		if _, ok := calls[testName]; !ok {
+			t.Errorf("structured acceptance lifecycle test %s does not exist", testName)
+			continue
+		}
+		if !dashboardFunctionDelegatesTo(calls, testName, "dashboardOpenAPIStructuredLifecycleSteps", nil) {
+			t.Errorf("structured acceptance test %s does not delegate to the enforced create/update/import lifecycle", testName)
+		}
+	}
 }
 
 func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
@@ -1171,6 +1199,70 @@ func dashboardTestFunctions(t *testing.T) map[string]struct{} {
 		t.Fatalf("discover dashboard tests: %s", err)
 	}
 	return result
+}
+
+func dashboardTestFunctionCalls(t *testing.T) map[string]map[string]struct{} {
+	t.Helper()
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("cannot locate provider test directory")
+	}
+	root := filepath.Dir(file)
+	result := make(map[string]map[string]struct{})
+	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), "_test.go") {
+			return nil
+		}
+		parsed, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+		if err != nil {
+			return err
+		}
+		for _, declaration := range parsed.Decls {
+			function, ok := declaration.(*ast.FuncDecl)
+			if !ok || function.Body == nil {
+				continue
+			}
+			called := make(map[string]struct{})
+			ast.Inspect(function.Body, func(node ast.Node) bool {
+				call, ok := node.(*ast.CallExpr)
+				if !ok {
+					return true
+				}
+				if identifier, ok := call.Fun.(*ast.Ident); ok {
+					called[identifier.Name] = struct{}{}
+				}
+				return true
+			})
+			result[function.Name.Name] = called
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("discover dashboard test call graph: %s", err)
+	}
+	return result
+}
+
+func dashboardFunctionDelegatesTo(calls map[string]map[string]struct{}, function, target string, visited map[string]struct{}) bool {
+	if function == target {
+		return true
+	}
+	if visited == nil {
+		visited = make(map[string]struct{})
+	}
+	if _, seen := visited[function]; seen {
+		return false
+	}
+	visited[function] = struct{}{}
+	for called := range calls[function] {
+		if dashboardFunctionDelegatesTo(calls, called, target, visited) {
+			return true
+		}
+	}
+	return false
 }
 
 type dashboardProtoScope struct {

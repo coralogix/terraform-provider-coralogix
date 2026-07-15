@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -36,17 +35,72 @@ const (
 	dashboardOpenAPIAnnotationsTestName        = "TestAccCoralogixResourceDashboardOpenAPIAnnotationBranches"
 )
 
+type dashboardOpenAPINestedIDTracker struct {
+	fixture string
+	ids     []string
+}
+
+func newDashboardOpenAPINestedIDTracker(fixture string) *dashboardOpenAPINestedIDTracker {
+	return &dashboardOpenAPINestedIDTracker{fixture: fixture}
+}
+
+func (tracker *dashboardOpenAPINestedIDTracker) CaptureOrAssert(dashboard *dashboardservice.Dashboard) error {
+	var ids []string
+	layout := dashboard.GetLayout()
+	for sectionIndex, section := range layout.GetSections() {
+		if section.Id == nil || section.Id.GetValue() == "" {
+			return fmt.Errorf("dashboard fixture %q: REST section %d has no generated ID", tracker.fixture, sectionIndex)
+		}
+		ids = append(ids, section.Id.GetValue())
+		for rowIndex, row := range section.GetRows() {
+			if row.Id == nil || row.Id.GetValue() == "" {
+				return fmt.Errorf("dashboard fixture %q: REST section %d row %d has no generated ID", tracker.fixture, sectionIndex, rowIndex)
+			}
+			ids = append(ids, row.Id.GetValue())
+			for widgetIndex, widget := range row.GetWidgets() {
+				if widget.Id == nil || widget.Id.GetValue() == "" {
+					return fmt.Errorf("dashboard fixture %q: REST section %d row %d widget %d has no generated ID", tracker.fixture, sectionIndex, rowIndex, widgetIndex)
+				}
+				ids = append(ids, widget.Id.GetValue())
+			}
+		}
+	}
+	if len(ids) == 0 {
+		return fmt.Errorf("dashboard fixture %q: REST layout has no generated nested IDs", tracker.fixture)
+	}
+	if tracker.ids == nil {
+		tracker.ids = ids
+		return nil
+	}
+	if len(ids) != len(tracker.ids) {
+		return fmt.Errorf("dashboard fixture %q: REST generated nested IDs = %d, want %d", tracker.fixture, len(ids), len(tracker.ids))
+	}
+	for index := range ids {
+		if ids[index] != tracker.ids[index] {
+			return fmt.Errorf("dashboard fixture %q: REST generated nested ID %d changed across in-place update/import: got %q, want %q", tracker.fixture, index, ids[index], tracker.ids[index])
+		}
+	}
+	return nil
+}
+
 func TestDashboardOpenAPINestedAcceptanceConfigsParse(t *testing.T) {
 	configs := map[string]string{
-		"presentation-relative": dashboardOpenAPIPresentationConfig("dashboard", "folder", "relative", "absolute", "two_minutes", "id"),
-		"presentation-absolute": dashboardOpenAPIPresentationConfig("dashboard", "folder", "absolute", "relative", "five_minutes", "path"),
-		"logs-aggregations":     dashboardOpenAPILogsAggregationConfig("dashboard"),
-		"spans-and-filters":     dashboardOpenAPISpansAndFiltersConfig("dashboard"),
-		"variables":             dashboardOpenAPIVariablesConfig("dashboard"),
-		"annotations":           dashboardOpenAPIAnnotationsConfig("dashboard"),
-		"dataprime-filters":     dashboardOpenAPIStructuredDashboardConfig("dashboard", "dataprime", false),
-		"dataprime-update":      dashboardOpenAPIStructuredDashboardUpdateConfig("dashboard", "dataprime", false),
-		"dynamic-content-json":  dashboardContentJSONDynamicConfig("dashboard.json", "dashboard", ""),
+		"presentation-relative":     dashboardOpenAPIPresentationConfig("dashboard", "folder", "relative", "absolute", "two_minutes", "id"),
+		"presentation-absolute":     dashboardOpenAPIPresentationConfig("dashboard", "folder", "absolute", "relative", "five_minutes", "path"),
+		"logs-aggregations":         dashboardOpenAPILogsAggregationConfig("dashboard"),
+		"logs-aggregations-updated": dashboardOpenAPILogsAggregationUpdateConfig("dashboard"),
+		"spans-and-filters":         dashboardOpenAPISpansAndFiltersConfig("dashboard"),
+		"spans-and-filters-updated": dashboardOpenAPISpansAndFiltersUpdateConfig("dashboard"),
+		"variables":                 dashboardOpenAPIVariablesConfig("dashboard"),
+		"variables-updated":         dashboardOpenAPIVariablesUpdateConfig("dashboard"),
+		"annotations":               dashboardOpenAPIAnnotationsConfig("dashboard"),
+		"annotations-updated":       dashboardOpenAPIAnnotationsUpdateConfig("dashboard"),
+		"logs-query-updated":        dashboardOpenAPIStructuredDashboardUpdateConfig("dashboard", "logs", true),
+		"metrics-query-updated":     dashboardOpenAPIStructuredDashboardUpdateConfig("dashboard", "metrics", false),
+		"spans-query-updated":       dashboardOpenAPIStructuredDashboardUpdateConfig("dashboard", "spans", false),
+		"dataprime-filters":         dashboardOpenAPIStructuredDashboardConfig("dashboard", "dataprime", false),
+		"dataprime-update":          dashboardOpenAPIStructuredDashboardUpdateConfig("dashboard", "dataprime", false),
+		"dynamic-content-json":      dashboardContentJSONDynamicConfig("dashboard.json", "dashboard", ""),
 	}
 	for name, config := range configs {
 		t.Run(name, func(t *testing.T) {
@@ -65,6 +119,7 @@ func TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches(t *testi
 	dashboardName := dashboardOpenAPIFixtureName(fixture)
 	folderName := dashboardOpenAPIFixtureName(fixture + "-folder")
 	identity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
+	nestedIdentity := newDashboardOpenAPINestedIDTracker(fixture)
 	checkPresentation := func(dashboardTimeFrame, queryTimeFrame, refresh string) resource.TestCheckFunc {
 		return func(state *terraform.State) error {
 			dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
@@ -72,6 +127,9 @@ func TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches(t *testi
 				return err
 			}
 			if err := dashboardOpenAPIAssertPresentation(dashboard, fixture, dashboardTimeFrame, queryTimeFrame, refresh); err != nil {
+				return err
+			}
+			if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
 				return err
 			}
 			folderState, ok := state.RootModule().Resources[folderResourceName]
@@ -88,6 +146,12 @@ func TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches(t *testi
 			return nil
 		}
 	}
+	checkImportedPresentation := func(dashboard *dashboardservice.Dashboard) error {
+		if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
+			return err
+		}
+		return dashboardOpenAPIAssertPresentation(dashboard, fixture, "absoluteTimeFrame", "relativeTimeFrame", "off")
+	}
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -96,41 +160,39 @@ func TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches(t *testi
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckDashboardDestroy(t),
-		Steps: []resource.TestStep{
-			{
+		Steps: dashboardOpenAPIStructuredLifecycleSteps(
+			dashboardOpenAPILifecyclePhase{
 				Config: dashboardOpenAPIPresentationConfig(dashboardName, folderName, "relative", "absolute", "two_minutes", "id"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					identity.Capture(),
 					dashboardOpenAPIPresentationStateChecks("relative", "absolute", "two_minutes", "id", folderName),
 					checkPresentation("relativeTimeFrame", "absoluteTimeFrame", "twoMinutes"),
 				),
-				ConfigPlanChecks: resource.ConfigPlanChecks{PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}},
 			},
-			{
+			[]dashboardOpenAPILifecyclePhase{{
 				Config: dashboardOpenAPIPresentationConfig(dashboardName, folderName, "absolute", "relative", "five_minutes", "path"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					identity.AssertUnchanged(),
 					dashboardOpenAPIPresentationStateChecks("absolute", "relative", "five_minutes", "path", folderName),
 					checkPresentation("absoluteTimeFrame", "relativeTimeFrame", "fiveMinutes"),
 				),
-				ConfigPlanChecks: resource.ConfigPlanChecks{PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}},
 			},
-			{
-				Config: dashboardOpenAPIPresentationConfig(dashboardName, folderName, "absolute", "relative", "off", "path"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					identity.AssertUnchanged(),
-					dashboardOpenAPIPresentationStateChecks("absolute", "relative", "off", "path", folderName),
-					checkPresentation("absoluteTimeFrame", "relativeTimeFrame", "off"),
-				),
-				ConfigPlanChecks: resource.ConfigPlanChecks{PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}},
-			},
-			{
+				{
+					Config: dashboardOpenAPIPresentationConfig(dashboardName, folderName, "absolute", "relative", "off", "path"),
+					Check: resource.ComposeAggregateTestCheckFunc(
+						identity.AssertUnchanged(),
+						dashboardOpenAPIPresentationStateChecks("absolute", "relative", "off", "path", folderName),
+						checkPresentation("absoluteTimeFrame", "relativeTimeFrame", "off"),
+					),
+				}},
+			resource.TestStep{
 				ResourceName:            dashboardResourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"folder"},
+				ImportStateCheck:        dashboardOpenAPIImportDashboardCheck(ctx, &client, fixture, checkImportedPresentation),
 			},
-		},
+		),
 	})
 }
 
@@ -356,19 +418,21 @@ func TestAccCoralogixResourceDashboardOpenAPILogsAggregationBranches(t *testing.
 		{typeName: "max", branch: "max"},
 		{typeName: "percentile", branch: "percentile"},
 	}
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.#", "7"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.1.query.logs.aggregations.0.field", "coralogix.metadata.applicationName"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.6.query.logs.aggregations.0.percent", "95"),
+	stateChecks := func(updated bool) []resource.TestCheckFunc {
+		checks := []resource.TestCheckFunc{
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.#", "7"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.1.query.logs.aggregations.0.field", dashboardOpenAPILogsAggregationField(updated)),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.6.query.logs.aggregations.0.percent", fmt.Sprintf("%g", dashboardOpenAPILogsAggregationPercent(updated))),
+		}
+		for index, aggregation := range aggregations {
+			checks = append(checks,
+				resource.TestCheckResourceAttr(dashboardResourceName, fmt.Sprintf("layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.%d.query.logs.lucene_query", index), dashboardOpenAPILogsAggregationLuceneQuery(updated)),
+				resource.TestCheckResourceAttr(dashboardResourceName, fmt.Sprintf("layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.%d.query.logs.aggregations.0.type", index), aggregation.typeName),
+			)
+		}
+		return checks
 	}
-	for index, aggregation := range aggregations {
-		checks = append(checks, resource.TestCheckResourceAttr(
-			dashboardResourceName,
-			fmt.Sprintf("layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.%d.query.logs.aggregations.0.type", index),
-			aggregation.typeName,
-		))
-	}
-	dashboardOpenAPIRunNestedScenario(t, dashboardOpenAPILogsAggregationTestName, dashboardOpenAPILogsAggregationConfig, checks, func(dashboard *dashboardservice.Dashboard) error {
+	dashboardOpenAPIRunNestedScenario(t, dashboardOpenAPILogsAggregationTestName, dashboardOpenAPILogsAggregationConfig, dashboardOpenAPILogsAggregationUpdateConfig, stateChecks, func(dashboard *dashboardservice.Dashboard, updated bool) error {
 		widgets, err := dashboardOpenAPIFirstRowWidgets(dashboard)
 		if err != nil {
 			return err
@@ -383,16 +447,20 @@ func TestAccCoralogixResourceDashboardOpenAPILogsAggregationBranches(t *testing.
 			if logs == nil || len(logs.Aggregations) != 1 {
 				return fmt.Errorf("REST logs query definition %d aggregations = %d, want 1", index, dashboardOpenAPILogsAggregationCount(logs))
 			}
+			luceneQuery := logs.GetLuceneQuery()
+			if luceneQuery.GetValue() != dashboardOpenAPILogsAggregationLuceneQuery(updated) {
+				return fmt.Errorf("REST logs query definition %d Lucene query did not round-trip", index)
+			}
 			if err := dashboardOpenAPIAssertOneOfBranch(&logs.Aggregations[0], "LogsAggregation", aggregation.branch, dashboard.GetId(), dashboardOpenAPILogsAggregationTestName); err != nil {
 				return err
 			}
 		}
 		countDistinct := lineChart.QueryDefinitions[1].Query.Logs.Aggregations[0]
-		if countDistinct.CountDistinct == nil || countDistinct.CountDistinct.GetField() != "coralogix.metadata.applicationName" {
+		if countDistinct.CountDistinct == nil || countDistinct.CountDistinct.GetField() != dashboardOpenAPILogsAggregationField(updated) {
 			return fmt.Errorf("REST countDistinct field did not round-trip")
 		}
 		percentile := lineChart.QueryDefinitions[6].Query.Logs.Aggregations[0]
-		if percentile.Percentile == nil || percentile.Percentile.GetPercent() != 95 {
+		if percentile.Percentile == nil || percentile.Percentile.GetPercent() != dashboardOpenAPILogsAggregationPercent(updated) {
 			return fmt.Errorf("REST percentile percent did not round-trip")
 		}
 		return nil
@@ -414,44 +482,78 @@ func dashboardOpenAPILogsAggregationCount(logs *dashboardservice.LineChartLogsQu
 }
 
 func dashboardOpenAPILogsAggregationConfig(name string) string {
-	return dashboardOpenAPIWrapWidgets(name, `{
+	return dashboardOpenAPILogsAggregationConfigVariant(name, false)
+}
+
+func dashboardOpenAPILogsAggregationUpdateConfig(name string) string {
+	return dashboardOpenAPILogsAggregationConfigVariant(name, true)
+}
+
+func dashboardOpenAPILogsAggregationConfigVariant(name string, updated bool) string {
+	return dashboardOpenAPIWrapWidgets(name, fmt.Sprintf(`{
   title = "all-log-aggregations"
   definition = { line_chart = {
     query_definitions = [
-      { query = { logs = { aggregations = [{ type = "count" }] } } },
-      { query = { logs = { aggregations = [{ type = "count_distinct", field = "coralogix.metadata.applicationName" }] } } },
-      { query = { logs = { aggregations = [{ type = "sum", field = "latency" }] } } },
-      { query = { logs = { aggregations = [{ type = "avg", field = "latency" }] } } },
-      { query = { logs = { aggregations = [{ type = "min", field = "latency" }] } } },
-      { query = { logs = { aggregations = [{ type = "max", field = "latency" }] } } },
-      { query = { logs = { aggregations = [{ type = "percentile", field = "latency", percent = 95 }] } } },
+      { query = { logs = { lucene_query = %[1]q, aggregations = [{ type = "count" }] } } },
+      { query = { logs = { lucene_query = %[1]q, aggregations = [{ type = "count_distinct", field = %[2]q }] } } },
+      { query = { logs = { lucene_query = %[1]q, aggregations = [{ type = "sum", field = "latency" }] } } },
+      { query = { logs = { lucene_query = %[1]q, aggregations = [{ type = "avg", field = "latency" }] } } },
+      { query = { logs = { lucene_query = %[1]q, aggregations = [{ type = "min", field = "latency" }] } } },
+      { query = { logs = { lucene_query = %[1]q, aggregations = [{ type = "max", field = "latency" }] } } },
+      { query = { logs = { lucene_query = %[1]q, aggregations = [{ type = "percentile", field = "latency", percent = %[3]g }] } } },
     ]
   } }
-}`)
+}`, dashboardOpenAPILogsAggregationLuceneQuery(updated), dashboardOpenAPILogsAggregationField(updated), dashboardOpenAPILogsAggregationPercent(updated)))
+}
+
+func dashboardOpenAPILogsAggregationLuceneQuery(updated bool) string {
+	if updated {
+		return "coralogix.metadata.severity:INFO"
+	}
+	return "*"
+}
+
+func dashboardOpenAPILogsAggregationField(updated bool) string {
+	if updated {
+		return "coralogix.metadata.subsystemName"
+	}
+	return "coralogix.metadata.applicationName"
+}
+
+func dashboardOpenAPILogsAggregationPercent(updated bool) float64 {
+	if updated {
+		return 90
+	}
+	return 95
 }
 
 func TestAccCoralogixResourceDashboardOpenAPISpansAndFilterBranches(t *testing.T) {
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.#", "2"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.0.type", "metric"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.0.aggregation_type", "avg"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.0.field", "duration"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.1.type", "dimension"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.1.field", "trace_id"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.#", "3"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.0.type", "metadata"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.1.type", "tag"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.2.type", "process_tag"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.2.value", "service.version"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.#", "2"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.0.field", "coralogix.metadata.applicationName"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.0.operator.type", "equals"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.0.operator.selected_values.#", "0"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.1.observation_field.keypath.0", "applicationName"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.1.operator.type", "not_equals"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.1.operator.selected_values.0", "production"),
+	stateChecks := func(updated bool) []resource.TestCheckFunc {
+		return []resource.TestCheckFunc{
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.#", "2"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.lucene_query", dashboardOpenAPIUpdatedValue(updated, "*", "serviceName:api")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.0.type", "metric"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.0.aggregation_type", dashboardOpenAPIUpdatedValue(updated, "avg", "max")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.0.field", "duration"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.1.type", "dimension"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.1.field", "trace_id"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.#", "3"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.0.type", "metadata"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.1.type", "tag"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.2.type", "process_tag"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.0.value", dashboardOpenAPIUpdatedValue(updated, "service_name", "subsystem_name")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.1.value", dashboardOpenAPIUpdatedValue(updated, "http.method", "http.route")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.2.value", dashboardOpenAPIUpdatedValue(updated, "service.version", "deployment.environment")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.#", "2"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.0.field", dashboardOpenAPIUpdatedValue(updated, "coralogix.metadata.applicationName", "coralogix.metadata.subsystemName")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.0.operator.type", "equals"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.0.operator.selected_values.#", "0"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.1.observation_field.keypath.0", dashboardOpenAPIUpdatedValue(updated, "applicationName", "subsystemName")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.1.operator.type", "not_equals"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.data_table.query.logs.filters.1.operator.selected_values.0", dashboardOpenAPIUpdatedValue(updated, "production", "staging")),
+		}
 	}
-	dashboardOpenAPIRunNestedScenario(t, dashboardOpenAPISpansAndFiltersTestName, dashboardOpenAPISpansAndFiltersConfig, checks, func(dashboard *dashboardservice.Dashboard) error {
+	dashboardOpenAPIRunNestedScenario(t, dashboardOpenAPISpansAndFiltersTestName, dashboardOpenAPISpansAndFiltersConfig, dashboardOpenAPISpansAndFiltersUpdateConfig, stateChecks, func(dashboard *dashboardservice.Dashboard, updated bool) error {
 		widgets, err := dashboardOpenAPIFirstRowWidgets(dashboard)
 		if err != nil {
 			return err
@@ -460,20 +562,40 @@ func TestAccCoralogixResourceDashboardOpenAPISpansAndFilterBranches(t *testing.T
 		if spans == nil || len(spans.Aggregations) != 2 || len(spans.GroupBy) != 3 {
 			return fmt.Errorf("REST spans aggregation/field lists did not round-trip")
 		}
+		spansLuceneQuery := spans.GetLuceneQuery()
+		if spansLuceneQuery.GetValue() != dashboardOpenAPIUpdatedValue(updated, "*", "serviceName:api") {
+			return fmt.Errorf("REST spans Lucene query did not round-trip after updated=%t", updated)
+		}
 		if err := dashboardOpenAPIAssertOneOfBranch(&spans.Aggregations[0], "SpansAggregation", "metricAggregation", dashboard.GetId(), dashboardOpenAPISpansAndFiltersTestName); err != nil {
 			return err
 		}
 		if err := dashboardOpenAPIAssertOneOfBranch(&spans.Aggregations[1], "SpansAggregation", "dimensionAggregation", dashboard.GetId(), dashboardOpenAPISpansAndFiltersTestName); err != nil {
 			return err
 		}
+		wantMetricAggregation := dashboardservice.METRICAGGREGATIONTYPE_METRIC_AGGREGATION_TYPE_AVERAGE
+		if updated {
+			wantMetricAggregation = dashboardservice.METRICAGGREGATIONTYPE_METRIC_AGGREGATION_TYPE_MAX
+		}
+		if spans.Aggregations[0].MetricAggregation == nil || spans.Aggregations[0].MetricAggregation.GetAggregationType() != wantMetricAggregation {
+			return fmt.Errorf("REST metric aggregation value did not round-trip after updated=%t", updated)
+		}
 		for index, branch := range []string{"metadataField", "tagField", "processTagField"} {
 			if err := dashboardOpenAPIAssertOneOfBranch(&spans.GroupBy[index], "SpanField", branch, dashboard.GetId(), dashboardOpenAPISpansAndFiltersTestName); err != nil {
 				return err
 			}
 		}
+		if spans.GroupBy[1].GetTagField() != dashboardOpenAPIUpdatedValue(updated, "http.method", "http.route") ||
+			spans.GroupBy[2].GetProcessTagField() != dashboardOpenAPIUpdatedValue(updated, "service.version", "deployment.environment") {
+			return fmt.Errorf("REST span field values did not round-trip after updated=%t", updated)
+		}
 		filters := widgets[1].GetDefinition().DataTable.Query.Logs.Filters
 		if len(filters) != 2 || filters[0].Field == nil || filters[0].ObservationField != nil || filters[1].Field != nil || filters[1].ObservationField == nil {
 			return fmt.Errorf("REST legacy-field/observation-field targets did not round-trip")
+		}
+		observationField := filters[1].GetObservationField()
+		if filters[0].GetField() != dashboardOpenAPIUpdatedValue(updated, "coralogix.metadata.applicationName", "coralogix.metadata.subsystemName") ||
+			len(observationField.GetKeypath()) != 1 || observationField.GetKeypath()[0] != dashboardOpenAPIUpdatedValue(updated, "applicationName", "subsystemName") {
+			return fmt.Errorf("REST filter target values did not round-trip after updated=%t", updated)
 		}
 		if err := dashboardOpenAPIAssertOneOfBranch(filters[0].Operator, "FilterOperator", "equals", dashboard.GetId(), dashboardOpenAPISpansAndFiltersTestName); err != nil {
 			return err
@@ -481,15 +603,34 @@ func TestAccCoralogixResourceDashboardOpenAPISpansAndFilterBranches(t *testing.T
 		if err := dashboardOpenAPIAssertOneOfBranch(filters[0].Operator.Equals.Selection, "EqualsSelection", "all", dashboard.GetId(), dashboardOpenAPISpansAndFiltersTestName); err != nil {
 			return err
 		}
-		return dashboardOpenAPIAssertOneOfBranch(filters[1].Operator, "FilterOperator", "notEquals", dashboard.GetId(), dashboardOpenAPISpansAndFiltersTestName)
+		if err := dashboardOpenAPIAssertOneOfBranch(filters[1].Operator, "FilterOperator", "notEquals", dashboard.GetId(), dashboardOpenAPISpansAndFiltersTestName); err != nil {
+			return err
+		}
+		if filters[1].Operator.NotEquals == nil || filters[1].Operator.NotEquals.Selection == nil || filters[1].Operator.NotEquals.Selection.List == nil {
+			return fmt.Errorf("REST not-equals filter list selection is absent")
+		}
+		selectedValues := filters[1].Operator.NotEquals.Selection.List.GetValues()
+		if len(selectedValues) != 1 || selectedValues[0] != dashboardOpenAPIUpdatedValue(updated, "production", "staging") {
+			return fmt.Errorf("REST not-equals filter selected values did not round-trip")
+		}
+		return nil
 	})
 }
 
 func dashboardOpenAPISpansAndFiltersConfig(name string) string {
-	return dashboardOpenAPIWrapWidgets(name, `{
+	return dashboardOpenAPISpansAndFiltersConfigVariant(name, false)
+}
+
+func dashboardOpenAPISpansAndFiltersUpdateConfig(name string) string {
+	return dashboardOpenAPISpansAndFiltersConfigVariant(name, true)
+}
+
+func dashboardOpenAPISpansAndFiltersConfigVariant(name string, updated bool) string {
+	widgets := `{
   title = "span-unions"
   definition = { line_chart = {
     query_definitions = [{ query = { spans = {
+      lucene_query = "*"
       aggregations = [
         { type = "metric", aggregation_type = "avg", field = "duration" },
         { type = "dimension", aggregation_type = "unique_count", field = "trace_id" },
@@ -519,31 +660,59 @@ func dashboardOpenAPISpansAndFiltersConfig(name string) string {
       },
     ] } }
   } }
-}`)
+}`
+	if updated {
+		widgets = strings.NewReplacer(
+			`lucene_query = "*"`, `lucene_query = "serviceName:api"`,
+			`aggregation_type = "avg", field = "duration"`, `aggregation_type = "max", field = "duration"`,
+			`type = "metadata", value = "service_name"`, `type = "metadata", value = "subsystem_name"`,
+			`type = "tag", value = "http.method"`, `type = "tag", value = "http.route"`,
+			`type = "process_tag", value = "service.version"`, `type = "process_tag", value = "deployment.environment"`,
+			`field    = "coralogix.metadata.applicationName"`, `field    = "coralogix.metadata.subsystemName"`,
+			`keypath = ["applicationName"]`, `keypath = ["subsystemName"]`,
+			`selected_values = ["production"]`, `selected_values = ["staging"]`,
+		).Replace(widgets)
+	}
+	return dashboardOpenAPIWrapWidgets(name, widgets)
+}
+
+func dashboardOpenAPIUpdatedValue(updated bool, initial, changed string) string {
+	if updated {
+		return changed
+	}
+	return initial
 }
 
 func TestAccCoralogixResourceDashboardOpenAPIVariableBranches(t *testing.T) {
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.#", "11"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.selected_values.#", "0"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.logs_path", "coralogix.metadata.applicationName"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.1.definition.multi_select.source.metric_label.metric_name", "http_requests_total"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.1.definition.multi_select.source.metric_label.label", "service"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.2.definition.multi_select.source.constant_list.0", "http_requests_total"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.3.definition.multi_select.source.span_field.type", "process_tag"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.4.definition.multi_select.source.query.query.logs.field_name.log_regex", ".*"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.5.definition.multi_select.source.query.query.logs.field_value.observation_field.keypath.0", "applicationName"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.6.definition.multi_select.source.query.query.metrics.metric_name.metric_regex", "http_.*"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.7.definition.multi_select.source.query.query.metrics.label_name.metric_regex", "http_.*"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.metric_name.variable_name", "source_metric"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.label_filters.0.operator.type", "not_equals"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.label_filters.0.operator.selected_values.0.variable_name", "source_metric"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.label_filters.1.operator.type", "equals"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.9.definition.multi_select.source.query.query.spans.field_name.span_regex", ".*"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.10.definition.multi_select.source.query.query.spans.field_value.type", "tag"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "variables.10.definition.multi_select.source.query.query.spans.field_value.value", "http.method"),
+	stateChecks := func(updated bool) []resource.TestCheckFunc {
+		return []resource.TestCheckFunc{
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.#", "11"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.selected_values.#", "0"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.logs_path", dashboardOpenAPIUpdatedValue(updated, "coralogix.metadata.applicationName", "coralogix.metadata.subsystemName")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.1.definition.multi_select.source.metric_label.metric_name", dashboardOpenAPIUpdatedValue(updated, "http_requests_total", "http_server_requests_total")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.1.definition.multi_select.source.metric_label.label", dashboardOpenAPIUpdatedValue(updated, "service", "job")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.2.definition.multi_select.source.constant_list.0", dashboardOpenAPIUpdatedValue(updated, "http_requests_total", "http_server_requests_total")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.3.definition.multi_select.source.span_field.type", "process_tag"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.3.definition.multi_select.source.span_field.value", dashboardOpenAPIUpdatedValue(updated, "service.version", "deployment.environment")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.4.definition.multi_select.source.query.query.logs.field_name.log_regex", dashboardOpenAPIUpdatedValue(updated, ".*", ".+")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.5.definition.multi_select.source.query.query.logs.field_value.observation_field.keypath.0", dashboardOpenAPIUpdatedValue(updated, "applicationName", "subsystemName")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.6.definition.multi_select.source.query.query.metrics.metric_name.metric_regex", dashboardOpenAPIUpdatedValue(updated, "http_.*", "api_.*")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.7.definition.multi_select.source.query.query.metrics.label_name.metric_regex", dashboardOpenAPIUpdatedValue(updated, "http_.*", "api_.*")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.metric_name.variable_name", "source_metric"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.label_name.string_value", dashboardOpenAPIUpdatedValue(updated, "service", "job")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.label_filters.0.metric.string_value", dashboardOpenAPIUpdatedValue(updated, "http_requests_total", "http_server_requests_total")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.label_filters.0.label.string_value", dashboardOpenAPIUpdatedValue(updated, "region", "zone")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.label_filters.0.operator.type", "not_equals"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.label_filters.0.operator.selected_values.0.variable_name", "source_metric"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.label_filters.1.operator.type", "equals"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.label_filters.1.label.string_value", dashboardOpenAPIUpdatedValue(updated, "environment", "deployment.environment")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.8.definition.multi_select.source.query.query.metrics.label_value.label_filters.1.operator.selected_values.0.string_value", dashboardOpenAPIUpdatedValue(updated, "production", "staging")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.9.definition.multi_select.source.query.query.spans.field_name.span_regex", dashboardOpenAPIUpdatedValue(updated, ".*", ".+")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.10.definition.multi_select.source.query.query.spans.field_value.type", "tag"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "variables.10.definition.multi_select.source.query.query.spans.field_value.value", dashboardOpenAPIUpdatedValue(updated, "http.method", "http.route")),
+		}
 	}
-	dashboardOpenAPIRunNestedScenario(t, dashboardOpenAPIVariablesTestName, dashboardOpenAPIVariablesConfig, checks, func(dashboard *dashboardservice.Dashboard) error {
+	dashboardOpenAPIRunNestedScenario(t, dashboardOpenAPIVariablesTestName, dashboardOpenAPIVariablesConfig, dashboardOpenAPIVariablesUpdateConfig, stateChecks, func(dashboard *dashboardservice.Dashboard, updated bool) error {
 		variables := dashboard.GetVariables()
 		if len(variables) != 11 {
 			return fmt.Errorf("REST variables = %d, want 11", len(variables))
@@ -574,17 +743,25 @@ func TestAccCoralogixResourceDashboardOpenAPIVariableBranches(t *testing.T) {
 				return err
 			}
 		}
-		if variables[0].Definition.MultiSelect.Source.LogsPath == nil || variables[0].Definition.MultiSelect.Source.LogsPath.GetValue() != "coralogix.metadata.applicationName" {
+		if variables[0].Definition.MultiSelect.Source.LogsPath == nil || variables[0].Definition.MultiSelect.Source.LogsPath.GetValue() != dashboardOpenAPIUpdatedValue(updated, "coralogix.metadata.applicationName", "coralogix.metadata.subsystemName") {
 			return fmt.Errorf("REST logsPath source did not round-trip")
 		}
-		if variables[1].Definition.MultiSelect.Source.MetricLabel == nil || variables[1].Definition.MultiSelect.Source.MetricLabel.GetLabel() != "service" {
+		if variables[1].Definition.MultiSelect.Source.MetricLabel == nil || variables[1].Definition.MultiSelect.Source.MetricLabel.GetLabel() != dashboardOpenAPIUpdatedValue(updated, "service", "job") ||
+			variables[1].Definition.MultiSelect.Source.MetricLabel.GetMetricName() != dashboardOpenAPIUpdatedValue(updated, "http_requests_total", "http_server_requests_total") {
 			return fmt.Errorf("REST metricLabel source did not round-trip")
 		}
 		if variables[3].Definition.MultiSelect.Source.SpanField == nil || variables[3].Definition.MultiSelect.Source.SpanField.Value == nil {
 			return fmt.Errorf("REST spanField source did not round-trip")
 		}
+		constantValues := variables[2].Definition.MultiSelect.Source.ConstantList.GetValues()
+		if len(constantValues) != 1 || constantValues[0] != dashboardOpenAPIUpdatedValue(updated, "http_requests_total", "http_server_requests_total") {
+			return fmt.Errorf("REST constantList source did not round-trip")
+		}
 		if err := dashboardOpenAPIAssertOneOfBranch(variables[3].Definition.MultiSelect.Source.SpanField.Value, "SpanField", "processTagField", dashboard.GetId(), dashboardOpenAPIVariablesTestName); err != nil {
 			return err
+		}
+		if variables[3].Definition.MultiSelect.Source.SpanField.Value.GetProcessTagField() != dashboardOpenAPIUpdatedValue(updated, "service.version", "deployment.environment") {
+			return fmt.Errorf("REST spanField source value did not round-trip")
 		}
 
 		queries := make([]*dashboardservice.MultiSelectQuery, 0, 7)
@@ -606,10 +783,19 @@ func TestAccCoralogixResourceDashboardOpenAPIVariableBranches(t *testing.T) {
 		if err := dashboardOpenAPIAssertOneOfBranch(queries[1].LogsQuery.Type, "QueryLogsQueryType", "fieldValue", dashboard.GetId(), dashboardOpenAPIVariablesTestName); err != nil {
 			return err
 		}
+		logsFieldValue := queries[1].LogsQuery.Type.FieldValue.GetObservationField()
+		if queries[0].LogsQuery.Type.FieldName.GetLogRegex() != dashboardOpenAPIUpdatedValue(updated, ".*", ".+") ||
+			len(logsFieldValue.GetKeypath()) != 1 || logsFieldValue.GetKeypath()[0] != dashboardOpenAPIUpdatedValue(updated, "applicationName", "subsystemName") {
+			return fmt.Errorf("REST variable logs query values did not round-trip")
+		}
 		for index, branch := range []string{"metricName", "labelName", "labelValue"} {
 			if err := dashboardOpenAPIAssertOneOfBranch(queries[index+2].MetricsQuery.Type, "QueryMetricsQueryType", branch, dashboard.GetId(), dashboardOpenAPIVariablesTestName); err != nil {
 				return err
 			}
+		}
+		if queries[2].MetricsQuery.Type.MetricName.GetMetricRegex() != dashboardOpenAPIUpdatedValue(updated, "http_.*", "api_.*") ||
+			queries[3].MetricsQuery.Type.LabelName.GetMetricRegex() != dashboardOpenAPIUpdatedValue(updated, "http_.*", "api_.*") {
+			return fmt.Errorf("REST variable metrics regex values did not round-trip")
 		}
 		labelValue := queries[4].MetricsQuery.Type.LabelValue
 		if labelValue == nil || labelValue.MetricName == nil || len(labelValue.LabelFilters) != 2 || labelValue.LabelFilters[0].Operator == nil || labelValue.LabelFilters[1].Operator == nil {
@@ -627,15 +813,52 @@ func TestAccCoralogixResourceDashboardOpenAPIVariableBranches(t *testing.T) {
 		if err := dashboardOpenAPIAssertOneOfBranch(labelValue.LabelFilters[1].Operator, "QueryMetricsQueryOperator", "equals", dashboard.GetId(), dashboardOpenAPIVariablesTestName); err != nil {
 			return err
 		}
+		firstMetric := labelValue.LabelFilters[0].GetMetric()
+		firstLabel := labelValue.LabelFilters[0].GetLabel()
+		secondLabel := labelValue.LabelFilters[1].GetLabel()
+		if labelValue.LabelName.GetStringValue() != dashboardOpenAPIUpdatedValue(updated, "service", "job") ||
+			firstMetric.GetStringValue() != dashboardOpenAPIUpdatedValue(updated, "http_requests_total", "http_server_requests_total") ||
+			firstLabel.GetStringValue() != dashboardOpenAPIUpdatedValue(updated, "region", "zone") ||
+			secondLabel.GetStringValue() != dashboardOpenAPIUpdatedValue(updated, "environment", "deployment.environment") {
+			return fmt.Errorf("REST variable metrics label-value targets did not round-trip")
+		}
+		firstOperator := labelValue.LabelFilters[0].Operator.NotEquals
+		secondOperator := labelValue.LabelFilters[1].Operator.Equals
+		if firstOperator == nil || firstOperator.Selection == nil || firstOperator.Selection.List == nil ||
+			secondOperator == nil || secondOperator.Selection == nil || secondOperator.Selection.List == nil {
+			return fmt.Errorf("REST variable metrics label-value selections are absent")
+		}
+		firstSelection := firstOperator.Selection.List.GetValues()
+		secondSelection := secondOperator.Selection.List.GetValues()
+		if len(firstSelection) != 1 || firstSelection[0].GetVariableName() != "source_metric" || len(secondSelection) != 1 ||
+			secondSelection[0].GetStringValue() != dashboardOpenAPIUpdatedValue(updated, "production", "staging") {
+			return fmt.Errorf("REST variable metrics label-value selections did not round-trip")
+		}
 		if err := dashboardOpenAPIAssertOneOfBranch(queries[5].SpansQuery.Type, "QuerySpansQueryType", "fieldName", dashboard.GetId(), dashboardOpenAPIVariablesTestName); err != nil {
 			return err
 		}
-		return dashboardOpenAPIAssertOneOfBranch(queries[6].SpansQuery.Type, "QuerySpansQueryType", "fieldValue", dashboard.GetId(), dashboardOpenAPIVariablesTestName)
+		if err := dashboardOpenAPIAssertOneOfBranch(queries[6].SpansQuery.Type, "QuerySpansQueryType", "fieldValue", dashboard.GetId(), dashboardOpenAPIVariablesTestName); err != nil {
+			return err
+		}
+		spansFieldValue := queries[6].SpansQuery.Type.FieldValue.GetValue()
+		if queries[5].SpansQuery.Type.FieldName.GetSpanRegex() != dashboardOpenAPIUpdatedValue(updated, ".*", ".+") ||
+			spansFieldValue.GetTagField() != dashboardOpenAPIUpdatedValue(updated, "http.method", "http.route") {
+			return fmt.Errorf("REST variable spans query values did not round-trip")
+		}
+		return nil
 	})
 }
 
 func dashboardOpenAPIVariablesConfig(name string) string {
-	return fmt.Sprintf(`
+	return dashboardOpenAPIVariablesConfigVariant(name, false)
+}
+
+func dashboardOpenAPIVariablesUpdateConfig(name string) string {
+	return dashboardOpenAPIVariablesConfigVariant(name, true)
+}
+
+func dashboardOpenAPIVariablesConfigVariant(name string, updated bool) string {
+	config := fmt.Sprintf(`
 resource "coralogix_dashboard" "test" {
   name        = %q
   description = "Nested structured variable branches"
@@ -747,6 +970,24 @@ resource "coralogix_dashboard" "test" {
   ]
 }
 `, name)
+	if updated {
+		config = strings.NewReplacer(
+			"coralogix.metadata.applicationName", "coralogix.metadata.subsystemName",
+			"http_requests_total", "http_server_requests_total",
+			`label = "service"`, `label = "job"`,
+			`value = "service.version"`, `value = "deployment.environment"`,
+			`log_regex = ".*"`, `log_regex = ".+"`,
+			`keypath = ["applicationName"]`, `keypath = ["subsystemName"]`,
+			`metric_regex = "http_.*"`, `metric_regex = "api_.*"`,
+			`span_regex = ".*"`, `span_regex = ".+"`,
+			`value = "http.method"`, `value = "http.route"`,
+			`string_value = "service"`, `string_value = "job"`,
+			`string_value = "region"`, `string_value = "zone"`,
+			`string_value = "environment"`, `string_value = "deployment.environment"`,
+			`string_value = "production"`, `string_value = "staging"`,
+		).Replace(config)
+	}
+	return config
 }
 
 func TestAccCoralogixResourceDashboardOpenAPIAnnotationBranches(t *testing.T) {
@@ -754,21 +995,37 @@ func TestAccCoralogixResourceDashboardOpenAPIAnnotationBranches(t *testing.T) {
 	var client *dashboardservice.DashboardServiceAPIService
 	fixture := dashboardOpenAPIAnnotationsTestName
 	name := dashboardOpenAPIFixtureName(fixture)
+	dashboardIdentity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
+	nestedIdentity := newDashboardOpenAPINestedIDTracker(fixture)
 	annotationIDs := newDashboardOpenAPIAnnotationIDTracker(fixture)
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.#", "9"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.metrics.promql_query", "vector(1)"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.1.source.manual.strategy.instant.value", "42"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.2.source.manual.strategy.range.start_value", "10"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.3.source.logs.lucene_query", "*"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.3.source.logs.strategy.instant.timestamp_field.keypath.0", "timestamp"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.4.source.logs.strategy.range.start_timestamp_field.keypath.0", "start_time"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.5.source.logs.strategy.duration.duration_field.keypath.0", "duration_ms"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.6.source.spans.lucene_query", "*"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.6.source.spans.strategy.instant.timestamp_field.keypath.0", "startTime"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.7.source.spans.strategy.range.end_timestamp_field.keypath.0", "endTime"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.8.source.spans.strategy.duration.duration_field.keypath.0", "durationNano"),
-		annotationIDs.CaptureOrAssert(),
+	checks := func(updated bool, identityCheck resource.TestCheckFunc) resource.TestCheckFunc {
+		checks := []resource.TestCheckFunc{
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.#", "9"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.metrics.promql_query", dashboardOpenAPIUpdatedValue(updated, "vector(1)", "vector(2)")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.1.source.manual.strategy.instant.value", dashboardOpenAPIUpdatedValue(updated, "42", "84")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.2.source.manual.strategy.range.start_value", dashboardOpenAPIUpdatedValue(updated, "10", "20")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.3.source.logs.lucene_query", dashboardOpenAPIUpdatedValue(updated, "*", "coralogix.metadata.severity:INFO")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.3.source.logs.strategy.instant.timestamp_field.keypath.0", dashboardOpenAPIUpdatedValue(updated, "timestamp", "event_timestamp")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.4.source.logs.strategy.range.start_timestamp_field.keypath.0", dashboardOpenAPIUpdatedValue(updated, "start_time", "range_start")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.5.source.logs.strategy.duration.duration_field.keypath.0", dashboardOpenAPIUpdatedValue(updated, "duration_ms", "elapsed_ms")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.6.source.spans.lucene_query", dashboardOpenAPIUpdatedValue(updated, "*", "serviceName:api")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.6.source.spans.strategy.instant.timestamp_field.keypath.0", dashboardOpenAPIUpdatedValue(updated, "startTime", "startTimeUnixNano")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.7.source.spans.strategy.range.end_timestamp_field.keypath.0", dashboardOpenAPIUpdatedValue(updated, "endTime", "endTimeUnixNano")),
+			resource.TestCheckResourceAttr(dashboardResourceName, "annotations.8.source.spans.strategy.duration.duration_field.keypath.0", dashboardOpenAPIUpdatedValue(updated, "durationNano", "durationMillis")),
+			identityCheck,
+			annotationIDs.CaptureOrAssert(),
+		}
+		checks = append(checks, func(state *terraform.State) error {
+			dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
+			if err != nil {
+				return err
+			}
+			if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
+				return err
+			}
+			return dashboardOpenAPIAssertAnnotations(dashboard, fixture, updated)
+		})
+		return resource.ComposeAggregateTestCheckFunc(checks...)
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -778,25 +1035,30 @@ func TestAccCoralogixResourceDashboardOpenAPIAnnotationBranches(t *testing.T) {
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckDashboardDestroy(t),
-		Steps: []resource.TestStep{
-			{
+		Steps: dashboardOpenAPIStructuredLifecycleSteps(
+			dashboardOpenAPILifecyclePhase{
 				Config: dashboardOpenAPIAnnotationsConfig(name),
-				Check: resource.ComposeAggregateTestCheckFunc(append(checks, func(state *terraform.State) error {
-					dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
-					if err != nil {
-						return err
-					}
-					return dashboardOpenAPIAssertAnnotations(dashboard, fixture)
-				})...),
-				ConfigPlanChecks: resource.ConfigPlanChecks{PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}},
+				Check:  checks(false, dashboardIdentity.Capture()),
 			},
-			{
+			[]dashboardOpenAPILifecyclePhase{{
+				Config: dashboardOpenAPIAnnotationsUpdateConfig(name),
+				Check:  checks(true, dashboardIdentity.AssertUnchanged()),
+			}},
+			resource.TestStep{
 				ResourceName:      dashboardResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
-				ImportStateCheck:  annotationIDs.AssertImported(),
+				ImportStateCheck: dashboardOpenAPIComposeImportStateChecks(
+					annotationIDs.AssertImported(),
+					dashboardOpenAPIImportDashboardCheck(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
+						if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
+							return err
+						}
+						return dashboardOpenAPIAssertAnnotations(dashboard, fixture, true)
+					}),
+				),
 			},
-		},
+		),
 	})
 }
 
@@ -876,7 +1138,7 @@ func dashboardOpenAPICompareAnnotationIDs(want, got map[string]string) error {
 	return dashboardOpenAPIJoinErrors(mismatches)
 }
 
-func dashboardOpenAPIAssertAnnotations(dashboard *dashboardservice.Dashboard, fixture string) error {
+func dashboardOpenAPIAssertAnnotations(dashboard *dashboardservice.Dashboard, fixture string, updated bool) error {
 	annotations := dashboard.GetAnnotations()
 	if len(annotations) != 9 {
 		return fmt.Errorf("dashboard fixture %q: REST annotations = %d, want 9", fixture, len(annotations))
@@ -893,18 +1155,35 @@ func dashboardOpenAPIAssertAnnotations(dashboard *dashboardservice.Dashboard, fi
 	if annotations[0].Source.Metrics == nil || annotations[0].Source.Metrics.Strategy == nil || annotations[0].Source.Metrics.Strategy.StartTimeMetric == nil {
 		return fmt.Errorf("dashboard fixture %q: REST metrics annotation strategy did not round-trip", fixture)
 	}
+	if annotations[0].Source.Metrics.PromqlQuery == nil || annotations[0].Source.Metrics.PromqlQuery.GetValue() != dashboardOpenAPIUpdatedValue(updated, "vector(1)", "vector(2)") ||
+		len(annotations[0].Source.Metrics.GetLabels()) != 1 || annotations[0].Source.Metrics.GetLabels()[0] != dashboardOpenAPIUpdatedValue(updated, "service", "job") {
+		return fmt.Errorf("dashboard fixture %q: REST metrics annotation values did not round-trip", fixture)
+	}
 	for index, branch := range []string{"instant", "range"} {
 		strategy := annotations[index+1].Source.Manual.Strategy
 		if err := dashboardOpenAPIAssertOneOfBranch(strategy, "ManualSourceStrategy", branch, dashboard.GetId(), fixture); err != nil {
 			return err
 		}
 	}
+	manualInstant := annotations[1].Source.Manual.Strategy.Instant
+	manualRange := annotations[2].Source.Manual.Strategy.Range
+	wantInstant := 42.0
+	wantRangeStart, wantRangeEnd := 10.0, 20.0
+	if updated {
+		wantInstant = 84
+		wantRangeStart, wantRangeEnd = 20, 40
+	}
+	if manualInstant == nil || manualInstant.GetValue() != wantInstant || manualRange == nil ||
+		manualRange.GetStartValue() != wantRangeStart || manualRange.GetEndValue() != wantRangeEnd {
+		return fmt.Errorf("dashboard fixture %q: REST manual annotation values did not round-trip", fixture)
+	}
+	wantLogsLucene := dashboardOpenAPIUpdatedValue(updated, "*", "coralogix.metadata.severity:INFO")
 	for index, branch := range []string{"instant", "range", "duration"} {
 		logs := annotations[index+3].Source.Logs
 		if logs == nil || logs.Strategy == nil {
 			return fmt.Errorf("dashboard fixture %q: REST logs annotation %d strategy is nil", fixture, index)
 		}
-		if logs.LuceneQuery == nil || logs.LuceneQuery.GetValue() != "*" {
+		if logs.LuceneQuery == nil || logs.LuceneQuery.GetValue() != wantLogsLucene {
 			return fmt.Errorf("dashboard fixture %q: REST logs annotation %d lucene query did not round-trip", fixture, index)
 		}
 		if logs.DataModeType != nil && *logs.DataModeType != dashboardservice.V1COMMONDATAMODETYPE_DATA_MODE_TYPE_HIGH_UNSPECIFIED {
@@ -913,13 +1192,17 @@ func dashboardOpenAPIAssertAnnotations(dashboard *dashboardservice.Dashboard, fi
 		if err := dashboardOpenAPIAssertOneOfBranch(logs.Strategy, "LogsSourceStrategy", branch, dashboard.GetId(), fixture); err != nil {
 			return err
 		}
+		if err := dashboardOpenAPIAssertLogsAnnotationStrategyValues(logs.Strategy, index, updated); err != nil {
+			return fmt.Errorf("dashboard fixture %q: %w", fixture, err)
+		}
 	}
 	for index, branch := range []string{"instant", "range", "duration"} {
 		spans := annotations[index+6].Source.Spans
+		wantSpansLucene := dashboardOpenAPIUpdatedValue(updated, "*", "serviceName:api")
 		if spans == nil || spans.Strategy == nil {
 			return fmt.Errorf("dashboard fixture %q: REST spans annotation %d strategy is nil", fixture, index)
 		}
-		if spans.LuceneQuery == nil || spans.LuceneQuery.GetValue() != "*" {
+		if spans.LuceneQuery == nil || spans.LuceneQuery.GetValue() != wantSpansLucene {
 			return fmt.Errorf("dashboard fixture %q: REST spans annotation %d lucene query did not round-trip", fixture, index)
 		}
 		if spans.DataModeType != nil && *spans.DataModeType != dashboardservice.V1COMMONDATAMODETYPE_DATA_MODE_TYPE_HIGH_UNSPECIFIED {
@@ -928,12 +1211,75 @@ func dashboardOpenAPIAssertAnnotations(dashboard *dashboardservice.Dashboard, fi
 		if err := dashboardOpenAPIAssertOneOfBranch(spans.Strategy, "SpansSourceStrategy", branch, dashboard.GetId(), fixture); err != nil {
 			return err
 		}
+		if err := dashboardOpenAPIAssertSpansAnnotationStrategyValues(spans.Strategy, index, updated); err != nil {
+			return fmt.Errorf("dashboard fixture %q: %w", fixture, err)
+		}
+	}
+	return nil
+}
+
+func dashboardOpenAPIAssertLogsAnnotationStrategyValues(strategy *dashboardservice.LogsSourceStrategy, index int, updated bool) error {
+	want := [][]string{
+		{dashboardOpenAPIUpdatedValue(updated, "timestamp", "event_timestamp")},
+		{dashboardOpenAPIUpdatedValue(updated, "start_time", "range_start"), dashboardOpenAPIUpdatedValue(updated, "end_time", "range_end")},
+		{dashboardOpenAPIUpdatedValue(updated, "start_time", "range_start"), dashboardOpenAPIUpdatedValue(updated, "duration_ms", "elapsed_ms")},
+	}[index]
+	var got [][]string
+	switch index {
+	case 0:
+		got = [][]string{dashboardOpenAPIObservationFieldKeypath(strategy.Instant.GetTimestampField())}
+	case 1:
+		got = [][]string{dashboardOpenAPIObservationFieldKeypath(strategy.Range.GetStartTimestampField()), dashboardOpenAPIObservationFieldKeypath(strategy.Range.GetEndTimestampField())}
+	case 2:
+		got = [][]string{dashboardOpenAPIObservationFieldKeypath(strategy.Duration.GetStartTimestampField()), dashboardOpenAPIObservationFieldKeypath(strategy.Duration.GetDurationField())}
+	}
+	return dashboardOpenAPIAssertAnnotationKeypaths("logs", got, want)
+}
+
+func dashboardOpenAPIAssertSpansAnnotationStrategyValues(strategy *dashboardservice.SpansSourceStrategy, index int, updated bool) error {
+	want := [][]string{
+		{dashboardOpenAPIUpdatedValue(updated, "startTime", "startTimeUnixNano")},
+		{dashboardOpenAPIUpdatedValue(updated, "startTime", "startTimeUnixNano"), dashboardOpenAPIUpdatedValue(updated, "endTime", "endTimeUnixNano")},
+		{dashboardOpenAPIUpdatedValue(updated, "startTime", "startTimeUnixNano"), dashboardOpenAPIUpdatedValue(updated, "durationNano", "durationMillis")},
+	}[index]
+	var got [][]string
+	switch index {
+	case 0:
+		got = [][]string{dashboardOpenAPIObservationFieldKeypath(strategy.Instant.GetTimestampField())}
+	case 1:
+		got = [][]string{dashboardOpenAPIObservationFieldKeypath(strategy.Range.GetStartTimestampField()), dashboardOpenAPIObservationFieldKeypath(strategy.Range.GetEndTimestampField())}
+	case 2:
+		got = [][]string{dashboardOpenAPIObservationFieldKeypath(strategy.Duration.GetStartTimestampField()), dashboardOpenAPIObservationFieldKeypath(strategy.Duration.GetDurationField())}
+	}
+	return dashboardOpenAPIAssertAnnotationKeypaths("spans", got, want)
+}
+
+func dashboardOpenAPIObservationFieldKeypath(field dashboardservice.ObservationField) []string {
+	return field.GetKeypath()
+}
+
+func dashboardOpenAPIAssertAnnotationKeypaths(source string, got [][]string, want []string) error {
+	if len(got) != len(want) {
+		return fmt.Errorf("REST %s annotation keypaths = %v, want %v", source, got, want)
+	}
+	for index := range want {
+		if len(got[index]) != 1 || got[index][0] != want[index] {
+			return fmt.Errorf("REST %s annotation keypaths = %v, want %v", source, got, want)
+		}
 	}
 	return nil
 }
 
 func dashboardOpenAPIAnnotationsConfig(name string) string {
-	return fmt.Sprintf(`
+	return dashboardOpenAPIAnnotationsConfigVariant(name, false)
+}
+
+func dashboardOpenAPIAnnotationsUpdateConfig(name string) string {
+	return dashboardOpenAPIAnnotationsConfigVariant(name, true)
+}
+
+func dashboardOpenAPIAnnotationsConfigVariant(name string, updated bool) string {
+	config := fmt.Sprintf(`
 resource "coralogix_dashboard" "test" {
   name        = %q
   description = "Nested structured annotation branches"
@@ -1012,29 +1358,57 @@ resource "coralogix_dashboard" "test" {
   ]
 }
 `, name)
+	if updated {
+		config = strings.NewReplacer(
+			`promql_query = "vector(1)"`, `promql_query = "vector(2)"`,
+			`labels = ["service"]`, `labels = ["job"]`,
+			`value = 42`, `value = 84`,
+			`start_value = 10, end_value = 20`, `start_value = 20, end_value = 40`,
+			"source = { logs = {\n        lucene_query = \"*\"", "source = { logs = {\n        lucene_query = \"coralogix.metadata.severity:INFO\"",
+			"source = { spans = {\n        lucene_query = \"*\"", "source = { spans = {\n        lucene_query = \"serviceName:api\"",
+			`["timestamp"]`, `["event_timestamp"]`,
+			`["start_time"]`, `["range_start"]`,
+			`["end_time"]`, `["range_end"]`,
+			`["duration_ms"]`, `["elapsed_ms"]`,
+			`["startTime"]`, `["startTimeUnixNano"]`,
+			`["endTime"]`, `["endTimeUnixNano"]`,
+			`["durationNano"]`, `["durationMillis"]`,
+		).Replace(config)
+	}
+	return config
 }
 
 func dashboardOpenAPIRunNestedScenario(
 	t *testing.T,
 	fixture string,
-	config func(string) string,
-	stateChecks []resource.TestCheckFunc,
-	apiCheck func(*dashboardservice.Dashboard) error,
+	createConfig func(string) string,
+	updateConfig func(string) string,
+	stateChecks func(bool) []resource.TestCheckFunc,
+	apiCheck func(*dashboardservice.Dashboard, bool) error,
 ) {
 	t.Helper()
 	ctx := context.Background()
 	var client *dashboardservice.DashboardServiceAPIService
 	name := dashboardOpenAPIFixtureName(fixture)
-	checks := append([]resource.TestCheckFunc{
-		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
-	}, stateChecks...)
-	checks = append(checks, func(state *terraform.State) error {
-		dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
-		if err != nil {
-			return err
-		}
-		return apiCheck(dashboard)
-	})
+	dashboardIdentity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
+	nestedIdentity := newDashboardOpenAPINestedIDTracker(fixture)
+	checks := func(updated bool, identityCheck resource.TestCheckFunc) resource.TestCheckFunc {
+		checks := append([]resource.TestCheckFunc{
+			resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+			identityCheck,
+		}, stateChecks(updated)...)
+		checks = append(checks, func(state *terraform.State) error {
+			dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
+			if err != nil {
+				return err
+			}
+			if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
+				return err
+			}
+			return apiCheck(dashboard, updated)
+		})
+		return resource.ComposeAggregateTestCheckFunc(checks...)
+	}
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -1043,14 +1417,27 @@ func dashboardOpenAPIRunNestedScenario(
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckDashboardDestroy(t),
-		Steps: []resource.TestStep{
-			{
-				Config:           config(name),
-				Check:            resource.ComposeAggregateTestCheckFunc(checks...),
-				ConfigPlanChecks: resource.ConfigPlanChecks{PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}},
+		Steps: dashboardOpenAPIStructuredLifecycleSteps(
+			dashboardOpenAPILifecyclePhase{
+				Config: createConfig(name),
+				Check:  checks(false, dashboardIdentity.Capture()),
 			},
-			{ResourceName: dashboardResourceName, ImportState: true, ImportStateVerify: true},
-		},
+			[]dashboardOpenAPILifecyclePhase{{
+				Config: updateConfig(name),
+				Check:  checks(true, dashboardIdentity.AssertUnchanged()),
+			}},
+			resource.TestStep{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateCheck: dashboardOpenAPIImportDashboardCheck(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
+					if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
+						return err
+					}
+					return apiCheck(dashboard, true)
+				}),
+			},
+		),
 	})
 }
 

@@ -39,6 +39,79 @@ type dashboardStructuredWidgetSpec struct {
 	queryModel       string
 }
 
+type dashboardOpenAPILifecyclePhase struct {
+	Config string
+	Check  resource.TestCheckFunc
+}
+
+func dashboardOpenAPIStructuredLifecycleSteps(
+	create dashboardOpenAPILifecyclePhase,
+	updates []dashboardOpenAPILifecyclePhase,
+	importStep resource.TestStep,
+) []resource.TestStep {
+	if create.Config == "" || create.Check == nil {
+		panic("structured dashboard lifecycle requires a create config and check")
+	}
+	if len(updates) == 0 {
+		panic("structured dashboard lifecycle requires at least one update")
+	}
+	if !importStep.ImportState || !importStep.ImportStateVerify || importStep.ImportStateCheck == nil {
+		panic("structured dashboard lifecycle requires verified import with structured checks")
+	}
+
+	steps := []resource.TestStep{{
+		Config: create.Config,
+		Check:  create.Check,
+		ConfigPlanChecks: resource.ConfigPlanChecks{
+			PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+		},
+	}}
+	previousConfig := create.Config
+	for _, update := range updates {
+		if update.Config == "" || update.Config == previousConfig || update.Check == nil {
+			panic("structured dashboard lifecycle requires each update to change config and retain checks")
+		}
+		steps = append(steps, resource.TestStep{
+			Config: update.Config,
+			Check:  update.Check,
+			ConfigPlanChecks: resource.ConfigPlanChecks{
+				PreApply: []plancheck.PlanCheck{
+					plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionUpdate),
+				},
+				PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+			},
+		})
+		previousConfig = update.Config
+	}
+	return append(steps, importStep)
+}
+
+func TestDashboardOpenAPIStructuredLifecycleContract(t *testing.T) {
+	check := func(*terraform.State) error { return nil }
+	steps := dashboardOpenAPIStructuredLifecycleSteps(
+		dashboardOpenAPILifecyclePhase{Config: "create", Check: check},
+		[]dashboardOpenAPILifecyclePhase{{Config: "update", Check: check}},
+		resource.TestStep{
+			ResourceName:      dashboardResourceName,
+			ImportState:       true,
+			ImportStateVerify: true,
+			ImportStateCheck:  func([]*terraform.InstanceState) error { return nil },
+		},
+	)
+	if len(steps) != 3 {
+		t.Fatalf("structured lifecycle steps = %d, want create/update/import", len(steps))
+	}
+	if len(steps[0].ConfigPlanChecks.PostApplyPostRefresh) == 0 {
+		t.Fatal("structured lifecycle create omits the post-refresh empty-plan contract")
+	}
+	if len(steps[1].ConfigPlanChecks.PreApply) == 0 || len(steps[1].ConfigPlanChecks.PostApplyPostRefresh) == 0 {
+		t.Fatal("structured lifecycle update omits the update-action or empty-plan contract")
+	}
+	if !steps[2].ImportState || !steps[2].ImportStateVerify || steps[2].ImportStateCheck == nil {
+		t.Fatal("structured lifecycle import omits verification or structured checks")
+	}
+}
+
 var dashboardStructuredQueryWidgets = []dashboardStructuredWidgetSpec{
 	{name: "line_chart", definitionBranch: "lineChart", queryModel: "LineChartQuery"},
 	{name: "data_table", definitionBranch: "dataTable", queryModel: "DataTableQuery"},
@@ -95,6 +168,7 @@ func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string
 	var client *dashboardservice.DashboardServiceAPIService
 	dashboardName := dashboardOpenAPIFixtureName(fixture)
 	dashboardIdentity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
+	nestedIdentity := newDashboardOpenAPINestedIDTracker(fixture)
 	checks := func(updated bool, identityCheck resource.TestCheckFunc) resource.TestCheckFunc {
 		stateChecks := dashboardOpenAPIStructuredQueryStateChecks(queryBranch, includeMarkdown, updated)
 		stateChecks = append(stateChecks, identityCheck, func(state *terraform.State) error {
@@ -102,33 +176,35 @@ func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string
 			if err != nil {
 				return err
 			}
+			if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
+				return err
+			}
 			return dashboardOpenAPIAssertStructuredQueryWidgets(dashboard, queryBranch, includeMarkdown, fixture, updated)
 		})
 		return resource.ComposeAggregateTestCheckFunc(stateChecks...)
 	}
 
-	steps := []resource.TestStep{{
-		Config: dashboardOpenAPIStructuredDashboardConfig(dashboardName, queryBranch, includeMarkdown),
-		Check:  checks(false, dashboardIdentity.Capture()),
-		ConfigPlanChecks: resource.ConfigPlanChecks{
-			PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+	steps := dashboardOpenAPIStructuredLifecycleSteps(
+		dashboardOpenAPILifecyclePhase{
+			Config: dashboardOpenAPIStructuredDashboardConfig(dashboardName, queryBranch, includeMarkdown),
+			Check:  checks(false, dashboardIdentity.Capture()),
 		},
-	}}
-	if queryBranch == "dataprime" {
-		steps = append(steps, resource.TestStep{
+		[]dashboardOpenAPILifecyclePhase{{
 			Config: dashboardOpenAPIStructuredDashboardUpdateConfig(dashboardName, queryBranch, includeMarkdown),
 			Check:  checks(true, dashboardIdentity.AssertUnchanged()),
-			ConfigPlanChecks: resource.ConfigPlanChecks{
-				PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
-			},
-		})
-	}
-	steps = append(steps, resource.TestStep{
-		ResourceName:      dashboardResourceName,
-		ImportState:       true,
-		ImportStateVerify: true,
-		Check:             dashboardIdentity.AssertUnchanged(),
-	})
+		}},
+		resource.TestStep{
+			ResourceName:      dashboardResourceName,
+			ImportState:       true,
+			ImportStateVerify: true,
+			ImportStateCheck: dashboardOpenAPIImportDashboardCheck(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
+				if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
+					return err
+				}
+				return dashboardOpenAPIAssertStructuredQueryWidgets(dashboard, queryBranch, includeMarkdown, fixture, true)
+			}),
+		},
+	)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -155,7 +231,7 @@ func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkd
 			resource.TestCheckResourceAttr(
 				dashboardResourceName,
 				basePath+dashboardOpenAPIQueryStatePath(widget.name, queryBranch),
-				dashboardOpenAPIQueryStateValue(widget.name, queryBranch),
+				dashboardOpenAPIQueryStateValue(widget.name, queryBranch, updated),
 			),
 		)
 		if widget.name == "hexagon" {
@@ -175,7 +251,7 @@ func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkd
 				resource.TestCheckResourceAttr(
 					dashboardResourceName,
 					basePath+dashboardOpenAPIDataPrimeFilterStatePath(widget.name, filterBranch),
-					dashboardOpenAPIDataPrimeFilterStateValue(filterBranch),
+					dashboardOpenAPIDataPrimeFilterStateValue(filterBranch, updated),
 				),
 			)
 		}
@@ -184,8 +260,8 @@ func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkd
 			checks = append(checks,
 				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".filters.#", "0"),
 				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".group_names.#", "1"),
-				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".group_names.0", "application"),
-				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".stacked_group_name", "severity"),
+				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".group_names.0", dashboardOpenAPIDataPrimeGroupName(updated)),
+				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+".stacked_group_name", dashboardOpenAPIDataPrimeStackedGroupName(updated)),
 			)
 			if updated {
 				checks = append(checks,
@@ -200,7 +276,7 @@ func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkd
 
 	if includeMarkdown {
 		markdownPath := fmt.Sprintf("layout.sections.0.rows.0.widgets.%d.definition.markdown.markdown_text", len(widgets))
-		checks = append(checks, resource.TestCheckResourceAttr(dashboardResourceName, markdownPath, "## Structured dashboard coverage"))
+		checks = append(checks, resource.TestCheckResourceAttr(dashboardResourceName, markdownPath, dashboardOpenAPIMarkdownText(updated)))
 	}
 
 	return checks
@@ -214,29 +290,11 @@ func dashboardOpenAPIQueryStatePath(widget, queryBranch string) string {
 
 	switch queryBranch {
 	case "logs":
-		switch widget {
-		case "line_chart":
-			return queryPath + "logs.aggregations.0.type"
-		case "data_table":
-			return queryPath + "logs.lucene_query"
-		case "gauge":
-			return queryPath + "logs.logs_aggregation.type"
-		default:
-			return queryPath + "logs.aggregation.type"
-		}
+		return queryPath + "logs.lucene_query"
 	case "metrics":
 		return queryPath + "metrics.promql_query"
 	case "spans":
-		switch widget {
-		case "line_chart":
-			return queryPath + "spans.aggregations.0.aggregation_type"
-		case "data_table":
-			return queryPath + "spans.grouping.aggregations.0.aggregation.aggregation_type"
-		case "gauge":
-			return queryPath + "spans.spans_aggregation.aggregation_type"
-		default:
-			return queryPath + "spans.aggregation.aggregation_type"
-		}
+		return queryPath + "spans.lucene_query"
 	case "dataprime":
 		return queryPath + "data_prime.query"
 	default:
@@ -244,22 +302,19 @@ func dashboardOpenAPIQueryStatePath(widget, queryBranch string) string {
 	}
 }
 
-func dashboardOpenAPIQueryStateValue(widget, queryBranch string) string {
+func dashboardOpenAPIQueryStateValue(widget, queryBranch string, updated bool) string {
 	switch queryBranch {
 	case "logs":
-		if widget == "data_table" {
-			return "coralogix.metadata.severity:ERROR"
-		}
-		return "count"
+		return dashboardOpenAPILuceneQuery(updated)
 	case "metrics":
-		return "vector(1)"
+		return dashboardOpenAPIPromQLQuery(updated)
 	case "spans":
-		return "unique_count"
+		return dashboardOpenAPISpansLuceneQuery(updated)
 	case "dataprime":
 		if widget == "horizontal_bar_chart" {
-			return dashboardOpenAPIHorizontalBarDataPrimeQuery()
+			return dashboardOpenAPIHorizontalBarDataPrimeQuery(updated)
 		}
-		return dashboardOpenAPIDataPrimeQuery()
+		return dashboardOpenAPIDataPrimeQuery(updated)
 	default:
 		panic(fmt.Sprintf("unsupported structured dashboard query branch %q", queryBranch))
 	}
@@ -299,6 +354,9 @@ func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Da
 		if err := dashboardOpenAPIAssertOneOfBranch(queryCarrier, spec.queryModel, queryBranch, dashboardID, fixture); err != nil {
 			return err
 		}
+		if err := dashboardOpenAPIAssertStructuredTypedQueryValue(queryCarrier, queryBranch, updated); err != nil {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): widget %q: %w", fixture, dashboardID, spec.name, err)
+		}
 		if queryBranch == "dataprime" && spec.name == "horizontal_bar_chart" {
 			query, ok := queryCarrier.(*dashboardservice.HorizontalBarChartQuery)
 			if !ok || query.Dataprime == nil {
@@ -317,7 +375,7 @@ func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Da
 			if err := dashboardOpenAPIAssertOneOfBranch(filter, "FilterSource", filterBranch, dashboardID, fixture); err != nil {
 				return err
 			}
-			if err := dashboardOpenAPIAssertDataPrimeFilterValue(filter, filterBranch); err != nil {
+			if err := dashboardOpenAPIAssertDataPrimeFilterValue(filter, filterBranch, updated); err != nil {
 				return fmt.Errorf("dashboard fixture %q (dashboard %q): widget %q: %w", fixture, dashboardID, spec.name, err)
 			}
 		}
@@ -328,7 +386,7 @@ func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Da
 		if err := dashboardOpenAPIAssertOneOfBranch(&definition, "WidgetDefinition", "markdown", dashboardID, fixture); err != nil {
 			return err
 		}
-		if definition.Markdown == nil || definition.Markdown.GetMarkdownText() != "## Structured dashboard coverage" {
+		if definition.Markdown == nil || definition.Markdown.GetMarkdownText() != dashboardOpenAPIMarkdownText(updated) {
 			return fmt.Errorf("dashboard fixture %q (dashboard %q): markdown typed field did not round-trip", fixture, dashboardID)
 		}
 	}
@@ -336,20 +394,112 @@ func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Da
 	return nil
 }
 
+func dashboardOpenAPIAssertStructuredTypedQueryValue(queryCarrier any, queryBranch string, updated bool) error {
+	typedQuery := dashboardOpenAPIStructuredTypedQuery(queryCarrier, queryBranch)
+	switch queryBranch {
+	case "logs":
+		query, ok := typedQuery.(interface {
+			GetLuceneQuery() dashboardservice.LuceneQuery
+		})
+		if !ok {
+			return fmt.Errorf("REST logs typed Lucene query is absent")
+		}
+		luceneQuery := query.GetLuceneQuery()
+		if luceneQuery.GetValue() != dashboardOpenAPILuceneQuery(updated) {
+			return fmt.Errorf("REST logs Lucene query did not round-trip after updated=%t", updated)
+		}
+	case "spans":
+		query, ok := typedQuery.(interface {
+			GetLuceneQuery() dashboardservice.LuceneQuery
+		})
+		if !ok {
+			return fmt.Errorf("REST spans typed Lucene query is absent")
+		}
+		luceneQuery := query.GetLuceneQuery()
+		if luceneQuery.GetValue() != dashboardOpenAPISpansLuceneQuery(updated) {
+			return fmt.Errorf("REST spans Lucene query did not round-trip after updated=%t", updated)
+		}
+	case "metrics":
+		query, ok := typedQuery.(interface {
+			GetPromqlQuery() dashboardservice.PromQlQuery
+		})
+		if !ok {
+			return fmt.Errorf("REST metrics typed PromQL query is absent")
+		}
+		promQLQuery := query.GetPromqlQuery()
+		if promQLQuery.GetValue() != dashboardOpenAPIPromQLQuery(updated) {
+			return fmt.Errorf("REST metrics PromQL query did not round-trip after updated=%t", updated)
+		}
+	case "dataprime":
+		query, ok := typedQuery.(interface {
+			GetDataprimeQuery() dashboardservice.CommonDataprimeQuery
+		})
+		want := dashboardOpenAPIDataPrimeQuery(updated)
+		if _, horizontal := typedQuery.(*dashboardservice.HorizontalBarChartDataprimeQuery); horizontal {
+			want = dashboardOpenAPIHorizontalBarDataPrimeQuery(updated)
+		}
+		if !ok {
+			return fmt.Errorf("REST typed Dataprime query is absent")
+		}
+		dataPrimeQuery := query.GetDataprimeQuery()
+		if dataPrimeQuery.GetText() != want {
+			return fmt.Errorf("REST Dataprime query did not round-trip after updated=%t", updated)
+		}
+	default:
+		return fmt.Errorf("unsupported structured query branch %q", queryBranch)
+	}
+	return nil
+}
+
+func dashboardOpenAPIStructuredTypedQuery(queryCarrier any, queryBranch string) any {
+	selectQuery := func(logs, metrics, spans, dataprime any) any {
+		switch queryBranch {
+		case "logs":
+			return logs
+		case "metrics":
+			return metrics
+		case "spans":
+			return spans
+		case "dataprime":
+			return dataprime
+		default:
+			return nil
+		}
+	}
+	switch query := queryCarrier.(type) {
+	case *dashboardservice.LineChartQuery:
+		return selectQuery(query.Logs, query.Metrics, query.Spans, query.Dataprime)
+	case *dashboardservice.DataTableQuery:
+		return selectQuery(query.Logs, query.Metrics, query.Spans, query.Dataprime)
+	case *dashboardservice.GaugeQuery:
+		return selectQuery(query.Logs, query.Metrics, query.Spans, query.Dataprime)
+	case *dashboardservice.PieChartQuery:
+		return selectQuery(query.Logs, query.Metrics, query.Spans, query.Dataprime)
+	case *dashboardservice.BarChartQuery:
+		return selectQuery(query.Logs, query.Metrics, query.Spans, query.Dataprime)
+	case *dashboardservice.HorizontalBarChartQuery:
+		return selectQuery(query.Logs, query.Metrics, query.Spans, query.Dataprime)
+	case *dashboardservice.HexagonQuery:
+		return selectQuery(query.Logs, query.Metrics, query.Spans, query.Dataprime)
+	default:
+		return nil
+	}
+}
+
 func dashboardOpenAPIAssertHorizontalBarDataPrime(query *dashboardservice.HorizontalBarChartDataprimeQuery, updated bool) error {
 	dataPrimeQuery, ok := query.GetDataprimeQueryOk()
-	if !ok || dataPrimeQuery.GetText() != dashboardOpenAPIHorizontalBarDataPrimeQuery() {
+	if !ok || dataPrimeQuery.GetText() != dashboardOpenAPIHorizontalBarDataPrimeQuery(updated) {
 		return fmt.Errorf("horizontal-bar Dataprime query text did not round-trip")
 	}
 	if len(query.GetFilters()) != 0 {
 		return fmt.Errorf("horizontal-bar Dataprime filters = %d, want omitted/empty", len(query.GetFilters()))
 	}
 	groupNames := query.GetGroupNames()
-	if len(groupNames) != 1 || groupNames[0] != "application" {
-		return fmt.Errorf("horizontal-bar Dataprime group names = %v, want [application]", groupNames)
+	if len(groupNames) != 1 || groupNames[0] != dashboardOpenAPIDataPrimeGroupName(updated) {
+		return fmt.Errorf("horizontal-bar Dataprime group names = %v, want [%s]", groupNames, dashboardOpenAPIDataPrimeGroupName(updated))
 	}
-	if query.GetStackedGroupName() != "severity" {
-		return fmt.Errorf("horizontal-bar Dataprime stacked group name = %q, want severity", query.GetStackedGroupName())
+	if query.GetStackedGroupName() != dashboardOpenAPIDataPrimeStackedGroupName(updated) {
+		return fmt.Errorf("horizontal-bar Dataprime stacked group name = %q, want %s", query.GetStackedGroupName(), dashboardOpenAPIDataPrimeStackedGroupName(updated))
 	}
 	if query.TimeFrame == nil {
 		return fmt.Errorf("horizontal-bar Dataprime time frame is nil")
@@ -430,14 +580,14 @@ func dashboardOpenAPIStructuredDashboardConfigVariant(name, queryBranch string, 
 		widgets += dashboardOpenAPIStructuredWidgetConfig(widget.name, queryBranch, updated)
 	}
 	if includeMarkdown {
-		widgets += `,
+		widgets += fmt.Sprintf(`,
         {
           definition = {
             markdown = {
-              markdown_text = "## Structured dashboard coverage"
+              markdown_text = %q
             }
           }
-        }`
+        }`, dashboardOpenAPIMarkdownText(updated))
 	}
 
 	return fmt.Sprintf(`
@@ -515,58 +665,61 @@ func dashboardOpenAPIStructuredQueryConfigVariant(widget, queryBranch string, up
 	const indent = "                "
 	switch queryBranch {
 	case "logs":
+		luceneQuery := dashboardOpenAPILuceneQuery(updated)
+		aggregation := `{ type = "count" }`
 		switch widget {
 		case "line_chart":
-			return indent + `logs = {
-                  lucene_query = "coralogix.metadata.severity:ERROR"
-                  aggregations = [{ type = "count" }]
-                }`
+			return fmt.Sprintf(`%slogs = {
+                  lucene_query = %q
+                  aggregations = [%s]
+                }`, indent, luceneQuery, aggregation)
 		case "data_table":
-			return indent + `logs = {
-                  lucene_query = "coralogix.metadata.severity:ERROR"
-                }`
+			return fmt.Sprintf(`%slogs = {
+                  lucene_query = %q
+                }`, indent, luceneQuery)
 		case "gauge":
-			return indent + `logs = {
-                  lucene_query = "coralogix.metadata.severity:ERROR"
-                  logs_aggregation = { type = "count" }
-                }`
+			return fmt.Sprintf(`%slogs = {
+                  lucene_query = %q
+                  logs_aggregation = %s
+                }`, indent, luceneQuery, aggregation)
 		default:
-			return indent + `logs = {
-                  lucene_query = "coralogix.metadata.severity:ERROR"
-                  aggregation = { type = "count" }
-                }`
+			return fmt.Sprintf(`%slogs = {
+                  lucene_query = %q
+                  aggregation = %s
+                }`, indent, luceneQuery, aggregation)
 		}
 	case "metrics":
 		if widget == "pie_chart" {
-			return indent + `metrics = {
-                  promql_query = "vector(1)"
-                  group_names  = ["job"]
-                }`
+			return fmt.Sprintf(`%smetrics = {
+                  promql_query = %q
+                  group_names  = [%q]
+                }`, indent, dashboardOpenAPIPromQLQuery(updated), dashboardOpenAPIMetricsGroupName(updated))
 		}
-		return indent + `metrics = {
-                  promql_query = "vector(1)"
-                }`
+		return fmt.Sprintf(`%smetrics = {
+                  promql_query = %q
+                }`, indent, dashboardOpenAPIPromQLQuery(updated))
 	case "spans":
 		aggregation := `{
                     type             = "dimension"
-                    aggregation_type = "unique_count"
-                    field            = "trace_id"
-                  }`
+					aggregation_type = "unique_count"
+					field            = "trace_id"
+				  }`
+		luceneQuery := dashboardOpenAPISpansLuceneQuery(updated)
 		switch widget {
 		case "line_chart":
-			return fmt.Sprintf("%sspans = {\n                  aggregations = [%s]\n                }", indent, aggregation)
+			return fmt.Sprintf("%sspans = {\n                  lucene_query = %q\n                  aggregations = [%s]\n                }", indent, luceneQuery, aggregation)
 		case "data_table":
-			return fmt.Sprintf("%sspans = {\n                  grouping = {\n                    aggregations = [{ aggregation = %s }]\n                  }\n                }", indent, aggregation)
+			return fmt.Sprintf("%sspans = {\n                  lucene_query = %q\n                  grouping = {\n                    aggregations = [{ aggregation = %s }]\n                  }\n                }", indent, luceneQuery, aggregation)
 		case "gauge":
-			return fmt.Sprintf("%sspans = {\n                  spans_aggregation = %s\n                }", indent, aggregation)
+			return fmt.Sprintf("%sspans = {\n                  lucene_query = %q\n                  spans_aggregation = %s\n                }", indent, luceneQuery, aggregation)
 		default:
-			return fmt.Sprintf("%sspans = {\n                  aggregation = %s\n                }", indent, aggregation)
+			return fmt.Sprintf("%sspans = {\n                  lucene_query = %q\n                  aggregation = %s\n                }", indent, luceneQuery, aggregation)
 		}
 	case "dataprime":
-		filter := dashboardOpenAPIDataPrimeFilterConfig(widget)
+		filter := dashboardOpenAPIDataPrimeFilterConfig(widget, updated)
 		groupNames := ""
 		if widget == "pie_chart" {
-			groupNames = "\n                  group_names = [\"c\"]"
+			groupNames = fmt.Sprintf("\n                  group_names = [%q]", dashboardOpenAPIDataPrimePieGroupName(updated))
 		}
 		if widget == "horizontal_bar_chart" {
 			timeFrame := `relative = { duration = "seconds:900" }`
@@ -578,46 +731,46 @@ func dashboardOpenAPIStructuredQueryConfigVariant(widget, queryBranch string, up
 			}
 			return fmt.Sprintf(`%sdata_prime = {
                   query              = %q
-                  group_names        = ["application"]
-                  stacked_group_name = "severity"
+				  group_names        = [%q]
+				  stacked_group_name = %q
                   time_frame = {
                     %s
                   }
-                }`, indent, dashboardOpenAPIHorizontalBarDataPrimeQuery(), timeFrame)
+				}`, indent, dashboardOpenAPIHorizontalBarDataPrimeQuery(updated), dashboardOpenAPIDataPrimeGroupName(updated), dashboardOpenAPIDataPrimeStackedGroupName(updated), timeFrame)
 		}
-		return fmt.Sprintf("%sdata_prime = {\n                  query = %q%s%s\n                }", indent, dashboardOpenAPIDataPrimeQuery(), groupNames, filter)
+		return fmt.Sprintf("%sdata_prime = {\n                  query = %q%s%s\n                }", indent, dashboardOpenAPIDataPrimeQuery(updated), groupNames, filter)
 	default:
 		panic(fmt.Sprintf("unsupported structured dashboard query branch %q", queryBranch))
 	}
 }
 
-func dashboardOpenAPIDataPrimeFilterConfig(widget string) string {
+func dashboardOpenAPIDataPrimeFilterConfig(widget string, updated bool) string {
 	switch widget {
 	case "line_chart":
-		return `
+		return fmt.Sprintf(`
                   filters = [{
                     logs = {
-                      field    = "coralogix.metadata.applicationName"
-                      operator = { type = "equals", selected_values = ["api"] }
+					  field    = %q
+					  operator = { type = "equals", selected_values = [%q] }
                     }
-                  }]`
+				  }]`, dashboardOpenAPIDataPrimeFilterStateValue("logs", updated), dashboardOpenAPIDataPrimeFilterSelection(updated))
 	case "data_table":
-		return `
+		return fmt.Sprintf(`
                   filters = [{
                     spans = {
-                      field    = { type = "metadata", value = "service_name" }
-                      operator = { type = "equals", selected_values = ["api"] }
+					  field    = { type = "metadata", value = %q }
+					  operator = { type = "equals", selected_values = [%q] }
                     }
-                  }]`
+				  }]`, dashboardOpenAPIDataPrimeSpansFilterField(updated), dashboardOpenAPIDataPrimeFilterSelection(updated))
 	case "gauge":
-		return `
+		return fmt.Sprintf(`
                   filters = [{
                     metrics = {
-                      metric_name = "http_requests_total"
-                      label       = "service"
-                      operator    = { type = "equals", selected_values = ["api"] }
+					  metric_name = %q
+					  label       = %q
+					  operator    = { type = "equals", selected_values = [%q] }
                     }
-                  }]`
+				  }]`, dashboardOpenAPIDataPrimeFilterStateValue("metrics", updated), dashboardOpenAPIDataPrimeMetricsFilterLabel(updated), dashboardOpenAPIDataPrimeFilterSelection(updated))
 	default:
 		return ""
 	}
@@ -644,13 +797,19 @@ func dashboardOpenAPIDataPrimeFiltersStatePath(widget string) string {
 	return ".definition." + widget + ".query.data_prime.filters"
 }
 
-func dashboardOpenAPIDataPrimeFilterStateValue(branch string) string {
+func dashboardOpenAPIDataPrimeFilterStateValue(branch string, updated bool) string {
 	switch branch {
 	case "logs":
+		if updated {
+			return "coralogix.metadata.subsystemName"
+		}
 		return "coralogix.metadata.applicationName"
 	case "spans":
 		return "metadata"
 	case "metrics":
+		if updated {
+			return "http_server_requests_total"
+		}
 		return "http_requests_total"
 	default:
 		panic(fmt.Sprintf("unsupported Dataprime filter branch %q", branch))
@@ -681,32 +840,143 @@ func dashboardOpenAPIDataPrimeFilter(queryCarrier any) (*dashboardservice.Filter
 	return &filters[0], nil
 }
 
-func dashboardOpenAPIAssertDataPrimeFilterValue(filter *dashboardservice.FilterSource, branch string) error {
+func dashboardOpenAPIAssertDataPrimeFilterValue(filter *dashboardservice.FilterSource, branch string, updated bool) error {
 	switch branch {
 	case "logs":
-		if filter.Logs == nil || filter.Logs.GetField() != "coralogix.metadata.applicationName" {
+		if filter.Logs == nil || filter.Logs.GetField() != dashboardOpenAPIDataPrimeFilterStateValue(branch, updated) {
 			return fmt.Errorf("REST logs filter field did not round-trip")
 		}
 	case "spans":
-		if filter.Spans == nil || filter.Spans.Field == nil || filter.Spans.Field.MetadataField == nil {
+		wantField := dashboardservice.METADATAFIELD_METADATA_FIELD_SERVICE_NAME
+		if updated {
+			wantField = dashboardservice.METADATAFIELD_METADATA_FIELD_SUBSYSTEM_NAME
+		}
+		if filter.Spans == nil || filter.Spans.Field == nil || filter.Spans.Field.MetadataField == nil || *filter.Spans.Field.MetadataField != wantField {
 			return fmt.Errorf("REST spans filter field did not round-trip")
 		}
 	case "metrics":
-		if filter.Metrics == nil || filter.Metrics.GetMetric() != "http_requests_total" || filter.Metrics.GetLabel() != "service" {
+		if filter.Metrics == nil || filter.Metrics.GetMetric() != dashboardOpenAPIDataPrimeFilterStateValue(branch, updated) ||
+			filter.Metrics.GetLabel() != dashboardOpenAPIDataPrimeMetricsFilterLabel(updated) {
 			return fmt.Errorf("REST metrics filter target did not round-trip")
 		}
 	default:
 		return fmt.Errorf("unsupported Dataprime filter branch %q", branch)
 	}
+	operator := dashboardOpenAPIDataPrimeFilterOperator(filter)
+	if operator == nil || operator.Equals == nil || operator.Equals.Selection == nil || operator.Equals.Selection.List == nil {
+		return fmt.Errorf("REST %s filter list selection is absent", branch)
+	}
+	selectedValues := operator.Equals.Selection.List.GetValues()
+	if len(selectedValues) != 1 || selectedValues[0] != dashboardOpenAPIDataPrimeFilterSelection(updated) {
+		return fmt.Errorf("REST %s filter selection did not round-trip", branch)
+	}
 	return nil
 }
 
-func dashboardOpenAPIDataPrimeQuery() string {
+func dashboardOpenAPIDataPrimeFilterOperator(filter *dashboardservice.FilterSource) *dashboardservice.FilterOperator {
+	switch {
+	case filter == nil:
+		return nil
+	case filter.Logs != nil:
+		return filter.Logs.Operator
+	case filter.Spans != nil:
+		return filter.Spans.Operator
+	case filter.Metrics != nil:
+		return filter.Metrics.Operator
+	default:
+		return nil
+	}
+}
+
+func dashboardOpenAPIDataPrimeQuery(updated bool) string {
+	if updated {
+		return "source logs\n| filter $m.severity == 'WARNING'\n| aggregate count() as updated_count\n| choose updated_count"
+	}
 	return "source logs\n| filter 1 == 1\n| aggregate count() as c\n| choose c"
 }
 
-func dashboardOpenAPIHorizontalBarDataPrimeQuery() string {
+func dashboardOpenAPIHorizontalBarDataPrimeQuery(updated bool) string {
+	if updated {
+		return "source logs\n| filter $m.severity == 'WARNING'\n| groupby $l.subsystemname as subsystem, $m.severity as priority aggregate count() as c"
+	}
 	return "source logs\n| filter 1 == 1\n| groupby $l.applicationname as application, $m.severity as severity aggregate count() as c"
+}
+
+func dashboardOpenAPILuceneQuery(updated bool) string {
+	if updated {
+		return "coralogix.metadata.severity:WARNING"
+	}
+	return "coralogix.metadata.severity:ERROR"
+}
+
+func dashboardOpenAPISpansLuceneQuery(updated bool) string {
+	if updated {
+		return "serviceName:api"
+	}
+	return "*"
+}
+
+func dashboardOpenAPIPromQLQuery(updated bool) string {
+	if updated {
+		return "vector(2)"
+	}
+	return "vector(1)"
+}
+
+func dashboardOpenAPIMarkdownText(updated bool) string {
+	if updated {
+		return "## Updated structured dashboard coverage"
+	}
+	return "## Structured dashboard coverage"
+}
+
+func dashboardOpenAPIMetricsGroupName(updated bool) string {
+	if updated {
+		return "service"
+	}
+	return "job"
+}
+
+func dashboardOpenAPIDataPrimePieGroupName(updated bool) string {
+	if updated {
+		return "updated_count"
+	}
+	return "c"
+}
+
+func dashboardOpenAPIDataPrimeGroupName(updated bool) string {
+	if updated {
+		return "subsystem"
+	}
+	return "application"
+}
+
+func dashboardOpenAPIDataPrimeStackedGroupName(updated bool) string {
+	if updated {
+		return "priority"
+	}
+	return "severity"
+}
+
+func dashboardOpenAPIDataPrimeSpansFilterField(updated bool) string {
+	if updated {
+		return "subsystem_name"
+	}
+	return "service_name"
+}
+
+func dashboardOpenAPIDataPrimeMetricsFilterLabel(updated bool) string {
+	if updated {
+		return "job"
+	}
+	return "service"
+}
+
+func dashboardOpenAPIDataPrimeFilterSelection(updated bool) string {
+	if updated {
+		return "worker"
+	}
+	return "api"
 }
 
 func dashboardOpenAPIStructuredWidgetsForBranch(queryBranch string) []dashboardStructuredWidgetSpec {

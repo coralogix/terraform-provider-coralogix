@@ -115,6 +115,15 @@ func dashboardOpenAPIFetchDashboard(
 	if err != nil {
 		return nil, err
 	}
+	return dashboardOpenAPIFetchDashboardByID(ctx, client, id, fixture)
+}
+
+func dashboardOpenAPIFetchDashboardByID(
+	ctx context.Context,
+	client *dashboardservice.DashboardServiceAPIService,
+	id string,
+	fixture string,
+) (*dashboardservice.Dashboard, error) {
 	if client == nil {
 		return nil, fmt.Errorf("dashboard fixture %q (dashboard %q): OpenAPI client is nil", fixture, id)
 	}
@@ -128,6 +137,38 @@ func dashboardOpenAPIFetchDashboard(
 	}
 
 	return response.Dashboard, nil
+}
+
+func dashboardOpenAPIImportDashboardCheck(
+	ctx context.Context,
+	client **dashboardservice.DashboardServiceAPIService,
+	fixture string,
+	assert func(*dashboardservice.Dashboard) error,
+) resource.ImportStateCheckFunc {
+	return func(states []*terraform.InstanceState) error {
+		for _, state := range states {
+			if state == nil || state.ID == "" || state.Ephemeral.Type != strings.SplitN(dashboardResourceName, ".", 2)[0] {
+				continue
+			}
+			dashboard, err := dashboardOpenAPIFetchDashboardByID(ctx, *client, state.ID, fixture)
+			if err != nil {
+				return err
+			}
+			return assert(dashboard)
+		}
+		return fmt.Errorf("dashboard fixture %q import: dashboard state is absent", fixture)
+	}
+}
+
+func dashboardOpenAPIComposeImportStateChecks(checks ...resource.ImportStateCheckFunc) resource.ImportStateCheckFunc {
+	return func(states []*terraform.InstanceState) error {
+		for _, check := range checks {
+			if err := check(states); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }
 
 // dashboardOpenAPICheckDashboard adapts a fetched-dashboard assertion to a

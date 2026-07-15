@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -135,37 +134,49 @@ func TestAccCoralogixResourceDashboardOpenAPIOneOfTransitions(t *testing.T) {
 	fixture := dashboardOpenAPITransitionTestName
 	name := dashboardOpenAPIFixtureName(fixture)
 	dashboardIdentity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
-	widgetIdentity := newDashboardOpenAPIWidgetIDTracker(fixture)
-
-	steps := make([]resource.TestStep, 0, len(dashboardOpenAPITransitions))
-	for index, transition := range dashboardOpenAPITransitions {
-		index := index
-		transition := transition
-		identityCheck := dashboardIdentity.AssertUnchanged()
-		if index == 0 {
-			identityCheck = dashboardIdentity.Capture()
-		}
-		steps = append(steps, resource.TestStep{
-			Config: dashboardOpenAPITransitionConfig(name, transition),
-			Check: resource.ComposeAggregateTestCheckFunc(
-				identityCheck,
-				dashboardOpenAPITransitionStateCheck(transition),
-				func(state *terraform.State) error {
-					dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
-					if err != nil {
-						return err
-					}
-					if err := widgetIdentity.CaptureOrAssert(dashboard); err != nil {
-						return err
-					}
-					return dashboardOpenAPIAssertTransition(dashboard, transition, fixture)
-				},
-			),
-			ConfigPlanChecks: resource.ConfigPlanChecks{
-				PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+	nestedIdentity := newDashboardOpenAPINestedIDTracker(fixture)
+	checkTransition := func(transition dashboardOpenAPITransition, identityCheck resource.TestCheckFunc) resource.TestCheckFunc {
+		return resource.ComposeAggregateTestCheckFunc(
+			identityCheck,
+			dashboardOpenAPITransitionStateCheck(transition),
+			func(state *terraform.State) error {
+				dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
+				if err != nil {
+					return err
+				}
+				if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
+					return err
+				}
+				return dashboardOpenAPIAssertTransition(dashboard, transition, fixture)
 			},
+		)
+	}
+	updates := make([]dashboardOpenAPILifecyclePhase, 0, len(dashboardOpenAPITransitions)-1)
+	for _, transition := range dashboardOpenAPITransitions[1:] {
+		updates = append(updates, dashboardOpenAPILifecyclePhase{
+			Config: dashboardOpenAPITransitionConfig(name, transition),
+			Check:  checkTransition(transition, dashboardIdentity.AssertUnchanged()),
 		})
 	}
+	lastTransition := dashboardOpenAPITransitions[len(dashboardOpenAPITransitions)-1]
+	steps := dashboardOpenAPIStructuredLifecycleSteps(
+		dashboardOpenAPILifecyclePhase{
+			Config: dashboardOpenAPITransitionConfig(name, dashboardOpenAPITransitions[0]),
+			Check:  checkTransition(dashboardOpenAPITransitions[0], dashboardIdentity.Capture()),
+		},
+		updates,
+		resource.TestStep{
+			ResourceName:      dashboardResourceName,
+			ImportState:       true,
+			ImportStateVerify: true,
+			ImportStateCheck: dashboardOpenAPIImportDashboardCheck(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
+				if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
+					return err
+				}
+				return dashboardOpenAPIAssertTransition(dashboard, lastTransition, fixture)
+			}),
+		},
+	)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -176,43 +187,6 @@ func TestAccCoralogixResourceDashboardOpenAPIOneOfTransitions(t *testing.T) {
 		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps:                    steps,
 	})
-}
-
-type dashboardOpenAPIWidgetIDTracker struct {
-	fixture string
-	ids     []string
-}
-
-func newDashboardOpenAPIWidgetIDTracker(fixture string) *dashboardOpenAPIWidgetIDTracker {
-	return &dashboardOpenAPIWidgetIDTracker{fixture: fixture}
-}
-
-func (tracker *dashboardOpenAPIWidgetIDTracker) CaptureOrAssert(dashboard *dashboardservice.Dashboard) error {
-	widgets, err := dashboardOpenAPIFirstRowWidgets(dashboard)
-	if err != nil {
-		return fmt.Errorf("dashboard fixture %q: %w", tracker.fixture, err)
-	}
-	if len(widgets) != 2 {
-		return fmt.Errorf("dashboard fixture %q: REST widgets = %d, want 2", tracker.fixture, len(widgets))
-	}
-
-	ids := make([]string, len(widgets))
-	for index := range widgets {
-		if widgets[index].Id == nil || widgets[index].Id.GetValue() == "" {
-			return fmt.Errorf("dashboard fixture %q: REST widget %d has no generated ID", tracker.fixture, index)
-		}
-		ids[index] = widgets[index].Id.GetValue()
-	}
-	if tracker.ids == nil {
-		tracker.ids = ids
-		return nil
-	}
-	for index := range ids {
-		if ids[index] != tracker.ids[index] {
-			return fmt.Errorf("dashboard fixture %q: REST widget %d ID changed across replace: got %q, want %q", tracker.fixture, index, ids[index], tracker.ids[index])
-		}
-	}
-	return nil
 }
 
 func dashboardOpenAPITransitionStateCheck(transition dashboardOpenAPITransition) resource.TestCheckFunc {
@@ -233,7 +207,7 @@ func dashboardOpenAPITransitionStateCheck(transition dashboardOpenAPITransition)
 	}
 
 	queryPath := "layout.sections.0.rows.0.widgets.1" + dashboardOpenAPIQueryStatePath("gauge", transition.queryBranch)
-	checks = append(checks, resource.TestCheckResourceAttr(dashboardResourceName, queryPath, dashboardOpenAPIQueryStateValue("gauge", transition.queryBranch)))
+	checks = append(checks, resource.TestCheckResourceAttr(dashboardResourceName, queryPath, dashboardOpenAPIQueryStateValue("gauge", transition.queryBranch, false)))
 
 	switch transition.timeFrame {
 	case "relative":
@@ -329,7 +303,7 @@ func dashboardOpenAPIAssertTransitionGaugeQuery(query *dashboardservice.GaugeQue
 		}
 		return dashboardOpenAPIAssertOneOfBranch(query.Spans.SpansAggregation, "SpansAggregation", "dimensionAggregation", dashboardID, fixture)
 	case "dataprime":
-		if query.Dataprime == nil || query.Dataprime.DataprimeQuery == nil || query.Dataprime.DataprimeQuery.GetText() != dashboardOpenAPIDataPrimeQuery() {
+		if query.Dataprime == nil || query.Dataprime.DataprimeQuery == nil || query.Dataprime.DataprimeQuery.GetText() != dashboardOpenAPIDataPrimeQuery(false) {
 			return fmt.Errorf("dashboard fixture %q: REST gauge Dataprime typed field did not round-trip", fixture)
 		}
 		filter, err := dashboardOpenAPIDataPrimeFilter(query)
