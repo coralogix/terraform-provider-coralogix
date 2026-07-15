@@ -51,6 +51,9 @@ test:
 testacc:
 	TF_ACC=1 go test ${BUILD_ARGS} $(TEST) -v $(TESTARGS) -timeout 120m
 
+testacc-dashboard-migration:
+	CORALOGIX_DASHBOARD_MIGRATION_ACC=1 TF_ACC=1 go test ${BUILD_ARGS} ./internal/provider -run '^TestAccCoralogixResourceDashboardMigration' -v -count=1 -timeout 120m
+
 generate:
 	go generate ${BUILD_ARGS}
 	git checkout -- docs/guides

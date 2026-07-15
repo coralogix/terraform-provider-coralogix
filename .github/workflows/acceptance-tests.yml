@@ -48,3 +48,25 @@ jobs:
           PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
         run: |
           make testacc
+
+  dashboard-migration:
+    name: Dashboard provider migration
+    env:
+      GO111MODULE: on
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25.x
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Test pinned gRPC to current REST dashboard migration
+        env:
+          CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+        run: |
+          make testacc-dashboard-migration
