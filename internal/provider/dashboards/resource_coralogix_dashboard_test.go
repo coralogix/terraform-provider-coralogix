@@ -76,6 +76,54 @@ func TestExtractDashboardContentJSONRestoresAliasesBeforeDiscardingUnknownFields
 	}
 }
 
+func TestExtractDashboardContentJSONPreservesDynamicQueriesTable(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join("..", "testdata", "dashboards", "content_json_dynamic_queries_table.json"))
+	if err != nil {
+		t.Fatalf("read dynamic content_json fixture: %s", err)
+	}
+
+	dashboard, diags := extractDashboard(context.Background(), DashboardResourceModel{
+		ContentJson: types.StringValue(string(content)),
+		Folder:      types.ObjectNull(dashboardFolderModelAttr()),
+	})
+	if diags.HasError() {
+		t.Fatalf("extract dynamic content_json dashboard: %v", diags)
+	}
+	wantQueries := []string{"logs", "metrics", "spans"}
+	for i, wantQuery := range wantQueries {
+		definition := dashboard.Layout.Sections[0].Rows[i].Widgets[0].Definition
+		if definition == nil || definition.Dynamic == nil {
+			t.Fatalf("row %d: expected dynamic widget definition to be preserved", i)
+		}
+		dynamic := definition.Dynamic
+		if len(dynamic.QueryDefinitions) != 1 {
+			t.Fatalf("row %d: dynamic query definitions = %d, want 1", i, len(dynamic.QueryDefinitions))
+		}
+		query := dynamic.QueryDefinitions[0].Query
+		queryPresent := map[string]bool{"logs": query.Logs != nil, "metrics": query.Metrics != nil, "spans": query.Spans != nil}
+		if !queryPresent[wantQuery] {
+			t.Fatalf("row %d: expected dynamic %s query, got %+v", i, wantQuery, query)
+		}
+		if dynamic.Visualization == nil || dynamic.Visualization.Table == nil {
+			t.Fatalf("row %d: expected dynamic table visualization, got %+v", i, dynamic.Visualization)
+		}
+	}
+
+	request := newDashboardOpenAPICreateRequest(*dashboard, nil)
+	encoded, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("marshal dynamic content_json request: %s", err)
+	}
+	if !strings.Contains(string(encoded), `"dynamic"`) ||
+		!strings.Contains(string(encoded), `"queryDefinitions"`) ||
+		!strings.Contains(string(encoded), `"table"`) ||
+		!strings.Contains(string(encoded), `"logs"`) ||
+		!strings.Contains(string(encoded), `"metrics"`) ||
+		!strings.Contains(string(encoded), `"spans"`) {
+		t.Fatalf("dynamic branches were lost from the REST create request: %s", encoded)
+	}
+}
+
 func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
 	policy := types.StringValue(`{"version":"2025-01-01"}`)
 

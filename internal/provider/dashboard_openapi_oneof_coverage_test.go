@@ -96,6 +96,12 @@ func apiOnly(path string, hydration bool, explanation string) dashboardOneOfBran
 	}
 }
 
+func observedAPIOnly(path, testName string, hydration bool, explanation string) dashboardOneOfBranchCoverage {
+	coverage := apiOnly(path, hydration, explanation)
+	coverage.FixtureOrTest = testName
+	return coverage
+}
+
 func legacyMigration(path, testName, explanation string) dashboardOneOfBranchCoverage {
 	return dashboardOneOfBranchCoverage{
 		ProviderPath:        path,
@@ -114,6 +120,19 @@ func apiOnlyModel(protoSource, explanation string, branches ...string) dashboard
 	}
 	for _, branch := range branches {
 		result.Branches[branch] = apiOnly(dashboardNoProviderPath, false, explanation)
+	}
+	return result
+}
+
+func observedAPIOnlyModel(protoSource, explanation, testName string, observed []string, branches ...string) dashboardOneOfModelCoverage {
+	result := apiOnlyModel(protoSource, explanation, branches...)
+	for _, branch := range observed {
+		coverage, ok := result.Branches[branch]
+		if !ok {
+			panic("observed API-only branch is absent from model: " + branch)
+		}
+		coverage.FixtureOrTest = testName
+		result.Branches[branch] = coverage
 	}
 	return result
 }
@@ -209,9 +228,11 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			"display-name template variables are reachable only below WidgetDefinition.dynamic",
 			"observationField", "mappedValues",
 		),
-		"DynamicQuery": apiOnlyModel(
+		"DynamicQuery": observedAPIOnlyModel(
 			"ast/widgets/dynamic.proto#Dynamic.Query.value",
-			"WidgetDefinition.dynamic is not exposed or flattened by the structured provider",
+			"WidgetDefinition.dynamic is reachable through content_json but is not exposed or flattened by the structured provider; import and data-source reads have no content_json plan to preserve",
+			dashboardContentJSONDynamicQueriesTableTestName,
+			[]string{"logs", "metrics", "spans"},
 			"logs", "spans", "metrics", "dataprime",
 		),
 		"EqualsSelection": {
@@ -535,9 +556,11 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			"DashboardResourceModel exposes the legacy variables schema, not variables_v2",
 			"multiString", "singleString", "singleNumeric", "regex", "lucene", "interval",
 		),
-		"Visualization": apiOnlyModel(
+		"Visualization": observedAPIOnlyModel(
 			"ast/widgets/dynamic.proto#Dynamic.Visualization.value",
-			"all Visualization branches are children of WidgetDefinition.dynamic, which is absent from the structured schema and flattener",
+			"all Visualization branches are children of WidgetDefinition.dynamic, which is reachable through content_json but absent from the structured schema and flattener; import and data-source reads cannot reconstruct it",
+			dashboardContentJSONDynamicQueriesTableTestName,
+			[]string{"table"},
 			"table", "timeSeriesLines", "timeSeriesBars", "stat", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti", "statCard",
 		),
 		"WidgetDefinition": {
@@ -551,8 +574,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"horizontalBarChart": covered(widget+".horizontal_bar_chart", dashboardOpenAPILogsQueryTestName),
 				"markdown":           covered(widget+".markdown", dashboardOpenAPILogsQueryTestName),
 				"hexagon":            covered(widget+".hexagon", dashboardOpenAPILogsQueryTestName),
-				"dynamic": apiOnly(dashboardNoProviderPath, false,
-					"dynamic is declared in ast/widget.proto and generated in the REST model, but SupportedWidgetTypes, widgetModelAttr, expandDashboardWidgetDefinition, and flattenDashboardWidgetDefinition omit it"),
+				"dynamic": observedAPIOnly(dashboardNoProviderPath, dashboardContentJSONDynamicQueriesTableTestName, false,
+					"dynamic is supported through content_json, but SupportedWidgetTypes, widgetModelAttr, expandDashboardWidgetDefinition, and flattenDashboardWidgetDefinition omit it; import and data-source reads cannot reconstruct content_json"),
 			},
 		},
 		"XAxis": {
@@ -705,6 +728,42 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 	// changing the reconciled 216 branch count.
 	if got := len(dashboardOpenAPIOneOfCoverage); got != 63 {
 		t.Fatalf("reconciled generated models = %d, want 63", got)
+	}
+}
+
+func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
+	models := map[string][]string{
+		"WidgetDefinition": {"dynamic"},
+		"DynamicQuery":     {"logs", "metrics", "spans", "dataprime"},
+		"Visualization":    {"table", "timeSeriesLines", "timeSeriesBars", "stat", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti", "statCard"},
+	}
+	observed := map[string]struct{}{
+		"WidgetDefinition.dynamic": {},
+		"DynamicQuery.logs":        {},
+		"DynamicQuery.metrics":     {},
+		"DynamicQuery.spans":       {},
+		"Visualization.table":      {},
+	}
+	for model, branches := range models {
+		for _, branch := range branches {
+			coverage := dashboardOpenAPIOneOfCoverage[model].Branches[branch]
+			if coverage.Status != dashboardOneOfAPIOnly {
+				t.Errorf("%s.%s status = %q, want api-only", model, branch, coverage.Status)
+			}
+			_, isObserved := observed[model+"."+branch]
+			if isObserved && coverage.FixtureOrTest != dashboardContentJSONDynamicQueriesTableTestName {
+				t.Errorf("%s.%s fixture = %q, want %q", model, branch, coverage.FixtureOrTest, dashboardContentJSONDynamicQueriesTableTestName)
+			}
+			if !isObserved && coverage.FixtureOrTest != "" {
+				t.Errorf("%s.%s unexpectedly claims fixture %q", model, branch, coverage.FixtureOrTest)
+			}
+			if coverage.ImportHydration || coverage.DataSourceHydration {
+				t.Errorf("%s.%s must not claim import/data-source hydration for content_json-only coverage", model, branch)
+			}
+			if !strings.Contains(coverage.Explanation, "import") || !strings.Contains(coverage.Explanation, "data-source") {
+				t.Errorf("%s.%s does not document the content_json hydration waiver", model, branch)
+			}
+		}
 	}
 }
 

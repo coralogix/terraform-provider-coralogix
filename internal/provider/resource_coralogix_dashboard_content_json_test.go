@@ -29,7 +29,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-const dashboardContentJSONCompatibilityTestName = "TestAccCoralogixResourceDashboardContentJSONProtobufSpellings"
+const (
+	dashboardContentJSONCompatibilityTestName       = "TestAccCoralogixResourceDashboardContentJSONProtobufSpellings"
+	dashboardContentJSONDynamicQueriesTableTestName = "TestAccCoralogixResourceDashboardContentJSONDynamicQueriesTable"
+)
 
 var dashboardContentJSONUnknownFields = []string{
 	"unknownRoot",
@@ -137,6 +140,51 @@ func TestAccCoralogixResourceDashboardContentJSONFolderOverride(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceDashboardContentJSONDynamicQueriesTable(t *testing.T) {
+	ctx := context.Background()
+	var client *dashboardservice.DashboardServiceAPIService
+	fixture := dashboardContentJSONDynamicQueriesTableTestName
+	identity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
+	dashboardName := dashboardOpenAPIFixtureName(fixture)
+	dynamic := dashboardContentJSONFixtureFor(t, "content_json_dynamic_queries_table.json")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			client = dashboardOpenAPIAcceptanceClient(t)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: dashboardContentJSONDynamicConfig(dynamic.path, dashboardName, ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					identity.Capture(),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "content_json"),
+					dashboardContentJSONCheckDashboard(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
+						return dashboardOpenAPIAssertDynamicQueriesTable(dashboard, fixture)
+					}),
+				),
+				ConfigPlanChecks: dashboardContentJSONPlanChecks(false),
+			},
+			{
+				Config: dashboardContentJSONDynamicConfig(dynamic.path, dashboardName, testAccCoralogixDashboardAccessPolicyPretty()),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					identity.AssertUnchanged(),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "access_policy"),
+					dashboardContentJSONCheckDashboard(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
+						return dashboardOpenAPIAssertDynamicQueriesTable(dashboard, fixture)
+					}),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionUpdate)},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
 func dashboardContentJSONFixtureFor(t *testing.T, name string) dashboardContentJSONFixture {
 	t.Helper()
 
@@ -174,6 +222,18 @@ resource "coralogix_dashboard" "test" {
   }
 }
 `, folderName, fixturePath)
+}
+
+func dashboardContentJSONDynamicConfig(fixturePath, dashboardName, accessPolicy string) string {
+	accessPolicyBlock := ""
+	if accessPolicy != "" {
+		accessPolicyBlock = fmt.Sprintf("  access_policy = <<EOT\n%s\nEOT\n", accessPolicy)
+	}
+	return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  content_json = jsonencode(merge(jsondecode(file(%q)), { name = %q }))
+%s}
+`, fixturePath, dashboardName, accessPolicyBlock)
 }
 
 func dashboardContentJSONPlanChecks(expectReplacement bool) resource.ConfigPlanChecks {
@@ -266,6 +326,42 @@ func dashboardOpenAPIAssertContentJSONTransport(dashboard *dashboardservice.Dash
 	}
 	if dataTable.Query.Metrics.PromqlQuery == nil || dataTable.Query.Metrics.PromqlQuery.GetValue() != "vector(1)" {
 		return fmt.Errorf("dashboard fixture %q (dashboard %q): typed dataTable metrics promqlQuery was not hydrated", fixture, dashboard.GetId())
+	}
+
+	return nil
+}
+
+func dashboardOpenAPIAssertDynamicQueriesTable(dashboard *dashboardservice.Dashboard, fixture string) error {
+	if dashboard == nil {
+		return fmt.Errorf("dashboard fixture %q: REST read returned no dashboard", fixture)
+	}
+	if len(dashboard.Layout.Sections) != 1 || len(dashboard.Layout.Sections[0].Rows) != 3 {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): REST layout does not contain exactly one section with three rows", fixture, dashboard.GetId())
+	}
+
+	for rowIndex, queryBranch := range []string{"logs", "metrics", "spans"} {
+		row := dashboard.Layout.Sections[0].Rows[rowIndex]
+		if len(row.Widgets) != 1 || row.Widgets[0].Definition == nil {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): row %d does not contain exactly one typed widget", fixture, dashboard.GetId(), rowIndex)
+		}
+		definition := row.Widgets[0].Definition
+		if err := dashboardOpenAPIAssertOneOfBranch(definition, "WidgetDefinition", "dynamic", dashboard.GetId(), fixture); err != nil {
+			return err
+		}
+		dynamic := definition.Dynamic
+		if dynamic == nil || len(dynamic.QueryDefinitions) != 1 {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): row %d dynamic queryDefinitions count = %d, want 1", fixture, dashboard.GetId(), rowIndex, len(dynamic.GetQueryDefinitions()))
+		}
+		query := &dynamic.QueryDefinitions[0].Query
+		if err := dashboardOpenAPIAssertOneOfBranch(query, "DynamicQuery", queryBranch, dashboard.GetId(), fixture); err != nil {
+			return err
+		}
+		if dynamic.Visualization == nil {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): row %d dynamic visualization is nil", fixture, dashboard.GetId(), rowIndex)
+		}
+		if err := dashboardOpenAPIAssertOneOfBranch(dynamic.Visualization, "Visualization", "table", dashboard.GetId(), fixture); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -903,7 +903,6 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 		if err := restoreOpenAPIProtoFieldNames(dashboard); err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error normalizing dashboard content json", err.Error())}
 		}
-
 		dashboard, diags := expandOpenAPIDashboardFolder(ctx, dashboard, plan.Folder)
 		if diags.HasError() {
 			return nil, diags
@@ -6507,6 +6506,11 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	if plan.ID.IsNull() || plan.ID.IsUnknown() || plan.ID.ValueString() == "" {
+		resp.Diagnostics.AddError("Error updating Dashboard", "Dashboard ID is unavailable in the Terraform plan")
+		return
+	}
+	dashboard.SetId(plan.ID.ValueString())
 
 	accessPolicy := dashboardAccessPolicyForConfiguredRequest(configAccessPolicy, plan.AccessPolicy)
 	log.Printf("[INFO] Updating Dashboard: %s", dashboardLogString(dashboard))
