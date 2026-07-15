@@ -135,6 +135,17 @@ func SpansAggregationModelAttr() map[string]attr.Type {
 	}
 }
 
+func DataTableSpansAggregationModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":         types.StringType,
+		"name":       types.StringType,
+		"is_visible": types.BoolType,
+		"aggregation": types.ObjectType{
+			AttrTypes: SpansAggregationModelAttr(),
+		},
+	}
+}
+
 func MetricsFilterModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"metric": types.StringType,

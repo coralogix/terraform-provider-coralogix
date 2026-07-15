@@ -151,10 +151,10 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"BarChartQuery": {
 			ProtoSource: "ast/widgets/bar_chart.proto#BarChart.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"logs":      gap(widget + ".bar_chart.query.logs"),
-				"spans":     gap(widget + ".bar_chart.query.spans"),
-				"metrics":   gap(widget + ".bar_chart.query.metrics"),
-				"dataprime": gap(widget + ".bar_chart.query.data_prime"),
+				"logs":      covered(widget+".bar_chart.query.logs", dashboardOpenAPILogsQueryTestName),
+				"spans":     covered(widget+".bar_chart.query.spans", dashboardOpenAPISpansQueryTestName),
+				"metrics":   covered(widget+".bar_chart.query.metrics", dashboardOpenAPIMetricsQueryTestName),
+				"dataprime": covered(widget+".bar_chart.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
 		"CheckDashboardRequestDataStructure": apiOnlyModel(
@@ -193,10 +193,10 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"DataTableQuery": {
 			ProtoSource: "ast/widgets/data_table.proto#DataTable.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"logs":      covered(widget+".data_table.query.logs", "TestAccCoralogixResourceDashboard"),
-				"spans":     gap(widget + ".data_table.query.spans"),
-				"metrics":   covered(widget+".data_table.query.metrics", "TestAccCoralogixResourceDashboardDataTableWidget"),
-				"dataprime": gap(widget + ".data_table.query.data_prime"),
+				"logs":      covered(widget+".data_table.query.logs", dashboardOpenAPILogsQueryTestName),
+				"spans":     covered(widget+".data_table.query.spans", dashboardOpenAPISpansQueryTestName),
+				"metrics":   covered(widget+".data_table.query.metrics", dashboardOpenAPIMetricsQueryTestName),
+				"dataprime": covered(widget+".data_table.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
 		"DataprimeSourceStrategy": apiOnlyModel(
@@ -252,10 +252,10 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"GaugeQuery": {
 			ProtoSource: "ast/widgets/gauge.proto#Gauge.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"metrics":   covered(widget+".gauge.query.metrics", "TestAccCoralogixResourceDashboardGaugeWidget"),
-				"logs":      gap(widget + ".gauge.query.logs"),
-				"spans":     gap(widget + ".gauge.query.spans"),
-				"dataprime": covered(widget+".gauge.query.data_prime", "TestAccCoralogixResourceDashboardGaugeWidgetDataPrime"),
+				"metrics":   covered(widget+".gauge.query.metrics", dashboardOpenAPIMetricsQueryTestName),
+				"logs":      covered(widget+".gauge.query.logs", dashboardOpenAPILogsQueryTestName),
+				"spans":     covered(widget+".gauge.query.spans", dashboardOpenAPISpansQueryTestName),
+				"dataprime": covered(widget+".gauge.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
 		"GeomapAggregation": apiOnlyModel(
@@ -281,18 +281,18 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"HexagonQuery": {
 			ProtoSource: "ast/widgets/hexagon.proto#Hexagon.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"metrics":   gap(widget + ".hexagon.query.metrics"),
-				"logs":      covered(widget+".hexagon.query.logs", "TestAccCoralogixResourceDashboardHexagonWidget"),
-				"spans":     gap(widget + ".hexagon.query.spans"),
-				"dataprime": gap(widget + ".hexagon.query.data_prime"),
+				"metrics":   covered(widget+".hexagon.query.metrics", dashboardOpenAPIMetricsQueryTestName),
+				"logs":      covered(widget+".hexagon.query.logs", dashboardOpenAPILogsQueryTestName),
+				"spans":     covered(widget+".hexagon.query.spans", dashboardOpenAPISpansQueryTestName),
+				"dataprime": covered(widget+".hexagon.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
 		"HorizontalBarChartQuery": {
 			ProtoSource: "ast/widgets/horizontal_bar_chart.proto#HorizontalBarChart.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"logs":    gap(widget + ".horizontal_bar_chart.query.logs"),
-				"spans":   gap(widget + ".horizontal_bar_chart.query.spans"),
-				"metrics": gap(widget + ".horizontal_bar_chart.query.metrics"),
+				"logs":    covered(widget+".horizontal_bar_chart.query.logs", dashboardOpenAPILogsQueryTestName),
+				"spans":   covered(widget+".horizontal_bar_chart.query.spans", dashboardOpenAPISpansQueryTestName),
+				"metrics": covered(widget+".horizontal_bar_chart.query.metrics", dashboardOpenAPIMetricsQueryTestName),
 				"dataprime": apiOnly(widget+".horizontal_bar_chart.query.data_prime", true,
 					"the schema and flattenHorizontalBarChartQueryDataPrime can hydrate this branch, but expandHorizontalBarChartQuery has no DataPrime case"),
 			},
@@ -312,10 +312,10 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"LineChartQuery": {
 			ProtoSource: "ast/widgets/line_chart.proto#LineChart.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"logs":      covered(widget+".line_chart.query_definitions[*].query.logs", "TestAccCoralogixResourceDashboard"),
-				"metrics":   covered(widget+".line_chart.query_definitions[*].query.metrics", "TestAccCoralogixResourceDashboard"),
-				"spans":     covered(widget+".line_chart.query_definitions[*].query.spans", "TestAccCoralogixResourceDashboardLinechartWidget"),
-				"dataprime": covered(widget+".line_chart.query_definitions[*].query.data_prime", "TestAccCoralogixResourceDashboardLinechartWidget"),
+				"logs":      covered(widget+".line_chart.query_definitions[*].query.logs", dashboardOpenAPILogsQueryTestName),
+				"metrics":   covered(widget+".line_chart.query_definitions[*].query.metrics", dashboardOpenAPIMetricsQueryTestName),
+				"spans":     covered(widget+".line_chart.query_definitions[*].query.spans", dashboardOpenAPISpansQueryTestName),
+				"dataprime": covered(widget+".line_chart.query_definitions[*].query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
 		"LogsAggregation": {
@@ -383,10 +383,10 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"PieChartQuery": {
 			ProtoSource: "ast/widgets/pie_chart.proto#PieChart.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"logs":      gap(widget + ".pie_chart.query.logs"),
-				"spans":     gap(widget + ".pie_chart.query.spans"),
-				"metrics":   gap(widget + ".pie_chart.query.metrics"),
-				"dataprime": gap(widget + ".pie_chart.query.data_prime"),
+				"logs":      covered(widget+".pie_chart.query.logs", dashboardOpenAPILogsQueryTestName),
+				"spans":     covered(widget+".pie_chart.query.spans", dashboardOpenAPISpansQueryTestName),
+				"metrics":   covered(widget+".pie_chart.query.metrics", dashboardOpenAPIMetricsQueryTestName),
+				"dataprime": covered(widget+".pie_chart.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
 		"PropertyDefinition": apiOnlyModel(
@@ -543,14 +543,14 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"WidgetDefinition": {
 			ProtoSource: "ast/widget.proto#Widget.Definition.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"lineChart":          covered(widget+".line_chart", "TestAccCoralogixResourceDashboard"),
-				"dataTable":          covered(widget+".data_table", "TestAccCoralogixResourceDashboard"),
-				"gauge":              covered(widget+".gauge", "TestAccCoralogixResourceDashboardGaugeWidget"),
-				"pieChart":           gap(widget + ".pie_chart"),
-				"barChart":           gap(widget + ".bar_chart"),
-				"horizontalBarChart": gap(widget + ".horizontal_bar_chart"),
-				"markdown":           gap(widget + ".markdown"),
-				"hexagon":            covered(widget+".hexagon", "TestAccCoralogixResourceDashboardHexagonWidget"),
+				"lineChart":          covered(widget+".line_chart", dashboardOpenAPILogsQueryTestName),
+				"dataTable":          covered(widget+".data_table", dashboardOpenAPILogsQueryTestName),
+				"gauge":              covered(widget+".gauge", dashboardOpenAPILogsQueryTestName),
+				"pieChart":           covered(widget+".pie_chart", dashboardOpenAPILogsQueryTestName),
+				"barChart":           covered(widget+".bar_chart", dashboardOpenAPILogsQueryTestName),
+				"horizontalBarChart": covered(widget+".horizontal_bar_chart", dashboardOpenAPILogsQueryTestName),
+				"markdown":           covered(widget+".markdown", dashboardOpenAPILogsQueryTestName),
+				"hexagon":            covered(widget+".hexagon", dashboardOpenAPILogsQueryTestName),
 				"dynamic": apiOnly(dashboardNoProviderPath, false,
 					"dynamic is declared in ast/widget.proto and generated in the REST model, but SupportedWidgetTypes, widgetModelAttr, expandDashboardWidgetDefinition, and flattenDashboardWidgetDefinition omit it"),
 			},

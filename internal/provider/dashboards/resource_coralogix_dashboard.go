@@ -575,7 +575,7 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 						var logs *dashboardwidgets.HexagonQueryLogsModel
 						var metrics *dashboardwidgets.HexagonQueryMetricsModel
 						var dataprime *dashboardwidgets.DataPrimeModel
-						var spans *dashboardwidgets.QuerySpansModel
+						var spans *dashboardwidgets.HexagonQuerySpansModel
 						if oldQuery.DataPrime != nil {
 							dataprime = &dashboardwidgets.DataPrimeModel{
 								TimeFrame: timeFrame,
@@ -584,12 +584,22 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 							}
 						}
 						if oldQuery.Spans != nil {
-							spans = &dashboardwidgets.QuerySpansModel{
-								TimeFrame:    timeFrame,
-								LuceneQuery:  oldQuery.Spans.LuceneQuery,
-								Filters:      oldQuery.Spans.Filters,
-								Aggregations: oldQuery.Spans.Aggregations,
-								GroupBy:      oldQuery.Spans.GroupBy,
+							var aggregations []dashboardwidgets.SpansAggregationModel
+							diags := oldQuery.Spans.Aggregations.ElementsAs(ctx, &aggregations, false)
+							resp.Diagnostics.Append(diags...)
+							if resp.Diagnostics.HasError() {
+								return
+							}
+							var aggregation *dashboardwidgets.SpansAggregationModel
+							if len(aggregations) > 0 {
+								aggregation = &aggregations[0]
+							}
+							spans = &dashboardwidgets.HexagonQuerySpansModel{
+								TimeFrame:   timeFrame,
+								LuceneQuery: oldQuery.Spans.LuceneQuery,
+								Filters:     oldQuery.Spans.Filters,
+								Aggregation: aggregation,
+								GroupBy:     oldQuery.Spans.GroupBy,
 							}
 						}
 						if oldQuery.Metrics != nil {

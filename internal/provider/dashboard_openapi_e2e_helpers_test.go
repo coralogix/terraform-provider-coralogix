@@ -633,7 +633,7 @@ func TestDashboardOpenAPIBranchFixturePreservesCoverageMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load covered branch: %s", err)
 	}
-	if covered.Fixture != "TestAccCoralogixResourceDashboardGaugeWidget" {
+	if covered.Fixture != dashboardOpenAPILogsQueryTestName {
 		t.Fatalf("covered fixture = %q", covered.Fixture)
 	}
 }

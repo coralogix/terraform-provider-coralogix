@@ -310,14 +310,7 @@ func DataTableType() types.ObjectType {
 									},
 									"aggregations": types.ListType{
 										ElemType: types.ObjectType{
-											AttrTypes: map[string]attr.Type{
-												"id":         types.StringType,
-												"name":       types.StringType,
-												"is_visible": types.BoolType,
-												"aggregation": types.ObjectType{
-													AttrTypes: SpansAggregationModelAttr(),
-												},
-											},
+											AttrTypes: DataTableSpansAggregationModelAttr(),
 										},
 									},
 								},
@@ -582,8 +575,9 @@ func flattenDataTableSpansQueryGrouping(ctx context.Context, grouping *dashboard
 }
 
 func flattenDataTableSpansQueryAggregations(ctx context.Context, aggregations []dashboardservice.SpansQueryAggregation) (types.List, diag.Diagnostics) {
+	aggregationType := types.ObjectType{AttrTypes: DataTableSpansAggregationModelAttr()}
 	if len(aggregations) == 0 {
-		return types.ListNull(types.ObjectType{AttrTypes: SpansAggregationModelAttr()}), nil
+		return types.ListNull(aggregationType), nil
 	}
 	var diagnostics diag.Diagnostics
 	aggregationElements := make([]attr.Value, 0)
@@ -593,7 +587,7 @@ func flattenDataTableSpansQueryAggregations(ctx context.Context, aggregations []
 			diagnostics.Append(dg)
 			continue
 		}
-		aggregationElement, diags := types.ObjectValueFrom(ctx, SpansAggregationModelAttr(), flattenedAggregation)
+		aggregationElement, diags := types.ObjectValueFrom(ctx, DataTableSpansAggregationModelAttr(), flattenedAggregation)
 		if diags.HasError() {
 			diagnostics = append(diagnostics, diags...)
 			continue
@@ -602,10 +596,10 @@ func flattenDataTableSpansQueryAggregations(ctx context.Context, aggregations []
 	}
 
 	if diagnostics.HasError() {
-		return types.ListNull(types.ObjectType{AttrTypes: SpansAggregationModelAttr()}), diagnostics
+		return types.ListNull(aggregationType), diagnostics
 	}
 
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: SpansAggregationModelAttr()}, aggregationElements)
+	return types.ListValueFrom(ctx, aggregationType, aggregationElements)
 }
 
 func flattenDataTableSpansQueryAggregation(spanAggregation *dashboardservice.SpansQueryAggregation) (*DataTableSpansAggregationModel, diag.Diagnostic) {

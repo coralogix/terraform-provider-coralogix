@@ -23,7 +23,105 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
+
+func TestHexagonSpansQueryModelRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	model := &HexagonModel{
+		CustomUnit:    types.StringNull(),
+		LegendBy:      types.StringNull(),
+		Decimal:       types.NumberNull(),
+		DataModeType:  types.StringNull(),
+		Thresholds:    types.SetNull(types.ObjectType{AttrTypes: ThresholdAttr()}),
+		ThresholdType: types.StringNull(),
+		Min:           types.NumberNull(),
+		Max:           types.NumberNull(),
+		Unit:          types.StringNull(),
+		Query: &HexagonQueryModel{
+			Spans: &HexagonQuerySpansModel{
+				LuceneQuery: types.StringNull(),
+				GroupBy:     types.ListNull(types.ObjectType{AttrTypes: SpansFieldModelAttr()}),
+				Aggregation: &SpansAggregationModel{
+					Type:            types.StringValue("dimension"),
+					AggregationType: types.StringValue("unique_count"),
+					Field:           types.StringValue("trace_id"),
+				},
+				Filters: types.ListNull(types.ObjectType{AttrTypes: SpansFilterModelAttr()}),
+			},
+		},
+	}
+
+	value, diags := types.ObjectValueFrom(ctx, HexagonType().AttrTypes, model)
+	if diags.HasError() {
+		t.Fatalf("converting hexagon model to its Terraform object type: %v", diags)
+	}
+	var converted HexagonModel
+	diags = value.As(ctx, &converted, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		t.Fatalf("converting Terraform object type back to hexagon model: %v", diags)
+	}
+
+	expanded, diags := expandHexagonSpansQuery(ctx, converted.Query.Spans)
+	if diags.HasError() {
+		t.Fatalf("expanding hexagon spans query: %v", diags)
+	}
+	if expanded.SpansAggregation == nil || expanded.SpansAggregation.DimensionAggregation == nil {
+		t.Fatal("expanded hexagon spans query omitted its dimension aggregation")
+	}
+
+	flattened, diags := flattenHexagonSpansQuery(ctx, expanded)
+	if diags.HasError() {
+		t.Fatalf("flattening hexagon spans query: %v", diags)
+	}
+	if flattened.Spans == nil || flattened.Spans.Aggregation == nil {
+		t.Fatal("flattened hexagon spans query omitted its aggregation")
+	}
+	if got := flattened.Spans.Aggregation.AggregationType.ValueString(); got != "unique_count" {
+		t.Fatalf("flattened aggregation type = %q, want %q", got, "unique_count")
+	}
+	if got := flattened.Spans.Aggregation.Field.ValueString(); got != "trace_id" {
+		t.Fatalf("flattened aggregation field = %q, want %q", got, "trace_id")
+	}
+}
+
+func TestDataTableSpansAggregationModelRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	model := &DataTableSpansAggregationModel{
+		ID:        types.StringValue("aggregation-id"),
+		Name:      types.StringValue("traces"),
+		IsVisible: types.BoolValue(true),
+		Aggregation: &SpansAggregationModel{
+			Type:            types.StringValue("dimension"),
+			AggregationType: types.StringValue("unique_count"),
+			Field:           types.StringValue("trace_id"),
+		},
+	}
+
+	expanded, dg := expandDataTableSpansAggregation(model)
+	if dg != nil {
+		t.Fatalf("expanding data-table spans aggregation: %s", dg.Detail())
+	}
+	flattened, diags := flattenDataTableSpansQueryAggregations(ctx, []dashboardservice.SpansQueryAggregation{*expanded})
+	if diags.HasError() {
+		t.Fatalf("flattening data-table spans aggregations: %v", diags)
+	}
+
+	var converted []DataTableSpansAggregationModel
+	diags = flattened.ElementsAs(ctx, &converted, false)
+	if diags.HasError() {
+		t.Fatalf("converting flattened aggregations back to the Terraform model: %v", diags)
+	}
+	if len(converted) != 1 || converted[0].Aggregation == nil {
+		t.Fatalf("flattened aggregations = %#v, want one aggregation wrapper", converted)
+	}
+	if got := converted[0].Aggregation.AggregationType.ValueString(); got != "unique_count" {
+		t.Fatalf("flattened aggregation type = %q, want %q", got, "unique_count")
+	}
+	if got := converted[0].Aggregation.Field.ValueString(); got != "trace_id" {
+		t.Fatalf("flattened aggregation field = %q, want %q", got, "trace_id")
+	}
+}
 
 func TestLogsAggregationValidator(t *testing.T) {
 	someObservationField := types.ObjectValueMust(ObservationFieldAttr(), map[string]attr.Value{

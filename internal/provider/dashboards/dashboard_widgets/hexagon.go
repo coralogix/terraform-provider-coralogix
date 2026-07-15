@@ -66,8 +66,16 @@ type HexagonModel struct {
 type HexagonQueryModel struct {
 	Logs      *HexagonQueryLogsModel    `tfsdk:"logs"`
 	Metrics   *HexagonQueryMetricsModel `tfsdk:"metrics"`
-	Spans     *QuerySpansModel          `tfsdk:"spans"`
+	Spans     *HexagonQuerySpansModel   `tfsdk:"spans"`
 	DataPrime *DataPrimeModel           `tfsdk:"data_prime"`
+}
+
+type HexagonQuerySpansModel struct {
+	LuceneQuery types.String           `tfsdk:"lucene_query"`
+	GroupBy     types.List             `tfsdk:"group_by"` //SpansFieldModel
+	Aggregation *SpansAggregationModel `tfsdk:"aggregation"`
+	Filters     types.List             `tfsdk:"filters"` //SpansFilterModel
+	TimeFrame   *TimeFrameModel        `tfsdk:"time_frame"`
 }
 
 type HexagonQueryMetricsModel struct {
@@ -680,11 +688,18 @@ func flattenHexagonSpansQuery(ctx context.Context, spans *dashboardservice.Hexag
 		return nil, diags
 	}
 
+	aggregation, dg := FlattenSpansAggregation(spans.SpansAggregation)
+	if dg != nil {
+		diags.Append(dg)
+		return nil, diags
+	}
+
 	return &HexagonQueryModel{
-		Spans: &QuerySpansModel{
+		Spans: &HexagonQuerySpansModel{
 			LuceneQuery: flattenLuceneQuery(spans.LuceneQuery),
 			Filters:     filters,
 			GroupBy:     grouping,
+			Aggregation: aggregation,
 			TimeFrame:   timeframe,
 		},
 	}, nil
@@ -891,7 +906,7 @@ func expandHexagonLogsQuery(ctx context.Context, queryLogs *HexagonQueryLogsMode
 	}, nil
 }
 
-func expandHexagonSpansQuery(ctx context.Context, hexagonQuerySpans *QuerySpansModel) (*dashboardservice.HexagonSpansQuery, diag.Diagnostics) {
+func expandHexagonSpansQuery(ctx context.Context, hexagonQuerySpans *HexagonQuerySpansModel) (*dashboardservice.HexagonSpansQuery, diag.Diagnostics) {
 	if hexagonQuerySpans == nil {
 		return nil, nil
 	}
@@ -911,11 +926,18 @@ func expandHexagonSpansQuery(ctx context.Context, hexagonQuerySpans *QuerySpansM
 		return nil, diags
 	}
 
+	aggregation, dg := ExpandSpansAggregation(hexagonQuerySpans.Aggregation)
+	if dg != nil {
+		diags.Append(dg)
+		return nil, diags
+	}
+
 	return &dashboardservice.HexagonSpansQuery{
-		LuceneQuery: ExpandLuceneQuery(hexagonQuerySpans.LuceneQuery),
-		Filters:     filters,
-		GroupBy:     grouping,
-		TimeFrame:   timeframe,
+		LuceneQuery:      ExpandLuceneQuery(hexagonQuerySpans.LuceneQuery),
+		Filters:          filters,
+		GroupBy:          grouping,
+		SpansAggregation: aggregation,
+		TimeFrame:        timeframe,
 	}, nil
 }
 
