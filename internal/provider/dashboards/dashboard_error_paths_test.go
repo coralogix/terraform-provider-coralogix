@@ -416,6 +416,42 @@ func TestDashboardStateUpgradeNotFoundRemovesStateWithWarning(t *testing.T) {
 	}
 }
 
+func TestDashboardStateUpgradeFromV3DecodesPriorSchema(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/dashboards/dashboards/v1/"+dashboardErrorPathTestID {
+			t.Fatalf("request = %s %s, want dashboard GET", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"dashboard":{"id":"` + dashboardErrorPathTestID + `","name":"upgraded dashboard","layout":{"sections":[]}}}`))
+	}))
+	t.Cleanup(server.Close)
+
+	ctx := context.Background()
+	priorSchema := dashboardschema.V3()
+	priorState := dashboardErrorPathState(ctx, priorSchema, dashboardErrorPathTestID, "")
+	response := frameworkresource.UpgradeStateResponse{State: tfsdk.State{Schema: dashboardschema.V4()}}
+
+	upgradeDashboardStateV3ToV4(
+		ctx,
+		frameworkresource.UpgradeStateRequest{State: &priorState},
+		&response,
+		newDashboardOpenAPITestClient(server, ""),
+	)
+
+	if response.Diagnostics.HasError() {
+		t.Fatalf("state upgrade diagnostics = %v, want successful v3-to-v4 conversion", response.Diagnostics)
+	}
+	assertDashboardStateID(t, ctx, response.State, dashboardErrorPathTestID)
+	var accessPolicy types.String
+	diagnostics := response.State.GetAttribute(ctx, path.Root("access_policy"), &accessPolicy)
+	if diagnostics.HasError() {
+		t.Fatalf("read upgraded access_policy diagnostics = %v", diagnostics)
+	}
+	if !accessPolicy.IsNull() {
+		t.Fatalf("upgraded access_policy = %q, want null when backend omitted it", accessPolicy.ValueString())
+	}
+}
+
 func dashboardNotFoundTestServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

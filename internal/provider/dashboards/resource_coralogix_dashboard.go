@@ -66,6 +66,22 @@ type DashboardResourceModel struct {
 	AccessPolicy types.String                     `tfsdk:"access_policy"`
 }
 
+// dashboardResourceModelV3 must match the schema used to decode prior v2 and
+// v3 state. access_policy was added in schema v4.
+type dashboardResourceModelV3 struct {
+	ID          types.String                     `tfsdk:"id"`
+	Name        types.String                     `tfsdk:"name"`
+	Description types.String                     `tfsdk:"description"`
+	Layout      types.Object                     `tfsdk:"layout"`
+	Variables   types.List                       `tfsdk:"variables"`
+	Filters     types.List                       `tfsdk:"filters"`
+	TimeFrame   *dashboardwidgets.TimeFrameModel `tfsdk:"time_frame"`
+	Folder      types.Object                     `tfsdk:"folder"`
+	Annotations types.List                       `tfsdk:"annotations"`
+	AutoRefresh types.Object                     `tfsdk:"auto_refresh"`
+	ContentJson types.String                     `tfsdk:"content_json"`
+}
+
 type DashboardLayoutModel struct {
 	Sections types.List `tfsdk:"sections"` //SectionModel
 }
@@ -440,11 +456,25 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 	}
 	log.Printf("[INFO] Received Dashboard: %s", dashboardLogString(getDashboardResp.Dashboard))
 
-	var state DashboardResourceModel
-	diags = req.State.Get(ctx, &state)
+	var priorState dashboardResourceModelV3
+	diags = req.State.Get(ctx, &priorState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+	state := DashboardResourceModel{
+		ID:           priorState.ID,
+		Name:         priorState.Name,
+		Description:  priorState.Description,
+		Layout:       priorState.Layout,
+		Variables:    priorState.Variables,
+		Filters:      priorState.Filters,
+		TimeFrame:    priorState.TimeFrame,
+		Folder:       priorState.Folder,
+		Annotations:  priorState.Annotations,
+		AutoRefresh:  priorState.AutoRefresh,
+		ContentJson:  priorState.ContentJson,
+		AccessPolicy: types.StringNull(),
 	}
 
 	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp)
