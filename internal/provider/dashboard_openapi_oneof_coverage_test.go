@@ -15,6 +15,7 @@
 package provider
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -31,6 +32,7 @@ import (
 )
 
 type dashboardOneOfCoverageStatus string
+type dashboardOneOfSupportDecision string
 
 const (
 	dashboardOneOfAcceptanceCovered dashboardOneOfCoverageStatus = "acceptance-covered"
@@ -38,13 +40,25 @@ const (
 	dashboardOneOfAPIOnly           dashboardOneOfCoverageStatus = "api-only"
 	dashboardOneOfLegacyMigration   dashboardOneOfCoverageStatus = "legacy-migration"
 
+	dashboardOneOfContentJSONSupported dashboardOneOfSupportDecision = "content-json-create-update-supported"
+	dashboardOneOfStructuredRejected   dashboardOneOfSupportDecision = "structured-configuration-rejected"
+	dashboardOneOfReadHydratable       dashboardOneOfSupportDecision = "backend-read-hydratable"
+	dashboardOneOfReadRejected         dashboardOneOfSupportDecision = "backend-read-rejected"
+	dashboardOneOfOutsideCRUD          dashboardOneOfSupportDecision = "outside-provider-crud"
+	dashboardOneOfLegacyOnly           dashboardOneOfSupportDecision = "legacy-migration-only"
+
 	dashboardNoProviderPath = "not exposed by the structured coralogix_dashboard schema"
+
+	dashboardContentJSONGeneratedOneOfContractTestName = "TestDashboardContentJSONGeneratedOneOfBranchContract"
+	dashboardStructuredRejectionContractTestName       = "TestDashboardStructuredConfigurationRejectsUnsupportedAutoRefreshBranches"
+	dashboardOutsideCRUDContractTestName               = "TestDashboardOutsideCRUDOneOfContract"
 )
 
 type dashboardOneOfBranchCoverage struct {
 	ProviderPath        string
 	FixtureOrTest       string
 	Status              dashboardOneOfCoverageStatus
+	SupportDecision     dashboardOneOfSupportDecision
 	ImportHydration     bool
 	DataSourceHydration bool
 	Explanation         string
@@ -89,10 +103,32 @@ func gap(path string) dashboardOneOfBranchCoverage {
 func apiOnly(path string, hydration bool, explanation string) dashboardOneOfBranchCoverage {
 	return dashboardOneOfBranchCoverage{
 		ProviderPath:        path,
+		FixtureOrTest:       dashboardContentJSONGeneratedOneOfContractTestName,
 		Status:              dashboardOneOfAPIOnly,
+		SupportDecision:     dashboardOneOfContentJSONSupported,
 		ImportHydration:     hydration,
 		DataSourceHydration: hydration,
 		Explanation:         explanation,
+	}
+}
+
+func structuredRejected(path, explanation string) dashboardOneOfBranchCoverage {
+	return dashboardOneOfBranchCoverage{
+		ProviderPath:    path,
+		FixtureOrTest:   dashboardStructuredRejectionContractTestName,
+		Status:          dashboardOneOfAPIOnly,
+		SupportDecision: dashboardOneOfStructuredRejected,
+		Explanation:     explanation,
+	}
+}
+
+func outsideCRUD(path, explanation string) dashboardOneOfBranchCoverage {
+	return dashboardOneOfBranchCoverage{
+		ProviderPath:    path,
+		FixtureOrTest:   dashboardOutsideCRUDContractTestName,
+		Status:          dashboardOneOfAPIOnly,
+		SupportDecision: dashboardOneOfOutsideCRUD,
+		Explanation:     explanation,
 	}
 }
 
@@ -107,6 +143,7 @@ func legacyMigration(path, testName, explanation string) dashboardOneOfBranchCov
 		ProviderPath:        path,
 		FixtureOrTest:       testName,
 		Status:              dashboardOneOfLegacyMigration,
+		SupportDecision:     dashboardOneOfLegacyOnly,
 		ImportHydration:     true,
 		DataSourceHydration: true,
 		Explanation:         explanation,
@@ -120,6 +157,17 @@ func apiOnlyModel(protoSource, explanation string, branches ...string) dashboard
 	}
 	for _, branch := range branches {
 		result.Branches[branch] = apiOnly(dashboardNoProviderPath, false, explanation)
+	}
+	return result
+}
+
+func outsideCRUDModel(protoSource, explanation string, branches ...string) dashboardOneOfModelCoverage {
+	result := dashboardOneOfModelCoverage{
+		ProtoSource: protoSource,
+		Branches:    make(map[string]dashboardOneOfBranchCoverage, len(branches)),
+	}
+	for _, branch := range branches {
+		result.Branches[branch] = outsideCRUD(dashboardNoProviderPath, explanation)
 	}
 	return result
 }
@@ -176,7 +224,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"dataprime": covered(widget+".bar_chart.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
-		"CheckDashboardRequestDataStructure": apiOnlyModel(
+		"CheckDashboardRequestDataStructure": outsideCRUDModel(
 			"services/dashboard_check.proto#CheckDashboardRequest.source",
 			"the provider CRUD client does not invoke the dashboard-check endpoint",
 			"dashboard", "dashboardId",
@@ -203,8 +251,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"off":               covered("auto_refresh.type=off", dashboardOpenAPIBackendHydrationTestName),
 				"twoMinutes":        covered("auto_refresh.type=two_minutes", dashboardOpenAPINestedPresentationTestName),
 				"fiveMinutes":       covered("auto_refresh.type=five_minutes", dashboardOpenAPINestedPresentationTestName),
-				"oneMinute":         apiOnly("auto_refresh.type=one_minute", false, "dashboard.proto and the REST model expose one_minute, but the provider validator and both auto-refresh converters support only off, two_minutes, and five_minutes"),
-				"fifteenMinutes":    apiOnly("auto_refresh.type=fifteen_minutes", false, "dashboard.proto and the REST model expose fifteen_minutes, but the provider validator and both auto-refresh converters support only off, two_minutes, and five_minutes"),
+				"oneMinute":         structuredRejected("auto_refresh.type=one_minute", "dashboard.proto and the REST model expose one_minute, but the provider validator rejects it before both auto-refresh converters"),
+				"fifteenMinutes":    structuredRejected("auto_refresh.type=fifteen_minutes", "dashboard.proto and the REST model expose fifteen_minutes, but the provider validator rejects it before both auto-refresh converters"),
 				"absoluteTimeFrame": covered("time_frame.absolute", dashboardOpenAPIBackendHydrationTestName),
 				"relativeTimeFrame": covered("time_frame.relative", "TestAccCoralogixResourceDashboard"),
 			},
@@ -258,8 +306,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			ProtoSource:    "com/coralogixapis/events/v3/events_query_filter.proto#FilterPathAndValues.values",
 			Reconciliation: "this guarded REST union is imported through dashboard query models; its protobuf declaration is outside dashboards/v1 and replaces no dashboard-local generated model",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"multipleValues": apiOnly(dashboardNoProviderPath, false, "the imported events-v3 filter structure is used only by unsupported dynamic/event query surfaces"),
-				"filters":        apiOnly(dashboardNoProviderPath, false, "the imported events-v3 filter structure is used only by unsupported dynamic/event query surfaces"),
+				"multipleValues": outsideCRUD(dashboardNoProviderPath, "the imported events-v3 filter structure is not reachable from Dashboard CRUD request or response models"),
+				"filters":        outsideCRUD(dashboardNoProviderPath, "the imported events-v3 filter structure is not reachable from Dashboard CRUD request or response models"),
 			},
 		},
 		"FilterSource": {
@@ -752,8 +800,11 @@ func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 			if isObserved && coverage.FixtureOrTest != dashboardContentJSONDynamicQueriesTableTestName {
 				t.Errorf("%s.%s fixture = %q, want %q", model, branch, coverage.FixtureOrTest, dashboardContentJSONDynamicQueriesTableTestName)
 			}
-			if !isObserved && coverage.FixtureOrTest != "" {
-				t.Errorf("%s.%s unexpectedly claims fixture %q", model, branch, coverage.FixtureOrTest)
+			if !isObserved && coverage.FixtureOrTest != dashboardContentJSONGeneratedOneOfContractTestName {
+				t.Errorf("%s.%s fixture = %q, want shared generated-model contract %q", model, branch, coverage.FixtureOrTest, dashboardContentJSONGeneratedOneOfContractTestName)
+			}
+			if coverage.SupportDecision != dashboardOneOfContentJSONSupported {
+				t.Errorf("%s.%s support decision = %q, want %q", model, branch, coverage.SupportDecision, dashboardOneOfContentJSONSupported)
 			}
 			if coverage.ImportHydration || coverage.DataSourceHydration {
 				t.Errorf("%s.%s must not claim import/data-source hydration for content_json-only coverage", model, branch)
@@ -763,6 +814,141 @@ func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestDashboardAPIOnlyDecisionReport(t *testing.T) {
+	report := dashboardAPIOnlyDecisionReport()
+	if report == "" {
+		t.Fatal("API-only decision report is empty")
+	}
+	lines := strings.Split(report, "\n")
+	if !sort.StringsAreSorted(lines) {
+		t.Fatal("API-only decision report is not deterministic")
+	}
+
+	apiOnlyBranches := 0
+	for _, model := range dashboardOpenAPIOneOfCoverage {
+		for _, branch := range model.Branches {
+			if branch.Status == dashboardOneOfAPIOnly {
+				apiOnlyBranches++
+			}
+		}
+	}
+	if len(lines) != apiOnlyBranches {
+		t.Fatalf("API-only report lines = %d, want %d", len(lines), apiOnlyBranches)
+	}
+	t.Logf("API-only dashboard oneOf decisions:\n%s", report)
+}
+
+func TestDashboardOutsideCRUDOneOfContract(t *testing.T) {
+	outOfScopeModels := []reflect.Type{
+		reflect.TypeOf(dashboardservice.CheckDashboardRequestDataStructure{}),
+		reflect.TypeOf(dashboardservice.FilterPathAndValues{}),
+	}
+	crudModels := []reflect.Type{
+		reflect.TypeOf(dashboardservice.Dashboard{}),
+		reflect.TypeOf(dashboardservice.CreateDashboardRequestDataStructure{}),
+		reflect.TypeOf(dashboardservice.ReplaceDashboardRequestDataStructure{}),
+	}
+	for _, outOfScope := range outOfScopeModels {
+		for _, crud := range crudModels {
+			if dashboardGeneratedTypeReachable(crud, outOfScope) {
+				t.Fatalf("%s unexpectedly reaches out-of-scope union %s", crud.Name(), outOfScope.Name())
+			}
+		}
+	}
+
+	expected := map[string][]string{
+		"CheckDashboardRequestDataStructure": {"dashboard", "dashboardId"},
+		"FilterPathAndValues":                {"multipleValues", "filters"},
+	}
+	for model, branches := range expected {
+		coverage := dashboardOpenAPIOneOfCoverage[model]
+		for _, branch := range branches {
+			decision := coverage.Branches[branch]
+			if decision.SupportDecision != dashboardOneOfOutsideCRUD || decision.FixtureOrTest != dashboardOutsideCRUDContractTestName {
+				t.Errorf("%s.%s decision = %q/%q, want outside-CRUD contract", model, branch, decision.SupportDecision, decision.FixtureOrTest)
+			}
+		}
+	}
+}
+
+func dashboardAPIOnlyDecisionReport() string {
+	lines := make([]string, 0)
+	for modelName, model := range dashboardOpenAPIOneOfCoverage {
+		for branchName, branch := range model.Branches {
+			if branch.Status != dashboardOneOfAPIOnly {
+				continue
+			}
+			lines = append(lines, fmt.Sprintf(
+				"%s.%s\tdecision=%s\tprovider_path=%s\timport_hydration=%t\tdata_source_hydration=%t\ttest=%s\texplanation=%s",
+				modelName,
+				branchName,
+				branch.SupportDecision,
+				branch.ProviderPath,
+				branch.ImportHydration,
+				branch.DataSourceHydration,
+				branch.FixtureOrTest,
+				branch.Explanation,
+			))
+		}
+	}
+	sort.Strings(lines)
+	return strings.Join(lines, "\n")
+}
+
+func dashboardGeneratedTypeReachable(root, target reflect.Type) bool {
+	packagePath := reflect.TypeOf(dashboardservice.Dashboard{}).PkgPath()
+	queue := []reflect.Type{root}
+	visited := make(map[reflect.Type]struct{})
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		for current.Kind() == reflect.Pointer || current.Kind() == reflect.Slice || current.Kind() == reflect.Array {
+			current = current.Elem()
+		}
+		if current == target {
+			return true
+		}
+		if current.Kind() != reflect.Struct || current.PkgPath() != packagePath {
+			continue
+		}
+		if _, seen := visited[current]; seen {
+			continue
+		}
+		visited[current] = struct{}{}
+		for fieldIndex := 0; fieldIndex < current.NumField(); fieldIndex++ {
+			queue = append(queue, current.Field(fieldIndex).Type)
+		}
+	}
+	return false
+}
+
+func dashboardGeneratedModelType(name string) (reflect.Type, bool) {
+	packagePath := reflect.TypeOf(dashboardservice.Dashboard{}).PkgPath()
+	queue := []reflect.Type{reflect.TypeOf(dashboardservice.Dashboard{})}
+	visited := make(map[reflect.Type]struct{})
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		for current.Kind() == reflect.Pointer || current.Kind() == reflect.Slice || current.Kind() == reflect.Array {
+			current = current.Elem()
+		}
+		if current.Kind() != reflect.Struct || current.PkgPath() != packagePath {
+			continue
+		}
+		if current.Name() == name {
+			return current, true
+		}
+		if _, seen := visited[current]; seen {
+			continue
+		}
+		visited[current] = struct{}{}
+		for fieldIndex := 0; fieldIndex < current.NumField(); fieldIndex++ {
+			queue = append(queue, current.Field(fieldIndex).Type)
+		}
+	}
+	return nil, false
 }
 
 func TestDashboardProtoOneOfInventoryAgainstCheckout(t *testing.T) {
@@ -850,11 +1036,39 @@ func validateDashboardOneOfCoverage(t *testing.T, tests map[string]struct{}, mod
 			t.Errorf("%s.%s is a structured branch without both hydration paths", model, branch)
 		}
 	case dashboardOneOfAPIOnly:
-		if coverage.Explanation == "" {
-			t.Errorf("%s.%s is API-only without a source-backed explanation", model, branch)
+		if coverage.Explanation == "" || coverage.FixtureOrTest == "" || coverage.SupportDecision == "" {
+			t.Errorf("%s.%s API-only decision is missing category, explanation, or executable evidence", model, branch)
+		}
+		switch coverage.SupportDecision {
+		case dashboardOneOfContentJSONSupported:
+			modelType, ok := dashboardGeneratedModelType(model)
+			if !ok || !dashboardGeneratedTypeReachable(reflect.TypeOf(dashboardservice.Dashboard{}), modelType) {
+				t.Errorf("%s.%s claims content_json support but %s is not reachable from Dashboard", model, branch, model)
+			}
+			if coverage.FixtureOrTest != dashboardContentJSONGeneratedOneOfContractTestName && coverage.FixtureOrTest != dashboardContentJSONDynamicQueriesTableTestName {
+				t.Errorf("%s.%s content_json decision references unrelated evidence %s", model, branch, coverage.FixtureOrTest)
+			}
+		case dashboardOneOfStructuredRejected:
+			if coverage.FixtureOrTest != dashboardStructuredRejectionContractTestName {
+				t.Errorf("%s.%s structured rejection does not reference %s", model, branch, dashboardStructuredRejectionContractTestName)
+			}
+		case dashboardOneOfReadHydratable:
+			if !coverage.ImportHydration && !coverage.DataSourceHydration {
+				t.Errorf("%s.%s claims read hydration without an import or data-source path", model, branch)
+			}
+		case dashboardOneOfReadRejected:
+			if coverage.ImportHydration || coverage.DataSourceHydration {
+				t.Errorf("%s.%s claims deterministic read rejection and hydration", model, branch)
+			}
+		case dashboardOneOfOutsideCRUD:
+			if coverage.FixtureOrTest != dashboardOutsideCRUDContractTestName || coverage.ImportHydration || coverage.DataSourceHydration {
+				t.Errorf("%s.%s outside-CRUD decision has inconsistent evidence or hydration", model, branch)
+			}
+		default:
+			t.Errorf("%s.%s has unknown API-only support decision %q", model, branch, coverage.SupportDecision)
 		}
 	case dashboardOneOfLegacyMigration:
-		if coverage.Explanation == "" || coverage.FixtureOrTest == "" {
+		if coverage.Explanation == "" || coverage.FixtureOrTest == "" || coverage.SupportDecision != dashboardOneOfLegacyOnly {
 			t.Errorf("%s.%s legacy migration classification is incomplete", model, branch)
 		}
 	default:

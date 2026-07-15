@@ -19,13 +19,21 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
+	"regexp"
+	"runtime"
+	"sort"
 	"strings"
 	"testing"
+	"unicode"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -100,11 +108,33 @@ func TestExtractDashboardContentJSONPreservesDynamicQueriesTable(t *testing.T) {
 			t.Fatalf("row %d: dynamic query definitions = %d, want 1", i, len(dynamic.QueryDefinitions))
 		}
 		query := dynamic.QueryDefinitions[0].Query
-		queryPresent := map[string]bool{"logs": query.Logs != nil, "metrics": query.Metrics != nil, "spans": query.Spans != nil}
-		if !queryPresent[wantQuery] {
-			t.Fatalf("row %d: expected dynamic %s query, got %+v", i, wantQuery, query)
+		queryPresent := map[string]bool{
+			"dataprime": query.Dataprime != nil,
+			"logs":      query.Logs != nil,
+			"metrics":   query.Metrics != nil,
+			"spans":     query.Spans != nil,
 		}
-		if dynamic.Visualization == nil || dynamic.Visualization.Table == nil {
+		for branch, present := range queryPresent {
+			if present != (branch == wantQuery) {
+				t.Fatalf("row %d: dynamic query branch %s populated=%t, want %t; query=%+v", i, branch, present, branch == wantQuery, query)
+			}
+		}
+		if dynamic.Visualization == nil {
+			t.Fatalf("row %d: expected dynamic visualization", i)
+		}
+		visualization := reflect.ValueOf(dynamic.Visualization).Elem()
+		for fieldIndex := 0; fieldIndex < visualization.NumField(); fieldIndex++ {
+			fieldDefinition := visualization.Type().Field(fieldIndex)
+			branch := strings.Split(fieldDefinition.Tag.Get("json"), ",")[0]
+			if branch == "" || branch == "-" || branch == "AdditionalProperties" {
+				continue
+			}
+			present := !visualization.Field(fieldIndex).IsZero()
+			if present != (branch == "table") {
+				t.Fatalf("row %d: dynamic visualization branch %s populated=%t, want %t", i, branch, present, branch == "table")
+			}
+		}
+		if dynamic.Visualization.Table == nil {
 			t.Fatalf("row %d: expected dynamic table visualization, got %+v", i, dynamic.Visualization)
 		}
 	}
@@ -122,6 +152,347 @@ func TestExtractDashboardContentJSONPreservesDynamicQueriesTable(t *testing.T) {
 		!strings.Contains(string(encoded), `"spans"`) {
 		t.Fatalf("dynamic branches were lost from the REST create request: %s", encoded)
 	}
+}
+
+// TestDashboardContentJSONGeneratedOneOfBranchContract proves the generic
+// content_json transport contract for every generated union reachable from a
+// Dashboard. Each branch is decoded through its protobuf snake_case alias,
+// promoted into the exact typed field, stripped of AdditionalProperties, and
+// serialized inside a create request with every sibling left nil.
+func TestDashboardContentJSONGeneratedOneOfBranchContract(t *testing.T) {
+	rootType := reflect.TypeOf(dashboardservice.Dashboard{})
+	reachable, parents := dashboardReachableGeneratedModels(rootType)
+	guards := dashboardGeneratedOneOfBranches(t)
+	enumValues := dashboardGeneratedEnumValues(t)
+
+	modelNames := make([]string, 0, len(guards))
+	for model := range guards {
+		if _, ok := reachable[model]; ok {
+			modelNames = append(modelNames, model)
+		}
+	}
+	sort.Strings(modelNames)
+
+	for _, modelName := range modelNames {
+		modelType := reachable[modelName]
+		branches := append([]string(nil), guards[modelName]...)
+		sort.Strings(branches)
+		for _, branch := range branches {
+			branch := branch
+			t.Run(modelName+"/"+branch, func(t *testing.T) {
+				model := reflect.New(modelType)
+				field, ok := dashboardGeneratedJSONField(model.Elem(), branch)
+				if !ok {
+					t.Fatalf("generated model has no JSON field %q", branch)
+				}
+
+				alias := dashboardLowerCamelToSnake(branch)
+				payload, ok := dashboardGeneratedJSONData(modelType, enumValues, 0).(map[string]any)
+				if !ok {
+					t.Fatalf("minimal generated model value has type %T, want object", payload)
+				}
+				payload[alias] = dashboardGeneratedJSONData(field.Type(), enumValues, 0)
+				encodedPayload, err := json.Marshal(payload)
+				if err != nil {
+					t.Fatalf("marshal protobuf JSON alias %q: %s", alias, err)
+				}
+				if err := json.Unmarshal(encodedPayload, model.Interface()); err != nil {
+					t.Fatalf("decode protobuf JSON alias %q: %s", alias, err)
+				}
+				if err := restoreOpenAPIProtoFieldNames(model.Interface()); err != nil {
+					t.Fatalf("restore protobuf JSON alias %q: %s", alias, err)
+				}
+				discardOpenAPIAdditionalProperties(model.Interface())
+
+				for _, candidate := range branches {
+					candidateField, ok := dashboardGeneratedJSONField(model.Elem(), candidate)
+					if !ok {
+						t.Fatalf("generated model has no sibling JSON field %q", candidate)
+					}
+					if got, want := !candidateField.IsZero(), candidate == branch; got != want {
+						t.Fatalf("typed branch %s populated=%t, want %t", candidate, got, want)
+					}
+				}
+
+				dashboard := dashboardEmbedGeneratedModel(t, rootType, modelType, model.Elem(), parents)
+				request := newDashboardOpenAPICreateRequest(dashboard.Interface().(dashboardservice.Dashboard), nil)
+				encoded, err := json.Marshal(request)
+				if err != nil {
+					t.Fatalf("serialize generated branch in REST create request: %s", err)
+				}
+				if !dashboardJSONContainsKey(encoded, branch) {
+					t.Fatalf("serialized REST create request lost branch %q: %s", branch, encoded)
+				}
+			})
+		}
+	}
+}
+
+func TestDashboardStructuredConfigurationRejectsUnsupportedAutoRefreshBranches(t *testing.T) {
+	root := dashboard_schema.V4()
+	autoRefresh, ok := root.Attributes["auto_refresh"].(resourceschema.SingleNestedAttribute)
+	if !ok {
+		t.Fatal("auto_refresh is not a single nested structured attribute")
+	}
+	refreshType, ok := autoRefresh.Attributes["type"].(resourceschema.StringAttribute)
+	if !ok || len(refreshType.Validators) == 0 {
+		t.Fatal("auto_refresh.type has no string validator")
+	}
+
+	for _, value := range []string{"one_minute", "fifteen_minutes"} {
+		t.Run(value, func(t *testing.T) {
+			request := validator.StringRequest{ConfigValue: types.StringValue(value)}
+			var response validator.StringResponse
+			for _, configuredValidator := range refreshType.Validators {
+				configuredValidator.ValidateString(context.Background(), request, &response)
+			}
+			if !response.Diagnostics.HasError() {
+				t.Fatalf("structured auto_refresh.type=%q reached transport validation without an error", value)
+			}
+		})
+	}
+}
+
+type dashboardGeneratedParent struct {
+	model      reflect.Type
+	fieldIndex int
+}
+
+func dashboardReachableGeneratedModels(root reflect.Type) (map[string]reflect.Type, map[reflect.Type]dashboardGeneratedParent) {
+	packagePath := root.PkgPath()
+	reachable := map[string]reflect.Type{root.Name(): root}
+	parents := make(map[reflect.Type]dashboardGeneratedParent)
+	queue := []reflect.Type{root}
+	for len(queue) > 0 {
+		model := queue[0]
+		queue = queue[1:]
+		for fieldIndex := 0; fieldIndex < model.NumField(); fieldIndex++ {
+			child := dashboardGeneratedElementType(model.Field(fieldIndex).Type)
+			if child.Kind() != reflect.Struct || child.PkgPath() != packagePath || child.Name() == "" {
+				continue
+			}
+			if _, seen := reachable[child.Name()]; seen {
+				continue
+			}
+			reachable[child.Name()] = child
+			parents[child] = dashboardGeneratedParent{model: model, fieldIndex: fieldIndex}
+			queue = append(queue, child)
+		}
+	}
+	return reachable, parents
+}
+
+func dashboardGeneratedElementType(value reflect.Type) reflect.Type {
+	for value.Kind() == reflect.Pointer || value.Kind() == reflect.Slice || value.Kind() == reflect.Array {
+		value = value.Elem()
+	}
+	return value
+}
+
+func dashboardEmbedGeneratedModel(t *testing.T, rootType, modelType reflect.Type, model reflect.Value, parents map[reflect.Type]dashboardGeneratedParent) reflect.Value {
+	t.Helper()
+	path := make([]dashboardGeneratedParent, 0)
+	for current := modelType; current != rootType; {
+		parent, ok := parents[current]
+		if !ok {
+			t.Fatalf("generated model %s is not reachable from Dashboard", modelType.Name())
+		}
+		path = append(path, parent)
+		current = parent.model
+	}
+	for left, right := 0, len(path)-1; left < right; left, right = left+1, right-1 {
+		path[left], path[right] = path[right], path[left]
+	}
+
+	root := reflect.New(rootType).Elem()
+	current := root
+	for _, edge := range path {
+		current = dashboardInitializeGeneratedField(current.Field(edge.fieldIndex))
+	}
+	current.Set(model)
+	return root
+}
+
+func dashboardInitializeGeneratedField(field reflect.Value) reflect.Value {
+	for {
+		switch field.Kind() {
+		case reflect.Pointer:
+			field.Set(reflect.New(field.Type().Elem()))
+			field = field.Elem()
+		case reflect.Slice:
+			field.Set(reflect.MakeSlice(field.Type(), 1, 1))
+			field = field.Index(0)
+		default:
+			return field
+		}
+	}
+}
+
+func dashboardGeneratedOneOfBranches(t *testing.T) map[string][]string {
+	t.Helper()
+	pc := reflect.ValueOf(dashboardservice.Dashboard.ToMap).Pointer()
+	function := runtime.FuncForPC(pc)
+	if function == nil {
+		t.Fatal("locate generated dashboard SDK source")
+	}
+	file, _ := function.FileLine(pc)
+	typePattern := regexp.MustCompile(`(?m)^type ([A-Za-z0-9_]+) struct \{`)
+	guardPattern := regexp.MustCompile(`oneOf field ([A-Za-z0-9_]+) must be set through the typed field`)
+	result := make(map[string][]string)
+	entries, err := os.ReadDir(filepath.Dir(file))
+	if err != nil {
+		t.Fatalf("read generated dashboard SDK source: %s", err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasPrefix(entry.Name(), "model_") || !strings.HasSuffix(entry.Name(), ".go") {
+			continue
+		}
+		content, err := os.ReadFile(filepath.Join(filepath.Dir(file), entry.Name()))
+		if err != nil {
+			t.Fatalf("read generated model %s: %s", entry.Name(), err)
+		}
+		guards := guardPattern.FindAllSubmatch(content, -1)
+		if len(guards) == 0 {
+			continue
+		}
+		modelMatch := typePattern.FindSubmatch(content)
+		if len(modelMatch) != 2 {
+			t.Fatalf("find generated model type in %s", entry.Name())
+		}
+		for _, guard := range guards {
+			result[string(modelMatch[1])] = append(result[string(modelMatch[1])], string(guard[1]))
+		}
+	}
+	return result
+}
+
+func dashboardGeneratedJSONField(model reflect.Value, jsonName string) (reflect.Value, bool) {
+	for fieldIndex := 0; fieldIndex < model.NumField(); fieldIndex++ {
+		field := model.Type().Field(fieldIndex)
+		if strings.Split(field.Tag.Get("json"), ",")[0] == jsonName {
+			return model.Field(fieldIndex), true
+		}
+	}
+	return reflect.Value{}, false
+}
+
+func dashboardGeneratedJSONData(value reflect.Type, enumValues map[string]string, depth int) any {
+	for value.Kind() == reflect.Pointer {
+		value = value.Elem()
+	}
+	if depth > 32 {
+		return nil
+	}
+	switch value.Kind() {
+	case reflect.Struct:
+		result := make(map[string]any)
+		for fieldIndex := 0; fieldIndex < value.NumField(); fieldIndex++ {
+			field := value.Field(fieldIndex)
+			jsonTag := field.Tag.Get("json")
+			parts := strings.Split(jsonTag, ",")
+			if len(parts) == 0 || parts[0] == "" || parts[0] == "-" || slicesContain(parts[1:], "omitempty") {
+				continue
+			}
+			result[parts[0]] = dashboardGeneratedJSONData(field.Type, enumValues, depth+1)
+		}
+		return result
+	case reflect.Map, reflect.Interface:
+		return map[string]any{}
+	case reflect.Slice, reflect.Array:
+		return []any{}
+	case reflect.String:
+		if enumValue, ok := enumValues[value.Name()]; ok {
+			return enumValue
+		}
+		return ""
+	case reflect.Bool:
+		return false
+	default:
+		return 0
+	}
+}
+
+func dashboardGeneratedEnumValues(t *testing.T) map[string]string {
+	t.Helper()
+	pc := reflect.ValueOf(dashboardservice.Dashboard.ToMap).Pointer()
+	function := runtime.FuncForPC(pc)
+	if function == nil {
+		t.Fatal("locate generated dashboard SDK source")
+	}
+	file, _ := function.FileLine(pc)
+	constantPattern := regexp.MustCompile(`(?m)^\s*[A-Z][A-Z0-9_]*\s+([A-Za-z0-9_]+)\s+=\s+"([^"]+)"`)
+	result := make(map[string]string)
+	entries, err := os.ReadDir(filepath.Dir(file))
+	if err != nil {
+		t.Fatalf("read generated dashboard SDK source: %s", err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasPrefix(entry.Name(), "model_") || !strings.HasSuffix(entry.Name(), ".go") {
+			continue
+		}
+		content, err := os.ReadFile(filepath.Join(filepath.Dir(file), entry.Name()))
+		if err != nil {
+			t.Fatalf("read generated model %s: %s", entry.Name(), err)
+		}
+		for _, match := range constantPattern.FindAllSubmatch(content, -1) {
+			if _, exists := result[string(match[1])]; !exists {
+				result[string(match[1])] = string(match[2])
+			}
+		}
+	}
+	return result
+}
+
+func slicesContain(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
+func dashboardLowerCamelToSnake(value string) string {
+	var result []rune
+	for index, current := range []rune(value) {
+		if unicode.IsUpper(current) {
+			if index > 0 {
+				result = append(result, '_')
+			}
+			current = unicode.ToLower(current)
+		}
+		result = append(result, current)
+	}
+	return string(result)
+}
+
+func dashboardJSONContainsKey(encoded []byte, key string) bool {
+	var value any
+	if json.Unmarshal(encoded, &value) != nil {
+		return false
+	}
+	var contains func(any) bool
+	contains = func(candidate any) bool {
+		switch typed := candidate.(type) {
+		case map[string]any:
+			if _, ok := typed[key]; ok {
+				return true
+			}
+			for _, nested := range typed {
+				if contains(nested) {
+					return true
+				}
+			}
+		case []any:
+			for _, nested := range typed {
+				if contains(nested) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	return contains(value)
 }
 
 func TestFlattenDashboardRejectsDynamicWidgetWithoutPartialState(t *testing.T) {
