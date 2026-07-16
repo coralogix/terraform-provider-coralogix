@@ -1,5 +1,10 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+
+- CHORE: Migrate dashboard operations from the legacy gRPC client to the REST client.
+- FEAT: Add support for DataPrime queries in `horizontal_bar_chart` widgets.
+
 # Release 3.7.0
 
 #### resource/coralogix_integration
@@ -18,10 +23,6 @@
 
 #### resource/coralogix_dashboard
 
-- CHORE: Migrate dashboard operations from the legacy gRPC client to the REST client.
-- FEAT: Add support for DataPrime queries in `horizontal_bar_chart` widgets.
-- FIX: Correct data-table spans aggregation flattening so the API wrapper fields and nested aggregation convert back into Terraform state without a struct/object mismatch.
-- FIX: Correct the hexagon spans-query model so its singular `aggregation` block expands to the API and round-trips into Terraform state instead of failing with a value-conversion error.
 - DOCS: Clarify when to use `observation_field` over the bare `field` string in logs filters, logs aggregations, and dashboard variables. `observation_field` is required for flat field identifiers whose name contains literal dots (e.g. `log.level`) and for disambiguating fields that share a name across multiple scopes; the bare `field` value is resolved by the backend via dot-split, which silently fails to match literal-dot identifiers.
 - FEAT: Add support for the `manual` annotation source, allowing static `instant`/`range` threshold annotations with configurable `orientation`, `unit`, and `message_template`.
 
