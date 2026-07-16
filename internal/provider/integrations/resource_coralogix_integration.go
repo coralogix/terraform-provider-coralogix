@@ -134,8 +134,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	if testResult.Result.Failure != nil {
-		// TODO after the data structure is fixed, change to print the error message
-		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", testResult.Result.Failure))}
+		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %s", testResult.Result.Failure.GetErrorMessage()))}
 		resp.Diagnostics.Append(newDiags...)
 		return
 	}
@@ -448,8 +447,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	if testResult.Result.Failure != nil {
-		// TODO after the data structure is fixed, change to print the error message
-		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", testResult.Result.Failure))}
+		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %s", testResult.Result.Failure.GetErrorMessage()))}
 		resp.Diagnostics.Append(newDiags...)
 		return
 	}

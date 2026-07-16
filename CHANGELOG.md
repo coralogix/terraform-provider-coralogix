@@ -2,6 +2,7 @@
 
 #### resource/coralogix_integration
 
+- FIX: Surface the backend's human-readable validation message when creating or updating an integration is rejected, instead of printing the raw `*V1Failure` struct (e.g. `&{{0xc0004…} map[]}`). The diagnostic detail now shows `Failure.GetErrorMessage()`.
 - FIX: Changing `version` now plans as an in-place update instead of forcing a destroy-and-recreate. The `RequiresReplace()` plan modifier was removed from `version`; version bumps flow through the existing `Update` method, preserving the integration's identity (and, for managed integrations, its provisioned service account) instead of deleting and re-provisioning it.
 
 #### resource/coralogix_preset

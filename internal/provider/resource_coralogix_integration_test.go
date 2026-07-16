@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -105,6 +106,20 @@ func TestAccCoralogixResourceIntegrationWithSensitiveData(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceIntegrationInvalidConfigReadableError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckIntegrationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixResourceIntegrationInvalidConfig(),
+				ExpectError: regexp.MustCompile(`API responded with an error: Failed to get sdk config: Wrong IAM role`),
+			},
+		},
+	})
+}
+
 func testAccCheckIntegrationDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).Integrations()
 	ctx := context.TODO()
@@ -165,6 +180,25 @@ func testAccCoralogixResourceIntegrationWithSensitiveData(serviceAccountKey stri
 			ServiceAccountKey  = %q
 		}
 	}`, serviceAccountKey)
+}
+
+func testAccCoralogixResourceIntegrationInvalidConfig() string {
+	return fmt.Sprintf(`resource "coralogix_integration" "invalid_config_test" {
+integration_key = "%v"
+version = "0.1.0"
+# Note that the attribute casing is important here
+parameters = {
+	ApplicationName = "cxsdk"
+	SubsystemName = "%v"
+	MetricNamespaces = ["AWS/S3"]
+	AwsRoleArn = "arn:aws:iam::000000000000:role/nonexistent-invalid-role"
+	IntegrationName = "sdk-integration-invalid-config-setup"
+	AwsRegion = "eu-north-1"
+	WithAggregations = false
+	EnrichWithTags = true
+}
+}
+	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName)
 }
 
 func testAccCoralogixResourceIntegrationVariablesWithoutSensitiveData() string {
