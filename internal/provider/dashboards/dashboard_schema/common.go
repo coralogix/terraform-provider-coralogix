@@ -16,11 +16,11 @@ package dashboard_schema
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboardjson"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
@@ -109,7 +109,7 @@ func (c ContentJsonValidator) ValidateString(_ context.Context, request validato
 		return
 	}
 
-	err := json.Unmarshal([]byte(request.ConfigValue.ValueString()), &dashboardservice.Dashboard{})
+	err := dashboardjson.Unmarshal([]byte(request.ConfigValue.ValueString()), &dashboardservice.Dashboard{})
 	if err != nil {
 		response.Diagnostics.Append(diag.NewErrorDiagnostic("content_json validation failed", fmt.Sprintf("json content is not matching layout schema. got an err while unmarshalling - %s", err)))
 	}

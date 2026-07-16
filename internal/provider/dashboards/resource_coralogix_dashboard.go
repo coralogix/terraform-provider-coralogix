@@ -26,6 +26,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboardjson"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
@@ -111,6 +112,75 @@ type WidgetModel struct {
 	Description types.String                            `tfsdk:"description"`
 	Definition  *dashboardwidgets.WidgetDefinitionModel `tfsdk:"definition"`
 	Width       types.Int64                             `tfsdk:"width"`
+}
+
+// These models describe the dashboard schema before hexagon query time frames
+// moved from the widget to each query branch in schema version 3.
+type dashboardDataPrimeModelV2 struct {
+	Query   types.String `tfsdk:"query"`
+	Filters types.List   `tfsdk:"filters"`
+}
+
+type dashboardQuerySpansModelV2 struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	GroupBy      types.List   `tfsdk:"group_by"`
+	Aggregations types.List   `tfsdk:"aggregations"`
+	Filters      types.List   `tfsdk:"filters"`
+}
+
+type dashboardHexagonQueryMetricsModelV2 struct {
+	PromqlQuery     types.String `tfsdk:"promql_query"`
+	Filters         types.List   `tfsdk:"filters"`
+	PromqlQueryType types.String `tfsdk:"promql_query_type"`
+	Aggregation     types.String `tfsdk:"aggregation"`
+}
+
+type dashboardHexagonQueryLogsModelV2 struct {
+	LuceneQuery types.String                           `tfsdk:"lucene_query"`
+	GroupBy     types.List                             `tfsdk:"group_by"`
+	Aggregation *dashboardwidgets.LogsAggregationModel `tfsdk:"aggregation"`
+	Filters     types.List                             `tfsdk:"filters"`
+}
+
+type dashboardHexagonQueryModelV2 struct {
+	Logs      *dashboardHexagonQueryLogsModelV2    `tfsdk:"logs"`
+	Metrics   *dashboardHexagonQueryMetricsModelV2 `tfsdk:"metrics"`
+	Spans     *dashboardQuerySpansModelV2          `tfsdk:"spans"`
+	DataPrime *dashboardDataPrimeModelV2           `tfsdk:"data_prime"`
+}
+
+type dashboardHexagonModelV2 struct {
+	CustomUnit    types.String                     `tfsdk:"custom_unit"`
+	LegendBy      types.String                     `tfsdk:"legend_by"`
+	Decimal       types.Number                     `tfsdk:"decimal"`
+	DataModeType  types.String                     `tfsdk:"data_mode_type"`
+	Thresholds    types.Set                        `tfsdk:"thresholds"`
+	ThresholdType types.String                     `tfsdk:"threshold_type"`
+	Min           types.Number                     `tfsdk:"min"`
+	Max           types.Number                     `tfsdk:"max"`
+	Unit          types.String                     `tfsdk:"unit"`
+	Legend        *dashboardwidgets.LegendModel    `tfsdk:"legend"`
+	Query         *dashboardHexagonQueryModelV2    `tfsdk:"query"`
+	TimeFrame     *dashboardwidgets.TimeFrameModel `tfsdk:"time_frame"`
+}
+
+type dashboardWidgetDefinitionModelV2 struct {
+	LineChart          *dashboardwidgets.LineChartModel          `tfsdk:"line_chart"`
+	Hexagon            *dashboardHexagonModelV2                  `tfsdk:"hexagon"`
+	DataTable          *dashboardwidgets.DataTableModel          `tfsdk:"data_table"`
+	Gauge              *dashboardwidgets.GaugeModel              `tfsdk:"gauge"`
+	PieChart           *dashboardwidgets.PieChartModel           `tfsdk:"pie_chart"`
+	BarChart           *dashboardwidgets.BarChartModel           `tfsdk:"bar_chart"`
+	HorizontalBarChart *dashboardwidgets.HorizontalBarChartModel `tfsdk:"horizontal_bar_chart"`
+	Markdown           *dashboardwidgets.MarkdownModel           `tfsdk:"markdown"`
+}
+
+type dashboardWidgetModelV2 struct {
+	ID          types.String                      `tfsdk:"id"`
+	Title       types.String                      `tfsdk:"title"`
+	Description types.String                      `tfsdk:"description"`
+	Definition  *dashboardWidgetDefinitionModelV2 `tfsdk:"definition"`
+	Width       types.Int64                       `tfsdk:"width"`
 }
 
 type DashboardVariableModel struct {
@@ -489,74 +559,6 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 }
 
 func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-
-	type DataPrimeModelV0 struct {
-		Query   types.String `tfsdk:"query"`
-		Filters types.List   `tfsdk:"filters"` //DashboardFilterSourceModel
-	}
-
-	type QuerySpansModelV0 struct {
-		LuceneQuery  types.String `tfsdk:"lucene_query"`
-		GroupBy      types.List   `tfsdk:"group_by"`     //SpansFieldModel
-		Aggregations types.List   `tfsdk:"aggregations"` //SpansAggregationModel
-		Filters      types.List   `tfsdk:"filters"`      //SpansFilterModel
-	}
-
-	type HexagonQueryMetricsModelV0 struct {
-		PromqlQuery     types.String `tfsdk:"promql_query"`
-		Filters         types.List   `tfsdk:"filters"` //MetricsFilterModel
-		PromqlQueryType types.String `tfsdk:"promql_query_type"`
-		Aggregation     types.String `tfsdk:"aggregation"`
-	}
-
-	type HexagonQueryLogsModelV0 struct {
-		LuceneQuery types.String                           `tfsdk:"lucene_query"`
-		GroupBy     types.List                             `tfsdk:"group_by"` //ObservationFieldModel
-		Aggregation *dashboardwidgets.LogsAggregationModel `tfsdk:"aggregation"`
-		Filters     types.List                             `tfsdk:"filters"` //LogsFilterModel
-	}
-
-	type HexagonQueryModelV0 struct {
-		Logs      *HexagonQueryLogsModelV0    `tfsdk:"logs"`
-		Metrics   *HexagonQueryMetricsModelV0 `tfsdk:"metrics"`
-		Spans     *QuerySpansModelV0          `tfsdk:"spans"`
-		DataPrime *DataPrimeModelV0           `tfsdk:"data_prime"`
-	}
-
-	type HexagonModelV0 struct {
-		CustomUnit    types.String                     `tfsdk:"custom_unit"`
-		LegendBy      types.String                     `tfsdk:"legend_by"`
-		Decimal       types.Number                     `tfsdk:"decimal"`
-		DataModeType  types.String                     `tfsdk:"data_mode_type"`
-		Thresholds    types.Set                        `tfsdk:"thresholds"` //HexagonThresholdModel
-		ThresholdType types.String                     `tfsdk:"threshold_type"`
-		Min           types.Number                     `tfsdk:"min"`
-		Max           types.Number                     `tfsdk:"max"`
-		Unit          types.String                     `tfsdk:"unit"`
-		Legend        *dashboardwidgets.LegendModel    `tfsdk:"legend"`
-		Query         *HexagonQueryModelV0             `tfsdk:"query"`
-		TimeFrame     *dashboardwidgets.TimeFrameModel `tfsdk:"time_frame"`
-	}
-
-	type WidgetDefinitionModelV0 struct {
-		LineChart          *dashboardwidgets.LineChartModel          `tfsdk:"line_chart"`
-		Hexagon            *HexagonModelV0                           `tfsdk:"hexagon"`
-		DataTable          *dashboardwidgets.DataTableModel          `tfsdk:"data_table"`
-		Gauge              *dashboardwidgets.GaugeModel              `tfsdk:"gauge"`
-		PieChart           *dashboardwidgets.PieChartModel           `tfsdk:"pie_chart"`
-		BarChart           *dashboardwidgets.BarChartModel           `tfsdk:"bar_chart"`
-		HorizontalBarChart *dashboardwidgets.HorizontalBarChartModel `tfsdk:"horizontal_bar_chart"`
-		Markdown           *dashboardwidgets.MarkdownModel           `tfsdk:"markdown"`
-	}
-
-	type WidgetModelV0 struct {
-		ID          types.String             `tfsdk:"id"`
-		Title       types.String             `tfsdk:"title"`
-		Description types.String             `tfsdk:"description"`
-		Definition  *WidgetDefinitionModelV0 `tfsdk:"definition"`
-		Width       types.Int64              `tfsdk:"width"`
-	}
-
 	var priorStateData DashboardResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &priorStateData)...)
 	if resp.Diagnostics.HasError() {
@@ -586,7 +588,7 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 			return
 		}
 		for _, row := range rows {
-			var widgets []WidgetModelV0
+			var widgets []dashboardWidgetModelV2
 			diags := row.Widgets.ElementsAs(ctx, &widgets, false)
 			resp.Diagnostics.Append(diags...)
 			if resp.Diagnostics.HasError() {
@@ -599,97 +601,13 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 					ID:          widget.ID,
 					Title:       widget.Title,
 					Description: widget.Description,
-					Definition:  nil,
 					Width:       widget.Width,
 				}
-				if widget.Definition != nil {
-					var newHex *dashboardwidgets.HexagonModel
-					if widget.Definition.Hexagon != nil {
-						timeFrame := widget.Definition.Hexagon.TimeFrame
-
-						oldQuery := widget.Definition.Hexagon.Query
-
-						var logs *dashboardwidgets.HexagonQueryLogsModel
-						var metrics *dashboardwidgets.HexagonQueryMetricsModel
-						var dataprime *dashboardwidgets.DataPrimeModel
-						var spans *dashboardwidgets.HexagonQuerySpansModel
-						if oldQuery.DataPrime != nil {
-							dataprime = &dashboardwidgets.DataPrimeModel{
-								TimeFrame: timeFrame,
-								Query:     oldQuery.DataPrime.Query,
-								Filters:   oldQuery.DataPrime.Filters,
-							}
-						}
-						if oldQuery.Spans != nil {
-							var aggregations []dashboardwidgets.SpansAggregationModel
-							diags := oldQuery.Spans.Aggregations.ElementsAs(ctx, &aggregations, false)
-							resp.Diagnostics.Append(diags...)
-							if resp.Diagnostics.HasError() {
-								return
-							}
-							var aggregation *dashboardwidgets.SpansAggregationModel
-							if len(aggregations) > 0 {
-								aggregation = &aggregations[0]
-							}
-							spans = &dashboardwidgets.HexagonQuerySpansModel{
-								TimeFrame:   timeFrame,
-								LuceneQuery: oldQuery.Spans.LuceneQuery,
-								Filters:     oldQuery.Spans.Filters,
-								Aggregation: aggregation,
-								GroupBy:     oldQuery.Spans.GroupBy,
-							}
-						}
-						if oldQuery.Metrics != nil {
-							metrics = &dashboardwidgets.HexagonQueryMetricsModel{
-								TimeFrame:       timeFrame,
-								PromqlQuery:     oldQuery.Metrics.PromqlQuery,
-								PromqlQueryType: oldQuery.Metrics.PromqlQueryType,
-								Filters:         oldQuery.Metrics.Filters,
-								Aggregation:     oldQuery.Metrics.Aggregation,
-							}
-						}
-						if oldQuery.Logs != nil {
-							logs = &dashboardwidgets.HexagonQueryLogsModel{
-								TimeFrame:   timeFrame,
-								LuceneQuery: oldQuery.Logs.LuceneQuery,
-								Filters:     oldQuery.Logs.Filters,
-								Aggregation: oldQuery.Logs.Aggregation,
-								GroupBy:     oldQuery.Logs.GroupBy,
-							}
-						}
-
-						query := &dashboardwidgets.HexagonQueryModel{
-							Logs:      logs,
-							Metrics:   metrics,
-							DataPrime: dataprime,
-							Spans:     spans,
-						}
-						newHex = &dashboardwidgets.HexagonModel{
-							CustomUnit:    widget.Definition.Hexagon.CustomUnit,
-							LegendBy:      widget.Definition.Hexagon.LegendBy,
-							Decimal:       widget.Definition.Hexagon.Decimal,
-							DataModeType:  widget.Definition.Hexagon.DataModeType,
-							Thresholds:    widget.Definition.Hexagon.Thresholds,
-							ThresholdType: widget.Definition.Hexagon.ThresholdType,
-							Min:           widget.Definition.Hexagon.Min,
-							Max:           widget.Definition.Hexagon.Max,
-							Unit:          widget.Definition.Hexagon.Unit,
-							Legend:        widget.Definition.Hexagon.Legend,
-							Query:         query,
-						}
-					}
-
-					newWidget.Definition = &dashboardwidgets.WidgetDefinitionModel{
-						LineChart:          widget.Definition.LineChart,
-						Hexagon:            newHex,
-						DataTable:          widget.Definition.DataTable,
-						Gauge:              widget.Definition.Gauge,
-						PieChart:           widget.Definition.PieChart,
-						BarChart:           widget.Definition.BarChart,
-						HorizontalBarChart: widget.Definition.HorizontalBarChart,
-						Markdown:           widget.Definition.Markdown,
-					}
+				definition, ok := upgradeDashboardWidgetDefinitionV2ToV3(ctx, widget.Definition, resp)
+				if !ok {
+					return
 				}
+				newWidget.Definition = definition
 				widgetElement, diags := types.ObjectValueFrom(ctx, widgetModelAttr(), newWidget)
 
 				if diags.HasError() {
@@ -720,6 +638,121 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
+}
+
+func upgradeDashboardWidgetDefinitionV2ToV3(ctx context.Context, old *dashboardWidgetDefinitionModelV2, resp *resource.UpgradeStateResponse) (*dashboardwidgets.WidgetDefinitionModel, bool) {
+	if old == nil {
+		return nil, true
+	}
+	hexagon, ok := upgradeDashboardHexagonV2ToV3(ctx, old.Hexagon, resp)
+	if !ok {
+		return nil, false
+	}
+	return &dashboardwidgets.WidgetDefinitionModel{
+		LineChart:          old.LineChart,
+		Hexagon:            hexagon,
+		DataTable:          old.DataTable,
+		Gauge:              old.Gauge,
+		PieChart:           old.PieChart,
+		BarChart:           old.BarChart,
+		HorizontalBarChart: old.HorizontalBarChart,
+		Markdown:           old.Markdown,
+	}, true
+}
+
+func upgradeDashboardHexagonV2ToV3(ctx context.Context, old *dashboardHexagonModelV2, resp *resource.UpgradeStateResponse) (*dashboardwidgets.HexagonModel, bool) {
+	if old == nil {
+		return nil, true
+	}
+	query, ok := upgradeDashboardHexagonQueryV2ToV3(ctx, old.Query, old.TimeFrame, resp)
+	if !ok {
+		return nil, false
+	}
+	return &dashboardwidgets.HexagonModel{
+		CustomUnit:    old.CustomUnit,
+		LegendBy:      old.LegendBy,
+		Decimal:       old.Decimal,
+		DataModeType:  old.DataModeType,
+		Thresholds:    old.Thresholds,
+		ThresholdType: old.ThresholdType,
+		Min:           old.Min,
+		Max:           old.Max,
+		Unit:          old.Unit,
+		Legend:        old.Legend,
+		Query:         query,
+	}, true
+}
+
+func upgradeDashboardHexagonQueryV2ToV3(ctx context.Context, old *dashboardHexagonQueryModelV2, timeFrame *dashboardwidgets.TimeFrameModel, resp *resource.UpgradeStateResponse) (*dashboardwidgets.HexagonQueryModel, bool) {
+	if old == nil {
+		return nil, true
+	}
+	spans, ok := upgradeDashboardSpansQueryV2ToV3(ctx, old.Spans, timeFrame, resp)
+	if !ok {
+		return nil, false
+	}
+	return &dashboardwidgets.HexagonQueryModel{
+		Logs:      upgradeDashboardLogsQueryV2ToV3(old.Logs, timeFrame),
+		Metrics:   upgradeDashboardMetricsQueryV2ToV3(old.Metrics, timeFrame),
+		DataPrime: upgradeDashboardDataPrimeQueryV2ToV3(old.DataPrime, timeFrame),
+		Spans:     spans,
+	}, true
+}
+
+func upgradeDashboardDataPrimeQueryV2ToV3(old *dashboardDataPrimeModelV2, timeFrame *dashboardwidgets.TimeFrameModel) *dashboardwidgets.DataPrimeModel {
+	if old == nil {
+		return nil
+	}
+	return &dashboardwidgets.DataPrimeModel{TimeFrame: timeFrame, Query: old.Query, Filters: old.Filters}
+}
+
+func upgradeDashboardMetricsQueryV2ToV3(old *dashboardHexagonQueryMetricsModelV2, timeFrame *dashboardwidgets.TimeFrameModel) *dashboardwidgets.HexagonQueryMetricsModel {
+	if old == nil {
+		return nil
+	}
+	return &dashboardwidgets.HexagonQueryMetricsModel{
+		TimeFrame:       timeFrame,
+		PromqlQuery:     old.PromqlQuery,
+		PromqlQueryType: old.PromqlQueryType,
+		Filters:         old.Filters,
+		Aggregation:     old.Aggregation,
+	}
+}
+
+func upgradeDashboardLogsQueryV2ToV3(old *dashboardHexagonQueryLogsModelV2, timeFrame *dashboardwidgets.TimeFrameModel) *dashboardwidgets.HexagonQueryLogsModel {
+	if old == nil {
+		return nil
+	}
+	return &dashboardwidgets.HexagonQueryLogsModel{
+		TimeFrame:   timeFrame,
+		LuceneQuery: old.LuceneQuery,
+		Filters:     old.Filters,
+		Aggregation: old.Aggregation,
+		GroupBy:     old.GroupBy,
+	}
+}
+
+func upgradeDashboardSpansQueryV2ToV3(ctx context.Context, old *dashboardQuerySpansModelV2, timeFrame *dashboardwidgets.TimeFrameModel, resp *resource.UpgradeStateResponse) (*dashboardwidgets.HexagonQuerySpansModel, bool) {
+	if old == nil {
+		return nil, true
+	}
+	var aggregations []dashboardwidgets.SpansAggregationModel
+	diags := old.Aggregations.ElementsAs(ctx, &aggregations, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return nil, false
+	}
+	var aggregation *dashboardwidgets.SpansAggregationModel
+	if len(aggregations) > 0 {
+		aggregation = &aggregations[0]
+	}
+	return &dashboardwidgets.HexagonQuerySpansModel{
+		TimeFrame:   timeFrame,
+		LuceneQuery: old.LuceneQuery,
+		Filters:     old.Filters,
+		Aggregation: aggregation,
+		GroupBy:     old.GroupBy,
+	}, true
 }
 
 func upgradeDashboardStateV1ToV2(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
@@ -948,11 +981,8 @@ func dashboardLogString(dashboard any) string {
 func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashboardservice.Dashboard, diag.Diagnostics) {
 	if !plan.ContentJson.IsNull() {
 		dashboard := new(dashboardservice.Dashboard)
-		if err := json.Unmarshal([]byte(plan.ContentJson.ValueString()), dashboard); err != nil {
+		if err := dashboardjson.Unmarshal([]byte(plan.ContentJson.ValueString()), dashboard); err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error unmarshalling dashboard content json", err.Error())}
-		}
-		if err := restoreOpenAPIProtoFieldNames(dashboard); err != nil {
-			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error normalizing dashboard content json", err.Error())}
 		}
 		dashboard, diags := expandOpenAPIDashboardFolder(ctx, dashboard, plan.Folder)
 		if diags.HasError() {
@@ -1094,33 +1124,41 @@ func expandAnnotationSource(ctx context.Context, source types.Object) (*dashboar
 	}
 
 	switch {
-	case !(sourceObject.Logs.IsNull() || sourceObject.Logs.IsUnknown()):
-		logsSource, diags := expandLogsSource(ctx, sourceObject.Logs)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &dashboardservice.AnnotationSource{Logs: logsSource}, nil
-	case !(sourceObject.Metrics.IsNull() || sourceObject.Metrics.IsUnknown()):
-		metricSource, diags := expandMetricSource(ctx, sourceObject.Metrics)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &dashboardservice.AnnotationSource{Metrics: metricSource}, nil
-	case !(sourceObject.Spans.IsNull() || sourceObject.Spans.IsUnknown()):
-		spansSource, diags := expandSpansSource(ctx, sourceObject.Spans)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &dashboardservice.AnnotationSource{Spans: spansSource}, nil
-	case !(sourceObject.Manual.IsNull() || sourceObject.Manual.IsUnknown()):
-		manualSource, diags := expandManualSource(ctx, sourceObject.Manual)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &dashboardservice.AnnotationSource{Manual: manualSource}, nil
+	case objectIsKnown(sourceObject.Logs):
+		return expandLogsAnnotationSource(ctx, sourceObject.Logs)
+	case objectIsKnown(sourceObject.Metrics):
+		return expandMetricsAnnotationSource(ctx, sourceObject.Metrics)
+	case objectIsKnown(sourceObject.Spans):
+		return expandSpansAnnotationSource(ctx, sourceObject.Spans)
+	case objectIsKnown(sourceObject.Manual):
+		return expandManualAnnotationSource(ctx, sourceObject.Manual)
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Annotation Source", "Annotation Source must be either Logs, Metric, Spans or Manual")}
 	}
+}
+
+func objectIsKnown(value types.Object) bool {
+	return !value.IsNull() && !value.IsUnknown()
+}
+
+func expandLogsAnnotationSource(ctx context.Context, source types.Object) (*dashboardservice.AnnotationSource, diag.Diagnostics) {
+	expanded, diags := expandLogsSource(ctx, source)
+	return &dashboardservice.AnnotationSource{Logs: expanded}, diags
+}
+
+func expandMetricsAnnotationSource(ctx context.Context, source types.Object) (*dashboardservice.AnnotationSource, diag.Diagnostics) {
+	expanded, diags := expandMetricSource(ctx, source)
+	return &dashboardservice.AnnotationSource{Metrics: expanded}, diags
+}
+
+func expandSpansAnnotationSource(ctx context.Context, source types.Object) (*dashboardservice.AnnotationSource, diag.Diagnostics) {
+	expanded, diags := expandSpansSource(ctx, source)
+	return &dashboardservice.AnnotationSource{Spans: expanded}, diags
+}
+
+func expandManualAnnotationSource(ctx context.Context, source types.Object) (*dashboardservice.AnnotationSource, diag.Diagnostics) {
+	expanded, diags := expandManualSource(ctx, source)
+	return &dashboardservice.AnnotationSource{Manual: expanded}, diags
 }
 
 func expandManualSource(ctx context.Context, manual types.Object) (*dashboardservice.ManualSource, diag.Diagnostics) {
@@ -3383,50 +3421,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response
 		return nil, diags
 	}
 	if !(plan.ContentJson.IsNull() || plan.ContentJson.IsUnknown()) {
-		openAPIDashboard := response.Dashboard
-		if openAPIDashboard == nil {
-			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", "OpenAPI response did not include dashboard")}
-		}
-
-		folder, diags = flattenOpenAPIDashboardFolder(ctx, plan.Folder, openAPIDashboard)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		unmarshalledDashboard := new(dashboardservice.Dashboard)
-		// Users can set the folder in the dashbaord's json. In that case, the server will return a folder, but we're not supposed to set it in the plan,
-		// or terraform will panic.
-		err := json.Unmarshal([]byte(plan.ContentJson.ValueString()), unmarshalledDashboard)
-		if err != nil {
-			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Unmarshal Dashboard", err.Error())}
-		}
-		if unmarshalledDashboard.FolderId != nil || unmarshalledDashboard.FolderPath != nil {
-			folder = types.ObjectNull(dashboardFolderModelAttr())
-		}
-
-		_, err = json.Marshal(openAPIDashboard)
-		if err != nil {
-			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", err.Error())}
-		}
-
-		//if diffType, diffString := jsondiff.Compare([]byte(plan.ContentJson.ValueString()), contentJson, &jsondiff.Options{}); !(diffType == jsondiff.FullMatch || diffType == jsondiff.SupersetMatch) {
-		//	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", fmt.Sprintf("ContentJson does not match the dashboard content: %s", diffString))}
-		//}
-
-		return &DashboardResourceModel{
-			ContentJson:  types.StringValue(plan.ContentJson.ValueString()),
-			ID:           types.StringValue(openAPIDashboard.GetId()),
-			Name:         types.StringNull(),
-			Description:  types.StringNull(),
-			Layout:       types.ObjectNull(layoutModelAttr()),
-			Variables:    types.ListNull(types.ObjectType{AttrTypes: dashboardsVariablesModelAttr()}),
-			Filters:      types.ListNull(types.ObjectType{AttrTypes: dashboardsFiltersModelAttr()}),
-			TimeFrame:    nil,
-			Folder:       folder,
-			Annotations:  types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}),
-			AutoRefresh:  types.ObjectNull(dashboardAutoRefreshModelAttr()),
-			AccessPolicy: flattenedAccessPolicy,
-		}, nil
+		return flattenContentJSONDashboard(ctx, plan, response.Dashboard, flattenedAccessPolicy)
 	}
 
 	layout, diags := flattenDashboardLayout(ctx, &dashboard.Layout)
@@ -3473,6 +3468,45 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response
 		AutoRefresh:  autoRefresh,
 		ContentJson:  types.StringNull(),
 		AccessPolicy: flattenedAccessPolicy,
+	}, nil
+}
+
+func flattenContentJSONDashboard(ctx context.Context, plan DashboardResourceModel, dashboard *dashboardservice.Dashboard, accessPolicy types.String) (*DashboardResourceModel, diag.Diagnostics) {
+	if dashboard == nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", "OpenAPI response did not include dashboard")}
+	}
+
+	folder, diags := flattenOpenAPIDashboardFolder(ctx, plan.Folder, dashboard)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	unmarshalledDashboard := new(dashboardservice.Dashboard)
+	if err := dashboardjson.Unmarshal([]byte(plan.ContentJson.ValueString()), unmarshalledDashboard); err != nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Unmarshal Dashboard", err.Error())}
+	}
+	// A folder embedded in content_json belongs to that JSON configuration. Setting
+	// it separately in Terraform state can cause the framework to panic.
+	if unmarshalledDashboard.FolderId != nil || unmarshalledDashboard.FolderPath != nil {
+		folder = types.ObjectNull(dashboardFolderModelAttr())
+	}
+	if _, err := json.Marshal(dashboard); err != nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", err.Error())}
+	}
+
+	return &DashboardResourceModel{
+		ContentJson:  plan.ContentJson,
+		ID:           types.StringValue(dashboard.GetId()),
+		Name:         types.StringNull(),
+		Description:  types.StringNull(),
+		Layout:       types.ObjectNull(layoutModelAttr()),
+		Variables:    types.ListNull(types.ObjectType{AttrTypes: dashboardsVariablesModelAttr()}),
+		Filters:      types.ListNull(types.ObjectType{AttrTypes: dashboardsFiltersModelAttr()}),
+		TimeFrame:    nil,
+		Folder:       folder,
+		Annotations:  types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}),
+		AutoRefresh:  types.ObjectNull(dashboardAutoRefreshModelAttr()),
+		AccessPolicy: accessPolicy,
 	}, nil
 }
 

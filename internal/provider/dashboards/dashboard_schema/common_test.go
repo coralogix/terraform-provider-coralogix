@@ -91,6 +91,16 @@ func TestContentJsonValidator(t *testing.T) {
 			wantError: false,
 		},
 		{
+			name:      "valid protobuf field names with required nested alias",
+			value:     types.StringValue(`{"name":"dashboard","layout":{"sections":[{"rows":[{"widgets":[{"definition":{"line_chart":{"query_definitions":[]}}}]}]}]}}`),
+			wantError: false,
+		},
+		{
+			name:      "valid lower-camel parent with required nested alias",
+			value:     types.StringValue(`{"name":"dashboard","layout":{"sections":[{"rows":[{"widgets":[{"definition":{"lineChart":{"query_definitions":[]}}}]}]}]}}`),
+			wantError: false,
+		},
+		{
 			name:      "missing required OpenAPI field",
 			value:     types.StringValue(`{"layout":{"sections":[]}}`),
 			wantError: true,

@@ -17,6 +17,7 @@ package dashboards
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -30,6 +31,7 @@ import (
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboardjson"
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -84,6 +86,72 @@ func TestExtractDashboardContentJSONRestoresAliasesBeforeDiscardingUnknownFields
 	}
 }
 
+func TestExtractDashboardContentJSONRestoresRequiredNestedAliases(t *testing.T) {
+	tests := []struct {
+		name            string
+		definitionField string
+		queriesField    string
+	}{
+		{
+			name:            "snake-case parent and required child",
+			definitionField: "line_chart",
+			queriesField:    "query_definitions",
+		},
+		{
+			name:            "lower-camel parent and snake-case required child",
+			definitionField: "lineChart",
+			queriesField:    "query_definitions",
+		},
+		{
+			name:            "snake-case parent and lower-camel required child",
+			definitionField: "line_chart",
+			queriesField:    "queryDefinitions",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			content := fmt.Sprintf(`{
+				"name": "nested aliases",
+				"layout": {"sections": [{"rows": [{"widgets": [{"definition": {
+					%q: {%q: [{"id": "query", "query": {}, "series_count_limit": "10"}]}
+				}}]}]}]}
+			}`, tt.definitionField, tt.queriesField)
+
+			dashboard, diags := extractDashboard(context.Background(), DashboardResourceModel{
+				ContentJson: types.StringValue(content),
+				Folder:      types.ObjectNull(dashboardFolderModelAttr()),
+			})
+			if diags.HasError() {
+				t.Fatalf("extract content_json dashboard: %v", diags)
+			}
+
+			definition := dashboard.Layout.Sections[0].Rows[0].Widgets[0].Definition
+			if definition == nil || definition.LineChart == nil {
+				t.Fatal("expected line_chart alias to populate the typed lineChart field")
+			}
+			if len(definition.LineChart.QueryDefinitions) != 1 {
+				t.Fatal("expected query_definitions alias to populate the required queryDefinitions field")
+			}
+			queryDefinition := definition.LineChart.QueryDefinitions[0]
+			if queryDefinition.SeriesCountLimit == nil || *queryDefinition.SeriesCountLimit != "10" {
+				t.Fatalf("expected list-element alias to populate seriesCountLimit, got %v", queryDefinition.SeriesCountLimit)
+			}
+
+			request := newDashboardOpenAPICreateRequest(*dashboard, nil)
+			encoded, err := json.Marshal(request)
+			if err != nil {
+				t.Fatalf("marshal normalized request: %s", err)
+			}
+			if !strings.Contains(string(encoded), `"lineChart"`) ||
+				!strings.Contains(string(encoded), `"queryDefinitions"`) ||
+				!strings.Contains(string(encoded), `"seriesCountLimit"`) {
+				t.Fatalf("request did not contain canonical nested field names: %s", encoded)
+			}
+		})
+	}
+}
+
 func TestExtractDashboardContentJSONPreservesDynamicQueriesTable(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "testdata", "dashboards", "content_json_dynamic_queries_table.json"))
 	if err != nil {
@@ -100,43 +168,7 @@ func TestExtractDashboardContentJSONPreservesDynamicQueriesTable(t *testing.T) {
 	wantQueries := []string{"logs", "metrics", "spans"}
 	for i, wantQuery := range wantQueries {
 		definition := dashboard.Layout.Sections[0].Rows[i].Widgets[0].Definition
-		if definition == nil || definition.Dynamic == nil {
-			t.Fatalf("row %d: expected dynamic widget definition to be preserved", i)
-		}
-		dynamic := definition.Dynamic
-		if len(dynamic.QueryDefinitions) != 1 {
-			t.Fatalf("row %d: dynamic query definitions = %d, want 1", i, len(dynamic.QueryDefinitions))
-		}
-		query := dynamic.QueryDefinitions[0].Query
-		queryPresent := map[string]bool{
-			"dataprime": query.Dataprime != nil,
-			"logs":      query.Logs != nil,
-			"metrics":   query.Metrics != nil,
-			"spans":     query.Spans != nil,
-		}
-		for branch, present := range queryPresent {
-			if present != (branch == wantQuery) {
-				t.Fatalf("row %d: dynamic query branch %s populated=%t, want %t; query=%+v", i, branch, present, branch == wantQuery, query)
-			}
-		}
-		if dynamic.Visualization == nil {
-			t.Fatalf("row %d: expected dynamic visualization", i)
-		}
-		visualization := reflect.ValueOf(dynamic.Visualization).Elem()
-		for fieldIndex := 0; fieldIndex < visualization.NumField(); fieldIndex++ {
-			fieldDefinition := visualization.Type().Field(fieldIndex)
-			branch := strings.Split(fieldDefinition.Tag.Get("json"), ",")[0]
-			if branch == "" || branch == "-" || branch == "AdditionalProperties" {
-				continue
-			}
-			present := !visualization.Field(fieldIndex).IsZero()
-			if present != (branch == "table") {
-				t.Fatalf("row %d: dynamic visualization branch %s populated=%t, want %t", i, branch, present, branch == "table")
-			}
-		}
-		if dynamic.Visualization.Table == nil {
-			t.Fatalf("row %d: expected dynamic table visualization, got %+v", i, dynamic.Visualization)
-		}
+		assertDynamicWidgetBranches(t, i, wantQuery, definition)
 	}
 
 	request := newDashboardOpenAPICreateRequest(*dashboard, nil)
@@ -144,21 +176,76 @@ func TestExtractDashboardContentJSONPreservesDynamicQueriesTable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal dynamic content_json request: %s", err)
 	}
-	if !strings.Contains(string(encoded), `"dynamic"`) ||
-		!strings.Contains(string(encoded), `"queryDefinitions"`) ||
-		!strings.Contains(string(encoded), `"table"`) ||
-		!strings.Contains(string(encoded), `"logs"`) ||
-		!strings.Contains(string(encoded), `"metrics"`) ||
-		!strings.Contains(string(encoded), `"spans"`) {
-		t.Fatalf("dynamic branches were lost from the REST create request: %s", encoded)
+	assertJSONContainsFields(t, encoded, "dynamic", "queryDefinitions", "table", "logs", "metrics", "spans")
+}
+
+func assertDynamicWidgetBranches(t *testing.T, row int, wantQuery string, definition *dashboardservice.WidgetDefinition) {
+	t.Helper()
+	if definition == nil || definition.Dynamic == nil {
+		t.Fatalf("row %d: expected dynamic widget definition to be preserved", row)
+	}
+
+	dynamic := definition.Dynamic
+	if len(dynamic.QueryDefinitions) != 1 {
+		t.Fatalf("row %d: dynamic query definitions = %d, want 1", row, len(dynamic.QueryDefinitions))
+	}
+	assertDynamicQueryBranch(t, row, wantQuery, dynamic.QueryDefinitions[0].Query)
+	assertDynamicVisualizationBranch(t, row, dynamic.Visualization)
+}
+
+func assertDynamicQueryBranch(t *testing.T, row int, want string, query dashboardservice.DynamicQuery) {
+	t.Helper()
+	queryPresent := map[string]bool{
+		"dataprime": query.Dataprime != nil,
+		"logs":      query.Logs != nil,
+		"metrics":   query.Metrics != nil,
+		"spans":     query.Spans != nil,
+	}
+	for branch, present := range queryPresent {
+		if present != (branch == want) {
+			t.Fatalf("row %d: dynamic query branch %s populated=%t, want %t; query=%+v", row, branch, present, branch == want, query)
+		}
+	}
+}
+
+func assertDynamicVisualizationBranch(t *testing.T, row int, dynamic *dashboardservice.Visualization) {
+	t.Helper()
+	if dynamic == nil {
+		t.Fatalf("row %d: expected dynamic visualization", row)
+	}
+
+	visualization := reflect.ValueOf(dynamic).Elem()
+	for fieldIndex := 0; fieldIndex < visualization.NumField(); fieldIndex++ {
+		fieldDefinition := visualization.Type().Field(fieldIndex)
+		branch := strings.Split(fieldDefinition.Tag.Get("json"), ",")[0]
+		if branch == "" || branch == "-" || branch == "AdditionalProperties" {
+			continue
+		}
+		present := !visualization.Field(fieldIndex).IsZero()
+		if present != (branch == "table") {
+			t.Fatalf("row %d: dynamic visualization branch %s populated=%t, want %t", row, branch, present, branch == "table")
+		}
+	}
+	if dynamic.Table == nil {
+		t.Fatalf("row %d: expected dynamic table visualization, got %+v", row, dynamic)
+	}
+}
+
+func assertJSONContainsFields(t *testing.T, encoded []byte, fields ...string) {
+	t.Helper()
+	for _, field := range fields {
+		if !strings.Contains(string(encoded), fmt.Sprintf("%q", field)) {
+			t.Fatalf("field %q was lost from the REST create request: %s", field, encoded)
+		}
 	}
 }
 
 // TestDashboardContentJSONGeneratedOneOfBranchContract proves the generic
 // content_json transport contract for every generated union reachable from a
-// Dashboard. Each branch is decoded through its protobuf snake_case alias,
-// promoted into the exact typed field, stripped of AdditionalProperties, and
-// serialized inside a create request with every sibling left nil.
+// Dashboard. Each branch and every required descendant are decoded through
+// their protobuf snake_case aliases, promoted into the exact typed fields,
+// stripped of AdditionalProperties, and serialized inside a create request
+// with every sibling left nil.
 func TestDashboardContentJSONGeneratedOneOfBranchContract(t *testing.T) {
 	rootType := reflect.TypeOf(dashboardservice.Dashboard{})
 	reachable, parents := dashboardReachableGeneratedModels(rootType)
@@ -196,11 +283,8 @@ func TestDashboardContentJSONGeneratedOneOfBranchContract(t *testing.T) {
 				if err != nil {
 					t.Fatalf("marshal protobuf JSON alias %q: %s", alias, err)
 				}
-				if err := json.Unmarshal(encodedPayload, model.Interface()); err != nil {
+				if err := dashboardjson.Unmarshal(encodedPayload, model.Interface()); err != nil {
 					t.Fatalf("decode protobuf JSON alias %q: %s", alias, err)
-				}
-				if err := restoreOpenAPIProtoFieldNames(model.Interface()); err != nil {
-					t.Fatalf("restore protobuf JSON alias %q: %s", alias, err)
 				}
 				discardOpenAPIAdditionalProperties(model.Interface())
 
@@ -225,6 +309,32 @@ func TestDashboardContentJSONGeneratedOneOfBranchContract(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestDashboardContentJSONGeneratedRequiredFieldAliases(t *testing.T) {
+	reachable, _ := dashboardReachableGeneratedModels(reflect.TypeOf(dashboardservice.Dashboard{}))
+	enumValues := dashboardGeneratedEnumValues(t)
+	modelNames := make([]string, 0, len(reachable))
+	for modelName := range reachable {
+		modelNames = append(modelNames, modelName)
+	}
+	sort.Strings(modelNames)
+
+	for _, modelName := range modelNames {
+		modelType := reachable[modelName]
+		t.Run(modelName, func(t *testing.T) {
+			payload := dashboardGeneratedJSONData(modelType, enumValues, 0)
+			encoded, err := json.Marshal(payload)
+			if err != nil {
+				t.Fatalf("marshal generated protobuf JSON fields: %s", err)
+			}
+
+			model := reflect.New(modelType)
+			if err := dashboardjson.Unmarshal(encoded, model.Interface()); err != nil {
+				t.Fatalf("decode generated protobuf JSON fields: %s; payload: %s", err, encoded)
+			}
+		})
 	}
 }
 
@@ -393,7 +503,7 @@ func dashboardGeneratedJSONData(value reflect.Type, enumValues map[string]string
 			if len(parts) == 0 || parts[0] == "" || parts[0] == "-" || slicesContain(parts[1:], "omitempty") {
 				continue
 			}
-			result[parts[0]] = dashboardGeneratedJSONData(field.Type, enumValues, depth+1)
+			result[dashboardLowerCamelToSnake(parts[0])] = dashboardGeneratedJSONData(field.Type, enumValues, depth+1)
 		}
 		return result
 	case reflect.Map, reflect.Interface:

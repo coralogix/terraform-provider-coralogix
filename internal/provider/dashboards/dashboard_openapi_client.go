@@ -16,13 +16,10 @@ package dashboards
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
-	"strings"
-	"unicode"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
@@ -155,92 +152,6 @@ func newDashboardOpenAPIReplaceRequest(dashboard dashboardservice.Dashboard, acc
 // them when they are sent back.
 func discardOpenAPIAdditionalProperties(value any) {
 	discardAdditionalPropertiesValue(reflect.ValueOf(value))
-}
-
-// restoreOpenAPIProtoFieldNames promotes protobuf's accepted snake_case JSON
-// field names from AdditionalProperties into the generated OpenAPI model's
-// lowerCamelCase fields. This must run before unknown properties are discarded.
-func restoreOpenAPIProtoFieldNames(value any) error {
-	return restoreProtoFieldNamesValue(reflect.ValueOf(value))
-}
-
-func restoreProtoFieldNamesValue(value reflect.Value) error {
-	if !value.IsValid() {
-		return nil
-	}
-
-	switch value.Kind() {
-	case reflect.Interface, reflect.Pointer:
-		if value.IsNil() {
-			return nil
-		}
-		return restoreProtoFieldNamesValue(value.Elem())
-	case reflect.Struct:
-		if value.Type().PkgPath() != reflect.TypeOf(dashboardservice.Dashboard{}).PkgPath() {
-			return nil
-		}
-		if err := promoteProtoFieldAliases(value); err != nil {
-			return err
-		}
-		for i := 0; i < value.NumField(); i++ {
-			if err := restoreProtoFieldNamesValue(value.Field(i)); err != nil {
-				return err
-			}
-		}
-	case reflect.Slice, reflect.Array:
-		for i := 0; i < value.Len(); i++ {
-			if err := restoreProtoFieldNamesValue(value.Index(i)); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func promoteProtoFieldAliases(value reflect.Value) error {
-	additionalProperties := value.FieldByName("AdditionalProperties")
-	if !additionalProperties.IsValid() || additionalProperties.IsNil() {
-		return nil
-	}
-
-	for i := 0; i < value.NumField(); i++ {
-		fieldDefinition := value.Type().Field(i)
-		jsonName := strings.Split(fieldDefinition.Tag.Get("json"), ",")[0]
-		if jsonName == "" || jsonName == "-" {
-			continue
-		}
-
-		alias := protobufJSONFieldName(jsonName)
-		additionalValue := additionalProperties.MapIndex(reflect.ValueOf(alias))
-		if !additionalValue.IsValid() {
-			continue
-		}
-
-		encoded, err := json.Marshal(additionalValue.Interface())
-		if err != nil {
-			return fmt.Errorf("marshal protobuf JSON field %q: %w", alias, err)
-		}
-		if err := json.Unmarshal(encoded, value.Field(i).Addr().Interface()); err != nil {
-			return fmt.Errorf("unmarshal protobuf JSON field %q: %w", alias, err)
-		}
-	}
-
-	return nil
-}
-
-func protobufJSONFieldName(jsonName string) string {
-	var result strings.Builder
-	for i, character := range jsonName {
-		if unicode.IsUpper(character) {
-			if i > 0 {
-				result.WriteByte('_')
-			}
-			character = unicode.ToLower(character)
-		}
-		result.WriteRune(character)
-	}
-	return result.String()
 }
 
 func discardAdditionalPropertiesValue(value reflect.Value) {

@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboardjson"
 	"github.com/google/uuid"
 )
 
@@ -74,7 +75,7 @@ func TestNewDashboardOpenAPIRequestDiscardsUnknownProperties(t *testing.T) {
 	}
 }
 
-func TestRestoreOpenAPIProtoFieldNames(t *testing.T) {
+func TestDashboardJSONUnmarshalRestoresProtoFieldNames(t *testing.T) {
 	content := []byte(`{
 		"name": "test",
 		"layout": {
@@ -95,11 +96,8 @@ func TestRestoreOpenAPIProtoFieldNames(t *testing.T) {
 	}`)
 
 	dashboard := new(dashboardservice.Dashboard)
-	if err := json.Unmarshal(content, dashboard); err != nil {
-		t.Fatalf("failed to unmarshal dashboard: %s", err)
-	}
-	if err := restoreOpenAPIProtoFieldNames(dashboard); err != nil {
-		t.Fatalf("failed to restore protobuf field names: %s", err)
+	if err := dashboardjson.Unmarshal(content, dashboard); err != nil {
+		t.Fatalf("failed to unmarshal protobuf field names: %s", err)
 	}
 
 	definition := dashboard.Layout.Sections[0].Rows[0].Widgets[0].Definition
@@ -218,11 +216,8 @@ func TestDashboardOpenAPIClientCreateAndReplaceRequestSerialization(t *testing.T
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dashboard := new(dashboardservice.Dashboard)
-			if err := json.Unmarshal([]byte(content), dashboard); err != nil {
+			if err := dashboardjson.Unmarshal([]byte(content), dashboard); err != nil {
 				t.Fatalf("unmarshal protobuf-spelled dashboard: %s", err)
-			}
-			if err := restoreOpenAPIProtoFieldNames(dashboard); err != nil {
-				t.Fatalf("restore protobuf field aliases: %s", err)
 			}
 
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
