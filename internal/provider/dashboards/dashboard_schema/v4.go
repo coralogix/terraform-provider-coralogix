@@ -118,9 +118,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 													"definition": schema.SingleNestedAttribute{
 														Required: true,
 														Attributes: map[string]schema.Attribute{
-															"line_chart": dashboardwidgets.LineChartSchema(),
-															"hexagon":    dashboardwidgets.HexagonSchema(),
-															"data_table": dashboardwidgets.DataTableSchema(),
+															"line_chart": dashboardwidgets.LineChartSchemaWithoutWidgetValidation(),
+															"hexagon":    dashboardwidgets.HexagonSchemaWithoutWidgetValidation(),
+															"data_table": dashboardwidgets.DataTableSchemaWithoutWidgetValidation(),
 															"gauge": schema.SingleNestedAttribute{
 																Attributes: map[string]schema.Attribute{
 																	"query": schema.SingleNestedAttribute{
@@ -135,11 +135,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame":       dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("spans"),
-																						path.MatchRelative().AtParent().AtName("metrics"),
-																						path.MatchRelative().AtParent().AtName("data_prime"),
-																					),
+																					dashboardwidgets.AtMostOneOfAttributes("field_name", "field_value"),
 																				},
 																				Optional: true,
 																			},
@@ -160,14 +156,10 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"filters":    dashboardwidgets.MetricFiltersSchema(),
 																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
-																				Optional: true,
 																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("logs"),
-																						path.MatchRelative().AtParent().AtName("spans"),
-																						path.MatchRelative().AtParent().AtName("data_prime"),
-																					),
+																					dashboardwidgets.AtMostOneOfAttributes("metric_name", "label_name", "label_value"),
 																				},
+																				Optional: true,
 																			},
 																			"spans": schema.SingleNestedAttribute{
 																				Attributes: map[string]schema.Attribute{
@@ -179,13 +171,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame":        dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("logs"),
-																						path.MatchRelative().AtParent().AtName("metrics"),
-																						path.MatchRelative().AtParent().AtName("data_prime"),
-																					),
-																				},
 																			},
 																			"data_prime": schema.SingleNestedAttribute{
 																				Attributes: map[string]schema.Attribute{
@@ -201,14 +186,10 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("logs"),
-																						path.MatchRelative().AtParent().AtName("spans"),
-																						path.MatchRelative().AtParent().AtName("metrics"),
-																					),
-																				},
 																			},
+																		},
+																		Validators: []validator.Object{
+																			dashboardwidgets.AtMostOneOfAttributes("logs", "metrics", "spans", "data_prime"),
 																		},
 																		Required: true,
 																	},
@@ -292,7 +273,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	},
 																},
 																Validators: []validator.Object{
-																	dashboardwidgets.SupportedWidgetsValidatorWithout("gauge"),
 																	objectvalidator.AlsoRequires(
 																		path.MatchRelative().AtParent().AtParent().AtName("title"),
 																	),
@@ -333,13 +313,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("spans"),
-																						path.MatchRelative().AtParent().AtName("metrics"),
-																						path.MatchRelative().AtParent().AtName("data_prime"),
-																					),
-																				},
 																			},
 																			"spans": schema.SingleNestedAttribute{
 																				Attributes: map[string]schema.Attribute{
@@ -353,13 +326,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame":         dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("logs"),
-																						path.MatchRelative().AtParent().AtName("metrics"),
-																						path.MatchRelative().AtParent().AtName("data_prime"),
-																					),
-																				},
 																			},
 																			"metrics": schema.SingleNestedAttribute{
 																				Attributes: map[string]schema.Attribute{
@@ -377,13 +343,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("logs"),
-																						path.MatchRelative().AtParent().AtName("spans"),
-																						path.MatchRelative().AtParent().AtName("data_prime"),
-																					),
-																				},
 																			},
 																			"data_prime": schema.SingleNestedAttribute{
 																				Attributes: map[string]schema.Attribute{
@@ -406,14 +365,10 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("logs"),
-																						path.MatchRelative().AtParent().AtName("spans"),
-																						path.MatchRelative().AtParent().AtName("metrics"),
-																					),
-																				},
 																			},
+																		},
+																		Validators: []validator.Object{
+																			dashboardwidgets.AtMostOneOfAttributes("logs", "metrics", "spans", "data_prime"),
 																		},
 																		Required: true,
 																	},
@@ -497,9 +452,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		},
 																	},
 																},
-																Validators: []validator.Object{
-																	dashboardwidgets.SupportedWidgetsValidatorWithout("pie_chart"),
-																},
 																Optional: true,
 															},
 															"bar_chart": schema.SingleNestedAttribute{
@@ -533,13 +485,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("metrics"),
-																						path.MatchRelative().AtParent().AtName("spans"),
-																						path.MatchRelative().AtParent().AtName("data_prime"),
-																					),
-																				},
 																			},
 																			"metrics": schema.SingleNestedAttribute{
 																				Attributes: map[string]schema.Attribute{
@@ -557,13 +502,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("logs"),
-																						path.MatchRelative().AtParent().AtName("spans"),
-																						path.MatchRelative().AtParent().AtName("data_prime"),
-																					),
-																				},
 																			},
 																			"spans": schema.SingleNestedAttribute{
 																				Attributes: map[string]schema.Attribute{
@@ -577,13 +515,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame":         dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("logs"),
-																						path.MatchRelative().AtParent().AtName("metrics"),
-																						path.MatchRelative().AtParent().AtName("data_prime"),
-																					),
-																				},
 																			},
 																			"data_prime": schema.SingleNestedAttribute{
 																				Attributes: map[string]schema.Attribute{
@@ -606,14 +537,10 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("logs"),
-																						path.MatchRelative().AtParent().AtName("metrics"),
-																						path.MatchRelative().AtParent().AtName("spans"),
-																					),
-																				},
 																			},
+																		},
+																		Validators: []validator.Object{
+																			dashboardwidgets.AtMostOneOfAttributes("logs", "metrics", "spans", "data_prime"),
 																		},
 																		Optional: true,
 																	},
@@ -659,21 +586,14 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					},
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("value"),
-																					),
-																				},
 																			},
 																			"value": schema.SingleNestedAttribute{
 																				Attributes: map[string]schema.Attribute{},
 																				Optional:   true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("time"),
-																					),
-																				},
 																			},
+																		},
+																		Validators: []validator.Object{
+																			dashboardwidgets.AtMostOneOfAttributes("time", "value"),
 																		},
 																	},
 																	"unit": schema.StringAttribute{
@@ -711,7 +631,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	},
 																},
 																Validators: []validator.Object{
-																	dashboardwidgets.SupportedWidgetsValidatorWithout("bar_chart"),
 																	objectvalidator.AlsoRequires(
 																		path.MatchRelative().AtParent().AtParent().AtName("title"),
 																	),
@@ -804,14 +723,10 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
-																				Validators: []validator.Object{
-																					objectvalidator.ExactlyOneOf(
-																						path.MatchRelative().AtParent().AtName("logs"),
-																						path.MatchRelative().AtParent().AtName("metrics"),
-																						path.MatchRelative().AtParent().AtName("spans"),
-																					),
-																				},
 																			},
+																		},
+																		Validators: []validator.Object{
+																			dashboardwidgets.AtMostOneOfAttributes("logs", "metrics", "spans", "data_prime"),
 																		},
 																		Optional: true,
 																	},
@@ -885,7 +800,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	},
 																},
 																Validators: []validator.Object{
-																	dashboardwidgets.SupportedWidgetsValidatorWithout("horizontal_bar_chart"),
 																	objectvalidator.AlsoRequires(
 																		path.MatchRelative().AtParent().AtParent().AtName("title"),
 																	),
@@ -902,13 +816,15 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	},
 																},
 																Validators: []validator.Object{
-																	dashboardwidgets.SupportedWidgetsValidatorWithout("markdown"),
 																	objectvalidator.ConflictsWith(
 																		path.MatchRelative().AtParent().AtParent().AtName("title"),
 																	),
 																},
 																Optional: true,
 															},
+														},
+														Validators: []validator.Object{
+															dashboardwidgets.AtMostOneOfAttributes(dashboardwidgets.SupportedWidgetTypes...),
 														},
 														MarkdownDescription: fmt.Sprintf("The widget definition. Can contain one of %v", dashboardwidgets.SupportedWidgetTypes),
 													},
@@ -1050,9 +966,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																				Required: true,
 																			},
 																		},
-																		Validators: []validator.Object{
-																			objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("field_value")),
-																		},
 																	},
 																	"field_value": schema.SingleNestedAttribute{
 																		Optional: true,
@@ -1066,12 +979,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	},
 																},
 																Optional: true,
-																Validators: []validator.Object{
-																	objectvalidator.ExactlyOneOf(
-																		path.MatchRelative().AtParent().AtName("spans"),
-																		path.MatchRelative().AtParent().AtName("metrics"),
-																	),
-																},
 															},
 															"metrics": schema.SingleNestedAttribute{
 																Attributes: map[string]schema.Attribute{
@@ -1081,12 +988,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																			"metric_regex": schema.StringAttribute{
 																				Required: true,
 																			},
-																		},
-																		Validators: []validator.Object{
-																			objectvalidator.ExactlyOneOf(
-																				path.MatchRelative().AtParent().AtName("label_name"),
-																				path.MatchRelative().AtParent().AtName("label_value"),
-																			),
 																		},
 																	},
 																	"label_name": schema.SingleNestedAttribute{
@@ -1148,14 +1049,17 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																			},
 																		},
 																		Optional: true,
-																		Validators: []validator.Object{
-																			objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("field_value")),
-																		},
 																	},
 																	"field_value": dashboardwidgets.SpansFieldSchema(),
 																},
+																Validators: []validator.Object{
+																	dashboardwidgets.AtMostOneOfAttributes("field_name", "field_value"),
+																},
 																Optional: true,
 															},
+														},
+														Validators: []validator.Object{
+															dashboardwidgets.AtMostOneOfAttributes("logs", "metrics", "spans"),
 														},
 														Required: true,
 													},
@@ -1307,37 +1211,19 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 									},
 								},
 								Optional: true,
-								Validators: []validator.Object{
-									objectvalidator.ExactlyOneOf(
-										path.MatchRelative().AtParent().AtName("logs"),
-										path.MatchRelative().AtParent().AtName("spans"),
-										path.MatchRelative().AtParent().AtName("manual"),
-									),
-								},
 							},
 							"logs": schema.SingleNestedAttribute{
 								Attributes: logsAndSpansAttributes(),
 								Optional:   true,
-								Validators: []validator.Object{
-									objectvalidator.ExactlyOneOf(
-										path.MatchRelative().AtParent().AtName("metrics"),
-										path.MatchRelative().AtParent().AtName("spans"),
-										path.MatchRelative().AtParent().AtName("manual"),
-									),
-								},
 							},
 							"spans": schema.SingleNestedAttribute{
 								Attributes: logsAndSpansAttributes(),
 								Optional:   true,
-								Validators: []validator.Object{
-									objectvalidator.ExactlyOneOf(
-										path.MatchRelative().AtParent().AtName("metrics"),
-										path.MatchRelative().AtParent().AtName("logs"),
-										path.MatchRelative().AtParent().AtName("manual"),
-									),
-								},
 							},
 							"manual": manualAnnotationSourceAttribute(),
+						},
+						Validators: []validator.Object{
+							dashboardwidgets.AtMostOneOfAttributes("metrics", "logs", "spans", "manual"),
 						},
 						Required: true,
 					},

@@ -179,10 +179,7 @@ func TimeFrameSchema() schema.Attribute {
 						Required: true,
 					},
 				},
-				Optional: true,
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative")),
-				},
+				Optional:            true,
 				MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
 			},
 			"relative": schema.SingleNestedAttribute{
@@ -191,12 +188,12 @@ func TimeFrameSchema() schema.Attribute {
 						Required: true,
 					},
 				},
-				Optional: true,
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute")),
-				},
+				Optional:            true,
 				MarkdownDescription: "Relative time frame specifying a duration from the current time.",
 			},
+		},
+		Validators: []validator.Object{
+			AtMostOneOfAttributes("absolute", "relative"),
 		},
 		MarkdownDescription: "Specifies the time frame. Can be either absolute or relative.",
 	}

@@ -101,6 +101,25 @@ type HexagonThresholdModel struct {
 }
 
 func HexagonSchema() schema.Attribute {
+	return hexagonSchema(true)
+}
+
+func HexagonSchemaWithoutWidgetValidation() schema.Attribute {
+	return hexagonSchema(false)
+}
+
+func hexagonSchema(includeWidgetValidation bool) schema.Attribute {
+	validators := []validator.Object{
+		objectvalidator.AlsoRequires(
+			path.MatchRelative().AtParent().AtParent().AtName("title"),
+		),
+	}
+	if includeWidgetValidation {
+		validators = append([]validator.Object{
+			SupportedWidgetsValidatorWithout("hexagon"),
+		}, validators...)
+	}
+
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Attributes: map[string]schema.Attribute{
@@ -181,13 +200,6 @@ func HexagonSchema() schema.Attribute {
 							"time_frame":  TimeFrameSchema(),
 						},
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
-								path.MatchRelative().AtParent().AtName("metrics"),
-								path.MatchRelative().AtParent().AtName("spans"),
-								path.MatchRelative().AtParent().AtName("data_prime"),
-							),
-						},
 					},
 					"metrics": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -243,14 +255,12 @@ func HexagonSchema() schema.Attribute {
 						Optional: true,
 					},
 				},
+				Validators: []validator.Object{
+					AtMostOneOfAttributes("logs", "metrics", "spans", "data_prime"),
+				},
 			},
 		},
-		Validators: []validator.Object{
-			SupportedWidgetsValidatorWithout("hexagon"),
-			objectvalidator.AlsoRequires(
-				path.MatchRelative().AtParent().AtParent().AtName("title"),
-			),
-		},
+		Validators: validators,
 	}
 }
 func HexagonSchemaV0() schema.Attribute {
@@ -335,13 +345,6 @@ func HexagonSchemaV0() schema.Attribute {
 							"aggregation": LogsAggregationSchema(),
 						},
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
-								path.MatchRelative().AtParent().AtName("metrics"),
-								path.MatchRelative().AtParent().AtName("spans"),
-								path.MatchRelative().AtParent().AtName("data_prime"),
-							),
-						},
 					},
 					"metrics": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -391,6 +394,9 @@ func HexagonSchemaV0() schema.Attribute {
 						},
 						Optional: true,
 					},
+				},
+				Validators: []validator.Object{
+					AtMostOneOfAttributes("logs", "metrics", "spans", "data_prime"),
 				},
 			},
 		},
