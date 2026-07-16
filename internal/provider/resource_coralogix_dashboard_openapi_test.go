@@ -39,6 +39,11 @@ type dashboardStructuredWidgetSpec struct {
 	queryModel       string
 }
 
+type dashboardStructuredWidgetGroup struct {
+	name    string
+	widgets []dashboardStructuredWidgetSpec
+}
+
 type dashboardOpenAPILifecyclePhase struct {
 	Config string
 	Check  resource.TestCheckFunc
@@ -122,6 +127,12 @@ var dashboardStructuredQueryWidgets = []dashboardStructuredWidgetSpec{
 	{name: "hexagon", definitionBranch: "hexagon", queryModel: "HexagonQuery"},
 }
 
+var dashboardStructuredQueryWidgetGroups = []dashboardStructuredWidgetGroup{
+	{name: "line-and-table", widgets: dashboardStructuredQueryWidgets[:2]},
+	{name: "gauge-and-bars", widgets: dashboardStructuredQueryWidgets[2:5]},
+	{name: "horizontal-and-hexagon", widgets: dashboardStructuredQueryWidgets[5:]},
+}
+
 func TestDashboardOpenAPIStructuredWidgetQueryMatrix(t *testing.T) {
 	wantCounts := map[string]int{
 		"logs":      7,
@@ -143,25 +154,58 @@ func TestDashboardOpenAPIStructuredWidgetQueryMatrix(t *testing.T) {
 	if got := len(dashboardOpenAPIStructuredWidgetsForBranch("logs")) + 1; got != 8 {
 		t.Errorf("structured WidgetDefinition branches including markdown = %d, want 8", got)
 	}
+	groupedWidgets := make(map[string]struct{}, len(dashboardStructuredQueryWidgets))
+	for _, group := range dashboardStructuredQueryWidgetGroups {
+		if len(group.widgets) < 2 || len(group.widgets) > 3 {
+			t.Errorf("structured widget group %q has %d widgets, want 2 or 3", group.name, len(group.widgets))
+		}
+		for _, widget := range group.widgets {
+			if _, exists := groupedWidgets[widget.name]; exists {
+				t.Errorf("structured widget %q belongs to more than one group", widget.name)
+			}
+			groupedWidgets[widget.name] = struct{}{}
+		}
+	}
+	if len(groupedWidgets) != len(dashboardStructuredQueryWidgets) {
+		t.Errorf("structured widget groups cover %d widgets, want %d", len(groupedWidgets), len(dashboardStructuredQueryWidgets))
+	}
 }
 
 func TestAccCoralogixResourceDashboardOpenAPIWidgetLogsQueries(t *testing.T) {
-	dashboardOpenAPIRunStructuredQueryScenario(t, "logs", true, dashboardOpenAPILogsQueryTestName)
+	dashboardOpenAPIRunStructuredQueryScenarios(t, "logs", true, dashboardOpenAPILogsQueryTestName)
 }
 
 func TestAccCoralogixResourceDashboardOpenAPIWidgetMetricsQueries(t *testing.T) {
-	dashboardOpenAPIRunStructuredQueryScenario(t, "metrics", false, dashboardOpenAPIMetricsQueryTestName)
+	dashboardOpenAPIRunStructuredQueryScenarios(t, "metrics", false, dashboardOpenAPIMetricsQueryTestName)
 }
 
 func TestAccCoralogixResourceDashboardOpenAPIWidgetSpansQueries(t *testing.T) {
-	dashboardOpenAPIRunStructuredQueryScenario(t, "spans", false, dashboardOpenAPISpansQueryTestName)
+	dashboardOpenAPIRunStructuredQueryScenarios(t, "spans", false, dashboardOpenAPISpansQueryTestName)
 }
 
 func TestAccCoralogixResourceDashboardOpenAPIWidgetDataPrimeQueries(t *testing.T) {
-	dashboardOpenAPIRunStructuredQueryScenario(t, "dataprime", false, dashboardOpenAPIDataPrimeQueryTestName)
+	dashboardOpenAPIRunStructuredQueryScenarios(t, "dataprime", false, dashboardOpenAPIDataPrimeQueryTestName)
 }
 
-func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string, includeMarkdown bool, fixture string) {
+func dashboardOpenAPIRunStructuredQueryScenarios(t *testing.T, queryBranch string, includeMarkdown bool, fixture string) {
+	t.Helper()
+	t.Parallel()
+
+	for _, group := range dashboardStructuredQueryWidgetGroups {
+		group := group
+		t.Run(group.name, func(t *testing.T) {
+			dashboardOpenAPIRunStructuredQueryScenario(
+				t,
+				queryBranch,
+				includeMarkdown && group.name == "line-and-table",
+				fixture+"-"+group.name,
+				group.widgets,
+			)
+		})
+	}
+}
+
+func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string, includeMarkdown bool, fixture string, widgets []dashboardStructuredWidgetSpec) {
 	t.Helper()
 
 	ctx := context.Background()
@@ -170,7 +214,7 @@ func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string
 	dashboardIdentity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
 	nestedIdentity := newDashboardOpenAPINestedIDTracker(fixture)
 	checks := func(updated bool, identityCheck resource.TestCheckFunc) resource.TestCheckFunc {
-		stateChecks := dashboardOpenAPIStructuredQueryStateChecks(queryBranch, includeMarkdown, updated)
+		stateChecks := dashboardOpenAPIStructuredQueryStateChecks(queryBranch, includeMarkdown, updated, widgets)
 		stateChecks = append(stateChecks, identityCheck, func(state *terraform.State) error {
 			dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
 			if err != nil {
@@ -179,18 +223,18 @@ func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string
 			if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
 				return err
 			}
-			return dashboardOpenAPIAssertStructuredQueryWidgets(dashboard, queryBranch, includeMarkdown, fixture, updated)
+			return dashboardOpenAPIAssertStructuredQueryWidgets(dashboard, queryBranch, includeMarkdown, fixture, updated, widgets)
 		})
 		return resource.ComposeAggregateTestCheckFunc(stateChecks...)
 	}
 
 	steps := dashboardOpenAPIStructuredLifecycleSteps(
 		dashboardOpenAPILifecyclePhase{
-			Config: dashboardOpenAPIStructuredDashboardConfig(dashboardName, queryBranch, includeMarkdown),
+			Config: dashboardOpenAPIStructuredDashboardConfigForWidgets(dashboardName, queryBranch, includeMarkdown, false, widgets),
 			Check:  checks(false, dashboardIdentity.Capture()),
 		},
 		[]dashboardOpenAPILifecyclePhase{{
-			Config: dashboardOpenAPIStructuredDashboardUpdateConfig(dashboardName, queryBranch, includeMarkdown),
+			Config: dashboardOpenAPIStructuredDashboardConfigForWidgets(dashboardName, queryBranch, includeMarkdown, true, widgets),
 			Check:  checks(true, dashboardIdentity.AssertUnchanged()),
 		}},
 		resource.TestStep{
@@ -201,7 +245,7 @@ func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string
 				if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
 					return err
 				}
-				return dashboardOpenAPIAssertStructuredQueryWidgets(dashboard, queryBranch, includeMarkdown, fixture, true)
+				return dashboardOpenAPIAssertStructuredQueryWidgets(dashboard, queryBranch, includeMarkdown, fixture, true, widgets)
 			}),
 		},
 	)
@@ -217,8 +261,7 @@ func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string
 	})
 }
 
-func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkdown, updated bool) []resource.TestCheckFunc {
-	widgets := dashboardOpenAPIStructuredWidgetsForBranch(queryBranch)
+func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkdown, updated bool, widgets []dashboardStructuredWidgetSpec) []resource.TestCheckFunc {
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.#", fmt.Sprintf("%d", len(widgets)+boolToInt(includeMarkdown))),
@@ -240,8 +283,7 @@ func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkd
 				resource.TestCheckResourceAttr(dashboardResourceName, basePath+".definition.hexagon.max", "100"),
 			)
 		}
-		if queryBranch == "dataprime" && index < 3 {
-			filterBranch := []string{"logs", "spans", "metrics"}[index]
+		if filterBranch, ok := dashboardOpenAPIDataPrimeFilterBranch(queryBranch, widget.name); ok {
 			checks = append(checks,
 				resource.TestCheckResourceAttr(
 					dashboardResourceName,
@@ -320,7 +362,7 @@ func dashboardOpenAPIQueryStateValue(widget, queryBranch string, updated bool) s
 	}
 }
 
-func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Dashboard, queryBranch string, includeMarkdown bool, fixture string, updated bool) error {
+func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Dashboard, queryBranch string, includeMarkdown bool, fixture string, updated bool, widgetSpecs []dashboardStructuredWidgetSpec) error {
 	if dashboard == nil {
 		return fmt.Errorf("dashboard fixture %q: fetched dashboard is nil", fixture)
 	}
@@ -331,7 +373,6 @@ func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Da
 		return fmt.Errorf("dashboard fixture %q (dashboard %q): layout has %d sections and %d rows in the first section, want 1 and 1", fixture, dashboardID, len(sections), dashboardOpenAPIFirstSectionRowCount(sections))
 	}
 	widgets := sections[0].GetRows()[0].GetWidgets()
-	widgetSpecs := dashboardOpenAPIStructuredWidgetsForBranch(queryBranch)
 	wantWidgetCount := len(widgetSpecs) + boolToInt(includeMarkdown)
 	if len(widgets) != wantWidgetCount {
 		return fmt.Errorf("dashboard fixture %q (dashboard %q): fetched %d widgets, want %d", fixture, dashboardID, len(widgets), wantWidgetCount)
@@ -366,8 +407,7 @@ func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Da
 				return fmt.Errorf("dashboard fixture %q (dashboard %q): %w", fixture, dashboardID, err)
 			}
 		}
-		if queryBranch == "dataprime" && index < 3 {
-			filterBranch := []string{"logs", "spans", "metrics"}[index]
+		if filterBranch, ok := dashboardOpenAPIDataPrimeFilterBranch(queryBranch, spec.name); ok {
 			filter, err := dashboardOpenAPIDataPrimeFilter(queryCarrier)
 			if err != nil {
 				return fmt.Errorf("dashboard fixture %q (dashboard %q): widget %q: %w", fixture, dashboardID, spec.name, err)
@@ -571,8 +611,17 @@ func dashboardOpenAPIStructuredDashboardUpdateConfig(name, queryBranch string, i
 }
 
 func dashboardOpenAPIStructuredDashboardConfigVariant(name, queryBranch string, includeMarkdown, updated bool) string {
+	return dashboardOpenAPIStructuredDashboardConfigForWidgets(
+		name,
+		queryBranch,
+		includeMarkdown,
+		updated,
+		dashboardOpenAPIStructuredWidgetsForBranch(queryBranch),
+	)
+}
+
+func dashboardOpenAPIStructuredDashboardConfigForWidgets(name, queryBranch string, includeMarkdown, updated bool, widgetSpecs []dashboardStructuredWidgetSpec) string {
 	widgets := ""
-	widgetSpecs := dashboardOpenAPIStructuredWidgetsForBranch(queryBranch)
 	for index, widget := range widgetSpecs {
 		if index > 0 {
 			widgets += ",\n"
@@ -773,6 +822,22 @@ func dashboardOpenAPIDataPrimeFilterConfig(widget string, updated bool) string {
 				  }]`, dashboardOpenAPIDataPrimeFilterStateValue("metrics", updated), dashboardOpenAPIDataPrimeMetricsFilterLabel(updated), dashboardOpenAPIDataPrimeFilterSelection(updated))
 	default:
 		return ""
+	}
+}
+
+func dashboardOpenAPIDataPrimeFilterBranch(queryBranch, widget string) (string, bool) {
+	if queryBranch != "dataprime" {
+		return "", false
+	}
+	switch widget {
+	case "line_chart":
+		return "logs", true
+	case "data_table":
+		return "spans", true
+	case "gauge":
+		return "metrics", true
+	default:
+		return "", false
 	}
 }
 

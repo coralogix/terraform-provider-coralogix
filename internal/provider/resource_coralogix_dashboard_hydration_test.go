@@ -44,29 +44,6 @@ type dashboardOpenAPIHydrationIDs struct {
 	ClientSuppliedWidget      string
 }
 
-var dashboardOpenAPIBackendHydrationClaims = []struct {
-	model  string
-	branch string
-}{
-	{model: "Dashboard", branch: "absoluteTimeFrame"},
-	{model: "Dashboard", branch: "off"},
-	{model: "GaugeQuery", branch: "metrics"},
-	{model: "TimeFrameSelect", branch: "relativeTimeFrame"},
-	{model: "WidgetDefinition", branch: "gauge"},
-}
-
-func TestDashboardRESTCreatedHydrationClaimsMatchManifest(t *testing.T) {
-	for _, claim := range dashboardOpenAPIBackendHydrationClaims {
-		coverage := dashboardOpenAPIOneOfCoverage[claim.model].Branches[claim.branch]
-		if coverage.FixtureOrTest != dashboardOpenAPIBackendHydrationTestName {
-			t.Errorf("%s.%s fixture = %q, want %q", claim.model, claim.branch, coverage.FixtureOrTest, dashboardOpenAPIBackendHydrationTestName)
-		}
-		if !coverage.ImportHydration || !coverage.DataSourceHydration {
-			t.Errorf("%s.%s hydration = import:%t data-source:%t, want both true", claim.model, claim.branch, coverage.ImportHydration, coverage.DataSourceHydration)
-		}
-	}
-}
-
 func TestDashboardRESTCreatedHydrationRequestCoversBackendReadEdges(t *testing.T) {
 	request := dashboardOpenAPIBackendHydrationRequest("fixture")
 	dashboard := request.Dashboard

@@ -35,6 +35,21 @@ const (
 	dashboardOpenAPIAnnotationsTestName        = "TestAccCoralogixResourceDashboardOpenAPIAnnotationBranches"
 )
 
+type dashboardOpenAPIPresentationGroup string
+
+const (
+	dashboardOpenAPIPresentationAll        dashboardOpenAPIPresentationGroup = ""
+	dashboardOpenAPIPresentationResolution dashboardOpenAPIPresentationGroup = "resolution-and-time-frames"
+	dashboardOpenAPIPresentationBarCharts  dashboardOpenAPIPresentationGroup = "bar-chart-axes"
+	dashboardOpenAPIPresentationHorizontal dashboardOpenAPIPresentationGroup = "horizontal-bar-options"
+)
+
+var dashboardOpenAPIPresentationGroups = []dashboardOpenAPIPresentationGroup{
+	dashboardOpenAPIPresentationResolution,
+	dashboardOpenAPIPresentationBarCharts,
+	dashboardOpenAPIPresentationHorizontal,
+}
+
 type dashboardOpenAPINestedIDTracker struct {
 	fixture string
 	ids     []string
@@ -102,6 +117,9 @@ func TestDashboardOpenAPINestedAcceptanceConfigsParse(t *testing.T) {
 		"dataprime-update":          dashboardOpenAPIStructuredDashboardUpdateConfig("dashboard", "dataprime", false),
 		"dynamic-content-json":      dashboardContentJSONDynamicConfig("dashboard.json", "dashboard", ""),
 	}
+	for _, group := range dashboardOpenAPIPresentationGroups {
+		configs["presentation-"+string(group)] = dashboardOpenAPIPresentationConfigForGroup("dashboard", "folder", "relative", "absolute", "two_minutes", "id", group)
+	}
 	for name, config := range configs {
 		t.Run(name, func(t *testing.T) {
 			_, diagnostics := hclsyntax.ParseConfig([]byte(config), name+".tf", hcl.InitialPos)
@@ -113,9 +131,22 @@ func TestDashboardOpenAPINestedAcceptanceConfigsParse(t *testing.T) {
 }
 
 func TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches(t *testing.T) {
+	t.Parallel()
+
+	for _, group := range dashboardOpenAPIPresentationGroups {
+		group := group
+		t.Run(string(group), func(t *testing.T) {
+			dashboardOpenAPIRunPresentationScenario(t, group)
+		})
+	}
+}
+
+func dashboardOpenAPIRunPresentationScenario(t *testing.T, group dashboardOpenAPIPresentationGroup) {
+	t.Helper()
+
 	ctx := context.Background()
 	var client *dashboardservice.DashboardServiceAPIService
-	fixture := dashboardOpenAPINestedPresentationTestName
+	fixture := dashboardOpenAPINestedPresentationTestName + "-" + string(group)
 	dashboardName := dashboardOpenAPIFixtureName(fixture)
 	folderName := dashboardOpenAPIFixtureName(fixture + "-folder")
 	identity := newDashboardOpenAPIIDTracker(dashboardResourceName, fixture)
@@ -126,7 +157,7 @@ func TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches(t *testi
 			if err != nil {
 				return err
 			}
-			if err := dashboardOpenAPIAssertPresentation(dashboard, fixture, dashboardTimeFrame, queryTimeFrame, refresh); err != nil {
+			if err := dashboardOpenAPIAssertPresentation(dashboard, fixture, dashboardTimeFrame, queryTimeFrame, refresh, group); err != nil {
 				return err
 			}
 			if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
@@ -150,7 +181,7 @@ func TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches(t *testi
 		if err := nestedIdentity.CaptureOrAssert(dashboard); err != nil {
 			return err
 		}
-		return dashboardOpenAPIAssertPresentation(dashboard, fixture, "absoluteTimeFrame", "relativeTimeFrame", "off")
+		return dashboardOpenAPIAssertPresentation(dashboard, fixture, "absoluteTimeFrame", "relativeTimeFrame", "off", group)
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -162,26 +193,26 @@ func TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches(t *testi
 		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: dashboardOpenAPIStructuredLifecycleSteps(
 			dashboardOpenAPILifecyclePhase{
-				Config: dashboardOpenAPIPresentationConfig(dashboardName, folderName, "relative", "absolute", "two_minutes", "id"),
+				Config: dashboardOpenAPIPresentationConfigForGroup(dashboardName, folderName, "relative", "absolute", "two_minutes", "id", group),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					identity.Capture(),
-					dashboardOpenAPIPresentationStateChecks("relative", "absolute", "two_minutes", "id", folderName),
+					dashboardOpenAPIPresentationStateChecks("relative", "absolute", "two_minutes", "id", folderName, group),
 					checkPresentation("relativeTimeFrame", "absoluteTimeFrame", "twoMinutes"),
 				),
 			},
 			[]dashboardOpenAPILifecyclePhase{{
-				Config: dashboardOpenAPIPresentationConfig(dashboardName, folderName, "absolute", "relative", "five_minutes", "path"),
+				Config: dashboardOpenAPIPresentationConfigForGroup(dashboardName, folderName, "absolute", "relative", "five_minutes", "path", group),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					identity.AssertUnchanged(),
-					dashboardOpenAPIPresentationStateChecks("absolute", "relative", "five_minutes", "path", folderName),
+					dashboardOpenAPIPresentationStateChecks("absolute", "relative", "five_minutes", "path", folderName, group),
 					checkPresentation("absoluteTimeFrame", "relativeTimeFrame", "fiveMinutes"),
 				),
 			},
 				{
-					Config: dashboardOpenAPIPresentationConfig(dashboardName, folderName, "absolute", "relative", "off", "path"),
+					Config: dashboardOpenAPIPresentationConfigForGroup(dashboardName, folderName, "absolute", "relative", "off", "path", group),
 					Check: resource.ComposeAggregateTestCheckFunc(
 						identity.AssertUnchanged(),
-						dashboardOpenAPIPresentationStateChecks("absolute", "relative", "off", "path", folderName),
+						dashboardOpenAPIPresentationStateChecks("absolute", "relative", "off", "path", folderName, group),
 						checkPresentation("absoluteTimeFrame", "relativeTimeFrame", "off"),
 					),
 				}},
@@ -196,19 +227,32 @@ func TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches(t *testi
 	})
 }
 
-func dashboardOpenAPIPresentationStateChecks(dashboardTimeFrame, queryTimeFrame, refresh, folderSelector, folderName string) resource.TestCheckFunc {
+func dashboardOpenAPIPresentationStateChecks(dashboardTimeFrame, queryTimeFrame, refresh, folderSelector, folderName string, group dashboardOpenAPIPresentationGroup) resource.TestCheckFunc {
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttr(dashboardResourceName, "auto_refresh.type", refresh),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.#", "6"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.resolution.interval", "seconds:60"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.query_definitions.0.resolution.buckets_presented", "20"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.definition.bar_chart.colors_by", "stack"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.3.definition.bar_chart.colors_by", "group_by"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.3.definition.bar_chart.xaxis.time.interval", "1m0s"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.3.definition.bar_chart.xaxis.time.buckets_presented", "30"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.4.definition.horizontal_bar_chart.colors_by", "aggregation"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.4.definition.horizontal_bar_chart.y_axis_view_by", "category"),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.5.definition.horizontal_bar_chart.y_axis_view_by", "value"),
+		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.#", "2"),
+	}
+	switch group {
+	case dashboardOpenAPIPresentationResolution:
+		checks = append(checks,
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.resolution.interval", "seconds:60"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.query_definitions.0.resolution.buckets_presented", "20"),
+		)
+	case dashboardOpenAPIPresentationBarCharts:
+		checks = append(checks,
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.bar_chart.colors_by", "stack"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.bar_chart.colors_by", "group_by"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.bar_chart.xaxis.time.interval", "1m0s"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.bar_chart.xaxis.time.buckets_presented", "30"),
+		)
+	case dashboardOpenAPIPresentationHorizontal:
+		checks = append(checks,
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.horizontal_bar_chart.colors_by", "aggregation"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.horizontal_bar_chart.y_axis_view_by", "category"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.horizontal_bar_chart.y_axis_view_by", "value"),
+		)
+	default:
+		panic(fmt.Sprintf("unsupported presentation group %q", group))
 	}
 	if dashboardTimeFrame == "relative" {
 		checks = append(checks, resource.TestCheckResourceAttr(dashboardResourceName, "time_frame.relative.duration", "seconds:900"))
@@ -218,14 +262,16 @@ func dashboardOpenAPIPresentationStateChecks(dashboardTimeFrame, queryTimeFrame,
 			resource.TestCheckResourceAttr(dashboardResourceName, "time_frame.absolute.end", "2026-01-01T01:00:00Z"),
 		)
 	}
-	queryPath := "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.metrics.time_frame."
-	if queryTimeFrame == "relative" {
-		checks = append(checks, resource.TestCheckResourceAttr(dashboardResourceName, queryPath+"relative.duration", "seconds:900"))
-	} else {
-		checks = append(checks,
-			resource.TestCheckResourceAttr(dashboardResourceName, queryPath+"absolute.start", "2026-02-01T00:00:00Z"),
-			resource.TestCheckResourceAttr(dashboardResourceName, queryPath+"absolute.end", "2026-02-01T00:15:00Z"),
-		)
+	if group == dashboardOpenAPIPresentationResolution {
+		queryPath := "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.metrics.time_frame."
+		if queryTimeFrame == "relative" {
+			checks = append(checks, resource.TestCheckResourceAttr(dashboardResourceName, queryPath+"relative.duration", "seconds:900"))
+		} else {
+			checks = append(checks,
+				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+"absolute.start", "2026-02-01T00:00:00Z"),
+				resource.TestCheckResourceAttr(dashboardResourceName, queryPath+"absolute.end", "2026-02-01T00:15:00Z"),
+			)
+		}
 	}
 	if folderSelector == "id" {
 		checks = append(checks, resource.TestCheckResourceAttrSet(dashboardResourceName, "folder.id"))
@@ -235,7 +281,7 @@ func dashboardOpenAPIPresentationStateChecks(dashboardTimeFrame, queryTimeFrame,
 	return resource.ComposeAggregateTestCheckFunc(checks...)
 }
 
-func dashboardOpenAPIAssertPresentation(dashboard *dashboardservice.Dashboard, fixture, dashboardTimeFrame, queryTimeFrame, refresh string) error {
+func dashboardOpenAPIAssertPresentation(dashboard *dashboardservice.Dashboard, fixture, dashboardTimeFrame, queryTimeFrame, refresh string, group dashboardOpenAPIPresentationGroup) error {
 	if dashboard == nil {
 		return fmt.Errorf("dashboard fixture %q: fetched dashboard is nil", fixture)
 	}
@@ -252,10 +298,23 @@ func dashboardOpenAPIAssertPresentation(dashboard *dashboardservice.Dashboard, f
 	if err != nil {
 		return fmt.Errorf("dashboard fixture %q: %w", fixture, err)
 	}
-	if len(widgets) != 6 {
-		return fmt.Errorf("dashboard fixture %q: REST widgets = %d, want 6", fixture, len(widgets))
+	if len(widgets) != 2 {
+		return fmt.Errorf("dashboard fixture %q: REST widgets = %d, want 2", fixture, len(widgets))
 	}
 
+	switch group {
+	case dashboardOpenAPIPresentationResolution:
+		return dashboardOpenAPIAssertPresentationResolution(dashboard, widgets, fixture, queryTimeFrame)
+	case dashboardOpenAPIPresentationBarCharts:
+		return dashboardOpenAPIAssertPresentationBarCharts(dashboard, widgets, fixture)
+	case dashboardOpenAPIPresentationHorizontal:
+		return dashboardOpenAPIAssertPresentationHorizontalBars(dashboard, widgets, fixture)
+	default:
+		return fmt.Errorf("dashboard fixture %q: unsupported presentation group %q", fixture, group)
+	}
+}
+
+func dashboardOpenAPIAssertPresentationResolution(dashboard *dashboardservice.Dashboard, widgets []dashboardservice.Widget, fixture, queryTimeFrame string) error {
 	firstLine := widgets[0].GetDefinition().LineChart
 	secondLine := widgets[1].GetDefinition().LineChart
 	if firstLine == nil || len(firstLine.QueryDefinitions) != 1 || firstLine.QueryDefinitions[0].Resolution == nil {
@@ -277,11 +336,12 @@ func dashboardOpenAPIAssertPresentation(dashboard *dashboardservice.Dashboard, f
 	if queryTimeFrame == "relativeTimeFrame" && query.TimeFrame.GetRelativeTimeFrame() != "900s" {
 		return fmt.Errorf("dashboard fixture %q: REST query relativeTimeFrame = %q, want protobuf JSON duration 900s", fixture, query.TimeFrame.GetRelativeTimeFrame())
 	}
+	return nil
+}
 
-	valueBar := widgets[2].GetDefinition().BarChart
-	timeBar := widgets[3].GetDefinition().BarChart
-	categoryBar := widgets[4].GetDefinition().HorizontalBarChart
-	valueHorizontalBar := widgets[5].GetDefinition().HorizontalBarChart
+func dashboardOpenAPIAssertPresentationBarCharts(dashboard *dashboardservice.Dashboard, widgets []dashboardservice.Widget, fixture string) error {
+	valueBar := widgets[0].GetDefinition().BarChart
+	timeBar := widgets[1].GetDefinition().BarChart
 	if valueBar == nil || valueBar.XAxis == nil || valueBar.ColorsBy == nil {
 		return fmt.Errorf("dashboard fixture %q: value bar chart adapters are absent", fixture)
 	}
@@ -303,6 +363,12 @@ func dashboardOpenAPIAssertPresentation(dashboard *dashboardservice.Dashboard, f
 	if err := dashboardOpenAPIAssertOneOfBranch(timeBar.ColorsBy, "ColorsBy", "groupBy", dashboard.GetId(), fixture); err != nil {
 		return err
 	}
+	return nil
+}
+
+func dashboardOpenAPIAssertPresentationHorizontalBars(dashboard *dashboardservice.Dashboard, widgets []dashboardservice.Widget, fixture string) error {
+	categoryBar := widgets[0].GetDefinition().HorizontalBarChart
+	valueHorizontalBar := widgets[1].GetDefinition().HorizontalBarChart
 	if categoryBar == nil || categoryBar.ColorsBy == nil || categoryBar.YAxisViewBy == nil {
 		return fmt.Errorf("dashboard fixture %q: category horizontal bar adapters are absent", fixture)
 	}
@@ -319,6 +385,10 @@ func dashboardOpenAPIAssertPresentation(dashboard *dashboardservice.Dashboard, f
 }
 
 func dashboardOpenAPIPresentationConfig(name, folderName, dashboardTimeFrame, queryTimeFrame, refresh, folderSelector string) string {
+	return dashboardOpenAPIPresentationConfigForGroup(name, folderName, dashboardTimeFrame, queryTimeFrame, refresh, folderSelector, dashboardOpenAPIPresentationAll)
+}
+
+func dashboardOpenAPIPresentationConfigForGroup(name, folderName, dashboardTimeFrame, queryTimeFrame, refresh, folderSelector string, group dashboardOpenAPIPresentationGroup) string {
 	dashboardTF := `relative = { duration = "seconds:900" }`
 	if dashboardTimeFrame == "absolute" {
 		dashboardTF = `absolute = { start = "2026-01-01T00:00:00Z", end = "2026-01-01T01:00:00Z" }`
@@ -331,6 +401,7 @@ func dashboardOpenAPIPresentationConfig(name, folderName, dashboardTimeFrame, qu
 	if folderSelector == "path" {
 		folder = `path = coralogix_dashboards_folder.test_folder.name`
 	}
+	widgets := dashboardOpenAPIPresentationWidgets(group, queryTF)
 
 	return fmt.Sprintf(`
 resource "coralogix_dashboards_folder" "test_folder" {
@@ -348,7 +419,17 @@ resource "coralogix_dashboard" "test" {
       rows = [{
         height = 24
         widgets = [
-          {
+%s
+        ]
+      }]
+    }]
+  }
+}
+`, folderName, name, dashboardTF, refresh, folder, widgets)
+}
+
+func dashboardOpenAPIPresentationWidgets(group dashboardOpenAPIPresentationGroup, queryTimeFrame string) string {
+	resolution := fmt.Sprintf(`          {
             title = "line-manual-resolution"
             definition = { line_chart = {
               query_definitions = [{
@@ -365,8 +446,8 @@ resource "coralogix_dashboard" "test" {
                 resolution = { buckets_presented = 20 }
               }]
             } }
-          },
-          {
+          },`, queryTimeFrame)
+	barCharts := `          {
             title = "bar-value-stack"
             definition = { bar_chart = {
               query     = { logs = { aggregation = { type = "count" } } }
@@ -381,8 +462,8 @@ resource "coralogix_dashboard" "test" {
               colors_by = "group_by"
               xaxis     = { time = { interval = "1m0s", buckets_presented = 30 } }
             } }
-          },
-          {
+          },`
+	horizontalBars := `          {
             title = "horizontal-category-aggregation"
             definition = { horizontal_bar_chart = {
               query          = { logs = { aggregation = { type = "count" } } }
@@ -396,13 +477,20 @@ resource "coralogix_dashboard" "test" {
               query          = { logs = { aggregation = { type = "count" } } }
               y_axis_view_by = "value"
             } }
-          },
-        ]
-      }]
-    }]
-  }
-}
-`, folderName, name, dashboardTF, refresh, folder, queryTF)
+          },`
+
+	switch group {
+	case dashboardOpenAPIPresentationAll:
+		return strings.Join([]string{resolution, barCharts, horizontalBars}, "\n")
+	case dashboardOpenAPIPresentationResolution:
+		return resolution
+	case dashboardOpenAPIPresentationBarCharts:
+		return barCharts
+	case dashboardOpenAPIPresentationHorizontal:
+		return horizontalBars
+	default:
+		panic(fmt.Sprintf("unsupported presentation group %q", group))
+	}
 }
 
 func TestAccCoralogixResourceDashboardOpenAPILogsAggregationBranches(t *testing.T) {

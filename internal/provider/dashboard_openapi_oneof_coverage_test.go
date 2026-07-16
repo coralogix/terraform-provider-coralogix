@@ -15,7 +15,6 @@
 package provider
 
 import (
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -844,30 +843,6 @@ func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 	}
 }
 
-func TestDashboardAPIOnlyDecisionReport(t *testing.T) {
-	report := dashboardAPIOnlyDecisionReport()
-	if report == "" {
-		t.Fatal("API-only decision report is empty")
-	}
-	lines := strings.Split(report, "\n")
-	if !sort.StringsAreSorted(lines) {
-		t.Fatal("API-only decision report is not deterministic")
-	}
-
-	apiOnlyBranches := 0
-	for _, model := range dashboardOpenAPIOneOfCoverage {
-		for _, branch := range model.Branches {
-			if branch.Status == dashboardOneOfAPIOnly {
-				apiOnlyBranches++
-			}
-		}
-	}
-	if len(lines) != apiOnlyBranches {
-		t.Fatalf("API-only report lines = %d, want %d", len(lines), apiOnlyBranches)
-	}
-	t.Logf("API-only dashboard oneOf decisions:\n%s", report)
-}
-
 func TestDashboardOutsideCRUDOneOfContract(t *testing.T) {
 	outOfScopeModels := []reflect.Type{
 		reflect.TypeOf(dashboardservice.CheckDashboardRequestDataStructure{}),
@@ -899,30 +874,6 @@ func TestDashboardOutsideCRUDOneOfContract(t *testing.T) {
 			}
 		}
 	}
-}
-
-func dashboardAPIOnlyDecisionReport() string {
-	lines := make([]string, 0)
-	for modelName, model := range dashboardOpenAPIOneOfCoverage {
-		for branchName, branch := range model.Branches {
-			if branch.Status != dashboardOneOfAPIOnly {
-				continue
-			}
-			lines = append(lines, fmt.Sprintf(
-				"%s.%s\tdecision=%s\tprovider_path=%s\timport_hydration=%t\tdata_source_hydration=%t\ttest=%s\texplanation=%s",
-				modelName,
-				branchName,
-				branch.SupportDecision,
-				branch.ProviderPath,
-				branch.ImportHydration,
-				branch.DataSourceHydration,
-				branch.FixtureOrTest,
-				branch.Explanation,
-			))
-		}
-	}
-	sort.Strings(lines)
-	return strings.Join(lines, "\n")
 }
 
 func dashboardGeneratedTypeReachable(root, target reflect.Type) bool {

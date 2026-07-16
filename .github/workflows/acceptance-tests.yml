@@ -19,6 +19,8 @@ on:
 jobs:
   test:
     name: Acceptance tests (excluding dashboards)
+    permissions:
+      contents: read
     env:
       GO111MODULE: on
     strategy:
@@ -51,11 +53,32 @@ jobs:
           make testacc
 
   dashboard:
-    name: Dashboard acceptance tests
+    name: Dashboard acceptance tests (${{ matrix.shard }})
     permissions:
       contents: read
     env:
       GO111MODULE: on
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Double dollar signs preserve the regexp end anchor through Make expansion.
+          - shard: structured-line-and-table
+            pattern: '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$$/line-and-table$$'
+          - shard: structured-gauge-and-bars
+            pattern: '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$$/gauge-and-bars$$'
+          - shard: structured-horizontal-and-hexagon
+            pattern: '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$$/horizontal-and-hexagon$$'
+          - shard: presentation-resolution-and-time-frames
+            pattern: '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$$/resolution-and-time-frames$$'
+          - shard: presentation-bar-chart-axes
+            pattern: '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$$/bar-chart-axes$$'
+          - shard: presentation-horizontal-bar-options
+            pattern: '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$$/horizontal-bar-options$$'
+          - shard: openapi-branches
+            pattern: '^TestAccCoralogixResourceDashboardOpenAPI(OneOfTransitions|LogsAggregationBranches|SpansAndFilterBranches|VariableBranches|AnnotationBranches)$$'
+          - shard: core
+            pattern: '^TestAccCoralogix(DataSourceDashboard(_basic|AccessPolicy)|DataSourceDashboardsFolder_(basic|by_name)|ResourceDashboardsFolder|ResourceDashboard(ContentJSON(ProtobufSpellings|FolderOverride|DynamicQueriesTable)|RESTCreated(Hydration|UnsupportedDynamicHydration)|AccessPolicy|HexagonWidget|LinechartWidget|GaugeWidget(DataPrime|ThresholdType)?|DataTableWidget(ObservationFieldFilter)?|FromJson(WithFolder|WithVar)?|FolderIDNoDrift|MultiSelectSelectionType|LayoutColor|ManualAnnotation)?)$$'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -72,7 +95,7 @@ jobs:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
-          make testacc-dashboard
+          make testacc-dashboard DASHBOARD_ACC_PATTERN='${{ matrix.pattern }}'
 
   dashboard-migration:
     name: Dashboard provider migration

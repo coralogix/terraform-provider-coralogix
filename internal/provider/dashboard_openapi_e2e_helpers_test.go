@@ -54,53 +54,6 @@ func dashboardOpenAPIFixtureName(fixture string) string {
 	return acctest.RandomWithPrefix("tf-acc-dashboard-" + prefix)
 }
 
-// dashboardOpenAPIBranchFixture carries the coverage-manifest metadata needed
-// to build one branch variant. In particular, API-only branches may still have
-// import/data-source hydration support, so callers must not infer hydration
-// from Status alone.
-type dashboardOpenAPIBranchFixture struct {
-	Model               string
-	Branch              string
-	ProviderPath        string
-	Fixture             string
-	Status              dashboardOneOfCoverageStatus
-	ImportHydration     bool
-	DataSourceHydration bool
-}
-
-func dashboardOpenAPIBranchFixtureFor(model, branch string) (dashboardOpenAPIBranchFixture, error) {
-	modelCoverage, ok := dashboardOpenAPIOneOfCoverage[model]
-	if !ok {
-		return dashboardOpenAPIBranchFixture{}, fmt.Errorf("dashboard oneof model %q is absent from the coverage manifest", model)
-	}
-	branchCoverage, ok := modelCoverage.Branches[branch]
-	if !ok {
-		return dashboardOpenAPIBranchFixture{}, fmt.Errorf("dashboard oneof branch %s.%s is absent from the coverage manifest", model, branch)
-	}
-	fixture := branchCoverage.FixtureOrTest
-	if fixture == "" {
-		fixture = model + "-" + branch
-	}
-
-	return dashboardOpenAPIBranchFixture{
-		Model:               model,
-		Branch:              branch,
-		ProviderPath:        branchCoverage.ProviderPath,
-		Fixture:             fixture,
-		Status:              branchCoverage.Status,
-		ImportHydration:     branchCoverage.ImportHydration,
-		DataSourceHydration: branchCoverage.DataSourceHydration,
-	}, nil
-}
-
-func (fixture dashboardOpenAPIBranchFixture) UniqueName() string {
-	return dashboardOpenAPIFixtureName(fixture.Fixture)
-}
-
-func (fixture dashboardOpenAPIBranchFixture) AssertOneOf(carrier any, dashboardID string) error {
-	return dashboardOpenAPIAssertOneOfBranch(carrier, fixture.Model, fixture.Branch, dashboardID, fixture.Fixture)
-}
-
 // dashboardOpenAPIFetchDashboard reads the Terraform resource ID from state
 // and fetches the corresponding API representation. Errors intentionally omit
 // response bodies, headers, and request metadata.
@@ -648,31 +601,5 @@ func TestDashboardOpenAPIAssertSemanticEqualNormalizesBackendFields(t *testing.T
 	actual["folderId"] = "different-folder-id"
 	if err := dashboardOpenAPIAssertSemanticEqual(expected, actual, "dashboard-id", "fixture-name"); err == nil {
 		t.Fatal("compare semantic folder ID: expected mismatch")
-	}
-}
-
-func TestDashboardOpenAPIBranchFixturePreservesCoverageMetadata(t *testing.T) {
-	hydratable, err := dashboardOpenAPIBranchFixtureFor("HorizontalBarChartQuery", "dataprime")
-	if err != nil {
-		t.Fatalf("load hydratable API-only branch: %s", err)
-	}
-	if hydratable.ProviderPath == "" || !hydratable.ImportHydration || !hydratable.DataSourceHydration {
-		t.Fatalf("hydratable API-only metadata = %#v", hydratable)
-	}
-
-	notHydratable, err := dashboardOpenAPIBranchFixtureFor("AnnotationSource", "dataprime")
-	if err != nil {
-		t.Fatalf("load non-hydratable API-only branch: %s", err)
-	}
-	if notHydratable.ImportHydration || notHydratable.DataSourceHydration {
-		t.Fatalf("non-hydratable API-only metadata = %#v", notHydratable)
-	}
-
-	covered, err := dashboardOpenAPIBranchFixtureFor("WidgetDefinition", "gauge")
-	if err != nil {
-		t.Fatalf("load covered branch: %s", err)
-	}
-	if covered.Fixture != dashboardOpenAPIBackendHydrationTestName {
-		t.Fatalf("covered fixture = %q", covered.Fixture)
 	}
 }

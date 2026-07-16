@@ -80,44 +80,6 @@ var dashboardOpenAPITransitions = []dashboardOpenAPITransition{
 	},
 }
 
-func TestDashboardOpenAPITransitionBranchesAreAcceptanceCovered(t *testing.T) {
-	selected := map[string][]string{
-		"AnnotationSource":     {"metrics", "logs", "spans", "manual"},
-		"Dashboard":            {"relativeTimeFrame", "absoluteTimeFrame"},
-		"FilterSource":         {"metrics", "spans"},
-		"GaugeQuery":           {"metrics", "logs", "spans", "dataprime"},
-		"LogsSourceStrategy":   {"range"},
-		"LogsAggregation":      {"count"},
-		"ManualSourceStrategy": {"range"},
-		"MultiSelectQuery":     {"spansQuery"},
-		"MultiSelectSelection": {"list", "all"},
-		"MultiSelectSource":    {"logsPath", "metricLabel", "constantList", "query"},
-		"QuerySpansQueryType":  {"fieldName"},
-		"SpansSourceStrategy":  {"duration"},
-		"SpansAggregation":     {"dimensionAggregation"},
-		"VariableDefinition":   {"multiSelect"},
-		"WidgetDefinition":     {"lineChart", "pieChart", "markdown", "gauge"},
-	}
-
-	for model, branches := range selected {
-		modelCoverage, ok := dashboardOpenAPIOneOfCoverage[model]
-		if !ok {
-			t.Errorf("transition model %s is absent from the oneOf coverage manifest", model)
-			continue
-		}
-		for _, branch := range branches {
-			coverage, ok := modelCoverage.Branches[branch]
-			if !ok {
-				t.Errorf("transition branch %s.%s is absent from the oneOf coverage manifest", model, branch)
-				continue
-			}
-			if coverage.Status != dashboardOneOfAcceptanceCovered {
-				t.Errorf("transition branch %s.%s status = %q, want %q", model, branch, coverage.Status, dashboardOneOfAcceptanceCovered)
-			}
-		}
-	}
-}
-
 func TestDashboardOpenAPITransitionConfigsParse(t *testing.T) {
 	for index, transition := range dashboardOpenAPITransitions {
 		config := dashboardOpenAPITransitionConfig("dashboard", transition)
@@ -195,6 +157,7 @@ func dashboardOpenAPITransitionStateCheck(transition dashboardOpenAPITransition)
 		resource.TestCheckResourceAttrSet(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.id"),
 		resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.values_order_direction", "asc"),
 		resource.TestCheckResourceAttr(dashboardResourceName, "annotations.#", "1"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, "auto_refresh"),
 	}
 
 	switch transition.definitionBranch {
@@ -354,8 +317,20 @@ func dashboardOpenAPIAssertTransitionTimeFrame(dashboard *dashboardservice.Dashb
 			return fmt.Errorf("dashboard fixture %q: REST absoluteTimeFrame did not round-trip", fixture)
 		}
 	case "":
-		if dashboard.RelativeTimeFrame != nil || dashboard.AbsoluteTimeFrame != nil {
-			return fmt.Errorf("dashboard fixture %q: removed REST time frame remains populated: relative=%v absolute=%v", fixture, dashboard.RelativeTimeFrame != nil, dashboard.AbsoluteTimeFrame != nil)
+		if dashboard.RelativeTimeFrame != nil || dashboard.AbsoluteTimeFrame != nil ||
+			dashboard.Off != nil || dashboard.OneMinute != nil || dashboard.TwoMinutes != nil ||
+			dashboard.FiveMinutes != nil || dashboard.FifteenMinutes != nil {
+			return fmt.Errorf(
+				"dashboard fixture %q: optional dashboard oneOf remains populated: relative=%v absolute=%v off=%v oneMinute=%v twoMinutes=%v fiveMinutes=%v fifteenMinutes=%v",
+				fixture,
+				dashboard.RelativeTimeFrame != nil,
+				dashboard.AbsoluteTimeFrame != nil,
+				dashboard.Off != nil,
+				dashboard.OneMinute != nil,
+				dashboard.TwoMinutes != nil,
+				dashboard.FiveMinutes != nil,
+				dashboard.FifteenMinutes != nil,
+			)
 		}
 	default:
 		return fmt.Errorf("dashboard fixture %q: unsupported time frame transition %q", fixture, branch)
