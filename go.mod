@@ -4,6 +4,10 @@ go 1.24.0
 
 replace github.com/grpc-ecosystem/grpc-gateway/v2 => github.com/coralogix/grpc-gateway/v2 v2.0.0-20251017075809-7f84c876b2e5
 
+// TODO: remove this replace once coralogix-management-sdk PR #660 is merged and published.
+// This replaces the SDK to pick up PermissionsClient (ListAllPermissions with deprecated_expressions).
+replace github.com/coralogix/coralogix-management-sdk => /Users/marco/dev/coralogix-management-sdk
+
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
 	github.com/cenkalti/backoff/v5 v5.0.3

@@ -108,7 +108,9 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	model, err := flattenCustomRole(customRole, data)
+	// The data source read path always hits the isImport branch (permissions are null in config),
+	// so no alias map is needed here.
+	model, err := flattenCustomRole(customRole, data, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Error flattening coralogix_custom_role during read", err.Error())
 		return

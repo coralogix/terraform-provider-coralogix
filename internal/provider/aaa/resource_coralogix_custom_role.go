@@ -33,6 +33,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 
 	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
@@ -43,8 +44,15 @@ func NewCustomRoleSource() resource.Resource {
 }
 
 type CustomRoleSource struct {
-	client *roless.RoleManagementServiceAPIService
+	client      *roless.RoleManagementServiceAPIService
+	permissions *cxsdk.PermissionsClient
+	// aliasMap maps lowercase deprecated permission expressions to lowercase canonical expressions.
+	// Built once from ListAllPermissions. Empty map (nil) means no alias resolution is available.
+	aliasMap map[string]string
 }
+
+// Ensure CustomRoleSource implements resource.ResourceWithModifyPlan.
+var _ resource.ResourceWithModifyPlan = &CustomRoleSource{}
 
 func (r *CustomRoleSource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_custom_role"
@@ -73,6 +81,54 @@ func (r *CustomRoleSource) Configure(ctx context.Context, req resource.Configure
 	}
 
 	r.client = clientSet.CustomRoles()
+	r.permissions = clientSet.Permissions()
+
+	// Eagerly fetch the permission alias map so flattenCustomRole and ModifyPlan can use it.
+	// This call is non-fatal: if the endpoint is unavailable (e.g., not yet deployed), we fall
+	// back to an empty alias map which preserves the pre-existing exact-case-insensitive comparison.
+	if r.permissions != nil {
+		aliasResp, err := r.permissions.ListAll(ctx, &cxsdk.ListAllPermissionsRequest{})
+		if err != nil {
+			resp.Diagnostics.AddWarning(
+				"Could not fetch permission aliases",
+				fmt.Sprintf("ListAllPermissions failed: %s. Deprecated permission expression aliases will not be resolved; existing permissions will still be compared case-insensitively.", err),
+			)
+			r.aliasMap = map[string]string{}
+		} else {
+			r.aliasMap = buildPermissionAliasMap(aliasResp.GetPermissions())
+		}
+	} else {
+		r.aliasMap = map[string]string{}
+	}
+}
+
+// buildPermissionAliasMap converts the ListAllPermissions response into a lookup map.
+// Keys are lowercase deprecated expression forms; values are lowercase canonical expressions.
+func buildPermissionAliasMap(perms []*cxsdk.RbacPermission) map[string]string {
+	aliases := make(map[string]string, len(perms))
+	for _, p := range perms {
+		canonical := strings.ToLower(p.GetExpression())
+		if canonical == "" {
+			continue
+		}
+		for _, dep := range p.GetDeprecatedExpressions() {
+			lower := strings.ToLower(dep)
+			if lower != "" && lower != canonical {
+				aliases[lower] = canonical
+			}
+		}
+	}
+	return aliases
+}
+
+// normalizePermission returns the lowercase canonical form of a permission expression.
+// If the expression is a known deprecated alias, it returns its canonical replacement.
+func normalizePermission(expr string, aliases map[string]string) string {
+	lower := strings.ToLower(expr)
+	if canonical, ok := aliases[lower]; ok {
+		return canonical
+	}
+	return lower
 }
 
 func (r *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -101,13 +157,71 @@ func (r *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"permissions": schema.SetAttribute{
 				Required:            true,
 				ElementType:         types.StringType,
-				MarkdownDescription: "Custom role permissions",
+				MarkdownDescription: "Custom role permissions. Deprecated expression forms (e.g. `alerts-map:Read`) are accepted and treated as equivalent to their canonical replacement (e.g. `alerts:MapRead`); no drift will appear unless you change the actual set of permissions.",
 				Validators: []validator.Set{
 					setvalidator.SizeAtLeast(1),
 				},
 			},
 		},
 		MarkdownDescription: "Coralogix Custom Role. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/create-roles-and-permissions/.",
+	}
+}
+
+// ModifyPlan suppresses spurious diffs for the permissions set when every element in the
+// plan normalizes to the same canonical expression as its counterpart in state. This handles
+// the case where state has been updated to a canonical form (e.g. "alerts:MapRead") but the
+// user's config still contains the deprecated alias (e.g. "alerts-map:Read").
+func (r *CustomRoleSource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	// Only act during update plans: both state and plan must be non-null.
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
+		return
+	}
+
+	var planPerms, statePerms types.Set
+	if diags := req.Plan.GetAttribute(ctx, path.Root("permissions"), &planPerms); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	if diags := req.State.GetAttribute(ctx, path.Root("permissions"), &statePerms); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	if planPerms.IsNull() || planPerms.IsUnknown() || statePerms.IsNull() || statePerms.IsUnknown() {
+		return
+	}
+	if len(planPerms.Elements()) != len(statePerms.Elements()) {
+		return
+	}
+
+	planList := utils.TypeStringSetToStringSlice(ctx, planPerms)
+	stateList := utils.TypeStringSetToStringSlice(ctx, statePerms)
+
+	// Build sets of normalized canonicals for both sides.
+	planNorm := make(map[string]bool, len(planList))
+	for _, p := range planList {
+		planNorm[normalizePermission(p, r.aliasMap)] = true
+	}
+	stateNorm := make(map[string]bool, len(stateList))
+	for _, p := range stateList {
+		stateNorm[normalizePermission(p, r.aliasMap)] = true
+	}
+
+	// If every canonical in the plan is covered by state canonicals (and vice-versa), the
+	// effective permission set is identical — suppress the diff by keeping the state value.
+	for k := range planNorm {
+		if !stateNorm[k] {
+			return
+		}
+	}
+	for k := range stateNorm {
+		if !planNorm[k] {
+			return
+		}
+	}
+
+	if diags := resp.Plan.SetAttribute(ctx, path.Root("permissions"), statePerms); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 	}
 }
 
@@ -145,7 +259,7 @@ func (r *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	state, err := flattenCustomRole(result.Role, plan)
+	state, err := flattenCustomRole(result.Role, plan, r.aliasMap)
 	if err != nil {
 		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after creation", err.Error())
 		return
@@ -187,7 +301,7 @@ func (r *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		}
 		return
 	}
-	state, err = flattenCustomRole(result.Role, state)
+	state, err = flattenCustomRole(result.Role, state, r.aliasMap)
 	if err != nil {
 		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after read", err.Error())
 		return
@@ -243,7 +357,7 @@ func (r *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	state, err := flattenCustomRole(result.Role, plan)
+	state, err := flattenCustomRole(result.Role, plan, r.aliasMap)
 	if err != nil {
 		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after update", err.Error())
 		return
@@ -298,7 +412,14 @@ func extractCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) 
 	}, nil
 }
 
-func flattenCustomRole(customRole *roless.CustomRole, plan *RolesModel) (*RolesModel, error) {
+// flattenCustomRole converts an API CustomRole into a RolesModel.
+//
+// When plan permissions are provided (i.e. not an import), it verifies that
+// every plan permission is present in the API response — using normalizePermission
+// so that deprecated expression aliases (e.g. "alerts-map:Read") are treated as
+// equivalent to their canonical form (e.g. "alerts:MapRead"). On a match the plan's
+// original form is kept in state, preventing spurious diffs on the next plan.
+func flattenCustomRole(customRole *roless.CustomRole, plan *RolesModel, aliasMap map[string]string) (*RolesModel, error) {
 	permissionsFromPlan := utils.TypeStringSetToStringSlice(context.Background(), plan.Permissions)
 	permissionsFromAPI := customRole.Permissions
 	// permissions are required, so if plan.Permissions is null, it must mean that we're importing
@@ -323,9 +444,10 @@ func flattenCustomRole(customRole *roless.CustomRole, plan *RolesModel) (*RolesM
 		return nil, fmt.Errorf("the number of permissions specified in the plan (%d) does not match the number of permissions returned from the Coralogix API (%d).", len(permissionsFromPlan), len(permissionsFromAPI))
 	}
 	for _, perm := range permissionsFromPlan {
+		normalizedPlanPerm := normalizePermission(perm, aliasMap)
 		permissionWasReturnedFromAPI := false
 		for _, apiPerm := range permissionsFromAPI {
-			if strings.ToLower(perm) == strings.ToLower(apiPerm) {
+			if normalizedPlanPerm == normalizePermission(apiPerm, aliasMap) {
 				permissionWasReturnedFromAPI = true
 				break
 			}
@@ -338,8 +460,9 @@ func flattenCustomRole(customRole *roless.CustomRole, plan *RolesModel) (*RolesM
 	return &RolesModel{
 		ID:         utils.Int64ToStringValue(customRole.RoleId),
 		ParentRole: types.StringPointerValue(customRole.ParentRoleName),
-		// The reason we do this is that the API can return permissions with different casing than what was sent.
-		// In order to make sure that the output is correct, we perform the checks above.
+		// Keep the plan's original permission forms in state (preserving the user's spelling,
+		// whether canonical or deprecated), so that the next plan sees no diff as long as the
+		// effective permission set is unchanged.
 		Permissions: plan.Permissions,
 		Description: types.StringPointerValue(customRole.Description),
 		Name:        types.StringPointerValue(customRole.Name),

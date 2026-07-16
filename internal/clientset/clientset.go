@@ -60,6 +60,7 @@ type ClientSet struct {
 	events2Metrics *cxsdk.Events2MetricsClient
 	groupGrpc      *cxsdk.GroupsClient
 	teams          *cxsdk.TeamsClient
+	permissions    *cxsdk.PermissionsClient
 
 	dahboardsFolders      *dbfs.DashboardFoldersServiceAPIService
 	customDataEnrichments *cess.CustomEnrichmentsServiceAPIService
@@ -174,6 +175,10 @@ func (c *ClientSet) CustomRoles() *roless.RoleManagementServiceAPIService {
 	return c.customRole
 }
 
+func (c *ClientSet) Permissions() *cxsdk.PermissionsClient {
+	return c.permissions
+}
+
 func (c *ClientSet) SLOs() *slos.SlosServiceAPIService {
 	return c.slos
 }
@@ -261,6 +266,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		dashboards:     cxsdk.NewDashboardsClient(grpcCreator),
 		events2Metrics: cxsdk.NewEvents2MetricsClient(grpcCreator),
 		groupGrpc:      cxsdk.NewGroupsClient(grpcCreator),
+		permissions:    cxsdk.NewPermissionsClient(grpcCreator),
 
 		dahboardsFolders:      cs.DashboardFolders(),
 		parsingRuleGroups:     cs.RuleGroups(),

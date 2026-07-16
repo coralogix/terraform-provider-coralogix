@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_custom_role
+- FIX: Deprecated permission expressions (e.g. `alerts-map:Read`) are now treated as equivalent to their canonical replacement (e.g. `alerts:MapRead`). A `terraform plan` after a server-side expression rename no longer shows a spurious diff, and `terraform apply` no longer errors because the old expression form is unrecognized by the API. Requires the companion permissions-service PR (ListAllPermissions with `deprecated_expressions`) to be deployed.
+
 #### resource/coralogix_integration
 
 - FIX: Changing `version` now plans as an in-place update instead of forcing a destroy-and-recreate. The `RequiresReplace()` plan modifier was removed from `version`; version bumps flow through the existing `Update` method, preserving the integration's identity (and, for managed integrations, its provisioned service account) instead of deleting and re-provisioning it.
