@@ -20,6 +20,7 @@ BINARY=terraform-provider-${NAME}
 VERSION=1.5
 OS_ARCH=darwin_arm64
 BUILD_ARGS=-ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn"
+DASHBOARD_ACC_PATTERN=^TestAccCoralogix(Resource|DataSource)Dashboards?
 
 default: install
 
@@ -49,7 +50,10 @@ test:
 	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -timeout=30s -parallel=4
 
 testacc:
-	TF_ACC=1 go test ${BUILD_ARGS} $(TEST) -v $(TESTARGS) -timeout 120m -parallel=4
+	TF_ACC=1 go test ${BUILD_ARGS} $(TEST) -v $(TESTARGS) -skip '${DASHBOARD_ACC_PATTERN}' -timeout 120m -parallel=4
+
+testacc-dashboard:
+	TF_ACC=1 go test ${BUILD_ARGS} ./internal/provider -v -run '${DASHBOARD_ACC_PATTERN}' $(TESTARGS) -timeout 120m -parallel=4
 
 testacc-dashboard-migration:
 	CORALOGIX_DASHBOARD_MIGRATION_ACC=1 TF_ACC=1 go test ${BUILD_ARGS} ./internal/provider -run '^TestAccCoralogixResourceDashboardMigration' -v -count=1 -timeout 120m
