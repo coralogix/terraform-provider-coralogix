@@ -40,25 +40,6 @@ import (
 )
 
 func DataTableSchema() schema.Attribute {
-	return dataTableSchema(true)
-}
-
-func DataTableSchemaWithoutWidgetValidation() schema.Attribute {
-	return dataTableSchema(false)
-}
-
-func dataTableSchema(includeWidgetValidation bool) schema.Attribute {
-	validators := []validator.Object{
-		objectvalidator.AlsoRequires(
-			path.MatchRelative().AtParent().AtParent().AtName("title"),
-		),
-	}
-	if includeWidgetValidation {
-		validators = append([]validator.Object{
-			SupportedWidgetsValidatorWithout("data_table"),
-		}, validators...)
-	}
-
 	return schema.SingleNestedAttribute{
 		Attributes: map[string]schema.Attribute{
 			"query": schema.SingleNestedAttribute{
@@ -106,6 +87,13 @@ func dataTableSchema(includeWidgetValidation bool) schema.Attribute {
 							"time_frame": TimeFrameSchema(),
 						},
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("spans"),
+								path.MatchRelative().AtParent().AtName("metrics"),
+								path.MatchRelative().AtParent().AtName("data_prime"),
+							),
+						},
 					},
 					"spans": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -144,6 +132,13 @@ func dataTableSchema(includeWidgetValidation bool) schema.Attribute {
 							"time_frame": TimeFrameSchema(),
 						},
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs"),
+								path.MatchRelative().AtParent().AtName("metrics"),
+								path.MatchRelative().AtParent().AtName("data_prime"),
+							),
+						},
 					},
 					"metrics": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -162,6 +157,13 @@ func dataTableSchema(includeWidgetValidation bool) schema.Attribute {
 							"time_frame": TimeFrameSchema(),
 						},
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs"),
+								path.MatchRelative().AtParent().AtName("spans"),
+								path.MatchRelative().AtParent().AtName("data_prime"),
+							),
+						},
 					},
 					"data_prime": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -177,10 +179,14 @@ func dataTableSchema(includeWidgetValidation bool) schema.Attribute {
 							"time_frame": TimeFrameSchema(),
 						},
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs"),
+								path.MatchRelative().AtParent().AtName("spans"),
+								path.MatchRelative().AtParent().AtName("metrics"),
+							),
+						},
 					},
-				},
-				Validators: []validator.Object{
-					AtMostOneOfAttributes("logs", "metrics", "spans", "data_prime"),
 				},
 				Required: true,
 			},
@@ -240,8 +246,13 @@ func dataTableSchema(includeWidgetValidation bool) schema.Attribute {
 				MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", DashboardValidDataModeTypes),
 			},
 		},
-		Validators: validators,
-		Optional:   true,
+		Validators: []validator.Object{
+			SupportedWidgetsValidatorWithout("data_table"),
+			objectvalidator.AlsoRequires(
+				path.MatchRelative().AtParent().AtParent().AtName("title"),
+			),
+		},
+		Optional: true,
 	}
 }
 

@@ -24,6 +24,7 @@ import (
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -50,25 +51,6 @@ var (
 )
 
 func LineChartSchema() schema.Attribute {
-	return lineChartSchema(true)
-}
-
-func LineChartSchemaWithoutWidgetValidation() schema.Attribute {
-	return lineChartSchema(false)
-}
-
-func lineChartSchema(includeWidgetValidation bool) schema.Attribute {
-	validators := []validator.Object{
-		objectvalidator.AlsoRequires(
-			path.MatchRelative().AtParent().AtParent().AtName("title"),
-		),
-	}
-	if includeWidgetValidation {
-		validators = append([]validator.Object{
-			SupportedWidgetsValidatorWithout("line_chart"),
-		}, validators...)
-	}
-
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Attributes: map[string]schema.Attribute{
@@ -124,6 +106,13 @@ func lineChartSchema(includeWidgetValidation bool) schema.Attribute {
 										"time_frame":   TimeFrameSchema(),
 									},
 									Optional: true,
+									Validators: []validator.Object{
+										objectvalidator.ExactlyOneOf(
+											path.MatchRelative().AtParent().AtName("metrics"),
+											path.MatchRelative().AtParent().AtName("spans"),
+											path.MatchRelative().AtParent().AtName("data_prime"),
+										),
+									},
 								},
 								"metrics": schema.SingleNestedAttribute{
 									Attributes: map[string]schema.Attribute{
@@ -168,9 +157,6 @@ func lineChartSchema(includeWidgetValidation bool) schema.Attribute {
 									Optional: true,
 								},
 							},
-							Validators: []validator.Object{
-								AtMostOneOfAttributes("logs", "metrics", "spans", "data_prime"),
-							},
 							Required: true,
 						},
 						"series_name_template": schema.StringAttribute{
@@ -207,13 +193,20 @@ func lineChartSchema(includeWidgetValidation bool) schema.Attribute {
 							Attributes: map[string]schema.Attribute{
 								"interval": schema.StringAttribute{
 									Optional: true,
+									Validators: []validator.String{
+										stringvalidator.ExactlyOneOf(
+											path.MatchRelative().AtParent().AtName("buckets_presented"),
+										),
+									},
 								},
 								"buckets_presented": schema.Int64Attribute{
 									Optional: true,
+									Validators: []validator.Int64{
+										int64validator.ExactlyOneOf(
+											path.MatchRelative().AtParent().AtName("interval"),
+										),
+									},
 								},
-							},
-							Validators: []validator.Object{
-								AtMostOneOfAttributes("interval", "buckets_presented"),
 							},
 							Optional: true,
 						},
@@ -229,7 +222,12 @@ func lineChartSchema(includeWidgetValidation bool) schema.Attribute {
 				},
 			},
 		},
-		Validators: validators,
+		Validators: []validator.Object{
+			SupportedWidgetsValidatorWithout("line_chart"),
+			objectvalidator.AlsoRequires(
+				path.MatchRelative().AtParent().AtParent().AtName("title"),
+			),
+		},
 	}
 }
 

@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"math/big"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -1888,61 +1887,13 @@ func expandAbsoluteTimeFrame(ctx context.Context, timeFrame *TimeFrameAbsoluteMo
 }
 
 func SupportedWidgetsValidatorWithout(current string) validator.Object {
-	matchers := make([]path.Expression, 0, len(SupportedWidgetTypes)-1)
+	matchers := make([]path.Expression, len(SupportedWidgetTypes)-1)
 	for _, name := range SupportedWidgetTypes {
 		if name != current {
 			matchers = append(matchers, path.MatchRelative().AtParent().AtName(name))
 		}
 	}
 	return objectvalidator.ExactlyOneOf(matchers...)
-}
-
-// AtMostOneOfAttributes validates a oneOf family at its parent object, so an
-// invalid configuration produces one diagnostic at the family rather than a
-// diagnostic from every configured branch. Zero configured branches are
-// allowed to preserve the behavior of branch-level ExactlyOneOf validators.
-func AtMostOneOfAttributes(attributeNames ...string) validator.Object {
-	return AtMostOneOfAttributesValidator{AttributeNames: attributeNames}
-}
-
-type AtMostOneOfAttributesValidator struct {
-	AttributeNames []string
-}
-
-func (v AtMostOneOfAttributesValidator) Description(context.Context) string {
-	return fmt.Sprintf("At most one of %s can be configured.", strings.Join(v.AttributeNames, ", "))
-}
-
-func (v AtMostOneOfAttributesValidator) MarkdownDescription(ctx context.Context) string {
-	return v.Description(ctx)
-}
-
-func (v AtMostOneOfAttributesValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
-		return
-	}
-
-	selected := make([]string, 0, len(v.AttributeNames))
-	for _, name := range v.AttributeNames {
-		value, ok := req.ConfigValue.Attributes()[name]
-		if !ok || value.IsNull() {
-			continue
-		}
-		if value.IsUnknown() {
-			continue
-		}
-		selected = append(selected, name)
-	}
-
-	if len(selected) <= 1 {
-		return
-	}
-
-	resp.Diagnostics.AddAttributeError(
-		req.Path,
-		"Invalid attribute combination",
-		fmt.Sprintf("At most one of %s can be configured; found: %s. Remove all but one.", strings.Join(v.AttributeNames, ", "), strings.Join(selected, ", ")),
-	)
 }
 
 func FlattenSpansAggregation(aggregation *dashboardservice.SpansAggregation) (*SpansAggregationModel, diag.Diagnostic) {
