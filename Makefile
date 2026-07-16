@@ -57,7 +57,7 @@ testacc-dashboard:
 	TF_ACC=1 go test ${BUILD_ARGS} ./internal/provider -v -run '${DASHBOARD_ACC_PATTERN}' $(TESTARGS) -timeout 120m -parallel=4
 
 testacc-dashboard-migration:
-	CORALOGIX_DASHBOARD_MIGRATION_ACC=1 TF_ACC=1 go test ${BUILD_ARGS} ./internal/provider -run '${DASHBOARD_MIGRATION_ACC_PATTERN}' -v -count=1 -timeout 120m
+	CORALOGIX_DASHBOARD_MIGRATION_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test ${BUILD_ARGS} ./internal/provider -run '${DASHBOARD_MIGRATION_ACC_PATTERN}' -v -count=1 -timeout 120m -parallel=3
 
 generate:
 	go generate ${BUILD_ARGS}

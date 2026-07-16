@@ -47,73 +47,83 @@ type dashboardMigrationIdentity struct {
 func TestAccCoralogixResourceDashboardMigrationFromV360(t *testing.T) {
 	requireDashboardMigrationAcceptance(t)
 
-	const fixture = "TestAccCoralogixResourceDashboardMigrationFromV360"
-	dashboardName := dashboardOpenAPIFixtureName(fixture)
-	folderName := dashboardOpenAPIFixtureName(fixture + "Folder")
-	identity := &dashboardMigrationIdentity{fixture: fixture}
-	accessPolicy := testAccCoralogixDashboardAccessPolicyPretty()
-	initialConfig := dashboardMigrationV360Config(dashboardName, folderName, "Created by the gRPC-backed provider", accessPolicy)
-	updatedConfig := dashboardMigrationV360Config(dashboardName, folderName, "Updated by the REST-backed provider", accessPolicy)
+	for _, group := range dashboardStructuredQueryWidgetGroups {
+		group := group
+		t.Run(group.name, func(t *testing.T) {
+			fixture := "TestAccCoralogixResourceDashboardMigrationFromV360-" + group.name
+			dashboardName := dashboardOpenAPIFixtureName(fixture)
+			folderName := dashboardOpenAPIFixtureName(fixture + "Folder")
+			identity := &dashboardMigrationIdentity{fixture: fixture}
+			accessPolicy := testAccCoralogixDashboardAccessPolicyPretty()
+			includeMarkdown := group.name == "line-and-table"
+			wantWidgets := len(group.widgets)
+			if includeMarkdown {
+				wantWidgets++
+			}
+			initialConfig := dashboardMigrationV360Config(dashboardName, folderName, "Created by the gRPC-backed provider", accessPolicy, includeMarkdown, group.widgets)
+			updatedConfig := dashboardMigrationV360Config(dashboardName, folderName, "Updated by the REST-backed provider", accessPolicy, includeMarkdown, group.widgets)
 
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			identity.client = dashboardOpenAPIAcceptanceClient(t)
-		},
-		CheckDestroy: testAccCheckDashboardDestroy(t),
-		Steps: []resource.TestStep{
-			{
-				Config:            initialConfig,
-				ExternalProviders: dashboardMigrationExternalProvider(dashboardMigrationGRPCVersion),
-				Check: identity.checkCurrentStateAndBackend(
-					8,
-					"Created by the gRPC-backed provider",
-					accessPolicy,
-					true,
-				),
-			},
-			{
-				Config:                   initialConfig,
-				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionNoop),
-					},
-					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+			resource.ParallelTest(t, resource.TestCase{
+				PreCheck: func() {
+					testAccPreCheck(t)
+					identity.client = dashboardOpenAPIAcceptanceClient(t)
 				},
-				Check: identity.checkCurrentStateAndBackend(
-					8,
-					"Created by the gRPC-backed provider",
-					accessPolicy,
-					true,
-				),
-			},
-			{
-				Config:                   updatedConfig,
-				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionUpdate),
+				CheckDestroy: testAccCheckDashboardDestroy(t),
+				Steps: []resource.TestStep{
+					{
+						Config:            initialConfig,
+						ExternalProviders: dashboardMigrationExternalProvider(dashboardMigrationGRPCVersion),
+						Check: identity.checkCurrentStateAndBackend(
+							wantWidgets,
+							"Created by the gRPC-backed provider",
+							accessPolicy,
+							true,
+						),
 					},
-					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+					{
+						Config:                   initialConfig,
+						ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+						ConfigPlanChecks: resource.ConfigPlanChecks{
+							PreApply: []plancheck.PlanCheck{
+								plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionNoop),
+							},
+							PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+						},
+						Check: identity.checkCurrentStateAndBackend(
+							wantWidgets,
+							"Created by the gRPC-backed provider",
+							accessPolicy,
+							true,
+						),
+					},
+					{
+						Config:                   updatedConfig,
+						ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+						ConfigPlanChecks: resource.ConfigPlanChecks{
+							PreApply: []plancheck.PlanCheck{
+								plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionUpdate),
+							},
+							PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+						},
+						Check: identity.checkCurrentStateAndBackend(
+							wantWidgets,
+							"Updated by the REST-backed provider",
+							accessPolicy,
+							true,
+						),
+					},
+					{
+						ResourceName:             dashboardResourceName,
+						ImportState:              true,
+						ImportStateVerify:        true,
+						ImportStateVerifyIgnore:  []string{"access_policy", "folder"},
+						ImportStateCheck:         identity.checkImportedState(wantWidgets, accessPolicy, true),
+						ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+					},
 				},
-				Check: identity.checkCurrentStateAndBackend(
-					8,
-					"Updated by the REST-backed provider",
-					accessPolicy,
-					true,
-				),
-			},
-			{
-				ResourceName:             dashboardResourceName,
-				ImportState:              true,
-				ImportStateVerify:        true,
-				ImportStateVerifyIgnore:  []string{"access_policy", "folder"},
-				ImportStateCheck:         identity.checkImportedState(8, accessPolicy, true),
-				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-			},
-		},
-	})
+			})
+		})
+	}
 }
 
 func TestAccCoralogixResourceDashboardMigrationFromSchemaV3(t *testing.T) {
@@ -191,8 +201,11 @@ func requireDashboardMigrationAcceptance(t *testing.T) {
 		t.Skipf("set %s=1 to run registry-backed dashboard migration tests", dashboardMigrationAcceptanceEnv)
 	}
 	// Keep the in-process provider address identical to the registry provider
-	// address recorded in state by the first test step.
-	t.Setenv(resource.EnvTfAccProviderNamespace, "coralogix")
+	// address recorded in state by the first test step. This must be set before
+	// go test starts because migration subtests run in parallel.
+	if namespace := os.Getenv(resource.EnvTfAccProviderNamespace); namespace != "coralogix" {
+		t.Fatalf("set %s=coralogix to run registry-backed dashboard migration tests", resource.EnvTfAccProviderNamespace)
+	}
 }
 
 func dashboardMigrationExternalProvider(version string) map[string]resource.ExternalProvider {
@@ -204,8 +217,8 @@ func dashboardMigrationExternalProvider(version string) map[string]resource.Exte
 	}
 }
 
-func dashboardMigrationV360Config(name, folderName, description, accessPolicy string) string {
-	dashboard := strings.TrimSuffix(dashboardOpenAPIStructuredDashboardConfig(name, "logs", true), "}\n")
+func dashboardMigrationV360Config(name, folderName, description, accessPolicy string, includeMarkdown bool, widgets []dashboardStructuredWidgetSpec) string {
+	dashboard := strings.TrimSuffix(dashboardOpenAPIStructuredDashboardConfigForWidgets(name, "logs", includeMarkdown, false, widgets), "}\n")
 	dashboard = strings.Replace(
 		dashboard,
 		`  description = "Exercises every structured dashboard widget query carrier."`,
@@ -307,36 +320,42 @@ func (identity *dashboardMigrationIdentity) checkImportedState(
 			if imported.ID != identity.resourceID {
 				continue
 			}
-			if err := identity.checkFlatGeneratedIDs(imported.Attributes, wantWidgets); err != nil {
-				return err
-			}
-			if wantFolder && imported.Attributes["folder.id"] != identity.folderID {
-				return fmt.Errorf("dashboard fixture %q: imported folder.id = %q, want %q", identity.fixture, imported.Attributes["folder.id"], identity.folderID)
-			}
-			if err := dashboardMigrationCheckAccessPolicy(imported.Attributes["access_policy"], imported.Attributes["access_policy"], wantAccessPolicy, identity.fixture); err != nil {
-				return err
-			}
-
-			response, httpResponse, err := identity.client.DashboardsServiceGetDashboard(context.Background(), imported.ID).Execute()
-			if err != nil {
-				return dashboardOpenAPISafeRequestError("migration import read", identity.fixture, imported.ID, httpResponse, err)
-			}
-			if response == nil || response.Dashboard == nil {
-				return fmt.Errorf("dashboard fixture %q: import read returned no dashboard", identity.fixture)
-			}
-			if wantFolder && (response.Dashboard.FolderId == nil || response.Dashboard.FolderId.GetValue() != identity.folderID) {
-				return fmt.Errorf("dashboard fixture %q: backend folder association changed during import", identity.fixture)
-			}
-			if err := dashboardMigrationCheckAccessPolicy(imported.Attributes["access_policy"], response.GetAccessPolicy(), wantAccessPolicy, identity.fixture); err != nil {
-				return err
-			}
-			if err := identity.checkBackendGeneratedIDs(response.Dashboard, wantWidgets); err != nil {
-				return err
-			}
-			return nil
+			return identity.checkImportedResource(imported, wantWidgets, wantAccessPolicy, wantFolder)
 		}
 		return fmt.Errorf("dashboard fixture %q: imported resource ID %q was not found in %d state entries", identity.fixture, identity.resourceID, len(states))
 	}
+}
+
+func (identity *dashboardMigrationIdentity) checkImportedResource(
+	imported *terraform.InstanceState,
+	wantWidgets int,
+	wantAccessPolicy string,
+	wantFolder bool,
+) error {
+	if err := identity.checkFlatGeneratedIDs(imported.Attributes, wantWidgets); err != nil {
+		return err
+	}
+	if wantFolder && imported.Attributes["folder.id"] != identity.folderID {
+		return fmt.Errorf("dashboard fixture %q: imported folder.id = %q, want %q", identity.fixture, imported.Attributes["folder.id"], identity.folderID)
+	}
+	if err := dashboardMigrationCheckAccessPolicy(imported.Attributes["access_policy"], imported.Attributes["access_policy"], wantAccessPolicy, identity.fixture); err != nil {
+		return err
+	}
+
+	response, httpResponse, err := identity.client.DashboardsServiceGetDashboard(context.Background(), imported.ID).Execute()
+	if err != nil {
+		return dashboardOpenAPISafeRequestError("migration import read", identity.fixture, imported.ID, httpResponse, err)
+	}
+	if response == nil || response.Dashboard == nil {
+		return fmt.Errorf("dashboard fixture %q: import read returned no dashboard", identity.fixture)
+	}
+	if wantFolder && (response.Dashboard.FolderId == nil || response.Dashboard.FolderId.GetValue() != identity.folderID) {
+		return fmt.Errorf("dashboard fixture %q: backend folder association changed during import", identity.fixture)
+	}
+	if err := dashboardMigrationCheckAccessPolicy(imported.Attributes["access_policy"], response.GetAccessPolicy(), wantAccessPolicy, identity.fixture); err != nil {
+		return err
+	}
+	return identity.checkBackendGeneratedIDs(response.Dashboard, wantWidgets)
 }
 
 func dashboardMigrationRead(
