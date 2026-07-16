@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.7.0
+
 #### resource/coralogix_integration
 
 - FIX: Surface the backend's human-readable validation message when creating or updating an integration is rejected, instead of printing the raw `*V1Failure` struct (e.g. `&{{0xc0004…} map[]}`). The diagnostic detail now shows `Failure.GetErrorMessage()`.
