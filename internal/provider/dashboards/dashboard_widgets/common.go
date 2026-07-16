@@ -943,6 +943,11 @@ func (l logsAggregationValidator) ValidateObject(ctx context.Context, req valida
 	}
 
 	aggregationType := aggregation.Type.ValueString()
+	validateLogsAggregationFields(aggregationType, aggregation, resp)
+	validateLogsAggregationPercent(aggregationType, aggregation.Percent, resp)
+}
+
+func validateLogsAggregationFields(aggregationType string, aggregation LogsAggregationModel, resp *validator.ObjectResponse) {
 	fieldKnownSet := !aggregation.Field.IsNull() && !aggregation.Field.IsUnknown()
 	fieldKnownUnset := aggregation.Field.IsNull()
 	obsKnownSet := !aggregation.ObservationField.IsNull() && !aggregation.ObservationField.IsUnknown()
@@ -959,9 +964,11 @@ func (l logsAggregationValidator) ValidateObject(ctx context.Context, req valida
 			resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `field` and `observation_field` are mutually exclusive — set exactly one", aggregationType)))
 		}
 	}
+}
 
-	percentKnownSet := !aggregation.Percent.IsNull() && !aggregation.Percent.IsUnknown()
-	percentKnownUnset := aggregation.Percent.IsNull()
+func validateLogsAggregationPercent(aggregationType string, percent types.Float64, resp *validator.ObjectResponse) {
+	percentKnownSet := !percent.IsNull() && !percent.IsUnknown()
+	percentKnownUnset := percent.IsNull()
 
 	if aggregationType == "percentile" && percentKnownUnset {
 		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `percentile`, `percent` must be set"))
@@ -1304,8 +1311,8 @@ func flattenDuration(timeFrame *string) basetypes.StringValue {
 
 func flattenAbsoluteTimeFrame(ctx context.Context, timeFrame *dashboardservice.TimeFrame) (*TimeFrameModel, diag.Diagnostics) {
 	absoluteTimeFrame := &TimeFrameAbsoluteModel{
-		Start: types.StringValue(timeFrame.GetFrom().Format(time.RFC3339)),
-		End:   types.StringValue(timeFrame.GetTo().Format(time.RFC3339)),
+		Start: types.StringValue(timeFrame.GetFrom().Format(time.RFC3339Nano)),
+		End:   types.StringValue(timeFrame.GetTo().Format(time.RFC3339Nano)),
 	}
 
 	flattenedTimeFrame := &TimeFrameModel{
