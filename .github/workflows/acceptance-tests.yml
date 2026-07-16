@@ -98,11 +98,20 @@ jobs:
           make testacc-dashboard DASHBOARD_ACC_PATTERN='${{ matrix.pattern }}'
 
   dashboard-migration:
-    name: Dashboard provider migration
+    name: Dashboard provider migration (${{ matrix.shard }})
     permissions:
       contents: read
     env:
       GO111MODULE: on
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Double dollar signs preserve the regexp end anchor through Make expansion.
+          - shard: grpc-v3.6.0
+            pattern: '^TestAccCoralogixResourceDashboardMigrationFromV360$$'
+          - shard: schema-v3
+            pattern: '^TestAccCoralogixResourceDashboardMigrationFromSchemaV3$$'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -119,4 +128,4 @@ jobs:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
-          make testacc-dashboard-migration
+          make testacc-dashboard-migration DASHBOARD_MIGRATION_ACC_PATTERN='${{ matrix.pattern }}'
