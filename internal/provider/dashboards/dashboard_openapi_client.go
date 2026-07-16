@@ -290,18 +290,6 @@ func formatDashboardOpenAPIError(httpResponse *http.Response, err error, operati
 }
 
 func isDashboardOpenAPINotFound(httpResponse *http.Response, err error) bool {
-	if responseStatusCode(httpResponse) == http.StatusNotFound {
-		return true
-	}
-
 	apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
-	return cxsdkOpenapi.Code(apiErr) == http.StatusNotFound
-}
-
-func responseStatusCode(response *http.Response) int {
-	if response == nil {
-		return 0
-	}
-
-	return response.StatusCode
+	return cxsdkOpenapi.IsNotFound(apiErr)
 }

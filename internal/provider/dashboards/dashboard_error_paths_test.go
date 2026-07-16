@@ -326,7 +326,7 @@ func TestDashboardResourceDeleteAlreadyAbsentSucceeds(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"code":404,"message":"dashboard is already absent"}`))
+		_, _ = w.Write([]byte(`{"code":404,"message":"Not Found: No dashboard with the given id"}`))
 	}))
 	t.Cleanup(server.Close)
 
@@ -460,7 +460,7 @@ func dashboardNotFoundTestServer(t *testing.T) *httptest.Server {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"code":404,"message":"dashboard no longer exists"}`))
+		_, _ = w.Write([]byte(`{"code":404,"message":"Not Found: No dashboard with the given id"}`))
 	}))
 }
 

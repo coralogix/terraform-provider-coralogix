@@ -29,6 +29,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type dashboardOpenAPITestError struct {
+	body []byte
+}
+
+func (e dashboardOpenAPITestError) Error() string      { return string(e.body) }
+func (e dashboardOpenAPITestError) Body() []byte       { return e.body }
+func (e dashboardOpenAPITestError) Model() interface{} { return nil }
+
 func TestNewDashboardOpenAPICreateRequest(t *testing.T) {
 	accessPolicy := `{"version":"2025-01-01"}`
 	dashboard := dashboardservice.Dashboard{Name: "test"}
@@ -361,10 +369,22 @@ func TestIsDashboardOpenAPINotFound(t *testing.T) {
 		want         bool
 	}{
 		{
-			name:         "404 response",
+			name:         "confirmed resource 404",
+			httpResponse: &http.Response{StatusCode: http.StatusNotFound},
+			err:          dashboardOpenAPITestError{body: []byte("Not Found: No dashboard with the given id")},
+			want:         true,
+		},
+		{
+			name:         "generic endpoint 404",
+			httpResponse: &http.Response{StatusCode: http.StatusNotFound},
+			err:          dashboardOpenAPITestError{body: []byte("Not Found: Not Found")},
+			want:         false,
+		},
+		{
+			name:         "bodyless 404",
 			httpResponse: &http.Response{StatusCode: http.StatusNotFound},
 			err:          errors.New("not found"),
-			want:         true,
+			want:         false,
 		},
 		{
 			name:         "non-404 response",
@@ -469,7 +489,7 @@ func TestDashboardOpenAPIClientDeleteAlreadyAbsentIsIdempotent(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"code":404,"message":"dashboard is already absent"}`))
+		_, _ = w.Write([]byte(`{"code":404,"message":"Not Found: No dashboard with the given id"}`))
 	}))
 	t.Cleanup(server.Close)
 
@@ -483,7 +503,7 @@ func TestDashboardOpenAPIClientGetNotFoundRetainsRESTContext(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"code":404,"message":"dashboard no longer exists"}`))
+		_, _ = w.Write([]byte(`{"code":404,"message":"Not Found: No dashboard with the given id"}`))
 	}))
 	t.Cleanup(server.Close)
 
@@ -491,7 +511,7 @@ func TestDashboardOpenAPIClientGetNotFoundRetainsRESTContext(t *testing.T) {
 	if !errors.Is(err, errDashboardOpenAPINotFound) {
 		t.Fatalf("Get() error = %v, want errDashboardOpenAPINotFound", err)
 	}
-	for _, context := range []string{dashboardOpenAPIOperationGet, "404", "dashboard no longer exists"} {
+	for _, context := range []string{dashboardOpenAPIOperationGet, "404", "Not Found: No dashboard with the given id"} {
 		if !strings.Contains(err.Error(), context) {
 			t.Errorf("Get() error = %q, want context %q", err, context)
 		}
