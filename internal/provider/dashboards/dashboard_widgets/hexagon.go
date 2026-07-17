@@ -182,7 +182,7 @@ func HexagonSchema() schema.Attribute {
 						},
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
+							ExactlyOneOfObject(
 								path.MatchRelative().AtParent().AtName("metrics"),
 								path.MatchRelative().AtParent().AtName("spans"),
 								path.MatchRelative().AtParent().AtName("data_prime"),
@@ -336,7 +336,7 @@ func HexagonSchemaV0() schema.Attribute {
 						},
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
+							ExactlyOneOfObject(
 								path.MatchRelative().AtParent().AtName("metrics"),
 								path.MatchRelative().AtParent().AtName("spans"),
 								path.MatchRelative().AtParent().AtName("data_prime"),

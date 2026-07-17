@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"math/big"
 	"slices"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -26,11 +28,14 @@ import (
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -1887,13 +1892,257 @@ func expandAbsoluteTimeFrame(ctx context.Context, timeFrame *TimeFrameAbsoluteMo
 }
 
 func SupportedWidgetsValidatorWithout(current string) validator.Object {
-	matchers := make([]path.Expression, len(SupportedWidgetTypes)-1)
+	matchers := make([]path.Expression, 0, len(SupportedWidgetTypes)-1)
 	for _, name := range SupportedWidgetTypes {
 		if name != current {
 			matchers = append(matchers, path.MatchRelative().AtParent().AtName(name))
 		}
 	}
-	return objectvalidator.ExactlyOneOf(matchers...)
+	return ExactlyOneOfObject(matchers...)
+}
+
+func ExactlyOneOfObject(expressions ...path.Expression) validator.Object {
+	return friendlyExactlyOneOfObjectValidator{
+		Object:          objectvalidator.ExactlyOneOf(expressions...),
+		PathExpressions: expressions,
+	}
+}
+
+func ExactlyOneOfString(expressions ...path.Expression) validator.String {
+	return friendlyExactlyOneOfStringValidator{
+		String:          stringvalidator.ExactlyOneOf(expressions...),
+		PathExpressions: expressions,
+	}
+}
+
+func ExactlyOneOfInt64(expressions ...path.Expression) validator.Int64 {
+	return friendlyExactlyOneOfInt64Validator{
+		Int64:           int64validator.ExactlyOneOf(expressions...),
+		PathExpressions: expressions,
+	}
+}
+
+type friendlyExactlyOneOfObjectValidator struct {
+	validator.Object
+	PathExpressions path.Expressions
+}
+
+func (v friendlyExactlyOneOfObjectValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	var delegateResp validator.ObjectResponse
+	v.Object.ValidateObject(ctx, req, &delegateResp)
+	rewriteExactlyOneOfDiagnostics(ctx, exactlyOneOfDiagnosticRequest{
+		Config:          req.Config,
+		ConfigValue:     req.ConfigValue,
+		Path:            req.Path,
+		PathExpression:  req.PathExpression,
+		PathExpressions: v.PathExpressions,
+	}, delegateResp.Diagnostics, &resp.Diagnostics)
+}
+
+type friendlyExactlyOneOfStringValidator struct {
+	validator.String
+	PathExpressions path.Expressions
+}
+
+func (v friendlyExactlyOneOfStringValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	var delegateResp validator.StringResponse
+	v.String.ValidateString(ctx, req, &delegateResp)
+	rewriteExactlyOneOfDiagnostics(ctx, exactlyOneOfDiagnosticRequest{
+		Config:          req.Config,
+		ConfigValue:     req.ConfigValue,
+		Path:            req.Path,
+		PathExpression:  req.PathExpression,
+		PathExpressions: v.PathExpressions,
+	}, delegateResp.Diagnostics, &resp.Diagnostics)
+}
+
+type friendlyExactlyOneOfInt64Validator struct {
+	validator.Int64
+	PathExpressions path.Expressions
+}
+
+func (v friendlyExactlyOneOfInt64Validator) ValidateInt64(ctx context.Context, req validator.Int64Request, resp *validator.Int64Response) {
+	var delegateResp validator.Int64Response
+	v.Int64.ValidateInt64(ctx, req, &delegateResp)
+	rewriteExactlyOneOfDiagnostics(ctx, exactlyOneOfDiagnosticRequest{
+		Config:          req.Config,
+		ConfigValue:     req.ConfigValue,
+		Path:            req.Path,
+		PathExpression:  req.PathExpression,
+		PathExpressions: v.PathExpressions,
+	}, delegateResp.Diagnostics, &resp.Diagnostics)
+}
+
+func (v friendlyExactlyOneOfObjectValidator) exactlyOneOfPathExpressions() path.Expressions {
+	return v.PathExpressions
+}
+
+func (v friendlyExactlyOneOfStringValidator) exactlyOneOfPathExpressions() path.Expressions {
+	return v.PathExpressions
+}
+
+func (v friendlyExactlyOneOfInt64Validator) exactlyOneOfPathExpressions() path.Expressions {
+	return v.PathExpressions
+}
+
+type exactlyOneOfDiagnosticRequest struct {
+	Config          tfsdk.Config
+	ConfigValue     attr.Value
+	Path            path.Path
+	PathExpression  path.Expression
+	PathExpressions path.Expressions
+}
+
+func rewriteExactlyOneOfDiagnostics(ctx context.Context, req exactlyOneOfDiagnosticRequest, delegated diag.Diagnostics, resp *diag.Diagnostics) {
+	for _, diagnostic := range delegated {
+		if diagnostic.Summary() != "Invalid Attribute Combination" {
+			resp.Append(diagnostic)
+			continue
+		}
+
+		groupPaths, ok := exactlyOneOfGroupPaths(ctx, req.Config, req.Path, req.PathExpression, req.PathExpressions)
+		if !ok {
+			resp.AddAttributeError(req.Path, diagnostic.Summary(), exactlyOneOfDiagnosticDetail(diagnostic.Detail(), nil))
+			continue
+		}
+
+		selectedPaths, ok := selectedExactlyOneOfPaths(ctx, req, groupPaths)
+		if !ok || !shouldEmitExactlyOneOfDiagnostic(ctx, req.Config, req.Path, groupPaths, selectedPaths) {
+			continue
+		}
+
+		resp.AddAttributeError(req.Path.ParentPath(), diagnostic.Summary(), exactlyOneOfDiagnosticDetail(diagnostic.Detail(), selectedPaths))
+	}
+}
+
+func exactlyOneOfGroupPaths(ctx context.Context, config tfsdk.Config, currentPath path.Path, currentExpression path.Expression, expressions path.Expressions) (path.Paths, bool) {
+	pathsByName := map[string]path.Path{currentPath.String(): currentPath}
+	parentPath := currentPath.ParentPath()
+
+	for _, expression := range currentExpression.MergeExpressions(expressions...) {
+		matchedPaths, diags := config.PathMatches(ctx, expression)
+		if diags.HasError() {
+			return nil, false
+		}
+		for _, matchedPath := range matchedPaths {
+			if matchedPath.ParentPath().Equal(parentPath) {
+				pathsByName[matchedPath.String()] = matchedPath
+			}
+		}
+	}
+
+	paths := make(path.Paths, 0, len(pathsByName))
+	for _, attributePath := range pathsByName {
+		paths = append(paths, attributePath)
+	}
+	sort.Slice(paths, func(i, j int) bool { return paths[i].String() < paths[j].String() })
+	return paths, true
+}
+
+func selectedExactlyOneOfPaths(ctx context.Context, req exactlyOneOfDiagnosticRequest, groupPaths path.Paths) (path.Paths, bool) {
+	selectedPaths := make(path.Paths, 0, len(groupPaths))
+	for _, attributePath := range groupPaths {
+		value := req.ConfigValue
+		if !attributePath.Equal(req.Path) {
+			var configuredValue attr.Value
+			if diags := req.Config.GetAttribute(ctx, attributePath, &configuredValue); diags.HasError() {
+				return nil, false
+			}
+			value = configuredValue
+		}
+		if value != nil && !value.IsNull() && !value.IsUnknown() {
+			selectedPaths = append(selectedPaths, attributePath)
+		}
+	}
+	return selectedPaths, true
+}
+
+func shouldEmitExactlyOneOfDiagnostic(ctx context.Context, config tfsdk.Config, currentPath path.Path, groupPaths, selectedPaths path.Paths) bool {
+	emitterPaths := selectedPaths
+	if len(emitterPaths) == 0 {
+		emitterPaths = groupPaths
+	}
+
+	for _, candidatePath := range emitterPaths {
+		if attributeHasMatchingExactlyOneOfValidator(ctx, config, candidatePath, groupPaths) {
+			return candidatePath.Equal(currentPath)
+		}
+	}
+
+	// Schema introspection is only used to de-duplicate diagnostics. If it
+	// cannot identify an owner, retain the delegate's validation result.
+	return true
+}
+
+func attributeHasMatchingExactlyOneOfValidator(ctx context.Context, config tfsdk.Config, attributePath path.Path, groupPaths path.Paths) bool {
+	attribute, diags := config.Schema.AttributeAtPath(ctx, attributePath)
+	if diags.HasError() {
+		return false
+	}
+
+	var validators []exactlyOneOfValidator
+	if provider, ok := attribute.(interface{ ObjectValidators() []validator.Object }); ok {
+		validators = appendExactlyOneOfValidators(validators, provider.ObjectValidators())
+	}
+	if provider, ok := attribute.(interface{ StringValidators() []validator.String }); ok {
+		validators = appendExactlyOneOfValidators(validators, provider.StringValidators())
+	}
+	if provider, ok := attribute.(interface{ Int64Validators() []validator.Int64 }); ok {
+		validators = appendExactlyOneOfValidators(validators, provider.Int64Validators())
+	}
+
+	for _, candidateValidator := range validators {
+		candidateGroupPaths, ok := exactlyOneOfGroupPaths(ctx, config, attributePath, attributePath.Expression(), candidateValidator.exactlyOneOfPathExpressions())
+		if ok && equalPaths(candidateGroupPaths, groupPaths) {
+			return true
+		}
+	}
+	return false
+}
+
+type exactlyOneOfValidator interface {
+	exactlyOneOfPathExpressions() path.Expressions
+}
+
+func appendExactlyOneOfValidators[T any](destination []exactlyOneOfValidator, validators []T) []exactlyOneOfValidator {
+	for _, candidateValidator := range validators {
+		if exactlyOneOf, ok := any(candidateValidator).(exactlyOneOfValidator); ok {
+			destination = append(destination, exactlyOneOf)
+		}
+	}
+	return destination
+}
+
+func equalPaths(left, right path.Paths) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if !left[i].Equal(right[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func exactlyOneOfDiagnosticDetail(detail string, selectedPaths path.Paths) string {
+	if strings.HasPrefix(detail, "No attribute specified") {
+		return "No attribute was configured in this one-of group. Configure exactly one value."
+	}
+	if len(selectedPaths) == 0 {
+		return "Multiple attributes were configured in this one-of group. Configure only one value."
+	}
+
+	selectedNames := make([]string, 0, len(selectedPaths))
+	for _, selectedPath := range selectedPaths {
+		lastStep, _ := selectedPath.Steps().LastStep()
+		if attributeName, ok := lastStep.(path.PathStepAttributeName); ok {
+			selectedNames = append(selectedNames, "`"+attributeName.String()+"`")
+		} else {
+			selectedNames = append(selectedNames, "`"+selectedPath.String()+"`")
+		}
+	}
+	return fmt.Sprintf("Only one of these attributes can be configured: %s.", strings.Join(selectedNames, ", "))
 }
 
 func FlattenSpansAggregation(aggregation *dashboardservice.SpansAggregation) (*SpansAggregationModel, diag.Diagnostic) {

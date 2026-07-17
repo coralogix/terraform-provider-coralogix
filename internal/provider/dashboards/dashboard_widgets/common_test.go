@@ -21,9 +21,14 @@ import (
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestHexagonSpansQueryModelRoundTrip(t *testing.T) {
@@ -285,6 +290,103 @@ func TestFilterOperatorValidatorRejectsEmptyNotEqualsSelection(t *testing.T) {
 		if !response.Diagnostics.HasError() {
 			t.Fatalf("expected an error for not_equals with selected_values %s", selectedValues)
 		}
+	}
+}
+
+func TestSupportedWidgetsValidatorDoesNotIncludeEmptyPaths(t *testing.T) {
+	description := SupportedWidgetsValidatorWithout("gauge").Description(context.Background())
+
+	if count := strings.Count(description, "<."); count != len(SupportedWidgetTypes)-1 {
+		t.Fatalf("widget validator description contains %d relative paths, want %d: %s", count, len(SupportedWidgetTypes)-1, description)
+	}
+}
+
+func TestExactlyOneOfWidgetsReportsConfiguredBranchesOnce(t *testing.T) {
+	ctx := context.Background()
+	emptyObjectType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{}}
+	emptyAttributeTypes := map[string]attr.Type{}
+	attributeSchemas := make(map[string]schema.Attribute, len(SupportedWidgetTypes))
+	terraformTypes := make(map[string]tftypes.Type, len(SupportedWidgetTypes))
+	terraformValues := make(map[string]tftypes.Value, len(SupportedWidgetTypes))
+	configValues := make(map[string]types.Object, len(SupportedWidgetTypes))
+
+	for _, name := range SupportedWidgetTypes {
+		attributeSchemas[name] = schema.SingleNestedAttribute{
+			Optional:   true,
+			Attributes: map[string]schema.Attribute{},
+			Validators: []validator.Object{SupportedWidgetsValidatorWithout(name)},
+		}
+		terraformTypes[name] = emptyObjectType
+		if name == "gauge" || name == "line_chart" {
+			terraformValues[name] = tftypes.NewValue(emptyObjectType, map[string]tftypes.Value{})
+			configValues[name] = types.ObjectValueMust(emptyAttributeTypes, map[string]attr.Value{})
+		} else {
+			terraformValues[name] = tftypes.NewValue(emptyObjectType, nil)
+			configValues[name] = types.ObjectNull(emptyAttributeTypes)
+		}
+	}
+
+	config := tfsdk.Config{
+		Schema: schema.Schema{Attributes: attributeSchemas},
+		Raw:    tftypes.NewValue(tftypes.Object{AttributeTypes: terraformTypes}, terraformValues),
+	}
+	var diagnostics diag.Diagnostics
+	for _, name := range SupportedWidgetTypes {
+		request := validator.ObjectRequest{
+			Config:         config,
+			ConfigValue:    configValues[name],
+			Path:           path.Root(name),
+			PathExpression: path.MatchRoot(name),
+		}
+		response := &validator.ObjectResponse{}
+		SupportedWidgetsValidatorWithout(name).ValidateObject(ctx, request, response)
+		diagnostics.Append(response.Diagnostics...)
+	}
+
+	if len(diagnostics) != 1 {
+		t.Fatalf("diagnostics count = %d, want 1: %v", len(diagnostics), diagnostics)
+	}
+	detail := diagnostics[0].Detail()
+	if !strings.Contains(detail, "`gauge`, `line_chart`") {
+		t.Fatalf("diagnostic does not identify the configured branches: %s", detail)
+	}
+}
+
+func TestExactlyOneOfAsymmetricSchemaStillReportsConflict(t *testing.T) {
+	ctx := context.Background()
+	attributeSchemas := map[string]schema.Attribute{
+		"constant_list": schema.StringAttribute{Optional: true},
+		"logs_path": schema.StringAttribute{
+			Optional: true,
+			Validators: []validator.String{
+				ExactlyOneOfString(path.MatchRelative().AtParent().AtName("constant_list")),
+			},
+		},
+	}
+	config := tfsdk.Config{
+		Schema: schema.Schema{Attributes: attributeSchemas},
+		Raw: tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+			"constant_list": tftypes.String,
+			"logs_path":     tftypes.String,
+		}}, map[string]tftypes.Value{
+			"constant_list": tftypes.NewValue(tftypes.String, "constant"),
+			"logs_path":     tftypes.NewValue(tftypes.String, "logs"),
+		}),
+	}
+	request := validator.StringRequest{
+		Config:         config,
+		ConfigValue:    types.StringValue("logs"),
+		Path:           path.Root("logs_path"),
+		PathExpression: path.MatchRoot("logs_path"),
+	}
+	response := &validator.StringResponse{}
+	attributeSchemas["logs_path"].(schema.StringAttribute).Validators[0].ValidateString(ctx, request, response)
+
+	if len(response.Diagnostics) != 1 {
+		t.Fatalf("diagnostics count = %d, want 1: %v", len(response.Diagnostics), response.Diagnostics)
+	}
+	if detail := response.Diagnostics[0].Detail(); !strings.Contains(detail, "`constant_list`, `logs_path`") {
+		t.Fatalf("diagnostic does not identify the configured branches: %s", detail)
 	}
 }
 

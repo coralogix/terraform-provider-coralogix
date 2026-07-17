@@ -25,7 +25,6 @@ import (
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -127,7 +126,7 @@ func stringOrVariableAttr() map[string]schema.Attribute {
 		"string_value": schema.StringAttribute{
 			Optional: true,
 			Validators: []validator.String{
-				stringvalidator.ExactlyOneOf(
+				dashboardwidgets.ExactlyOneOfString(
 					path.MatchRelative().AtParent().AtName("variable_name"),
 				),
 			},
@@ -219,7 +218,7 @@ func manualAnnotationSourceAttribute() schema.SingleNestedAttribute {
 						},
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
+							dashboardwidgets.ExactlyOneOfObject(
 								path.MatchRelative().AtParent().AtName("range"),
 							),
 						},
@@ -239,7 +238,7 @@ func manualAnnotationSourceAttribute() schema.SingleNestedAttribute {
 						},
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
+							dashboardwidgets.ExactlyOneOfObject(
 								path.MatchRelative().AtParent().AtName("instant"),
 							),
 						},
@@ -250,7 +249,7 @@ func manualAnnotationSourceAttribute() schema.SingleNestedAttribute {
 		},
 		Optional: true,
 		Validators: []validator.Object{
-			objectvalidator.ExactlyOneOf(
+			dashboardwidgets.ExactlyOneOfObject(
 				path.MatchRelative().AtParent().AtName("metrics"),
 				path.MatchRelative().AtParent().AtName("logs"),
 				path.MatchRelative().AtParent().AtName("spans"),

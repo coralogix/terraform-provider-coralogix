@@ -24,7 +24,6 @@ import (
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -107,7 +106,7 @@ func LineChartSchema() schema.Attribute {
 									},
 									Optional: true,
 									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
+										ExactlyOneOfObject(
 											path.MatchRelative().AtParent().AtName("metrics"),
 											path.MatchRelative().AtParent().AtName("spans"),
 											path.MatchRelative().AtParent().AtName("data_prime"),
@@ -194,7 +193,7 @@ func LineChartSchema() schema.Attribute {
 								"interval": schema.StringAttribute{
 									Optional: true,
 									Validators: []validator.String{
-										stringvalidator.ExactlyOneOf(
+										ExactlyOneOfString(
 											path.MatchRelative().AtParent().AtName("buckets_presented"),
 										),
 									},
@@ -202,7 +201,7 @@ func LineChartSchema() schema.Attribute {
 								"buckets_presented": schema.Int64Attribute{
 									Optional: true,
 									Validators: []validator.Int64{
-										int64validator.ExactlyOneOf(
+										ExactlyOneOfInt64(
 											path.MatchRelative().AtParent().AtName("interval"),
 										),
 									},

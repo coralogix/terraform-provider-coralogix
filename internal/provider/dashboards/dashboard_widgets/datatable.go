@@ -88,7 +88,7 @@ func DataTableSchema() schema.Attribute {
 						},
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
+							ExactlyOneOfObject(
 								path.MatchRelative().AtParent().AtName("spans"),
 								path.MatchRelative().AtParent().AtName("metrics"),
 								path.MatchRelative().AtParent().AtName("data_prime"),
@@ -133,7 +133,7 @@ func DataTableSchema() schema.Attribute {
 						},
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
+							ExactlyOneOfObject(
 								path.MatchRelative().AtParent().AtName("logs"),
 								path.MatchRelative().AtParent().AtName("metrics"),
 								path.MatchRelative().AtParent().AtName("data_prime"),
@@ -158,7 +158,7 @@ func DataTableSchema() schema.Attribute {
 						},
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
+							ExactlyOneOfObject(
 								path.MatchRelative().AtParent().AtName("logs"),
 								path.MatchRelative().AtParent().AtName("spans"),
 								path.MatchRelative().AtParent().AtName("data_prime"),
@@ -180,7 +180,7 @@ func DataTableSchema() schema.Attribute {
 						},
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
+							ExactlyOneOfObject(
 								path.MatchRelative().AtParent().AtName("logs"),
 								path.MatchRelative().AtParent().AtName("spans"),
 								path.MatchRelative().AtParent().AtName("metrics"),

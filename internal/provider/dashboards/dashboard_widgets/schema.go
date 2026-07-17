@@ -21,7 +21,6 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -181,7 +180,7 @@ func TimeFrameSchema() schema.Attribute {
 				},
 				Optional: true,
 				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative")),
+					ExactlyOneOfObject(path.MatchRelative().AtParent().AtName("relative")),
 				},
 				MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
 			},
@@ -193,7 +192,7 @@ func TimeFrameSchema() schema.Attribute {
 				},
 				Optional: true,
 				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute")),
+					ExactlyOneOfObject(path.MatchRelative().AtParent().AtName("absolute")),
 				},
 				MarkdownDescription: "Relative time frame specifying a duration from the current time.",
 			},
@@ -298,7 +297,7 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 				"field": schema.StringAttribute{
 					Optional: true,
 					Validators: []validator.String{
-						stringvalidator.ExactlyOneOf(
+						ExactlyOneOfString(
 							path.MatchRelative().AtParent().AtName("observation_field"),
 						),
 					},
@@ -337,7 +336,7 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 					Optional:            true,
 					MarkdownDescription: "Field in the logs to apply the filter on.",
 					Validators: []validator.String{
-						stringvalidator.ExactlyOneOf(
+						ExactlyOneOfString(
 							path.MatchRelative().AtParent().AtName("observation_field"),
 						),
 					},
@@ -351,7 +350,7 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 			},
 			Optional: true,
 			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
+				ExactlyOneOfObject(
 					path.MatchRelative().AtParent().AtName("metrics"),
 					path.MatchRelative().AtParent().AtName("spans"),
 				),
@@ -370,7 +369,7 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 			},
 			Optional: true,
 			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
+				ExactlyOneOfObject(
 					path.MatchRelative().AtParent().AtName("metrics"),
 					path.MatchRelative().AtParent().AtName("logs"),
 				),
@@ -387,7 +386,7 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 				"operator": FilterOperatorSchema(),
 			},
 			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
+				ExactlyOneOfObject(
 					path.MatchRelative().AtParent().AtName("spans"),
 					path.MatchRelative().AtParent().AtName("logs"),
 				),
