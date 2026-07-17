@@ -16,6 +16,20 @@ on:
       - 'CLAUDE.md'
       - '**/*.md'
 
+env:
+  DASHBOARD_ACC_PATTERN: &dashboard_acc_pattern '^TestAccCoralogix(Resource|DataSource)Dashboards?'
+  DASHBOARD_MIGRATION_ACC_PATTERN: &dashboard_migration_acc_pattern '^TestAccCoralogixResourceDashboardMigration'
+  DASHBOARD_MIGRATION_V360_PATTERN: &dashboard_migration_v360_pattern '^TestAccCoralogixResourceDashboardMigrationFromV360$'
+  DASHBOARD_MIGRATION_SCHEMA_V3_PATTERN: &dashboard_migration_schema_v3_pattern '^TestAccCoralogixResourceDashboardMigrationFromSchemaV3$'
+  DASHBOARD_SHARD_STRUCTURED_LINE_AND_TABLE: &dashboard_shard_structured_line_and_table '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/line-and-table$'
+  DASHBOARD_SHARD_STRUCTURED_GAUGE_AND_BARS: &dashboard_shard_structured_gauge_and_bars '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/gauge-and-bars$'
+  DASHBOARD_SHARD_STRUCTURED_HORIZONTAL_AND_HEXAGON: &dashboard_shard_structured_horizontal_and_hexagon '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/horizontal-and-hexagon$'
+  DASHBOARD_SHARD_PRESENTATION_RESOLUTION_AND_TIME_FRAMES: &dashboard_shard_presentation_resolution_and_time_frames '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$/resolution-and-time-frames$'
+  DASHBOARD_SHARD_PRESENTATION_BAR_CHART_AXES: &dashboard_shard_presentation_bar_chart_axes '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$/bar-chart-axes$'
+  DASHBOARD_SHARD_PRESENTATION_HORIZONTAL_BAR_OPTIONS: &dashboard_shard_presentation_horizontal_bar_options '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$/horizontal-bar-options$'
+  DASHBOARD_SHARD_OPENAPI_BRANCHES: &dashboard_shard_openapi_branches '^TestAccCoralogixResourceDashboardOpenAPI(OneOfTransitions|LogsAggregationBranches|SpansAndFilterBranches|VariableBranches|AnnotationBranches)$'
+  DASHBOARD_SHARD_CORE: &dashboard_shard_core '^TestAccCoralogix(DataSourceDashboard(_basic|AccessPolicy)|DataSourceDashboardsFolder_(basic|by_name)|ResourceDashboardsFolder|ResourceDashboard(ContentJSON(ProtobufSpellings|FolderOverride|DynamicQueriesTable)|RESTCreated(Hydration|UnsupportedDynamicHydration)|AccessPolicy|HexagonWidget|LinechartWidget|GaugeWidget(DataPrime|ThresholdType)?|DataTableWidget(ObservationFieldFilter)?|FromJson(WithFolder|WithVar)?|FolderIDNoDrift|MultiSelectSelectionType|LayoutColor|ManualAnnotation)?)$'
+
 jobs:
   test:
     name: Acceptance tests (excluding dashboards)
@@ -62,23 +76,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Double dollar signs preserve the regexp end anchor through Make expansion.
           - shard: structured-line-and-table
-            pattern: '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$$/line-and-table$$'
+            pattern: *dashboard_shard_structured_line_and_table
           - shard: structured-gauge-and-bars
-            pattern: '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$$/gauge-and-bars$$'
+            pattern: *dashboard_shard_structured_gauge_and_bars
           - shard: structured-horizontal-and-hexagon
-            pattern: '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$$/horizontal-and-hexagon$$'
+            pattern: *dashboard_shard_structured_horizontal_and_hexagon
           - shard: presentation-resolution-and-time-frames
-            pattern: '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$$/resolution-and-time-frames$$'
+            pattern: *dashboard_shard_presentation_resolution_and_time_frames
           - shard: presentation-bar-chart-axes
-            pattern: '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$$/bar-chart-axes$$'
+            pattern: *dashboard_shard_presentation_bar_chart_axes
           - shard: presentation-horizontal-bar-options
-            pattern: '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$$/horizontal-bar-options$$'
+            pattern: *dashboard_shard_presentation_horizontal_bar_options
           - shard: openapi-branches
-            pattern: '^TestAccCoralogixResourceDashboardOpenAPI(OneOfTransitions|LogsAggregationBranches|SpansAndFilterBranches|VariableBranches|AnnotationBranches)$$'
+            pattern: *dashboard_shard_openapi_branches
           - shard: core
-            pattern: '^TestAccCoralogix(DataSourceDashboard(_basic|AccessPolicy)|DataSourceDashboardsFolder_(basic|by_name)|ResourceDashboardsFolder|ResourceDashboard(ContentJSON(ProtobufSpellings|FolderOverride|DynamicQueriesTable)|RESTCreated(Hydration|UnsupportedDynamicHydration)|AccessPolicy|HexagonWidget|LinechartWidget|GaugeWidget(DataPrime|ThresholdType)?|DataTableWidget(ObservationFieldFilter)?|FromJson(WithFolder|WithVar)?|FolderIDNoDrift|MultiSelectSelectionType|LayoutColor|ManualAnnotation)?)$$'
+            pattern: *dashboard_shard_core
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -95,7 +108,48 @@ jobs:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
-          make testacc-dashboard DASHBOARD_ACC_PATTERN='${{ matrix.pattern }}'
+          TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run '${{ matrix.pattern }}' -timeout 120m -parallel=4
+
+  dashboard-unsharded:
+    name: Dashboard acceptance tests (unsharded catch-all)
+    permissions:
+      contents: read
+    env:
+      GO111MODULE: on
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25.x
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Dashboard Acceptance Tests Not Covered By A Shard
+        env:
+          CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+        run: |
+          shard_patterns=(
+            "$DASHBOARD_SHARD_STRUCTURED_LINE_AND_TABLE"
+            "$DASHBOARD_SHARD_STRUCTURED_GAUGE_AND_BARS"
+            "$DASHBOARD_SHARD_STRUCTURED_HORIZONTAL_AND_HEXAGON"
+            "$DASHBOARD_SHARD_PRESENTATION_RESOLUTION_AND_TIME_FRAMES"
+            "$DASHBOARD_SHARD_PRESENTATION_BAR_CHART_AXES"
+            "$DASHBOARD_SHARD_PRESENTATION_HORIZONTAL_BAR_OPTIONS"
+            "$DASHBOARD_SHARD_OPENAPI_BRANCHES"
+            "$DASHBOARD_SHARD_CORE"
+          )
+          skip_pattern="($DASHBOARD_MIGRATION_ACC_PATTERN)"
+          for pattern in "${shard_patterns[@]}"; do
+            # Parent patterns exclude the sharded test functions without excluding
+            # unrelated dashboard tests from the catch-all.
+            pattern="${pattern%%/*}"
+            skip_pattern+="|($pattern)"
+          done
+          TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
 
   dashboard-migration:
     name: Dashboard provider migration (${{ matrix.shard }})
@@ -107,11 +161,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Double dollar signs preserve the regexp end anchor through Make expansion.
           - shard: grpc-v3.6.0
-            pattern: '^TestAccCoralogixResourceDashboardMigrationFromV360$$'
+            pattern: *dashboard_migration_v360_pattern
           - shard: schema-v3
-            pattern: '^TestAccCoralogixResourceDashboardMigrationFromSchemaV3$$'
+            pattern: *dashboard_migration_schema_v3_pattern
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -128,4 +181,4 @@ jobs:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
-          make testacc-dashboard-migration DASHBOARD_MIGRATION_ACC_PATTERN='${{ matrix.pattern }}'
+          CORALOGIX_DASHBOARD_MIGRATION_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -run '${{ matrix.pattern }}' -v -count=1 -timeout 120m -parallel=3
