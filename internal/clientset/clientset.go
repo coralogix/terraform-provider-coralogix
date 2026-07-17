@@ -30,7 +30,7 @@ import (
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 	cess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/custom_enrichments_service"
 	dbfs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_folders_service"
-	dashboardsOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
@@ -68,7 +68,7 @@ type ClientSet struct {
 	archiveMetrics        *ams.MetricsDataArchiveServiceAPIService
 	archiveLogs           *archiveLogs.TargetServiceAPIService
 	archiveRetentions     *retss.RetentionsServiceAPIService
-	dashboardsOpenapi     *dashboardsOpenapi.DashboardServiceAPIService
+	dashboards            *dashboardservice.DashboardServiceAPIService
 	recordingRuleGroups   *recRuless.RecordingRulesServiceAPIService
 	tcoPolicies           *tcoPolicys.PoliciesServiceAPIService
 	quotaAllocationRules  *quotaRules.QuotaAllocationRuleSetServiceAPIService
@@ -127,8 +127,8 @@ func (c *ClientSet) DataSet() *cxsdk.DataSetClient {
 	return c.dataSet
 }
 
-func (c *ClientSet) DashboardsOpenAPI() *dashboardsOpenapi.DashboardServiceAPIService {
-	return c.dashboardsOpenapi
+func (c *ClientSet) Dashboards() *dashboardservice.DashboardServiceAPIService {
+	return c.dashboards
 }
 
 func (c *ClientSet) Grafana() *GrafanaClient {
@@ -266,7 +266,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		archiveMetrics:        cs.ArchiveMetrics(),
 		alerts:                cs.Alerts(),
 		archiveRetentions:     cs.ArchiveRetentions(),
-		dashboardsOpenapi:     cs.Dashboards(),
+		dashboards:            cs.Dashboards(),
 		recordingRuleGroups:   cs.RecordingRules(),
 		archiveLogs:           cs.ArchiveLogs(),
 		tcoPolicies:           cs.TCOPolicies(),

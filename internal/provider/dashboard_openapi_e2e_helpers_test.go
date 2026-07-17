@@ -157,43 +157,24 @@ func dashboardOpenAPIAssertOneOfBranch(carrier any, model, expectedBranch, dashb
 		return dashboardOpenAPIOneOfError(fixture, dashboardID, model, expectedBranch, providerPath, nil, err.Error())
 	}
 
-	value := reflect.ValueOf(carrier)
-	if !value.IsValid() {
-		return dashboardOpenAPIOneOfError(fixture, dashboardID, model, expectedBranch, providerPath, nil, "carrier is nil")
-	}
-	if value.Kind() == reflect.Pointer {
-		if value.IsNil() {
-			return dashboardOpenAPIOneOfError(fixture, dashboardID, model, expectedBranch, providerPath, nil, "carrier is nil")
-		}
-		value = value.Elem()
-	}
-	if value.Kind() != reflect.Struct {
-		return dashboardOpenAPIOneOfError(fixture, dashboardID, model, expectedBranch, providerPath, nil, fmt.Sprintf("carrier has type %T, want struct or pointer to struct", carrier))
-	}
-	if value.Type().Name() != model {
-		return dashboardOpenAPIOneOfError(fixture, dashboardID, model, expectedBranch, providerPath, nil, fmt.Sprintf("carrier has generated model name %q", value.Type().Name()))
+	value, err := dashboardOpenAPINormalizeOneOfCarrier(carrier, model)
+	if err != nil {
+		return dashboardOpenAPIOneOfError(fixture, dashboardID, model, expectedBranch, providerPath, nil, err.Error())
 	}
 
 	branches := append([]string{expectedBranch}, siblings...)
-	populated := make([]string, 0, len(branches))
-	for _, branch := range branches {
-		field, ok := dashboardOpenAPIJSONField(value, branch)
-		if !ok {
-			return dashboardOpenAPIOneOfError(
-				fixture,
-				dashboardID,
-				model,
-				expectedBranch,
-				providerPath,
-				dashboardOpenAPIPopulatedSiblings(populated, expectedBranch),
-				fmt.Sprintf("generated carrier has no %q field", branch),
-			)
-		}
-		if !dashboardOpenAPIIsNil(field) {
-			populated = append(populated, branch)
-		}
+	populated, missingBranch := dashboardOpenAPIPopulatedOneOfBranches(value, branches)
+	if missingBranch != "" {
+		return dashboardOpenAPIOneOfError(
+			fixture,
+			dashboardID,
+			model,
+			expectedBranch,
+			providerPath,
+			dashboardOpenAPIPopulatedSiblings(populated, expectedBranch),
+			fmt.Sprintf("generated carrier has no %q field", missingBranch),
+		)
 	}
-	sort.Strings(populated)
 
 	expectedPopulated := false
 	var populatedSiblings []string
@@ -213,6 +194,43 @@ func dashboardOpenAPIAssertOneOfBranch(carrier any, model, expectedBranch, dashb
 	}
 
 	return nil
+}
+
+func dashboardOpenAPINormalizeOneOfCarrier(carrier any, model string) (reflect.Value, error) {
+	value := reflect.ValueOf(carrier)
+	if !value.IsValid() {
+		return reflect.Value{}, fmt.Errorf("carrier is nil")
+	}
+	if value.Kind() == reflect.Pointer {
+		if value.IsNil() {
+			return reflect.Value{}, fmt.Errorf("carrier is nil")
+		}
+		value = value.Elem()
+	}
+	if value.Kind() != reflect.Struct {
+		return reflect.Value{}, fmt.Errorf("carrier has type %T, want struct or pointer to struct", carrier)
+	}
+	if value.Type().Name() != model {
+		return reflect.Value{}, fmt.Errorf("carrier has generated model name %q", value.Type().Name())
+	}
+
+	return value, nil
+}
+
+func dashboardOpenAPIPopulatedOneOfBranches(value reflect.Value, branches []string) ([]string, string) {
+	populated := make([]string, 0, len(branches))
+	for _, branch := range branches {
+		field, ok := dashboardOpenAPIJSONField(value, branch)
+		if !ok {
+			return populated, branch
+		}
+		if !dashboardOpenAPIIsNil(field) {
+			populated = append(populated, branch)
+		}
+	}
+	sort.Strings(populated)
+
+	return populated, ""
 }
 
 func dashboardOpenAPIPopulatedSiblings(populated []string, expectedBranch string) []string {
@@ -523,7 +541,7 @@ func dashboardOpenAPISafeRequestError(operation, fixture, dashboardID string, re
 }
 
 // dashboardOpenAPIAcceptanceClient configures a fresh SDKv2 provider so a
-// DashboardsOpenAPI client is available to direct fixture setup and
+// Dashboards client is available to direct fixture setup and
 // resource.TestCheckFunc callbacks without mutating the shared test provider.
 func dashboardOpenAPIAcceptanceClient(t *testing.T) *dashboardservice.DashboardServiceAPIService {
 	t.Helper()
@@ -541,7 +559,7 @@ func dashboardOpenAPINewAcceptanceClient() (*dashboardservice.DashboardServiceAP
 		return nil, err
 	}
 
-	return clients.DashboardsOpenAPI(), nil
+	return clients.Dashboards(), nil
 }
 
 func TestDashboardOpenAPIAssertOneOfBranchHelper(t *testing.T) {

@@ -54,7 +54,7 @@ func (d *DashboardDataSource) Configure(_ context.Context, req datasource.Config
 		return
 	}
 
-	d.client = newDashboardOpenAPIClient(clientSet.DashboardsOpenAPI())
+	d.client = newDashboardOpenAPIClient(clientSet.Dashboards())
 }
 
 func (d *DashboardDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {

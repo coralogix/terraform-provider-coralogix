@@ -6715,5 +6715,5 @@ func (r *DashboardResource) Configure(_ context.Context, req resource.ConfigureR
 		return
 	}
 
-	r.openAPIClient = newDashboardOpenAPIClient(clientSet.DashboardsOpenAPI())
+	r.openAPIClient = newDashboardOpenAPIClient(clientSet.Dashboards())
 }
