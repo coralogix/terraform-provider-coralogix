@@ -785,7 +785,7 @@ func TestMultiSelectSpansFieldNameRoundTrip(t *testing.T) {
 	}
 }
 
-func TestMultiSelectAllSelectionRoundTripUsesNull(t *testing.T) {
+func TestMultiSelectAllSelectionRoundTripUsesEmptyList(t *testing.T) {
 	expanded, diags := expandMultiSelectSelection(context.Background(), []attr.Value{})
 	if diags.HasError() {
 		t.Fatalf("expanding all selection: %v", diags)
@@ -798,8 +798,8 @@ func TestMultiSelectAllSelectionRoundTripUsesNull(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("flattening all selection: %v", diags)
 	}
-	if !flattened.IsNull() {
-		t.Fatalf("expected a null selected_values list, got %s", flattened)
+	if flattened.IsNull() || flattened.IsUnknown() || len(flattened.Elements()) != 0 {
+		t.Fatalf("expected a known empty selected_values list, got %s", flattened)
 	}
 }
 
