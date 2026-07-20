@@ -96,6 +96,13 @@ func normalizeProtoFieldNames(raw any, targetType reflect.Type) any {
 			normalized[key] = normalizeProtoFieldNames(value, targetType.Elem())
 		}
 		return normalized
+	case reflect.String:
+		// protobuf int64/uint64 fields (e.g. seriesCountLimit) are modeled as
+		// Go strings but commonly authored as bare JSON numbers.
+		if number, ok := raw.(json.Number); ok {
+			return number.String()
+		}
+		return raw
 	default:
 		return raw
 	}
