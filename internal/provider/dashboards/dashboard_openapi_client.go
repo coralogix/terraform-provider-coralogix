@@ -62,8 +62,11 @@ func (c *dashboardOpenAPIClient) Create(ctx context.Context, dashboard *dashboar
 		DashboardsServiceCreateDashboard(ctx).
 		CreateDashboardRequestDataStructure(request).
 		Execute()
+	if err != nil {
+		return nil, errors.New(utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), dashboardOpenAPIOperationCreate, request))
+	}
 
-	return response, formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationCreate, request)
+	return response, nil
 }
 
 func (c *dashboardOpenAPIClient) Get(ctx context.Context, id string) (*dashboardOpenAPIReadResult, error) {
@@ -71,15 +74,10 @@ func (c *dashboardOpenAPIClient) Get(ctx context.Context, id string) (*dashboard
 		DashboardsServiceGetDashboard(ctx, id).
 		Execute()
 	if isDashboardOpenAPINotFound(httpResponse, err) {
-		formattedErr := formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationGet, id)
-		if formattedErr == nil {
-			return nil, errDashboardOpenAPINotFound
-		}
-		return nil, fmt.Errorf("%w: %s", errDashboardOpenAPINotFound, formattedErr)
+		return nil, fmt.Errorf("%w: %s", errDashboardOpenAPINotFound, utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), dashboardOpenAPIOperationGet, id))
 	}
-
-	if err := formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationGet, id); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, errors.New(utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), dashboardOpenAPIOperationGet, id))
 	}
 
 	if response == nil {
@@ -105,8 +103,11 @@ func (c *dashboardOpenAPIClient) Replace(ctx context.Context, dashboard *dashboa
 		DashboardsServiceReplaceDashboard(ctx).
 		ReplaceDashboardRequestDataStructure(request).
 		Execute()
+	if err != nil {
+		return errors.New(utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), dashboardOpenAPIOperationReplace, request))
+	}
 
-	return formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationReplace, request)
+	return nil
 }
 
 func (c *dashboardOpenAPIClient) Delete(ctx context.Context, id string) error {
@@ -116,8 +117,11 @@ func (c *dashboardOpenAPIClient) Delete(ctx context.Context, id string) error {
 	if isDashboardOpenAPINotFound(httpResponse, err) {
 		return nil
 	}
+	if err != nil {
+		return errors.New(utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), dashboardOpenAPIOperationDelete, id))
+	}
 
-	return formatDashboardOpenAPIError(httpResponse, err, dashboardOpenAPIOperationDelete, id)
+	return nil
 }
 
 func newDashboardOpenAPICreateRequest(dashboard dashboardservice.Dashboard, accessPolicy *string) dashboardservice.CreateDashboardRequestDataStructure {
@@ -189,15 +193,6 @@ func discardAdditionalPropertiesValue(value reflect.Value) {
 
 func newDashboardOpenAPIRequestID(operation string) string {
 	return fmt.Sprintf("%s-%s-%s", dashboardOpenAPIRequestIDPrefix, operation, uuid.NewString())
-}
-
-func formatDashboardOpenAPIError(httpResponse *http.Response, err error, operation string, request any) error {
-	if err == nil {
-		return nil
-	}
-
-	apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
-	return fmt.Errorf("dashboard REST %s failed: %s", operation, utils.FormatOpenAPIErrors(apiErr, operation, request))
 }
 
 func isDashboardOpenAPINotFound(httpResponse *http.Response, err error) bool {

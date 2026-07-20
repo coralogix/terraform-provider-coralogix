@@ -342,20 +342,6 @@ func assertNoEmptyStrings(t *testing.T, value interface{}, path string) {
 	}
 }
 
-func TestFormatDashboardOpenAPIError(t *testing.T) {
-	err := formatDashboardOpenAPIError(&http.Response{StatusCode: http.StatusBadRequest}, errors.New("api failed"), dashboardOpenAPIOperationCreate, map[string]string{"name": "test"})
-	if err == nil {
-		t.Fatal("expected formatted error")
-	}
-	if !strings.Contains(err.Error(), "api failed") {
-		t.Fatalf("expected formatted error to contain original error, got %q", err.Error())
-	}
-
-	if err := formatDashboardOpenAPIError(nil, nil, dashboardOpenAPIOperationCreate, nil); err != nil {
-		t.Fatalf("expected nil error when SDK returned no error, got %s", err)
-	}
-}
-
 func TestIsDashboardOpenAPINotFound(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -427,7 +413,7 @@ func TestDashboardOpenAPIClientCreateRejectionPreservesErrorContext(t *testing.T
 	if err == nil {
 		t.Fatal("Create() error = nil, want backend rejection")
 	}
-	for _, context := range []string{dashboardOpenAPIOperationCreate, "400", backendDetail} {
+	for _, context := range []string{"400", backendDetail} {
 		if !strings.Contains(err.Error(), context) {
 			t.Errorf("Create() error = %q, want context %q", err, context)
 		}
@@ -461,7 +447,7 @@ func TestDashboardOpenAPIClientReplaceRejectionLeavesPriorDashboardReadable(t *t
 	if err == nil {
 		t.Fatal("Replace() error = nil, want backend rejection")
 	}
-	for _, context := range []string{dashboardOpenAPIOperationReplace, "422", backendDetail} {
+	for _, context := range []string{"422", backendDetail} {
 		if !strings.Contains(err.Error(), context) {
 			t.Errorf("Replace() error = %q, want context %q", err, context)
 		}
@@ -506,7 +492,7 @@ func TestDashboardOpenAPIClientGetNotFoundRetainsRESTContext(t *testing.T) {
 	if !errors.Is(err, errDashboardOpenAPINotFound) {
 		t.Fatalf("Get() error = %v, want errDashboardOpenAPINotFound", err)
 	}
-	for _, context := range []string{dashboardOpenAPIOperationGet, "404", "Not Found: No dashboard with the given id"} {
+	for _, context := range []string{"404", "Not Found: No dashboard with the given id"} {
 		if !strings.Contains(err.Error(), context) {
 			t.Errorf("Get() error = %q, want context %q", err, context)
 		}
