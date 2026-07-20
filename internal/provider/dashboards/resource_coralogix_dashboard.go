@@ -6001,7 +6001,7 @@ func flattenDashboardVariableSelectedValues(selection *dashboardservice.MultiSel
 	case selection.List != nil:
 		return utils.StringSliceToTypeStringList(selection.List.Values), nil
 	case selection.All != nil:
-		return types.ListValueMust(types.StringType, []attr.Value{}), nil
+		return types.ListNull(types.StringType), nil
 	default:
 		return types.ListNull(types.StringType), diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Variable Definition Multi Select Selection", fmt.Sprintf("unknown variable definition multi select selection type %T", selection))}
 	}

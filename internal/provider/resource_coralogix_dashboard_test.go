@@ -1359,6 +1359,85 @@ resource "coralogix_dashboard" "test" {
 	})
 }
 
+func TestAccCoralogixResourceDashboardMultiSelectOmittedSelectedValuesNoDrift(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "exercises multi_select with selected_values omitted (equals-all)"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title      = "placeholder"
+          width      = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{ type = "count" }]
+                  }
+                }
+              }]
+              legend = {
+                is_visible = false
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+  variables = [
+    {
+      name         = "environment"
+      display_name = "Environment"
+      definition = {
+        multi_select = {
+          values_order_direction = "asc"
+          selection_type         = "single"
+          source = {
+            constant_list = ["staging", "test-trade"]
+          }
+        }
+      }
+    },
+  ]
+}
+`, name),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.name", "environment"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.selected_values.0"),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardLayoutColor(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 	resource.ParallelTest(t, resource.TestCase{
