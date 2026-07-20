@@ -15,24 +15,27 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var dashboardsFolderResourceName = "coralogix_dashboards_folder.test"
 
 func TestAccCoralogixResourceDashboardsFolder(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	name := acctest.RandomWithPrefix("tf-acc-dashboards-folder")
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 
-				Config: testAccCoralogixResourceDashboardsFolder(),
+				Config: testAccCoralogixResourceDashboardsFolder(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardsFolderResourceName, "id"),
-					resource.TestCheckResourceAttr(dashboardsFolderResourceName, "name", "test"),
+					resource.TestCheckResourceAttr(dashboardsFolderResourceName, "name", name),
 				),
 			},
 			{
@@ -43,9 +46,9 @@ func TestAccCoralogixResourceDashboardsFolder(t *testing.T) {
 		},
 	})
 }
-func testAccCoralogixResourceDashboardsFolder() string {
-	return `resource "coralogix_dashboards_folder" "test" {
-			name = "test"
+func testAccCoralogixResourceDashboardsFolder(name string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboards_folder" "test" {
+			name = %q
 		}
-`
+`, name)
 }

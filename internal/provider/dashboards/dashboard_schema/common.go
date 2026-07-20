@@ -20,12 +20,11 @@ import (
 	"time"
 
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboardjson"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"google.golang.org/protobuf/encoding/protojson"
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -74,13 +73,6 @@ func (m PreserveStateForEquivalentJSON) PlanModifyString(_ context.Context, req 
 	}
 }
 
-var (
-	JSONUnmarshal = protojson.UnmarshalOptions{
-		DiscardUnknown: true,
-		AllowPartial:   true,
-	}
-)
-
 type intervalValidator struct{}
 
 func (i intervalValidator) Description(_ context.Context) string {
@@ -116,7 +108,7 @@ func (c ContentJsonValidator) ValidateString(_ context.Context, request validato
 		return
 	}
 
-	err := JSONUnmarshal.Unmarshal([]byte(request.ConfigValue.ValueString()), &cxsdk.Dashboard{})
+	err := dashboardjson.Unmarshal([]byte(request.ConfigValue.ValueString()), &dashboardservice.Dashboard{})
 	if err != nil {
 		response.Diagnostics.Append(diag.NewErrorDiagnostic("content_json validation failed", fmt.Sprintf("json content is not matching layout schema. got an err while unmarshalling - %s", err)))
 	}
@@ -134,7 +126,7 @@ func stringOrVariableAttr() map[string]schema.Attribute {
 		"string_value": schema.StringAttribute{
 			Optional: true,
 			Validators: []validator.String{
-				stringvalidator.ExactlyOneOf(
+				dashboardwidgets.ExactlyOneOfString(
 					path.MatchRelative().AtParent().AtName("variable_name"),
 				),
 			},
@@ -226,7 +218,7 @@ func manualAnnotationSourceAttribute() schema.SingleNestedAttribute {
 						},
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
+							dashboardwidgets.ExactlyOneOfObject(
 								path.MatchRelative().AtParent().AtName("range"),
 							),
 						},
@@ -246,7 +238,7 @@ func manualAnnotationSourceAttribute() schema.SingleNestedAttribute {
 						},
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
+							dashboardwidgets.ExactlyOneOfObject(
 								path.MatchRelative().AtParent().AtName("instant"),
 							),
 						},
@@ -257,7 +249,7 @@ func manualAnnotationSourceAttribute() schema.SingleNestedAttribute {
 		},
 		Optional: true,
 		Validators: []validator.Object{
-			objectvalidator.ExactlyOneOf(
+			dashboardwidgets.ExactlyOneOfObject(
 				path.MatchRelative().AtParent().AtName("metrics"),
 				path.MatchRelative().AtParent().AtName("logs"),
 				path.MatchRelative().AtParent().AtName("spans"),

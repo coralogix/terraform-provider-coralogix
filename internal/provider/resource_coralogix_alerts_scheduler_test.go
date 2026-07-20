@@ -232,7 +232,7 @@ func testAccCheckAlertAndAlertsSchedulerDestroy(s *terraform.State) error {
 	if err := testAccCheckAlertsSchedulerDestroy(s); err != nil {
 		return err
 	}
-	return testAccCheckAlertDestroy(s)
+	return testAccCheckAlertDestroyState(s)
 }
 
 func testAccCreateAlertsScheduler(t *testing.T, scheduler alertscheduler.AlertSchedulerRule) string {

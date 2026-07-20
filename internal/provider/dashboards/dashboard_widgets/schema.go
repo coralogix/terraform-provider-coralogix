@@ -21,11 +21,12 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -179,7 +180,7 @@ func TimeFrameSchema() schema.Attribute {
 				},
 				Optional: true,
 				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative")),
+					ExactlyOneOfObject(path.MatchRelative().AtParent().AtName("relative")),
 				},
 				MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
 			},
@@ -191,7 +192,7 @@ func TimeFrameSchema() schema.Attribute {
 				},
 				Optional: true,
 				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute")),
+					ExactlyOneOfObject(path.MatchRelative().AtParent().AtName("absolute")),
 				},
 				MarkdownDescription: "Relative time frame specifying a duration from the current time.",
 			},
@@ -296,7 +297,7 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 				"field": schema.StringAttribute{
 					Optional: true,
 					Validators: []validator.String{
-						stringvalidator.ExactlyOneOf(
+						ExactlyOneOfString(
 							path.MatchRelative().AtParent().AtName("observation_field"),
 						),
 					},
@@ -335,7 +336,7 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 					Optional:            true,
 					MarkdownDescription: "Field in the logs to apply the filter on.",
 					Validators: []validator.String{
-						stringvalidator.ExactlyOneOf(
+						ExactlyOneOfString(
 							path.MatchRelative().AtParent().AtName("observation_field"),
 						),
 					},
@@ -349,7 +350,7 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 			},
 			Optional: true,
 			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
+				ExactlyOneOfObject(
 					path.MatchRelative().AtParent().AtName("metrics"),
 					path.MatchRelative().AtParent().AtName("spans"),
 				),
@@ -368,7 +369,7 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 			},
 			Optional: true,
 			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
+				ExactlyOneOfObject(
 					path.MatchRelative().AtParent().AtName("metrics"),
 					path.MatchRelative().AtParent().AtName("logs"),
 				),
@@ -385,7 +386,7 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 				"operator": FilterOperatorSchema(),
 			},
 			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
+				ExactlyOneOfObject(
 					path.MatchRelative().AtParent().AtName("spans"),
 					path.MatchRelative().AtParent().AtName("logs"),
 				),
@@ -408,6 +409,8 @@ func FilterOperatorSchema() schema.SingleNestedAttribute {
 			"selected_values": schema.ListAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
+				Computed:            true,
+				Default:             listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
 				MarkdownDescription: "the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.",
 			},
 		},

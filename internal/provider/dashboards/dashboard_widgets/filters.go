@@ -20,17 +20,16 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-func ExpandMetricsFilters(ctx context.Context, metricFilters types.List) ([]*cxsdk.DashboardMetricsFilter, diag.Diagnostics) {
+func ExpandMetricsFilters(ctx context.Context, metricFilters types.List) ([]dashboardservice.MetricsFilter, diag.Diagnostics) {
 	var metricFiltersObjects []types.Object
-	var expandedMetricFilters []*cxsdk.DashboardMetricsFilter
+	var expandedMetricFilters []dashboardservice.MetricsFilter
 	diags := metricFilters.ElementsAs(ctx, &metricFiltersObjects, true)
 	if diags.HasError() {
 		return nil, diags
@@ -46,28 +45,28 @@ func ExpandMetricsFilters(ctx context.Context, metricFilters types.List) ([]*cxs
 			diags.Append(expandDiags...)
 			continue
 		}
-		expandedMetricFilters = append(expandedMetricFilters, expandedMetricFilter)
+		expandedMetricFilters = append(expandedMetricFilters, *expandedMetricFilter)
 	}
 
 	return expandedMetricFilters, diags
 }
 
-func expandMetricFilter(ctx context.Context, metricFilter MetricsFilterModel) (*cxsdk.DashboardMetricsFilter, diag.Diagnostics) {
+func expandMetricFilter(ctx context.Context, metricFilter MetricsFilterModel) (*dashboardservice.MetricsFilter, diag.Diagnostics) {
 	operator, diags := expandFilterOperator(ctx, metricFilter.Operator)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardMetricsFilter{
-		Metric:   utils.TypeStringToWrapperspbString(metricFilter.Metric),
-		Label:    utils.TypeStringToWrapperspbString(metricFilter.Label),
+	return &dashboardservice.MetricsFilter{
+		Metric:   utils.TypeStringToStringPointer(metricFilter.Metric),
+		Label:    utils.TypeStringToStringPointer(metricFilter.Label),
 		Operator: operator,
 	}, nil
 }
 
-func ExpandLogsFilters(ctx context.Context, logsFilters types.List) ([]*cxsdk.DashboardFilterLogsFilter, diag.Diagnostics) {
+func ExpandLogsFilters(ctx context.Context, logsFilters types.List) ([]dashboardservice.FilterLogsFilter, diag.Diagnostics) {
 	var filtersObjects []types.Object
-	var expandedFilters []*cxsdk.DashboardFilterLogsFilter
+	var expandedFilters []dashboardservice.FilterLogsFilter
 	diags := logsFilters.ElementsAs(ctx, &filtersObjects, true)
 	if diags.HasError() {
 		return nil, diags
@@ -84,13 +83,13 @@ func ExpandLogsFilters(ctx context.Context, logsFilters types.List) ([]*cxsdk.Da
 			diags.Append(expandDiags...)
 			continue
 		}
-		expandedFilters = append(expandedFilters, expandedFilter)
+		expandedFilters = append(expandedFilters, *expandedFilter)
 	}
 
 	return expandedFilters, diags
 }
 
-func expandLogsFilter(ctx context.Context, logsFilter LogsFilterModel) (*cxsdk.DashboardFilterLogsFilter, diag.Diagnostics) {
+func expandLogsFilter(ctx context.Context, logsFilter LogsFilterModel) (*dashboardservice.FilterLogsFilter, diag.Diagnostics) {
 	operator, diags := expandFilterOperator(ctx, logsFilter.Operator)
 	if diags.HasError() {
 		return nil, diags
@@ -101,23 +100,23 @@ func expandLogsFilter(ctx context.Context, logsFilter LogsFilterModel) (*cxsdk.D
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardFilterLogsFilter{
-		Field:            utils.TypeStringToWrapperspbString(logsFilter.Field),
+	return &dashboardservice.FilterLogsFilter{
+		Field:            utils.TypeStringToStringPointer(logsFilter.Field),
 		Operator:         operator,
 		ObservationField: observationField,
 	}, nil
 }
 
-func ExpandLuceneQuery(luceneQuery types.String) *cxsdk.DashboardLuceneQuery {
+func ExpandLuceneQuery(luceneQuery types.String) *dashboardservice.LuceneQuery {
 	if luceneQuery.IsNull() || luceneQuery.IsUnknown() {
 		return nil
 	}
-	return &cxsdk.DashboardLuceneQuery{
-		Value: wrapperspb.String(luceneQuery.ValueString()),
+	return &dashboardservice.LuceneQuery{
+		Value: luceneQuery.ValueStringPointer(),
 	}
 }
 
-func ExpandFilterSource(ctx context.Context, source *DashboardFilterSourceModel) (*cxsdk.DashboardFilterSource, diag.Diagnostics) {
+func ExpandFilterSource(ctx context.Context, source *DashboardFilterSourceModel) (*dashboardservice.FilterSource, diag.Diagnostics) {
 	if source == nil {
 		return nil, nil
 	}
@@ -133,7 +132,7 @@ func ExpandFilterSource(ctx context.Context, source *DashboardFilterSourceModel)
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Filter Source", fmt.Sprintf("Unknown filter source type: %#v", source))}
 	}
 }
-func expandFilterSourceLogs(ctx context.Context, logs *FilterSourceLogsModel) (*cxsdk.DashboardFilterSource, diag.Diagnostics) {
+func expandFilterSourceLogs(ctx context.Context, logs *FilterSourceLogsModel) (*dashboardservice.FilterSource, diag.Diagnostics) {
 	if logs == nil {
 		return nil, nil
 	}
@@ -148,18 +147,16 @@ func expandFilterSourceLogs(ctx context.Context, logs *FilterSourceLogsModel) (*
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardFilterSource{
-		Value: &cxsdk.DashboardFilterSourceLogs{
-			Logs: &cxsdk.DashboardFilterLogsFilter{
-				Field:            utils.TypeStringToWrapperspbString(logs.Field),
-				Operator:         operator,
-				ObservationField: observationField,
-			},
+	return &dashboardservice.FilterSource{
+		Logs: &dashboardservice.FilterLogsFilter{
+			Field:            utils.TypeStringToStringPointer(logs.Field),
+			Operator:         operator,
+			ObservationField: observationField,
 		},
 	}, nil
 }
 
-func expandFilterSourceMetrics(ctx context.Context, metrics *FilterSourceMetricsModel) (*cxsdk.DashboardFilterSource, diag.Diagnostics) {
+func expandFilterSourceMetrics(ctx context.Context, metrics *FilterSourceMetricsModel) (*dashboardservice.FilterSource, diag.Diagnostics) {
 	if metrics == nil {
 		return nil, nil
 	}
@@ -169,18 +166,16 @@ func expandFilterSourceMetrics(ctx context.Context, metrics *FilterSourceMetrics
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardFilterSource{
-		Value: &cxsdk.DashboardFilterSourceMetrics{
-			Metrics: &cxsdk.DashboardFilterMetricsFilter{
-				Metric:   utils.TypeStringToWrapperspbString(metrics.MetricName),
-				Label:    utils.TypeStringToWrapperspbString(metrics.MetricLabel),
-				Operator: operator,
-			},
+	return &dashboardservice.FilterSource{
+		Metrics: &dashboardservice.MetricsFilter{
+			Metric:   utils.TypeStringToStringPointer(metrics.MetricName),
+			Label:    utils.TypeStringToStringPointer(metrics.MetricLabel),
+			Operator: operator,
 		},
 	}, nil
 }
 
-func expandFilterSourceSpans(ctx context.Context, spans *FilterSourceSpansModel) (*cxsdk.DashboardFilterSource, diag.Diagnostics) {
+func expandFilterSourceSpans(ctx context.Context, spans *FilterSourceSpansModel) (*dashboardservice.FilterSource, diag.Diagnostics) {
 	if spans == nil {
 		return nil, nil
 	}
@@ -195,57 +190,43 @@ func expandFilterSourceSpans(ctx context.Context, spans *FilterSourceSpansModel)
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardFilterSource{
-		Value: &cxsdk.DashboardFilterSourceSpans{
-			Spans: &cxsdk.DashboardFilterSpansFilter{
-				Field:    field,
-				Operator: operator,
-			},
+	return &dashboardservice.FilterSource{
+		Spans: &dashboardservice.SpansFilter{
+			Field:    field,
+			Operator: operator,
 		},
 	}, nil
 }
 
-func expandFilterOperator(ctx context.Context, operator *FilterOperatorModel) (*cxsdk.DashboardFilterOperator, diag.Diagnostics) {
+func expandFilterOperator(ctx context.Context, operator *FilterOperatorModel) (*dashboardservice.FilterOperator, diag.Diagnostics) {
 	if operator == nil {
 		return nil, nil
 	}
 
-	selectedValues, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, operator.SelectedValues.Elements())
+	selectedValues, diags := typeStringListToStringSlice(ctx, operator.SelectedValues)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	switch operator.Type.ValueString() {
 	case "equals":
-		filterOperator := &cxsdk.DashboardFilterOperator{
-			Value: &cxsdk.DashboardFilterOperatorEquals{
-				Equals: &cxsdk.DashboardFilterEquals{
-					Selection: &cxsdk.DashboardFilterEqualsSelection{},
-				},
+		filterOperator := &dashboardservice.FilterOperator{
+			Equals: &dashboardservice.FilterEquals{
+				Selection: &dashboardservice.EqualsSelection{},
 			},
 		}
 		if len(selectedValues) != 0 {
-			filterOperator.GetEquals().Selection.Value = &cxsdk.DashboardFilterEqualsSelectionList{
-				List: &cxsdk.DashboardFilterEqualsSelectionListSelection{
-					Values: selectedValues,
-				},
-			}
+			filterOperator.Equals.Selection.List = &dashboardservice.EqualsSelectionListSelection{Values: selectedValues}
 		} else {
-			filterOperator.GetEquals().Selection.Value = &cxsdk.DashboardFilterEqualsSelectionAll{
-				All: &cxsdk.DashboardFilterEqualsSelectionAllSelection{},
-			}
+			filterOperator.Equals.Selection.All = map[string]interface{}{}
 		}
 		return filterOperator, nil
 	case "not_equals":
-		return &cxsdk.DashboardFilterOperator{
-			Value: &cxsdk.DashboardFilterOperatorNotEquals{
-				NotEquals: &cxsdk.DashboardFilterNotEquals{
-					Selection: &cxsdk.DashboardFilterNotEqualsSelection{
-						Value: &cxsdk.DashboardFilterNotEqualsSelectionList{
-							List: &cxsdk.DashboardFilterNotEqualsSelectionListSelection{
-								Values: selectedValues,
-							},
-						},
+		return &dashboardservice.FilterOperator{
+			NotEquals: &dashboardservice.FilterNotEquals{
+				Selection: &dashboardservice.NotEqualsSelection{
+					List: &dashboardservice.NotEqualsSelectionListSelection{
+						Values: selectedValues,
 					},
 				},
 			},
@@ -258,19 +239,19 @@ func expandFilterOperator(ctx context.Context, operator *FilterOperatorModel) (*
 	}
 }
 
-func ExpandPromqlQuery(promqlQuery types.String) *cxsdk.DashboardPromQLQuery {
+func ExpandPromqlQuery(promqlQuery types.String) *dashboardservice.PromQlQuery {
 	if promqlQuery.IsNull() || promqlQuery.IsUnknown() {
 		return nil
 	}
 
-	return &cxsdk.DashboardPromQLQuery{
-		Value: wrapperspb.String(promqlQuery.ValueString()),
+	return &dashboardservice.PromQlQuery{
+		Value: promqlQuery.ValueStringPointer(),
 	}
 }
 
-func ExpandSpansAggregations(ctx context.Context, aggregations types.List) ([]*cxsdk.SpansAggregation, diag.Diagnostics) {
+func ExpandSpansAggregations(ctx context.Context, aggregations types.List) ([]dashboardservice.SpansAggregation, diag.Diagnostics) {
 	var aggregationsObjects []types.Object
-	var expandedAggregations []*cxsdk.SpansAggregation
+	var expandedAggregations []dashboardservice.SpansAggregation
 	diags := aggregations.ElementsAs(ctx, &aggregationsObjects, true)
 	if diags.HasError() {
 		return nil, diags
@@ -286,34 +267,30 @@ func ExpandSpansAggregations(ctx context.Context, aggregations types.List) ([]*c
 			diags.Append(expandDiag)
 			continue
 		}
-		expandedAggregations = append(expandedAggregations, expandedAggregation)
+		expandedAggregations = append(expandedAggregations, *expandedAggregation)
 	}
 
 	return expandedAggregations, diags
 }
 
-func ExpandSpansAggregation(spansAggregation *SpansAggregationModel) (*cxsdk.SpansAggregation, diag.Diagnostic) {
+func ExpandSpansAggregation(spansAggregation *SpansAggregationModel) (*dashboardservice.SpansAggregation, diag.Diagnostic) {
 	if spansAggregation == nil {
 		return nil, nil
 	}
 
 	switch spansAggregation.Type.ValueString() {
 	case "metric":
-		return &cxsdk.SpansAggregation{
-			Aggregation: &cxsdk.SpansAggregationMetricAggregation{
-				MetricAggregation: &cxsdk.SpansAggregationMetricAggregationInner{
-					MetricField:     DashboardSchemaToProtoSpansAggregationMetricField[spansAggregation.Field.ValueString()],
-					AggregationType: DashboardSchemaToProtoSpansAggregationMetricAggregationType[spansAggregation.AggregationType.ValueString()],
-				},
+		return &dashboardservice.SpansAggregation{
+			MetricAggregation: &dashboardservice.MetricAggregation{
+				MetricField:     OptionalEnumPointer(spansAggregation.Field, DashboardSchemaToProtoSpansAggregationMetricField),
+				AggregationType: OptionalEnumPointer(spansAggregation.AggregationType, DashboardSchemaToProtoSpansAggregationMetricAggregationType),
 			},
 		}, nil
 	case "dimension":
-		return &cxsdk.SpansAggregation{
-			Aggregation: &cxsdk.SpansAggregationDimensionAggregation{
-				DimensionAggregation: &cxsdk.SpansAggregationDimensionAggregationInner{
-					DimensionField:  DashboardProtoToSchemaSpansAggregationDimensionField[spansAggregation.Field.ValueString()],
-					AggregationType: DashboardSchemaToProtoSpansAggregationDimensionAggregationType[spansAggregation.AggregationType.ValueString()],
-				},
+		return &dashboardservice.SpansAggregation{
+			DimensionAggregation: &dashboardservice.DimensionAggregation{
+				DimensionField:  OptionalEnumPointer(spansAggregation.Field, DashboardProtoToSchemaSpansAggregationDimensionField),
+				AggregationType: OptionalEnumPointer(spansAggregation.AggregationType, DashboardSchemaToProtoSpansAggregationDimensionAggregationType),
 			},
 		}, nil
 	default:
@@ -321,9 +298,9 @@ func ExpandSpansAggregation(spansAggregation *SpansAggregationModel) (*cxsdk.Spa
 	}
 }
 
-func ExpandSpansFilters(ctx context.Context, spansFilters types.List) ([]*cxsdk.DashboardFilterSpansFilter, diag.Diagnostics) {
+func ExpandSpansFilters(ctx context.Context, spansFilters types.List) ([]dashboardservice.SpansFilter, diag.Diagnostics) {
 	var spansFiltersObjects []types.Object
-	var expandedSpansFilters []*cxsdk.DashboardFilterSpansFilter
+	var expandedSpansFilters []dashboardservice.SpansFilter
 	diags := spansFilters.ElementsAs(ctx, &spansFiltersObjects, true)
 	if diags.HasError() {
 		return nil, diags
@@ -339,13 +316,13 @@ func ExpandSpansFilters(ctx context.Context, spansFilters types.List) ([]*cxsdk.
 			diags.Append(expandDiags...)
 			continue
 		}
-		expandedSpansFilters = append(expandedSpansFilters, expandedSpansFilter)
+		expandedSpansFilters = append(expandedSpansFilters, *expandedSpansFilter)
 	}
 
 	return expandedSpansFilters, diags
 }
 
-func expandSpansFilter(ctx context.Context, spansFilter SpansFilterModel) (*cxsdk.DashboardFilterSpansFilter, diag.Diagnostics) {
+func expandSpansFilter(ctx context.Context, spansFilter SpansFilterModel) (*dashboardservice.SpansFilter, diag.Diagnostics) {
 	operator, diags := expandFilterOperator(ctx, spansFilter.Operator)
 	if diags.HasError() {
 		return nil, diags
@@ -356,7 +333,7 @@ func expandSpansFilter(ctx context.Context, spansFilter SpansFilterModel) (*cxsd
 		return nil, diag.Diagnostics{dg}
 	}
 
-	return &cxsdk.DashboardFilterSpansFilter{
+	return &dashboardservice.SpansFilter{
 		Field:    field,
 		Operator: operator,
 	}, nil

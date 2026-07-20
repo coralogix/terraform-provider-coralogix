@@ -30,6 +30,7 @@ import (
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 	cess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/custom_enrichments_service"
 	dbfs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_folders_service"
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
@@ -54,7 +55,6 @@ type ClientSet struct {
 	enrichments    *cxsdk.EnrichmentsClient
 	dataSet        *cxsdk.DataSetClient
 	legacySlos     *cxsdk.LegacySLOsClient
-	dashboards     *cxsdk.DashboardsClient
 	ruleGroups     *cxsdk.RuleGroupsClient
 	users          *UsersClient
 	events2Metrics *cxsdk.Events2MetricsClient
@@ -68,6 +68,7 @@ type ClientSet struct {
 	archiveMetrics        *ams.MetricsDataArchiveServiceAPIService
 	archiveLogs           *archiveLogs.TargetServiceAPIService
 	archiveRetentions     *retss.RetentionsServiceAPIService
+	dashboards            *dashboardservice.DashboardServiceAPIService
 	recordingRuleGroups   *recRuless.RecordingRulesServiceAPIService
 	tcoPolicies           *tcoPolicys.PoliciesServiceAPIService
 	quotaAllocationRules  *quotaRules.QuotaAllocationRuleSetServiceAPIService
@@ -126,7 +127,7 @@ func (c *ClientSet) DataSet() *cxsdk.DataSetClient {
 	return c.dataSet
 }
 
-func (c *ClientSet) Dashboards() *cxsdk.DashboardsClient {
+func (c *ClientSet) Dashboards() *dashboardservice.DashboardServiceAPIService {
 	return c.dashboards
 }
 
@@ -257,8 +258,6 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 
 		users: NewUsersClient(region, apiKey),
 
-		// TODO
-		dashboards:     cxsdk.NewDashboardsClient(grpcCreator),
 		events2Metrics: cxsdk.NewEvents2MetricsClient(grpcCreator),
 		groupGrpc:      cxsdk.NewGroupsClient(grpcCreator),
 
@@ -267,6 +266,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		archiveMetrics:        cs.ArchiveMetrics(),
 		alerts:                cs.Alerts(),
 		archiveRetentions:     cs.ArchiveRetentions(),
+		dashboards:            cs.Dashboards(),
 		recordingRuleGroups:   cs.RecordingRules(),
 		archiveLogs:           cs.ArchiveLogs(),
 		tcoPolicies:           cs.TCOPolicies(),

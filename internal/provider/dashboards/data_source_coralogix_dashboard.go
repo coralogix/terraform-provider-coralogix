@@ -22,12 +22,8 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var _ datasource.DataSourceWithConfigure = &DashboardDataSource{}
@@ -37,7 +33,7 @@ func NewDashboardDataSource() datasource.DataSource {
 }
 
 type DashboardDataSource struct {
-	client *cxsdk.DashboardsClient
+	client *dashboardOpenAPIClient
 }
 
 func (d *DashboardDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -58,7 +54,7 @@ func (d *DashboardDataSource) Configure(_ context.Context, req datasource.Config
 		return
 	}
 
-	d.client = clientSet.Dashboards()
+	d.client = newDashboardOpenAPIClient(clientSet.Dashboards())
 }
 
 func (d *DashboardDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -79,17 +75,16 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 	//Get refreshed Dashboard value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
-	getDashboardReq := &cxsdk.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
-	getDashboardResp, err := d.client.Get(ctx, getDashboardReq)
+	getDashboardResp, err := d.client.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Dashboard",
-			utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+			err.Error(),
 		)
 		return
 	}
-	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
+	log.Printf("[INFO] Received Dashboard: %s", dashboardLogString(getDashboardResp.Dashboard))
 
 	dashboard, diags := flattenDashboard(ctx, DashboardResourceModel{}, getDashboardResp)
 	if diags.HasError() {

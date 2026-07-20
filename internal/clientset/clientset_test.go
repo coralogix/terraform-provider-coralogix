@@ -23,6 +23,9 @@ func TestNewClientSet_UsersClientNotNil(t *testing.T) {
 	if cs.Users() == nil {
 		t.Fatal("Users() must not be nil")
 	}
+	if cs.Dashboards() == nil {
+		t.Fatal("Dashboards() must not be nil")
+	}
 	if cs.Users().BaseURL() != "https://ng-api-http.eu2.coralogix.com/scim/Users" {
 		t.Fatalf("Users().BaseURL() = %q", cs.Users().BaseURL())
 	}

@@ -37,10 +37,10 @@ const (
 )
 
 func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsImmediate(),
@@ -96,10 +96,10 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_overnight_active_on(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertOvernightActiveOn("+0300"),
@@ -124,10 +124,10 @@ func TestAccCoralogixResourceAlert_overnight_active_on(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsMoreThan(),
@@ -222,10 +222,10 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsLessThan(),
@@ -317,10 +317,10 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 
 func TestAccCoralogixResourceAlert_custom_evaluation_delay_omitted_and_explicit(t *testing.T) {
 	name := uuid.NewString()
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertCustomEvaluationDelayOmittedAndExplicit(name),
@@ -339,7 +339,7 @@ func TestAccCoralogixResourceAlert_custom_evaluation_delay_omitted_and_explicit(
 
 func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
 	name := uuid.NewString()
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccRequiredEnvVarsPreCheck(
 				t,
@@ -349,7 +349,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
 			)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsLessThanWithRouter(name),
@@ -442,10 +442,10 @@ func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsMoreThanUsual(),
@@ -536,10 +536,10 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsLessThanUsual(),
@@ -631,10 +631,10 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsRatioMoreThan(),
@@ -756,10 +756,10 @@ func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_ratio_less_than(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsRatioLessThan(),
@@ -804,10 +804,10 @@ func TestAccCoralogixResourceAlert_logs_ratio_less_than(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_new_value(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsNewValue(),
@@ -846,10 +846,10 @@ func TestAccCoralogixResourceAlert_logs_new_value(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsUniqueCount(),
@@ -891,10 +891,10 @@ func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_unique_count_without_per_group_by_key(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsUniqueCountWithoutPerGroupByKey(),
@@ -916,10 +916,10 @@ func TestAccCoralogixResourceAlert_logs_unique_count_without_per_group_by_key(t 
 }
 
 func TestAccCoralogixResourceAlert_logs_time_relative_more_than(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsTimeRelativeMoreThan(),
@@ -957,10 +957,10 @@ func TestAccCoralogixResourceAlert_logs_time_relative_more_than(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_time_relative_less_than(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsTimeRelativeLessThan(),
@@ -1002,10 +1002,10 @@ func TestAccCoralogixResourceAlert_logs_time_relative_less_than(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_metric_more_than(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertMetricMoreThan(),
@@ -1049,10 +1049,10 @@ func TestAccCoralogixResourceAlert_metric_more_than(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertMetricLessThan(),
@@ -1101,10 +1101,10 @@ func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_metric_threshold_no_data_policy_omit_auto_retire(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertMetricThresholdNoDataPolicyOmitAutoRetire(),
@@ -1122,10 +1122,10 @@ func TestAccCoralogixResourceAlert_metric_threshold_no_data_policy_omit_auto_ret
 }
 
 func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertMetricsLessThanUsual(),
@@ -1169,10 +1169,10 @@ func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertMetricLessThanOrEquals(),
@@ -1222,10 +1222,10 @@ func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertMetricMoreThanOrEquals(),
@@ -1270,10 +1270,10 @@ func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertTracingImmediate(),
@@ -1392,10 +1392,10 @@ func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertTracingMoreThan(),
@@ -1455,10 +1455,10 @@ func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_flow(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertFlow(),
@@ -1506,12 +1506,12 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 
 func TestAccCoralogixResourceAlert_sloBurnRate(t *testing.T) {
 	// t.Skip("Skipping SLO v2 for now")
-	sloName := "coralogix_slo_go_example"
-	alertName := "SLO burn rate alert"
-	resource.Test(t, resource.TestCase{
+	sloName := "tf-acc-slo-" + uuid.NewString()
+	alertName := "tf-acc-slo-alert-" + uuid.NewString()
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertSloBurnRate(sloName, alertName),
@@ -1539,12 +1539,17 @@ func TestAccCoralogixResourceAlert_sloBurnRate(t *testing.T) {
 	})
 }
 
-func testAccCheckAlertDestroy(s *terraform.State) error {
-	meta := testAccProvider.Meta()
-	if meta == nil {
-		return nil
+func testAccCheckAlertDestroy(t *testing.T) resource.TestCheckFunc {
+	t.Helper()
+	return testAccCheckAlertDestroyState
+}
+
+func testAccCheckAlertDestroyState(s *terraform.State) error {
+	clientSet, err := testAccAlertClientSet()
+	if err != nil {
+		return err
 	}
-	client := meta.(*clientset.ClientSet).Alerts()
+	client := clientSet.Alerts()
 
 	ctx := context.TODO()
 
@@ -3879,10 +3884,10 @@ resource "coralogix_alert" "test" {
 }
 
 func TestAccCoralogixResourceAlert_webhooks_disabled_advanced_notification(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertWebhooksDisabledAdvancedNotification(),
@@ -4101,10 +4106,10 @@ resource "coralogix_alert" "slo_alert_burn_rate" {
 // when transitioning from webhooks_settings to router (or no notification group),
 // the provider must clear the webhooks from the API rather than silently preserving them.
 func TestAccCoralogixResourceAlert_webhooks_settings_deletion(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertWebhooksSettingsWithWebhooks(),
@@ -4241,10 +4246,10 @@ func testAccCoralogixResourceAlertWebhooksSettingsNoNotifications() string {
 }
 
 func TestAccCoralogixResourceAlert_group_by_keys_deletion(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertGroupByKeysSet(),
@@ -4373,7 +4378,7 @@ func testAccCoralogixResourceAlertGroupByKeysPhantom() string {
 
 func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
 	name := uuid.NewString()
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccRequiredEnvVarsPreCheck(
 				t,
@@ -4382,7 +4387,7 @@ func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
 			)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertDestinationsSet(name),
