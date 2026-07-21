@@ -280,7 +280,39 @@ func extractAlertProperties(ctx context.Context, plan *alerttypes.AlertResourceM
 		return nil, diags
 	}
 
+	dataSources, diags := extractDataSources(ctx, plan.DataSources)
+	if diags.HasError() {
+		return nil, diags
+	}
+	alertProperties.DataSources = dataSources
+
 	return alertProperties, nil
+}
+
+func extractDataSources(ctx context.Context, dataSources types.List) ([]alerts.AlertDefDataSource, diag.Diagnostics) {
+	if dataSources.IsNull() || dataSources.IsUnknown() {
+		return nil, nil
+	}
+
+	var dataSourceObjects []types.Object
+	diags := dataSources.ElementsAs(ctx, &dataSourceObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var extractedDataSources []alerts.AlertDefDataSource
+	for _, dataSourceObject := range dataSourceObjects {
+		var dataSourceModel alerttypes.DataSourceModel
+		if diags := dataSourceObject.As(ctx, &dataSourceModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		extractedDataSources = append(extractedDataSources, alerts.AlertDefDataSource{
+			DataSpace: dataSourceModel.DataSpace.ValueStringPointer(),
+			DataSet:   dataSourceModel.DataSet.ValueStringPointer(),
+		})
+	}
+
+	return extractedDataSources, nil
 }
 
 func extractCustomEvaluationDelay(delay types.Int32) *int32 {
@@ -438,6 +470,10 @@ func extractDestinations(ctx context.Context, notificationDestinations types.Lis
 			ResolvedRouteOverrides: &alerts.NotificationRouting{
 				ConfigOverrides: resolvedRoutingOverrides,
 			},
+		}
+
+		if !destinationModel.RetriggeringPeriodMinutes.IsNull() && !destinationModel.RetriggeringPeriodMinutes.IsUnknown() {
+			destination.RetriggeringPeriodMinutes = destinationModel.RetriggeringPeriodMinutes.ValueInt64Pointer()
 		}
 
 		if !destinationModel.NotifyOn.IsNull() && !destinationModel.NotifyOn.IsUnknown() {
@@ -1351,16 +1387,21 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 	if groupByFor == "" {
 		groupByFor = alerttypes.LogsRatioGroupByForProtoToSchemaMap[alerts.LOGSRATIOGROUPBYFOR_LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED]
 	}
+	undetectedValuesManagement, diags := extractUndetectedValuesManagement(ctx, ratioThresholdModel.UndetectedValuesManagement)
+	if diags.HasError() {
+		return nil, diags
+	}
 	properties.LogsRatioThreshold = &alerts.LogsRatioThresholdType{
-		Numerator:                 numeratorLogsFilter,
-		NumeratorAlias:            ratioThresholdModel.NumeratorAlias.ValueStringPointer(),
-		Denominator:               denominatorLogsFilter,
-		DenominatorAlias:          ratioThresholdModel.DenominatorAlias.ValueStringPointer(),
-		Rules:                     rules,
-		NotificationPayloadFilter: notificationPayloadFilter,
-		GroupByFor:                alerttypes.LogsRatioGroupByForSchemaToProtoMap[groupByFor].Ptr(),
-		EvaluationDelayMs:         extractCustomEvaluationDelay(ratioThresholdModel.CustomEvaluationDelay),
-		IgnoreInfinity:            ratioThresholdModel.IgnoreInfinity.ValueBoolPointer(),
+		Numerator:                  numeratorLogsFilter,
+		NumeratorAlias:             ratioThresholdModel.NumeratorAlias.ValueStringPointer(),
+		Denominator:                denominatorLogsFilter,
+		DenominatorAlias:           ratioThresholdModel.DenominatorAlias.ValueStringPointer(),
+		Rules:                      rules,
+		NotificationPayloadFilter:  notificationPayloadFilter,
+		GroupByFor:                 alerttypes.LogsRatioGroupByForSchemaToProtoMap[groupByFor].Ptr(),
+		EvaluationDelayMs:          extractCustomEvaluationDelay(ratioThresholdModel.CustomEvaluationDelay),
+		IgnoreInfinity:             ratioThresholdModel.IgnoreInfinity.ValueBoolPointer(),
+		UndetectedValuesManagement: undetectedValuesManagement,
 	}
 	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD.Ptr()
 	return properties, nil
@@ -2821,6 +2862,10 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 	}
 	groupByKeys := getAlertGroupByKeys(alertProperties)
 	groupBy := groupByKeysToStateValue(groupByKeys, alertProperties)
+	dataSources, diags := flattenDataSources(ctx, alertProperties.DataSources)
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &alerttypes.AlertResourceModel{
 		ID:                types.StringPointerValue(alert.Id),
 		Name:              types.StringPointerValue(getAlertName(alertProperties)),
@@ -2835,7 +2880,24 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 		Labels:            labels,
 		PhantomMode:       types.BoolPointerValue(getAlertPhantomMode(alertProperties)),
 		Deleted:           types.BoolPointerValue(getAlertDeleted(alertProperties)),
+		DataSources:       dataSources,
 	}, nil
+}
+
+func flattenDataSources(ctx context.Context, dataSources []alerts.AlertDefDataSource) (types.List, diag.Diagnostics) {
+	if len(dataSources) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: alertschema.DataSourcesAttr()}), nil
+	}
+
+	dataSourceModels := make([]alerttypes.DataSourceModel, 0, len(dataSources))
+	for _, dataSource := range dataSources {
+		dataSourceModels = append(dataSourceModels, alerttypes.DataSourceModel{
+			DataSpace: types.StringPointerValue(dataSource.DataSpace),
+			DataSet:   types.StringPointerValue(dataSource.DataSet),
+		})
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertschema.DataSourcesAttr()}, dataSourceModels)
 }
 
 func getAlertName(alertDefProperties *alerts.AlertDefProperties) *string {
@@ -3182,21 +3244,21 @@ func getAlertDeleted(alertDefProperties *alerts.AlertDefProperties) *bool {
 
 func flattenNotificationGroup(ctx context.Context, notificationGroup *alerts.AlertDefNotificationGroup) (types.Object, diag.Diagnostics) {
 	if notificationGroup == nil {
-		return types.ObjectNull(alertschema.NotificationGroupV2Attr()), nil
+		return types.ObjectNull(alertschema.NotificationGroupV3Attr()), nil
 	}
 
 	webhooksSettings, diags := flattenAdvancedTargetSettings(ctx, notificationGroup.Webhooks)
 	if diags.HasError() {
-		return types.ObjectNull(alertschema.NotificationGroupV2Attr()), diags
+		return types.ObjectNull(alertschema.NotificationGroupV3Attr()), diags
 	}
 	destinations, diags := flattenNotificationDestinations(ctx, notificationGroup.Destinations)
 	if diags.HasError() {
-		return types.ObjectNull(alertschema.NotificationGroupV2Attr()), diags
+		return types.ObjectNull(alertschema.NotificationGroupV3Attr()), diags
 	}
 
 	router, diags := flattenNotificationRouter(ctx, notificationGroup.Router)
 	if diags.HasError() {
-		return types.ObjectNull(alertschema.NotificationGroupV2Attr()), diags
+		return types.ObjectNull(alertschema.NotificationGroupV3Attr()), diags
 	}
 
 	notificationGroupModel := alerttypes.NotificationGroupModel{
@@ -3206,7 +3268,7 @@ func flattenNotificationGroup(ctx context.Context, notificationGroup *alerts.Ale
 		Router:           router,
 	}
 
-	return types.ObjectValueFrom(ctx, alertschema.NotificationGroupV2Attr(), notificationGroupModel)
+	return types.ObjectValueFrom(ctx, alertschema.NotificationGroupV3Attr(), notificationGroupModel)
 }
 
 func flattenAdvancedTargetSettings(ctx context.Context, webhooksSettings []alerts.AlertDefWebhooksSettings) (types.Set, diag.Diagnostics) {
@@ -3257,7 +3319,7 @@ func flattenAdvancedTargetSettings(ctx context.Context, webhooksSettings []alert
 
 func flattenNotificationDestinations(ctx context.Context, destinations []alerts.NotificationDestination) (types.List, diag.Diagnostics) {
 	if destinations == nil {
-		return types.ListNull(types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV2Attr()}), nil
+		return types.ListNull(types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV3Attr()}), nil
 	}
 	var destinationModels []*alerttypes.NotificationDestinationModel
 	for _, destination := range destinations {
@@ -3271,11 +3333,11 @@ func flattenNotificationDestinations(ctx context.Context, destinations []alerts.
 		}
 		flattenedTriggeredRoutingOverrides, diags := flattenRoutingOverrides(ctx, triggeredRoutingOverrides)
 		if diags.HasError() {
-			return types.ListNull(types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV2Attr()}), diags
+			return types.ListNull(types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV3Attr()}), diags
 		}
 		flattenedResolvedRoutingOverrides, diags := flattenRoutingOverrides(ctx, resolvedRoutingOverrides)
 		if diags.HasError() {
-			return types.ListNull(types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV2Attr()}), diags
+			return types.ListNull(types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV3Attr()}), diags
 		}
 
 		var notifyOn alerts.NotifyOn
@@ -3290,12 +3352,13 @@ func flattenNotificationDestinations(ctx context.Context, destinations []alerts.
 			NotifyOn:                  types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[notifyOn]),
 			TriggeredRoutingOverrides: flattenedTriggeredRoutingOverrides,
 			ResolvedRoutingOverrides:  flattenedResolvedRoutingOverrides,
+			RetriggeringPeriodMinutes: types.Int64PointerValue(destination.RetriggeringPeriodMinutes),
 		}
 		destinationModels = append(destinationModels, &destinationModel)
 	}
-	flattenedDestinations, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV2Attr()}, destinationModels)
+	flattenedDestinations, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV3Attr()}, destinationModels)
 	if diags.HasError() {
-		return types.ListNull(types.ListType{ElemType: types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV2Attr()}}), diags
+		return types.ListNull(types.ListType{ElemType: types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV3Attr()}}), diags
 	}
 	return flattenedDestinations, nil
 }
@@ -3857,16 +3920,22 @@ func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *alerts.LogsR
 		groupByFor = alerts.LOGSRATIOGROUPBYFOR_LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED.Ptr()
 	}
 
+	undetectedValuesManagement, diags := flattenUndetectedValuesManagement(ctx, ratioThreshold.UndetectedValuesManagement)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.LogsRatioThresholdAttr()), diags
+	}
+
 	logsRatioMoreThanModel := alerttypes.LogsRatioThresholdModel{
-		Numerator:                 numeratorLogsFilter,
-		NumeratorAlias:            types.StringPointerValue(ratioThreshold.NumeratorAlias),
-		Denominator:               denominatorLogsFilter,
-		DenominatorAlias:          types.StringPointerValue(ratioThreshold.DenominatorAlias),
-		Rules:                     rules,
-		NotificationPayloadFilter: utils.StringSliceToTypeStringSet(ratioThreshold.GetNotificationPayloadFilter()),
-		GroupByFor:                types.StringValue(alerttypes.LogsRatioGroupByForProtoToSchemaMap[*groupByFor]),
-		CustomEvaluationDelay:     types.Int32PointerValue(ratioThreshold.EvaluationDelayMs),
-		IgnoreInfinity:            types.BoolPointerValue(ratioThreshold.IgnoreInfinity),
+		Numerator:                  numeratorLogsFilter,
+		NumeratorAlias:             types.StringPointerValue(ratioThreshold.NumeratorAlias),
+		Denominator:                denominatorLogsFilter,
+		DenominatorAlias:           types.StringPointerValue(ratioThreshold.DenominatorAlias),
+		Rules:                      rules,
+		NotificationPayloadFilter:  utils.StringSliceToTypeStringSet(ratioThreshold.GetNotificationPayloadFilter()),
+		GroupByFor:                 types.StringValue(alerttypes.LogsRatioGroupByForProtoToSchemaMap[*groupByFor]),
+		CustomEvaluationDelay:      types.Int32PointerValue(ratioThreshold.EvaluationDelayMs),
+		IgnoreInfinity:             types.BoolPointerValue(ratioThreshold.IgnoreInfinity),
+		UndetectedValuesManagement: undetectedValuesManagement,
 	}
 	return types.ObjectValueFrom(ctx, alertschema.LogsRatioThresholdAttr(), logsRatioMoreThanModel)
 }

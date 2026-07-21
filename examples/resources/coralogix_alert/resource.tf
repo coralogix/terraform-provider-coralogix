@@ -110,6 +110,14 @@ resource "coralogix_alert" "test" {
     security_severity = "high"
   }
 
+  # Optional - associate the alert with existing data sources.
+  # data_sources = [
+  #   {
+  #     data_space = "default"
+  #     data_set   = "my-dataset"
+  #   }
+  # ]
+
   notification_group = {
     webhooks_settings = [{
       retriggering_period = {
@@ -118,6 +126,15 @@ resource "coralogix_alert" "test" {
       notify_on  = "Triggered and Resolved"
       recipients = ["example@coralogix.com"]
     }]
+    # Optional - route notifications to a connector (and optionally a preset),
+    # re-notifying at most once per retriggering_period_minutes.
+    # destinations = [
+    #   {
+    #     connector_id                = coralogix_connector.slack_example.id
+    #     preset_id                   = coralogix_preset.slack_example.id
+    #     retriggering_period_minutes = 60
+    #   }
+    # ]
   }
 
   incidents_settings = {
@@ -278,6 +295,10 @@ resource "coralogix_alert" "test" {
 #         }
 #       }]
 #       group_by_for = "Denominator Only"
+#       undetected_values_management = {
+#         trigger_undetected_values = true
+#         auto_retire_timeframe     = "6_HOURS"
+#       }
 #     }
 #   }
 # }
