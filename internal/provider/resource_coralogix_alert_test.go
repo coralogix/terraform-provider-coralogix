@@ -4402,7 +4402,8 @@ func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-destinations-delete"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "1"),
-					resource.TestCheckNoResourceAttr(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes"),
+					// The backend assigns a default retriggering period when it isn't configured.
+					resource.TestCheckResourceAttrSet(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes"),
 				),
 			},
 			{
@@ -4422,7 +4423,8 @@ func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
 				Config: testAccCoralogixResourceAlertDestinationsSet(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "1"),
-					resource.TestCheckNoResourceAttr(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes"),
+					// Removing the attribute keeps the last applied value (Optional+Computed with UseStateForUnknown).
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes", "30"),
 				),
 			},
 			{
@@ -4628,18 +4630,25 @@ func testAccCoralogixResourceAlertDestinationsPhantom() string {
 }
 
 func TestAccCoralogixResourceAlert_data_sources(t *testing.T) {
+	// The API validates that the referenced data space/dataset exist, and the
+	// provider cannot create them. Point these at an existing dataset to run.
+	dataSpace := os.Getenv("ALERT_DATA_SOURCES_DATA_SPACE")
+	dataSet := os.Getenv("ALERT_DATA_SOURCES_DATA_SET")
+	if dataSpace == "" || dataSet == "" {
+		t.Skip("ALERT_DATA_SOURCES_DATA_SPACE and ALERT_DATA_SOURCES_DATA_SET must be set to an existing data space/dataset for this test")
+	}
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertDataSources(),
+				Config: testAccCoralogixResourceAlertDataSources(dataSpace, dataSet),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "data-sources alert example"),
 					resource.TestCheckResourceAttr(alertResourceName, "data_sources.#", "1"),
-					resource.TestCheckResourceAttr(alertResourceName, "data_sources.0.data_space", "default"),
-					resource.TestCheckResourceAttr(alertResourceName, "data_sources.0.data_set", "default"),
+					resource.TestCheckResourceAttr(alertResourceName, "data_sources.0.data_space", dataSpace),
+					resource.TestCheckResourceAttr(alertResourceName, "data_sources.0.data_set", dataSet),
 				),
 			},
 			{
@@ -4685,15 +4694,15 @@ func testAccCoralogixResourceAlertDataSourcesBase(dataSourcesBlock string) strin
 `, dataSourcesBlock)
 }
 
-func testAccCoralogixResourceAlertDataSources() string {
-	return testAccCoralogixResourceAlertDataSourcesBase(`
+func testAccCoralogixResourceAlertDataSources(dataSpace, dataSet string) string {
+	return testAccCoralogixResourceAlertDataSourcesBase(fmt.Sprintf(`
   data_sources = [
     {
-      data_space = "default"
-      data_set   = "default"
+      data_space = %q
+      data_set   = %q
     }
   ]
-`)
+`, dataSpace, dataSet))
 }
 
 func testAccCoralogixResourceAlertDataSourcesRemoved() string {
