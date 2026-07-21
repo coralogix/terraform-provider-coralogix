@@ -4402,8 +4402,9 @@ func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-destinations-delete"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "1"),
-					// The backend assigns a default retriggering period when it isn't configured.
-					resource.TestCheckResourceAttrSet(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes"),
+					// When not configured the backend assigns the inherited incident
+					// cadence, but state must stay null so it remains inherited.
+					resource.TestCheckNoResourceAttr(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes"),
 				),
 			},
 			{
@@ -4423,8 +4424,8 @@ func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
 				Config: testAccCoralogixResourceAlertDestinationsSet(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "1"),
-					// Removing the attribute keeps the last applied value (Optional+Computed with UseStateForUnknown).
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes", "30"),
+					// Removing the attribute restores inheritance of the incident cadence.
+					resource.TestCheckNoResourceAttr(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes"),
 				),
 			},
 			{
