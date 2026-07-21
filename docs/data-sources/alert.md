@@ -80,7 +80,7 @@ Read-Only:
 - `notify_on` (String)
 - `preset_id` (String)
 - `resolved_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides))
-- `retriggering_period_minutes` (Number) Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered.
+- `retriggering_period_minutes` (Number) Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered. When omitted, the backend assigns its default.
 - `triggered_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides))
 
 <a id="nestedatt--notification_group--destinations--resolved_routing_overrides"></a>

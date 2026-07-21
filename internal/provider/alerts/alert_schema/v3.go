@@ -31,6 +31,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
@@ -888,8 +889,12 @@ func V3() schema.Schema {
 									},
 								},
 								"retriggering_period_minutes": schema.Int64Attribute{
-									Optional:            true,
-									MarkdownDescription: "Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered.",
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.Int64{
+										int64planmodifier.UseStateForUnknown(),
+									},
+									MarkdownDescription: "Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered. When omitted, the backend assigns its default.",
 								},
 							},
 						},
