@@ -81,6 +81,56 @@ func (g GroupByValidator) ValidateList(ctx context.Context, request validator.Li
 	}
 }
 
+type DataSourcesValidator struct {
+}
+
+func (d DataSourcesValidator) Description(ctx context.Context) string {
+	return "Validates that data_sources is only set on log-based alert types."
+}
+
+func (d DataSourcesValidator) MarkdownDescription(ctx context.Context) string {
+	return "Validates that data_sources is only set on log-based alert types."
+}
+
+func (d DataSourcesValidator) ValidateList(ctx context.Context, request validator.ListRequest, response *validator.ListResponse) {
+	if request.ConfigValue.IsNull() || request.ConfigValue.IsUnknown() || len(request.ConfigValue.Elements()) == 0 {
+		return
+	}
+
+	paths, diags := request.Config.PathMatches(ctx, path.MatchRoot("type_definition"))
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+	var typeDefinition types.Object
+	diags = request.Config.GetAttribute(ctx, paths[0], &typeDefinition)
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+
+	if typeDefinition.IsNull() || typeDefinition.IsUnknown() {
+		return
+	}
+
+	var typeDefinitionModel alerttypes.AlertTypeDefinitionModel
+	if diags = typeDefinition.As(ctx, &typeDefinitionModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+
+	logBased := !utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsImmediate) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsAnomaly) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsRatioThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsNewValue) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsUniqueCount) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsTimeRelativeThreshold)
+	if !logBased {
+		response.Diagnostics.AddError("data_sources", "data_sources is only supported for log-based alert types (logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold).")
+	}
+}
+
 const priorityDeprecationMessage = "This field will be removed in the future in favor of the 'override' property where possible."
 
 type PriorityDeprecationWarning struct {

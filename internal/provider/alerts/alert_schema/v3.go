@@ -921,8 +921,9 @@ func V3() schema.Schema {
 				Optional: true,
 				Validators: []validator.List{
 					listvalidator.SizeAtMost(1),
+					DataSourcesValidator{},
 				},
-				MarkdownDescription: "Data sources to associate the alert with. The referenced data space and dataset must already exist. The API currently supports at most one entry.",
+				MarkdownDescription: "Data sources to associate the alert with. Only supported for log-based alert types. The referenced data space and dataset must already exist. The API currently supports at most one entry.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"data_space": schema.StringAttribute{
