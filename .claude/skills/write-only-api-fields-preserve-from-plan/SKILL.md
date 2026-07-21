@@ -1,6 +1,6 @@
 ---
 name: write-only-api-fields-preserve-from-plan
-description: "Use when apply fails with 'Provider produced inconsistent result after apply: was <value>, but now null' for a field the API accepted. The backend validates the field but omits it from responses; preserve the planned value in flatten. Do NOT use when the API echoes the field back — that's a normal flatten bug."
+description: "Use when apply fails with 'inconsistent result after apply: was <value>, but now null' for a field the API accepted. Preserve the planned value in flatten. Not for fields the API echoes back."
 ---
 
 # Write-only API fields: preserve from plan
