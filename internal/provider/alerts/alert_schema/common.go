@@ -553,6 +553,7 @@ func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 		PlanModifiers: []planmodifier.Object{
 			objectplanmodifier.UseStateForUnknown(),
 		},
+		MarkdownDescription: "Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type.",
 		Attributes: map[string]schema.Attribute{
 			"trigger_undetected_values": schema.BoolAttribute{
 				Optional: true,
@@ -775,8 +776,9 @@ func LogsRatioThresholdAttr() map[string]attr.Type {
 		"notification_payload_filter": types.SetType{
 			ElemType: types.StringType,
 		},
-		"group_by_for":            types.StringType,
-		"custom_evaluation_delay": types.Int32Type,
+		"group_by_for":                 types.StringType,
+		"custom_evaluation_delay":      types.Int32Type,
+		"undetected_values_management": types.ObjectType{AttrTypes: UndetectedValuesManagementAttr()},
 	}
 }
 

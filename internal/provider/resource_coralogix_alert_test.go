@@ -778,6 +778,8 @@ func TestAccCoralogixResourceAlert_logs_ratio_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.rules.0.condition.threshold", "2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.rules.0.condition.condition_type", "LESS_THAN"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.group_by_for", "Denominator Only"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.undetected_values_management.trigger_undetected_values", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.undetected_values_management.auto_retire_timeframe", "6_HOURS"),
 				),
 			},
 			{
@@ -797,6 +799,8 @@ func TestAccCoralogixResourceAlert_logs_ratio_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.rules.0.condition.time_window", "2_HOURS"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.rules.0.condition.threshold", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.rules.0.condition.condition_type", "LESS_THAN"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.undetected_values_management.trigger_undetected_values", "false"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.undetected_values_management.auto_retire_timeframe", "NEVER"),
 				),
 			},
 		},
@@ -2903,6 +2907,10 @@ func testAccCoralogixResourceAlertLogsRatioLessThan() string {
                 }
             }]
               group_by_for = "Denominator Only"
+              undetected_values_management = {
+                trigger_undetected_values = true
+                auto_retire_timeframe     = "6_HOURS"
+              }
         }
       }
 }
@@ -4394,6 +4402,27 @@ func TestAccCoralogixResourceAlert_destinations_deletion(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "issue-552-destinations-delete"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "1"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertDestinationsSetWithRetriggering(name, 600),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes", "600"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertDestinationsSetWithRetriggering(name, 30),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes", "30"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertDestinationsSet(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.destinations.#", "1"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "notification_group.destinations.0.retriggering_period_minutes"),
 				),
 			},
 			{
@@ -4495,6 +4524,45 @@ func testAccCoralogixResourceAlertDestinationsSet(name string) string {
 `
 }
 
+func testAccCoralogixResourceAlertDestinationsSetWithRetriggering(name string, retriggeringPeriodMinutes int) string {
+	return testAccCoralogixResourceAlertDestinationsFixtures(name) + fmt.Sprintf(`
+  resource "coralogix_alert" "test" {
+    name     = "issue-552-destinations-delete"
+    priority = "P3"
+
+    notification_group = {
+      destinations = [
+        {
+          connector_id                = coralogix_connector.slack_example.id
+          preset_id                   = coralogix_preset.slack_example.id
+          retriggering_period_minutes = %d
+        }
+      ]
+    }
+
+    type_definition = {
+      metric_threshold = {
+        metric_filter = {
+          promql = "sum(increase(calls_total{}[2m]))"
+        }
+        rules = [{
+          condition = {
+            threshold      = 1000
+            for_over_pct   = 100
+            of_the_last    = "5m"
+            condition_type = "MORE_THAN_OR_EQUALS"
+          }
+          override = { priority = "P3" }
+        }]
+        missing_values = {
+          replace_with_zero = true
+        }
+      }
+    }
+  }
+`, retriggeringPeriodMinutes)
+}
+
 func testAccCoralogixResourceAlertDestinationsCleared(name string) string {
 	return testAccCoralogixResourceAlertDestinationsFixtures(name) + `
   resource "coralogix_alert" "test" {
@@ -4557,4 +4625,77 @@ func testAccCoralogixResourceAlertDestinationsPhantom() string {
   }
 }
 `
+}
+
+func TestAccCoralogixResourceAlert_data_sources(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertDataSources(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "data-sources alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "data_sources.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "data_sources.0.data_space", "default"),
+					resource.TestCheckResourceAttr(alertResourceName, "data_sources.0.data_set", "default"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertDataSourcesRemoved(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "data-sources alert example"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "data_sources.#"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertDataSourcesBase(dataSourcesBlock string) string {
+	return fmt.Sprintf(`resource "coralogix_alert" "test" {
+  name     = "data-sources alert example"
+  priority = "P3"
+%s
+  type_definition = {
+    logs_threshold = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
+      rules = [{
+        condition = {
+          threshold      = 2
+          time_window    = "10_MINUTES"
+          condition_type = "MORE_THAN"
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+    }
+  }
+}
+`, dataSourcesBlock)
+}
+
+func testAccCoralogixResourceAlertDataSources() string {
+	return testAccCoralogixResourceAlertDataSourcesBase(`
+  data_sources = [
+    {
+      data_space = "default"
+      data_set   = "default"
+    }
+  ]
+`)
+}
+
+func testAccCoralogixResourceAlertDataSourcesRemoved() string {
+	return testAccCoralogixResourceAlertDataSourcesBase("")
 }

@@ -323,6 +323,12 @@ type AlertResourceModel struct {
 	IncidentsSettings types.Object `tfsdk:"incidents_settings"` // IncidentsSettingsModel
 	NotificationGroup types.Object `tfsdk:"notification_group"` // NotificationGroupModel
 	Labels            types.Map    `tfsdk:"labels"`             // map[string]string
+	DataSources       types.List   `tfsdk:"data_sources"`       // []DataSourceModel
+}
+
+type DataSourceModel struct {
+	DataSpace types.String `tfsdk:"data_space"`
+	DataSet   types.String `tfsdk:"data_set"`
 }
 
 type AlertScheduleModel struct {
@@ -367,6 +373,7 @@ type NotificationDestinationModel struct {
 	NotifyOn                  types.String `tfsdk:"notify_on"`
 	TriggeredRoutingOverrides types.Object `tfsdk:"triggered_routing_overrides"` // SourceOverridesModel
 	ResolvedRoutingOverrides  types.Object `tfsdk:"resolved_routing_overrides"`  // SourceOverridesModel
+	RetriggeringPeriodMinutes types.Int64  `tfsdk:"retriggering_period_minutes"`
 }
 
 type SourceOverridesModel struct {
@@ -426,15 +433,16 @@ type LogsAnomalyModel struct {
 }
 
 type LogsRatioThresholdModel struct {
-	Rules                     types.Set    `tfsdk:"rules"`     // []LogsRatioThresholdRuleModel
-	Numerator                 types.Object `tfsdk:"numerator"` // AlertsLogsFilterModel
-	NumeratorAlias            types.String `tfsdk:"numerator_alias"`
-	Denominator               types.Object `tfsdk:"denominator"` // AlertsLogsFilterModel
-	DenominatorAlias          types.String `tfsdk:"denominator_alias"`
-	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
-	GroupByFor                types.String `tfsdk:"group_by_for"`
-	CustomEvaluationDelay     types.Int32  `tfsdk:"custom_evaluation_delay"`
-	IgnoreInfinity            types.Bool   `tfsdk:"ignore_infinity"`
+	Rules                      types.Set    `tfsdk:"rules"`     // []LogsRatioThresholdRuleModel
+	Numerator                  types.Object `tfsdk:"numerator"` // AlertsLogsFilterModel
+	NumeratorAlias             types.String `tfsdk:"numerator_alias"`
+	Denominator                types.Object `tfsdk:"denominator"` // AlertsLogsFilterModel
+	DenominatorAlias           types.String `tfsdk:"denominator_alias"`
+	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+	GroupByFor                 types.String `tfsdk:"group_by_for"`
+	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
+	IgnoreInfinity             types.Bool   `tfsdk:"ignore_infinity"`
+	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
 }
 
 type LogsNewValueModel struct {
