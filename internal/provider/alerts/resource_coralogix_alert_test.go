@@ -391,6 +391,25 @@ func TestPreserveDestinationRetriggeringNulls(t *testing.T) {
 			t.Fatalf("expected flattened object to pass through unchanged")
 		}
 	})
+
+	t.Run("state upgrade clears every echoed value", func(t *testing.T) {
+		flattened := groupObject(types.Int64Value(10))
+		got, diags := clearDestinationRetriggering(ctx, flattened)
+		if diags.HasError() {
+			t.Fatalf("clearDestinationRetriggering returned diagnostics: %v", diags)
+		}
+		var model alerttypes.NotificationGroupModel
+		if diags := got.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+			t.Fatalf("As() returned diagnostics: %v", diags)
+		}
+		var destinations []alerttypes.NotificationDestinationModel
+		if diags := model.Destinations.ElementsAs(ctx, &destinations, false); diags.HasError() {
+			t.Fatalf("ElementsAs returned diagnostics: %v", diags)
+		}
+		if !destinations[0].RetriggeringPeriodMinutes.IsNull() {
+			t.Fatalf("retriggering_period_minutes = %v, want null", destinations[0].RetriggeringPeriodMinutes)
+		}
+	})
 }
 
 func TestFlattenLogsRatioThresholdUndetectedValuesManagement(t *testing.T) {

@@ -139,6 +139,16 @@ func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource
 			return
 		}
 
+		// Prior schema versions could not configure retriggering_period_minutes,
+		// so any value echoed by the backend is the inherited default and must
+		// not be pinned into the upgraded state.
+		notificationGroup, diags := clearDestinationRetriggering(ctx, newState.NotificationGroup)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+		newState.NotificationGroup = notificationGroup
+
 		resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
 	}
 }
@@ -2900,32 +2910,53 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 // echoes it back; writing that value into state would fail apply consistency and
 // pin the inherited value on the next update, preventing a return to inheritance.
 func preserveDestinationRetriggeringNulls(ctx context.Context, current *types.Object, flattened types.Object) (types.Object, diag.Diagnostics) {
-	if current == nil || utils.ObjIsNullOrUnknown(*current) || utils.ObjIsNullOrUnknown(flattened) {
+	if current == nil || utils.ObjIsNullOrUnknown(*current) {
 		return flattened, nil
 	}
 
-	var currentModel, flattenedModel alerttypes.NotificationGroupModel
+	var currentModel alerttypes.NotificationGroupModel
 	if diags := current.As(ctx, &currentModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return flattened, diags
 	}
-	if diags := flattened.As(ctx, &flattenedModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-		return flattened, diags
-	}
-	if currentModel.Destinations.IsNull() || currentModel.Destinations.IsUnknown() || flattenedModel.Destinations.IsNull() || flattenedModel.Destinations.IsUnknown() {
+	if currentModel.Destinations.IsNull() || currentModel.Destinations.IsUnknown() {
 		return flattened, nil
 	}
-
-	var currentDestinations, flattenedDestinations []alerttypes.NotificationDestinationModel
+	var currentDestinations []alerttypes.NotificationDestinationModel
 	if diags := currentModel.Destinations.ElementsAs(ctx, &currentDestinations, false); diags.HasError() {
 		return flattened, diags
 	}
+
+	return clearDestinationRetriggeringWhere(ctx, flattened, func(i int) bool {
+		return i < len(currentDestinations) &&
+			(currentDestinations[i].RetriggeringPeriodMinutes.IsNull() || currentDestinations[i].RetriggeringPeriodMinutes.IsUnknown())
+	})
+}
+
+// clearDestinationRetriggering nulls retriggering_period_minutes on every
+// destination. Used on state upgrades: prior schema versions could not
+// configure the field, so any echoed value is the backend's inherited default.
+func clearDestinationRetriggering(ctx context.Context, flattened types.Object) (types.Object, diag.Diagnostics) {
+	return clearDestinationRetriggeringWhere(ctx, flattened, func(int) bool { return true })
+}
+
+func clearDestinationRetriggeringWhere(ctx context.Context, flattened types.Object, shouldClear func(int) bool) (types.Object, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(flattened) {
+		return flattened, nil
+	}
+	var flattenedModel alerttypes.NotificationGroupModel
+	if diags := flattened.As(ctx, &flattenedModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return flattened, diags
+	}
+	if flattenedModel.Destinations.IsNull() || flattenedModel.Destinations.IsUnknown() {
+		return flattened, nil
+	}
+	var flattenedDestinations []alerttypes.NotificationDestinationModel
 	if diags := flattenedModel.Destinations.ElementsAs(ctx, &flattenedDestinations, false); diags.HasError() {
 		return flattened, diags
 	}
 
 	for i := range flattenedDestinations {
-		if i < len(currentDestinations) &&
-			(currentDestinations[i].RetriggeringPeriodMinutes.IsNull() || currentDestinations[i].RetriggeringPeriodMinutes.IsUnknown()) {
+		if shouldClear(i) {
 			flattenedDestinations[i].RetriggeringPeriodMinutes = types.Int64Null()
 		}
 	}
