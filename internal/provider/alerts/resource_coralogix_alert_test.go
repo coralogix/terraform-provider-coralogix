@@ -327,6 +327,72 @@ func TestFlattenNotificationDestinationsRetriggeringPeriodMinutes(t *testing.T) 
 	}
 }
 
+func TestPreserveDestinationRetriggeringNulls(t *testing.T) {
+	ctx := context.Background()
+	groupObject := func(retriggeringPeriodMinutes types.Int64) types.Object {
+		return types.ObjectValueMust(alertschema.NotificationGroupV3Attr(), map[string]attr.Value{
+			"group_by_keys":     types.ListNull(types.StringType),
+			"webhooks_settings": types.SetNull(types.ObjectType{AttrTypes: alertschema.WebhooksSettingsAttr()}),
+			"destinations": types.ListValueMust(
+				types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV3Attr()},
+				[]attr.Value{destinationObject(retriggeringPeriodMinutes)},
+			),
+			"router": types.ObjectNull(alertschema.NotificationRouterAttr()),
+		})
+	}
+
+	t.Run("unconfigured value is kept null despite backend echo", func(t *testing.T) {
+		current := groupObject(types.Int64Null())
+		flattened := groupObject(types.Int64Value(10))
+		got, diags := preserveDestinationRetriggeringNulls(ctx, &current, flattened)
+		if diags.HasError() {
+			t.Fatalf("preserveDestinationRetriggeringNulls returned diagnostics: %v", diags)
+		}
+		var model alerttypes.NotificationGroupModel
+		if diags := got.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+			t.Fatalf("As() returned diagnostics: %v", diags)
+		}
+		var destinations []alerttypes.NotificationDestinationModel
+		if diags := model.Destinations.ElementsAs(ctx, &destinations, false); diags.HasError() {
+			t.Fatalf("ElementsAs returned diagnostics: %v", diags)
+		}
+		if !destinations[0].RetriggeringPeriodMinutes.IsNull() {
+			t.Fatalf("retriggering_period_minutes = %v, want null", destinations[0].RetriggeringPeriodMinutes)
+		}
+	})
+
+	t.Run("configured value is preserved", func(t *testing.T) {
+		current := groupObject(types.Int64Value(600))
+		flattened := groupObject(types.Int64Value(600))
+		got, diags := preserveDestinationRetriggeringNulls(ctx, &current, flattened)
+		if diags.HasError() {
+			t.Fatalf("preserveDestinationRetriggeringNulls returned diagnostics: %v", diags)
+		}
+		var model alerttypes.NotificationGroupModel
+		if diags := got.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+			t.Fatalf("As() returned diagnostics: %v", diags)
+		}
+		var destinations []alerttypes.NotificationDestinationModel
+		if diags := model.Destinations.ElementsAs(ctx, &destinations, false); diags.HasError() {
+			t.Fatalf("ElementsAs returned diagnostics: %v", diags)
+		}
+		if destinations[0].RetriggeringPeriodMinutes.ValueInt64() != 600 {
+			t.Fatalf("retriggering_period_minutes = %v, want 600", destinations[0].RetriggeringPeriodMinutes)
+		}
+	})
+
+	t.Run("nil current passes flattened through", func(t *testing.T) {
+		flattened := groupObject(types.Int64Value(10))
+		got, diags := preserveDestinationRetriggeringNulls(ctx, nil, flattened)
+		if diags.HasError() {
+			t.Fatalf("preserveDestinationRetriggeringNulls returned diagnostics: %v", diags)
+		}
+		if !got.Equal(flattened) {
+			t.Fatalf("expected flattened object to pass through unchanged")
+		}
+	})
+}
+
 func TestFlattenLogsRatioThresholdUndetectedValuesManagement(t *testing.T) {
 	ctx := context.Background()
 	trigger := true

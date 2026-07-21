@@ -133,7 +133,7 @@ func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource
 
 		alert := getAlertResp.GetAlertDef()
 
-		newState, diags := flattenAlert(ctx, alert, &schedule, nil)
+		newState, diags := flattenAlert(ctx, alert, &schedule, nil, nil)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -165,7 +165,7 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
-	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.DataSources)
+	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.DataSources, &plan.NotificationGroup)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -207,7 +207,7 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 		return
 	}
-	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.DataSources)
+	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.DataSources, &plan.NotificationGroup)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -263,7 +263,7 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	state, diags = flattenAlert(ctx, result.GetAlertDef(), &state.Schedule, &state.DataSources)
+	state, diags = flattenAlert(ctx, result.GetAlertDef(), &state.Schedule, &state.DataSources, &state.NotificationGroup)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -2833,7 +2833,7 @@ func extractAlertDef(ctx context.Context, def types.Object) (*alerts.FlowStagesG
 
 }
 
-func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *types.Object, currentDataSources *types.List) (*alerttypes.AlertResourceModel, diag.Diagnostics) {
+func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *types.Object, currentDataSources *types.List, currentNotificationGroup *types.Object) (*alerttypes.AlertResourceModel, diag.Diagnostics) {
 	alertProperties := alert.AlertDefProperties
 
 	alertSchedule, diags := flattenAlertSchedule(ctx, *alertProperties, currentSchedule)
@@ -2849,6 +2849,10 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 		return nil, diags
 	}
 	notificationGroup, diags := flattenNotificationGroup(ctx, getAlertNotificationGroup(alertProperties))
+	if diags.HasError() {
+		return nil, diags
+	}
+	notificationGroup, diags = preserveDestinationRetriggeringNulls(ctx, currentNotificationGroup, notificationGroup)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2888,6 +2892,50 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 		Deleted:           types.BoolPointerValue(getAlertDeleted(alertProperties)),
 		DataSources:       dataSources,
 	}, nil
+}
+
+// preserveDestinationRetriggeringNulls keeps retriggering_period_minutes null on
+// destinations where it wasn't configured. When the field is omitted the backend
+// assigns the incident retriggering cadence (e.g. incidents_settings minutes) and
+// echoes it back; writing that value into state would fail apply consistency and
+// pin the inherited value on the next update, preventing a return to inheritance.
+func preserveDestinationRetriggeringNulls(ctx context.Context, current *types.Object, flattened types.Object) (types.Object, diag.Diagnostics) {
+	if current == nil || utils.ObjIsNullOrUnknown(*current) || utils.ObjIsNullOrUnknown(flattened) {
+		return flattened, nil
+	}
+
+	var currentModel, flattenedModel alerttypes.NotificationGroupModel
+	if diags := current.As(ctx, &currentModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return flattened, diags
+	}
+	if diags := flattened.As(ctx, &flattenedModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return flattened, diags
+	}
+	if currentModel.Destinations.IsNull() || currentModel.Destinations.IsUnknown() || flattenedModel.Destinations.IsNull() || flattenedModel.Destinations.IsUnknown() {
+		return flattened, nil
+	}
+
+	var currentDestinations, flattenedDestinations []alerttypes.NotificationDestinationModel
+	if diags := currentModel.Destinations.ElementsAs(ctx, &currentDestinations, false); diags.HasError() {
+		return flattened, diags
+	}
+	if diags := flattenedModel.Destinations.ElementsAs(ctx, &flattenedDestinations, false); diags.HasError() {
+		return flattened, diags
+	}
+
+	for i := range flattenedDestinations {
+		if i < len(currentDestinations) &&
+			(currentDestinations[i].RetriggeringPeriodMinutes.IsNull() || currentDestinations[i].RetriggeringPeriodMinutes.IsUnknown()) {
+			flattenedDestinations[i].RetriggeringPeriodMinutes = types.Int64Null()
+		}
+	}
+
+	destinations, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV3Attr()}, flattenedDestinations)
+	if diags.HasError() {
+		return flattened, diags
+	}
+	flattenedModel.Destinations = destinations
+	return types.ObjectValueFrom(ctx, alertschema.NotificationGroupV3Attr(), flattenedModel)
 }
 
 func flattenDataSources(ctx context.Context, dataSources []alerts.AlertDefDataSource) (types.List, diag.Diagnostics) {
