@@ -4631,11 +4631,15 @@ func testAccCoralogixResourceAlertDestinationsPhantom() string {
 
 func TestAccCoralogixResourceAlert_data_sources(t *testing.T) {
 	// The API validates that the referenced data space/dataset exist, and the
-	// provider cannot create them. Point these at an existing dataset to run.
+	// provider cannot create them. The standard logs dataset lives at
+	// default/logs; override via env vars for accounts where it doesn't.
 	dataSpace := os.Getenv("ALERT_DATA_SOURCES_DATA_SPACE")
+	if dataSpace == "" {
+		dataSpace = "default"
+	}
 	dataSet := os.Getenv("ALERT_DATA_SOURCES_DATA_SET")
-	if dataSpace == "" || dataSet == "" {
-		t.Skip("ALERT_DATA_SOURCES_DATA_SPACE and ALERT_DATA_SOURCES_DATA_SET must be set to an existing data space/dataset for this test")
+	if dataSet == "" {
+		dataSet = "logs"
 	}
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
