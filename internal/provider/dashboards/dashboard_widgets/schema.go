@@ -178,10 +178,7 @@ func TimeFrameSchema() schema.Attribute {
 						Required: true,
 					},
 				},
-				Optional: true,
-				Validators: []validator.Object{
-					ExactlyOneOfObject(path.MatchRelative().AtParent().AtName("relative")),
-				},
+				Optional:            true,
 				MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
 			},
 			"relative": schema.SingleNestedAttribute{
@@ -190,12 +187,12 @@ func TimeFrameSchema() schema.Attribute {
 						Required: true,
 					},
 				},
-				Optional: true,
-				Validators: []validator.Object{
-					ExactlyOneOfObject(path.MatchRelative().AtParent().AtName("absolute")),
-				},
+				Optional:            true,
 				MarkdownDescription: "Relative time frame specifying a duration from the current time.",
 			},
+		},
+		Validators: []validator.Object{
+			ExactlyOneOfChildren("absolute", "relative"),
 		},
 		MarkdownDescription: "Specifies the time frame. Can be either absolute or relative.",
 	}
@@ -349,12 +346,6 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 				},
 			},
 			Optional: true,
-			Validators: []validator.Object{
-				ExactlyOneOfObject(
-					path.MatchRelative().AtParent().AtName("metrics"),
-					path.MatchRelative().AtParent().AtName("spans"),
-				),
-			},
 		},
 		"spans": schema.SingleNestedAttribute{
 			Attributes: map[string]schema.Attribute{
@@ -368,12 +359,6 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 				"operator": FilterOperatorSchema(),
 			},
 			Optional: true,
-			Validators: []validator.Object{
-				ExactlyOneOfObject(
-					path.MatchRelative().AtParent().AtName("metrics"),
-					path.MatchRelative().AtParent().AtName("logs"),
-				),
-			},
 		},
 		"metrics": schema.SingleNestedAttribute{
 			Attributes: map[string]schema.Attribute{
@@ -384,12 +369,6 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 					Optional: true,
 				},
 				"operator": FilterOperatorSchema(),
-			},
-			Validators: []validator.Object{
-				ExactlyOneOfObject(
-					path.MatchRelative().AtParent().AtName("spans"),
-					path.MatchRelative().AtParent().AtName("logs"),
-				),
 			},
 			Optional: true,
 		},

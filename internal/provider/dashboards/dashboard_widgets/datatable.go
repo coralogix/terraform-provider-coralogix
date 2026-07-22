@@ -87,13 +87,6 @@ func DataTableSchema() schema.Attribute {
 							"time_frame": TimeFrameSchema(),
 						},
 						Optional: true,
-						Validators: []validator.Object{
-							ExactlyOneOfObject(
-								path.MatchRelative().AtParent().AtName("spans"),
-								path.MatchRelative().AtParent().AtName("metrics"),
-								path.MatchRelative().AtParent().AtName("data_prime"),
-							),
-						},
 					},
 					"spans": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -132,13 +125,6 @@ func DataTableSchema() schema.Attribute {
 							"time_frame": TimeFrameSchema(),
 						},
 						Optional: true,
-						Validators: []validator.Object{
-							ExactlyOneOfObject(
-								path.MatchRelative().AtParent().AtName("logs"),
-								path.MatchRelative().AtParent().AtName("metrics"),
-								path.MatchRelative().AtParent().AtName("data_prime"),
-							),
-						},
 					},
 					"metrics": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -157,13 +143,6 @@ func DataTableSchema() schema.Attribute {
 							"time_frame": TimeFrameSchema(),
 						},
 						Optional: true,
-						Validators: []validator.Object{
-							ExactlyOneOfObject(
-								path.MatchRelative().AtParent().AtName("logs"),
-								path.MatchRelative().AtParent().AtName("spans"),
-								path.MatchRelative().AtParent().AtName("data_prime"),
-							),
-						},
 					},
 					"data_prime": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -173,22 +152,21 @@ func DataTableSchema() schema.Attribute {
 							"filters": schema.ListNestedAttribute{
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: FiltersSourceSchema(),
+									Validators: []validator.Object{
+										ExactlyOneOfChildren("logs", "metrics", "spans"),
+									},
 								},
 								Optional: true,
 							},
 							"time_frame": TimeFrameSchema(),
 						},
 						Optional: true,
-						Validators: []validator.Object{
-							ExactlyOneOfObject(
-								path.MatchRelative().AtParent().AtName("logs"),
-								path.MatchRelative().AtParent().AtName("spans"),
-								path.MatchRelative().AtParent().AtName("metrics"),
-							),
-						},
 					},
 				},
 				Required: true,
+				Validators: []validator.Object{
+					ExactlyOneOfChildren("logs", "spans", "metrics", "data_prime"),
+				},
 			},
 			"results_per_page": schema.Int64Attribute{
 				Required:            true,
@@ -247,7 +225,6 @@ func DataTableSchema() schema.Attribute {
 			},
 		},
 		Validators: []validator.Object{
-			SupportedWidgetsValidatorWithout("data_table"),
 			objectvalidator.AlsoRequires(
 				path.MatchRelative().AtParent().AtParent().AtName("title"),
 			),

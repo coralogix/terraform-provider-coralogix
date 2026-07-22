@@ -217,11 +217,6 @@ func manualAnnotationSourceAttribute() schema.SingleNestedAttribute {
 							},
 						},
 						Optional: true,
-						Validators: []validator.Object{
-							dashboardwidgets.ExactlyOneOfObject(
-								path.MatchRelative().AtParent().AtName("range"),
-							),
-						},
 					},
 					"range": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -237,23 +232,14 @@ func manualAnnotationSourceAttribute() schema.SingleNestedAttribute {
 							},
 						},
 						Optional: true,
-						Validators: []validator.Object{
-							dashboardwidgets.ExactlyOneOfObject(
-								path.MatchRelative().AtParent().AtName("instant"),
-							),
-						},
 					},
 				},
 				Required: true,
+				Validators: []validator.Object{
+					dashboardwidgets.ExactlyOneOfChildren("instant", "range"),
+				},
 			},
 		},
 		Optional: true,
-		Validators: []validator.Object{
-			dashboardwidgets.ExactlyOneOfObject(
-				path.MatchRelative().AtParent().AtName("metrics"),
-				path.MatchRelative().AtParent().AtName("logs"),
-				path.MatchRelative().AtParent().AtName("spans"),
-			),
-		},
 	}
 }

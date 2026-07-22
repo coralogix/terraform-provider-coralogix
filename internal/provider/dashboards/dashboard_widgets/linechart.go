@@ -105,13 +105,6 @@ func LineChartSchema() schema.Attribute {
 										"time_frame":   TimeFrameSchema(),
 									},
 									Optional: true,
-									Validators: []validator.Object{
-										ExactlyOneOfObject(
-											path.MatchRelative().AtParent().AtName("metrics"),
-											path.MatchRelative().AtParent().AtName("spans"),
-											path.MatchRelative().AtParent().AtName("data_prime"),
-										),
-									},
 								},
 								"metrics": schema.SingleNestedAttribute{
 									Attributes: map[string]schema.Attribute{
@@ -148,6 +141,9 @@ func LineChartSchema() schema.Attribute {
 										"filters": schema.ListNestedAttribute{
 											NestedObject: schema.NestedAttributeObject{
 												Attributes: FiltersSourceSchema(),
+												Validators: []validator.Object{
+													ExactlyOneOfChildren("logs", "metrics", "spans"),
+												},
 											},
 											Optional: true,
 										},
@@ -157,6 +153,9 @@ func LineChartSchema() schema.Attribute {
 								},
 							},
 							Required: true,
+							Validators: []validator.Object{
+								ExactlyOneOfChildren("logs", "metrics", "spans", "data_prime"),
+							},
 						},
 						"series_name_template": schema.StringAttribute{
 							Optional: true,
@@ -192,22 +191,15 @@ func LineChartSchema() schema.Attribute {
 							Attributes: map[string]schema.Attribute{
 								"interval": schema.StringAttribute{
 									Optional: true,
-									Validators: []validator.String{
-										ExactlyOneOfString(
-											path.MatchRelative().AtParent().AtName("buckets_presented"),
-										),
-									},
 								},
 								"buckets_presented": schema.Int64Attribute{
 									Optional: true,
-									Validators: []validator.Int64{
-										ExactlyOneOfInt64(
-											path.MatchRelative().AtParent().AtName("interval"),
-										),
-									},
 								},
 							},
 							Optional: true,
+							Validators: []validator.Object{
+								ExactlyOneOfChildren("interval", "buckets_presented"),
+							},
 						},
 						"data_mode_type": schema.StringAttribute{
 							Optional: true,
@@ -222,7 +214,6 @@ func LineChartSchema() schema.Attribute {
 			},
 		},
 		Validators: []validator.Object{
-			SupportedWidgetsValidatorWithout("line_chart"),
 			objectvalidator.AlsoRequires(
 				path.MatchRelative().AtParent().AtParent().AtName("title"),
 			),

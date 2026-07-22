@@ -1901,11 +1901,117 @@ func SupportedWidgetsValidatorWithout(current string) validator.Object {
 	return ExactlyOneOfObject(matchers...)
 }
 
+// ExactlyOneOfChildren validates that exactly one of the named direct child
+// attributes of this object is non-null. Unlike ExactlyOneOfObject/
+// objectvalidator.ExactlyOneOf, it reads req.ConfigValue directly instead of
+// resolving path.Expressions via Config.PathMatches, so it doesn't pay for a
+// full config-tree walk per check. Attach it to the parent object of a oneof
+// group instead of to each child.
+func ExactlyOneOfChildren(childNames ...string) validator.Object {
+	return exactlyOneOfChildrenValidator{childNames: childNames}
+}
+
+// SupportedWidgetsExactlyOneOfChildren is the cheap, parent-attached
+// equivalent of SupportedWidgetsValidatorWithout: attach it once to the
+// widget "definition" object instead of once per widget type.
+func SupportedWidgetsExactlyOneOfChildren() validator.Object {
+	return ExactlyOneOfChildren(SupportedWidgetTypes...)
+}
+
+// ExactlyOneOfChildrenNames reports the child attribute names an
+// ExactlyOneOfChildren-family validator.Object was constructed with, and
+// whether v is such a validator. Schema-wiring tests use this to assert a
+// validator's childNames haven't silently drifted from the actual attribute
+// map it's attached to (childNames is a plain string list with no compiler
+// tie back to the schema's attribute keys).
+func ExactlyOneOfChildrenNames(v validator.Object) ([]string, bool) {
+	ev, ok := v.(exactlyOneOfChildrenValidator)
+	if !ok {
+		return nil, false
+	}
+	return ev.childNames, true
+}
+
+type exactlyOneOfChildrenValidator struct {
+	childNames []string
+}
+
+func (v exactlyOneOfChildrenValidator) Description(_ context.Context) string {
+	return fmt.Sprintf("exactly one of %v must be configured", v.childNames)
+}
+
+func (v exactlyOneOfChildrenValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v exactlyOneOfChildrenValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	attrs := req.ConfigValue.Attributes()
+	var set []string
+	unknownCount := 0
+	for _, name := range v.childNames {
+		val, ok := attrs[name]
+		if !ok {
+			continue
+		}
+		if val.IsUnknown() {
+			unknownCount++
+			continue
+		}
+		if !val.IsNull() {
+			set = append(set, name)
+		}
+	}
+
+	// A second known-and-set child is an unavoidable conflict no matter how
+	// any remaining unknown children resolve, so report it immediately.
+	if len(set) > 1 {
+		quoted := make([]string, len(set))
+		for i, name := range set {
+			quoted[i] = "`" + name + "`"
+		}
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Attribute Combination",
+			fmt.Sprintf("Only one of these attributes can be configured: %s.", strings.Join(quoted, ", ")))
+		return
+	}
+
+	// With at most one known-and-set child, an unknown sibling could still
+	// resolve to satisfy (or break) "exactly one" — defer instead of
+	// reporting a false-positive "none configured" error.
+	if unknownCount > 0 {
+		return
+	}
+
+	switch len(set) {
+	case 1:
+		return
+	case 0:
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Attribute Combination",
+			"No attribute was configured in this one-of group. Configure exactly one value.")
+	}
+}
+
 func ExactlyOneOfObject(expressions ...path.Expression) validator.Object {
 	return friendlyExactlyOneOfObjectValidator{
 		Object:          objectvalidator.ExactlyOneOf(expressions...),
 		PathExpressions: expressions,
 	}
+}
+
+// ExactlyOneOfObjectPathExpressions reports the sibling path.Expressions an
+// old-style, child-attached ExactlyOneOfObject validator.Object was
+// constructed with, and whether v is such a validator. Schema-wiring tests
+// use this to catch oneof groups left behind by an incomplete migration to
+// the cheaper, parent-attached ExactlyOneOfChildren.
+func ExactlyOneOfObjectPathExpressions(v validator.Object) (path.Expressions, bool) {
+	fv, ok := v.(friendlyExactlyOneOfObjectValidator)
+	if !ok {
+		return nil, false
+	}
+	return fv.PathExpressions, true
 }
 
 func ExactlyOneOfString(expressions ...path.Expression) validator.String {
