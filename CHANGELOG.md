@@ -4,6 +4,7 @@
 
 - CHORE: Migrate dashboard operations from the legacy gRPC client to the REST client.
 - FEAT: Add support for DataPrime queries in `horizontal_bar_chart` widgets.
+- PERF: Replace per-child oneof validators (e.g. `instant`/`range`, widget type selection) with a single cheaper validator attached to the parent object, reducing plan/apply time for dashboards with many widgets.
 
 # Release 3.7.0
 
