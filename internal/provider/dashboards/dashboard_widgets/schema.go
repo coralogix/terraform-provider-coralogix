@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
@@ -293,11 +292,6 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 			Attributes: map[string]schema.Attribute{
 				"field": schema.StringAttribute{
 					Optional: true,
-					Validators: []validator.String{
-						ExactlyOneOfString(
-							path.MatchRelative().AtParent().AtName("observation_field"),
-						),
-					},
 				},
 				"operator": FilterOperatorSchema(),
 				"observation_field": schema.SingleNestedAttribute{
@@ -305,6 +299,9 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 					Optional:            true,
 					MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 				},
+			},
+			Validators: []validator.Object{
+				ExactlyOneOfChildren("field", "observation_field"),
 			},
 		},
 		Validators: []validator.List{
@@ -332,11 +329,6 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 				"field": schema.StringAttribute{
 					Optional:            true,
 					MarkdownDescription: "Field in the logs to apply the filter on.",
-					Validators: []validator.String{
-						ExactlyOneOfString(
-							path.MatchRelative().AtParent().AtName("observation_field"),
-						),
-					},
 				},
 				"operator": FilterOperatorSchema(),
 				"observation_field": schema.SingleNestedAttribute{
@@ -344,6 +336,9 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 					Optional:            true,
 					MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 				},
+			},
+			Validators: []validator.Object{
+				ExactlyOneOfChildren("field", "observation_field"),
 			},
 			Optional: true,
 		},

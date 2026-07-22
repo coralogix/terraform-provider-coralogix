@@ -27,7 +27,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -118,6 +117,9 @@ func stringOrVariableSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Attributes: stringOrVariableAttr(),
 		Optional:   true,
+		Validators: []validator.Object{
+			dashboardwidgets.ExactlyOneOfChildren("string_value", "variable_name"),
+		},
 	}
 }
 
@@ -125,11 +127,6 @@ func stringOrVariableAttr() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"string_value": schema.StringAttribute{
 			Optional: true,
-			Validators: []validator.String{
-				dashboardwidgets.ExactlyOneOfString(
-					path.MatchRelative().AtParent().AtName("variable_name"),
-				),
-			},
 		},
 		"variable_name": schema.StringAttribute{
 			Optional: true,

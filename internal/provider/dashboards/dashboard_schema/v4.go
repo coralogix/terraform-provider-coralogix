@@ -901,9 +901,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 						Attributes: map[string]schema.Attribute{
 							"constant_value": schema.StringAttribute{
 								Optional: true,
-								Validators: []validator.String{
-									dashboardwidgets.ExactlyOneOfString(path.MatchRelative().AtParent().AtName("multi_select")),
-								},
 								DeprecationMessage: "`constant_value` is deprecated and rejected by the Coralogix API. " +
 									"Use a `multi_select` variable with a `constant_list` source and a single `selected_values` entry instead, " +
 									"e.g. `multi_select = { source = { constant_list = [\"value\"] }, selected_values = [\"value\"], values_order_direction = \"asc\" }`.",
@@ -934,14 +931,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 										Attributes: map[string]schema.Attribute{
 											"logs_path": schema.StringAttribute{
 												Optional: true,
-												Validators: []validator.String{
-													dashboardwidgets.ExactlyOneOfString(
-														path.MatchRelative().AtParent().AtName("metric_label"),
-														path.MatchRelative().AtParent().AtName("constant_list"),
-														path.MatchRelative().AtParent().AtName("span_field"),
-														path.MatchRelative().AtParent().AtName("query"),
-													),
-												},
 											},
 											"metric_label": schema.SingleNestedAttribute{
 												Attributes: map[string]schema.Attribute{
@@ -972,9 +961,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																				Required: true,
 																			},
 																		},
-																		Validators: []validator.Object{
-																			dashboardwidgets.ExactlyOneOfObject(path.MatchRelative().AtParent().AtName("field_value")),
-																		},
 																	},
 																	"field_value": schema.SingleNestedAttribute{
 																		Optional: true,
@@ -989,10 +975,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																},
 																Optional: true,
 																Validators: []validator.Object{
-																	dashboardwidgets.ExactlyOneOfObject(
-																		path.MatchRelative().AtParent().AtName("spans"),
-																		path.MatchRelative().AtParent().AtName("metrics"),
-																	),
+																	dashboardwidgets.ExactlyOneOfChildren("field_name", "field_value"),
 																},
 															},
 															"metrics": schema.SingleNestedAttribute{
@@ -1003,12 +986,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																			"metric_regex": schema.StringAttribute{
 																				Required: true,
 																			},
-																		},
-																		Validators: []validator.Object{
-																			dashboardwidgets.ExactlyOneOfObject(
-																				path.MatchRelative().AtParent().AtName("label_name"),
-																				path.MatchRelative().AtParent().AtName("label_value"),
-																			),
 																		},
 																	},
 																	"label_name": schema.SingleNestedAttribute{
@@ -1048,6 +1025,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																									},
 																									NestedObject: schema.NestedAttributeObject{
 																										Attributes: stringOrVariableAttr(),
+																										Validators: []validator.Object{
+																											dashboardwidgets.ExactlyOneOfChildren("string_value", "variable_name"),
+																										},
 																									},
 																								},
 																							},
@@ -1058,6 +1038,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		},
 																		Optional: true,
 																	},
+																},
+																Validators: []validator.Object{
+																	dashboardwidgets.ExactlyOneOfChildren("metric_name", "label_name", "label_value"),
 																},
 																Optional: true,
 															},
@@ -1070,14 +1053,17 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																			},
 																		},
 																		Optional: true,
-																		Validators: []validator.Object{
-																			dashboardwidgets.ExactlyOneOfObject(path.MatchRelative().AtParent().AtName("field_value")),
-																		},
 																	},
 																	"field_value": dashboardwidgets.SpansFieldSchema(),
 																},
+																Validators: []validator.Object{
+																	dashboardwidgets.ExactlyOneOfChildren("field_name", "field_value"),
+																},
 																Optional: true,
 															},
+														},
+														Validators: []validator.Object{
+															dashboardwidgets.ExactlyOneOfChildren("logs", "metrics", "spans"),
 														},
 														Required: true,
 													},
@@ -1104,11 +1090,17 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 												Optional: true,
 											},
 										},
+										Validators: []validator.Object{
+											dashboardwidgets.ExactlyOneOfChildren("logs_path", "metric_label", "constant_list", "span_field", "query"),
+										},
 										Optional: true,
 									},
 								},
 								Optional: true,
 							},
+						},
+						Validators: []validator.Object{
+							dashboardwidgets.ExactlyOneOfChildren("constant_value", "multi_select"),
 						},
 					},
 					"display_name": schema.StringAttribute{
