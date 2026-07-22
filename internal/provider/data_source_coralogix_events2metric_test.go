@@ -29,7 +29,7 @@ func TestAccCoralogixDataSourceEvents2Metric_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceLogs2Metric(logsToMetric) +
+				Config: testAccCoralogixResourceLogs2Metric(logsToMetric, "") +
 					testAccCoralogixDataSourceEvents2Metric_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(events2metricDataSourceName, "name", logsToMetric.name),

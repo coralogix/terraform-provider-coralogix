@@ -5,6 +5,9 @@
 - CHORE: Migrate dashboard operations from the legacy gRPC client to the REST client.
 - FEAT: Add support for DataPrime queries in `horizontal_bar_chart` widgets.
 
+#### resource/coralogix_events2metric
+- FEAT: Add support for `data_source` to target a specific `<namespace>/<dataset_name>` instead of the default logs/spans stream.
+
 # Release 3.7.0
 
 #### resource/coralogix_integration

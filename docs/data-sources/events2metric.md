@@ -23,6 +23,7 @@ data "coralogix_events2metric" "imported_logs2metric" {
 
 ### Read-Only
 
+- `data_source` (String) Data source in `<namespace>/<dataset_name>` format. If not set, defaults to the standard logs/spans stream.
 - `description` (String) Events2Metric description.
 - `id` (String) The ID of this resource.
 - `logs_query` (Attributes) logs-events2metric type. Exactly one of "spans_query" or "logs_query" must be defined. (see [below for nested schema](#nestedatt--logs_query))
