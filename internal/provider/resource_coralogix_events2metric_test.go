@@ -20,8 +20,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -148,7 +146,11 @@ func TestAccCoralogixResourceSpans2Metric(t *testing.T) {
 }
 
 func testAccCheckEvents2MetricDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Events2Metrics()
+	clients, err := testAccNewClientSet()
+	if err != nil {
+		return err
+	}
+	client := clients.Events2Metrics()
 
 	ctx := context.TODO()
 
