@@ -22,6 +22,7 @@ import (
 
 	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -152,7 +153,8 @@ func dashboardObjectConfigNull(ctx context.Context, t *testing.T, objectType att
 	return obj
 }
 
-func dashboardValidateObject(ctx context.Context, cfg types.Object, at path.Path, validators []validator.Object) []diagDetail {
+func dashboardValidateObject(t *testing.T, ctx context.Context, cfg types.Object, at path.Path, validators []validator.Object) []diagDetail {
+	t.Helper()
 	req := validator.ObjectRequest{ConfigValue: cfg, Path: at}
 	resp := &validator.ObjectResponse{}
 	for _, v := range validators {
@@ -160,7 +162,11 @@ func dashboardValidateObject(ctx context.Context, cfg types.Object, at path.Path
 	}
 	details := make([]diagDetail, len(resp.Diagnostics))
 	for i, d := range resp.Diagnostics {
-		details[i] = diagDetail{path: at, detail: d.Detail()}
+		withPath, ok := d.(diag.DiagnosticWithPath)
+		if !ok {
+			t.Fatalf("diagnostic %q has no path: %#v", d.Detail(), d)
+		}
+		details[i] = diagDetail{path: withPath.Path(), detail: d.Detail()}
 	}
 	return details
 }
@@ -233,7 +239,7 @@ func TestDashboardWidgetDefinitionExactlyOneOfAtFullSchemaLevel(t *testing.T) {
 
 	t.Run("two_widget_types_set", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, definition.GetType(), "gauge", "line_chart")
-		diagnostics := dashboardValidateObject(ctx, cfg, definitionPath, definition.Validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, definitionPath, definition.Validators)
 		if len(diagnostics) != 1 {
 			t.Fatalf("diagnostics = %d, want 1: %v", len(diagnostics), diagnostics)
 		}
@@ -249,7 +255,7 @@ func TestDashboardWidgetDefinitionExactlyOneOfAtFullSchemaLevel(t *testing.T) {
 
 	t.Run("zero_widget_types_set", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, definition.GetType())
-		diagnostics := dashboardValidateObject(ctx, cfg, definitionPath, definition.Validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, definitionPath, definition.Validators)
 		if len(diagnostics) != 1 {
 			t.Fatalf("diagnostics = %d, want 1: %v", len(diagnostics), diagnostics)
 		}
@@ -281,7 +287,7 @@ func TestDashboardGaugeLogsTimeFrameExactlyOneOf(t *testing.T) {
 
 	t.Run("both_absolute_and_relative_set", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, timeFrame.GetType(), "absolute", "relative")
-		diagnostics := dashboardValidateObject(ctx, cfg, timeFramePath, timeFrame.Validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, timeFramePath, timeFrame.Validators)
 		if len(diagnostics) != 1 {
 			t.Fatalf("diagnostics = %d, want 1: %v", len(diagnostics), diagnostics)
 		}
@@ -294,7 +300,7 @@ func TestDashboardGaugeLogsTimeFrameExactlyOneOf(t *testing.T) {
 
 	t.Run("present_but_empty_time_frame", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, timeFrame.GetType())
-		diagnostics := dashboardValidateObject(ctx, cfg, timeFramePath, timeFrame.Validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, timeFramePath, timeFrame.Validators)
 		if len(diagnostics) != 1 {
 			t.Fatalf("diagnostics = %d, want 1: %v", len(diagnostics), diagnostics)
 		}
@@ -305,7 +311,7 @@ func TestDashboardGaugeLogsTimeFrameExactlyOneOf(t *testing.T) {
 
 	t.Run("omitted_time_frame_is_valid", func(t *testing.T) {
 		cfg := dashboardObjectConfigNull(ctx, t, timeFrame.GetType())
-		diagnostics := dashboardValidateObject(ctx, cfg, timeFramePath, timeFrame.Validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, timeFramePath, timeFrame.Validators)
 		if len(diagnostics) != 0 {
 			t.Fatalf("expected no diagnostics when time_frame is omitted entirely, got: %v", diagnostics)
 		}
@@ -329,7 +335,7 @@ func TestDashboardFolderExactlyOneOf(t *testing.T) {
 
 	t.Run("both_id_and_path_set", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, folder.GetType(), "id", "path")
-		diagnostics := dashboardValidateObject(ctx, cfg, folderPath, folder.Validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, folderPath, folder.Validators)
 		if len(diagnostics) != 1 {
 			t.Fatalf("diagnostics = %d, want 1: %v", len(diagnostics), diagnostics)
 		}
@@ -342,7 +348,7 @@ func TestDashboardFolderExactlyOneOf(t *testing.T) {
 
 	t.Run("present_but_empty_folder", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, folder.GetType())
-		diagnostics := dashboardValidateObject(ctx, cfg, folderPath, folder.Validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, folderPath, folder.Validators)
 		if len(diagnostics) != 1 {
 			t.Fatalf("diagnostics = %d, want 1: %v", len(diagnostics), diagnostics)
 		}
@@ -372,7 +378,7 @@ func TestDashboardAnnotationSourceAndManualStrategyExactlyOneOf(t *testing.T) {
 
 	t.Run("source_zero_set", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, source.GetType())
-		diagnostics := dashboardValidateObject(ctx, cfg, sourcePath, source.Validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, sourcePath, source.Validators)
 		if len(diagnostics) != 1 || !strings.Contains(diagnostics[0].detail, "No attribute was configured") {
 			t.Fatalf("unexpected diagnostics for zero-set source: %v", diagnostics)
 		}
@@ -380,7 +386,7 @@ func TestDashboardAnnotationSourceAndManualStrategyExactlyOneOf(t *testing.T) {
 
 	t.Run("source_two_set", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, source.GetType(), "logs", "manual")
-		diagnostics := dashboardValidateObject(ctx, cfg, sourcePath, source.Validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, sourcePath, source.Validators)
 		if len(diagnostics) != 1 {
 			t.Fatalf("diagnostics = %d, want 1: %v", len(diagnostics), diagnostics)
 		}
@@ -389,7 +395,7 @@ func TestDashboardAnnotationSourceAndManualStrategyExactlyOneOf(t *testing.T) {
 
 	t.Run("strategy_zero_set", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, strategy.GetType())
-		diagnostics := dashboardValidateObject(ctx, cfg, strategyPath, strategy.Validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, strategyPath, strategy.Validators)
 		if len(diagnostics) != 1 || !strings.Contains(diagnostics[0].detail, "No attribute was configured") {
 			t.Fatalf("unexpected diagnostics for zero-set strategy: %v", diagnostics)
 		}
@@ -397,7 +403,7 @@ func TestDashboardAnnotationSourceAndManualStrategyExactlyOneOf(t *testing.T) {
 
 	t.Run("strategy_two_set", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, strategy.GetType(), "instant", "range")
-		diagnostics := dashboardValidateObject(ctx, cfg, strategyPath, strategy.Validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, strategyPath, strategy.Validators)
 		if len(diagnostics) != 1 {
 			t.Fatalf("diagnostics = %d, want 1: %v", len(diagnostics), diagnostics)
 		}
@@ -419,13 +425,13 @@ func TestDashboardAnnotationSourceAndManualStrategyExactlyOneOf(t *testing.T) {
 		}
 		sourceCfg := dashboardMustType[types.Object](t, sourceVal, "source config value")
 
-		if diagnostics := dashboardValidateObject(ctx, sourceCfg, sourcePath, source.Validators); len(diagnostics) != 0 {
+		if diagnostics := dashboardValidateObject(t, ctx, sourceCfg, sourcePath, source.Validators); len(diagnostics) != 0 {
 			t.Fatalf("expected source group to accept manual-only, got: %v", diagnostics)
 		}
 
 		manualObj := dashboardMustType[types.Object](t, sourceCfg.Attributes()["manual"], "source config's manual attribute")
 		strategyObj := dashboardMustType[types.Object](t, manualObj.Attributes()["strategy"], "manual config's strategy attribute")
-		if diagnostics := dashboardValidateObject(ctx, strategyObj, strategyPath, strategy.Validators); len(diagnostics) != 0 {
+		if diagnostics := dashboardValidateObject(t, ctx, strategyObj, strategyPath, strategy.Validators); len(diagnostics) != 0 {
 			t.Fatalf("expected strategy group to accept range-only, got: %v", diagnostics)
 		}
 	})
@@ -464,7 +470,7 @@ func TestDashboardDataPrimeFiltersExactlyOneOfPerListElement(t *testing.T) {
 	t.Run("one_element_two_sources_set", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, elementType, "logs", "metrics")
 		elementPath := filtersPath.AtListIndex(0)
-		diagnostics := dashboardValidateObject(ctx, cfg, elementPath, validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, elementPath, validators)
 		if len(diagnostics) != 1 {
 			t.Fatalf("diagnostics = %d, want 1: %v", len(diagnostics), diagnostics)
 		}
@@ -481,7 +487,7 @@ func TestDashboardDataPrimeFiltersExactlyOneOfPerListElement(t *testing.T) {
 	t.Run("one_element_zero_sources_set", func(t *testing.T) {
 		cfg := dashboardObjectConfig(ctx, t, elementType)
 		elementPath := filtersPath.AtListIndex(0)
-		diagnostics := dashboardValidateObject(ctx, cfg, elementPath, validators)
+		diagnostics := dashboardValidateObject(t, ctx, cfg, elementPath, validators)
 		if len(diagnostics) != 1 {
 			t.Fatalf("diagnostics = %d, want 1: %v", len(diagnostics), diagnostics)
 		}
