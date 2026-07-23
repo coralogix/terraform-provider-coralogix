@@ -390,6 +390,350 @@ func TestExactlyOneOfAsymmetricSchemaStillReportsConflict(t *testing.T) {
 	}
 }
 
+// buildOneOfConfig constructs a types.Object matching the shape
+// exactlyOneOfChildrenValidator expects: one StringType attribute per name in
+// childNames, set to a known value for names in setNames, to unknown for
+// names in unknownNames, and to null for everything else.
+func buildOneOfConfig(childNames, setNames, unknownNames []string) types.Object {
+	set := make(map[string]bool, len(setNames))
+	for _, name := range setNames {
+		set[name] = true
+	}
+	unknown := make(map[string]bool, len(unknownNames))
+	for _, name := range unknownNames {
+		unknown[name] = true
+	}
+
+	attrTypes := make(map[string]attr.Type, len(childNames))
+	values := make(map[string]attr.Value, len(childNames))
+	for _, name := range childNames {
+		attrTypes[name] = types.StringType
+		switch {
+		case unknown[name]:
+			values[name] = types.StringUnknown()
+		case set[name]:
+			values[name] = types.StringValue(name)
+		default:
+			values[name] = types.StringNull()
+		}
+	}
+
+	return types.ObjectValueMust(attrTypes, values)
+}
+
+func TestExactlyOneOfChildrenValidatesSetCounts(t *testing.T) {
+	ctx := context.Background()
+	childNames := []string{"a", "b", "c"}
+
+	cases := []struct {
+		name       string
+		childNames []string
+		setNames   []string
+		wantErr    string // empty = expect no error
+	}{
+		{name: "zero_set", childNames: childNames, wantErr: "No attribute was configured"},
+		{name: "one_set_first", childNames: childNames, setNames: []string{"a"}},
+		{name: "one_set_middle", childNames: childNames, setNames: []string{"b"}},
+		{name: "one_set_last", childNames: childNames, setNames: []string{"c"}},
+		{name: "two_set", childNames: childNames, setNames: []string{"a", "c"}, wantErr: "Only one of these attributes can be configured"},
+		{name: "all_widget_types_set", childNames: SupportedWidgetTypes, setNames: SupportedWidgetTypes, wantErr: "Only one of these attributes can be configured"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := buildOneOfConfig(tc.childNames, tc.setNames, nil)
+			req := validator.ObjectRequest{ConfigValue: cfg}
+			resp := &validator.ObjectResponse{}
+			ExactlyOneOfChildren(tc.childNames...).ValidateObject(ctx, req, resp)
+
+			if tc.wantErr == "" {
+				if resp.Diagnostics.HasError() {
+					t.Fatalf("expected no error, got: %s", resp.Diagnostics.Errors())
+				}
+				return
+			}
+
+			if !resp.Diagnostics.HasError() {
+				t.Fatalf("expected error containing %q, got none", tc.wantErr)
+			}
+			detail := resp.Diagnostics.Errors()[0].Detail()
+			if !strings.Contains(detail, tc.wantErr) {
+				t.Fatalf("expected error containing %q, got: %s", tc.wantErr, detail)
+			}
+			if len(tc.setNames) > 1 {
+				for _, name := range tc.setNames {
+					if !strings.Contains(detail, "`"+name+"`") {
+						t.Fatalf("expected error to name %q, got: %s", name, detail)
+					}
+				}
+			}
+		})
+	}
+
+	t.Run("parent_null", func(t *testing.T) {
+		req := validator.ObjectRequest{ConfigValue: types.ObjectNull(map[string]attr.Type{"a": types.StringType})}
+		resp := &validator.ObjectResponse{}
+		ExactlyOneOfChildren("a", "b").ValidateObject(ctx, req, resp)
+		if resp.Diagnostics.HasError() {
+			t.Fatalf("expected no error for null parent, got: %s", resp.Diagnostics.Errors())
+		}
+	})
+
+	t.Run("parent_unknown", func(t *testing.T) {
+		req := validator.ObjectRequest{ConfigValue: types.ObjectUnknown(map[string]attr.Type{"a": types.StringType})}
+		resp := &validator.ObjectResponse{}
+		ExactlyOneOfChildren("a", "b").ValidateObject(ctx, req, resp)
+		if resp.Diagnostics.HasError() {
+			t.Fatalf("expected no error for unknown parent, got: %s", resp.Diagnostics.Errors())
+		}
+	})
+}
+
+// TestExactlyOneOfChildrenDefersWhenSiblingUnknown is the regression test for
+// the false-positive "no attribute configured" error that fired whenever a
+// sibling in the group was unknown (e.g. derived from an unresolved
+// reference), even though it might resolve to satisfy the oneof once known.
+func TestExactlyOneOfChildrenDefersWhenSiblingUnknown(t *testing.T) {
+	ctx := context.Background()
+	childNames := []string{"a", "b", "c", "d"}
+
+	cases := []struct {
+		name         string
+		setNames     []string
+		unknownNames []string
+		wantErr      bool
+	}{
+		{name: "one_unknown_rest_null", unknownNames: []string{"a"}},
+		{name: "two_unknown_rest_null", unknownNames: []string{"a", "b"}},
+		{name: "one_unknown_one_set", unknownNames: []string{"a"}, setNames: []string{"b"}},
+		{name: "one_unknown_two_set_is_a_definite_conflict", unknownNames: []string{"a"}, setNames: []string{"b", "c"}, wantErr: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := buildOneOfConfig(childNames, tc.setNames, tc.unknownNames)
+			req := validator.ObjectRequest{ConfigValue: cfg}
+			resp := &validator.ObjectResponse{}
+			ExactlyOneOfChildren(childNames...).ValidateObject(ctx, req, resp)
+
+			if tc.wantErr {
+				if !resp.Diagnostics.HasError() {
+					t.Fatal("expected an error: two children are known-and-set, no unknown sibling can undo that conflict")
+				}
+				return
+			}
+			if resp.Diagnostics.HasError() {
+				t.Fatalf("expected no error while a sibling is still unknown, got: %s", resp.Diagnostics.Errors())
+			}
+		})
+	}
+}
+
+// TestSupportedWidgetsExactlyOneOfChildrenCoversAllWidgetTypes drives the
+// 0/1/2-set matrix through the real SupportedWidgetTypes slice so a future
+// 9th widget type is automatically covered without anyone remembering to
+// update this test.
+func TestSupportedWidgetsExactlyOneOfChildrenCoversAllWidgetTypes(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("zero_set", func(t *testing.T) {
+		cfg := buildOneOfConfig(SupportedWidgetTypes, nil, nil)
+		req := validator.ObjectRequest{ConfigValue: cfg}
+		resp := &validator.ObjectResponse{}
+		SupportedWidgetsExactlyOneOfChildren().ValidateObject(ctx, req, resp)
+		if !resp.Diagnostics.HasError() {
+			t.Fatal("expected an error when no widget type is configured")
+		}
+		if detail := resp.Diagnostics.Errors()[0].Detail(); !strings.Contains(detail, "No attribute was configured") {
+			t.Fatalf("unexpected error detail: %s", detail)
+		}
+	})
+
+	for _, name := range SupportedWidgetTypes {
+		t.Run("one_set_"+name, func(t *testing.T) {
+			cfg := buildOneOfConfig(SupportedWidgetTypes, []string{name}, nil)
+			req := validator.ObjectRequest{ConfigValue: cfg}
+			resp := &validator.ObjectResponse{}
+			SupportedWidgetsExactlyOneOfChildren().ValidateObject(ctx, req, resp)
+			if resp.Diagnostics.HasError() {
+				t.Fatalf("expected no error with only %q set, got: %s", name, resp.Diagnostics.Errors())
+			}
+		})
+	}
+
+	t.Run("two_set", func(t *testing.T) {
+		if len(SupportedWidgetTypes) < 2 {
+			t.Skip("need at least two widget types")
+		}
+		twoSet := SupportedWidgetTypes[:2]
+		cfg := buildOneOfConfig(SupportedWidgetTypes, twoSet, nil)
+		req := validator.ObjectRequest{ConfigValue: cfg}
+		resp := &validator.ObjectResponse{}
+		SupportedWidgetsExactlyOneOfChildren().ValidateObject(ctx, req, resp)
+		if !resp.Diagnostics.HasError() {
+			t.Fatal("expected an error when two widget types are configured")
+		}
+		detail := resp.Diagnostics.Errors()[0].Detail()
+		for _, name := range twoSet {
+			if !strings.Contains(detail, "`"+name+"`") {
+				t.Fatalf("expected error to name %q, got: %s", name, detail)
+			}
+		}
+	})
+}
+
+// mustType asserts v has static type T, failing the test immediately with a
+// message naming what was being asserted. It centralizes the assert-or-fail
+// branch so call sites read as a single expression instead of each
+// contributing its own branch to cyclomatic complexity.
+func mustType[T any](t *testing.T, v any, what string) T {
+	t.Helper()
+	x, ok := v.(T)
+	if !ok {
+		t.Fatalf("%s is %T, not %T", what, v, *new(T))
+	}
+	return x
+}
+
+// hexagonQueryChildValue builds a tftypes.Value for one child of Hexagon's
+// "query" oneof: null when unset, tftypes.UnknownValue when unknown, or a
+// present-but-otherwise-empty object (every grandchild null) when set. The
+// validator under test only inspects null/unknown-ness of the direct
+// children, so grandchildren don't need to be recursively populated.
+func hexagonQueryChildValue(childType tftypes.Type, set, unknown bool) tftypes.Value {
+	if unknown {
+		return tftypes.NewValue(childType, tftypes.UnknownValue)
+	}
+	if !set {
+		return tftypes.NewValue(childType, nil)
+	}
+	objType, ok := childType.(tftypes.Object)
+	if !ok {
+		return tftypes.NewValue(childType, nil)
+	}
+	inner := make(map[string]tftypes.Value, len(objType.AttributeTypes))
+	for innerName, innerType := range objType.AttributeTypes {
+		inner[innerName] = tftypes.NewValue(innerType, nil)
+	}
+	return tftypes.NewValue(childType, inner)
+}
+
+// hexagonBuildQueryConfig builds a types.Object for Hexagon's query oneof,
+// setting every name in setNames present-but-empty, every name in
+// unknownNames to unknown, and leaving the rest null.
+func hexagonBuildQueryConfig(ctx context.Context, t *testing.T, query schema.SingleNestedAttribute, queryType tftypes.Object, childNames, setNames, unknownNames []string) types.Object {
+	t.Helper()
+	set := make(map[string]bool, len(setNames))
+	for _, name := range setNames {
+		set[name] = true
+	}
+	unknown := make(map[string]bool, len(unknownNames))
+	for _, name := range unknownNames {
+		unknown[name] = true
+	}
+	attrs := make(map[string]tftypes.Value, len(childNames))
+	for _, name := range childNames {
+		attrs[name] = hexagonQueryChildValue(queryType.AttributeTypes[name], set[name], unknown[name])
+	}
+	val, err := query.GetType().ValueFromTerraform(ctx, tftypes.NewValue(queryType, attrs))
+	if err != nil {
+		t.Fatalf("build hexagon query config: %s", err)
+	}
+	return mustType[types.Object](t, val, "hexagon query config value")
+}
+
+// hexagonValidateQuery runs query's validators against cfg and returns the
+// resulting diagnostics.
+func hexagonValidateQuery(ctx context.Context, query schema.SingleNestedAttribute, cfg types.Object) diag.Diagnostics {
+	req := validator.ObjectRequest{ConfigValue: cfg}
+	resp := &validator.ObjectResponse{}
+	for _, v := range query.Validators {
+		v.ValidateObject(ctx, req, resp)
+	}
+	return resp.Diagnostics
+}
+
+// TestHexagonQueryExactlyOneOfChildren drives the same 0-set/2-set/
+// unknown-sibling matrix as TestExactlyOneOfChildrenValidatesSetCounts and
+// TestExactlyOneOfChildrenDefersWhenSiblingUnknown, but through the actual
+// validator wired onto HexagonSchema()'s "query" attribute rather than a
+// hand-built one, so a future regression that un-wires it is caught here.
+func TestHexagonQueryExactlyOneOfChildren(t *testing.T) {
+	ctx := context.Background()
+
+	hexagon := mustType[schema.SingleNestedAttribute](t, HexagonSchema(), "HexagonSchema")
+	query := mustType[schema.SingleNestedAttribute](t, hexagon.Attributes["query"], "hexagon query")
+	if len(query.Validators) != 1 {
+		t.Fatalf("hexagon query validators = %d, want exactly 1", len(query.Validators))
+	}
+
+	queryType := mustType[tftypes.Object](t, query.GetType().TerraformType(ctx), "hexagon query terraform type")
+	childNames := []string{"logs", "metrics", "spans", "data_prime"}
+	for _, name := range childNames {
+		if _, ok := queryType.AttributeTypes[name]; !ok {
+			t.Fatalf("hexagon query has no %q child in its terraform type", name)
+		}
+	}
+
+	build := func(setNames, unknownNames []string) types.Object {
+		return hexagonBuildQueryConfig(ctx, t, query, queryType, childNames, setNames, unknownNames)
+	}
+	validate := func(cfg types.Object) diag.Diagnostics {
+		return hexagonValidateQuery(ctx, query, cfg)
+	}
+
+	t.Run("zero_set", func(t *testing.T) {
+		diagnostics := validate(build(nil, nil))
+		if !diagnostics.HasError() {
+			t.Fatal("expected an error when no query branch is configured")
+		}
+		if detail := diagnostics.Errors()[0].Detail(); !strings.Contains(detail, "No attribute was configured") {
+			t.Fatalf("unexpected error detail: %s", detail)
+		}
+	})
+
+	for _, name := range childNames {
+		t.Run("one_set_"+name, func(t *testing.T) {
+			if diagnostics := validate(build([]string{name}, nil)); diagnostics.HasError() {
+				t.Fatalf("expected no error with only %q set, got: %s", name, diagnostics.Errors())
+			}
+		})
+	}
+
+	t.Run("two_set", func(t *testing.T) {
+		twoSet := childNames[:2]
+		diagnostics := validate(build(twoSet, nil))
+		if !diagnostics.HasError() {
+			t.Fatal("expected an error when two query branches are configured")
+		}
+		detail := diagnostics.Errors()[0].Detail()
+		for _, name := range twoSet {
+			if !strings.Contains(detail, "`"+name+"`") {
+				t.Fatalf("expected error to name %q, got: %s", name, detail)
+			}
+		}
+	})
+
+	t.Run("one_unknown_rest_null_defers", func(t *testing.T) {
+		if diagnostics := validate(build(nil, []string{"logs"})); diagnostics.HasError() {
+			t.Fatalf("expected no error while %q is unknown, got: %s", "logs", diagnostics.Errors())
+		}
+	})
+
+	t.Run("one_unknown_one_set_defers", func(t *testing.T) {
+		if diagnostics := validate(build([]string{"metrics"}, []string{"logs"})); diagnostics.HasError() {
+			t.Fatalf("expected no error while a sibling is unknown, got: %s", diagnostics.Errors())
+		}
+	})
+
+	t.Run("one_unknown_two_set_is_a_definite_conflict", func(t *testing.T) {
+		cfg := build([]string{"logs", "metrics"}, []string{"spans"})
+		if diagnostics := validate(cfg); !diagnostics.HasError() {
+			t.Fatal("expected an error: two children are known-and-set, an unknown sibling can't undo that conflict")
+		}
+	})
+}
+
 func TestLegacyDurationOpenAPIRoundTrip(t *testing.T) {
 	tests := []struct {
 		configured string

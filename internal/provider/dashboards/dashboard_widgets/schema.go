@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
@@ -178,10 +177,7 @@ func TimeFrameSchema() schema.Attribute {
 						Required: true,
 					},
 				},
-				Optional: true,
-				Validators: []validator.Object{
-					ExactlyOneOfObject(path.MatchRelative().AtParent().AtName("relative")),
-				},
+				Optional:            true,
 				MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
 			},
 			"relative": schema.SingleNestedAttribute{
@@ -190,12 +186,12 @@ func TimeFrameSchema() schema.Attribute {
 						Required: true,
 					},
 				},
-				Optional: true,
-				Validators: []validator.Object{
-					ExactlyOneOfObject(path.MatchRelative().AtParent().AtName("absolute")),
-				},
+				Optional:            true,
 				MarkdownDescription: "Relative time frame specifying a duration from the current time.",
 			},
+		},
+		Validators: []validator.Object{
+			ExactlyOneOfChildren("absolute", "relative"),
 		},
 		MarkdownDescription: "Specifies the time frame. Can be either absolute or relative.",
 	}
@@ -296,11 +292,6 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 			Attributes: map[string]schema.Attribute{
 				"field": schema.StringAttribute{
 					Optional: true,
-					Validators: []validator.String{
-						ExactlyOneOfString(
-							path.MatchRelative().AtParent().AtName("observation_field"),
-						),
-					},
 				},
 				"operator": FilterOperatorSchema(),
 				"observation_field": schema.SingleNestedAttribute{
@@ -308,6 +299,9 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 					Optional:            true,
 					MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 				},
+			},
+			Validators: []validator.Object{
+				ExactlyOneOfChildren("field", "observation_field"),
 			},
 		},
 		Validators: []validator.List{
@@ -335,11 +329,6 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 				"field": schema.StringAttribute{
 					Optional:            true,
 					MarkdownDescription: "Field in the logs to apply the filter on.",
-					Validators: []validator.String{
-						ExactlyOneOfString(
-							path.MatchRelative().AtParent().AtName("observation_field"),
-						),
-					},
 				},
 				"operator": FilterOperatorSchema(),
 				"observation_field": schema.SingleNestedAttribute{
@@ -348,13 +337,10 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 					MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 				},
 			},
-			Optional: true,
 			Validators: []validator.Object{
-				ExactlyOneOfObject(
-					path.MatchRelative().AtParent().AtName("metrics"),
-					path.MatchRelative().AtParent().AtName("spans"),
-				),
+				ExactlyOneOfChildren("field", "observation_field"),
 			},
+			Optional: true,
 		},
 		"spans": schema.SingleNestedAttribute{
 			Attributes: map[string]schema.Attribute{
@@ -368,12 +354,6 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 				"operator": FilterOperatorSchema(),
 			},
 			Optional: true,
-			Validators: []validator.Object{
-				ExactlyOneOfObject(
-					path.MatchRelative().AtParent().AtName("metrics"),
-					path.MatchRelative().AtParent().AtName("logs"),
-				),
-			},
 		},
 		"metrics": schema.SingleNestedAttribute{
 			Attributes: map[string]schema.Attribute{
@@ -384,12 +364,6 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 					Optional: true,
 				},
 				"operator": FilterOperatorSchema(),
-			},
-			Validators: []validator.Object{
-				ExactlyOneOfObject(
-					path.MatchRelative().AtParent().AtName("spans"),
-					path.MatchRelative().AtParent().AtName("logs"),
-				),
 			},
 			Optional: true,
 		},

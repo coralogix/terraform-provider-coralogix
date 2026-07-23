@@ -181,13 +181,6 @@ func HexagonSchema() schema.Attribute {
 							"time_frame":  TimeFrameSchema(),
 						},
 						Optional: true,
-						Validators: []validator.Object{
-							ExactlyOneOfObject(
-								path.MatchRelative().AtParent().AtName("metrics"),
-								path.MatchRelative().AtParent().AtName("spans"),
-								path.MatchRelative().AtParent().AtName("data_prime"),
-							),
-						},
 					},
 					"metrics": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -235,6 +228,9 @@ func HexagonSchema() schema.Attribute {
 							"filters": schema.ListNestedAttribute{
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: FiltersSourceSchema(),
+									Validators: []validator.Object{
+										ExactlyOneOfChildren("logs", "metrics", "spans"),
+									},
 								},
 								Optional: true,
 							},
@@ -243,10 +239,12 @@ func HexagonSchema() schema.Attribute {
 						Optional: true,
 					},
 				},
+				Validators: []validator.Object{
+					ExactlyOneOfChildren("logs", "metrics", "spans", "data_prime"),
+				},
 			},
 		},
 		Validators: []validator.Object{
-			SupportedWidgetsValidatorWithout("hexagon"),
 			objectvalidator.AlsoRequires(
 				path.MatchRelative().AtParent().AtParent().AtName("title"),
 			),
