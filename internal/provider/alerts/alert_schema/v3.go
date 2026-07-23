@@ -918,8 +918,11 @@ func V3() schema.Schema {
 				},
 			},
 			"data_sources": schema.ListNestedAttribute{
-				Optional:            true,
-				MarkdownDescription: "Data sources to associate the alert with. The referenced data space and dataset must already exist.",
+				Optional: true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
+				MarkdownDescription: "Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"data_space": schema.StringAttribute{
