@@ -133,7 +133,7 @@ func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource
 
 		alert := getAlertResp.GetAlertDef()
 
-		newState, diags := flattenAlert(ctx, alert, &schedule, nil, nil)
+		newState, diags := flattenAlert(ctx, alert, &schedule, nil)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -175,7 +175,7 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
-	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.DataSources, &plan.NotificationGroup)
+	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.NotificationGroup)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -217,7 +217,7 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 		return
 	}
-	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.DataSources, &plan.NotificationGroup)
+	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.NotificationGroup)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -273,7 +273,7 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	state, diags = flattenAlert(ctx, result.GetAlertDef(), &state.Schedule, &state.DataSources, &state.NotificationGroup)
+	state, diags = flattenAlert(ctx, result.GetAlertDef(), &state.Schedule, &state.NotificationGroup)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -2843,7 +2843,7 @@ func extractAlertDef(ctx context.Context, def types.Object) (*alerts.FlowStagesG
 
 }
 
-func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *types.Object, currentDataSources *types.List, currentNotificationGroup *types.Object) (*alerttypes.AlertResourceModel, diag.Diagnostics) {
+func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *types.Object, currentNotificationGroup *types.Object) (*alerttypes.AlertResourceModel, diag.Diagnostics) {
 	alertProperties := alert.AlertDefProperties
 
 	alertSchedule, diags := flattenAlertSchedule(ctx, *alertProperties, currentSchedule)
@@ -2879,12 +2879,6 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 	dataSources, diags := flattenDataSources(ctx, alertProperties.DataSources)
 	if diags.HasError() {
 		return nil, diags
-	}
-	// The backend validates data sources on create/update but does not always
-	// echo them back on responses; keep the configured value when the API
-	// returns none so state stays consistent with the plan.
-	if len(alertProperties.DataSources) == 0 && currentDataSources != nil && !currentDataSources.IsUnknown() {
-		dataSources = *currentDataSources
 	}
 	return &alerttypes.AlertResourceModel{
 		ID:                types.StringPointerValue(alert.Id),

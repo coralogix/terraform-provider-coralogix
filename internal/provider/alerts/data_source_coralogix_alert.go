@@ -85,7 +85,7 @@ func (d *AlertDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	data, diags := flattenAlert(ctx, getAlertResp.GetAlertDef(), &data.Schedule, nil, nil)
+	data, diags := flattenAlert(ctx, getAlertResp.GetAlertDef(), &data.Schedule, nil)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

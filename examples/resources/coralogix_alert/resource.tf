@@ -158,13 +158,15 @@ resource "coralogix_alert" "test" {
     security_severity = "high"
   }
 
-  # Optional - associate the alert with existing data sources.
-  data_sources = [
-    {
-      data_space = "default"
-      data_set   = "logs"
-    }
-  ]
+  # Optional - associate the alert with existing data sources (not supported
+  # for logs_anomaly, which this example uses; see the logs_ratio_threshold
+  # example below).
+  # data_sources = [
+  #   {
+  #     data_space = "default"
+  #     data_set   = "logs"
+  #   }
+  # ]
 
   notification_group = {
     webhooks_settings = [{
@@ -326,6 +328,13 @@ resource "coralogix_alert" "test" {
 #   name        = "logs_ratio_threshold alert example"
 #   description = "Example of logs_ratio_threshold alert from terraform"
 #   priority    = "P3"
+
+#   data_sources = [
+#     {
+#       data_space = "default"
+#       data_set   = "logs"
+#     }
+#   ]
 
 #   group_by = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name"]
 #   type_definition = {
