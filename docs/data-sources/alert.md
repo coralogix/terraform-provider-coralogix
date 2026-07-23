@@ -21,7 +21,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 
 ### Read-Only
 
-- `data_sources` (Attributes List) Data sources to associate the alert with. The referenced data space and dataset must already exist. (see [below for nested schema](#nestedatt--data_sources))
+- `data_sources` (Attributes List) Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list. (see [below for nested schema](#nestedatt--data_sources))
 - `deleted` (Boolean)
 - `description` (String) Alert description.
 - `enabled` (Boolean) Alert enabled status. True by default.
