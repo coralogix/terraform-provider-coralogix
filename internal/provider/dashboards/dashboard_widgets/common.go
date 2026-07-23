@@ -1908,7 +1908,7 @@ func SupportedWidgetsValidatorWithout(current string) validator.Object {
 // full config-tree walk per check. Attach it to the parent object of a oneof
 // group instead of to each child.
 func ExactlyOneOfChildren(childNames ...string) validator.Object {
-	return exactlyOneOfChildrenValidator{childNames: childNames}
+	return ExactlyOneOfChildrenValidator{ChildNames: childNames}
 }
 
 // SupportedWidgetsExactlyOneOfChildren is the cheap, parent-attached
@@ -1918,33 +1918,25 @@ func SupportedWidgetsExactlyOneOfChildren() validator.Object {
 	return ExactlyOneOfChildren(SupportedWidgetTypes...)
 }
 
-// ExactlyOneOfChildrenNames reports the child attribute names an
-// ExactlyOneOfChildren-family validator.Object was constructed with, and
-// whether v is such a validator. Schema-wiring tests use this to assert a
-// validator's childNames haven't silently drifted from the actual attribute
-// map it's attached to (childNames is a plain string list with no compiler
-// tie back to the schema's attribute keys).
-func ExactlyOneOfChildrenNames(v validator.Object) ([]string, bool) {
-	ev, ok := v.(exactlyOneOfChildrenValidator)
-	if !ok {
-		return nil, false
-	}
-	return ev.childNames, true
+// ExactlyOneOfChildrenValidator is exported (rather than kept as an
+// unexported implementation type) so schema-wiring tests in other packages
+// can type-assert a validator.Object and inspect ChildNames directly, to
+// assert it hasn't silently drifted from the actual attribute map it's
+// attached to (ChildNames is a plain string list with no compiler tie back
+// to the schema's attribute keys).
+type ExactlyOneOfChildrenValidator struct {
+	ChildNames []string
 }
 
-type exactlyOneOfChildrenValidator struct {
-	childNames []string
+func (v ExactlyOneOfChildrenValidator) Description(_ context.Context) string {
+	return fmt.Sprintf("exactly one of %v must be configured", v.ChildNames)
 }
 
-func (v exactlyOneOfChildrenValidator) Description(_ context.Context) string {
-	return fmt.Sprintf("exactly one of %v must be configured", v.childNames)
-}
-
-func (v exactlyOneOfChildrenValidator) MarkdownDescription(ctx context.Context) string {
+func (v ExactlyOneOfChildrenValidator) MarkdownDescription(ctx context.Context) string {
 	return v.Description(ctx)
 }
 
-func (v exactlyOneOfChildrenValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+func (v ExactlyOneOfChildrenValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
 	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}
@@ -1952,7 +1944,7 @@ func (v exactlyOneOfChildrenValidator) ValidateObject(_ context.Context, req val
 	attrs := req.ConfigValue.Attributes()
 	var set []string
 	unknownCount := 0
-	for _, name := range v.childNames {
+	for _, name := range v.ChildNames {
 		val, ok := attrs[name]
 		if !ok {
 			continue
@@ -1994,24 +1986,17 @@ func (v exactlyOneOfChildrenValidator) ValidateObject(_ context.Context, req val
 	}
 }
 
+// FriendlyExactlyOneOfObjectValidator is exported (rather than kept as an
+// unexported implementation type) so schema-wiring tests in other packages
+// can type-assert a validator.Object and inspect PathExpressions directly,
+// to catch old-style, child-attached oneof groups left behind by an
+// incomplete migration to the cheaper, parent-attached
+// ExactlyOneOfChildrenValidator.
 func ExactlyOneOfObject(expressions ...path.Expression) validator.Object {
-	return friendlyExactlyOneOfObjectValidator{
+	return FriendlyExactlyOneOfObjectValidator{
 		Object:          objectvalidator.ExactlyOneOf(expressions...),
 		PathExpressions: expressions,
 	}
-}
-
-// ExactlyOneOfObjectPathExpressions reports the sibling path.Expressions an
-// old-style, child-attached ExactlyOneOfObject validator.Object was
-// constructed with, and whether v is such a validator. Schema-wiring tests
-// use this to catch oneof groups left behind by an incomplete migration to
-// the cheaper, parent-attached ExactlyOneOfChildren.
-func ExactlyOneOfObjectPathExpressions(v validator.Object) (path.Expressions, bool) {
-	fv, ok := v.(friendlyExactlyOneOfObjectValidator)
-	if !ok {
-		return nil, false
-	}
-	return fv.PathExpressions, true
 }
 
 func ExactlyOneOfString(expressions ...path.Expression) validator.String {
@@ -2028,12 +2013,12 @@ func ExactlyOneOfInt64(expressions ...path.Expression) validator.Int64 {
 	}
 }
 
-type friendlyExactlyOneOfObjectValidator struct {
+type FriendlyExactlyOneOfObjectValidator struct {
 	validator.Object
 	PathExpressions path.Expressions
 }
 
-func (v friendlyExactlyOneOfObjectValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+func (v FriendlyExactlyOneOfObjectValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
 	var delegateResp validator.ObjectResponse
 	v.Object.ValidateObject(ctx, req, &delegateResp)
 	rewriteExactlyOneOfDiagnostics(ctx, exactlyOneOfDiagnosticRequest{
@@ -2079,7 +2064,7 @@ func (v friendlyExactlyOneOfInt64Validator) ValidateInt64(ctx context.Context, r
 	}, delegateResp.Diagnostics, &resp.Diagnostics)
 }
 
-func (v friendlyExactlyOneOfObjectValidator) exactlyOneOfPathExpressions() path.Expressions {
+func (v FriendlyExactlyOneOfObjectValidator) exactlyOneOfPathExpressions() path.Expressions {
 	return v.PathExpressions
 }
 

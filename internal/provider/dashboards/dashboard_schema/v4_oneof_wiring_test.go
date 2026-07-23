@@ -204,18 +204,18 @@ func dashboardAssertOneOfGroupsMigrated(t *testing.T, containers []dashboardOneO
 	for _, container := range containers {
 		for _, childName := range dashboardSortedKeys(container.attributes) {
 			for _, v := range dashboardObjectValidatorsOf(container.attributes[childName]) {
-				if expressions, ok := dashboardwidgets.ExactlyOneOfObjectPathExpressions(v); ok {
+				if fv, ok := v.(dashboardwidgets.FriendlyExactlyOneOfObjectValidator); ok {
 					t.Errorf("%s.%s still carries an old-style child-attached ExactlyOneOfObject validator (siblings: %v); "+
 						"migrate this oneof group to a single ExactlyOneOfChildren validator attached to %s",
-						container.path, childName, expressions, container.path)
+						container.path, childName, fv.PathExpressions, container.path)
 				}
 			}
 		}
 
 		var matches [][]string
 		for _, v := range container.validators {
-			if names, ok := dashboardwidgets.ExactlyOneOfChildrenNames(v); ok {
-				matches = append(matches, names)
+			if ev, ok := v.(dashboardwidgets.ExactlyOneOfChildrenValidator); ok {
+				matches = append(matches, ev.ChildNames)
 			}
 		}
 		if len(matches) > 1 {
@@ -265,8 +265,8 @@ func TestV4TopLevelOneOfGroupsAreWiredToExactlyOneOfChildren(t *testing.T) {
 
 			var matches [][]string
 			for _, v := range container.validators {
-				if names, ok := dashboardwidgets.ExactlyOneOfChildrenNames(v); ok {
-					matches = append(matches, names)
+				if ev, ok := v.(dashboardwidgets.ExactlyOneOfChildrenValidator); ok {
+					matches = append(matches, ev.ChildNames)
 				}
 			}
 			if len(matches) != 1 {
