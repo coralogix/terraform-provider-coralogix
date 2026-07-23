@@ -1,5 +1,10 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- FEAT: Add root-level `data_sources` block for associating an alert with existing data spaces/datasets.
+- FEAT: Add `undetected_values_management` support to `logs_ratio_threshold`.
+- FEAT: Add `retriggering_period_minutes` to `notification_group.destinations`.
+
 #### resource/coralogix_dashboard
 
 - CHORE: Migrate dashboard operations from the legacy gRPC client to the REST client.

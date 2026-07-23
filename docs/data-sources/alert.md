@@ -21,6 +21,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 
 ### Read-Only
 
+- `data_sources` (Attributes List) Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list. (see [below for nested schema](#nestedatt--data_sources))
 - `deleted` (Boolean)
 - `description` (String) Alert description.
 - `enabled` (Boolean) Alert enabled status. True by default.
@@ -33,6 +34,15 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"]. This field will be removed in the future in favor of the 'override' property where possible.
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
 - `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold. (see [below for nested schema](#nestedatt--type_definition))
+
+<a id="nestedatt--data_sources"></a>
+### Nested Schema for `data_sources`
+
+Read-Only:
+
+- `data_set` (String) File name of the dataset.
+- `data_space` (String) Folder name of the data source.
+
 
 <a id="nestedatt--incidents_settings"></a>
 ### Nested Schema for `incidents_settings`
@@ -70,6 +80,7 @@ Read-Only:
 - `notify_on` (String)
 - `preset_id` (String)
 - `resolved_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides))
+- `retriggering_period_minutes` (Number) Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered. When omitted, the destination inherits the incident retriggering cadence.
 - `triggered_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides))
 
 <a id="nestedatt--notification_group--destinations--resolved_routing_overrides"></a>
@@ -448,6 +459,7 @@ Read-Only:
 - `numerator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator))
 - `numerator_alias` (String)
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--rules))
+- `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--denominator"></a>
 ### Nested Schema for `type_definition.logs_ratio_threshold.denominator`
@@ -566,6 +578,15 @@ Read-Only:
 
 
 
+<a id="nestedatt--type_definition--logs_ratio_threshold--undetected_values_management"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.undetected_values_management`
+
+Read-Only:
+
+- `auto_retire_timeframe` (String) Auto retire timeframe. Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
+- `trigger_undetected_values` (Boolean)
+
+
 
 <a id="nestedatt--type_definition--logs_threshold"></a>
 ### Nested Schema for `type_definition.logs_threshold`
@@ -577,7 +598,7 @@ Read-Only:
 - `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--no_data_policy))
 - `notification_payload_filter` (Set of String)
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--rules))
-- `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--undetected_values_management))
+- `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--logs_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--logs_threshold--logs_filter"></a>
 ### Nested Schema for `type_definition.logs_threshold.logs_filter`
@@ -680,7 +701,7 @@ Read-Only:
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter))
 - `notification_payload_filter` (Set of String)
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--rules))
-- `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--undetected_values_management))
+- `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter"></a>
 ### Nested Schema for `type_definition.logs_time_relative_threshold.logs_filter`
@@ -887,7 +908,7 @@ Read-Only:
 - `missing_values` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--missing_values))
 - `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--no_data_policy))
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--rules))
-- `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--undetected_values_management))
+- `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--metric_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--metric_threshold--metric_filter"></a>
 ### Nested Schema for `type_definition.metric_threshold.metric_filter`

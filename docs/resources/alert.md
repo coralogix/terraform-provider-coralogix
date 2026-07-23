@@ -27,6 +27,54 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
+# Connector and preset used by the alert's notification_group.destinations below.
+resource "coralogix_connector" "generic_https_example" {
+  type        = "generic_https"
+  name        = "generic-https connector for alert example"
+  description = "generic-https connector example"
+  connector_config = {
+    fields = [
+      {
+        field_name = "url"
+        value      = "https://webhook.example.com/alerts"
+      },
+      {
+        field_name = "method"
+        value      = "POST"
+      }
+    ]
+  }
+}
+
+resource "coralogix_preset" "generic_https_example" {
+  name           = "generic_https preset for alert example"
+  description    = "generic_https preset example"
+  entity_type    = "alerts"
+  connector_type = "generic_https"
+  parent_id      = "preset_system_generic_https_alerts_empty"
+  config_overrides = [
+    {
+      condition_type = {
+        match_entity_type_and_sub_type = {
+          entity_sub_type = "logsImmediateResolved"
+        }
+      }
+      message_config = {
+        fields = [
+          {
+            field_name = "headers"
+            template   = "{}"
+          },
+          {
+            field_name = "body"
+            template   = "{ \"status\": \"{{alert.status}}\", \"alertName\": \"{{alertDef.name}}\" }"
+          }
+        ]
+      }
+    }
+  ]
+}
+
 # resource "coralogix_alert" "test" {
 #   name        = "logs_immediate alert"
 #   description = "Example of logs_immediate alert from terraform"
@@ -125,6 +173,16 @@ resource "coralogix_alert" "test" {
     security_severity = "high"
   }
 
+  # Optional - associate the alert with existing data sources (not supported
+  # for logs_anomaly, which this example uses; see the logs_ratio_threshold
+  # example below).
+  # data_sources = [
+  #   {
+  #     data_space = "default"
+  #     data_set   = "logs"
+  #   }
+  # ]
+
   notification_group = {
     webhooks_settings = [{
       retriggering_period = {
@@ -133,6 +191,15 @@ resource "coralogix_alert" "test" {
       notify_on  = "Triggered and Resolved"
       recipients = ["example@coralogix.com"]
     }]
+    # Optional - route notifications to a connector (and optionally a preset),
+    # re-notifying at most once per retriggering_period_minutes.
+    destinations = [
+      {
+        connector_id                = coralogix_connector.generic_https_example.id
+        preset_id                   = coralogix_preset.generic_https_example.id
+        retriggering_period_minutes = 60
+      }
+    ]
   }
 
   incidents_settings = {
@@ -277,6 +344,13 @@ resource "coralogix_alert" "test" {
 #   description = "Example of logs_ratio_threshold alert from terraform"
 #   priority    = "P3"
 
+#   data_sources = [
+#     {
+#       data_space = "default"
+#       data_set   = "logs"
+#     }
+#   ]
+
 #   group_by = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name"]
 #   type_definition = {
 #     logs_ratio_threshold = {
@@ -293,6 +367,10 @@ resource "coralogix_alert" "test" {
 #         }
 #       }]
 #       group_by_for = "Denominator Only"
+#       undetected_values_management = {
+#         trigger_undetected_values = true
+#         auto_retire_timeframe     = "6_HOURS"
+#       }
 #     }
 #   }
 # }
@@ -717,6 +795,7 @@ resource "coralogix_alert" "test" {
 
 ### Optional
 
+- `data_sources` (Attributes List) Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list. (see [below for nested schema](#nestedatt--data_sources))
 - `description` (String) Alert description.
 - `enabled` (Boolean) Alert enabled status. True by default.
 - `group_by` (List of String) Group by fields.
@@ -1043,6 +1122,7 @@ Optional:
 - `ignore_infinity` (Boolean) Whether to ignore infinite ratios when the denominator is zero. False by default.
 - `notification_payload_filter` (Set of String)
 - `numerator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator))
+- `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--rules"></a>
 ### Nested Schema for `type_definition.logs_ratio_threshold.rules`
@@ -1173,6 +1253,15 @@ Optional:
 
 
 
+<a id="nestedatt--type_definition--logs_ratio_threshold--undetected_values_management"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.undetected_values_management`
+
+Optional:
+
+- `auto_retire_timeframe` (String) Auto retire timeframe. Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
+- `trigger_undetected_values` (Boolean)
+
+
 
 <a id="nestedatt--type_definition--logs_threshold"></a>
 ### Nested Schema for `type_definition.logs_threshold`
@@ -1187,7 +1276,7 @@ Optional:
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter))
 - `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--no_data_policy))
 - `notification_payload_filter` (Set of String)
-- `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--undetected_values_management))
+- `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--logs_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--logs_threshold--rules"></a>
 ### Nested Schema for `type_definition.logs_threshold.rules`
@@ -1299,7 +1388,7 @@ Optional:
 - `ignore_infinity` (Boolean) Whether to ignore infinite ratios when the denominator is zero. False by default.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter))
 - `notification_payload_filter` (Set of String)
-- `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--undetected_values_management))
+- `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--logs_time_relative_threshold--rules"></a>
 ### Nested Schema for `type_definition.logs_time_relative_threshold.rules`
@@ -1527,7 +1616,7 @@ Optional:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `no_data_policy` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--no_data_policy))
-- `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--undetected_values_management))
+- `undetected_values_management` (Attributes) Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type. (see [below for nested schema](#nestedatt--type_definition--metric_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--metric_threshold--metric_filter"></a>
 ### Nested Schema for `type_definition.metric_threshold.metric_filter`
@@ -1954,6 +2043,15 @@ Optional:
 
 
 
+<a id="nestedatt--data_sources"></a>
+### Nested Schema for `data_sources`
+
+Optional:
+
+- `data_set` (String) File name of the dataset.
+- `data_space` (String) Folder name of the data source.
+
+
 <a id="nestedatt--incidents_settings"></a>
 ### Nested Schema for `incidents_settings`
 
@@ -1993,6 +2091,7 @@ Optional:
 
 - `notify_on` (String)
 - `resolved_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides))
+- `retriggering_period_minutes` (Number) Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered. When omitted, the destination inherits the incident retriggering cadence.
 - `triggered_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides))
 
 <a id="nestedatt--notification_group--destinations--resolved_routing_overrides"></a>

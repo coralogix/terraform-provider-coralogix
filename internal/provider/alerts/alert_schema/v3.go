@@ -277,6 +277,7 @@ func V3() schema.Schema {
 								Default:             booldefault.StaticBool(false),
 								MarkdownDescription: "Whether to ignore infinite ratios when the denominator is zero. False by default.",
 							},
+							"undetected_values_management": undetectedValuesManagementSchema(),
 						},
 					},
 					"logs_new_value": schema.SingleNestedAttribute{
@@ -719,6 +720,7 @@ func V3() schema.Schema {
 							}}},
 							"payload_type": types.StringType,
 						}},
+						"retriggering_period_minutes": types.Int64Type,
 					}}),
 					"router": types.ObjectNull(map[string]attr.Type{
 						"notify_on": types.StringType,
@@ -885,6 +887,10 @@ func V3() schema.Schema {
 										},
 									},
 								},
+								"retriggering_period_minutes": schema.Int64Attribute{
+									Optional:            true,
+									MarkdownDescription: "Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered. When omitted, the destination inherits the incident retriggering cadence.",
+								},
 							},
 						},
 					},
@@ -911,7 +917,33 @@ func V3() schema.Schema {
 					mapplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"data_sources": schema.ListNestedAttribute{
+				Optional: true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
+				MarkdownDescription: "Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"data_space": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "Folder name of the data source.",
+						},
+						"data_set": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "File name of the dataset.",
+						},
+					},
+				},
+			},
 		},
+	}
+}
+
+func DataSourcesAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"data_space": types.StringType,
+		"data_set":   types.StringType,
 	}
 }
 
@@ -947,6 +979,7 @@ func NotificationDestinationsV3Attr() map[string]attr.Type {
 		"resolved_routing_overrides": types.ObjectType{
 			AttrTypes: RoutingOverridesV3Attr(),
 		},
+		"retriggering_period_minutes": types.Int64Type,
 	}
 }
 
