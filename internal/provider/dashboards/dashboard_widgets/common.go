@@ -1942,7 +1942,7 @@ func (v ExactlyOneOfChildrenValidator) ValidateObject(_ context.Context, req val
 	}
 
 	attrs := req.ConfigValue.Attributes()
-	var set []string
+	var knownChildrenSet []string
 	unknownCount := 0
 	for _, name := range v.ChildNames {
 		val, ok := attrs[name]
@@ -1954,19 +1954,15 @@ func (v ExactlyOneOfChildrenValidator) ValidateObject(_ context.Context, req val
 			continue
 		}
 		if !val.IsNull() {
-			set = append(set, name)
+			knownChildrenSet = append(knownChildrenSet, name)
 		}
 	}
 
 	// A second known-and-set child is an unavoidable conflict no matter how
 	// any remaining unknown children resolve, so report it immediately.
-	if len(set) > 1 {
-		quoted := make([]string, len(set))
-		for i, name := range set {
-			quoted[i] = "`" + name + "`"
-		}
+	if len(knownChildrenSet) > 1 {
 		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Attribute Combination",
-			fmt.Sprintf("Only one of these attributes can be configured: %s.", strings.Join(quoted, ", ")))
+			fmt.Sprintf("Only one of these attributes can be configured: `%s`.", strings.Join(knownChildrenSet, "`, `")))
 		return
 	}
 
@@ -1977,10 +1973,7 @@ func (v ExactlyOneOfChildrenValidator) ValidateObject(_ context.Context, req val
 		return
 	}
 
-	switch len(set) {
-	case 1:
-		return
-	case 0:
+	if len(knownChildrenSet) == 0 {
 		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Attribute Combination",
 			"No attribute was configured in this one-of group. Configure exactly one value.")
 	}
