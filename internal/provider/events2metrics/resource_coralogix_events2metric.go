@@ -103,6 +103,7 @@ type Events2MetricResourceModel struct {
 	Permutations *PermutationsModel `tfsdk:"permutations"`
 	SpansQuery   *SpansQueryModel   `tfsdk:"spans_query"`
 	LogsQuery    *LogsQueryModel    `tfsdk:"logs_query"`
+	DataSource   types.String       `tfsdk:"data_source"`
 }
 
 type MetricFieldModel struct {
@@ -247,6 +248,10 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 			"description": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "Events2Metric description.",
+			},
+			"data_source": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Data source in `<namespace>/<dataset_name>` format. If not set, defaults to the standard logs/spans stream.",
 			},
 			"metric_fields": schema.MapNestedAttribute{
 				Optional: true,
@@ -1006,6 +1011,7 @@ func flattenE2M(ctx context.Context, e2m *cxsdk.E2M) Events2MetricResourceModel 
 		Permutations: flattenE2MPermutations(e2m.GetPermutations()),
 		SpansQuery:   flattenSpansQuery(e2m.GetSpansQuery()),
 		LogsQuery:    flattenLogsQuery(e2m.GetLogsQuery()),
+		DataSource:   utils.WrapperspbStringToTypeString(e2m.GetDataSource()),
 	}
 }
 
@@ -1033,6 +1039,7 @@ func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) (*cx
 	e2mParams := &cxsdk.E2MCreateParams{
 		Name:              name,
 		Description:       description,
+		DataSource:        utils.TypeStringToWrapperspbString(plan.DataSource),
 		PermutationsLimit: permutationsLimit,
 		MetricLabels:      metricLabels,
 		MetricFields:      metricFields,
@@ -1069,6 +1076,7 @@ func extractUpdateE2M(ctx context.Context, plan Events2MetricResourceModel) (*cx
 	id := wrapperspb.String(plan.ID.ValueString())
 	name := wrapperspb.String(plan.Name.ValueString())
 	description := wrapperspb.String(plan.Description.ValueString())
+	dataSource := utils.TypeStringToWrapperspbString(plan.DataSource)
 	permutations := expandPermutations(plan.Permutations)
 	metricLabels, diags := expandE2MLabels(ctx, plan.MetricLabels)
 	if diags.HasError() {
@@ -1083,6 +1091,7 @@ func extractUpdateE2M(ctx context.Context, plan Events2MetricResourceModel) (*cx
 		Id:           id,
 		Name:         name,
 		Description:  description,
+		DataSource:   dataSource,
 		Permutations: permutations,
 		MetricLabels: metricLabels,
 		MetricFields: metricFields,

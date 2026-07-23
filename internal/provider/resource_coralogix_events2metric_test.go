@@ -20,8 +20,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -45,7 +43,7 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 		CheckDestroy:             testAccCheckEvents2MetricDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceLogs2Metric(events2Metric),
+				Config: testAccCoralogixResourceLogs2Metric(events2Metric, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(events2metricResourceName, "id"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "name", events2Metric.name),
@@ -71,6 +69,25 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_labels.Path", "http_referer"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.limit", strconv.Itoa(events2Metric.limit)),
 					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.has_exceed_limit", "false"),
+					resource.TestCheckNoResourceAttr(events2metricResourceName, "data_source"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceLogs2Metric(events2Metric, "system/poc.error_tracking"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(events2metricResourceName, "data_source", "system/poc.error_tracking"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceLogs2Metric(events2Metric, "system/poc.other_tracking"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(events2metricResourceName, "data_source", "system/poc.other_tracking"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceLogs2Metric(events2Metric, ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr(events2metricResourceName, "data_source"),
 				),
 			},
 			{
@@ -129,7 +146,11 @@ func TestAccCoralogixResourceSpans2Metric(t *testing.T) {
 }
 
 func testAccCheckEvents2MetricDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Events2Metrics()
+	clients, err := testAccNewClientSet()
+	if err != nil {
+		return err
+	}
+	client := clients.Events2Metrics()
 
 	ctx := context.TODO()
 
@@ -161,11 +182,15 @@ func getRandomEvents2Metric() *events2MetricTestFields {
 	}
 }
 
-func testAccCoralogixResourceLogs2Metric(l *events2MetricTestFields) string {
+func testAccCoralogixResourceLogs2Metric(l *events2MetricTestFields, dataSource string) string {
+	dataSourceAttr := ""
+	if dataSource != "" {
+		dataSourceAttr = fmt.Sprintf("data_source = %q\n", dataSource)
+	}
 	return fmt.Sprintf(`resource "coralogix_events2metric" "test" {
 name        = "%s"
 description = "%s"
-logs_query = {
+%slogs_query = {
     lucene       = "remote_addr_enriched:/.*/"
     applications = ["nginx"]
     severities   = ["Debug"]
@@ -198,7 +223,7 @@ permutations = {
 }
 }
 `,
-		l.name, l.description, l.limit)
+		l.name, l.description, dataSourceAttr, l.limit)
 }
 
 func testAccCoralogixResourceSpans2Metric(l *events2MetricTestFields) string {

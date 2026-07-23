@@ -30,6 +30,7 @@ provider "coralogix" {
 resource "coralogix_events2metric" "logs2metric" {
   name        = "logs2metricExample"
   description = "logs2metric from coralogix terraform provider"
+  data_source = "system/poc.error_tracking" // if omitted, defaults to the standard logs/spans stream
   logs_query = {
     lucene       = "remote_addr_enriched:/.*/"
     applications = ["filter:startsWith:nginx"] //change here for existing applications from your account
@@ -117,6 +118,7 @@ resource "coralogix_events2metric" "spans2metric" {
 
 ### Optional
 
+- `data_source` (String) Data source in `<namespace>/<dataset_name>` format. If not set, defaults to the standard logs/spans stream.
 - `description` (String) Events2Metric description.
 - `logs_query` (Attributes) logs-events2metric type. Exactly one of "spans_query" or "logs_query" must be defined. (see [below for nested schema](#nestedatt--logs_query))
 - `metric_fields` (Attributes Map) (see [below for nested schema](#nestedatt--metric_fields))

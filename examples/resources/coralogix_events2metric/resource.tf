@@ -15,6 +15,7 @@ provider "coralogix" {
 resource "coralogix_events2metric" "logs2metric" {
   name        = "logs2metricExample"
   description = "logs2metric from coralogix terraform provider"
+  data_source = "system/poc.error_tracking" // if omitted, defaults to the standard logs/spans stream
   logs_query = {
     lucene       = "remote_addr_enriched:/.*/"
     applications = ["filter:startsWith:nginx"] //change here for existing applications from your account

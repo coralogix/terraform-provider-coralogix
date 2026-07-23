@@ -40,8 +40,8 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cloudflare/circl v1.6.1 h1:zqIqSPIndyBh1bjLVVDHMPpVKqp8Su/V+6MeDzzQBQ0=
 github.com/cloudflare/circl v1.6.1/go.mod h1:uddAzsPgqdMAYatqJ0lsjX1oECcQLIlRpzZh3pJrofs=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
-github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260710130404-1b9d69a25d39 h1:Ng94C0STKyjwhe0PisPAf72EwfWygiE6VIROidRApsY=
-github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260710130404-1b9d69a25d39/go.mod h1:hC1w7mD+AZhGGw6krKRYEsKst+pYfH6SuUYM001X+tk=
+github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260722083645-c4748d25d07c h1:DbrOeDCze0AJ5UMrTp5KivXwhbHEPV7HO1f1EUwQWQ4=
+github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260722083645-c4748d25d07c/go.mod h1:hC1w7mD+AZhGGw6krKRYEsKst+pYfH6SuUYM001X+tk=
 github.com/coralogix/grpc-gateway/v2 v2.0.0-20251017075809-7f84c876b2e5 h1:mqmL/WJA8Cdzim6r3jmXY8uiPn9KX4AvqxjEPDRXKj4=
 github.com/coralogix/grpc-gateway/v2 v2.0.0-20251017075809-7f84c876b2e5/go.mod h1:bqGO/kNOHTFiDIfPmXLQcox10aWQs5Q3b9sXUFoaFFk=
 github.com/cyphar/filepath-securejoin v0.4.1 h1:JyxxyPEaktOD+GAnqIqTf9A8tHyAG22rowi7HkoSU1s=
