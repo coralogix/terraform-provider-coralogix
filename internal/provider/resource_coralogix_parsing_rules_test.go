@@ -25,6 +25,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -223,6 +224,57 @@ func TestAccCoralogixResourceParsingRules_jsonExtract(t *testing.T) {
 				ResourceName:      parsingRulesGroupResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceParsingRules_jsonExtractCaseInsensitiveDestinationField(t *testing.T) {
+	r := getRandomParsingRule()
+
+	jsonKey := "worker"
+	destinationField := "Severity"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckParsingRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceParsingRulesJsonExtract(r, jsonKey, destinationField),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.json_extract.id"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.json_extract.name", r.parsingRuleParams.name),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.json_extract.destination_field", destinationField),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.json_extract.json_key", jsonKey),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:            parsingRulesGroupResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"rule_subgroups.0.rules.0.json_extract.destination_field"},
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceParsingRules_jsonExtractDestinationFieldCaseInsensitivePlan(t *testing.T) {
+	r := getRandomParsingRule()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:             testAccCoralogixResourceParsingRulesJsonExtract(r, "worker", "Severity"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})

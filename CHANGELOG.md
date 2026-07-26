@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_parsing_rules
+- FIX: A `json_extract` rule's `destination_field` now accepts values case-insensitively (e.g. the capitalized `Severity` shown in the Coralogix UI), maps them to the correct backend field instead of silently falling back to `category`, and preserves the user's casing on read so no perpetual plan diff arises.
+
 #### resource/coralogix_dashboard
 
 - CHORE: Migrate dashboard operations from the legacy gRPC client to the REST client.
