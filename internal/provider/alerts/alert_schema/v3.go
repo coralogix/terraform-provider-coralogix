@@ -889,7 +889,7 @@ func V3() schema.Schema {
 								},
 								"retriggering_period_minutes": schema.Int64Attribute{
 									Optional:            true,
-									MarkdownDescription: "Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered. When omitted, the destination inherits the incident retriggering cadence.",
+									MarkdownDescription: "Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered. When omitted, the destination inherits the incident retriggering cadence implicitly.",
 								},
 							},
 						},
