@@ -2046,7 +2046,7 @@ Optional:
 <a id="nestedatt--data_sources"></a>
 ### Nested Schema for `data_sources`
 
-Optional:
+Required:
 
 - `data_set` (String) File name of the dataset.
 - `data_space` (String) Folder name of the data source.

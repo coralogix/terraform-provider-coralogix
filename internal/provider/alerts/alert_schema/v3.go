@@ -926,11 +926,17 @@ func V3() schema.Schema {
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"data_space": schema.StringAttribute{
-							Optional:            true,
+							Required: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
 							MarkdownDescription: "Folder name of the data source.",
 						},
 						"data_set": schema.StringAttribute{
-							Optional:            true,
+							Required: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
 							MarkdownDescription: "File name of the dataset.",
 						},
 					},
