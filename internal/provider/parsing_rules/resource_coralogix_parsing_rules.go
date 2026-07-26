@@ -596,6 +596,16 @@ func flattenParsingRules(rgrp *prgs.RuleGroup) *ParsingRulesModel {
 	}
 }
 
+// reconcileDestinationFieldCasing preserves the practitioner's original casing
+// for json_extract.destination_field. The attribute is case-insensitive
+// (OneOfCaseInsensitive), but the API stores an enum, so flatten maps it back
+// through the lowercase canonical map — e.g. a config value of "Severity" comes
+// back as "severity". Left alone, that mismatch trips Terraform's post-apply
+// consistency check ("Provider produced inconsistent result after apply") and
+// then drifts on every plan. This walks the freshly-flattened state, matches
+// each json_extract rule to its prior value by ID (falling back to position for
+// Create, where IDs are not yet assigned), and — when the two differ only by
+// case (EqualFold) — restores the prior/config casing so state matches config.
 func reconcileDestinationFieldCasing(newState, prior *ParsingRulesModel) {
 	if newState == nil || prior == nil {
 		return
