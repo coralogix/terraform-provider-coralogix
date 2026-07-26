@@ -280,7 +280,7 @@ Read-Only:
 
 Required:
 
-- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [category class method severity text threadID].
+- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [category class method severity text threadID] (case-insensitive).
 - `json_key` (String) JSON key to extract its value directly into a Coralogix metadata field.
 - `name` (String) The rule name.
 

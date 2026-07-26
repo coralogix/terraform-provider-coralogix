@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -66,6 +67,7 @@ var (
 	}
 	rulesApiDestinationFieldToSchemaDestinationField = utils.ReverseMap(rulesSchemaDestinationFieldToApiDestinationField)
 	parsingRulesValidDestinationFields               = utils.GetKeys(rulesSchemaDestinationFieldToApiDestinationField)
+	rulesNormalizedDestinationFieldToApi             = normalizeMapKeys(rulesSchemaDestinationFieldToApiDestinationField)
 	rulesSchemaFormatStandardToApiFormatStandard     = map[string]prgs.FormatStandard{
 		"strftime": prgs.FORMATSTANDARD_FORMAT_STANDARD_STRFTIME_OR_UNSPECIFIED,
 		"javaSDF":  prgs.FORMATSTANDARD_FORMAT_STANDARD_JAVASDF,
@@ -80,6 +82,14 @@ var (
 
 	defaultSourceFieldName = "text"
 )
+
+func normalizeMapKeys[V any](m map[string]V) map[string]V {
+	normalized := make(map[string]V, len(m))
+	for k, v := range m {
+		normalized[strings.ToLower(k)] = v
+	}
+	return normalized
+}
 
 type ParsingRulesModel struct {
 	ID          types.String `tfsdk:"id"`
@@ -434,6 +444,7 @@ func (r *ParsingRulesResource) Create(ctx context.Context, req resource.CreateRe
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	reconcileDestinationFieldCasing(state, plan)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
@@ -464,6 +475,7 @@ func (r *ParsingRulesResource) Update(ctx context.Context, req resource.UpdateRe
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	reconcileDestinationFieldCasing(state, plan)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
@@ -493,11 +505,13 @@ func (r *ParsingRulesResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
+	priorState := state
 	state = flattenParsingRules(result.RuleGroup)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	reconcileDestinationFieldCasing(state, priorState)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -582,6 +596,55 @@ func flattenParsingRules(rgrp *prgs.RuleGroup) *ParsingRulesModel {
 	}
 }
 
+// reconcileDestinationFieldCasing preserves the practitioner's original casing
+// for json_extract.destination_field. The attribute is case-insensitive
+// (OneOfCaseInsensitive), but the API stores an enum, so flatten maps it back
+// through the lowercase canonical map — e.g. a config value of "Severity" comes
+// back as "severity". Left alone, that mismatch trips Terraform's post-apply
+// consistency check ("Provider produced inconsistent result after apply") and
+// then drifts on every plan. This walks the freshly-flattened state, matches
+// each json_extract rule to its prior value by ID (falling back to position for
+// Create, where IDs are not yet assigned), and — when the two differ only by
+// case (EqualFold) — restores the prior/config casing so state matches config.
+func reconcileDestinationFieldCasing(newState, prior *ParsingRulesModel) {
+	if newState == nil || prior == nil {
+		return
+	}
+	priorFieldByID := make(map[string]types.String)
+	for _, subgroup := range prior.RuleSubgroups {
+		for _, rule := range subgroup.Rules {
+			j := rule.JsonExtract
+			if j == nil || j.ID.IsNull() || j.ID.IsUnknown() || j.ID.ValueString() == "" {
+				continue
+			}
+			priorFieldByID[j.ID.ValueString()] = j.DestinationField
+		}
+	}
+	for g := range newState.RuleSubgroups {
+		newRules := newState.RuleSubgroups[g].Rules
+		for i := range newRules {
+			newJSON := newRules[i].JsonExtract
+			if newJSON == nil {
+				continue
+			}
+			priorField, ok := priorFieldByID[newJSON.ID.ValueString()]
+			if !ok {
+				if g < len(prior.RuleSubgroups) && i < len(prior.RuleSubgroups[g].Rules) {
+					if priorJSON := prior.RuleSubgroups[g].Rules[i].JsonExtract; priorJSON != nil {
+						priorField, ok = priorJSON.DestinationField, true
+					}
+				}
+			}
+			if !ok || priorField.IsNull() || priorField.IsUnknown() {
+				continue
+			}
+			if strings.EqualFold(newJSON.DestinationField.ValueString(), priorField.ValueString()) {
+				newJSON.DestinationField = priorField
+			}
+		}
+	}
+}
+
 func parseSchemaAttrs() map[string]schema.Attribute {
 	parseSchema := commonRulesAttrs()
 	parseSchema = appendSourceFieldAttrs(parseSchema)
@@ -612,10 +675,10 @@ func jsonExtractAttrs() map[string]schema.Attribute {
 	jsonExtractSchema["destination_field"] = schema.StringAttribute{
 		Required: true,
 		Validators: []validator.String{
-			stringvalidator.OneOf(parsingRulesValidDestinationFields...),
+			stringvalidator.OneOfCaseInsensitive(parsingRulesValidDestinationFields...),
 		},
 		MarkdownDescription: fmt.Sprintf("The field that will be populated by the results of RegEx operation."+
-			"Can be one of %s.", fmt.Sprint(parsingRulesValidDestinationFields)),
+			"Can be one of %s (case-insensitive).", fmt.Sprint(parsingRulesValidDestinationFields)),
 	}
 	jsonExtractSchema["destination_field_text"] = schema.StringAttribute{
 		Optional:            true,
@@ -806,7 +869,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 
 			}
 			if r := rule.JsonExtract; r != nil {
-				destinationField := rulesSchemaDestinationFieldToApiDestinationField[r.DestinationField.ValueString()]
+				destinationField := rulesNormalizedDestinationFieldToApi[strings.ToLower(r.DestinationField.ValueString())]
 				rules = append(rules, prgs.CreateRuleGroupRequestCreateRuleSubgroupCreateRule{
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),

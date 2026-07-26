@@ -112,7 +112,7 @@ Read-Only:
 
 - `active` (Boolean) Determines whether the rule will be active or not.
 - `description` (String) The rule description.
-- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [category class method severity text threadID].
+- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [category class method severity text threadID] (case-insensitive).
 - `destination_field_text` (String) Required when destination_field is 'Text'. should be either 'text' or 'text.<some value>'
 - `id` (String) The rule id.
 - `json_key` (String) JSON key to extract its value directly into a Coralogix metadata field.
