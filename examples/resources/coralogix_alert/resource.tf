@@ -12,6 +12,54 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
+# Connector and preset used by the alert's notification_group.destinations below.
+resource "coralogix_connector" "generic_https_example" {
+  type        = "generic_https"
+  name        = "generic-https connector for alert example"
+  description = "generic-https connector example"
+  connector_config = {
+    fields = [
+      {
+        field_name = "url"
+        value      = "https://webhook.example.com/alerts"
+      },
+      {
+        field_name = "method"
+        value      = "POST"
+      }
+    ]
+  }
+}
+
+resource "coralogix_preset" "generic_https_example" {
+  name           = "generic_https preset for alert example"
+  description    = "generic_https preset example"
+  entity_type    = "alerts"
+  connector_type = "generic_https"
+  parent_id      = "preset_system_generic_https_alerts_empty"
+  config_overrides = [
+    {
+      condition_type = {
+        match_entity_type_and_sub_type = {
+          entity_sub_type = "logsImmediateResolved"
+        }
+      }
+      message_config = {
+        fields = [
+          {
+            field_name = "headers"
+            template   = "{}"
+          },
+          {
+            field_name = "body"
+            template   = "{ \"status\": \"{{alert.status}}\", \"alertName\": \"{{alertDef.name}}\" }"
+          }
+        ]
+      }
+    }
+  ]
+}
+
 # resource "coralogix_alert" "test" {
 #   name        = "logs_immediate alert"
 #   description = "Example of logs_immediate alert from terraform"
@@ -110,6 +158,16 @@ resource "coralogix_alert" "test" {
     security_severity = "high"
   }
 
+  # Optional - associate the alert with existing data sources (not supported
+  # for logs_anomaly, which this example uses; see the logs_ratio_threshold
+  # example below).
+  # data_sources = [
+  #   {
+  #     data_space = "default"
+  #     data_set   = "logs"
+  #   }
+  # ]
+
   notification_group = {
     webhooks_settings = [{
       retriggering_period = {
@@ -118,6 +176,15 @@ resource "coralogix_alert" "test" {
       notify_on  = "Triggered and Resolved"
       recipients = ["example@coralogix.com"]
     }]
+    # Optional - route notifications to a connector (and optionally a preset),
+    # re-notifying at most once per retriggering_period_minutes.
+    destinations = [
+      {
+        connector_id                = coralogix_connector.generic_https_example.id
+        preset_id                   = coralogix_preset.generic_https_example.id
+        retriggering_period_minutes = 60
+      }
+    ]
   }
 
   incidents_settings = {
@@ -262,6 +329,13 @@ resource "coralogix_alert" "test" {
 #   description = "Example of logs_ratio_threshold alert from terraform"
 #   priority    = "P3"
 
+#   data_sources = [
+#     {
+#       data_space = "default"
+#       data_set   = "logs"
+#     }
+#   ]
+
 #   group_by = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name"]
 #   type_definition = {
 #     logs_ratio_threshold = {
@@ -278,6 +352,10 @@ resource "coralogix_alert" "test" {
 #         }
 #       }]
 #       group_by_for = "Denominator Only"
+#       undetected_values_management = {
+#         trigger_undetected_values = true
+#         auto_retire_timeframe     = "6_HOURS"
+#       }
 #     }
 #   }
 # }
