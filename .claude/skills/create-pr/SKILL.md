@@ -20,6 +20,8 @@ description: "Use when creating a PR for a non-trivial bug fix in this repo. Ass
 
 **Fill the rest of the template:** answer the Acceptance tests checkboxes, paste relevant `make testacc TESTARGS='-run=...'` output, write a meaningful Release Note (`NONE` for chore/internal), link related PRs/issues in References, keep Community Note verbatim.
 
+**If you touched schema or examples:** run `make generate` and commit any `docs/` changes in a separate "regenerate docs" commit.
+
 **Before `gh pr create`:** show the assembled description and wait for explicit approval. PR creation is visible-to-others.
 
 **Why:** reviewers shouldn't redo the archaeology you did. Symptom-and-fix descriptions push the work back onto them.
