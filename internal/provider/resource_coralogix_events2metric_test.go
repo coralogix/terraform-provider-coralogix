@@ -73,15 +73,9 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCoralogixResourceLogs2Metric(events2Metric, "system/poc.error_tracking"),
+				Config: testAccCoralogixResourceLogs2Metric(events2Metric, "default/logs"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(events2metricResourceName, "data_source", "system/poc.error_tracking"),
-				),
-			},
-			{
-				Config: testAccCoralogixResourceLogs2Metric(events2Metric, "system/poc.other_tracking"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(events2metricResourceName, "data_source", "system/poc.other_tracking"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "data_source", "default/logs"),
 				),
 			},
 			{
