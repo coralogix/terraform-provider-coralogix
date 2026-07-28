@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -169,6 +170,103 @@ func TestFlattenTCOTargetsRoundTrip(t *testing.T) {
 	if !empty.IsNull() {
 		t.Fatalf("flattenTCOTargets(nil) = %v, want null", empty)
 	}
+}
+
+// Regression test for a live-tenant acceptance test failure: the backend echoes
+// a synthesized single-target list — matching the legacy top-level priority —
+// even for a create/update request that carried no targets at all. Faithfully
+// mirroring that response makes targets non-null in state for a legacy policy
+// whose config never set targets, which Terraform reports as
+// "Provider produced inconsistent result after apply" since targets is
+// Optional-only. flattenOverwriteTCOPoliciesLogsList must force it back to null
+// for any policy whose plan left targets unconfigured.
+func TestFlattenOverwriteTCOPoliciesLogsListNullsUnconfiguredTargets(t *testing.T) {
+	ctx := context.Background()
+	low := tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_LOW
+	medium := tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_MEDIUM
+	logs := "logs"
+	dataspace := "default"
+
+	// One legacy policy (no targets in config) and one that actually configured
+	// targets, mirroring the mixed real-world case.
+	base := func(name string, priority types.String, targets types.List) TCOPolicyLogsModel {
+		return TCOPolicyLogsModel{
+			ID:                         types.StringNull(),
+			Name:                       types.StringValue(name),
+			Description:                types.StringValue(""),
+			Enabled:                    types.BoolValue(true),
+			Order:                      types.Int64Null(),
+			Priority:                   priority,
+			Applications:               types.ObjectNull(tcoPolicyRuleAttributes()),
+			Subsystems:                 types.ObjectNull(tcoPolicyRuleAttributes()),
+			Severities:                 types.SetValueMust(types.StringType, []attr.Value{types.StringValue("info")}),
+			ArchiveRetentionID:         types.StringNull(),
+			DpxlExpression:             types.StringNull(),
+			QuotaBasedPriorityOverride: tcoNullOverride(),
+			Targets:                    targets,
+		}
+	}
+	plan := &TCOPoliciesListModel{
+		Policies: tcoPoliciesList(t,
+			base("legacy", types.StringValue("low"), types.ListNull(types.ObjectType{AttrTypes: tcoTargetAttributes()})),
+			base("routed", types.StringNull(), tcoTargetsList(t,
+				tcoTarget("logs", "default", types.StringValue("medium"), tcoNullOverride()),
+			)),
+		),
+	}
+
+	targetsNull, diags := policiesTargetsNull(ctx, plan.Policies)
+	if diags.HasError() {
+		t.Fatalf("policiesTargetsNull: %v", diags)
+	}
+	if got := []bool{targetsNull[0], targetsNull[1]}; got[0] != true || got[1] != false {
+		t.Fatalf("targetsNull = %v, want [true false]", got)
+	}
+
+	// The backend's response synthesizes a single target for BOTH policies,
+	// including the legacy one, exactly as observed against the live tenant.
+	overwriteResp := &tcoPolicys.AtomicOverwriteLogPoliciesResponse{
+		CreateResponses: []tcoPolicys.CreatePolicyResponse{
+			{Policy: tcoPolicys.Policy{
+				Name: "legacy", Priority: low,
+				LogRules: &tcoPolicys.LogRules{Severities: []tcoPolicys.QuotaV1Severity{tcoPolicys.QUOTAV1SEVERITY_SEVERITY_INFO}},
+				Targets:  []tcoPolicys.V1Target{{Dataset: &logs, Dataspace: &dataspace, Priority: &low}},
+			}},
+			{Policy: tcoPolicys.Policy{
+				Name:     "routed",
+				LogRules: &tcoPolicys.LogRules{Severities: []tcoPolicys.QuotaV1Severity{tcoPolicys.QUOTAV1SEVERITY_SEVERITY_INFO}},
+				Targets:  []tcoPolicys.V1Target{{Dataset: &logs, Dataspace: &dataspace, Priority: &medium}},
+			}},
+		},
+	}
+
+	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, overwriteResp, targetsNull)
+	if diags.HasError() {
+		t.Fatalf("flattenOverwriteTCOPoliciesLogsList: %v", diags)
+	}
+
+	var policies []TCOPolicyLogsModel
+	if diags := state.Policies.ElementsAs(ctx, &policies, false); diags.HasError() {
+		t.Fatalf("ElementsAs: %v", diags)
+	}
+	if len(policies) != 2 {
+		t.Fatalf("policies len = %d, want 2", len(policies))
+	}
+	if !policies[0].Targets.IsNull() {
+		t.Fatalf("policies[0] (legacy, unconfigured targets) = %v, want targets null", policies[0].Targets)
+	}
+	if policies[1].Targets.IsNull() {
+		t.Fatalf("policies[1] (configured targets) has null targets, want the backend's echoed target preserved")
+	}
+}
+
+func tcoPoliciesList(t *testing.T, policies ...TCOPolicyLogsModel) types.List {
+	ctx := context.Background()
+	list, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: policiesLogsAttr()}, policies)
+	if diags.HasError() {
+		t.Fatalf("build policies list: %v", diags)
+	}
+	return list
 }
 
 func TestValidateTCOTargets(t *testing.T) {

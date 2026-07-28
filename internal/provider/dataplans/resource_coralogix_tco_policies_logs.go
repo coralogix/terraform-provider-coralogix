@@ -621,6 +621,12 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	targetsNull, diags := policiesTargetsNull(ctx, plan.Policies)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteLogPolicies(ctx).
 		AtomicOverwriteLogPoliciesRequest(*rq).
@@ -631,7 +637,7 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 		)
 		return
 	}
-	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result)
+	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result, targetsNull)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -640,9 +646,21 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
-func (r *TCOPoliciesLogsResource) Read(ctx context.Context, _ resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *TCOPoliciesLogsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
+
+	var priorState *TCOPoliciesListModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorState)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	targetsNull, diags := policiesTargetsNull(ctx, priorState.Policies)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 
 	result, httpResponse, err := r.client.PoliciesServiceGetCompanyPolicies(ctx).SourceType(LogSource).Execute()
 	if err != nil {
@@ -660,7 +678,7 @@ func (r *TCOPoliciesLogsResource) Read(ctx context.Context, _ resource.ReadReque
 		return
 	}
 
-	state, diags := flattenGetTCOPoliciesLogsList(ctx, result)
+	state, diags := flattenGetTCOPoliciesLogsList(ctx, result, targetsNull)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -685,6 +703,12 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
+	targetsNull, diags := policiesTargetsNull(ctx, plan.Policies)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteLogPolicies(ctx).
 		AtomicOverwriteLogPoliciesRequest(*rq).
@@ -703,7 +727,7 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result)
+	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result, targetsNull)
 
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -729,15 +753,54 @@ func (r *TCOPoliciesLogsResource) Delete(ctx context.Context, req resource.Delet
 	}
 }
 
-func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tcoPolicys.AtomicOverwriteLogPoliciesResponse) (*TCOPoliciesListModel, diag.Diagnostics) {
+// policiesTargetsNull reports, in order, whether each policy in policiesList left
+// targets unconfigured (null). The backend always echoes a synthesized
+// single-target list — matching the legacy top-level fields — even for a policy
+// whose create/update request carried no targets at all, so a flatten that
+// mirrored the response as-is would report a non-null targets the user never
+// configured. Optional (non-Computed) attributes must match the config exactly,
+// so the caller uses this to force targets back to null for those policies.
+// Returns nil without error for a null or unknown list (Create's plan or a
+// not-yet-populated prior state).
+func policiesTargetsNull(ctx context.Context, policiesList types.List) ([]bool, diag.Diagnostics) {
+	if policiesList.IsNull() || policiesList.IsUnknown() {
+		return nil, nil
+	}
+
+	var models []TCOPolicyLogsModel
+	diags := policiesList.ElementsAs(ctx, &models, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	flags := make([]bool, len(models))
+	for i, m := range models {
+		flags[i] = m.Targets.IsNull()
+	}
+	return flags, nil
+}
+
+// suppressUnconfiguredTargets nulls out policy.Targets when the policy at this
+// position had targets left unconfigured, per policiesTargetsNull. index is the
+// position within the source response, which the atomic overwrite/get-company
+// endpoints return in request order — the same assumption every other
+// index-addressed field in this resource (e.g. policies.0.name) already relies on.
+func suppressUnconfiguredTargets(policy *TCOPolicyLogsModel, index int, targetsNull []bool) {
+	if index < len(targetsNull) && targetsNull[index] {
+		policy.Targets = types.ListNull(types.ObjectType{AttrTypes: tcoTargetAttributes()})
+	}
+}
+
+func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tcoPolicys.AtomicOverwriteLogPoliciesResponse, targetsNull []bool) (*TCOPoliciesListModel, diag.Diagnostics) {
 	var policies []*TCOPolicyLogsModel
 	var diags diag.Diagnostics
-	for _, policy := range overwriteResp.GetCreateResponses() {
+	for i, policy := range overwriteResp.GetCreateResponses() {
 		tcoPolicy, dgs := flattenTCOLogsPolicy(ctx, policy.GetPolicy())
 		if dgs.HasError() {
 			diags.Append(dgs...)
 			continue
 		}
+		suppressUnconfiguredTargets(tcoPolicy, i, targetsNull)
 		policies = append(policies, tcoPolicy)
 	}
 
@@ -752,15 +815,19 @@ func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tco
 	return &TCOPoliciesListModel{Policies: policiesList}, nil
 }
 
-func flattenGetTCOPoliciesLogsList(ctx context.Context, getResp *tcoPolicys.GetCompanyPoliciesResponse) (*TCOPoliciesListModel, diag.Diagnostics) {
+// flattenGetTCOPoliciesLogsList also backs the data source's Read, which passes a
+// nil targetsNull: its schema attributes are all Computed (see ConvertAttribute),
+// so there is no config value to stay consistent with and nothing to suppress.
+func flattenGetTCOPoliciesLogsList(ctx context.Context, getResp *tcoPolicys.GetCompanyPoliciesResponse, targetsNull []bool) (*TCOPoliciesListModel, diag.Diagnostics) {
 	var policies []*TCOPolicyLogsModel
 	var diags diag.Diagnostics
-	for _, policy := range getResp.GetPolicies() {
+	for i, policy := range getResp.GetPolicies() {
 		tcoPolicy, dgs := flattenTCOLogsPolicy(ctx, policy)
 		if dgs.HasError() {
 			diags.Append(dgs...)
 			continue
 		}
+		suppressUnconfiguredTargets(tcoPolicy, i, targetsNull)
 		policies = append(policies, tcoPolicy)
 	}
 
