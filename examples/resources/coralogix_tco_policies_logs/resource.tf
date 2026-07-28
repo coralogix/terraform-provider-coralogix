@@ -94,6 +94,28 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
           { daily_quota_percentage = 80, priority = "low" },
         ]
       }
+    },
+    # Dataset routing: route matching logs to one or more targets, each with its
+    # own priority. When `targets` is set, the priority is configured per-target
+    # and the policy-level `priority` must be omitted. Routing to a dataset other
+    # than `logs` requires that log-based dataset to exist in the account.
+    {
+      name       = "Example tco_policy with dataset routing"
+      severities = ["error", "critical"]
+      applications = {
+        rule_type = "starts_with"
+        names     = ["prod"]
+      }
+      targets = [
+        {
+          dataset  = "logs"
+          priority = "high"
+        },
+        {
+          dataset  = "audit_logs"
+          priority = "low"
+        },
+      ]
     }
   ]
 }

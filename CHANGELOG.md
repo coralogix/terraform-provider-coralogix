@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_tco_policies_logs
+- FEAT: Add `targets` for Dataset Routing in Logs TCO — a policy can route matching logs to one or more targets (a `dataspace`/`dataset` pair), each with its own `priority`, `archive_retention_id`, and `quota_based_priority_override`. `priority` is now optional and is configured per-target when `targets` is set; omitting `targets` preserves the existing single-target behavior. Plan-time validation mirrors the backend contract (priority set at the policy level or per-target but not both, a priority required somewhere, a target with a quota override must set a fallback priority, and targets unique by `(dataspace, dataset)`).
+
 # Release 3.8.0
 
 #### resource/coralogix_parsing_rules
