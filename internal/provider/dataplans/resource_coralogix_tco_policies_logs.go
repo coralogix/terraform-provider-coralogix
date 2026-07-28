@@ -476,9 +476,10 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 }
 
 // validateTCOQuotaOverride checks the invariants Coralogix documents for a
-// quota-based override: usage tiers ascend by daily quota percentage, and the
+// quota-based override: the tiers are monotonic — thresholds ascend, priorities
+// never relax as quota fills, and nothing follows a terminal block tier — and the
 // priority the override falls back to once every tier is consumed is at least as
-// restrictive as the last tier. When the override belongs to a target routing
+// restrictive as the last one. When the override belongs to a target routing
 // somewhere other than default/logs it also rejects the high and block tiers that
 // dataset cannot serve. Anything still unknown at plan time is skipped rather than
 // reported, so interpolated values do not produce spurious errors.
@@ -505,9 +506,9 @@ func validateTCOQuotaOverride(ctx context.Context, override types.Object, fallba
 		where = fmt.Sprintf(" for target %q", targetLabel)
 	}
 
-	var lastPriority string
+	var lastPriority, previousPriority string
 	var previousPercentage float64
-	lastPriorityKnown, previousKnown := false, false
+	lastPriorityKnown, previousPriorityKnown, previousKnown := false, false, false
 
 	for _, to := range tierObjects {
 		var tm UsageTierModel
@@ -526,7 +527,29 @@ func validateTCOQuotaOverride(ctx context.Context, override types.Object, fallba
 						lastPriority, where, "medium", "low"),
 				)
 			}
+
+			// Tiers are monotonic: a priority may repeat or tighten as quota fills,
+			// never relax. Block is terminal, and since it is also the most
+			// restrictive priority a repeat of it satisfies monotonicity, so
+			// terminality needs its own check.
+			if previousPriorityKnown {
+				if previousPriority == "block" {
+					resp.Diagnostics.AddAttributeError(
+						path.Root("policies"),
+						"Usage Tier After Block",
+						fmt.Sprintf("`block` is a terminal usage tier and no tier can follow it, but %q does%s.", lastPriority, where),
+					)
+				} else if tcoPoliciesPriorityRestrictiveness[lastPriority] < tcoPoliciesPriorityRestrictiveness[previousPriority] {
+					resp.Diagnostics.AddAttributeError(
+						path.Root("policies"),
+						"Relaxing Usage Tiers",
+						fmt.Sprintf("Usage tier priorities%s cannot become less restrictive as quota fills; found %q after %q.",
+							where, lastPriority, previousPriority),
+					)
+				}
+			}
 		}
+		previousPriority, previousPriorityKnown = lastPriority, lastPriorityKnown
 
 		if tm.DailyQuotaPercentage.IsNull() || tm.DailyQuotaPercentage.IsUnknown() {
 			previousKnown = false
@@ -906,7 +929,7 @@ func quotaBasedPriorityOverrideSchema() schema.SingleNestedAttribute {
 						},
 					},
 				},
-				MarkdownDescription: "Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.",
+				MarkdownDescription: "Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. Tiers must be monotonic: `daily_quota_percentage` ascends and the priority never becomes less restrictive as quota fills. `block` is terminal — no tier can follow it.",
 			},
 		},
 		MarkdownDescription: "Dynamically reassign the priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the applicable fallback priority is used (the policy-level `priority`, or this target's `priority` when using `targets`) — the \"Route the remaining quota to\" in the UI — which must be at least as restrictive as the last tier.",

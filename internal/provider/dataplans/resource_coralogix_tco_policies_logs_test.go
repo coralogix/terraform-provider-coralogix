@@ -440,6 +440,48 @@ func TestValidateTCOTargets(t *testing.T) {
 			wantContains: "ascending `daily_quota_percentage`",
 		},
 		{
+			name: "usage tiers that relax priority as quota fills are rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringValue("block"),
+				QuotaBasedPriorityOverride: tcoQuotaOverrideWith(t, tcoTier(50, "low"), tcoTier(80, "medium")),
+				Targets:                    noTargets,
+			},
+			wantErr:      true,
+			wantContains: "cannot become less restrictive as quota fills",
+		},
+		{
+			name: "a usage tier following a terminal block tier is rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringValue("block"),
+				QuotaBasedPriorityOverride: tcoQuotaOverrideWith(t, tcoTier(50, "block"), tcoTier(80, "block")),
+				Targets:                    noTargets,
+			},
+			wantErr:      true,
+			wantContains: "terminal usage tier",
+		},
+		{
+			name: "monotonic usage tiers that repeat then tighten are accepted",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringValue("block"),
+				QuotaBasedPriorityOverride: tcoQuotaOverrideWith(t, tcoTier(25, "medium"), tcoTier(50, "medium"), tcoTier(80, "low")),
+				Targets:                    noTargets,
+			},
+			wantErr: false,
+		},
+		{
+			name: "an unknown tier priority defers the monotonicity check",
+			model: TCOPolicyLogsModel{
+				Priority: types.StringValue("block"),
+				QuotaBasedPriorityOverride: tcoQuotaOverrideWith(t,
+					tcoTier(25, "low"),
+					UsageTierModel{DailyQuotaPercentage: types.Float64Value(50), Priority: types.StringUnknown()},
+					tcoTier(80, "medium"),
+				),
+				Targets: noTargets,
+			},
+			wantErr: false,
+		},
+		{
 			name: "an unknown tier priority defers the fallback check",
 			model: TCOPolicyLogsModel{
 				Priority: types.StringValue("medium"),
