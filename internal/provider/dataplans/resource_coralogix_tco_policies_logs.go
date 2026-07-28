@@ -368,9 +368,14 @@ func (r *TCOPoliciesLogsResource) ValidateConfig(ctx context.Context, req resour
 }
 
 func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *resource.ValidateConfigResponse) {
-	topLevelPrioritySet := !policy.Priority.IsNull() && !policy.Priority.IsUnknown()
-	topLevelOverrideSet := !utils.ObjIsNullOrUnknown(policy.QuotaBasedPriorityOverride)
-	topLevelArchiveSet := !policy.ArchiveRetentionID.IsNull() && !policy.ArchiveRetentionID.IsUnknown()
+	// These three are Optional-only, so an unknown value still means the user
+	// configured the attribute — it just resolves at apply time. Treat unknown as
+	// set for the conflict check below: deferring would let a config that pairs
+	// targets with a policy-level value reach apply, where extractTcoPolicyLog
+	// takes the targets branch and silently drops it.
+	topLevelPrioritySet := !policy.Priority.IsNull()
+	topLevelOverrideSet := !policy.QuotaBasedPriorityOverride.IsNull()
+	topLevelArchiveSet := !policy.ArchiveRetentionID.IsNull()
 
 	if policy.Targets.IsUnknown() {
 		return
@@ -910,6 +915,7 @@ func quotaBasedPriorityOverrideSchema() schema.SingleNestedAttribute {
 				Required: true,
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeAtMost(3),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -929,7 +935,7 @@ func quotaBasedPriorityOverrideSchema() schema.SingleNestedAttribute {
 						},
 					},
 				},
-				MarkdownDescription: "Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. Tiers must be monotonic: `daily_quota_percentage` ascends and the priority never becomes less restrictive as quota fills. `block` is terminal — no tier can follow it.",
+				MarkdownDescription: "Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. Up to three tiers per policy. Tiers must be monotonic: `daily_quota_percentage` ascends and the priority never becomes less restrictive as quota fills. `block` is terminal — no tier can follow it.",
 			},
 		},
 		MarkdownDescription: "Dynamically reassign the priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the applicable fallback priority is used (the policy-level `priority`, or this target's `priority` when using `targets`) — the \"Route the remaining quota to\" in the UI — which must be at least as restrictive as the last tier.",

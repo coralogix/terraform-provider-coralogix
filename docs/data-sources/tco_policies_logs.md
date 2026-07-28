@@ -59,7 +59,7 @@ Read-Only:
 
 Read-Only:
 
-- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. Tiers must be monotonic: `daily_quota_percentage` ascends and the priority never becomes less restrictive as quota fills. `block` is terminal — no tier can follow it. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override--usage_tiers))
+- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. Up to three tiers per policy. Tiers must be monotonic: `daily_quota_percentage` ascends and the priority never becomes less restrictive as quota fills. `block` is terminal — no tier can follow it. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override--usage_tiers))
 
 <a id="nestedatt--policies--quota_based_priority_override--usage_tiers"></a>
 ### Nested Schema for `policies.quota_based_priority_override.usage_tiers`
@@ -96,7 +96,7 @@ Read-Only:
 
 Read-Only:
 
-- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. Tiers must be monotonic: `daily_quota_percentage` ascends and the priority never becomes less restrictive as quota fills. `block` is terminal — no tier can follow it. (see [below for nested schema](#nestedatt--policies--targets--quota_based_priority_override--usage_tiers))
+- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. Up to three tiers per policy. Tiers must be monotonic: `daily_quota_percentage` ascends and the priority never becomes less restrictive as quota fills. `block` is terminal — no tier can follow it. (see [below for nested schema](#nestedatt--policies--targets--quota_based_priority_override--usage_tiers))
 
 <a id="nestedatt--policies--targets--quota_based_priority_override--usage_tiers"></a>
 ### Nested Schema for `policies.targets.quota_based_priority_override.usage_tiers`

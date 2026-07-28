@@ -440,6 +440,46 @@ func TestValidateTCOTargets(t *testing.T) {
 			wantContains: "ascending `daily_quota_percentage`",
 		},
 		{
+			// priority is Optional-only, so unknown means the user configured it with
+			// an apply-time expression. Deferring would let the conflict through and
+			// the policy-level value would be silently dropped at apply.
+			name: "an unknown policy-level priority alongside targets is rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringUnknown(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets: tcoTargetsList(t,
+					tcoTarget("logs", "default", types.StringValue("high"), nullOverride),
+				),
+			},
+			wantErr:      true,
+			wantContains: "must not be set at the policy level",
+		},
+		{
+			name: "an unknown policy-level archive_retention_id alongside targets is rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringNull(),
+				ArchiveRetentionID:         types.StringUnknown(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets: tcoTargetsList(t,
+					tcoTarget("logs", "default", types.StringValue("high"), nullOverride),
+				),
+			},
+			wantErr:      true,
+			wantContains: "must not be set at the policy level",
+		},
+		{
+			name: "an unknown policy-level quota override alongside targets is rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringNull(),
+				QuotaBasedPriorityOverride: types.ObjectUnknown(quotaBasedPriorityOverrideAttributes()),
+				Targets: tcoTargetsList(t,
+					tcoTarget("logs", "default", types.StringValue("high"), nullOverride),
+				),
+			},
+			wantErr:      true,
+			wantContains: "must not be set at the policy level",
+		},
+		{
 			name: "usage tiers that relax priority as quota fills are rejected",
 			model: TCOPolicyLogsModel{
 				Priority:                   types.StringValue("block"),
