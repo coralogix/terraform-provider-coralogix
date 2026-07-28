@@ -296,6 +296,24 @@ func TestValidateTCOTargets(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "target with an unknown dataspace defers the uniqueness check",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringNull(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets: tcoTargetsList(t,
+					TCOTargetModel{
+						Dataset:                    types.StringValue("logs"),
+						Dataspace:                  types.StringUnknown(),
+						Priority:                   types.StringValue("high"),
+						ArchiveRetentionID:         types.StringNull(),
+						QuotaBasedPriorityOverride: nullOverride,
+					},
+					tcoTarget("logs", "default", types.StringValue("low"), nullOverride),
+				),
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tc := range cases {

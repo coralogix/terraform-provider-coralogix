@@ -399,9 +399,9 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 			)
 		}
 
-		if !tm.Dataset.IsNull() && !tm.Dataset.IsUnknown() {
+		if !tm.Dataset.IsNull() && !tm.Dataset.IsUnknown() && !tm.Dataspace.IsUnknown() {
 			dataspace := "default"
-			if !tm.Dataspace.IsNull() && !tm.Dataspace.IsUnknown() && tm.Dataspace.ValueString() != "" {
+			if !tm.Dataspace.IsNull() && tm.Dataspace.ValueString() != "" {
 				dataspace = tm.Dataspace.ValueString()
 			}
 			key := dataspace + "\x00" + tm.Dataset.ValueString()
