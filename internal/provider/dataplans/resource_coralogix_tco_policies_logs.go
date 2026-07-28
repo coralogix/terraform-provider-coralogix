@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -57,7 +58,19 @@ var (
 	}
 	tcoPoliciesPriorityApiToSchema = utils.ReverseMap(tcoPoliciesPrioritySchemaToApi)
 	tcoPoliciesValidPriorities     = utils.GetKeys(tcoPoliciesPrioritySchemaToApi)
-	tcoPoliciesRuleTypeSchemaToApi = map[string]tcoPolicys.RuleTypeId{
+	// Priorities ordered from least to most restrictive, for checking that a
+	// quota-based override falls back to a priority no less restrictive than its
+	// last usage tier.
+	tcoPoliciesPriorityRestrictiveness = map[string]int{
+		"high":   0,
+		"medium": 1,
+		"low":    2,
+		"block":  3,
+	}
+	// Coralogix only offers high and block when logs are routed to default/logs;
+	// every other target dataset is limited to medium and low.
+	tcoPoliciesDefaultOnlyPriorities = []string{"high", "block"}
+	tcoPoliciesRuleTypeSchemaToApi   = map[string]tcoPolicys.RuleTypeId{
 		"is":              tcoPolicys.RULETYPEID_RULE_TYPE_ID_IS,
 		"is_not":          tcoPolicys.RULETYPEID_RULE_TYPE_ID_IS_NOT,
 		"starts_with":     tcoPolicys.RULETYPEID_RULE_TYPE_ID_START_WITH,
@@ -195,7 +208,7 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 							Validators: []validator.String{
 								stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 							},
-							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. Required unless `targets` is set — with `targets`, the priority is configured per-target instead. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).", tcoPoliciesValidPriorities),
+							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. Required unless `targets` is set — with `targets`, the priority is configured per-target instead. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be at least as restrictive as the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).", tcoPoliciesValidPriorities),
 						},
 						"order": schema.Int64Attribute{
 							Computed:            true,
@@ -289,17 +302,23 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 										MarkdownDescription: "The dataset this target routes to (e.g. `logs`, `audit_logs`). Requires a log-based dataset to exist in the account when routing to anything other than `logs`.",
 									},
 									"dataspace": schema.StringAttribute{
-										Optional:            true,
-										Computed:            true,
-										Default:             stringdefault.StaticString("default"),
-										MarkdownDescription: "The dataspace of the target dataset. Defaults to `default`.",
+										Optional: true,
+										Computed: true,
+										Default:  stringdefault.StaticString("default"),
+										Validators: []validator.String{
+											stringvalidator.RegexMatches(
+												regexp.MustCompile(`^[A-Za-z](?:[A-Za-z0-9_]|\.[A-Za-z0-9_])*$`),
+												"must start with a letter and contain only letters, digits, underscores, and dot-separated segments",
+											),
+										},
+										MarkdownDescription: "The dataspace of the target dataset. Defaults to `default`, which is currently the only dataspace TCO targets support.",
 									},
 									"priority": schema.StringAttribute{
 										Optional: true,
 										Validators: []validator.String{
 											stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 										},
-										MarkdownDescription: fmt.Sprintf("The priority to apply for logs routed to this target. Can be one of %q. Set the priority per-target instead of at the policy level when using `targets`.", tcoPoliciesValidPriorities),
+										MarkdownDescription: fmt.Sprintf("The priority to apply for logs routed to this target. Can be one of %q. Set the priority per-target instead of at the policy level when using `targets`. `high` and `block` are only available when the target is `default`/`logs`; every other dataset is limited to `medium` and `low`.", tcoPoliciesValidPriorities),
 									},
 									"archive_retention_id": schema.StringAttribute{
 										Optional:    true,
@@ -365,6 +384,8 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 				"`priority` is required when `targets` is not set (including as the fallback priority when `quota_based_priority_override` is set).",
 			)
 		}
+		// The legacy path routes to default/logs, so every priority is available.
+		validateTCOQuotaOverride(ctx, policy.QuotaBasedPriorityOverride, policy.Priority, true, "", resp)
 		return
 	}
 
@@ -399,11 +420,15 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 			)
 		}
 
-		if !tm.Dataset.IsNull() && !tm.Dataset.IsUnknown() && !tm.Dataspace.IsUnknown() {
-			dataspace := "default"
-			if !tm.Dataspace.IsNull() && tm.Dataspace.ValueString() != "" {
-				dataspace = tm.Dataspace.ValueString()
-			}
+		dataspace := "default"
+		if !tm.Dataspace.IsNull() && !tm.Dataspace.IsUnknown() && tm.Dataspace.ValueString() != "" {
+			dataspace = tm.Dataspace.ValueString()
+		}
+		// Only judge the routing destination once both halves of it are known;
+		// otherwise defer, the same way the checks above do.
+		routingKnown := !tm.Dataset.IsNull() && !tm.Dataset.IsUnknown() && !tm.Dataspace.IsUnknown()
+
+		if routingKnown {
 			key := dataspace + "\x00" + tm.Dataset.ValueString()
 			if _, dup := seen[key]; dup {
 				resp.Diagnostics.AddAttributeError(
@@ -414,6 +439,23 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 			}
 			seen[key] = struct{}{}
 		}
+
+		allPrioritiesAllowed := !routingKnown || (dataspace == "default" && tm.Dataset.ValueString() == "logs")
+		targetLabel := ""
+		if routingKnown {
+			targetLabel = fmt.Sprintf("%s/%s", dataspace, tm.Dataset.ValueString())
+		}
+
+		if !allPrioritiesAllowed && targetPrioritySet && slices.Contains(tcoPoliciesDefaultOnlyPriorities, tm.Priority.ValueString()) {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("policies"),
+				"Unsupported Target Priority",
+				fmt.Sprintf("Priority %q is only available when routing to `default`/`logs`; target %q must use %q or %q.",
+					tm.Priority.ValueString(), targetLabel, "medium", "low"),
+			)
+		}
+
+		validateTCOQuotaOverride(ctx, tm.QuotaBasedPriorityOverride, tm.Priority, allPrioritiesAllowed, targetLabel, resp)
 	}
 
 	if topLevelPrioritySet || topLevelOverrideSet || topLevelArchiveSet {
@@ -429,6 +471,88 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 			path.Root("policies"),
 			"Missing Priority",
 			"At least one target must set `priority` when `targets` is used.",
+		)
+	}
+}
+
+// validateTCOQuotaOverride checks the invariants Coralogix documents for a
+// quota-based override: usage tiers ascend by daily quota percentage, and the
+// priority the override falls back to once every tier is consumed is at least as
+// restrictive as the last tier. When the override belongs to a target routing
+// somewhere other than default/logs it also rejects the high and block tiers that
+// dataset cannot serve. Anything still unknown at plan time is skipped rather than
+// reported, so interpolated values do not produce spurious errors.
+func validateTCOQuotaOverride(ctx context.Context, override types.Object, fallback types.String, allPrioritiesAllowed bool, targetLabel string, resp *resource.ValidateConfigResponse) {
+	if utils.ObjIsNullOrUnknown(override) {
+		return
+	}
+
+	var model QuotaBasedPriorityOverrideModel
+	if dg := override.As(ctx, &model, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return
+	}
+	if model.UsageTiers.IsNull() || model.UsageTiers.IsUnknown() {
+		return
+	}
+
+	var tierObjects []types.Object
+	if dg := model.UsageTiers.ElementsAs(ctx, &tierObjects, true); dg.HasError() {
+		return
+	}
+
+	where := ""
+	if targetLabel != "" {
+		where = fmt.Sprintf(" for target %q", targetLabel)
+	}
+
+	var lastPriority string
+	var previousPercentage float64
+	lastPriorityKnown, previousKnown := false, false
+
+	for _, to := range tierObjects {
+		var tm UsageTierModel
+		if dg := to.As(ctx, &tm, basetypes.ObjectAsOptions{}); dg.HasError() {
+			return
+		}
+
+		lastPriorityKnown = !tm.Priority.IsNull() && !tm.Priority.IsUnknown()
+		if lastPriorityKnown {
+			lastPriority = tm.Priority.ValueString()
+			if !allPrioritiesAllowed && slices.Contains(tcoPoliciesDefaultOnlyPriorities, lastPriority) {
+				resp.Diagnostics.AddAttributeError(
+					path.Root("policies"),
+					"Unsupported Usage Tier Priority",
+					fmt.Sprintf("Usage tier priority %q is only available when routing to `default`/`logs`; the override%s must use %q or %q.",
+						lastPriority, where, "medium", "low"),
+				)
+			}
+		}
+
+		if tm.DailyQuotaPercentage.IsNull() || tm.DailyQuotaPercentage.IsUnknown() {
+			previousKnown = false
+			continue
+		}
+		percentage := tm.DailyQuotaPercentage.ValueFloat64()
+		if previousKnown && percentage <= previousPercentage {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("policies"),
+				"Unordered Usage Tiers",
+				fmt.Sprintf("`usage_tiers`%s must be ordered by ascending `daily_quota_percentage`; found %g after %g.",
+					where, percentage, previousPercentage),
+			)
+		}
+		previousPercentage, previousKnown = percentage, true
+	}
+
+	if !lastPriorityKnown || fallback.IsNull() || fallback.IsUnknown() {
+		return
+	}
+	if tcoPoliciesPriorityRestrictiveness[fallback.ValueString()] < tcoPoliciesPriorityRestrictiveness[lastPriority] {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("policies"),
+			"Insufficiently Restrictive Fallback Priority",
+			fmt.Sprintf("`priority` %q%s must be at least as restrictive as the last usage tier's priority %q, since it is the fallback applied once all tiers are consumed (most to least restrictive: `block`, `low`, `medium`, `high`).",
+				fallback.ValueString(), where, lastPriority),
 		)
 	}
 }
@@ -785,7 +909,7 @@ func quotaBasedPriorityOverrideSchema() schema.SingleNestedAttribute {
 				MarkdownDescription: "Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.",
 			},
 		},
-		MarkdownDescription: "Dynamically reassign the priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the applicable fallback priority is used (the policy-level `priority`, or this target's `priority` when using `targets`) — the \"Route the remaining quota to\" in the UI — which must be more restrictive than the last tier.",
+		MarkdownDescription: "Dynamically reassign the priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the applicable fallback priority is used (the policy-level `priority`, or this target's `priority` when using `targets`) — the \"Route the remaining quota to\" in the UI — which must be at least as restrictive as the last tier.",
 	}
 }
 

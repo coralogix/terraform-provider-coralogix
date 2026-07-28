@@ -43,6 +43,26 @@ func tcoQuotaOverride(t *testing.T) types.Object {
 	return obj
 }
 
+func tcoQuotaOverrideWith(t *testing.T, tiers ...UsageTierModel) types.Object {
+	ctx := context.Background()
+	list, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: usageTierAttributes()}, tiers)
+	if diags.HasError() {
+		t.Fatalf("build usage tiers: %v", diags)
+	}
+	obj, diags := types.ObjectValueFrom(ctx, quotaBasedPriorityOverrideAttributes(), QuotaBasedPriorityOverrideModel{UsageTiers: list})
+	if diags.HasError() {
+		t.Fatalf("build override: %v", diags)
+	}
+	return obj
+}
+
+func tcoTier(percentage float64, priority string) UsageTierModel {
+	return UsageTierModel{
+		DailyQuotaPercentage: types.Float64Value(percentage),
+		Priority:             types.StringValue(priority),
+	}
+}
+
 func tcoTarget(dataset, dataspace string, priority types.String, override types.Object) TCOTargetModel {
 	return TCOTargetModel{
 		Dataset:                    types.StringValue(dataset),
@@ -311,6 +331,135 @@ func TestValidateTCOTargets(t *testing.T) {
 					},
 					tcoTarget("logs", "default", types.StringValue("low"), nullOverride),
 				),
+			},
+			wantErr: false,
+		},
+		{
+			name: "high priority on a dataset other than logs is rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringNull(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets: tcoTargetsList(t,
+					tcoTarget("audit_logs", "default", types.StringValue("high"), nullOverride),
+				),
+			},
+			wantErr:      true,
+			wantContains: "only available when routing to",
+		},
+		{
+			name: "block priority on a dataset other than logs is rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringNull(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets: tcoTargetsList(t,
+					tcoTarget("audit_logs", "default", types.StringValue("block"), nullOverride),
+				),
+			},
+			wantErr:      true,
+			wantContains: "only available when routing to",
+		},
+		{
+			name: "a usage tier escalating to block on a dataset other than logs is rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringNull(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets: tcoTargetsList(t,
+					tcoTarget("audit_logs", "default", types.StringValue("low"),
+						tcoQuotaOverrideWith(t, tcoTier(80, "block"))),
+				),
+			},
+			wantErr:      true,
+			wantContains: "only available when routing to",
+		},
+		{
+			name: "an unknown dataset defers the per-dataset priority check",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringNull(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets: tcoTargetsList(t,
+					TCOTargetModel{
+						Dataset:                    types.StringUnknown(),
+						Dataspace:                  types.StringValue("default"),
+						Priority:                   types.StringValue("block"),
+						ArchiveRetentionID:         types.StringNull(),
+						QuotaBasedPriorityOverride: nullOverride,
+					},
+				),
+			},
+			wantErr: false,
+		},
+		{
+			name: "a policy-level fallback less restrictive than the last tier is rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringValue("medium"),
+				QuotaBasedPriorityOverride: tcoQuotaOverrideWith(t, tcoTier(80, "low")),
+				Targets:                    noTargets,
+			},
+			wantErr:      true,
+			wantContains: "at least as restrictive as",
+		},
+		{
+			name: "a per-target fallback less restrictive than the last tier is rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringNull(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets: tcoTargetsList(t,
+					tcoTarget("logs", "default", types.StringValue("medium"),
+						tcoQuotaOverrideWith(t, tcoTier(80, "low"))),
+				),
+			},
+			wantErr:      true,
+			wantContains: "at least as restrictive as",
+		},
+		{
+			name: "a fallback equal to the last tier is accepted",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringValue("low"),
+				QuotaBasedPriorityOverride: tcoQuotaOverrideWith(t, tcoTier(80, "low")),
+				Targets:                    noTargets,
+			},
+			wantErr: false,
+		},
+		{
+			name: "a fallback more restrictive than the last tier is accepted",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringValue("block"),
+				QuotaBasedPriorityOverride: tcoQuotaOverrideWith(t, tcoTier(50, "medium"), tcoTier(80, "low")),
+				Targets:                    noTargets,
+			},
+			wantErr: false,
+		},
+		{
+			name: "descending usage tiers are rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringValue("block"),
+				QuotaBasedPriorityOverride: tcoQuotaOverrideWith(t, tcoTier(80, "medium"), tcoTier(50, "low")),
+				Targets:                    noTargets,
+			},
+			wantErr:      true,
+			wantContains: "ascending `daily_quota_percentage`",
+		},
+		{
+			name: "an unknown tier priority defers the fallback check",
+			model: TCOPolicyLogsModel{
+				Priority: types.StringValue("medium"),
+				QuotaBasedPriorityOverride: tcoQuotaOverrideWith(t, UsageTierModel{
+					DailyQuotaPercentage: types.Float64Value(80),
+					Priority:             types.StringUnknown(),
+				}),
+				Targets: noTargets,
+			},
+			wantErr: false,
+		},
+		{
+			name: "an unknown tier percentage defers the ordering check",
+			model: TCOPolicyLogsModel{
+				Priority: types.StringValue("block"),
+				QuotaBasedPriorityOverride: tcoQuotaOverrideWith(t,
+					tcoTier(80, "medium"),
+					UsageTierModel{DailyQuotaPercentage: types.Float64Unknown(), Priority: types.StringValue("low")},
+				),
+				Targets: noTargets,
 			},
 			wantErr: false,
 		},

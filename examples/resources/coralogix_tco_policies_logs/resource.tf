@@ -83,7 +83,7 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
       name        = "Example tco_policy with quota-based override"
       description = "Drop priority as daily quota is consumed"
       # priority is the "Route the remaining quota to" fallback, applied once all
-      # usage_tiers are exhausted. It must be more restrictive than the last tier
+      # usage_tiers are exhausted. It must be at least as restrictive as the last tier
       # (most to least restrictive: block, low, medium, high); the last tier here
       # is "low", so the fallback is "block".
       priority   = "block"
