@@ -409,7 +409,10 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 		}
 
 		targetPrioritySet := !tm.Priority.IsNull() && !tm.Priority.IsUnknown()
-		targetOverrideSet := !utils.ObjIsNullOrUnknown(tm.QuotaBasedPriorityOverride)
+		// Optional-only, so unknown means the user configured an override that
+		// resolves at apply time. It still needs a fallback priority, so count it
+		// as set rather than deferring and letting the request fail at the backend.
+		targetOverrideSet := !tm.QuotaBasedPriorityOverride.IsNull()
 		if targetPrioritySet {
 			anyTargetPriority = true
 		}

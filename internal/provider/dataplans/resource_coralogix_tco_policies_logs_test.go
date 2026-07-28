@@ -440,6 +440,22 @@ func TestValidateTCOTargets(t *testing.T) {
 			wantContains: "ascending `daily_quota_percentage`",
 		},
 		{
+			// The second target satisfies "at least one target must set priority", so
+			// nothing else masks the missing fallback on the first one.
+			name: "an unknown target quota override without a target priority is rejected",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringNull(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets: tcoTargetsList(t,
+					tcoTarget("audit_logs", "default", types.StringNull(),
+						types.ObjectUnknown(quotaBasedPriorityOverrideAttributes())),
+					tcoTarget("logs", "default", types.StringValue("high"), nullOverride),
+				),
+			},
+			wantErr:      true,
+			wantContains: "must also set `priority`",
+		},
+		{
 			// priority is Optional-only, so unknown means the user configured it with
 			// an apply-time expression. Deferring would let the conflict through and
 			// the policy-level value would be silently dropped at apply.
