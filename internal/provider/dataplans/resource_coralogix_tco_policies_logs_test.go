@@ -156,6 +156,7 @@ func TestValidateTCOTargets(t *testing.T) {
 	nullOverride := tcoNullOverride()
 	overrideSet := tcoQuotaOverride(t)
 	noTargets := types.ListNull(types.ObjectType{AttrTypes: tcoTargetAttributes()})
+	unknownTargets := types.ListUnknown(types.ObjectType{AttrTypes: tcoTargetAttributes()})
 
 	cases := []struct {
 		name         string
@@ -265,6 +266,35 @@ func TestValidateTCOTargets(t *testing.T) {
 			},
 			wantErr:      true,
 			wantContains: "At least one target must set",
+		},
+		{
+			name: "unknown targets defers validation even without a policy-level priority",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringNull(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets:                    unknownTargets,
+			},
+			wantErr: false,
+		},
+		{
+			name: "unknown policy-level priority with no targets defers validation",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringUnknown(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets:                    noTargets,
+			},
+			wantErr: false,
+		},
+		{
+			name: "target with an unknown priority defers the priority-presence check",
+			model: TCOPolicyLogsModel{
+				Priority:                   types.StringNull(),
+				QuotaBasedPriorityOverride: nullOverride,
+				Targets: tcoTargetsList(t,
+					tcoTarget("logs", "default", types.StringUnknown(), nullOverride),
+				),
+			},
+			wantErr: false,
 		},
 	}
 

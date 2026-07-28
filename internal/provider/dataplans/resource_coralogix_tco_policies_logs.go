@@ -353,8 +353,12 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 	topLevelOverrideSet := !utils.ObjIsNullOrUnknown(policy.QuotaBasedPriorityOverride)
 	topLevelArchiveSet := !policy.ArchiveRetentionID.IsNull() && !policy.ArchiveRetentionID.IsUnknown()
 
-	if policy.Targets.IsNull() || policy.Targets.IsUnknown() {
-		if !topLevelPrioritySet {
+	if policy.Targets.IsUnknown() {
+		return
+	}
+
+	if policy.Targets.IsNull() {
+		if policy.Priority.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("policies"),
 				"Missing Priority",
@@ -370,6 +374,7 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 	}
 
 	anyTargetPriority := false
+	anyTargetPriorityUnknown := false
 	seen := make(map[string]struct{}, len(targetObjects))
 	for _, to := range targetObjects {
 		var tm TCOTargetModel
@@ -382,8 +387,11 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 		if targetPrioritySet {
 			anyTargetPriority = true
 		}
+		if tm.Priority.IsUnknown() {
+			anyTargetPriorityUnknown = true
+		}
 
-		if targetOverrideSet && !targetPrioritySet {
+		if targetOverrideSet && tm.Priority.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("policies"),
 				"Missing Target Priority",
@@ -416,7 +424,7 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 		)
 	}
 
-	if !anyTargetPriority {
+	if !anyTargetPriority && !anyTargetPriorityUnknown {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("policies"),
 			"Missing Priority",
