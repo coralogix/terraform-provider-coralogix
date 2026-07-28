@@ -88,7 +88,7 @@ Read-Only:
 - `archive_retention_id` (String) Allowing logs routed to this target with a specific retention to be tagged.
 - `dataset` (String) The dataset this target routes to (e.g. `logs`, `audit_logs`). Requires a log-based dataset to exist in the account when routing to anything other than `logs`.
 - `dataspace` (String) The dataspace of the target dataset. Defaults to `default`, which is currently the only dataspace TCO targets support.
-- `priority` (String) The priority to apply for logs routed to this target. Can be one of ["block" "high" "low" "medium"]. Set the priority per-target instead of at the policy level when using `targets`. `high` and `block` are only available when the target is `default`/`logs`; every other dataset is limited to `medium` and `low`.
+- `priority` (String) The priority to apply for logs routed to this target. Can be one of ["block" "high" "low" "medium"]. Required on every target when `targets` is used: the policy-level `priority` is not sent in that case, so a target has no policy default to inherit. `high` and `block` are only available when the target is `default`/`logs`; every other dataset is limited to `medium` and `low`.
 - `quota_based_priority_override` (Attributes) Dynamically reassign the priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the applicable fallback priority is used (the policy-level `priority`, or this target's `priority` when using `targets`) — the "Route the remaining quota to" in the UI — which must be at least as restrictive as the last tier. (see [below for nested schema](#nestedatt--policies--targets--quota_based_priority_override))
 
 <a id="nestedatt--policies--targets--quota_based_priority_override"></a>

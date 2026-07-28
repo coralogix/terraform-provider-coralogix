@@ -264,7 +264,7 @@ func TestValidateTCOTargets(t *testing.T) {
 			wantContains: "unique",
 		},
 		{
-			name: "target with a quota override but no priority is rejected",
+			name: "a target with a quota override but no priority is rejected",
 			model: TCOPolicyLogsModel{
 				Priority:                   types.StringNull(),
 				QuotaBasedPriorityOverride: nullOverride,
@@ -273,10 +273,10 @@ func TestValidateTCOTargets(t *testing.T) {
 				),
 			},
 			wantErr:      true,
-			wantContains: "must also set `priority`",
+			wantContains: "Every target must set `priority`",
 		},
 		{
-			name: "targets present with no priority anywhere is rejected",
+			name: "a target with no priority is rejected",
 			model: TCOPolicyLogsModel{
 				Priority:                   types.StringNull(),
 				QuotaBasedPriorityOverride: nullOverride,
@@ -285,7 +285,7 @@ func TestValidateTCOTargets(t *testing.T) {
 				),
 			},
 			wantErr:      true,
-			wantContains: "At least one target must set",
+			wantContains: "Every target must set `priority`",
 		},
 		{
 			name: "unknown targets defers validation even without a policy-level priority",
@@ -453,7 +453,7 @@ func TestValidateTCOTargets(t *testing.T) {
 				),
 			},
 			wantErr:      true,
-			wantContains: "must also set `priority`",
+			wantContains: "Every target must set `priority`",
 		},
 		{
 			// priority is Optional-only, so unknown means the user configured it with

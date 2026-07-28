@@ -310,6 +310,7 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 												regexp.MustCompile(`^[A-Za-z](?:[A-Za-z0-9_]|\.[A-Za-z0-9_])*$`),
 												"must start with a letter and contain only letters, digits, underscores, and dot-separated segments",
 											),
+											stringvalidator.LengthAtMost(50),
 										},
 										MarkdownDescription: "The dataspace of the target dataset. Defaults to `default`, which is currently the only dataspace TCO targets support.",
 									},
@@ -318,7 +319,7 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 										Validators: []validator.String{
 											stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 										},
-										MarkdownDescription: fmt.Sprintf("The priority to apply for logs routed to this target. Can be one of %q. Set the priority per-target instead of at the policy level when using `targets`. `high` and `block` are only available when the target is `default`/`logs`; every other dataset is limited to `medium` and `low`.", tcoPoliciesValidPriorities),
+										MarkdownDescription: fmt.Sprintf("The priority to apply for logs routed to this target. Can be one of %q. Required on every target when `targets` is used: the policy-level `priority` is not sent in that case, so a target has no policy default to inherit. `high` and `block` are only available when the target is `default`/`logs`; every other dataset is limited to `medium` and `low`.", tcoPoliciesValidPriorities),
 									},
 									"archive_retention_id": schema.StringAttribute{
 										Optional:    true,
@@ -399,8 +400,6 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 		return
 	}
 
-	anyTargetPriority := false
-	anyTargetPriorityUnknown := false
 	seen := make(map[string]struct{}, len(targetObjects))
 	for _, to := range targetObjects {
 		var tm TCOTargetModel
@@ -409,22 +408,17 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 		}
 
 		targetPrioritySet := !tm.Priority.IsNull() && !tm.Priority.IsUnknown()
-		// Optional-only, so unknown means the user configured an override that
-		// resolves at apply time. It still needs a fallback priority, so count it
-		// as set rather than deferring and letting the request fail at the backend.
-		targetOverrideSet := !tm.QuotaBasedPriorityOverride.IsNull()
-		if targetPrioritySet {
-			anyTargetPriority = true
-		}
-		if tm.Priority.IsUnknown() {
-			anyTargetPriorityUnknown = true
-		}
 
-		if targetOverrideSet && tm.Priority.IsNull() {
+		// Setting targets sends the policy-level priority as UNSPECIFIED, so there
+		// is no policy default for a target to fall back on. Every target has to
+		// carry its own priority, or it would be routed — and have its quota
+		// override applied — with nothing behind it. priority is Optional-only, so
+		// an unknown value already counts as configured here.
+		if tm.Priority.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("policies"),
 				"Missing Target Priority",
-				"A target that sets `quota_based_priority_override` must also set `priority` (the fallback priority used once all usage tiers are exhausted).",
+				"Every target must set `priority` when `targets` is used, including as the fallback priority once a `quota_based_priority_override`'s usage tiers are exhausted. The policy-level `priority` is not sent when `targets` is set, so a target cannot inherit one.",
 			)
 		}
 
@@ -474,13 +468,6 @@ func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *re
 		)
 	}
 
-	if !anyTargetPriority && !anyTargetPriorityUnknown {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("policies"),
-			"Missing Priority",
-			"At least one target must set `priority` when `targets` is used.",
-		)
-	}
 }
 
 // validateTCOQuotaOverride checks the invariants Coralogix documents for a
