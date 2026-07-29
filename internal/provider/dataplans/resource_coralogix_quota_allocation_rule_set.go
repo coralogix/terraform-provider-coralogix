@@ -114,7 +114,7 @@ func (r *QuotaAllocationRuleSetResource) Configure(_ context.Context, req resour
 
 func (r *QuotaAllocationRuleSetResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set, and delete removes the account rule set. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Known entity types include `logs`, `browserLogs`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`, but the API may accept additional values.",
+		MarkdownDescription: "Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set, and delete removes the account rule set. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Known entity types include `logs`, `browserLogs`, `browserLogs/v2`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`, but the API may accept additional values, including versioned variants.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -133,7 +133,7 @@ func (r *QuotaAllocationRuleSetResource) Schema(_ context.Context, _ resource.Sc
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
-							MarkdownDescription: "Entity type covered by the rule. Known values include `logs`, `browserLogs`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`.",
+							MarkdownDescription: "Entity type covered by the rule. Known values include `logs`, `browserLogs`, `browserLogs/v2`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`. The API may accept additional values, including versioned variants.",
 						},
 						"allocation": schema.Float64Attribute{
 							Required: true,

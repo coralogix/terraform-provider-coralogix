@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_quota_allocation_rule_set
+- DOCS: Document `browserLogs/v2` as a known `entity_type` value and note that the API may accept versioned variants.
+
 # Release 3.8.0
 
 #### resource/coralogix_parsing_rules
