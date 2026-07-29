@@ -34,12 +34,15 @@ import (
 //
 // On resource update, the framework plans omitted Optional+Computed nested
 // fields as unknown. UseStateForUnknown then copies null prior state for a new
-// list element into the plan. After apply, flatten writes a server id / width
+// list element into the plan. After apply, flatten writes a known id / width
 // and Terraform rejects the null→known transition.
 //
 // The same failure applies to every generated id under a list that can grow on
 // update: sections, rows, widgets, line-chart query definitions, data-table
-// aggregations and annotations. All of them, plus widget width, use
+// aggregations and annotations. Which side generates the id does not matter —
+// expand mints one locally for section/row/widget/query-definition/annotation
+// (ExpandDashboardUUID, ExpandDashboardIDs), while data-table aggregation ids
+// and widget width come back from the API. All of them use
 // UseNonNullStateForUnknown so a new element keeps an unknown plan, while an
 // existing element still preserves non-null state.
 func TestDashboardWidgetComputedPlanModifiersUnknownForNewWidget(t *testing.T) {
@@ -205,10 +208,11 @@ func dashboardUpdateState() tfsdk.State {
 	}
 }
 
-// TestFlattenDashboardWidgetWritesServerAssignedIdAndWidth documents the
-// post-apply half of the add-widget inconsistency: the API assigns a widget
-// id and returns appearance.width 0, and flatten writes both into state.
-func TestFlattenDashboardWidgetWritesServerAssignedIdAndWidth(t *testing.T) {
+// TestFlattenDashboardWidgetWritesGeneratedIdAndWidth documents the post-apply
+// half of the add-widget inconsistency: expandWidget mints a UUID for a widget
+// with no id in config, the API returns appearance.width 0, and flatten writes
+// both into state as known values.
+func TestFlattenDashboardWidgetWritesGeneratedIdAndWidth(t *testing.T) {
 	t.Parallel()
 
 	widgetID := "ad2ca57f-d76a-4940-bd0a-b9bd081649fe"
@@ -238,18 +242,18 @@ func TestFlattenDashboardWidgetWritesServerAssignedIdAndWidth(t *testing.T) {
 		t.Fatalf("flattenDashboardWidget diagnostics = %v", diags)
 	}
 	if flattened.ID.ValueString() != widgetID {
-		t.Fatalf("flattened id = %q, want server-assigned %q", flattened.ID.ValueString(), widgetID)
+		t.Fatalf("flattened id = %q, want generated %q", flattened.ID.ValueString(), widgetID)
 	}
 	if flattened.Width.IsNull() || flattened.Width.ValueInt64() != 0 {
 		t.Fatalf("flattened width = %#v, want 0 from API appearance.width", flattened.Width)
 	}
 }
 
-// TestFlattenDashboardSectionWritesServerAssignedSectionAndRowIds documents the
+// TestFlattenDashboardSectionWritesGeneratedSectionAndRowIds documents the
 // post-apply half of the add-section / add-row inconsistency: expandSection and
-// expandRow generate a UUID for a section or row that has no id in config, and
+// expandRow mint a UUID for a section or row that has no id in config, and
 // flatten writes those ids back into state as known strings.
-func TestFlattenDashboardSectionWritesServerAssignedSectionAndRowIds(t *testing.T) {
+func TestFlattenDashboardSectionWritesGeneratedSectionAndRowIds(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -270,7 +274,7 @@ func TestFlattenDashboardSectionWritesServerAssignedSectionAndRowIds(t *testing.
 		t.Fatalf("flattenDashboardSection diagnostics = %v", diags)
 	}
 	if flattened.ID.ValueString() != sectionID {
-		t.Fatalf("flattened section id = %q, want server-assigned %q", flattened.ID.ValueString(), sectionID)
+		t.Fatalf("flattened section id = %q, want generated %q", flattened.ID.ValueString(), sectionID)
 	}
 
 	var rows []RowModel
@@ -282,15 +286,15 @@ func TestFlattenDashboardSectionWritesServerAssignedSectionAndRowIds(t *testing.
 		t.Fatalf("rows len = %d, want 1", len(rows))
 	}
 	if rows[0].ID.IsNull() || rows[0].ID.IsUnknown() || rows[0].ID.ValueString() != rowID {
-		t.Fatalf("flattened row id = %#v, want known server-assigned %q", rows[0].ID, rowID)
+		t.Fatalf("flattened row id = %#v, want known generated %q", rows[0].ID, rowID)
 	}
 }
 
-// TestFlattenLineChartWritesServerAssignedQueryDefinitionId documents the
-// post-apply half for line charts: the API assigns query_definitions[].id and
-// flatten writes it as a known string. Combined with UseNonNullStateForUnknown,
-// a new line-chart widget can accept that id after apply.
-func TestFlattenLineChartWritesServerAssignedQueryDefinitionId(t *testing.T) {
+// TestFlattenLineChartWritesGeneratedQueryDefinitionId documents the post-apply
+// half for line charts: expandLineChartQueryDefinition mints query_definitions[].id
+// when config omits it, and flatten writes it as a known string. Combined with
+// UseNonNullStateForUnknown, a new line-chart widget can accept that id after apply.
+func TestFlattenLineChartWritesGeneratedQueryDefinitionId(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -339,6 +343,6 @@ func TestFlattenLineChartWritesServerAssignedQueryDefinitionId(t *testing.T) {
 		t.Fatalf("query_definitions len = %d, want 1", len(definitions))
 	}
 	if definitions[0].ID.IsNull() || definitions[0].ID.IsUnknown() || definitions[0].ID.ValueString() != queryDefID {
-		t.Fatalf("query_definitions[0].id = %#v, want known server-assigned %q", definitions[0].ID, queryDefID)
+		t.Fatalf("query_definitions[0].id = %#v, want known generated %q", definitions[0].ID, queryDefID)
 	}
 }
