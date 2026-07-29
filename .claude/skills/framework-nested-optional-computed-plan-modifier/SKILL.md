@@ -1,6 +1,6 @@
 ---
 name: framework-nested-optional-computed-plan-modifier
-description: "Use when nested Optional+Computed list/set objects fail after apply with null→known on add. Prefer UseNonNullStateForUnknown only for immutable/server-only values. Do NOT use for top-level IDs or configurable defaults without a set→remove check."
+description: "Use when nested Optional+Computed list/set add fails after apply with null→known. Prefer UseNonNullStateForUnknown for immutable/server-only ids only; verify set→remove before configurable defaults."
 ---
 
 # Nested Optional+Computed Plan Modifier
