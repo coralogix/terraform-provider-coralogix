@@ -63,7 +63,7 @@ func V3() schema.Schema {
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Optional human-readable description of the alert, shown in the Coralogix UI next to the alert definition.",
+				MarkdownDescription: "Optional human-readable description of the alert, shown in the Coralogix UI next to the alert definition. The Coralogix UI does not render Markdown natively, but downstream notification channels (such as Slack) will parse and render compatible Markdown included in this string.",
 			},
 			"enabled": schema.BoolAttribute{
 				Optional:            true,
