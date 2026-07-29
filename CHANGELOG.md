@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- DOC: Document that `no_data_policy.state` accepts `OK`, `ALERTING`, `KEEP_LAST`, and `NO_DATA` (rejecting the protobuf `UNSPECIFIED` sentinel), and that `auto_retire_seconds` is only honored for `ALERTING` / `KEEP_LAST` / `NO_DATA`.
+
 # Release 3.8.0
 
 #### resource/coralogix_parsing_rules

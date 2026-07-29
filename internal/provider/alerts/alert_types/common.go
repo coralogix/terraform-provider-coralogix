@@ -119,6 +119,8 @@ var (
 	ValidAutoRetireTimeframes           = utils.GetKeys(AutoRetireTimeframeSchemaToProtoMap)
 
 	NoDataPolicyStateProtoToSchemaMap = map[alerts.NoDataPolicyState]string{
+		// UNSPECIFIED is a protobuf sentinel, not a UI/user-facing value. It remains in the
+		// proto→schema map so reads/imports that still see it from the API can flatten safely.
 		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_UNSPECIFIED: "UNSPECIFIED",
 		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_OK:          "OK",
 		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_ALERTING:    "ALERTING",
@@ -126,7 +128,8 @@ var (
 		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_NO_DATA:     "NO_DATA",
 	}
 	NoDataPolicyStateSchemaToProtoMap = utils.ReverseMap(NoDataPolicyStateProtoToSchemaMap)
-	ValidNoDataPolicyStates           = utils.GetKeys(NoDataPolicyStateSchemaToProtoMap)
+	// User-facing values only — exclude the protobuf UNSPECIFIED sentinel.
+	ValidNoDataPolicyStates = []string{"OK", "ALERTING", "KEEP_LAST", "NO_DATA"}
 
 	LogsRatioTimeWindowValueProtoToSchemaMap = map[alerts.LogsRatioTimeWindowValue]string{
 		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED: "5_MINUTES",

@@ -586,8 +586,10 @@ func noDataPolicySchema() schema.SingleNestedAttribute {
 		},
 		Attributes: map[string]schema.Attribute{
 			"auto_retire_seconds": schema.Int64Attribute{
-				Optional:            true,
-				MarkdownDescription: "The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds.",
+				Optional: true,
+				MarkdownDescription: "The timeframe in seconds for auto retiring values that were detected as no-data. " +
+					"Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`. " +
+					"When `state` is `OK`, the Coralogix UI disables auto-retire (\"Never\") and a later UI save may clear this value.",
 			},
 			"state": schema.StringAttribute{
 				Optional: true,
@@ -595,7 +597,11 @@ func noDataPolicySchema() schema.SingleNestedAttribute {
 				Validators: []validator.String{
 					stringvalidator.OneOf(alerttypes.ValidNoDataPolicyStates...),
 				},
-				MarkdownDescription: fmt.Sprintf("No-data policy state. Valid values: %q.", alerttypes.ValidNoDataPolicyStates),
+				MarkdownDescription: fmt.Sprintf(
+					"No-data policy state. Valid values: %q. "+
+						"`UNSPECIFIED` is a protobuf sentinel (not a UI option) and is rejected in configuration.",
+					alerttypes.ValidNoDataPolicyStates,
+				),
 			},
 		},
 	}
