@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- DOCS: Clarify the `description` attribute's schema description so the generated registry docs explain the field instead of restating its name.
+
 # Release 3.8.0
 
 #### resource/coralogix_parsing_rules
