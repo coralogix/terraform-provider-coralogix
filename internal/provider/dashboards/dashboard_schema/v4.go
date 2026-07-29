@@ -76,7 +76,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 								Optional: true,
 								Computed: true,
 								PlanModifiers: []planmodifier.String{
-									stringplanmodifier.UseStateForUnknown(),
+									stringplanmodifier.UseNonNullStateForUnknown(),
 								},
 							},
 							"rows": schema.ListNestedAttribute{
@@ -86,7 +86,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 											Optional: true,
 											Computed: true,
 											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
+												stringplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 										"height": schema.Int64Attribute{
@@ -1181,7 +1181,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 						Optional: true,
 						Computed: true,
 						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.UseStateForUnknown(),
+							stringplanmodifier.UseNonNullStateForUnknown(),
 						},
 					},
 					"name": schema.StringAttribute{

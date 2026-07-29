@@ -23,7 +23,9 @@ import (
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // TestDashboardWidgetComputedPlanModifiersUnknownForNewWidget reproduces the
@@ -35,9 +37,11 @@ import (
 // list element into the plan. After apply, flatten writes a server id / width
 // and Terraform rejects the null→known transition.
 //
-// Nested server-assigned ids (widget, line-chart query definition, data-table
-// aggregation) and widget width use UseNonNullStateForUnknown so a new element
-// keeps an unknown plan, while an existing element still preserves non-null state.
+// The same failure applies to every generated id under a list that can grow on
+// update: sections, rows, widgets, line-chart query definitions, data-table
+// aggregations and annotations. All of them, plus widget width, use
+// UseNonNullStateForUnknown so a new element keeps an unknown plan, while an
+// existing element still preserves non-null state.
 func TestDashboardWidgetComputedPlanModifiersUnknownForNewWidget(t *testing.T) {
 	t.Parallel()
 
@@ -49,8 +53,20 @@ func TestDashboardWidgetComputedPlanModifiersUnknownForNewWidget(t *testing.T) {
 		segments []string
 	}{
 		{
+			name:     "section_id",
+			segments: []string{"layout", "sections", "id"},
+		},
+		{
+			name:     "row_id",
+			segments: []string{"layout", "sections", "rows", "id"},
+		},
+		{
 			name:     "widget_id",
 			segments: []string{"layout", "sections", "rows", "widgets", "id"},
+		},
+		{
+			name:     "annotation_id",
+			segments: []string{"annotations", "id"},
 		},
 		{
 			name: "line_chart_query_definition_id",
@@ -86,6 +102,7 @@ func TestDashboardWidgetComputedPlanModifiersUnknownForNewWidget(t *testing.T) {
 			req := planmodifier.StringRequest{
 				ConfigValue: types.StringNull(),
 				PlanValue:   types.StringUnknown(),
+				State:       dashboardUpdateState(),
 				StateValue:  types.StringNull(),
 			}
 			resp := &planmodifier.StringResponse{PlanValue: types.StringUnknown()}
@@ -111,6 +128,7 @@ func TestDashboardWidgetComputedPlanModifiersUnknownForNewWidget(t *testing.T) {
 			req := planmodifier.StringRequest{
 				ConfigValue: types.StringNull(),
 				PlanValue:   types.StringUnknown(),
+				State:       dashboardUpdateState(),
 				StateValue:  state,
 			}
 			resp := &planmodifier.StringResponse{PlanValue: types.StringUnknown()}
@@ -134,6 +152,7 @@ func TestDashboardWidgetComputedPlanModifiersUnknownForNewWidget(t *testing.T) {
 		req := planmodifier.Int64Request{
 			ConfigValue: types.Int64Null(),
 			PlanValue:   types.Int64Unknown(),
+			State:       dashboardUpdateState(),
 			StateValue:  types.Int64Null(),
 		}
 		resp := &planmodifier.Int64Response{PlanValue: types.Int64Unknown()}
@@ -158,6 +177,7 @@ func TestDashboardWidgetComputedPlanModifiersUnknownForNewWidget(t *testing.T) {
 		req := planmodifier.Int64Request{
 			ConfigValue: types.Int64Null(),
 			PlanValue:   types.Int64Unknown(),
+			State:       dashboardUpdateState(),
 			StateValue:  state,
 		}
 		resp := &planmodifier.Int64Response{PlanValue: types.Int64Unknown()}
@@ -169,6 +189,20 @@ func TestDashboardWidgetComputedPlanModifiersUnknownForNewWidget(t *testing.T) {
 			t.Fatalf("existing widget width plan = %#v, want prior state %#v", resp.PlanValue, state)
 		}
 	})
+}
+
+// dashboardUpdateState returns a plan-modifier request State that is non-null,
+// which is what the framework passes on update. UseStateForUnknown returns
+// early when the whole prior state is null (create), so without this the
+// new-element subtests would pass with either modifier and prove nothing.
+// Only State.Raw null-ness is read, so an empty object value is enough.
+func dashboardUpdateState() tfsdk.State {
+	return tfsdk.State{
+		Raw: tftypes.NewValue(
+			tftypes.Object{AttributeTypes: map[string]tftypes.Type{}},
+			map[string]tftypes.Value{},
+		),
+	}
 }
 
 // TestFlattenDashboardWidgetWritesServerAssignedIdAndWidth documents the
@@ -208,6 +242,47 @@ func TestFlattenDashboardWidgetWritesServerAssignedIdAndWidth(t *testing.T) {
 	}
 	if flattened.Width.IsNull() || flattened.Width.ValueInt64() != 0 {
 		t.Fatalf("flattened width = %#v, want 0 from API appearance.width", flattened.Width)
+	}
+}
+
+// TestFlattenDashboardSectionWritesServerAssignedSectionAndRowIds documents the
+// post-apply half of the add-section / add-row inconsistency: expandSection and
+// expandRow generate a UUID for a section or row that has no id in config, and
+// flatten writes those ids back into state as known strings.
+func TestFlattenDashboardSectionWritesServerAssignedSectionAndRowIds(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	sectionID := "1f3d9f0a-6c1e-4a35-9a2f-1d4b1f0a7c11"
+	rowID := "2a4e8b1c-7d2f-4b46-8b3e-2e5c2a1b8d22"
+	height := int32(19)
+
+	flattened, diags := flattenDashboardSection(ctx, &dashboardservice.Section{
+		Id: &dashboardservice.UUID{Value: &sectionID},
+		Rows: []dashboardservice.Row{
+			{
+				Id:         &dashboardservice.UUID{Value: &rowID},
+				Appearance: &dashboardservice.RowAppearance{Height: &height},
+			},
+		},
+	})
+	if diags.HasError() {
+		t.Fatalf("flattenDashboardSection diagnostics = %v", diags)
+	}
+	if flattened.ID.ValueString() != sectionID {
+		t.Fatalf("flattened section id = %q, want server-assigned %q", flattened.ID.ValueString(), sectionID)
+	}
+
+	var rows []RowModel
+	diags = flattened.Rows.ElementsAs(ctx, &rows, false)
+	if diags.HasError() {
+		t.Fatalf("ElementsAs rows: %v", diags)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("rows len = %d, want 1", len(rows))
+	}
+	if rows[0].ID.IsNull() || rows[0].ID.IsUnknown() || rows[0].ID.ValueString() != rowID {
+		t.Fatalf("flattened row id = %#v, want known server-assigned %q", rows[0].ID, rowID)
 	}
 }
 
