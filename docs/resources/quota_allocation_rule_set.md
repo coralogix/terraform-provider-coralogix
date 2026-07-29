@@ -3,12 +3,12 @@
 page_title: "coralogix_quota_allocation_rule_set Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set, and delete removes the account rule set. Requires team-quota-rules:Read and team-quota-rules:Manage permissions. Known entity types include logs, browserLogs, spans, metrics, sessionRecordings, cpuProfiles, and olly, but the API may accept additional values.
+  Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set, and delete removes the account rule set. Requires team-quota-rules:Read and team-quota-rules:Manage permissions. Known entity types include logs, browserLogs, browserLogs/v2, spans, metrics, sessionRecordings, cpuProfiles, and olly, but the API may accept additional values, including versioned variants.
 ---
 
 # coralogix_quota_allocation_rule_set (Resource)
 
-Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set, and delete removes the account rule set. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Known entity types include `logs`, `browserLogs`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`, but the API may accept additional values.
+Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set, and delete removes the account rule set. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Known entity types include `logs`, `browserLogs`, `browserLogs/v2`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`, but the API may accept additional values, including versioned variants.
 
 ## Example Usage
 
@@ -66,7 +66,7 @@ Required:
 - `allocation` (Number) Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative.
 - `can_overflow` (Boolean) Whether this entity type can overflow beyond its allocation.
 - `enabled` (Boolean) Whether the quota allocation rule is enabled.
-- `entity_type` (String) Entity type covered by the rule. Known values include `logs`, `browserLogs`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`.
+- `entity_type` (String) Entity type covered by the rule. Known values include `logs`, `browserLogs`, `browserLogs/v2`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`. The API may accept additional values, including versioned variants.
 
 Optional:
 
