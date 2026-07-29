@@ -1,6 +1,6 @@
 ---
 name: framework-nested-optional-computed-plan-modifier
-description: "Use when nested Optional+Computed fields (list/set objects) cause 'Provider produced inconsistent result after apply' on add. Prefer UseNonNullStateForUnknown over UseStateForUnknown. Do NOT use for top-level IDs that must always preserve state."
+description: "Use when nested Optional+Computed list/set objects cause 'inconsistent result after apply' on add. Prefer UseNonNullStateForUnknown over UseStateForUnknown. Do NOT use for top-level IDs."
 ---
 
 # Nested Optional+Computed Plan Modifier
