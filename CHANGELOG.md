@@ -1,5 +1,11 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+- FIX: Adding a widget without `id` or `width` no longer fails with "Provider produced inconsistent result after apply". Nested widget `id`/`width` now use `UseNonNullStateForUnknown` so new widgets stay `(known after apply)` instead of planning as null.
+
+#### provider
+- CHORE: Bump `terraform-plugin-framework` to v1.17.0.
+
 # Release 3.8.0
 
 #### resource/coralogix_parsing_rules

@@ -104,7 +104,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 														Optional: true,
 														Computed: true,
 														PlanModifiers: []planmodifier.String{
-															stringplanmodifier.UseStateForUnknown(),
+															stringplanmodifier.UseNonNullStateForUnknown(),
 														},
 													},
 													"title": schema.StringAttribute{
@@ -838,7 +838,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 														Optional: true,
 														Computed: true,
 														PlanModifiers: []planmodifier.Int64{
-															int64planmodifier.UseStateForUnknown(),
+															int64planmodifier.UseNonNullStateForUnknown(),
 														},
 														DeprecationMessage:  "Widget appearance.width is ignored by the API and has no effect.",
 														MarkdownDescription: "Deprecated: the widget appearance.width field is ignored by the API and has no effect.",
