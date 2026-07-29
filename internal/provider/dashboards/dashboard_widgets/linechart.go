@@ -86,7 +86,7 @@ func LineChartSchema() schema.Attribute {
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Computed: true, PlanModifiers: []planmodifier.String{
-								stringplanmodifier.UseStateForUnknown(),
+								stringplanmodifier.UseNonNullStateForUnknown(),
 							},
 						},
 						"query": schema.SingleNestedAttribute{

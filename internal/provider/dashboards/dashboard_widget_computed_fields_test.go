@@ -20,6 +20,7 @@ import (
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
+	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -34,59 +35,94 @@ import (
 // list element into the plan. After apply, flatten writes a server id / width
 // and Terraform rejects the null→known transition.
 //
-// Widget id/width use UseNonNullStateForUnknown so a new widget keeps an
-// unknown plan, while an existing widget still preserves non-null state.
+// Nested server-assigned ids (widget, line-chart query definition, data-table
+// aggregation) and widget width use UseNonNullStateForUnknown so a new element
+// keeps an unknown plan, while an existing element still preserves non-null state.
 func TestDashboardWidgetComputedPlanModifiersUnknownForNewWidget(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	root := dashboardschema.V4()
 
-	t.Run("id/new_widget_stays_unknown", func(t *testing.T) {
-		t.Parallel()
+	stringCases := []struct {
+		name     string
+		segments []string
+	}{
+		{
+			name:     "widget_id",
+			segments: []string{"layout", "sections", "rows", "widgets", "id"},
+		},
+		{
+			name: "line_chart_query_definition_id",
+			segments: []string{
+				"layout", "sections", "rows", "widgets", "definition",
+				"line_chart", "query_definitions", "id",
+			},
+		},
+		{
+			name: "data_table_logs_aggregation_id",
+			segments: []string{
+				"layout", "sections", "rows", "widgets", "definition",
+				"data_table", "query", "logs", "grouping", "aggregations", "id",
+			},
+		},
+		{
+			name: "data_table_spans_aggregation_id",
+			segments: []string{
+				"layout", "sections", "rows", "widgets", "definition",
+				"data_table", "query", "spans", "grouping", "aggregations", "id",
+			},
+		},
+	}
 
-		attr := dashboardMustType[schema.StringAttribute](t,
-			dashboardResolveAttribute(t, root.Attributes, "layout", "sections", "rows", "widgets", "id"),
-			"widget id",
-		)
-		req := planmodifier.StringRequest{
-			ConfigValue: types.StringNull(),
-			PlanValue:   types.StringUnknown(),
-			StateValue:  types.StringNull(),
-		}
-		resp := &planmodifier.StringResponse{PlanValue: types.StringUnknown()}
-		for _, modifier := range attr.PlanModifiers {
-			modifier.PlanModifyString(ctx, req, resp)
-			req.PlanValue = resp.PlanValue
-		}
-		if !resp.PlanValue.IsUnknown() {
-			t.Fatalf("new widget id plan = %#v, want unknown so Terraform accepts a server-generated id after apply "+
-				"(UseStateForUnknown would copy null state and then fail: was null, but now cty.StringVal(...))", resp.PlanValue)
-		}
-	})
+	for _, tc := range stringCases {
+		t.Run(tc.name+"/new_stays_unknown", func(t *testing.T) {
+			t.Parallel()
 
-	t.Run("id/existing_widget_keeps_state", func(t *testing.T) {
-		t.Parallel()
+			attr := dashboardMustType[schema.StringAttribute](t,
+				dashboardResolveAttribute(t, root.Attributes, tc.segments...),
+				tc.name,
+			)
+			req := planmodifier.StringRequest{
+				ConfigValue: types.StringNull(),
+				PlanValue:   types.StringUnknown(),
+				StateValue:  types.StringNull(),
+			}
+			resp := &planmodifier.StringResponse{PlanValue: types.StringUnknown()}
+			for _, modifier := range attr.PlanModifiers {
+				modifier.PlanModifyString(ctx, req, resp)
+				req.PlanValue = resp.PlanValue
+			}
+			if !resp.PlanValue.IsUnknown() {
+				t.Fatalf("new %s plan = %#v, want unknown so Terraform accepts a server-generated id after apply "+
+					"(UseStateForUnknown would copy null state and then fail: was null, but now cty.StringVal(...))",
+					tc.name, resp.PlanValue)
+			}
+		})
 
-		attr := dashboardMustType[schema.StringAttribute](t,
-			dashboardResolveAttribute(t, root.Attributes, "layout", "sections", "rows", "widgets", "id"),
-			"widget id",
-		)
-		state := types.StringValue("ad2ca57f-d76a-4940-bd0a-b9bd081649fe")
-		req := planmodifier.StringRequest{
-			ConfigValue: types.StringNull(),
-			PlanValue:   types.StringUnknown(),
-			StateValue:  state,
-		}
-		resp := &planmodifier.StringResponse{PlanValue: types.StringUnknown()}
-		for _, modifier := range attr.PlanModifiers {
-			modifier.PlanModifyString(ctx, req, resp)
-			req.PlanValue = resp.PlanValue
-		}
-		if !resp.PlanValue.Equal(state) {
-			t.Fatalf("existing widget id plan = %#v, want prior state %#v", resp.PlanValue, state)
-		}
-	})
+		t.Run(tc.name+"/existing_keeps_state", func(t *testing.T) {
+			t.Parallel()
+
+			attr := dashboardMustType[schema.StringAttribute](t,
+				dashboardResolveAttribute(t, root.Attributes, tc.segments...),
+				tc.name,
+			)
+			state := types.StringValue("ad2ca57f-d76a-4940-bd0a-b9bd081649fe")
+			req := planmodifier.StringRequest{
+				ConfigValue: types.StringNull(),
+				PlanValue:   types.StringUnknown(),
+				StateValue:  state,
+			}
+			resp := &planmodifier.StringResponse{PlanValue: types.StringUnknown()}
+			for _, modifier := range attr.PlanModifiers {
+				modifier.PlanModifyString(ctx, req, resp)
+				req.PlanValue = resp.PlanValue
+			}
+			if !resp.PlanValue.Equal(state) {
+				t.Fatalf("existing %s plan = %#v, want prior state %#v", tc.name, resp.PlanValue, state)
+			}
+		})
+	}
 
 	t.Run("width/new_widget_stays_unknown", func(t *testing.T) {
 		t.Parallel()
@@ -172,5 +208,62 @@ func TestFlattenDashboardWidgetWritesServerAssignedIdAndWidth(t *testing.T) {
 	}
 	if flattened.Width.IsNull() || flattened.Width.ValueInt64() != 0 {
 		t.Fatalf("flattened width = %#v, want 0 from API appearance.width", flattened.Width)
+	}
+}
+
+// TestFlattenLineChartWritesServerAssignedQueryDefinitionId documents the
+// post-apply half for line charts: the API assigns query_definitions[].id and
+// flatten writes it as a known string. Combined with UseNonNullStateForUnknown,
+// a new line-chart widget can accept that id after apply.
+func TestFlattenLineChartWritesServerAssignedQueryDefinitionId(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	widgetID := "ad2ca57f-d76a-4940-bd0a-b9bd081649fe"
+	queryDefID := "b1e2c3d4-e5f6-7890-abcd-ef1234567890"
+	title := "line chart"
+	promql := "vector(1)"
+	unit := dashboardservice.COMMONUNIT_UNIT_UNSPECIFIED
+	scale := dashboardservice.SCALETYPE_SCALE_TYPE_UNSPECIFIED
+	dataMode := dashboardservice.WIDGETSCOMMONDATAMODETYPE_DATA_MODE_TYPE_HIGH_UNSPECIFIED
+
+	flattened, diags := flattenDashboardWidget(ctx, &dashboardservice.Widget{
+		Id:    &dashboardservice.UUID{Value: &widgetID},
+		Title: &title,
+		Definition: &dashboardservice.WidgetDefinition{
+			LineChart: &dashboardservice.LineChart{
+				QueryDefinitions: []dashboardservice.LineChartQueryDefinition{
+					{
+						Id: queryDefID,
+						Query: dashboardservice.LineChartQuery{
+							Metrics: &dashboardservice.LineChartMetricsQuery{
+								PromqlQuery: &dashboardservice.PromQlQuery{Value: &promql},
+							},
+						},
+						Unit:         &unit,
+						ScaleType:    &scale,
+						DataModeType: &dataMode,
+					},
+				},
+			},
+		},
+	})
+	if diags.HasError() {
+		t.Fatalf("flattenDashboardWidget diagnostics = %v", diags)
+	}
+	if flattened.Definition == nil || flattened.Definition.LineChart == nil {
+		t.Fatal("flattened definition.line_chart is nil")
+	}
+
+	var definitions []dashboardwidgets.LineChartQueryDefinitionModel
+	diags = flattened.Definition.LineChart.QueryDefinitions.ElementsAs(ctx, &definitions, false)
+	if diags.HasError() {
+		t.Fatalf("ElementsAs query_definitions: %v", diags)
+	}
+	if len(definitions) != 1 {
+		t.Fatalf("query_definitions len = %d, want 1", len(definitions))
+	}
+	if definitions[0].ID.IsNull() || definitions[0].ID.IsUnknown() || definitions[0].ID.ValueString() != queryDefID {
+		t.Fatalf("query_definitions[0].id = %#v, want known server-assigned %q", definitions[0].ID, queryDefID)
 	}
 }
