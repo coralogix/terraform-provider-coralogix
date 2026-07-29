@@ -147,8 +147,6 @@ func TestAccCoralogixResourceDashboardContentJSONFolderOverride(t *testing.T) {
 }
 
 func TestAccCoralogixResourceDashboardContentJSONDynamicQueriesTable(t *testing.T) {
-	t.Skip("skipping due to backend flakiness")
-
 	ctx := context.Background()
 	var client *dashboardservice.DashboardServiceAPIService
 	fixture := dashboardContentJSONDynamicQueriesTableTestName
