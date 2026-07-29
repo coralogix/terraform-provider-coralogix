@@ -83,7 +83,7 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
       name        = "Example tco_policy with quota-based override"
       description = "Drop priority as daily quota is consumed"
       # priority is the "Route the remaining quota to" fallback, applied once all
-      # usage_tiers are exhausted. It must be more restrictive than the last tier
+      # usage_tiers are exhausted. It must be at least as restrictive as the last tier
       # (most to least restrictive: block, low, medium, high); the last tier here
       # is "low", so the fallback is "block".
       priority   = "block"
@@ -94,6 +94,26 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
           { daily_quota_percentage = 80, priority = "low" },
         ]
       }
+    },
+    # Dataset routing: route matching logs to one or more targets, each with its
+    # own priority. When `targets` is set, the priority is configured per-target
+    # and the policy-level `priority` must be omitted. This example only routes to
+    # the built-in `logs` dataset so it applies in any account; add further target
+    # entries to route to other datasets that already exist in the account (e.g.
+    # `audit_logs`) — priorities other than `medium`/`low` are unavailable there.
+    {
+      name       = "Example tco_policy with dataset routing"
+      severities = ["error", "critical"]
+      applications = {
+        rule_type = "starts_with"
+        names     = ["prod"]
+      }
+      targets = [
+        {
+          dataset  = "logs"
+          priority = "high"
+        },
+      ]
     }
   ]
 }

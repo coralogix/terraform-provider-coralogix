@@ -24,6 +24,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -256,6 +257,58 @@ func testAccCoralogixResourceTCOPoliciesLogsDpxlExpression() string {
       description     = "DPXL-based matcher for the TCO policy"
       priority        = "high"
       dpxl_expression = "<v1> $d.severity == 'INFO'"
+    },
+  ]
+}
+`
+}
+
+func TestAccCoralogixResourceTCOPoliciesLogs_targets(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesLogsTargets(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with dataset routing"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesResourceName, "policies.0.priority"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "1"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "logs"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataspace", "default"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority", "high"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceTCOPoliciesLogsTargets() string {
+	return `resource "coralogix_tco_policies_logs" "test" {
+  policies = [
+    {
+      name       = "Example tco_policy with dataset routing"
+      severities = ["error", "critical"]
+      applications = {
+        rule_type = "starts_with"
+        names     = ["prod"]
+      }
+      subsystems = {
+        rule_type = "starts_with"
+        names     = ["web"]
+      }
+      targets = [
+        {
+          dataset  = "logs"
+          priority = "high"
+        },
+      ]
     },
   ]
 }

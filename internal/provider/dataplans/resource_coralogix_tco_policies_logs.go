@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -46,9 +47,10 @@ import (
 )
 
 var (
-	_                              resource.ResourceWithConfigure   = &TCOPoliciesLogsResource{}
-	_                              resource.ResourceWithImportState = &TCOPoliciesLogsResource{}
-	tcoPoliciesPrioritySchemaToApi                                  = map[string]tcoPolicys.QuotaV1Priority{
+	_                              resource.ResourceWithConfigure      = &TCOPoliciesLogsResource{}
+	_                              resource.ResourceWithImportState    = &TCOPoliciesLogsResource{}
+	_                              resource.ResourceWithValidateConfig = &TCOPoliciesLogsResource{}
+	tcoPoliciesPrioritySchemaToApi                                     = map[string]tcoPolicys.QuotaV1Priority{
 		"block":  tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_BLOCK,
 		"high":   tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_HIGH,
 		"low":    tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_LOW,
@@ -56,7 +58,19 @@ var (
 	}
 	tcoPoliciesPriorityApiToSchema = utils.ReverseMap(tcoPoliciesPrioritySchemaToApi)
 	tcoPoliciesValidPriorities     = utils.GetKeys(tcoPoliciesPrioritySchemaToApi)
-	tcoPoliciesRuleTypeSchemaToApi = map[string]tcoPolicys.RuleTypeId{
+	// Priorities ordered from least to most restrictive, for checking that a
+	// quota-based override falls back to a priority no less restrictive than its
+	// last usage tier.
+	tcoPoliciesPriorityRestrictiveness = map[string]int{
+		"high":   0,
+		"medium": 1,
+		"low":    2,
+		"block":  3,
+	}
+	// Coralogix only offers high and block when logs are routed to default/logs;
+	// every other target dataset is limited to medium and low.
+	tcoPoliciesDefaultOnlyPriorities = []string{"high", "block"}
+	tcoPoliciesRuleTypeSchemaToApi   = map[string]tcoPolicys.RuleTypeId{
 		"is":              tcoPolicys.RULETYPEID_RULE_TYPE_ID_IS,
 		"is_not":          tcoPolicys.RULETYPEID_RULE_TYPE_ID_IS_NOT,
 		"starts_with":     tcoPolicys.RULETYPEID_RULE_TYPE_ID_START_WITH,
@@ -110,6 +124,7 @@ type TCOPolicyLogsModel struct {
 	ArchiveRetentionID         types.String `tfsdk:"archive_retention_id"`
 	DpxlExpression             types.String `tfsdk:"dpxl_expression"`
 	QuotaBasedPriorityOverride types.Object `tfsdk:"quota_based_priority_override"` // QuotaBasedPriorityOverrideModel
+	Targets                    types.List   `tfsdk:"targets"`                       // []TCOTargetModel
 }
 
 type TCORuleModel struct {
@@ -124,6 +139,14 @@ type QuotaBasedPriorityOverrideModel struct {
 type UsageTierModel struct {
 	DailyQuotaPercentage types.Float64 `tfsdk:"daily_quota_percentage"`
 	Priority             types.String  `tfsdk:"priority"`
+}
+
+type TCOTargetModel struct {
+	Dataset                    types.String `tfsdk:"dataset"`
+	Dataspace                  types.String `tfsdk:"dataspace"`
+	Priority                   types.String `tfsdk:"priority"`
+	ArchiveRetentionID         types.String `tfsdk:"archive_retention_id"`
+	QuotaBasedPriorityOverride types.Object `tfsdk:"quota_based_priority_override"` // QuotaBasedPriorityOverrideModel
 }
 
 func (r *TCOPoliciesLogsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -181,11 +204,11 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 							MarkdownDescription: "Determines weather the policy will be enabled. True by default.",
 						},
 						"priority": schema.StringAttribute{
-							Required: true,
+							Optional: true,
 							Validators: []validator.String{
 								stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 							},
-							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).", tcoPoliciesValidPriorities),
+							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. Required unless `targets` is set — with `targets`, the priority is configured per-target instead. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be at least as restrictive as the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).", tcoPoliciesValidPriorities),
 						},
 						"order": schema.Int64Attribute{
 							Computed:            true,
@@ -263,36 +286,52 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 							},
 							MarkdownDescription: "DataPrime expression to match logs for this policy. Mutually exclusive with `severities` — set exactly one. The expression must include a version prefix, e.g. `<v1> $d.severity == 'INFO'`.",
 						},
-						"quota_based_priority_override": schema.SingleNestedAttribute{
+						"quota_based_priority_override": quotaBasedPriorityOverrideSchema(),
+						"targets": schema.ListNestedAttribute{
 							Optional: true,
-							Attributes: map[string]schema.Attribute{
-								"usage_tiers": schema.ListNestedAttribute{
-									Required: true,
-									Validators: []validator.List{
-										listvalidator.SizeAtLeast(1),
+							Validators: []validator.List{
+								listvalidator.SizeAtLeast(1),
+							},
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"dataset": schema.StringAttribute{
+										Required: true,
+										Validators: []validator.String{
+											stringvalidator.LengthAtLeast(1),
+										},
+										MarkdownDescription: "The dataset this target routes to (e.g. `logs`, `audit_logs`). Requires a log-based dataset to exist in the account when routing to anything other than `logs`.",
 									},
-									NestedObject: schema.NestedAttributeObject{
-										Attributes: map[string]schema.Attribute{
-											"daily_quota_percentage": schema.Float64Attribute{
-												Required: true,
-												Validators: []validator.Float64{
-													float64validator.Between(0, 100),
-												},
-												MarkdownDescription: "Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.",
-											},
-											"priority": schema.StringAttribute{
-												Required: true,
-												Validators: []validator.String{
-													stringvalidator.OneOf(tcoPoliciesValidPriorities...),
-												},
-												MarkdownDescription: fmt.Sprintf("The priority to apply when this tier is active. Can be one of %q.", tcoPoliciesValidPriorities),
-											},
+									"dataspace": schema.StringAttribute{
+										Optional: true,
+										Computed: true,
+										Default:  stringdefault.StaticString("default"),
+										Validators: []validator.String{
+											stringvalidator.RegexMatches(
+												regexp.MustCompile(`^[A-Za-z](?:[A-Za-z0-9_]|\.[A-Za-z0-9_])*$`),
+												"must start with a letter and contain only letters, digits, underscores, and dot-separated segments",
+											),
+											stringvalidator.LengthAtMost(50),
+										},
+										MarkdownDescription: "The dataspace of the target dataset. Defaults to `default`, which is currently the only dataspace TCO targets support.",
+									},
+									"priority": schema.StringAttribute{
+										Optional: true,
+										Validators: []validator.String{
+											stringvalidator.OneOf(tcoPoliciesValidPriorities...),
+										},
+										MarkdownDescription: fmt.Sprintf("The priority to apply for logs routed to this target. Can be one of %q. Required on every target when `targets` is used: the policy-level `priority` is not sent in that case, so a target has no policy default to inherit. `high` and `block` are only available when the target is `default`/`logs`; every other dataset is limited to `medium` and `low`.", tcoPoliciesValidPriorities),
+									},
+									"archive_retention_id": schema.StringAttribute{
+										Optional:    true,
+										Description: "Allowing logs routed to this target with a specific retention to be tagged.",
+										Validators: []validator.String{
+											stringvalidator.LengthAtLeast(1),
 										},
 									},
-									MarkdownDescription: "Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.",
+									"quota_based_priority_override": quotaBasedPriorityOverrideSchema(),
 								},
 							},
-							MarkdownDescription: "Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback (\"Route the remaining quota to\" in the UI), which must be more restrictive than the last tier.",
+							MarkdownDescription: "Route matching logs to one or more targets (a `dataspace`/`dataset` pair), each with its own `priority`, archive retention, and quota-based override. When set, the priority is configured per-target and the policy-level `priority`/`quota_based_priority_override` must not be set. Omit `targets` to keep the legacy single-target (`logs`) behavior driven by the policy-level `priority`.",
 						},
 					},
 				},
@@ -325,6 +364,214 @@ func (r *TCOPoliciesLogsResource) ValidateConfig(ctx context.Context, req resour
 		}
 		validateTCOPoliciesLogs(tcoPolicy.Subsystems, "subsystems", resp)
 		validateTCOPoliciesLogs(tcoPolicy.Applications, "applications", resp)
+		validateTCOTargets(ctx, tcoPolicy, resp)
+	}
+}
+
+func validateTCOTargets(ctx context.Context, policy TCOPolicyLogsModel, resp *resource.ValidateConfigResponse) {
+	// These three are Optional-only, so an unknown value still means the user
+	// configured the attribute — it just resolves at apply time. Treat unknown as
+	// set for the conflict check below: deferring would let a config that pairs
+	// targets with a policy-level value reach apply, where extractTcoPolicyLog
+	// takes the targets branch and silently drops it.
+	topLevelPrioritySet := !policy.Priority.IsNull()
+	topLevelOverrideSet := !policy.QuotaBasedPriorityOverride.IsNull()
+	topLevelArchiveSet := !policy.ArchiveRetentionID.IsNull()
+
+	if policy.Targets.IsUnknown() {
+		return
+	}
+
+	if policy.Targets.IsNull() {
+		if policy.Priority.IsNull() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("policies"),
+				"Missing Priority",
+				"`priority` is required when `targets` is not set (including as the fallback priority when `quota_based_priority_override` is set).",
+			)
+		}
+		// The legacy path routes to default/logs, so every priority is available.
+		validateTCOQuotaOverride(ctx, policy.QuotaBasedPriorityOverride, policy.Priority, true, "", resp)
+		return
+	}
+
+	var targetObjects []types.Object
+	if diags := policy.Targets.ElementsAs(ctx, &targetObjects, true); diags.HasError() {
+		return
+	}
+
+	seen := make(map[string]struct{}, len(targetObjects))
+	for _, to := range targetObjects {
+		var tm TCOTargetModel
+		if dg := to.As(ctx, &tm, basetypes.ObjectAsOptions{}); dg.HasError() {
+			continue
+		}
+
+		targetPrioritySet := !tm.Priority.IsNull() && !tm.Priority.IsUnknown()
+
+		// Setting targets sends the policy-level priority as UNSPECIFIED, so there
+		// is no policy default for a target to fall back on. Every target has to
+		// carry its own priority, or it would be routed — and have its quota
+		// override applied — with nothing behind it. priority is Optional-only, so
+		// an unknown value already counts as configured here.
+		if tm.Priority.IsNull() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("policies"),
+				"Missing Target Priority",
+				"Every target must set `priority` when `targets` is used, including as the fallback priority once a `quota_based_priority_override`'s usage tiers are exhausted. The policy-level `priority` is not sent when `targets` is set, so a target cannot inherit one.",
+			)
+		}
+
+		dataspace := "default"
+		if !tm.Dataspace.IsNull() && !tm.Dataspace.IsUnknown() && tm.Dataspace.ValueString() != "" {
+			dataspace = tm.Dataspace.ValueString()
+		}
+		// Only judge the routing destination once both halves of it are known;
+		// otherwise defer, the same way the checks above do.
+		routingKnown := !tm.Dataset.IsNull() && !tm.Dataset.IsUnknown() && !tm.Dataspace.IsUnknown()
+
+		if routingKnown {
+			key := dataspace + "\x00" + tm.Dataset.ValueString()
+			if _, dup := seen[key]; dup {
+				resp.Diagnostics.AddAttributeError(
+					path.Root("policies"),
+					"Duplicate Target",
+					fmt.Sprintf("Targets must be unique by (dataspace, dataset); found a duplicate for dataspace %q dataset %q.", dataspace, tm.Dataset.ValueString()),
+				)
+			}
+			seen[key] = struct{}{}
+		}
+
+		allPrioritiesAllowed := !routingKnown || (dataspace == "default" && tm.Dataset.ValueString() == "logs")
+		targetLabel := ""
+		if routingKnown {
+			targetLabel = fmt.Sprintf("%s/%s", dataspace, tm.Dataset.ValueString())
+		}
+
+		if !allPrioritiesAllowed && targetPrioritySet && slices.Contains(tcoPoliciesDefaultOnlyPriorities, tm.Priority.ValueString()) {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("policies"),
+				"Unsupported Target Priority",
+				fmt.Sprintf("Priority %q is only available when routing to `default`/`logs`; target %q must use %q or %q.",
+					tm.Priority.ValueString(), targetLabel, "medium", "low"),
+			)
+		}
+
+		validateTCOQuotaOverride(ctx, tm.QuotaBasedPriorityOverride, tm.Priority, allPrioritiesAllowed, targetLabel, resp)
+	}
+
+	if topLevelPrioritySet || topLevelOverrideSet || topLevelArchiveSet {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("policies"),
+			"Conflicting Target Configuration",
+			"When `targets` is set, configure `priority`, `quota_based_priority_override`, and `archive_retention_id` per-target — they must not be set at the policy level.",
+		)
+	}
+
+}
+
+// validateTCOQuotaOverride checks the invariants Coralogix documents for a
+// quota-based override: the tiers are monotonic — thresholds ascend, priorities
+// never relax as quota fills, and nothing follows a terminal block tier — and the
+// priority the override falls back to once every tier is consumed is at least as
+// restrictive as the last one. When the override belongs to a target routing
+// somewhere other than default/logs it also rejects the high and block tiers that
+// dataset cannot serve. Anything still unknown at plan time is skipped rather than
+// reported, so interpolated values do not produce spurious errors.
+func validateTCOQuotaOverride(ctx context.Context, override types.Object, fallback types.String, allPrioritiesAllowed bool, targetLabel string, resp *resource.ValidateConfigResponse) {
+	if utils.ObjIsNullOrUnknown(override) {
+		return
+	}
+
+	var model QuotaBasedPriorityOverrideModel
+	if dg := override.As(ctx, &model, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return
+	}
+	if model.UsageTiers.IsNull() || model.UsageTiers.IsUnknown() {
+		return
+	}
+
+	var tierObjects []types.Object
+	if dg := model.UsageTiers.ElementsAs(ctx, &tierObjects, true); dg.HasError() {
+		return
+	}
+
+	where := ""
+	if targetLabel != "" {
+		where = fmt.Sprintf(" for target %q", targetLabel)
+	}
+
+	var lastPriority, previousPriority string
+	var previousPercentage float64
+	lastPriorityKnown, previousPriorityKnown, previousKnown := false, false, false
+
+	for _, to := range tierObjects {
+		var tm UsageTierModel
+		if dg := to.As(ctx, &tm, basetypes.ObjectAsOptions{}); dg.HasError() {
+			return
+		}
+
+		lastPriorityKnown = !tm.Priority.IsNull() && !tm.Priority.IsUnknown()
+		if lastPriorityKnown {
+			lastPriority = tm.Priority.ValueString()
+			if !allPrioritiesAllowed && slices.Contains(tcoPoliciesDefaultOnlyPriorities, lastPriority) {
+				resp.Diagnostics.AddAttributeError(
+					path.Root("policies"),
+					"Unsupported Usage Tier Priority",
+					fmt.Sprintf("Usage tier priority %q is only available when routing to `default`/`logs`; the override%s must use %q or %q.",
+						lastPriority, where, "medium", "low"),
+				)
+			}
+
+			// Tiers are monotonic: a priority may repeat or tighten as quota fills,
+			// never relax. Block is terminal, and since it is also the most
+			// restrictive priority a repeat of it satisfies monotonicity, so
+			// terminality needs its own check.
+			if previousPriorityKnown {
+				if previousPriority == "block" {
+					resp.Diagnostics.AddAttributeError(
+						path.Root("policies"),
+						"Usage Tier After Block",
+						fmt.Sprintf("`block` is a terminal usage tier and no tier can follow it, but %q does%s.", lastPriority, where),
+					)
+				} else if tcoPoliciesPriorityRestrictiveness[lastPriority] < tcoPoliciesPriorityRestrictiveness[previousPriority] {
+					resp.Diagnostics.AddAttributeError(
+						path.Root("policies"),
+						"Relaxing Usage Tiers",
+						fmt.Sprintf("Usage tier priorities%s cannot become less restrictive as quota fills; found %q after %q.",
+							where, lastPriority, previousPriority),
+					)
+				}
+			}
+		}
+		previousPriority, previousPriorityKnown = lastPriority, lastPriorityKnown
+
+		if tm.DailyQuotaPercentage.IsNull() || tm.DailyQuotaPercentage.IsUnknown() {
+			previousKnown = false
+			continue
+		}
+		percentage := tm.DailyQuotaPercentage.ValueFloat64()
+		if previousKnown && percentage <= previousPercentage {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("policies"),
+				"Unordered Usage Tiers",
+				fmt.Sprintf("`usage_tiers`%s must be ordered by ascending `daily_quota_percentage`; found %g after %g.",
+					where, percentage, previousPercentage),
+			)
+		}
+		previousPercentage, previousKnown = percentage, true
+	}
+
+	if !lastPriorityKnown || fallback.IsNull() || fallback.IsUnknown() {
+		return
+	}
+	if tcoPoliciesPriorityRestrictiveness[fallback.ValueString()] < tcoPoliciesPriorityRestrictiveness[lastPriority] {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("policies"),
+			"Insufficiently Restrictive Fallback Priority",
+			fmt.Sprintf("`priority` %q%s must be at least as restrictive as the last usage tier's priority %q, since it is the fallback applied once all tiers are consumed (most to least restrictive: `block`, `low`, `medium`, `high`).",
+				fallback.ValueString(), where, lastPriority),
+		)
 	}
 }
 
@@ -374,6 +621,12 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	targetsNull, diags := policiesTargetsNull(ctx, plan.Policies)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteLogPolicies(ctx).
 		AtomicOverwriteLogPoliciesRequest(*rq).
@@ -384,7 +637,7 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 		)
 		return
 	}
-	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result)
+	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result, targetsNull)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -393,9 +646,21 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
-func (r *TCOPoliciesLogsResource) Read(ctx context.Context, _ resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *TCOPoliciesLogsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
+
+	var priorState *TCOPoliciesListModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorState)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	targetsNull, diags := policiesTargetsNull(ctx, priorState.Policies)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 
 	result, httpResponse, err := r.client.PoliciesServiceGetCompanyPolicies(ctx).SourceType(LogSource).Execute()
 	if err != nil {
@@ -413,7 +678,7 @@ func (r *TCOPoliciesLogsResource) Read(ctx context.Context, _ resource.ReadReque
 		return
 	}
 
-	state, diags := flattenGetTCOPoliciesLogsList(ctx, result)
+	state, diags := flattenGetTCOPoliciesLogsList(ctx, result, targetsNull)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -438,6 +703,12 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
+	targetsNull, diags := policiesTargetsNull(ctx, plan.Policies)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteLogPolicies(ctx).
 		AtomicOverwriteLogPoliciesRequest(*rq).
@@ -456,7 +727,7 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result)
+	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result, targetsNull)
 
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -482,15 +753,54 @@ func (r *TCOPoliciesLogsResource) Delete(ctx context.Context, req resource.Delet
 	}
 }
 
-func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tcoPolicys.AtomicOverwriteLogPoliciesResponse) (*TCOPoliciesListModel, diag.Diagnostics) {
+// policiesTargetsNull reports, in order, whether each policy in policiesList left
+// targets unconfigured (null). The backend always echoes a synthesized
+// single-target list — matching the legacy top-level fields — even for a policy
+// whose create/update request carried no targets at all, so a flatten that
+// mirrored the response as-is would report a non-null targets the user never
+// configured. Optional (non-Computed) attributes must match the config exactly,
+// so the caller uses this to force targets back to null for those policies.
+// Returns nil without error for a null or unknown list (Create's plan or a
+// not-yet-populated prior state).
+func policiesTargetsNull(ctx context.Context, policiesList types.List) ([]bool, diag.Diagnostics) {
+	if policiesList.IsNull() || policiesList.IsUnknown() {
+		return nil, nil
+	}
+
+	var models []TCOPolicyLogsModel
+	diags := policiesList.ElementsAs(ctx, &models, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	flags := make([]bool, len(models))
+	for i, m := range models {
+		flags[i] = m.Targets.IsNull()
+	}
+	return flags, nil
+}
+
+// suppressUnconfiguredTargets nulls out policy.Targets when the policy at this
+// position had targets left unconfigured, per policiesTargetsNull. index is the
+// position within the source response, which the atomic overwrite/get-company
+// endpoints return in request order — the same assumption every other
+// index-addressed field in this resource (e.g. policies.0.name) already relies on.
+func suppressUnconfiguredTargets(policy *TCOPolicyLogsModel, index int, targetsNull []bool) {
+	if index < len(targetsNull) && targetsNull[index] {
+		policy.Targets = types.ListNull(types.ObjectType{AttrTypes: tcoTargetAttributes()})
+	}
+}
+
+func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tcoPolicys.AtomicOverwriteLogPoliciesResponse, targetsNull []bool) (*TCOPoliciesListModel, diag.Diagnostics) {
 	var policies []*TCOPolicyLogsModel
 	var diags diag.Diagnostics
-	for _, policy := range overwriteResp.GetCreateResponses() {
+	for i, policy := range overwriteResp.GetCreateResponses() {
 		tcoPolicy, dgs := flattenTCOLogsPolicy(ctx, policy.GetPolicy())
 		if dgs.HasError() {
 			diags.Append(dgs...)
 			continue
 		}
+		suppressUnconfiguredTargets(tcoPolicy, i, targetsNull)
 		policies = append(policies, tcoPolicy)
 	}
 
@@ -505,15 +815,19 @@ func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tco
 	return &TCOPoliciesListModel{Policies: policiesList}, nil
 }
 
-func flattenGetTCOPoliciesLogsList(ctx context.Context, getResp *tcoPolicys.GetCompanyPoliciesResponse) (*TCOPoliciesListModel, diag.Diagnostics) {
+// flattenGetTCOPoliciesLogsList also backs the data source's Read, which passes a
+// nil targetsNull: its schema attributes are all Computed (see ConvertAttribute),
+// so there is no config value to stay consistent with and nothing to suppress.
+func flattenGetTCOPoliciesLogsList(ctx context.Context, getResp *tcoPolicys.GetCompanyPoliciesResponse, targetsNull []bool) (*TCOPoliciesListModel, diag.Diagnostics) {
 	var policies []*TCOPolicyLogsModel
 	var diags diag.Diagnostics
-	for _, policy := range getResp.GetPolicies() {
+	for i, policy := range getResp.GetPolicies() {
 		tcoPolicy, dgs := flattenTCOLogsPolicy(ctx, policy)
 		if dgs.HasError() {
 			diags.Append(dgs...)
 			continue
 		}
+		suppressUnconfiguredTargets(tcoPolicy, i, targetsNull)
 		policies = append(policies, tcoPolicy)
 	}
 
@@ -544,6 +858,10 @@ func flattenTCOLogsPolicy(ctx context.Context, policy tcoPolicys.Policy) (*TCOPo
 	if diags.HasError() {
 		return nil, diags
 	}
+	targets, diags := flattenTCOTargets(ctx, logsPolicy.Targets)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	return &TCOPolicyLogsModel{
 		ID:                         types.StringValue(logsPolicy.GetId()),
@@ -551,14 +869,55 @@ func flattenTCOLogsPolicy(ctx context.Context, policy tcoPolicys.Policy) (*TCOPo
 		Description:                types.StringValue(logsPolicy.GetDescription()),
 		Enabled:                    types.BoolValue(logsPolicy.GetEnabled()),
 		Order:                      types.Int64Value(int64(logsPolicy.GetOrder())),
-		Priority:                   types.StringValue(tcoPoliciesPriorityApiToSchema[logsPolicy.GetPriority()]),
+		Priority:                   flattenTCOPriority(&logsPolicy.Priority),
 		Applications:               applications,
 		Subsystems:                 subsystems,
 		ArchiveRetentionID:         flattenArchiveRetention(logsPolicy.ArchiveRetention),
 		Severities:                 flattenTCOPolicySeverities(logRules.GetSeverities()),
 		DpxlExpression:             types.StringPointerValue(logRules.DpxlExpression),
 		QuotaBasedPriorityOverride: quotaBased,
+		Targets:                    targets,
 	}, nil
+}
+
+func flattenTCOPriority(priority *tcoPolicys.QuotaV1Priority) types.String {
+	if priority == nil {
+		return types.StringNull()
+	}
+	if p, ok := tcoPoliciesPriorityApiToSchema[*priority]; ok && p != "" {
+		return types.StringValue(p)
+	}
+	return types.StringNull()
+}
+
+func flattenTCOTargets(ctx context.Context, targets []tcoPolicys.V1Target) (types.List, diag.Diagnostics) {
+	targetType := types.ObjectType{AttrTypes: tcoTargetAttributes()}
+	if len(targets) == 0 {
+		return types.ListNull(targetType), nil
+	}
+
+	targetObjects := make([]TCOTargetModel, 0, len(targets))
+	for _, t := range targets {
+		override, diags := flattenQuotaBasedPriorityOverride(ctx, t.PriorityOverride)
+		if diags.HasError() {
+			return types.ListNull(targetType), diags
+		}
+
+		dataspace := "default"
+		if t.Dataspace != nil && *t.Dataspace != "" {
+			dataspace = *t.Dataspace
+		}
+
+		targetObjects = append(targetObjects, TCOTargetModel{
+			Dataset:                    types.StringPointerValue(t.Dataset),
+			Dataspace:                  types.StringValue(dataspace),
+			Priority:                   flattenTCOPriority(t.Priority),
+			ArchiveRetentionID:         flattenArchiveRetention(t.ArchiveRetention),
+			QuotaBasedPriorityOverride: override,
+		})
+	}
+
+	return types.ListValueFrom(ctx, targetType, targetObjects)
 }
 
 func flattenQuotaBasedPriorityOverride(ctx context.Context, po *tcoPolicys.PriorityOverride) (types.Object, diag.Diagnostics) {
@@ -600,6 +959,52 @@ func policiesLogsAttr() map[string]attr.Type {
 		"severities":                    types.SetType{ElemType: types.StringType},
 		"archive_retention_id":          types.StringType,
 		"dpxl_expression":               types.StringType,
+		"quota_based_priority_override": types.ObjectType{AttrTypes: quotaBasedPriorityOverrideAttributes()},
+		"targets":                       types.ListType{ElemType: types.ObjectType{AttrTypes: tcoTargetAttributes()}},
+	}
+}
+
+func quotaBasedPriorityOverrideSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"usage_tiers": schema.ListNestedAttribute{
+				Required: true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeAtMost(3),
+				},
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"daily_quota_percentage": schema.Float64Attribute{
+							Required: true,
+							Validators: []validator.Float64{
+								float64validator.Between(0, 100),
+							},
+							MarkdownDescription: "Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.",
+						},
+						"priority": schema.StringAttribute{
+							Required: true,
+							Validators: []validator.String{
+								stringvalidator.OneOf(tcoPoliciesValidPriorities...),
+							},
+							MarkdownDescription: fmt.Sprintf("The priority to apply when this tier is active. Can be one of %q.", tcoPoliciesValidPriorities),
+						},
+					},
+				},
+				MarkdownDescription: "Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. Up to three tiers per policy. Tiers must be monotonic: `daily_quota_percentage` ascends and the priority never becomes less restrictive as quota fills. `block` is terminal — no tier can follow it.",
+			},
+		},
+		MarkdownDescription: "Dynamically reassign the priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the applicable fallback priority is used (the policy-level `priority`, or this target's `priority` when using `targets`) — the \"Route the remaining quota to\" in the UI — which must be at least as restrictive as the last tier.",
+	}
+}
+
+func tcoTargetAttributes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"dataset":                       types.StringType,
+		"dataspace":                     types.StringType,
+		"priority":                      types.StringType,
+		"archive_retention_id":          types.StringType,
 		"quota_based_priority_override": types.ObjectType{AttrTypes: quotaBasedPriorityOverrideAttributes()},
 	}
 }
@@ -682,6 +1087,11 @@ func extractTcoPolicyLog(ctx context.Context, plan TCOPolicyLogsModel) (*tcoPoli
 	}
 	enabled := !plan.Enabled.ValueBool()
 
+	targets, diags := expandTCOTargets(ctx, plan.Targets)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	logRules := tcoPolicys.LogRules{}
 	if !plan.DpxlExpression.IsNull() && !plan.DpxlExpression.IsUnknown() {
 		logRules.DpxlExpression = plan.DpxlExpression.ValueStringPointer()
@@ -689,19 +1099,69 @@ func extractTcoPolicyLog(ctx context.Context, plan TCOPolicyLogsModel) (*tcoPoli
 		logRules.Severities = severities
 	}
 
+	policy := tcoPolicys.CreateGenericPolicyRequest{
+		Name:            plan.Name.ValueString(),
+		Description:     plan.Description.ValueString(),
+		ApplicationRule: applicationRule,
+		SubsystemRule:   subsystemRule,
+		Disabled:        &enabled,
+	}
+
+	if len(targets) > 0 {
+		policy.Priority = tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_UNSPECIFIED
+		policy.Targets = targets
+	} else {
+		policy.Priority = priority
+		policy.ArchiveRetention = archiveRetention
+		policy.PriorityOverride = priorityOverride
+	}
+
 	return &tcoPolicys.CreateLogPolicyRequest{
-		Policy: tcoPolicys.CreateGenericPolicyRequest{
-			Name:             plan.Name.ValueString(),
-			Description:      plan.Description.ValueString(),
-			Priority:         priority,
-			ApplicationRule:  applicationRule,
-			SubsystemRule:    subsystemRule,
-			ArchiveRetention: archiveRetention,
-			Disabled:         &enabled,
-			PriorityOverride: priorityOverride,
-		},
+		Policy:   policy,
 		LogRules: logRules,
 	}, nil
+}
+
+func expandTCOTargets(ctx context.Context, targets types.List) ([]tcoPolicys.V1Target, diag.Diagnostics) {
+	if targets.IsNull() || targets.IsUnknown() {
+		return nil, nil
+	}
+
+	var targetObjects []types.Object
+	if diags := targets.ElementsAs(ctx, &targetObjects, true); diags.HasError() {
+		return nil, diags
+	}
+
+	result := make([]tcoPolicys.V1Target, 0, len(targetObjects))
+	for _, to := range targetObjects {
+		var tm TCOTargetModel
+		if diags := to.As(ctx, &tm, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+
+		target := tcoPolicys.V1Target{}
+		if !tm.Dataset.IsNull() && !tm.Dataset.IsUnknown() {
+			target.Dataset = tm.Dataset.ValueStringPointer()
+		}
+		if !tm.Dataspace.IsNull() && !tm.Dataspace.IsUnknown() {
+			target.Dataspace = tm.Dataspace.ValueStringPointer()
+		}
+		if !tm.Priority.IsNull() && !tm.Priority.IsUnknown() {
+			p := tcoPoliciesPrioritySchemaToApi[tm.Priority.ValueString()]
+			target.Priority = &p
+		}
+		target.ArchiveRetention = expandActiveRetention(tm.ArchiveRetentionID)
+
+		override, diags := expandQuotaBasedPriorityOverride(ctx, tm.QuotaBasedPriorityOverride)
+		if diags.HasError() {
+			return nil, diags
+		}
+		target.PriorityOverride = override
+
+		result = append(result, target)
+	}
+
+	return result, nil
 }
 
 func expandQuotaBasedPriorityOverride(ctx context.Context, override types.Object) (*tcoPolicys.PriorityOverride, diag.Diagnostics) {

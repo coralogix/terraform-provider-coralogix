@@ -96,7 +96,7 @@ func (d *TCOPoliciesLogsDataSource) Read(ctx context.Context, _ datasource.ReadR
 		return
 	}
 
-	state, diags := flattenGetTCOPoliciesLogsList(ctx, result)
+	state, diags := flattenGetTCOPoliciesLogsList(ctx, result, nil)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
