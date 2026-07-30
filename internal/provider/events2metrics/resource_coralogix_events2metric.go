@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -621,12 +622,19 @@ func upgradeE2MStateV0ToV1(ctx context.Context, req resource.UpgradeStateRequest
 		return
 	}
 
+	permutations, permutationsDiags := upgradeE2MPermutationsV0ToV1(ctx, priorStateData.Permutations)
+	resp.Diagnostics.Append(permutationsDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	upgradedStateData := Events2MetricResourceModel{
 		ID:           priorStateData.ID,
+		Name:         priorStateData.Name,
 		Description:  priorStateData.Description,
 		MetricFields: upgradeE2MMetricFieldsV0ToV1(ctx, priorStateData.MetricFields),
 		MetricLabels: upgradeE2MMetricLabelsV0ToV1(ctx, priorStateData.MetricLabels),
-		Permutations: upgradeE2MPermutationsV0ToV1(ctx, priorStateData.Permutations),
+		Permutations: permutations,
 		SpansQuery:   upgradeE2MSpansQueryV0ToV1(ctx, priorStateData.SpansQuery),
 		LogsQuery:    upgradeE2MLogsQueryV0ToV1(ctx, priorStateData.LogsQuery),
 	}
@@ -658,13 +666,52 @@ func upgradeE2MSpansQueryV0ToV1(ctx context.Context, spansQuery types.List) *Spa
 	return &spansQueryObject
 }
 
-func upgradeE2MPermutationsV0ToV1(ctx context.Context, permutations types.List) types.Object {
+func upgradeE2MPermutationsV0ToV1(ctx context.Context, permutations types.List) (types.Object, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	var permutationsObjects []types.Object
-	permutations.ElementsAs(ctx, &permutationsObjects, true)
-	if len(permutationsObjects) == 0 {
-		return types.ObjectNull(permutationsModelAttr())
+	diags.Append(permutations.ElementsAs(ctx, &permutationsObjects, true)...)
+	if diags.HasError() {
+		return types.ObjectNull(permutationsModelAttr()), diags
 	}
-	return permutationsObjects[0]
+	if len(permutationsObjects) == 0 {
+		return types.ObjectNull(permutationsModelAttr()), diags
+	}
+
+	// Schema v0 stored limit as a string; v1 uses Int64. Rebuild so State.Set accepts the object.
+	type PermutationsV0Model struct {
+		Limit          types.String `tfsdk:"limit"`
+		HasExceedLimit types.Bool   `tfsdk:"has_exceed_limit"`
+	}
+	var prior PermutationsV0Model
+	diags.Append(permutationsObjects[0].As(ctx, &prior, basetypes.ObjectAsOptions{})...)
+	if diags.HasError() {
+		return types.ObjectNull(permutationsModelAttr()), diags
+	}
+
+	var limit types.Int64
+	switch {
+	case prior.Limit.IsNull():
+		limit = types.Int64Null()
+	case prior.Limit.IsUnknown():
+		limit = types.Int64Unknown()
+	default:
+		parsed, err := strconv.ParseInt(prior.Limit.ValueString(), 10, 64)
+		if err != nil {
+			diags.AddError(
+				"Invalid permutations.limit in prior state",
+				fmt.Sprintf("could not parse %q as int64: %s", prior.Limit.ValueString(), err),
+			)
+			return types.ObjectNull(permutationsModelAttr()), diags
+		}
+		limit = types.Int64Value(parsed)
+	}
+
+	obj, objDiags := types.ObjectValueFrom(ctx, permutationsModelAttr(), PermutationsModel{
+		Limit:          limit,
+		HasExceedLimit: prior.HasExceedLimit,
+	})
+	diags.Append(objDiags...)
+	return obj, diags
 }
 
 func upgradeE2MMetricLabelsV0ToV1(ctx context.Context, labels types.Set) types.Map {
