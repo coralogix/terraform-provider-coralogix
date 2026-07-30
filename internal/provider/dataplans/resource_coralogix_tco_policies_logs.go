@@ -39,8 +39,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -160,14 +162,20 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Computed:            true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 				MarkdownDescription: "This field can be ignored",
 			},
 			"policies": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Computed:            true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseNonNullStateForUnknown(),
+							},
 							MarkdownDescription: "tco-policy ID.",
 						},
 						"name": schema.StringAttribute{
@@ -197,7 +205,10 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. Required when `targets` is not set. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`). Mutually exclusive with per-target priorities.", tcoPoliciesValidPriorities),
 						},
 						"order": schema.Int64Attribute{
-							Computed:            true,
+							Computed: true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseNonNullStateForUnknown(),
+							},
 							MarkdownDescription: "The policy's order between the other policies.",
 						},
 						"archive_retention_id": schema.StringAttribute{
@@ -330,6 +341,9 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 									"priority": schema.StringAttribute{
 										Optional: true,
 										Computed: true,
+										PlanModifiers: []planmodifier.String{
+											stringplanmodifier.UseStateForUnknown(),
+										},
 										Validators: []validator.String{
 											stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 										},
@@ -563,7 +577,7 @@ func (r *TCOPoliciesLogsResource) Delete(ctx context.Context, req resource.Delet
 }
 
 func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tcoPolicys.AtomicOverwriteLogPoliciesResponse) (*TCOPoliciesListModel, diag.Diagnostics) {
-	var policies []*TCOPolicyLogsModel
+	policies := make([]*TCOPolicyLogsModel, 0)
 	var diags diag.Diagnostics
 	for _, policy := range overwriteResp.GetCreateResponses() {
 		tcoPolicy, dgs := flattenTCOLogsPolicy(ctx, policy.GetPolicy())
@@ -586,7 +600,7 @@ func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tco
 }
 
 func flattenGetTCOPoliciesLogsList(ctx context.Context, getResp *tcoPolicys.GetCompanyPoliciesResponse) (*TCOPoliciesListModel, diag.Diagnostics) {
-	var policies []*TCOPolicyLogsModel
+	policies := make([]*TCOPolicyLogsModel, 0)
 	var diags diag.Diagnostics
 	for _, policy := range getResp.GetPolicies() {
 		tcoPolicy, dgs := flattenTCOLogsPolicy(ctx, policy)
@@ -682,7 +696,7 @@ func flattenQuotaBasedPriorityOverride(ctx context.Context, po *tcoPolicys.Prior
 func flattenV1Targets(ctx context.Context, targets []tcoPolicys.V1Target) (types.List, diag.Diagnostics) {
 	elemType := types.ObjectType{AttrTypes: v1TargetAttributes()}
 	if len(targets) == 0 {
-		return types.ListNull(elemType), nil
+		return types.ListValueMust(elemType, []attr.Value{}), nil
 	}
 
 	items := make([]V1TargetModel, 0, len(targets))
@@ -830,6 +844,14 @@ func extractTcoPolicyLog(ctx context.Context, plan TCOPolicyLogsModel) (*tcoPoli
 	targets, diags := expandV1Targets(ctx, plan.Targets)
 	if diags.HasError() {
 		return nil, diags
+	}
+	// API rejects a request where both policy-level priority and per-target priorities are
+	// set. When the policy has a policy-level priority, the backend echoes back targets with
+	// matching per-target priorities; on the next update those echoed values must be stripped.
+	if priority != tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_UNSPECIFIED {
+		for i := range targets {
+			targets[i].Priority = nil
+		}
 	}
 	enabled := !plan.Enabled.ValueBool()
 
