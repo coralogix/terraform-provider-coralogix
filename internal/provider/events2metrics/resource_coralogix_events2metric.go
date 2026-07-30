@@ -289,28 +289,31 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 						"aggregations": schema.SingleNestedAttribute{
 							Optional: true,
 							Computed: true,
+							// UseNonNullStateForUnknown: API expands omitted aggregations on write.
+							// UseStateForUnknown would copy null prior state onto new metric_fields
+							// keys and cause "inconsistent result after apply".
 							PlanModifiers: []planmodifier.Object{
-								objectplanmodifier.UseStateForUnknown(),
+								objectplanmodifier.UseNonNullStateForUnknown(),
 							},
 							Attributes: map[string]schema.Attribute{
 								"min": schema.SingleNestedAttribute{
 									Optional: true,
 									Computed: true,
 									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
+										objectplanmodifier.UseNonNullStateForUnknown(),
 									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
 											Computed: true,
 											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
+												boolplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 										"target_metric_name": schema.StringAttribute{
 											Computed: true,
 											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
+												stringplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 									},
@@ -319,20 +322,20 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 									Optional: true,
 									Computed: true,
 									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
+										objectplanmodifier.UseNonNullStateForUnknown(),
 									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
 											Computed: true,
 											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
+												boolplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 										"target_metric_name": schema.StringAttribute{
 											Computed: true,
 											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
+												stringplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 									},
@@ -341,20 +344,20 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 									Optional: true,
 									Computed: true,
 									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
+										objectplanmodifier.UseNonNullStateForUnknown(),
 									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
 											Computed: true,
 											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
+												boolplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 										"target_metric_name": schema.StringAttribute{
 											Computed: true,
 											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
+												stringplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 									},
@@ -363,20 +366,20 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 									Optional: true,
 									Computed: true,
 									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
+										objectplanmodifier.UseNonNullStateForUnknown(),
 									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
 											Computed: true,
 											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
+												boolplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 										"target_metric_name": schema.StringAttribute{
 											Computed: true,
 											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
+												stringplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 									},
@@ -385,20 +388,20 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 									Optional: true,
 									Computed: true,
 									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
+										objectplanmodifier.UseNonNullStateForUnknown(),
 									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
 											Computed: true,
 											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
+												boolplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 										"target_metric_name": schema.StringAttribute{
 											Computed: true,
 											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
+												stringplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 									},
@@ -407,20 +410,20 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 									Optional: true,
 									Computed: true,
 									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
+										objectplanmodifier.UseNonNullStateForUnknown(),
 									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
 											Computed: true,
 											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
+												boolplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 										"target_metric_name": schema.StringAttribute{
 											Computed: true,
 											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
+												stringplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 										"type": schema.StringAttribute{
@@ -436,20 +439,20 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 									Optional: true,
 									Computed: true,
 									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
+										objectplanmodifier.UseNonNullStateForUnknown(),
 									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
 											Computed: true,
 											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
+												boolplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 										"target_metric_name": schema.StringAttribute{
 											Computed: true,
 											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
+												stringplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 										"buckets": schema.ListAttribute{

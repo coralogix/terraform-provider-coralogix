@@ -8,6 +8,7 @@
 - FIX: Create fails when `permutations` is omitted because the plan value is unknown.
 - FIX: Empty `metric_fields.*.aggregations.histogram.buckets` no longer becomes null after apply.
 - FIX: Schema v0→v1 state upgrade converts `permutations.limit` from string to int64 so pre-v1 state loads.
+- FIX: Omitted `metric_fields.*.aggregations` children no longer fail after apply when the API returns the full aggregation set. Those attributes now use `UseNonNullStateForUnknown`.
 
 #### provider
 - CHORE: Bump `terraform-plugin-framework` to v1.17.0.
