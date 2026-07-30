@@ -59,7 +59,7 @@ func DataTableSchema() schema.Attribute {
 													Computed: true,
 													Optional: true,
 													PlanModifiers: []planmodifier.String{
-														stringplanmodifier.UseStateForUnknown(),
+														stringplanmodifier.UseNonNullStateForUnknown(),
 													},
 												},
 												"name": schema.StringAttribute{
@@ -103,7 +103,7 @@ func DataTableSchema() schema.Attribute {
 												"id": schema.StringAttribute{
 													Computed: true,
 													PlanModifiers: []planmodifier.String{
-														stringplanmodifier.UseStateForUnknown(),
+														stringplanmodifier.UseNonNullStateForUnknown(),
 													},
 												},
 												"name": schema.StringAttribute{

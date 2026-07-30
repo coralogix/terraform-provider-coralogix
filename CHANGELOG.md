@@ -1,5 +1,11 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+- FIX: Adding a section, row, widget or annotation without an `id` no longer fails with "Provider produced inconsistent result after apply". Generated `id` fields (section, row, widget, line-chart `query_definitions[].id`, data-table aggregation, annotation) and widget `width` now use `UseNonNullStateForUnknown` so new nested elements stay `(known after apply)` instead of planning as null.
+
+#### provider
+- CHORE: Bump `terraform-plugin-framework` to v1.17.0.
+
 # Release 3.8.0
 
 #### resource/coralogix_parsing_rules
