@@ -17,14 +17,14 @@ package events2metrics
 import (
 	"context"
 	"fmt"
-	"log"
+	"net/http"
 	"regexp"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"google.golang.org/protobuf/encoding/protojson"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	e2ms "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/events2metrics_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
@@ -43,40 +43,38 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var (
-	severitySchemaToProto = map[string]cxsdk.L2MSeverity{
-		"Unspecified": cxsdk.L2MSeverityUnspecified,
-		"Debug":       cxsdk.L2MSeverityDebug,
-		"Verbose":     cxsdk.L2MSeverityVerbose,
-		"Info":        cxsdk.L2MSeverityInfo,
-		"Warning":     cxsdk.L2MSeverityWarning,
-		"Error":       cxsdk.L2MSeverityError,
-		"Critical":    cxsdk.L2MSeverityCritical,
+	severitySchemaToAPI = map[string]e2ms.Logs2metricsV2Severity{
+		"Unspecified": e2ms.LOGS2METRICSV2SEVERITY_SEVERITY_UNSPECIFIED,
+		"Debug":       e2ms.LOGS2METRICSV2SEVERITY_SEVERITY_DEBUG,
+		"Verbose":     e2ms.LOGS2METRICSV2SEVERITY_SEVERITY_VERBOSE,
+		"Info":        e2ms.LOGS2METRICSV2SEVERITY_SEVERITY_INFO,
+		"Warning":     e2ms.LOGS2METRICSV2SEVERITY_SEVERITY_WARNING,
+		"Error":       e2ms.LOGS2METRICSV2SEVERITY_SEVERITY_ERROR,
+		"Critical":    e2ms.LOGS2METRICSV2SEVERITY_SEVERITY_CRITICAL,
 	}
-	severityProtoToSchema = utils.ReverseMap(severitySchemaToProto)
-	validSeverities       = utils.GetKeys(severitySchemaToProto)
+	severityAPIToSchema = utils.ReverseMap(severitySchemaToAPI)
+	validSeverities     = utils.GetKeys(severitySchemaToAPI)
 
-	protoToSchemaAggregationType = map[cxsdk.E2MAggregationType]string{
-		cxsdk.E2MAggregationTypeMin:       "min",
-		cxsdk.E2MAggregationTypeMax:       "max",
-		cxsdk.E2MAggregationTypeCount:     "count",
-		cxsdk.E2MAggregationTypeAvg:       "avg",
-		cxsdk.E2MAggregationTypeSum:       "sum",
-		cxsdk.E2MAggregationTypeHistogram: "histogram",
-		cxsdk.E2MAggregationTypeSamples:   "samples",
+	apiToSchemaAggregationType = map[e2ms.AggType]string{
+		e2ms.AGGTYPE_AGG_TYPE_MIN:       "min",
+		e2ms.AGGTYPE_AGG_TYPE_MAX:       "max",
+		e2ms.AGGTYPE_AGG_TYPE_COUNT:     "count",
+		e2ms.AGGTYPE_AGG_TYPE_AVG:       "avg",
+		e2ms.AGGTYPE_AGG_TYPE_SUM:       "sum",
+		e2ms.AGGTYPE_AGG_TYPE_HISTOGRAM: "histogram",
+		e2ms.AGGTYPE_AGG_TYPE_SAMPLES:   "samples",
 	}
-	schemaToProtoAggregationSampleType = map[string]cxsdk.E2MAggSampleType{
-		"Min": cxsdk.E2MAggSampleTypeMin,
-		"Max": cxsdk.E2MAggSampleTypeMax,
+	schemaToAPIAggregationSampleType = map[string]e2ms.SampleType{
+		"Min": e2ms.SAMPLETYPE_SAMPLE_TYPE_MIN,
+		"Max": e2ms.SAMPLETYPE_SAMPLE_TYPE_MAX,
 	}
 
-	protoToSchemaAggregationSampleType = utils.ReverseMap(schemaToProtoAggregationSampleType)
+	apiToSchemaAggregationSampleType = utils.ReverseMap(schemaToAPIAggregationSampleType)
 
-	validSampleTypes = utils.GetKeys(schemaToProtoAggregationSampleType)
+	validSampleTypes = utils.GetKeys(schemaToAPIAggregationSampleType)
 )
 
 var (
@@ -91,19 +89,39 @@ func NewEvents2MetricResource() resource.Resource {
 }
 
 type Events2MetricResource struct {
-	client *cxsdk.Events2MetricsClient
+	client *e2ms.Events2MetricsServiceAPIService
+}
+
+func ptr[T any](v T) *T {
+	return &v
+}
+
+func nilIfEmpty[T any](s []T) []T {
+	if len(s) == 0 {
+		return nil
+	}
+	return s
+}
+
+func responseStatus(response *http.Response) int {
+	if response == nil {
+		return 0
+	}
+	return response.StatusCode
 }
 
 type Events2MetricResourceModel struct {
-	ID           types.String       `tfsdk:"id"`
-	Name         types.String       `tfsdk:"name"`
-	Description  types.String       `tfsdk:"description"`
-	MetricFields types.Map          `tfsdk:"metric_fields"`
-	MetricLabels types.Map          `tfsdk:"metric_labels"`
-	Permutations *PermutationsModel `tfsdk:"permutations"`
-	SpansQuery   *SpansQueryModel   `tfsdk:"spans_query"`
-	LogsQuery    *LogsQueryModel    `tfsdk:"logs_query"`
-	DataSource   types.String       `tfsdk:"data_source"`
+	ID           types.String `tfsdk:"id"`
+	Name         types.String `tfsdk:"name"`
+	Description  types.String `tfsdk:"description"`
+	MetricFields types.Map    `tfsdk:"metric_fields"`
+	MetricLabels types.Map    `tfsdk:"metric_labels"`
+	// types.Object (not *PermutationsModel): Optional+Computed becomes unknown on
+	// create when omitted; Go struct pointers cannot hold unknown values.
+	Permutations types.Object     `tfsdk:"permutations"`
+	SpansQuery   *SpansQueryModel `tfsdk:"spans_query"`
+	LogsQuery    *LogsQueryModel  `tfsdk:"logs_query"`
+	DataSource   types.String     `tfsdk:"data_source"`
 }
 
 type MetricFieldModel struct {
@@ -191,6 +209,13 @@ func samplesAggregationModelAttr() attr.Type {
 			"target_metric_name": types.StringType,
 			"type":               types.StringType,
 		},
+	}
+}
+
+func permutationsModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"limit":            types.Int64Type,
+		"has_exceed_limit": types.BoolType,
 	}
 }
 
@@ -633,16 +658,13 @@ func upgradeE2MSpansQueryV0ToV1(ctx context.Context, spansQuery types.List) *Spa
 	return &spansQueryObject
 }
 
-func upgradeE2MPermutationsV0ToV1(ctx context.Context, permutations types.List) *PermutationsModel {
+func upgradeE2MPermutationsV0ToV1(ctx context.Context, permutations types.List) types.Object {
 	var permutationsObjects []types.Object
 	permutations.ElementsAs(ctx, &permutationsObjects, true)
 	if len(permutationsObjects) == 0 {
-		return nil
+		return types.ObjectNull(permutationsModelAttr())
 	}
-
-	var permutationsObject PermutationsModel
-	permutationsObjects[0].As(ctx, &permutationsObject, basetypes.ObjectAsOptions{})
-	return &permutationsObject
+	return permutationsObjects[0]
 }
 
 func upgradeE2MMetricLabelsV0ToV1(ctx context.Context, labels types.Set) types.Map {
@@ -855,7 +877,6 @@ func (r *Events2MetricResource) ConfigValidators(_ context.Context) []resource.C
 }
 
 func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	// Retrieve values from plan
 	var plan Events2MetricResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	if diags.HasError() {
@@ -863,27 +884,35 @@ func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	e2mCreateReq, diags := extractCreateE2M(ctx, plan)
+	params, diags := extractCreateE2M(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Creating new Events2metric: %s", protojson.Format(e2mCreateReq))
-	e2mCreateResp, err := r.client.Create(ctx, e2mCreateReq)
+
+	createResp, httpResponse, err := r.client.Events2MetricServiceCreateE2M(ctx).E2MCreateParams(params).Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Events2Metric",
-			utils.FormatRpcErrors(err, cxsdk.E2MCreateRPC, protojson.Format(e2mCreateReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", params),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted new Events2metric: %s", protojson.Format(e2mCreateResp))
+	if createResp == nil || createResp.E2m == nil {
+		resp.Diagnostics.AddError(
+			"Error creating Events2Metric",
+			"Create response did not include an Events2Metric",
+		)
+		return
+	}
 
-	plan = flattenE2M(ctx, e2mCreateResp.GetE2M())
+	plan, diags = flattenE2M(ctx, createResp.E2m)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 
-	diags = resp.State.Set(ctx, plan)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -894,37 +923,34 @@ func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
-	//Get refreshed Events2Metric value from Coralogix
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Reading Events2metric: %s", id)
-	getE2MReq := &cxsdk.GetE2MRequest{Id: wrapperspb.String(id)}
-	getE2MResp, err := r.client.Get(ctx, getE2MReq)
+	getResp, httpResponse, err := r.client.Events2MetricServiceGetE2M(ctx, id).Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if responseStatus(httpResponse) == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Events2Metric %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Events2Metric",
-				utils.FormatRpcErrors(err, cxsdk.E2MGetRPC, protojson.Format(getE2MReq)),
-			)
+			return
 		}
+		resp.Diagnostics.AddError(
+			"Error reading Events2Metric",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+		)
 		return
 	}
-	log.Printf("[INFO] Received Events2metric: %s", protojson.Format(getE2MResp))
 
-	state = flattenE2M(ctx, getE2MResp.GetE2M())
-	//
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	state, diags = flattenE2M(ctx, &getResp.E2m)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
 	var plan Events2MetricResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -932,48 +958,36 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	e2mUpdateReq, diags := extractUpdateE2M(ctx, plan)
+	e2m, diags := extractUpdateE2M(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating Events2metric: %s", protojson.Format(e2mUpdateReq))
-	e2mUpdateResp, err := r.client.Replace(ctx, e2mUpdateReq)
+
+	replaceResp, httpResponse, err := r.client.Events2MetricServiceReplaceE2M(ctx).E2M1(e2m).Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
+		if responseStatus(httpResponse) == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Events2Metric %q is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
+				fmt.Sprintf("%s will be recreated when you apply", plan.ID.ValueString()),
+			)
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error updating Events2Metric",
-			utils.FormatRpcErrors(err, cxsdk.E2MReplaceRPC, protojson.Format(e2mUpdateReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", e2m),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated Events2metric: %s", protojson.Format(e2mUpdateResp))
 
-	// Get refreshed Events2Metric value from Coralogix
-	id := plan.ID.ValueString()
-	getE2MResp, err := r.client.Get(ctx, &cxsdk.GetE2MRequest{Id: wrapperspb.String(id)})
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Events2Metric %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Events2Metric",
-				utils.FormatRpcErrors(err, cxsdk.E2MGetRPC, protojson.Format(e2mUpdateReq)),
-			)
-		}
+	plan, diags = flattenE2M(ctx, &replaceResp.E2m)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Received Events2metric: %s", protojson.Format(getE2MResp))
 
-	plan = flattenE2M(ctx, e2mUpdateResp.GetE2M())
-
-	diags = resp.State.Set(ctx, plan)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 func (r *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -985,373 +999,406 @@ func (r *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 
 	id := state.ID.ValueString()
-	deleteReq := &cxsdk.DeleteE2MRequest{Id: wrapperspb.String(id)}
-	log.Printf("[INFO] Deleting Events2metric %s\n", id)
-	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
+	_, httpResponse, err := r.client.Events2MetricServiceDeleteE2M(ctx, id).Execute()
+	if err != nil {
+		if responseStatus(httpResponse) == http.StatusNotFound {
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error Deleting Events2Metric",
-			utils.FormatRpcErrors(err, cxsdk.E2MDeleteRPC, protojson.Format(deleteReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Events2metric %s deleted\n", id)
 }
 
 func (r *Events2MetricResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func flattenE2M(ctx context.Context, e2m *cxsdk.E2M) Events2MetricResourceModel {
-	return Events2MetricResourceModel{
-		ID:           types.StringValue(e2m.GetId().GetValue()),
-		Name:         types.StringValue(e2m.GetName().GetValue()),
-		Description:  flattenDescription(e2m.GetDescription()),
-		MetricFields: flattenE2MMetricFields(ctx, e2m.GetMetricFields()),
+func flattenE2M(ctx context.Context, e2m *e2ms.E2M) (Events2MetricResourceModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	metricFields, d := flattenE2MMetricFields(ctx, e2m.GetMetricFields())
+	diags.Append(d...)
+
+	perms, permsOk := e2m.GetPermutationsOk()
+	permutations, d := flattenE2MPermutations(ctx, perms, permsOk)
+	diags.Append(d...)
+
+	model := Events2MetricResourceModel{
+		ID:           types.StringValue(e2m.GetId()),
+		Name:         types.StringValue(e2m.GetName()),
+		Description:  utils.StringPointerToTypeString(e2m.Description),
+		MetricFields: metricFields,
 		MetricLabels: flattenE2MMetricLabels(e2m.GetMetricLabels()),
-		Permutations: flattenE2MPermutations(e2m.GetPermutations()),
-		SpansQuery:   flattenSpansQuery(e2m.GetSpansQuery()),
-		LogsQuery:    flattenLogsQuery(e2m.GetLogsQuery()),
-		DataSource:   utils.WrapperspbStringToTypeString(e2m.GetDataSource()),
+		Permutations: permutations,
+		DataSource:   utils.StringPointerToTypeString(e2m.DataSource),
 	}
+
+	if spansQuery, ok := e2m.GetSpansQueryOk(); ok {
+		model.SpansQuery = flattenSpansQuery(spansQuery)
+	}
+	if logsQuery, ok := e2m.GetLogsQueryOk(); ok {
+		model.LogsQuery = flattenLogsQuery(logsQuery)
+	}
+
+	return model, diags
 }
 
-func flattenDescription(e2mDescription *wrapperspb.StringValue) types.String {
-	if e2mDescription == nil {
-		return types.StringNull()
-	}
-	return types.StringValue(e2mDescription.GetValue())
-}
+func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) (e2ms.E2MCreateParams, diag.Diagnostics) {
+	var diags diag.Diagnostics
 
-func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) (*cxsdk.CreateE2MRequest, diag.Diagnostics) {
-	name := utils.TypeStringToWrapperspbString(plan.Name)
-	description := utils.TypeStringToWrapperspbString(plan.Description)
-	permutations := expandPermutations(plan.Permutations)
-	permutationsLimit := wrapperspb.Int32(permutations.GetLimit())
-	metricLabels, diags := expandE2MLabels(ctx, plan.MetricLabels)
-	if diags.HasError() {
-		return nil, diags
-	}
-	metricFields, diags := expandE2MFields(ctx, plan.MetricFields)
-	if diags.HasError() {
-		return nil, diags
+	// Preserve gRPC create behavior: absent permutations still sends explicit 0
+	// (wrapperspb.Int32(nil.GetLimit())). Nil would change wire shape.
+	permutationsLimit := int32(0)
+	if !plan.Permutations.IsNull() && !plan.Permutations.IsUnknown() {
+		var permutations PermutationsModel
+		diags.Append(plan.Permutations.As(ctx, &permutations, basetypes.ObjectAsOptions{})...)
+		if !permutations.Limit.IsNull() && !permutations.Limit.IsUnknown() {
+			permutationsLimit = int32(permutations.Limit.ValueInt64())
+		}
 	}
 
-	e2mParams := &cxsdk.E2MCreateParams{
-		Name:              name,
-		Description:       description,
-		DataSource:        utils.TypeStringToWrapperspbString(plan.DataSource),
-		PermutationsLimit: permutationsLimit,
+	metricLabels, d := expandE2MLabels(ctx, plan.MetricLabels)
+	diags.Append(d...)
+	metricFields, d := expandE2MFields(ctx, plan.MetricFields)
+	diags.Append(d...)
+	if diags.HasError() {
+		return e2ms.E2MCreateParams{}, diags
+	}
+
+	params := e2ms.E2MCreateParams{
+		Name:              plan.Name.ValueString(),
+		Description:       utils.TypeStringToStringPointer(plan.Description),
+		DataSource:        utils.TypeStringToStringPointer(plan.DataSource),
+		PermutationsLimit: ptr(permutationsLimit),
 		MetricLabels:      metricLabels,
 		MetricFields:      metricFields,
 	}
 
 	if spansQuery := plan.SpansQuery; spansQuery != nil {
-		e2mParams.Type = cxsdk.E2MTypeSpans2Metrics
-		e2mParams.Query, diags = expandSpansQuery(ctx, spansQuery)
+		params.Type = e2ms.E2MTYPE_E2_M_TYPE_SPANS2_METRICS.Ptr()
+		query, d := expandCreateSpansQuery(ctx, spansQuery)
+		diags.Append(d...)
+		params.SpansQuery = query
 	} else if logsQuery := plan.LogsQuery; logsQuery != nil {
-		e2mParams.Type = cxsdk.E2MTypeLogs2Metrics
-		e2mParams.Query, diags = expandLogsQuery(ctx, logsQuery)
+		params.Type = e2ms.E2MTYPE_E2_M_TYPE_LOGS2_METRICS.Ptr()
+		query, d := expandCreateLogsQuery(ctx, logsQuery)
+		diags.Append(d...)
+		params.LogsQuery = query
 	}
 
 	if diags.HasError() {
-		return nil, diags
+		return e2ms.E2MCreateParams{}, diags
 	}
 
-	return &cxsdk.CreateE2MRequest{
-		E2M: e2mParams,
-	}, nil
+	return params, nil
 }
 
-func expandPermutations(permutations *PermutationsModel) *cxsdk.E2MPermutations {
-	if permutations == nil {
-		return nil
-	}
-	return &cxsdk.E2MPermutations{
-		Limit:            int32(permutations.Limit.ValueInt64()),
-		HasExceededLimit: permutations.HasExceedLimit.ValueBool(),
-	}
-}
+func extractUpdateE2M(ctx context.Context, plan Events2MetricResourceModel) (e2ms.E2M1, diag.Diagnostics) {
+	var diags diag.Diagnostics
 
-func extractUpdateE2M(ctx context.Context, plan Events2MetricResourceModel) (*cxsdk.ReplaceE2MRequest, diag.Diagnostics) {
-	id := wrapperspb.String(plan.ID.ValueString())
-	name := wrapperspb.String(plan.Name.ValueString())
-	description := wrapperspb.String(plan.Description.ValueString())
-	dataSource := utils.TypeStringToWrapperspbString(plan.DataSource)
-	permutations := expandPermutations(plan.Permutations)
-	metricLabels, diags := expandE2MLabels(ctx, plan.MetricLabels)
+	metricLabels, d := expandE2MLabels(ctx, plan.MetricLabels)
+	diags.Append(d...)
+	metricFields, d := expandE2MFields(ctx, plan.MetricFields)
+	diags.Append(d...)
 	if diags.HasError() {
-		return nil, diags
-	}
-	metricFields, diags := expandE2MFields(ctx, plan.MetricFields)
-	if diags.HasError() {
-		return nil, diags
+		return e2ms.E2M1{}, diags
 	}
 
-	e2mParams := &cxsdk.E2M{
-		Id:           id,
-		Name:         name,
-		Description:  description,
-		DataSource:   dataSource,
+	permutations, d := expandPermutations(ctx, plan.Permutations)
+	diags.Append(d...)
+	if diags.HasError() {
+		return e2ms.E2M1{}, diags
+	}
+
+	e2m := e2ms.E2M1{
+		Id:   ptr(plan.ID.ValueString()),
+		Name: plan.Name.ValueString(),
+		// Intentional create/update asymmetry (follow-up): update sends "" when description is null.
+		Description:  ptr(plan.Description.ValueString()),
+		DataSource:   utils.TypeStringToStringPointer(plan.DataSource),
 		Permutations: permutations,
 		MetricLabels: metricLabels,
 		MetricFields: metricFields,
 	}
 
 	if spansQuery := plan.SpansQuery; spansQuery != nil {
-		e2mParams.Type = cxsdk.E2MTypeSpans2Metrics
-		e2mParams.Query, diags = expandUpdateSpansQuery(ctx, spansQuery)
+		e2m.Type = e2ms.E2MTYPE_E2_M_TYPE_SPANS2_METRICS
+		query, d := expandUpdateSpansQuery(ctx, spansQuery)
+		diags.Append(d...)
+		e2m.SpansQuery = query
 	} else if logsQuery := plan.LogsQuery; logsQuery != nil {
-		e2mParams.Type = cxsdk.E2MTypeLogs2Metrics
-		e2mParams.Query, diags = expandUpdateLogsQuery(ctx, logsQuery)
+		e2m.Type = e2ms.E2MTYPE_E2_M_TYPE_LOGS2_METRICS
+		query, d := expandUpdateLogsQuery(ctx, logsQuery)
+		diags.Append(d...)
+		e2m.LogsQuery = query
 	}
 
 	if diags.HasError() {
-		return nil, diags
+		return e2ms.E2M1{}, diags
 	}
 
-	return &cxsdk.ReplaceE2MRequest{
-		E2M: e2mParams,
+	return e2m, nil
+}
+
+func expandPermutations(ctx context.Context, permutations types.Object) (*e2ms.E2MPermutations, diag.Diagnostics) {
+	if permutations.IsNull() || permutations.IsUnknown() {
+		return nil, nil
+	}
+	var model PermutationsModel
+	diags := permutations.As(ctx, &model, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &e2ms.E2MPermutations{
+		Limit:            int32(model.Limit.ValueInt64()),
+		HasExceededLimit: model.HasExceedLimit.ValueBool(),
 	}, nil
 }
 
-func expandE2MLabels(ctx context.Context, labels types.Map) ([]*cxsdk.MetricLabel, diag.Diagnostics) {
+func expandE2MLabels(ctx context.Context, labels types.Map) ([]e2ms.MetricLabel, diag.Diagnostics) {
 	labelsMap := labels.Elements()
-	result := make([]*cxsdk.MetricLabel, 0, len(labelsMap))
+	result := make([]e2ms.MetricLabel, 0, len(labelsMap))
 	var diags diag.Diagnostics
 	for targetField, value := range labelsMap {
-		v, _ := value.ToTerraformValue(ctx)
-		var sourceField string
-		if err := v.As(&sourceField); err != nil {
-			diags.AddError("error expanding metric labels",
-				err.Error())
+		v, err := value.ToTerraformValue(ctx)
+		if err != nil {
+			diags.AddError("error expanding metric labels", err.Error())
 			continue
 		}
-		label := expandE2MLabel(targetField, sourceField)
-		result = append(result, label)
+		var sourceField string
+		if err := v.As(&sourceField); err != nil {
+			diags.AddError("error expanding metric labels", err.Error())
+			continue
+		}
+		result = append(result, e2ms.MetricLabel{
+			TargetLabel: targetField,
+			SourceField: sourceField,
+		})
 	}
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return result, nil
+	return nilIfEmpty(result), nil
 }
 
-func expandE2MLabel(targetLabel, sourceField string) *cxsdk.MetricLabel {
-	return &cxsdk.MetricLabel{
-		TargetLabel: wrapperspb.String(targetLabel),
-		SourceField: wrapperspb.String(sourceField),
-	}
-}
-
-func expandE2MFields(ctx context.Context, fields types.Map) ([]*cxsdk.MetricField, diag.Diagnostics) {
+func expandE2MFields(ctx context.Context, fields types.Map) ([]e2ms.V2MetricField, diag.Diagnostics) {
 	var fieldsMap map[string]MetricFieldModel
 	var diags diag.Diagnostics
-	d := fields.ElementsAs(ctx, &fieldsMap, true)
-	if d != nil {
-		panic(d)
+	diags.Append(fields.ElementsAs(ctx, &fieldsMap, true)...)
+	if diags.HasError() {
+		return nil, diags
 	}
-	result := make([]*cxsdk.MetricField, 0, len(fieldsMap))
-	for sourceField, metricFieldValue := range fieldsMap {
-		field, dgs := expandE2MField(ctx, sourceField, metricFieldValue)
-		if dgs.HasError() {
-			diags = append(diags, dgs...)
+
+	result := make([]e2ms.V2MetricField, 0, len(fieldsMap))
+	for targetField, metricFieldValue := range fieldsMap {
+		field, d := expandE2MField(ctx, targetField, metricFieldValue)
+		if d.HasError() {
+			diags.Append(d...)
 			continue
 		}
 		result = append(result, field)
 	}
-
-	return result, diags
-}
-
-func expandE2MField(ctx context.Context, targetField string, metricField MetricFieldModel) (*cxsdk.MetricField, diag.Diagnostics) {
-	aggregations, diags := expandE2MAggregations(ctx, metricField.Aggregations)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.MetricField{
-		TargetBaseMetricName: wrapperspb.String(targetField),
-		SourceField:          wrapperspb.String(metricField.SourceField.ValueString()),
+	return nilIfEmpty(result), diags
+}
+
+func expandE2MField(ctx context.Context, targetField string, metricField MetricFieldModel) (e2ms.V2MetricField, diag.Diagnostics) {
+	aggregations, diags := expandE2MAggregations(ctx, metricField.Aggregations)
+	if diags.HasError() {
+		return e2ms.V2MetricField{}, diags
+	}
+
+	return e2ms.V2MetricField{
+		TargetBaseMetricName: targetField,
+		SourceField:          metricField.SourceField.ValueString(),
 		Aggregations:         aggregations,
 	}, nil
 }
 
-func expandE2MAggregations(ctx context.Context, aggregationsModel *AggregationsModel) ([]*cxsdk.E2MAggregation, diag.Diagnostics) {
+func expandE2MAggregations(ctx context.Context, aggregationsModel *AggregationsModel) ([]e2ms.V2Aggregation, diag.Diagnostics) {
+	// OpenAPI requires the aggregations key; always emit a non-nil slice.
 	if aggregationsModel == nil {
-		return nil, nil
+		return []e2ms.V2Aggregation{}, nil
 	}
 
-	aggregations := make([]*cxsdk.E2MAggregation, 0)
+	aggregations := make([]e2ms.V2Aggregation, 0)
 
 	if min := aggregationsModel.Min; min != nil {
-		aggregation := &cxsdk.E2MAggregation{AggType: cxsdk.E2MAggregationTypeMin, Enabled: min.Enable.ValueBool(), TargetMetricName: "min"}
-		aggregations = append(aggregations, aggregation)
+		aggregations = append(aggregations, e2ms.V2Aggregation{
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_MIN.Ptr(),
+			Enabled:          ptr(min.Enable.ValueBool()),
+			TargetMetricName: ptr("min"),
+		})
 	}
 	if max := aggregationsModel.Max; max != nil {
-		aggregation := &cxsdk.E2MAggregation{AggType: cxsdk.E2MAggregationTypeMax, Enabled: max.Enable.ValueBool(), TargetMetricName: "max"}
-		aggregations = append(aggregations, aggregation)
-
+		aggregations = append(aggregations, e2ms.V2Aggregation{
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_MAX.Ptr(),
+			Enabled:          ptr(max.Enable.ValueBool()),
+			TargetMetricName: ptr("max"),
+		})
 	}
 	if count := aggregationsModel.Count; count != nil {
-		aggregation := &cxsdk.E2MAggregation{AggType: cxsdk.E2MAggregationTypeCount, Enabled: count.Enable.ValueBool(), TargetMetricName: "count"}
-		aggregations = append(aggregations, aggregation)
+		aggregations = append(aggregations, e2ms.V2Aggregation{
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_COUNT.Ptr(),
+			Enabled:          ptr(count.Enable.ValueBool()),
+			TargetMetricName: ptr("count"),
+		})
 	}
 	if avg := aggregationsModel.AVG; avg != nil {
-		aggregation := &cxsdk.E2MAggregation{AggType: cxsdk.E2MAggregationTypeAvg, Enabled: avg.Enable.ValueBool(), TargetMetricName: "avg"}
-		aggregations = append(aggregations, aggregation)
-
+		aggregations = append(aggregations, e2ms.V2Aggregation{
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_AVG.Ptr(),
+			Enabled:          ptr(avg.Enable.ValueBool()),
+			TargetMetricName: ptr("avg"),
+		})
 	}
 	if sum := aggregationsModel.Sum; sum != nil {
-		aggregation := &cxsdk.E2MAggregation{AggType: cxsdk.E2MAggregationTypeSum, Enabled: sum.Enable.ValueBool(), TargetMetricName: "sum"}
-		aggregations = append(aggregations, aggregation)
-
+		aggregations = append(aggregations, e2ms.V2Aggregation{
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_SUM.Ptr(),
+			Enabled:          ptr(sum.Enable.ValueBool()),
+			TargetMetricName: ptr("sum"),
+		})
 	}
 	if samples := aggregationsModel.Samples; samples != nil {
-		samplesType := schemaToProtoAggregationSampleType[samples.Type.ValueString()]
-		aggregation := &cxsdk.E2MAggregation{AggType: cxsdk.E2MAggregationTypeSamples, Enabled: samples.Enable.ValueBool(), TargetMetricName: "samples", AggMetadata: &cxsdk.E2MAggregationSamples{Samples: &cxsdk.E2MAggSamples{SampleType: samplesType}}}
-		aggregations = append(aggregations, aggregation)
+		sampleType := schemaToAPIAggregationSampleType[samples.Type.ValueString()]
+		aggregations = append(aggregations, e2ms.V2Aggregation{
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_SAMPLES.Ptr(),
+			Enabled:          ptr(samples.Enable.ValueBool()),
+			TargetMetricName: ptr("samples"),
+			Samples: &e2ms.E2MAggSamples{
+				SampleType: sampleType.Ptr(),
+			},
+		})
 	}
 	if histogram := aggregationsModel.Histogram; histogram != nil {
 		buckets, diags := utils.AttrSliceToFloat32Slice(ctx, histogram.Buckets.Elements())
 		if diags.HasError() {
 			return nil, diags
 		}
-		aggregation := &cxsdk.E2MAggregation{AggType: cxsdk.E2MAggregationTypeHistogram, Enabled: histogram.Enable.ValueBool(), TargetMetricName: "histogram", AggMetadata: &cxsdk.E2MAggregationHistogram{Histogram: &cxsdk.E2MAggHistogram{Buckets: buckets}}}
-		aggregations = append(aggregations, aggregation)
-
+		aggregations = append(aggregations, e2ms.V2Aggregation{
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_HISTOGRAM.Ptr(),
+			Enabled:          ptr(histogram.Enable.ValueBool()),
+			TargetMetricName: ptr("histogram"),
+			Histogram: &e2ms.E2MAggHistogram{
+				Buckets: buckets,
+			},
+		})
 	}
 
 	return aggregations, nil
 }
 
-func expandSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*cxsdk.E2MCreateParamsSpansQuery, diag.Diagnostics) {
-	lucene := utils.TypeStringToWrapperspbString(spansQuery.Lucene)
-	applications, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Applications.Elements())
+func expandCreateSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*e2ms.V2SpansQuery, diag.Diagnostics) {
+	applications, diags := utils.TypeStringElementsToStringSlice(ctx, spansQuery.Applications.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
-	subsystems, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Subsystems.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-	actions, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Actions.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-	services, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Services.Elements())
+	subsystems, d := utils.TypeStringElementsToStringSlice(ctx, spansQuery.Subsystems.Elements())
+	diags.Append(d...)
+	actions, d := utils.TypeStringElementsToStringSlice(ctx, spansQuery.Actions.Elements())
+	diags.Append(d...)
+	services, d := utils.TypeStringElementsToStringSlice(ctx, spansQuery.Services.Elements())
+	diags.Append(d...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.E2MCreateParamsSpansQuery{
-		SpansQuery: &cxsdk.S2MSpansQuery{
-			Lucene:                 lucene,
-			ApplicationnameFilters: applications,
-			SubsystemnameFilters:   subsystems,
-			ActionFilters:          actions,
-			ServiceFilters:         services,
-		},
+	return &e2ms.V2SpansQuery{
+		Lucene:                 utils.TypeStringToStringPointer(spansQuery.Lucene),
+		ApplicationnameFilters: nilIfEmpty(applications),
+		SubsystemnameFilters:   nilIfEmpty(subsystems),
+		ActionFilters:          nilIfEmpty(actions),
+		ServiceFilters:         nilIfEmpty(services),
 	}, nil
 }
 
-func expandLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) (*cxsdk.E2MCreateParamsLogsQuery, diag.Diagnostics) {
-	searchQuery := utils.TypeStringToWrapperspbString(logsQuery.Lucene)
-	applications, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, logsQuery.Applications.Elements())
+func expandCreateLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) (*e2ms.V2LogsQuery, diag.Diagnostics) {
+	applications, diags := utils.TypeStringElementsToStringSlice(ctx, logsQuery.Applications.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
-	subsystems, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, logsQuery.Subsystems.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-	severities, diags := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
+	subsystems, d := utils.TypeStringElementsToStringSlice(ctx, logsQuery.Subsystems.Elements())
+	diags.Append(d...)
+	severities, d := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
+	diags.Append(d...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.E2MCreateParamsLogsQuery{
-		LogsQuery: &cxsdk.L2MLogsQuery{
-			Lucene:                 searchQuery,
-			ApplicationnameFilters: applications,
-			SubsystemnameFilters:   subsystems,
-			SeverityFilters:        severities,
-		},
+	return &e2ms.V2LogsQuery{
+		Lucene:                 utils.TypeStringToStringPointer(logsQuery.Lucene),
+		ApplicationnameFilters: nilIfEmpty(applications),
+		SubsystemnameFilters:   nilIfEmpty(subsystems),
+		SeverityFilters:        nilIfEmpty(severities),
 	}, nil
 }
 
-func expandUpdateSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*cxsdk.E2MSpansQuery, diag.Diagnostics) {
-	lucene := utils.TypeStringToWrapperspbString(spansQuery.Lucene)
-	applications, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Applications.Elements())
-	if diags != nil {
+func expandUpdateSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*e2ms.V2SpansQuery, diag.Diagnostics) {
+	applications, diags := utils.TypeStringElementsToStringSlice(ctx, spansQuery.Applications.Elements())
+	if diags.HasError() {
 		return nil, diags
 	}
-	subsystems, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Subsystems.Elements())
-	if diags != nil {
-		return nil, diags
-	}
-	actions, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Actions.Elements())
-	if diags != nil {
-		return nil, diags
-	}
-	services, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Services.Elements())
-	if diags != nil {
+	subsystems, d := utils.TypeStringElementsToStringSlice(ctx, spansQuery.Subsystems.Elements())
+	diags.Append(d...)
+	actions, d := utils.TypeStringElementsToStringSlice(ctx, spansQuery.Actions.Elements())
+	diags.Append(d...)
+	services, d := utils.TypeStringElementsToStringSlice(ctx, spansQuery.Services.Elements())
+	diags.Append(d...)
+	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.E2MSpansQuery{
-		SpansQuery: &cxsdk.S2MSpansQuery{
-			Lucene:                 lucene,
-			ApplicationnameFilters: applications,
-			SubsystemnameFilters:   subsystems,
-			ActionFilters:          actions,
-			ServiceFilters:         services,
-		},
+	return &e2ms.V2SpansQuery{
+		Lucene:                 utils.TypeStringToStringPointer(spansQuery.Lucene),
+		ApplicationnameFilters: nilIfEmpty(applications),
+		SubsystemnameFilters:   nilIfEmpty(subsystems),
+		ActionFilters:          nilIfEmpty(actions),
+		ServiceFilters:         nilIfEmpty(services),
 	}, nil
 }
 
-func expandUpdateLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) (*cxsdk.E2MLogsQuery, diag.Diagnostics) {
-	searchQuery := wrapperspb.String(logsQuery.Lucene.ValueString())
-	applications, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, logsQuery.Applications.Elements())
+func expandUpdateLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) (*e2ms.V2LogsQuery, diag.Diagnostics) {
+	applications, diags := utils.TypeStringElementsToStringSlice(ctx, logsQuery.Applications.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
-	subsystems, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, logsQuery.Subsystems.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-	severities, diags := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
+	subsystems, d := utils.TypeStringElementsToStringSlice(ctx, logsQuery.Subsystems.Elements())
+	diags.Append(d...)
+	severities, d := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
+	diags.Append(d...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.E2MLogsQuery{
-		LogsQuery: &cxsdk.L2MLogsQuery{
-			Lucene:                 searchQuery,
-			ApplicationnameFilters: applications,
-			SubsystemnameFilters:   subsystems,
-			SeverityFilters:        severities,
-		},
+	return &e2ms.V2LogsQuery{
+		// Intentional create/update asymmetry (follow-up): update sends "" when lucene is null.
+		Lucene:                 ptr(logsQuery.Lucene.ValueString()),
+		ApplicationnameFilters: nilIfEmpty(applications),
+		SubsystemnameFilters:   nilIfEmpty(subsystems),
+		SeverityFilters:        nilIfEmpty(severities),
 	}, nil
 }
 
-func expandLogsQuerySeverities(ctx context.Context, severities []attr.Value) ([]cxsdk.L2MSeverity, diag.Diagnostics) {
-	result := make([]cxsdk.L2MSeverity, 0, len(severities))
+func expandLogsQuerySeverities(ctx context.Context, severities []attr.Value) ([]e2ms.Logs2metricsV2Severity, diag.Diagnostics) {
+	result := make([]e2ms.Logs2metricsV2Severity, 0, len(severities))
 	var diags diag.Diagnostics
 	for _, s := range severities {
 		v, err := s.ToTerraformValue(ctx)
 		if err != nil {
-			diags.AddError("error expanding logs query severities",
-				err.Error())
+			diags.AddError("error expanding logs query severities", err.Error())
 			continue
 		}
 		var str string
 		if err = v.As(&str); err != nil {
-			diags.AddError("error expanding logs query severities",
-				err.Error())
+			diags.AddError("error expanding logs query severities", err.Error())
 			continue
 		}
-		severity := cxsdk.L2MSeverity(severitySchemaToProto[str])
-		result = append(result, severity)
+		result = append(result, severitySchemaToAPI[str])
 	}
 
 	if diags.HasError() {
@@ -1361,65 +1408,85 @@ func expandLogsQuerySeverities(ctx context.Context, severities []attr.Value) ([]
 	return result, nil
 }
 
-func flattenE2MPermutations(permutations *cxsdk.E2MPermutations) *PermutationsModel {
-	if permutations == nil {
-		return nil
+func flattenE2MPermutations(ctx context.Context, permutations *e2ms.E2MPermutations, ok bool) (types.Object, diag.Diagnostics) {
+	if !ok || permutations == nil {
+		return types.ObjectNull(permutationsModelAttr()), nil
 	}
-	return &PermutationsModel{
+	return types.ObjectValueFrom(ctx, permutationsModelAttr(), PermutationsModel{
 		Limit:          types.Int64Value(int64(permutations.GetLimit())),
 		HasExceedLimit: types.BoolValue(permutations.GetHasExceededLimit()),
-	}
+	})
 }
 
-func flattenE2MMetricFields(ctx context.Context, fields []*cxsdk.MetricField) types.Map {
+func flattenE2MMetricFields(ctx context.Context, fields []e2ms.V2MetricField) (types.Map, diag.Diagnostics) {
 	if len(fields) == 0 {
-		return types.MapNull(types.ObjectType{AttrTypes: metricFieldModelAttr()})
+		return types.MapNull(types.ObjectType{AttrTypes: metricFieldModelAttr()}), nil
 	}
 
+	var diags diag.Diagnostics
 	elements := make(map[string]attr.Value)
 	for _, f := range fields {
-		target, field := flattenE2MMetricField(ctx, f)
-		element, _ := types.ObjectValueFrom(ctx, metricFieldModelAttr(), field)
+		target, field, d := flattenE2MMetricField(ctx, f)
+		diags.Append(d...)
+		if d.HasError() {
+			continue
+		}
+		element, d := types.ObjectValueFrom(ctx, metricFieldModelAttr(), field)
+		diags.Append(d...)
 		elements[target] = element
 	}
-	return types.MapValueMust(types.ObjectType{AttrTypes: metricFieldModelAttr()}, elements)
-}
-
-func flattenE2MMetricField(ctx context.Context, field *cxsdk.MetricField) (string, MetricFieldModel) {
-	aggregations := flattenE2MAggregations(ctx, field.GetAggregations())
-	return field.GetTargetBaseMetricName().GetValue(), MetricFieldModel{
-		SourceField:  types.StringValue(field.GetSourceField().GetValue()),
-		Aggregations: aggregations,
+	if diags.HasError() {
+		return types.MapNull(types.ObjectType{AttrTypes: metricFieldModelAttr()}), diags
 	}
+	return types.MapValueMust(types.ObjectType{AttrTypes: metricFieldModelAttr()}, elements), diags
 }
 
-func flattenE2MAggregations(ctx context.Context, aggregations []*cxsdk.E2MAggregation) *AggregationsModel {
+func flattenE2MMetricField(ctx context.Context, field e2ms.V2MetricField) (string, MetricFieldModel, diag.Diagnostics) {
+	aggregations, diags := flattenE2MAggregations(ctx, field.GetAggregations())
+	return field.GetTargetBaseMetricName(), MetricFieldModel{
+		SourceField:  types.StringValue(field.GetSourceField()),
+		Aggregations: aggregations,
+	}, diags
+}
+
+func flattenE2MAggregations(ctx context.Context, aggregations []e2ms.V2Aggregation) (*AggregationsModel, diag.Diagnostics) {
 	aggregationsSchema := AggregationsModel{}
+	var diags diag.Diagnostics
 
 	for _, aggregation := range aggregations {
-		aggTypeStr := protoToSchemaAggregationType[aggregation.GetAggType()]
+		aggType, ok := aggregation.GetAggTypeOk()
+		if !ok || aggType == nil {
+			// Match pre-REST behavior: skip unknown/absent aggregation types.
+			continue
+		}
+		aggTypeStr, ok := apiToSchemaAggregationType[*aggType]
+		if !ok {
+			continue
+		}
 		switch aggTypeStr {
 		case "min":
-			aggregationsSchema.Min = flattenE2MCommonAggregation(aggregation)
+			aggregationsSchema.Min = flattenE2MCommonAggregation(&aggregation)
 		case "max":
-			aggregationsSchema.Max = flattenE2MCommonAggregation(aggregation)
+			aggregationsSchema.Max = flattenE2MCommonAggregation(&aggregation)
 		case "avg":
-			aggregationsSchema.AVG = flattenE2MCommonAggregation(aggregation)
+			aggregationsSchema.AVG = flattenE2MCommonAggregation(&aggregation)
 		case "sum":
-			aggregationsSchema.Sum = flattenE2MCommonAggregation(aggregation)
+			aggregationsSchema.Sum = flattenE2MCommonAggregation(&aggregation)
 		case "count":
-			aggregationsSchema.Count = flattenE2MCommonAggregation(aggregation)
+			aggregationsSchema.Count = flattenE2MCommonAggregation(&aggregation)
 		case "samples":
-			aggregationsSchema.Samples = flattenE2MSamplesAggregation(aggregation)
+			aggregationsSchema.Samples = flattenE2MSamplesAggregation(&aggregation)
 		case "histogram":
-			aggregationsSchema.Histogram = flattenE2MHistogramAggregation(ctx, aggregation)
+			histogram, d := flattenE2MHistogramAggregation(ctx, &aggregation)
+			diags.Append(d...)
+			aggregationsSchema.Histogram = histogram
 		}
 	}
 
-	return &aggregationsSchema
+	return &aggregationsSchema, diags
 }
 
-func flattenE2MCommonAggregation(aggregation *cxsdk.E2MAggregation) *CommonAggregationModel {
+func flattenE2MCommonAggregation(aggregation *e2ms.V2Aggregation) *CommonAggregationModel {
 	if aggregation == nil {
 		return nil
 	}
@@ -1430,12 +1497,17 @@ func flattenE2MCommonAggregation(aggregation *cxsdk.E2MAggregation) *CommonAggre
 	}
 }
 
-func flattenE2MSamplesAggregation(aggregation *cxsdk.E2MAggregation) *SamplesAggregationModel {
+func flattenE2MSamplesAggregation(aggregation *e2ms.V2Aggregation) *SamplesAggregationModel {
 	if aggregation == nil {
 		return nil
 	}
 
-	samplesType := protoToSchemaAggregationSampleType[aggregation.GetSamples().GetSampleType()]
+	samplesType := ""
+	if samples, ok := aggregation.GetSamplesOk(); ok && samples != nil {
+		if sampleType, ok := samples.GetSampleTypeOk(); ok && sampleType != nil {
+			samplesType = apiToSchemaAggregationSampleType[*sampleType]
+		}
+	}
 	return &SamplesAggregationModel{
 		Enable:           types.BoolValue(aggregation.GetEnabled()),
 		TargetMetricName: types.StringValue(aggregation.GetTargetMetricName()),
@@ -1443,70 +1515,71 @@ func flattenE2MSamplesAggregation(aggregation *cxsdk.E2MAggregation) *SamplesAgg
 	}
 }
 
-func flattenE2MHistogramAggregation(ctx context.Context, aggregation *cxsdk.E2MAggregation) *HistogramAggregationModel {
+func flattenE2MHistogramAggregation(ctx context.Context, aggregation *e2ms.V2Aggregation) (*HistogramAggregationModel, diag.Diagnostics) {
 	if aggregation == nil {
-		return nil
+		return nil, nil
 	}
 
-	buckets, diags := utils.Float32SliceTypeList(ctx, aggregation.GetHistogram().GetBuckets())
+	var bucketsList []float32
+	if histogram, ok := aggregation.GetHistogramOk(); ok && histogram != nil {
+		bucketsList = histogram.GetBuckets()
+	}
+	buckets, diags := utils.Float32SliceTypeList(ctx, bucketsList)
 	if diags.HasError() {
-		return nil
+		return nil, diags
 	}
 	return &HistogramAggregationModel{
 		Enable:           types.BoolValue(aggregation.GetEnabled()),
 		TargetMetricName: types.StringValue(aggregation.GetTargetMetricName()),
 		Buckets:          buckets,
-	}
+	}, nil
 }
 
-func flattenE2MMetricLabels(labels []*cxsdk.MetricLabel) types.Map {
+func flattenE2MMetricLabels(labels []e2ms.MetricLabel) types.Map {
 	if len(labels) == 0 {
 		return types.MapNull(types.StringType)
 	}
 
 	elements := make(map[string]attr.Value)
 	for _, l := range labels {
-		key, value := l.GetTargetLabel().GetValue(), l.GetSourceField().GetValue()
-		elements[key] = types.StringValue(value)
+		elements[l.GetTargetLabel()] = types.StringValue(l.GetSourceField())
 	}
 
 	return types.MapValueMust(types.StringType, elements)
 }
 
-func flattenSpansQuery(query *cxsdk.S2MSpansQuery) *SpansQueryModel {
+func flattenSpansQuery(query *e2ms.V2SpansQuery) *SpansQueryModel {
 	if query == nil {
 		return nil
 	}
 	return &SpansQueryModel{
-		Lucene:       utils.WrapperspbStringToTypeString(query.GetLucene()),
-		Applications: utils.WrappedStringSliceToTypeStringSet(query.GetApplicationnameFilters()),
-		Subsystems:   utils.WrappedStringSliceToTypeStringSet(query.GetSubsystemnameFilters()),
-		Actions:      utils.WrappedStringSliceToTypeStringSet(query.GetActionFilters()),
-		Services:     utils.WrappedStringSliceToTypeStringSet(query.GetServiceFilters()),
+		Lucene:       utils.StringPointerToTypeString(query.Lucene),
+		Applications: utils.StringSliceToTypeStringSet(query.GetApplicationnameFilters()),
+		Subsystems:   utils.StringSliceToTypeStringSet(query.GetSubsystemnameFilters()),
+		Actions:      utils.StringSliceToTypeStringSet(query.GetActionFilters()),
+		Services:     utils.StringSliceToTypeStringSet(query.GetServiceFilters()),
 	}
 }
 
-func flattenLogsQuery(query *cxsdk.L2MLogsQuery) *LogsQueryModel {
+func flattenLogsQuery(query *e2ms.V2LogsQuery) *LogsQueryModel {
 	if query == nil {
 		return nil
 	}
 	return &LogsQueryModel{
-		Lucene:       utils.WrapperspbStringToTypeString(query.GetLucene()),
-		Applications: utils.WrappedStringSliceToTypeStringSet(query.GetApplicationnameFilters()),
-		Subsystems:   utils.WrappedStringSliceToTypeStringSet(query.GetSubsystemnameFilters()),
+		Lucene:       utils.StringPointerToTypeString(query.Lucene),
+		Applications: utils.StringSliceToTypeStringSet(query.GetApplicationnameFilters()),
+		Subsystems:   utils.StringSliceToTypeStringSet(query.GetSubsystemnameFilters()),
 		Severities:   flattenLogQuerySeverities(query.GetSeverityFilters()),
 	}
 }
 
-func flattenLogQuerySeverities(severities []cxsdk.L2MSeverity) types.Set {
+func flattenLogQuerySeverities(severities []e2ms.Logs2metricsV2Severity) types.Set {
 	if len(severities) == 0 {
 		return types.SetNull(types.StringType)
 	}
 	elements := make([]attr.Value, 0, len(severities))
 	for _, v := range severities {
-		log.Println("severity: ", severityProtoToSchema[cxsdk.L2MSeverity(v)])
-		severity := types.StringValue(severityProtoToSchema[cxsdk.L2MSeverity(v)])
-		elements = append(elements, severity)
+		elements = append(elements, types.StringValue(severityAPIToSchema[v]))
 	}
 	return types.SetValueMust(types.StringType, elements)
 }

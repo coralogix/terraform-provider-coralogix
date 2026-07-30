@@ -27,6 +27,7 @@ func TestAccCoralogixDataSourceEvents2Metric_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckEvents2MetricDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceLogs2Metric(logsToMetric, "") +

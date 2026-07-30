@@ -3,6 +3,11 @@
 #### resource/coralogix_dashboard
 - FIX: Adding a section, row, widget or annotation without an `id` no longer fails with "Provider produced inconsistent result after apply". Generated `id` fields (section, row, widget, line-chart `query_definitions[].id`, data-table aggregation, annotation) and widget `width` now use `UseNonNullStateForUnknown` so new nested elements stay `(known after apply)` instead of planning as null.
 
+#### resource/coralogix_events2metric
+- CHORE: Migrate events2metric operations from the legacy gRPC client to the REST client.
+- FIX: Create fails when `permutations` is omitted because the plan value is unknown.
+- FIX: Empty `metric_fields.*.aggregations.histogram.buckets` no longer becomes null after apply.
+
 #### provider
 - CHORE: Bump `terraform-plugin-framework` to v1.17.0.
 

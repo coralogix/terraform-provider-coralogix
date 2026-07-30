@@ -21,6 +21,7 @@ env:
   DASHBOARD_MIGRATION_ACC_PATTERN: &dashboard_migration_acc_pattern '^TestAccCoralogixResourceDashboardMigration'
   DASHBOARD_MIGRATION_V360_PATTERN: &dashboard_migration_v360_pattern '^TestAccCoralogixResourceDashboardMigrationFromV360$'
   DASHBOARD_MIGRATION_SCHEMA_V3_PATTERN: &dashboard_migration_schema_v3_pattern '^TestAccCoralogixResourceDashboardMigrationFromSchemaV3$'
+  EVENTS2METRIC_MIGRATION_ACC_PATTERN: &events2metric_migration_acc_pattern '^TestAccCoralogixResourceEvents2MetricMigration$'
   DASHBOARD_SHARD_STRUCTURED_LINE_AND_TABLE: &dashboard_shard_structured_line_and_table '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/line-and-table$'
   DASHBOARD_SHARD_STRUCTURED_GAUGE_AND_BARS: &dashboard_shard_structured_gauge_and_bars '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/gauge-and-bars$'
   DASHBOARD_SHARD_STRUCTURED_HORIZONTAL_AND_HEXAGON: &dashboard_shard_structured_horizontal_and_hexagon '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/horizontal-and-hexagon$'
@@ -151,8 +152,8 @@ jobs:
           done
           TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
 
-  dashboard-migration:
-    name: Dashboard provider migration (${{ matrix.shard }})
+  provider-migration:
+    name: Provider migration (${{ matrix.shard }})
     permissions:
       contents: read
     env:
@@ -161,10 +162,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: grpc-v3.6.0
+          - shard: dashboard-grpc-v3.6.0
             pattern: *dashboard_migration_v360_pattern
-          - shard: schema-v3
+          - shard: dashboard-schema-v3
             pattern: *dashboard_migration_schema_v3_pattern
+          - shard: events2metric-grpc-v3.8.0
+            pattern: *events2metric_migration_acc_pattern
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -176,9 +179,9 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
-      - name: Test pinned gRPC to current REST dashboard migration
+      - name: Test pinned gRPC to current REST provider migration
         env:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
-          CORALOGIX_DASHBOARD_MIGRATION_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -run '${{ matrix.pattern }}' -v -count=1 -timeout 120m -parallel=3
+          CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -run '${{ matrix.pattern }}' -v -count=1 -timeout 120m -parallel=3

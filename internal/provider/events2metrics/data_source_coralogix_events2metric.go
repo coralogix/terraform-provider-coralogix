@@ -17,18 +17,16 @@ package events2metrics
 import (
 	"context"
 	"fmt"
-	"log"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"google.golang.org/protobuf/encoding/protojson"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	e2ms "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/events2metrics_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var _ datasource.DataSourceWithConfigure = &Events2MetricDataSource{}
@@ -38,7 +36,7 @@ func NewEvents2MetricDataSource() datasource.DataSource {
 }
 
 type Events2MetricDataSource struct {
-	client *cxsdk.Events2MetricsClient
+	client *e2ms.Events2MetricsServiceAPIService
 }
 
 func (d *Events2MetricDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -77,30 +75,28 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
-	//Get refreshed Events2Metric value from Coralogix
 	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading Events2metric: %s", id)
-	getE2MReq := &cxsdk.GetE2MRequest{Id: wrapperspb.String(id)}
-	getE2MResp, err := d.client.Get(ctx, getE2MReq)
+	getResp, httpResponse, err := d.client.Events2MetricServiceGetE2M(ctx, id).Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if responseStatus(httpResponse) == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				err.Error(),
 				fmt.Sprintf("Events2Metric %q is in state, but no longer exists in Coralogix backend", id),
 			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Events2Metric",
-				utils.FormatRpcErrors(err, cxsdk.E2MGetRPC, protojson.Format(getE2MReq)),
-			)
+			return
 		}
+		resp.Diagnostics.AddError(
+			"Error reading Events2Metric",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+		)
 		return
 	}
-	log.Printf("[INFO] Received Events2metric: %s", protojson.Format(getE2MResp))
 
-	data = flattenE2M(ctx, getE2MResp.GetE2M())
+	data, diags := flattenE2M(ctx, &getResp.E2m)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 
-	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
