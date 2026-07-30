@@ -39,10 +39,11 @@ Read-Only:
 - `id` (String) tco-policy ID.
 - `name` (String) tco-policy name.
 - `order` (Number) The policy's order between the other policies.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).
+- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. Required when `targets` is not set. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`). Mutually exclusive with per-target priorities.
 - `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
 - `severities` (Set of String) The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"].
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
+- `targets` (Attributes List) Route matched logs to specific named datasets with optional per-target priorities. When set, all targets must provide their own `priority` (policy-level `priority` must be omitted), or all must inherit a shared policy-level `priority`. (see [below for nested schema](#nestedatt--policies--targets))
 
 <a id="nestedatt--policies--applications"></a>
 ### Nested Schema for `policies.applications`
@@ -77,3 +78,30 @@ Read-Only:
 
 - `names` (Set of String)
 - `rule_type` (String)
+
+
+<a id="nestedatt--policies--targets"></a>
+### Nested Schema for `policies.targets`
+
+Read-Only:
+
+- `archive_retention_id` (String) ID of an archive retention policy to apply to this target.
+- `dataset` (String) Name of the dataset to route matched logs to. Must be non-empty.
+- `dataspace` (String) Dataspace name. Defaults to `default` when unset. Maximum 50 characters.
+- `priority` (String) Per-target priority. Can be one of ["block" "high" "low" "medium"]. If omitted, the backend inherits the policy-level `priority` and stores it in state. **Note:** if you later change the policy-level `priority` without also updating this field, the stored value here takes precedence. To reset a target back to inheritance, remove the entire `targets` block and re-add it without `priority`.
+- `priority_override` (Attributes) Dynamically reassign this target's priority based on daily quota consumption tiers. (see [below for nested schema](#nestedatt--policies--targets--priority_override))
+
+<a id="nestedatt--policies--targets--priority_override"></a>
+### Nested Schema for `policies.targets.priority_override`
+
+Read-Only:
+
+- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the target's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. (see [below for nested schema](#nestedatt--policies--targets--priority_override--usage_tiers))
+
+<a id="nestedatt--policies--targets--priority_override--usage_tiers"></a>
+### Nested Schema for `policies.targets.priority_override.usage_tiers`
+
+Read-Only:
+
+- `daily_quota_percentage` (Number) Daily quota consumption (in percent) at which this tier becomes active.
+- `priority` (String) The priority to apply when this tier is active. Can be one of ["block" "high" "low" "medium"].

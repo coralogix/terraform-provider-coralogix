@@ -29,6 +29,7 @@ provider "coralogix" {
 
 resource "coralogix_tco_policies_logs" "tco_policies" {
   policies = [
+    # Standard policy without targets.
     {
       name       = "Example tco_policy from terraform 1"
       priority   = "low"
@@ -57,9 +58,8 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
       }
     },
     {
-      name     = "Example tco_policy from terraform 3"
-      priority = "high"
-
+      name       = "Example tco_policy from terraform 3"
+      priority   = "high"
       severities = ["error", "warning", "critical"]
       applications = {
         rule_type = "starts_with"
@@ -71,9 +71,8 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
       }
     },
     {
-      name     = "Example tco_policy from terraform 4"
-      priority = "high"
-
+      name       = "Example tco_policy from terraform 4"
+      priority   = "high"
       severities = ["error", "warning", "critical"]
       applications = {
         rule_type = "starts_with"
@@ -109,7 +108,48 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
           { daily_quota_percentage = 80, priority = "low" },
         ]
       }
-    }
+    },
+    # Targets: route matched logs to specific named datasets.
+    # This policy has no targets — standard priority-based routing.
+    {
+      name       = "Example tco_policy without targets"
+      priority   = "medium"
+      severities = ["info", "warning"]
+    },
+    # Targets with inherited priority: all targets share the policy-level priority.
+    # Omit `priority` on each target to inherit from the policy.
+    # Note: if you later change the policy-level `priority`, the inherited value
+    # already stored in state will take precedence until you remove and re-add targets.
+    {
+      name       = "Example tco_policy with targets (inherited priority)"
+      priority   = "medium"
+      severities = ["info", "warning"]
+      targets = [
+        {
+          dataset   = "dataset-a"
+          dataspace = "default"
+        },
+        {
+          dataset = "dataset-b"
+        },
+      ]
+    },
+    # Per-target priorities: each target carries its own priority.
+    # When using per-target priorities, omit the policy-level priority.
+    {
+      name       = "Example tco_policy with per-target priorities"
+      severities = ["info", "warning"]
+      targets = [
+        {
+          dataset  = "dataset-a"
+          priority = "medium"
+        },
+        {
+          dataset  = "dataset-b"
+          priority = "low"
+        },
+      ]
+    },
   ]
 }
 ```
@@ -131,7 +171,6 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
 Required:
 
 - `name` (String) tco-policy name.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).
 
 Optional:
 
@@ -140,9 +179,11 @@ Optional:
 - `description` (String) The policy description
 - `dpxl_expression` (String) DataPrime expression to match logs for this policy. Mutually exclusive with `severities` — set exactly one. The expression must include a version prefix, e.g. `<v1> $d.severity == 'INFO'`.
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
+- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. Required when `targets` is not set. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`). Mutually exclusive with per-target priorities.
 - `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
 - `severities` (Set of String) The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"].
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
+- `targets` (Attributes List) Route matched logs to specific named datasets with optional per-target priorities. When set, all targets must provide their own `priority` (policy-level `priority` must be omitted), or all must inherit a shared policy-level `priority`. (see [below for nested schema](#nestedatt--policies--targets))
 
 Read-Only:
 
@@ -188,3 +229,33 @@ Required:
 Optional:
 
 - `rule_type` (String)
+
+
+<a id="nestedatt--policies--targets"></a>
+### Nested Schema for `policies.targets`
+
+Required:
+
+- `dataset` (String) Name of the dataset to route matched logs to. Must be non-empty.
+
+Optional:
+
+- `archive_retention_id` (String) ID of an archive retention policy to apply to this target.
+- `dataspace` (String) Dataspace name. Defaults to `default` when unset. Maximum 50 characters.
+- `priority` (String) Per-target priority. Can be one of ["block" "high" "low" "medium"]. If omitted, the backend inherits the policy-level `priority` and stores it in state. **Note:** if you later change the policy-level `priority` without also updating this field, the stored value here takes precedence. To reset a target back to inheritance, remove the entire `targets` block and re-add it without `priority`.
+- `priority_override` (Attributes) Dynamically reassign this target's priority based on daily quota consumption tiers. (see [below for nested schema](#nestedatt--policies--targets--priority_override))
+
+<a id="nestedatt--policies--targets--priority_override"></a>
+### Nested Schema for `policies.targets.priority_override`
+
+Required:
+
+- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the target's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. (see [below for nested schema](#nestedatt--policies--targets--priority_override--usage_tiers))
+
+<a id="nestedatt--policies--targets--priority_override--usage_tiers"></a>
+### Nested Schema for `policies.targets.priority_override.usage_tiers`
+
+Required:
+
+- `daily_quota_percentage` (Number) Daily quota consumption (in percent) at which this tier becomes active.
+- `priority` (String) The priority to apply when this tier is active. Can be one of ["block" "high" "low" "medium"].

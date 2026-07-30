@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_tco_policies_logs
+- FEAT: Add `targets` block to route matched logs to specific named datasets with optional per-target priorities. Policy-level `priority` is now optional; it may be omitted when every target carries its own priority.
+
 #### resource/coralogix_dashboard
 - CHORE: Use the shared SDK `dashboardjson.Unmarshal` helper for `content_json` (snake_case aliases, unknown-key discard) instead of a local copy. Create/replace no longer re-strip unknowns; that happens in Unmarshal, as in the operator.
 - FIX: Adding a section, row, widget or annotation without an `id` no longer fails with "Provider produced inconsistent result after apply". Generated `id` fields (section, row, widget, line-chart `query_definitions[].id`, data-table aggregation, annotation) and widget `width` now use `UseNonNullStateForUnknown` so new nested elements stay `(known after apply)` instead of planning as null.

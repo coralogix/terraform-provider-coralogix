@@ -14,6 +14,7 @@ provider "coralogix" {
 
 resource "coralogix_tco_policies_logs" "tco_policies" {
   policies = [
+    # Standard policy without targets.
     {
       name       = "Example tco_policy from terraform 1"
       priority   = "low"
@@ -42,9 +43,8 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
       }
     },
     {
-      name     = "Example tco_policy from terraform 3"
-      priority = "high"
-
+      name       = "Example tco_policy from terraform 3"
+      priority   = "high"
       severities = ["error", "warning", "critical"]
       applications = {
         rule_type = "starts_with"
@@ -56,9 +56,8 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
       }
     },
     {
-      name     = "Example tco_policy from terraform 4"
-      priority = "high"
-
+      name       = "Example tco_policy from terraform 4"
+      priority   = "high"
       severities = ["error", "warning", "critical"]
       applications = {
         rule_type = "starts_with"
@@ -94,6 +93,47 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
           { daily_quota_percentage = 80, priority = "low" },
         ]
       }
-    }
+    },
+    # Targets: route matched logs to specific named datasets.
+    # This policy has no targets — standard priority-based routing.
+    {
+      name       = "Example tco_policy without targets"
+      priority   = "medium"
+      severities = ["info", "warning"]
+    },
+    # Targets with inherited priority: all targets share the policy-level priority.
+    # Omit `priority` on each target to inherit from the policy.
+    # Note: if you later change the policy-level `priority`, the inherited value
+    # already stored in state will take precedence until you remove and re-add targets.
+    {
+      name       = "Example tco_policy with targets (inherited priority)"
+      priority   = "medium"
+      severities = ["info", "warning"]
+      targets = [
+        {
+          dataset   = "dataset-a"
+          dataspace = "default"
+        },
+        {
+          dataset = "dataset-b"
+        },
+      ]
+    },
+    # Per-target priorities: each target carries its own priority.
+    # When using per-target priorities, omit the policy-level priority.
+    {
+      name       = "Example tco_policy with per-target priorities"
+      severities = ["info", "warning"]
+      targets = [
+        {
+          dataset  = "dataset-a"
+          priority = "medium"
+        },
+        {
+          dataset  = "dataset-b"
+          priority = "low"
+        },
+      ]
+    },
   ]
 }
