@@ -26,9 +26,9 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboardjson"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	"github.com/coralogix/coralogix-management-sdk/go/openapi/dashboardjson"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"

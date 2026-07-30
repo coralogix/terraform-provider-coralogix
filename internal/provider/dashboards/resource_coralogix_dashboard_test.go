@@ -28,10 +28,10 @@ import (
 	"testing"
 	"unicode"
 
+	"github.com/coralogix/coralogix-management-sdk/go/openapi/dashboardjson"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboardjson"
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -286,7 +286,6 @@ func TestDashboardContentJSONGeneratedOneOfBranchContract(t *testing.T) {
 				if err := dashboardjson.Unmarshal(encodedPayload, model.Interface()); err != nil {
 					t.Fatalf("decode protobuf JSON alias %q: %s", alias, err)
 				}
-				discardOpenAPIAdditionalProperties(model.Interface())
 
 				for _, candidate := range branches {
 					candidateField, ok := dashboardGeneratedJSONField(model.Elem(), candidate)
