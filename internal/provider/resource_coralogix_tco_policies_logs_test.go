@@ -299,9 +299,9 @@ func TestAccCoralogixResourceTCOPoliciesLogs_targets(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with targets (inherited priority)"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.priority", "medium"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "2"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "dataset-a"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "logs"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataspace", "default"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.dataset", "dataset-b"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.dataset", "logs"),
 				),
 			},
 			{
@@ -310,9 +310,9 @@ func TestAccCoralogixResourceTCOPoliciesLogs_targets(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with per-target priorities"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "2"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "dataset-a"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "logs"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority", "medium"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.dataset", "dataset-b"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.dataset", "logs"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.priority", "low"),
 				),
 			},
@@ -329,11 +329,11 @@ func testAccCoralogixResourceTCOPoliciesLogsTargetsInherited() string {
       severities = ["info", "warning"]
       targets = [
         {
-          dataset   = "dataset-a"
+          dataset   = "logs"
           dataspace = "default"
         },
         {
-          dataset = "dataset-b"
+          dataset = "logs"
         },
       ]
     },
@@ -350,11 +350,11 @@ func testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority() string {
       severities = ["info", "warning"]
       targets = [
         {
-          dataset  = "dataset-a"
+          dataset  = "logs"
           priority = "medium"
         },
         {
-          dataset  = "dataset-b"
+          dataset  = "logs"
           priority = "low"
         },
       ]
@@ -381,7 +381,7 @@ func TestAccCoralogixResourceTCOPoliciesLogs_mixedTargets(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "policy-with-targets"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.priority", "medium"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "1"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "dataset-a"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "logs"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataspace", "default"),
 					// Policy 1: no targets configured — backend may echo computed defaults.
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.1.name", "policy-without-targets"),
@@ -401,7 +401,7 @@ func testAccCoralogixResourceTCOPoliciesLogsMixedTargets() string {
       severities = ["info"]
       targets = [
         {
-          dataset = "dataset-a"
+          dataset = "logs"
         },
       ]
     },
