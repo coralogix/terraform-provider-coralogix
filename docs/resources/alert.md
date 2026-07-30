@@ -796,7 +796,7 @@ resource "coralogix_alert" "test" {
 ### Optional
 
 - `data_sources` (Attributes List) Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list. (see [below for nested schema](#nestedatt--data_sources))
-- `description` (String) A free-text description of the alert. Shown in the Coralogix UI and returned by the API; it does not affect alert evaluation.
+- `description` (String) An optional free-text description of the alert. Supports Markdown. Shown in the Coralogix UI and returned by the API; it does not affect alert evaluation.
 - `enabled` (Boolean) Alert enabled status. True by default.
 - `group_by` (List of String) Group by fields.
 - `incidents_settings` (Attributes) (see [below for nested schema](#nestedatt--incidents_settings))
