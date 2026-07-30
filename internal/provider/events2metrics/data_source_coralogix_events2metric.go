@@ -91,6 +91,13 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 		)
 		return
 	}
+	if getResp == nil {
+		resp.Diagnostics.AddError(
+			"Error reading Events2Metric",
+			"Read response did not include an Events2Metric",
+		)
+		return
+	}
 
 	data, diags := flattenE2M(ctx, &getResp.E2m)
 	if diags.HasError() {

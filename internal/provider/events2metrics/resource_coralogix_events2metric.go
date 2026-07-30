@@ -987,6 +987,13 @@ func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 		)
 		return
 	}
+	if getResp == nil {
+		resp.Diagnostics.AddError(
+			"Error reading Events2Metric",
+			"Read response did not include an Events2Metric",
+		)
+		return
+	}
 
 	state, diags = flattenE2M(ctx, &getResp.E2m)
 	if diags.HasError() {
@@ -1024,6 +1031,13 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 		resp.Diagnostics.AddError(
 			"Error updating Events2Metric",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", e2m),
+		)
+		return
+	}
+	if replaceResp == nil {
+		resp.Diagnostics.AddError(
+			"Error updating Events2Metric",
+			"Replace response did not include an Events2Metric",
 		)
 		return
 	}
