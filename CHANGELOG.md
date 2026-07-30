@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- DOCS: Clarify the `description` attribute's schema documentation (previously the circular "Alert description."), now explaining it is free-text metadata shown in the Coralogix UI that does not affect alert evaluation.
+
 # Release 3.8.0
 
 #### resource/coralogix_parsing_rules
