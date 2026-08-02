@@ -1512,3 +1512,178 @@ resource "coralogix_dashboard" "test" {
 		},
 	})
 }
+
+func TestAccCoralogixResourceDashboardDataprimeAnnotation(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing dataprime annotation source"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  annotations = [{
+    name    = "dataprime events"
+    enabled = true
+    source = {
+      dataprime = {
+        query = "source logs | filter severity == 'error'"
+        strategy = {
+          instant = {
+            timestamp_field = {
+              keypath = ["timestamp"]
+              scope   = "metadata"
+            }
+          }
+        }
+      }
+    }
+  }]
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          width = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{
+                      type = "count"
+                    }]
+                  }
+                }
+              }]
+              legend = {
+                is_visible = false
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.name", "dataprime events"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.dataprime.query", "source logs | filter severity == 'error'"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "annotations.0.source.dataprime.strategy.instant.timestamp_field.scope"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardEventRecurrenceAnnotation(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing event recurrence annotation source"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  annotations = [{
+    name    = "weekly deployment"
+    enabled = true
+    source = {
+      event_recurrence = {
+        message_template = "Weekly deployment window"
+        recurrence = {
+          weekly = {
+            days_of_week = ["WEEKDAY_TUESDAY", "WEEKDAY_THURSDAY"]
+          }
+        }
+        strategy = {
+          instant = {
+            start_time_hour = 9
+          }
+        }
+      }
+    }
+  }]
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          width = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{
+                      type = "count"
+                    }]
+                  }
+                }
+              }]
+              legend = {
+                is_visible = false
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.name", "weekly deployment"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.event_recurrence.message_template", "Weekly deployment window"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.event_recurrence.recurrence.weekly.days_of_week.0", "WEEKDAY_TUESDAY"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.event_recurrence.strategy.instant.start_time_hour", "9"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
