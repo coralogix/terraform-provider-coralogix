@@ -63,7 +63,7 @@ func V1() schema.Schema {
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Optional free-text description of the alert, displayed alongside the alert definition in the Coralogix UI.",
+				MarkdownDescription: "Optional free-text description of the alert. It appears in the Coralogix UI alongside the alert definition.",
 			},
 			"enabled": schema.BoolAttribute{
 				Optional:            true,
