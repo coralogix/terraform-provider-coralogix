@@ -938,3 +938,107 @@ func TestFlattenDashboardOptionsColor(t *testing.T) {
 		})
 	}
 }
+
+func TestDataprimeAnnotationSourceRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	observationField := func(key string) types.Object {
+		return types.ObjectValueMust(dashboardwidgets.ObservationFieldAttr(), map[string]attr.Value{
+			"keypath": types.ListValueMust(types.StringType, []attr.Value{types.StringValue(key)}),
+			"scope":   types.StringValue("metadata"),
+		})
+	}
+
+	strategy := types.ObjectValueMust(dataprimeStrategyModelAttr(), map[string]attr.Value{
+		"instant": types.ObjectValueMust(instantStrategyModelAttr(), map[string]attr.Value{
+			"timestamp_field": observationField("timestamp"),
+		}),
+		"range":    types.ObjectNull(rangeStrategyModelAttr()),
+		"duration": types.ObjectNull(durationStrategyModelAttr()),
+	})
+
+	source := types.ObjectValueMust(annotationsDataprimeSourceModelAttr(), map[string]attr.Value{
+		"query":            types.StringValue("source logs | filter severity == 'error'"),
+		"strategy":         strategy,
+		"label_fields":     types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.ObservationFieldAttr()}),
+		"message_template": types.StringNull(),
+		"orientation":      types.StringValue("vertical"),
+		"data_mode_type":   types.StringValue("high"),
+	})
+
+	expanded, diags := expandDataprimeSource(ctx, source)
+	if diags.HasError() {
+		t.Fatalf("expanding dataprime source: %v", diags)
+	}
+	if expanded == nil {
+		t.Fatal("expected non-nil DataprimeSource")
+	}
+	if expanded.Query == nil || expanded.Query.Text == nil || *expanded.Query.Text != "source logs | filter severity == 'error'" {
+		t.Fatalf("unexpected query: %#v", expanded.Query)
+	}
+	if expanded.Strategy == nil || expanded.Strategy.Instant == nil {
+		t.Fatalf("expected instant strategy, got %#v", expanded.Strategy)
+	}
+
+	flattened, diags := flattenDashboardAnnotationDataprimeSourceModel(ctx, expanded)
+	if diags.HasError() {
+		t.Fatalf("flattening dataprime source: %v", diags)
+	}
+	if flattened.IsNull() {
+		t.Fatal("expected non-null flattened object")
+	}
+}
+
+func TestEventRecurrenceAnnotationSourceRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	strategy := types.ObjectValueMust(eventRecurrenceStrategyModelAttr(), map[string]attr.Value{
+		"instant": types.ObjectValueMust(eventRecurrenceInstantStrategyModelAttr(), map[string]attr.Value{
+			"start_time_hour": types.Int64Value(9),
+		}),
+		"duration": types.ObjectNull(eventRecurrenceDurationStrategyModelAttr()),
+	})
+
+	weekly := types.ObjectValueMust(weeklyRecurrenceModelAttr(), map[string]attr.Value{
+		"days_of_week": types.ListValueMust(types.StringType, []attr.Value{
+			types.StringValue("WEEKDAY_MONDAY"),
+			types.StringValue("WEEKDAY_WEDNESDAY"),
+		}),
+	})
+	recurrence := types.ObjectValueMust(eventRecurrenceRecurrenceModelAttr(), map[string]attr.Value{
+		"weekly": weekly,
+	})
+
+	source := types.ObjectValueMust(annotationsEventRecurrenceSourceModelAttr(), map[string]attr.Value{
+		"message_template": types.StringValue("weekly deployment"),
+		"recurrence":       recurrence,
+		"strategy":         strategy,
+	})
+
+	expanded, diags := expandEventRecurrenceSource(ctx, source)
+	if diags.HasError() {
+		t.Fatalf("expanding event recurrence source: %v", diags)
+	}
+	if expanded == nil {
+		t.Fatal("expected non-nil EventRecurrenceSource")
+	}
+	if expanded.Recurrence == nil || expanded.Recurrence.Weekly == nil {
+		t.Fatalf("expected weekly recurrence, got %#v", expanded.Recurrence)
+	}
+	if len(expanded.Recurrence.Weekly.DaysOfWeek) != 2 {
+		t.Fatalf("expected 2 days of week, got %d", len(expanded.Recurrence.Weekly.DaysOfWeek))
+	}
+	if expanded.Strategy == nil || expanded.Strategy.Instant == nil {
+		t.Fatalf("expected instant strategy, got %#v", expanded.Strategy)
+	}
+	if expanded.Strategy.Instant.StartTimeHour == nil || *expanded.Strategy.Instant.StartTimeHour != 9 {
+		t.Fatalf("expected start_time_hour=9, got %v", expanded.Strategy.Instant.StartTimeHour)
+	}
+
+	flattened, diags := flattenDashboardAnnotationEventRecurrenceSourceModel(ctx, expanded)
+	if diags.HasError() {
+		t.Fatalf("flattening event recurrence source: %v", diags)
+	}
+	if flattened.IsNull() {
+		t.Fatal("expected non-null flattened object")
+	}
+}
