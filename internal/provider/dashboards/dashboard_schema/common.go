@@ -194,7 +194,34 @@ func dataprimeAnnotationSourceAttribute() schema.SingleNestedAttribute {
 			"query": schema.StringAttribute{
 				Required: true,
 			},
-			"strategy": logsAndSpansStrategy(),
+			"strategy": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"instant": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"timestamp_field": observationFieldSingleNestedAttribute(),
+						},
+						Optional: true,
+					},
+					"range": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"start_timestamp_field": observationFieldSingleNestedAttribute(),
+							"end_timestamp_field":   observationFieldSingleNestedAttribute(),
+						},
+						Optional: true,
+					},
+					"duration": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"start_timestamp_field": observationFieldSingleNestedAttribute(),
+							"duration_field":        observationFieldSingleNestedAttribute(),
+						},
+						Optional: true,
+					},
+				},
+				Required: true,
+				Validators: []validator.Object{
+					dashboardwidgets.ExactlyOneOfChildren("instant", "range", "duration"),
+				},
+			},
 			"label_fields": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: dashboardwidgets.ObservationFieldSchema(),

@@ -766,10 +766,173 @@ Optional:
 
 Optional:
 
+- `dataprime` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime))
+- `event_recurrence` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence))
 - `logs` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs))
 - `manual` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--manual))
 - `metrics` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics))
 - `spans` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans))
+
+<a id="nestedatt--annotations--source--dataprime"></a>
+### Nested Schema for `annotations.source.dataprime`
+
+Required:
+
+- `query` (String)
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy))
+
+Optional:
+
+- `data_mode_type` (String)
+- `label_fields` (Attributes List) (see [below for nested schema](#nestedatt--annotations--source--dataprime--label_fields))
+- `message_template` (String)
+- `orientation` (String)
+
+<a id="nestedatt--annotations--source--dataprime--strategy"></a>
+### Nested Schema for `annotations.source.dataprime.strategy`
+
+Optional:
+
+- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--duration))
+- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--instant))
+- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--range))
+
+<a id="nestedatt--annotations--source--dataprime--strategy--duration"></a>
+### Nested Schema for `annotations.source.dataprime.strategy.duration`
+
+Required:
+
+- `duration_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--duration--duration_field))
+- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--duration--start_timestamp_field))
+
+<a id="nestedatt--annotations--source--dataprime--strategy--duration--duration_field"></a>
+### Nested Schema for `annotations.source.dataprime.strategy.duration.duration_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--annotations--source--dataprime--strategy--duration--start_timestamp_field"></a>
+### Nested Schema for `annotations.source.dataprime.strategy.duration.start_timestamp_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--annotations--source--dataprime--strategy--instant"></a>
+### Nested Schema for `annotations.source.dataprime.strategy.instant`
+
+Required:
+
+- `timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--instant--timestamp_field))
+
+<a id="nestedatt--annotations--source--dataprime--strategy--instant--timestamp_field"></a>
+### Nested Schema for `annotations.source.dataprime.strategy.instant.timestamp_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--annotations--source--dataprime--strategy--range"></a>
+### Nested Schema for `annotations.source.dataprime.strategy.range`
+
+Required:
+
+- `end_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--range--end_timestamp_field))
+- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--dataprime--strategy--range--start_timestamp_field))
+
+<a id="nestedatt--annotations--source--dataprime--strategy--range--end_timestamp_field"></a>
+### Nested Schema for `annotations.source.dataprime.strategy.range.end_timestamp_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--annotations--source--dataprime--strategy--range--start_timestamp_field"></a>
+### Nested Schema for `annotations.source.dataprime.strategy.range.start_timestamp_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+<a id="nestedatt--annotations--source--dataprime--label_fields"></a>
+### Nested Schema for `annotations.source.dataprime.label_fields`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--annotations--source--event_recurrence"></a>
+### Nested Schema for `annotations.source.event_recurrence`
+
+Required:
+
+- `recurrence` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--recurrence))
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--strategy))
+
+Optional:
+
+- `message_template` (String)
+
+<a id="nestedatt--annotations--source--event_recurrence--recurrence"></a>
+### Nested Schema for `annotations.source.event_recurrence.recurrence`
+
+Required:
+
+- `weekly` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--recurrence--weekly))
+
+<a id="nestedatt--annotations--source--event_recurrence--recurrence--weekly"></a>
+### Nested Schema for `annotations.source.event_recurrence.recurrence.weekly`
+
+Required:
+
+- `days_of_week` (List of String)
+
+
+
+<a id="nestedatt--annotations--source--event_recurrence--strategy"></a>
+### Nested Schema for `annotations.source.event_recurrence.strategy`
+
+Optional:
+
+- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--strategy--duration))
+- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--event_recurrence--strategy--instant))
+
+<a id="nestedatt--annotations--source--event_recurrence--strategy--duration"></a>
+### Nested Schema for `annotations.source.event_recurrence.strategy.duration`
+
+Required:
+
+- `duration` (String)
+- `start_time_hour` (Number)
+
+
+<a id="nestedatt--annotations--source--event_recurrence--strategy--instant"></a>
+### Nested Schema for `annotations.source.event_recurrence.strategy.instant`
+
+Required:
+
+- `start_time_hour` (Number)
+
+
+
 
 <a id="nestedatt--annotations--source--logs"></a>
 ### Nested Schema for `annotations.source.logs`
