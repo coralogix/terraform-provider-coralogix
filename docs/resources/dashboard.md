@@ -646,6 +646,11 @@ resource "coralogix_dashboard" "dashboard" {
           }
         }
       }
+      # scope restricts this annotation to all widgets; omit to not apply a scope.
+      # Use specific_widgets = { widget_ids = ["<uuid>"] } to target individual widgets.
+      scope = {
+        all_widgets = {}
+      }
     },
     {
       name = "dataprime_annotation"
@@ -798,6 +803,7 @@ Optional:
 
 - `enabled` (Boolean)
 - `id` (String)
+- `scope` (Attributes) Restrict this annotation to specific widgets. Omit to show on all widgets. (see [below for nested schema](#nestedatt--annotations--scope))
 
 <a id="nestedatt--annotations--source"></a>
 ### Nested Schema for `annotations.source`
@@ -1247,6 +1253,27 @@ Required:
 - `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
 - `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
 
+
+
+
+<a id="nestedatt--annotations--scope"></a>
+### Nested Schema for `annotations.scope`
+
+Optional:
+
+- `all_widgets` (Attributes) Apply this annotation to every widget in the dashboard. (see [below for nested schema](#nestedatt--annotations--scope--all_widgets))
+- `specific_widgets` (Attributes) (see [below for nested schema](#nestedatt--annotations--scope--specific_widgets))
+
+<a id="nestedatt--annotations--scope--all_widgets"></a>
+### Nested Schema for `annotations.scope.all_widgets`
+
+
+<a id="nestedatt--annotations--scope--specific_widgets"></a>
+### Nested Schema for `annotations.scope.specific_widgets`
+
+Required:
+
+- `widget_ids` (List of String) UUIDs of the widgets this annotation applies to.
 
 
 
