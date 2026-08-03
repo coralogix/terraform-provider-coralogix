@@ -2377,48 +2377,66 @@ func collectWidgetIDsFromLayout(ctx context.Context, layout types.Object) (map[s
 		return knownIDs, false, nil
 	}
 	sections, ok := sectionsVal.(types.List)
-	if !ok || sections.IsNull() || sections.IsUnknown() {
+	if !ok || sections.IsNull() {
 		return knownIDs, false, nil
+	}
+	if sections.IsUnknown() {
+		return knownIDs, true, nil
 	}
 	var sectionElems []types.Object
 	if diags := sections.ElementsAs(ctx, &sectionElems, true); diags.HasError() {
 		return knownIDs, false, diags
 	}
 	for _, section := range sectionElems {
-		if section.IsNull() || section.IsUnknown() {
+		if section.IsNull() {
 			continue
+		}
+		if section.IsUnknown() {
+			return knownIDs, true, nil
 		}
 		rowsVal, ok := section.Attributes()["rows"]
 		if !ok {
 			continue
 		}
 		rows, ok := rowsVal.(types.List)
-		if !ok || rows.IsNull() || rows.IsUnknown() {
+		if !ok || rows.IsNull() {
 			continue
+		}
+		if rows.IsUnknown() {
+			return knownIDs, true, nil
 		}
 		var rowElems []types.Object
 		if diags := rows.ElementsAs(ctx, &rowElems, true); diags.HasError() {
 			return knownIDs, false, diags
 		}
 		for _, row := range rowElems {
-			if row.IsNull() || row.IsUnknown() {
+			if row.IsNull() {
 				continue
+			}
+			if row.IsUnknown() {
+				return knownIDs, true, nil
 			}
 			widgetsVal, ok := row.Attributes()["widgets"]
 			if !ok {
 				continue
 			}
 			widgets, ok := widgetsVal.(types.List)
-			if !ok || widgets.IsNull() || widgets.IsUnknown() {
+			if !ok || widgets.IsNull() {
 				continue
+			}
+			if widgets.IsUnknown() {
+				return knownIDs, true, nil
 			}
 			var widgetElems []types.Object
 			if diags := widgets.ElementsAs(ctx, &widgetElems, true); diags.HasError() {
 				return knownIDs, false, diags
 			}
 			for _, widget := range widgetElems {
-				if widget.IsNull() || widget.IsUnknown() {
+				if widget.IsNull() {
 					continue
+				}
+				if widget.IsUnknown() {
+					return knownIDs, true, nil
 				}
 				idVal, ok := widget.Attributes()["id"]
 				if !ok {
