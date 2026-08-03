@@ -25,6 +25,7 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/dashboardjson"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -184,6 +185,127 @@ func observationFieldSingleNestedAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Attributes: dashboardwidgets.ObservationFieldSchema(),
 		Required:   true,
+	}
+}
+
+func dataprimeAnnotationSourceAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes: map[string]schema.Attribute{
+			"query": schema.StringAttribute{
+				Required: true,
+			},
+			"strategy": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"instant": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"timestamp_field": observationFieldSingleNestedAttribute(),
+						},
+						Optional: true,
+					},
+					"range": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"start_timestamp_field": observationFieldSingleNestedAttribute(),
+							"end_timestamp_field":   observationFieldSingleNestedAttribute(),
+						},
+						Optional: true,
+					},
+					"duration": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"start_timestamp_field": observationFieldSingleNestedAttribute(),
+							"duration_field":        observationFieldSingleNestedAttribute(),
+						},
+						Optional: true,
+					},
+				},
+				Required: true,
+				Validators: []validator.Object{
+					dashboardwidgets.ExactlyOneOfChildren("instant", "range", "duration"),
+				},
+			},
+			"label_fields": schema.ListNestedAttribute{
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: dashboardwidgets.ObservationFieldSchema(),
+				},
+				Optional: true,
+			},
+			"message_template": schema.StringAttribute{
+				Optional: true,
+			},
+			"orientation": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString("vertical"),
+				Validators: []validator.String{
+					stringvalidator.OneOf("vertical", "horizontal"),
+				},
+			},
+			"data_mode_type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
+				},
+			},
+		},
+		Optional: true,
+	}
+}
+
+func eventRecurrenceAnnotationSourceAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes: map[string]schema.Attribute{
+			"message_template": schema.StringAttribute{
+				Optional: true,
+			},
+			"recurrence": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"weekly": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"days_of_week": schema.ListAttribute{
+								ElementType: types.StringType,
+								Required:    true,
+								Validators: []validator.List{
+									listvalidator.ValueStringsAre(
+										stringvalidator.OneOf(dashboardwidgets.DashboardValidWeekdays...),
+									),
+								},
+							},
+						},
+						Required: true,
+					},
+				},
+				Required: true,
+			},
+			"strategy": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"instant": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"start_time_hour": schema.Int64Attribute{
+								Required: true,
+							},
+						},
+						Optional: true,
+					},
+					"duration": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"start_time_hour": schema.Int64Attribute{
+								Required: true,
+							},
+							"duration": schema.StringAttribute{
+								Required: true,
+							},
+						},
+						Optional: true,
+					},
+				},
+				Required: true,
+				Validators: []validator.Object{
+					dashboardwidgets.ExactlyOneOfChildren("instant", "duration"),
+				},
+			},
+		},
+		Optional: true,
 	}
 }
 

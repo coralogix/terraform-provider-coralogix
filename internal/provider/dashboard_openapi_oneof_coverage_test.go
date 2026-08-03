@@ -220,8 +220,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"logs":            covered("annotations[*].source.logs", dashboardOpenAPIAnnotationsTestName),
 				"spans":           covered("annotations[*].source.spans", dashboardOpenAPIAnnotationsTestName),
 				"manual":          covered("annotations[*].source.manual", dashboardOpenAPIAnnotationsTestName),
-				"dataprime":       apiOnly(dashboardNoProviderPath, false, "annotation.proto declares dataprime, but annotationSourceModelAttr and both annotation converters expose only metrics, logs, spans, and manual"),
-				"eventRecurrence": apiOnly(dashboardNoProviderPath, false, "annotation.proto declares event_recurrence, but annotationSourceModelAttr and both annotation converters expose only metrics, logs, spans, and manual"),
+				"dataprime":       covered("annotations[*].source.dataprime", "TestAccCoralogixResourceDashboardDataprimeAnnotation"),
+				"eventRecurrence": covered("annotations[*].source.event_recurrence", "TestAccCoralogixResourceDashboardEventRecurrenceAnnotation"),
 			},
 		},
 		"AnnotationWidgetScope": apiOnlyModel(
@@ -280,11 +280,14 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"dataprime": covered(widget+".data_table.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
-		"DataprimeSourceStrategy": apiOnlyModel(
-			"ast/annotations/annotation.proto#Annotation.DataprimeSource.Strategy.value",
-			"AnnotationSource.dataprime is not exposed by the structured provider",
-			"instant", "range", "duration",
-		),
+		"DataprimeSourceStrategy": {
+			ProtoSource: "ast/annotations/annotation.proto#Annotation.DataprimeSource.Strategy.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"instant":  covered("annotations[*].source.dataprime.strategy.instant", "TestAccCoralogixResourceDashboardDataprimeAnnotation"),
+				"range":    covered("annotations[*].source.dataprime.strategy.range", "TestAccCoralogixResourceDashboardDataprimeAnnotation"),
+				"duration": covered("annotations[*].source.dataprime.strategy.duration", "TestAccCoralogixResourceDashboardDataprimeAnnotation"),
+			},
+		},
 		"DisplayNameTemplateVariable": apiOnlyModel(
 			"ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.StatCard.StatVisualElement.DisplayNameTemplateVariable.source",
 			"display-name template variables are reachable only below WidgetDefinition.dynamic",
@@ -304,11 +307,13 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"list": covered(filter+".operator.selected_values", "TestAccCoralogixResourceDashboard"),
 			},
 		},
-		"EventRecurrenceSourceStrategy": apiOnlyModel(
-			"ast/annotations/annotation.proto#Annotation.EventRecurrenceSource.Strategy.value",
-			"AnnotationSource.event_recurrence is not exposed by the structured provider",
-			"instant", "duration",
-		),
+		"EventRecurrenceSourceStrategy": {
+			ProtoSource: "ast/annotations/annotation.proto#Annotation.EventRecurrenceSource.Strategy.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"instant":  covered("annotations[*].source.event_recurrence.strategy.instant", "TestAccCoralogixResourceDashboardEventRecurrenceAnnotation"),
+				"duration": covered("annotations[*].source.event_recurrence.strategy.duration", "TestAccCoralogixResourceDashboardEventRecurrenceAnnotation"),
+			},
+		},
 		"FilterOperator": {
 			ProtoSource: "ast/filters/filter.proto#Filter.Operator.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -742,8 +747,6 @@ func TestDashboardOpenAPIOneOfCoverageManifest(t *testing.T) {
 	}
 
 	assertDashboardAPIOnlyBranch(t, "WidgetDefinition", "dynamic", false)
-	assertDashboardAPIOnlyBranch(t, "AnnotationSource", "dataprime", false)
-	assertDashboardAPIOnlyBranch(t, "AnnotationSource", "eventRecurrence", false)
 	assertDashboardAPIOnlyBranch(t, "Dashboard", "oneMinute", false)
 	assertDashboardAPIOnlyBranch(t, "Dashboard", "fifteenMinutes", false)
 }
