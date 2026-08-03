@@ -2329,3 +2329,113 @@ func ExpandDashboardFiltersSources(ctx context.Context, filters types.List) ([]d
 
 	return expandedFiltersSources, diags
 }
+
+// WidgetIDsExistInLayout validates that every widget_id in a specific_widgets scope
+// references a widget defined in layout.sections[*].rows[*].widgets[*].id.
+// Validation is skipped (deferred) when any layout widget ID is Unknown.
+type WidgetIDsExistInLayout struct{}
+
+func (v WidgetIDsExistInLayout) Description(_ context.Context) string {
+	return "Each widget_id must match a widget id defined in layout.sections[*].rows[*].widgets[*].id."
+}
+
+func (v WidgetIDsExistInLayout) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v WidgetIDsExistInLayout) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	var layout types.Object
+	diags := req.Config.GetAttribute(ctx, path.Root("layout"), &layout)
+	if diags.HasError() || layout.IsNull() || layout.IsUnknown() {
+		return
+	}
+	knownIDs, unknown, diags := collectWidgetIDsFromLayout(ctx, layout)
+	if diags.HasError() || unknown {
+		return
+	}
+	for _, elem := range req.ConfigValue.Elements() {
+		s, ok := elem.(types.String)
+		if !ok || s.IsNull() || s.IsUnknown() {
+			continue
+		}
+		if !knownIDs[s.ValueString()] {
+			resp.Diagnostics.AddAttributeError(req.Path,
+				"Widget ID not found in layout",
+				fmt.Sprintf("widget_id %q is not defined in any layout widget.", s.ValueString()))
+		}
+	}
+}
+
+func collectWidgetIDsFromLayout(ctx context.Context, layout types.Object) (map[string]bool, bool, diag.Diagnostics) {
+	knownIDs := make(map[string]bool)
+	attrs := layout.Attributes()
+	sectionsVal, ok := attrs["sections"]
+	if !ok {
+		return knownIDs, false, nil
+	}
+	sections, ok := sectionsVal.(types.List)
+	if !ok || sections.IsNull() || sections.IsUnknown() {
+		return knownIDs, false, nil
+	}
+	var sectionElems []types.Object
+	if diags := sections.ElementsAs(ctx, &sectionElems, true); diags.HasError() {
+		return knownIDs, false, diags
+	}
+	for _, section := range sectionElems {
+		if section.IsNull() || section.IsUnknown() {
+			continue
+		}
+		rowsVal, ok := section.Attributes()["rows"]
+		if !ok {
+			continue
+		}
+		rows, ok := rowsVal.(types.List)
+		if !ok || rows.IsNull() || rows.IsUnknown() {
+			continue
+		}
+		var rowElems []types.Object
+		if diags := rows.ElementsAs(ctx, &rowElems, true); diags.HasError() {
+			return knownIDs, false, diags
+		}
+		for _, row := range rowElems {
+			if row.IsNull() || row.IsUnknown() {
+				continue
+			}
+			widgetsVal, ok := row.Attributes()["widgets"]
+			if !ok {
+				continue
+			}
+			widgets, ok := widgetsVal.(types.List)
+			if !ok || widgets.IsNull() || widgets.IsUnknown() {
+				continue
+			}
+			var widgetElems []types.Object
+			if diags := widgets.ElementsAs(ctx, &widgetElems, true); diags.HasError() {
+				return knownIDs, false, diags
+			}
+			for _, widget := range widgetElems {
+				if widget.IsNull() || widget.IsUnknown() {
+					continue
+				}
+				idVal, ok := widget.Attributes()["id"]
+				if !ok {
+					continue
+				}
+				idStr, ok := idVal.(types.String)
+				if !ok {
+					continue
+				}
+				if idStr.IsUnknown() {
+					return knownIDs, true, nil
+				}
+				if !idStr.IsNull() {
+					knownIDs[idStr.ValueString()] = true
+				}
+			}
+		}
+	}
+	return knownIDs, false, nil
+}
