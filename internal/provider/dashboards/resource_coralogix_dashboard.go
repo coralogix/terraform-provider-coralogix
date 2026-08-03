@@ -902,10 +902,12 @@ func upgradeAnnotationSourceV0(ctx context.Context, source types.Object) (types.
 	}
 
 	upgradeSource := DashboardAnnotationSourceModel{
-		Metrics: priorSource.Metric,
-		Logs:    types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
-		Spans:   types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
-		Manual:  types.ObjectNull(annotationsManualSourceModelAttr()),
+		Metrics:        priorSource.Metric,
+		Logs:           types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
+		Spans:          types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
+		Manual:         types.ObjectNull(annotationsManualSourceModelAttr()),
+		Dataprime:      types.ObjectNull(annotationsDataprimeSourceModelAttr()),
+		EventRecurrence: types.ObjectNull(annotationsEventRecurrenceSourceModelAttr()),
 	}
 
 	return types.ObjectValueFrom(ctx, annotationSourceModelAttr(), upgradeSource)
