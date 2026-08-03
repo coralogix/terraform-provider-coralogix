@@ -63,7 +63,7 @@ func V3() schema.Schema {
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Alert description.",
+				MarkdownDescription: "Free-text description of the alert. Available to notification templates as `{{alertDef.description}}`.",
 			},
 			"enabled": schema.BoolAttribute{
 				Optional:            true,

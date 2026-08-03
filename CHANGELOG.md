@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- CHORE: Clarify the `description` attribute's schema documentation, which previously only restated the attribute name.
+
 #### resource/coralogix_dashboard
 - CHORE: Use the shared SDK `dashboardjson.Unmarshal` helper for `content_json` (snake_case aliases, unknown-key discard) instead of a local copy. Create/replace no longer re-strip unknowns; that happens in Unmarshal, as in the operator.
 - FIX: Adding a section, row, widget or annotation without an `id` no longer fails with "Provider produced inconsistent result after apply". Generated `id` fields (section, row, widget, line-chart `query_definitions[].id`, data-table aggregation, annotation) and widget `width` now use `UseNonNullStateForUnknown` so new nested elements stay `(known after apply)` instead of planning as null.
