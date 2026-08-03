@@ -52,8 +52,8 @@ var (
 	dashboardManualAnnotationOrientationToSchema = utils.ReverseMap(dashboardManualAnnotationOrientationToProto)
 
 	dataprimAnnotationDataModeTypeToProto = map[string]dashboardservice.V1CommonDataModeType{
-		"high":    dashboardservice.V1COMMONDATAMODETYPE_DATA_MODE_TYPE_HIGH_UNSPECIFIED,
-		"archive": dashboardservice.V1COMMONDATAMODETYPE_DATA_MODE_TYPE_ARCHIVE,
+		utils.UNSPECIFIED: dashboardservice.V1COMMONDATAMODETYPE_DATA_MODE_TYPE_HIGH_UNSPECIFIED,
+		"archive":         dashboardservice.V1COMMONDATAMODETYPE_DATA_MODE_TYPE_ARCHIVE,
 	}
 	dataprimAnnotationDataModeTypeToSchema = utils.ReverseMap(dataprimAnnotationDataModeTypeToProto)
 )
@@ -1391,7 +1391,7 @@ func expandEventRecurrenceRecurrence(ctx context.Context, recurrence types.Objec
 	}
 	weekdays := make([]dashboardservice.Weekday, 0, len(days))
 	for _, d := range days {
-		weekdays = append(weekdays, dashboardservice.Weekday(d))
+		weekdays = append(weekdays, dashboardwidgets.DashboardSchemaToProtoWeekday[d])
 	}
 	return &dashboardservice.Recurrence{
 		Weekly: &dashboardservice.WeeklyRecurrence{DaysOfWeek: weekdays},
@@ -6933,7 +6933,7 @@ func flattenDashboardAnnotationDataprimeSourceModel(ctx context.Context, datapri
 		return types.ObjectNull(annotationsDataprimeSourceModelAttr()), diags
 	}
 
-	dataModeType := types.StringValue("high")
+	dataModeType := types.StringValue(utils.UNSPECIFIED)
 	if dataprime.DataModeType != nil {
 		if s, ok := dataprimAnnotationDataModeTypeToSchema[*dataprime.DataModeType]; ok {
 			dataModeType = types.StringValue(s)
@@ -7063,7 +7063,7 @@ func flattenEventRecurrenceRecurrence(ctx context.Context, recurrence *dashboard
 	if recurrence.Weekly != nil {
 		days := make([]attr.Value, 0, len(recurrence.Weekly.DaysOfWeek))
 		for _, d := range recurrence.Weekly.DaysOfWeek {
-			days = append(days, types.StringValue(string(d)))
+			days = append(days, types.StringValue(dashboardwidgets.DashboardProtoToSchemaWeekday[d]))
 		}
 		daysList, diags := types.ListValue(types.StringType, days)
 		if diags.HasError() {

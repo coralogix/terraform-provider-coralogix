@@ -1674,7 +1674,7 @@ resource "coralogix_dashboard" "test" {
           message_template = "Weekly deployment window"
           recurrence = {
             weekly = {
-              days_of_week = ["WEEKDAY_TUESDAY", "WEEKDAY_THURSDAY"]
+              days_of_week = ["tuesday", "thursday"]
             }
           }
           strategy = {
@@ -1692,7 +1692,7 @@ resource "coralogix_dashboard" "test" {
         event_recurrence = {
           recurrence = {
             weekly = {
-              days_of_week = ["WEEKDAY_SUNDAY"]
+              days_of_week = ["sunday"]
             }
           }
           strategy = {
@@ -1739,7 +1739,7 @@ resource "coralogix_dashboard" "test" {
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.name", "weekly deployment instant"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.event_recurrence.message_template", "Weekly deployment window"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.event_recurrence.recurrence.weekly.days_of_week.0", "WEEKDAY_TUESDAY"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.event_recurrence.recurrence.weekly.days_of_week.0", "tuesday"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.event_recurrence.strategy.instant.start_time_hour", "9"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.1.name", "weekly maintenance window"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.1.source.event_recurrence.strategy.duration.duration", "7200s"),

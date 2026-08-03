@@ -242,9 +242,9 @@ func dataprimeAnnotationSourceAttribute() schema.SingleNestedAttribute {
 			"data_mode_type": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
-				Default:  stringdefault.StaticString("high"),
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf("high", "archive"),
+					stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 				},
 			},
 		},
@@ -267,15 +267,7 @@ func eventRecurrenceAnnotationSourceAttribute() schema.SingleNestedAttribute {
 								Required:    true,
 								Validators: []validator.List{
 									listvalidator.ValueStringsAre(
-										stringvalidator.OneOf(
-											"WEEKDAY_MONDAY",
-											"WEEKDAY_TUESDAY",
-											"WEEKDAY_WEDNESDAY",
-											"WEEKDAY_THURSDAY",
-											"WEEKDAY_FRIDAY",
-											"WEEKDAY_SATURDAY",
-											"WEEKDAY_SUNDAY",
-										),
+										stringvalidator.OneOf(dashboardwidgets.DashboardValidWeekdays...),
 									),
 								},
 							},

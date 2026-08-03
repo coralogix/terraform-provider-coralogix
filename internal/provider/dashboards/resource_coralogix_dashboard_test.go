@@ -962,7 +962,7 @@ func TestDataprimeAnnotationSourceRoundTrip(t *testing.T) {
 		"label_fields":     types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.ObservationFieldAttr()}),
 		"message_template": types.StringNull(),
 		"orientation":      types.StringValue("vertical"),
-		"data_mode_type":   types.StringValue("high"),
+		"data_mode_type":   types.StringValue("unspecified"),
 	})
 
 	expanded, diags := expandDataprimeSource(ctx, source)
@@ -1000,8 +1000,8 @@ func TestEventRecurrenceAnnotationSourceRoundTrip(t *testing.T) {
 
 	weekly := types.ObjectValueMust(weeklyRecurrenceModelAttr(), map[string]attr.Value{
 		"days_of_week": types.ListValueMust(types.StringType, []attr.Value{
-			types.StringValue("WEEKDAY_MONDAY"),
-			types.StringValue("WEEKDAY_WEDNESDAY"),
+			types.StringValue("monday"),
+			types.StringValue("wednesday"),
 		}),
 	})
 	recurrence := types.ObjectValueMust(eventRecurrenceRecurrenceModelAttr(), map[string]attr.Value{

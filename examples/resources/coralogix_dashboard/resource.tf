@@ -647,7 +647,7 @@ resource "coralogix_dashboard" "dashboard" {
           }
           message_template = "dataprime event"
           orientation      = "vertical"
-          data_mode_type   = "high"
+          data_mode_type   = "unspecified"
         }
       }
     },
@@ -658,7 +658,7 @@ resource "coralogix_dashboard" "dashboard" {
           message_template = "weekly maintenance window"
           recurrence = {
             weekly = {
-              days_of_week = ["WEEKDAY_MONDAY", "WEEKDAY_WEDNESDAY"]
+              days_of_week = ["monday", "wednesday"]
             }
           }
           strategy = {
