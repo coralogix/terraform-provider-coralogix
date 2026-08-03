@@ -6931,7 +6931,7 @@ func flattenDashboardAnnotationDataprimeSourceModel(ctx context.Context, datapri
 		return types.ObjectNull(annotationsDataprimeSourceModelAttr()), diags
 	}
 
-	dataModeType := types.StringNull()
+	dataModeType := types.StringValue("high")
 	if dataprime.DataModeType != nil {
 		if s, ok := dataprimAnnotationDataModeTypeToSchema[*dataprime.DataModeType]; ok {
 			dataModeType = types.StringValue(s)
