@@ -647,6 +647,44 @@ resource "coralogix_dashboard" "dashboard" {
         }
       }
     },
+    {
+      name = "dataprime_annotation"
+      source = {
+        dataprime = {
+          query = "source logs | limit 10"
+          strategy = {
+            instant = {
+              timestamp_field = {
+                keypath = ["timestamp"]
+                scope   = "metadata"
+              }
+            }
+          }
+          message_template = "dataprime event"
+          orientation      = "vertical"
+          data_mode_type   = "high"
+        }
+      }
+    },
+    {
+      name = "weekly_event_recurrence"
+      source = {
+        event_recurrence = {
+          message_template = "weekly maintenance window"
+          recurrence = {
+            weekly = {
+              days_of_week = ["WEEKDAY_MONDAY", "WEEKDAY_WEDNESDAY"]
+            }
+          }
+          strategy = {
+            duration = {
+              start_time_hour = 2
+              duration        = "3600s"
+            }
+          }
+        }
+      }
+    },
   ]
   auto_refresh = {
     type = "two_minutes"
