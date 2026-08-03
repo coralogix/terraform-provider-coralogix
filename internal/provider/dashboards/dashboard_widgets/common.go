@@ -273,6 +273,18 @@ var (
 	DashboardProtoToSchemaPromQLQueryType = utils.ReverseMap(DashboardSchemaToProtoPromQLQueryType)
 	DashboardValidPromQLQueryType         = utils.GetKeys(DashboardSchemaToProtoPromQLQueryType)
 
+	DashboardSchemaToProtoWeekday = map[string]dashboardservice.Weekday{
+		"monday":    dashboardservice.WEEKDAY_WEEKDAY_MONDAY,
+		"tuesday":   dashboardservice.WEEKDAY_WEEKDAY_TUESDAY,
+		"wednesday": dashboardservice.WEEKDAY_WEEKDAY_WEDNESDAY,
+		"thursday":  dashboardservice.WEEKDAY_WEEKDAY_THURSDAY,
+		"friday":    dashboardservice.WEEKDAY_WEEKDAY_FRIDAY,
+		"saturday":  dashboardservice.WEEKDAY_WEEKDAY_SATURDAY,
+		"sunday":    dashboardservice.WEEKDAY_WEEKDAY_SUNDAY,
+	}
+	DashboardProtoToSchemaWeekday = utils.ReverseMap(DashboardSchemaToProtoWeekday)
+	DashboardValidWeekdays        = utils.GetKeys(DashboardSchemaToProtoWeekday)
+
 	SupportedWidgetTypes = []string{
 		"data_table",
 		"gauge",

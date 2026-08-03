@@ -26,9 +26,9 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboardjson"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	"github.com/coralogix/coralogix-management-sdk/go/openapi/dashboardjson"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -50,6 +50,12 @@ var (
 		"horizontal": dashboardservice.ANNOTATIONORIENTATION_ANNOTATION_ORIENTATION_HORIZONTAL,
 	}
 	dashboardManualAnnotationOrientationToSchema = utils.ReverseMap(dashboardManualAnnotationOrientationToProto)
+
+	dataprimAnnotationDataModeTypeToProto = map[string]dashboardservice.V1CommonDataModeType{
+		utils.UNSPECIFIED: dashboardservice.V1COMMONDATAMODETYPE_DATA_MODE_TYPE_HIGH_UNSPECIFIED,
+		"archive":         dashboardservice.V1COMMONDATAMODETYPE_DATA_MODE_TYPE_ARCHIVE,
+	}
+	dataprimAnnotationDataModeTypeToSchema = utils.ReverseMap(dataprimAnnotationDataModeTypeToProto)
 )
 
 type DashboardResourceModel struct {
@@ -304,10 +310,12 @@ type DashboardAnnotationModel struct {
 }
 
 type DashboardAnnotationSourceModel struct {
-	Metrics types.Object `tfsdk:"metrics"` //DashboardAnnotationMetricSourceModel
-	Spans   types.Object `tfsdk:"spans"`   //DashboardAnnotationSpansOrLogsSourceModel
-	Logs    types.Object `tfsdk:"logs"`    //DashboardAnnotationSpansOrLogsSourceModel
-	Manual  types.Object `tfsdk:"manual"`  //DashboardAnnotationManualSourceModel
+	Metrics         types.Object `tfsdk:"metrics"`          //DashboardAnnotationMetricSourceModel
+	Spans           types.Object `tfsdk:"spans"`            //DashboardAnnotationSpansOrLogsSourceModel
+	Logs            types.Object `tfsdk:"logs"`             //DashboardAnnotationSpansOrLogsSourceModel
+	Manual          types.Object `tfsdk:"manual"`           //DashboardAnnotationManualSourceModel
+	Dataprime       types.Object `tfsdk:"dataprime"`        //DashboardAnnotationDataprimeSourceModel
+	EventRecurrence types.Object `tfsdk:"event_recurrence"` //DashboardAnnotationEventRecurrenceSourceModel
 }
 
 type DashboardAnnotationManualSourceModel struct {
@@ -373,6 +381,49 @@ type DashboardAnnotationMetricStrategyModel struct {
 }
 
 type MetricStrategyStartTimeModel struct{}
+
+type DashboardAnnotationDataprimeSourceModel struct {
+	Query           types.String `tfsdk:"query"`
+	Strategy        types.Object `tfsdk:"strategy"` //DashboardAnnotationDataprimeStrategyModel
+	LabelFields     types.List   `tfsdk:"label_fields"`
+	MessageTemplate types.String `tfsdk:"message_template"`
+	Orientation     types.String `tfsdk:"orientation"`
+	DataModeType    types.String `tfsdk:"data_mode_type"`
+}
+
+type DashboardAnnotationDataprimeStrategyModel struct {
+	Instant  types.Object `tfsdk:"instant"`  //DashboardAnnotationInstantStrategyModel
+	Range    types.Object `tfsdk:"range"`    //DashboardAnnotationRangeStrategyModel
+	Duration types.Object `tfsdk:"duration"` //DashboardAnnotationDurationStrategyModel
+}
+
+type DashboardAnnotationEventRecurrenceSourceModel struct {
+	MessageTemplate types.String `tfsdk:"message_template"`
+	Recurrence      types.Object `tfsdk:"recurrence"` //DashboardAnnotationRecurrenceModel
+	Strategy        types.Object `tfsdk:"strategy"`   //DashboardAnnotationEventRecurrenceStrategyModel
+}
+
+type DashboardAnnotationRecurrenceModel struct {
+	Weekly types.Object `tfsdk:"weekly"` //DashboardAnnotationWeeklyRecurrenceModel
+}
+
+type DashboardAnnotationWeeklyRecurrenceModel struct {
+	DaysOfWeek types.List `tfsdk:"days_of_week"` //[]string Weekday enum
+}
+
+type DashboardAnnotationEventRecurrenceStrategyModel struct {
+	Instant  types.Object `tfsdk:"instant"`  //DashboardAnnotationEventRecurrenceInstantStrategyModel
+	Duration types.Object `tfsdk:"duration"` //DashboardAnnotationEventRecurrenceDurationStrategyModel
+}
+
+type DashboardAnnotationEventRecurrenceInstantStrategyModel struct {
+	StartTimeHour types.Int64 `tfsdk:"start_time_hour"`
+}
+
+type DashboardAnnotationEventRecurrenceDurationStrategyModel struct {
+	StartTimeHour types.Int64  `tfsdk:"start_time_hour"`
+	Duration      types.String `tfsdk:"duration"`
+}
 
 type DashboardAutoRefreshModel struct {
 	Type types.String `tfsdk:"type"`
@@ -851,10 +902,12 @@ func upgradeAnnotationSourceV0(ctx context.Context, source types.Object) (types.
 	}
 
 	upgradeSource := DashboardAnnotationSourceModel{
-		Metrics: priorSource.Metric,
-		Logs:    types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
-		Spans:   types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
-		Manual:  types.ObjectNull(annotationsManualSourceModelAttr()),
+		Metrics:         priorSource.Metric,
+		Logs:            types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
+		Spans:           types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
+		Manual:          types.ObjectNull(annotationsManualSourceModelAttr()),
+		Dataprime:       types.ObjectNull(annotationsDataprimeSourceModelAttr()),
+		EventRecurrence: types.ObjectNull(annotationsEventRecurrenceSourceModelAttr()),
 	}
 
 	return types.ObjectValueFrom(ctx, annotationSourceModelAttr(), upgradeSource)
@@ -1132,8 +1185,12 @@ func expandAnnotationSource(ctx context.Context, source types.Object) (*dashboar
 		return expandSpansAnnotationSource(ctx, sourceObject.Spans)
 	case objectIsKnown(sourceObject.Manual):
 		return expandManualAnnotationSource(ctx, sourceObject.Manual)
+	case objectIsKnown(sourceObject.Dataprime):
+		return expandDataprimeAnnotationSource(ctx, sourceObject.Dataprime)
+	case objectIsKnown(sourceObject.EventRecurrence):
+		return expandEventRecurrenceAnnotationSource(ctx, sourceObject.EventRecurrence)
 	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Annotation Source", "Annotation Source must be either Logs, Metric, Spans or Manual")}
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Annotation Source", "Annotation Source must be one of: Logs, Metrics, Spans, Manual, DataPrime, EventRecurrence")}
 	}
 }
 
@@ -1159,6 +1216,219 @@ func expandSpansAnnotationSource(ctx context.Context, source types.Object) (*das
 func expandManualAnnotationSource(ctx context.Context, source types.Object) (*dashboardservice.AnnotationSource, diag.Diagnostics) {
 	expanded, diags := expandManualSource(ctx, source)
 	return &dashboardservice.AnnotationSource{Manual: expanded}, diags
+}
+
+func expandDataprimeAnnotationSource(ctx context.Context, source types.Object) (*dashboardservice.AnnotationSource, diag.Diagnostics) {
+	expanded, diags := expandDataprimeSource(ctx, source)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardservice.AnnotationSource{Dataprime: expanded}, diags
+}
+
+func expandDataprimeSource(ctx context.Context, dataprime types.Object) (*dashboardservice.DataprimeSource, diag.Diagnostics) {
+	if dataprime.IsNull() || dataprime.IsUnknown() {
+		return nil, nil
+	}
+	var obj DashboardAnnotationDataprimeSourceModel
+	if diags := dataprime.As(ctx, &obj, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	strategy, diags := expandDataprimeSourceStrategy(ctx, obj.Strategy)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	labelFields, diags := dashboardwidgets.ExpandObservationFields(ctx, obj.LabelFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var dataModeType *dashboardservice.V1CommonDataModeType
+	if !obj.DataModeType.IsNull() && !obj.DataModeType.IsUnknown() {
+		if v, ok := dataprimAnnotationDataModeTypeToProto[obj.DataModeType.ValueString()]; ok {
+			dataModeType = v.Ptr()
+		}
+	}
+
+	return &dashboardservice.DataprimeSource{
+		Query:           &dashboardservice.CommonDataprimeQuery{Text: utils.TypeStringToStringPointer(obj.Query)},
+		Strategy:        strategy,
+		LabelFields:     labelFields,
+		MessageTemplate: utils.TypeStringToStringPointer(obj.MessageTemplate),
+		Orientation:     expandManualAnnotationOrientation(obj.Orientation).Ptr(),
+		DataModeType:    dataModeType,
+	}, nil
+}
+
+func expandDataprimeSourceStrategy(ctx context.Context, strategy types.Object) (*dashboardservice.DataprimeSourceStrategy, diag.Diagnostics) {
+	var strategyObject DashboardAnnotationDataprimeStrategyModel
+	if diags := strategy.As(ctx, &strategyObject, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	switch {
+	case !utils.ObjIsNullOrUnknown(strategyObject.Instant):
+		return expandDataprimeSourceInstantStrategy(ctx, strategyObject.Instant)
+	case !utils.ObjIsNullOrUnknown(strategyObject.Range):
+		return expandDataprimeSourceRangeStrategy(ctx, strategyObject.Range)
+	case !utils.ObjIsNullOrUnknown(strategyObject.Duration):
+		return expandDataprimeSourceDurationStrategy(ctx, strategyObject.Duration)
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand DataPrime Source Strategy", "DataPrime Source Strategy must be either Instant, Range or Duration")}
+	}
+}
+
+func expandDataprimeSourceInstantStrategy(ctx context.Context, instant types.Object) (*dashboardservice.DataprimeSourceStrategy, diag.Diagnostics) {
+	var obj DashboardAnnotationInstantStrategyModel
+	if diags := instant.As(ctx, &obj, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	timestampField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, obj.TimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardservice.DataprimeSourceStrategy{
+		Instant: &dashboardservice.DataprimeSourceStrategyInstant{TimestampField: timestampField},
+	}, nil
+}
+
+func expandDataprimeSourceRangeStrategy(ctx context.Context, object types.Object) (*dashboardservice.DataprimeSourceStrategy, diag.Diagnostics) {
+	var obj DashboardAnnotationRangeStrategyModel
+	if diags := object.As(ctx, &obj, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	startField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, obj.StartTimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+	endField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, obj.EndTimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardservice.DataprimeSourceStrategy{
+		Range: &dashboardservice.DataprimeSourceStrategyRange{
+			StartTimestampField: startField,
+			EndTimestampField:   endField,
+		},
+	}, nil
+}
+
+func expandDataprimeSourceDurationStrategy(ctx context.Context, duration types.Object) (*dashboardservice.DataprimeSourceStrategy, diag.Diagnostics) {
+	var obj DashboardAnnotationDurationStrategyModel
+	if diags := duration.As(ctx, &obj, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	startField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, obj.StartTimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+	durationField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, obj.DurationField)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardservice.DataprimeSourceStrategy{
+		Duration: &dashboardservice.DataprimeSourceStrategyDuration{
+			StartTimestampField: startField,
+			DurationField:       durationField,
+		},
+	}, nil
+}
+
+func expandEventRecurrenceAnnotationSource(ctx context.Context, source types.Object) (*dashboardservice.AnnotationSource, diag.Diagnostics) {
+	expanded, diags := expandEventRecurrenceSource(ctx, source)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardservice.AnnotationSource{EventRecurrence: expanded}, diags
+}
+
+func expandEventRecurrenceSource(ctx context.Context, eventRecurrence types.Object) (*dashboardservice.EventRecurrenceSource, diag.Diagnostics) {
+	if eventRecurrence.IsNull() || eventRecurrence.IsUnknown() {
+		return nil, nil
+	}
+	var obj DashboardAnnotationEventRecurrenceSourceModel
+	if diags := eventRecurrence.As(ctx, &obj, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	recurrence, diags := expandEventRecurrenceRecurrence(ctx, obj.Recurrence)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	strategy, diags := expandEventRecurrenceSourceStrategy(ctx, obj.Strategy)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboardservice.EventRecurrenceSource{
+		MessageTemplate: utils.TypeStringToStringPointer(obj.MessageTemplate),
+		Recurrence:      recurrence,
+		Strategy:        strategy,
+	}, nil
+}
+
+func expandEventRecurrenceRecurrence(ctx context.Context, recurrence types.Object) (*dashboardservice.Recurrence, diag.Diagnostics) {
+	if recurrence.IsNull() || recurrence.IsUnknown() {
+		return nil, nil
+	}
+	var obj DashboardAnnotationRecurrenceModel
+	if diags := recurrence.As(ctx, &obj, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	if obj.Weekly.IsNull() || obj.Weekly.IsUnknown() {
+		return nil, nil
+	}
+	var weeklyObj DashboardAnnotationWeeklyRecurrenceModel
+	if diags := obj.Weekly.As(ctx, &weeklyObj, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	var days []string
+	if diags := weeklyObj.DaysOfWeek.ElementsAs(ctx, &days, false); diags.HasError() {
+		return nil, diags
+	}
+	weekdays := make([]dashboardservice.Weekday, 0, len(days))
+	for _, d := range days {
+		weekdays = append(weekdays, dashboardwidgets.DashboardSchemaToProtoWeekday[d])
+	}
+	return &dashboardservice.Recurrence{
+		Weekly: &dashboardservice.WeeklyRecurrence{DaysOfWeek: weekdays},
+	}, nil
+}
+
+func expandEventRecurrenceSourceStrategy(ctx context.Context, strategy types.Object) (*dashboardservice.EventRecurrenceSourceStrategy, diag.Diagnostics) {
+	var strategyObject DashboardAnnotationEventRecurrenceStrategyModel
+	if diags := strategy.As(ctx, &strategyObject, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	switch {
+	case !utils.ObjIsNullOrUnknown(strategyObject.Instant):
+		var obj DashboardAnnotationEventRecurrenceInstantStrategyModel
+		if diags := strategyObject.Instant.As(ctx, &obj, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		hour := int32(obj.StartTimeHour.ValueInt64())
+		return &dashboardservice.EventRecurrenceSourceStrategy{
+			Instant: &dashboardservice.EventRecurrenceSourceStrategyInstant{StartTimeHour: &hour},
+		}, nil
+	case !utils.ObjIsNullOrUnknown(strategyObject.Duration):
+		var obj DashboardAnnotationEventRecurrenceDurationStrategyModel
+		if diags := strategyObject.Duration.As(ctx, &obj, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		hour := int32(obj.StartTimeHour.ValueInt64())
+		return &dashboardservice.EventRecurrenceSourceStrategy{
+			Duration: &dashboardservice.EventRecurrenceSourceStrategyDuration{
+				StartTimeHour: &hour,
+				Duration:      utils.TypeStringToStringPointer(obj.Duration),
+			},
+		}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand EventRecurrence Source Strategy", "EventRecurrence Source Strategy must be either Instant or Duration")}
+	}
 }
 
 func expandManualSource(ctx context.Context, manual types.Object) (*dashboardservice.ManualSource, diag.Diagnostics) {
@@ -4050,6 +4320,12 @@ func annotationSourceModelAttr() map[string]attr.Type {
 		"manual": types.ObjectType{
 			AttrTypes: annotationsManualSourceModelAttr(),
 		},
+		"dataprime": types.ObjectType{
+			AttrTypes: annotationsDataprimeSourceModelAttr(),
+		},
+		"event_recurrence": types.ObjectType{
+			AttrTypes: annotationsEventRecurrenceSourceModelAttr(),
+		},
 	}
 }
 
@@ -4162,6 +4438,65 @@ func metricStrategyModelAttr() map[string]attr.Type {
 		"start_time": types.ObjectType{
 			AttrTypes: map[string]attr.Type{},
 		},
+	}
+}
+
+func annotationsDataprimeSourceModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"query":            types.StringType,
+		"strategy":         types.ObjectType{AttrTypes: dataprimeStrategyModelAttr()},
+		"label_fields":     types.ListType{ElemType: observationFieldModelAttr()},
+		"message_template": types.StringType,
+		"orientation":      types.StringType,
+		"data_mode_type":   types.StringType,
+	}
+}
+
+func dataprimeStrategyModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"instant":  types.ObjectType{AttrTypes: instantStrategyModelAttr()},
+		"range":    types.ObjectType{AttrTypes: rangeStrategyModelAttr()},
+		"duration": types.ObjectType{AttrTypes: durationStrategyModelAttr()},
+	}
+}
+
+func annotationsEventRecurrenceSourceModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"message_template": types.StringType,
+		"recurrence":       types.ObjectType{AttrTypes: eventRecurrenceRecurrenceModelAttr()},
+		"strategy":         types.ObjectType{AttrTypes: eventRecurrenceStrategyModelAttr()},
+	}
+}
+
+func eventRecurrenceRecurrenceModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"weekly": types.ObjectType{AttrTypes: weeklyRecurrenceModelAttr()},
+	}
+}
+
+func weeklyRecurrenceModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"days_of_week": types.ListType{ElemType: types.StringType},
+	}
+}
+
+func eventRecurrenceStrategyModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"instant":  types.ObjectType{AttrTypes: eventRecurrenceInstantStrategyModelAttr()},
+		"duration": types.ObjectType{AttrTypes: eventRecurrenceDurationStrategyModelAttr()},
+	}
+}
+
+func eventRecurrenceInstantStrategyModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"start_time_hour": types.Int64Type,
+	}
+}
+
+func eventRecurrenceDurationStrategyModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"start_time_hour": types.Int64Type,
+		"duration":        types.StringType,
 	}
 }
 
@@ -6189,21 +6524,43 @@ func flattenDashboardAnnotationSource(ctx context.Context, source *dashboardserv
 		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
 		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
 		sourceObject.Manual = types.ObjectNull(annotationsManualSourceModelAttr())
+		sourceObject.Dataprime = types.ObjectNull(annotationsDataprimeSourceModelAttr())
+		sourceObject.EventRecurrence = types.ObjectNull(annotationsEventRecurrenceSourceModelAttr())
 	case source.Logs != nil:
 		sourceObject.Logs, diags = flattenDashboardAnnotationLogsSourceModel(ctx, source.Logs)
 		sourceObject.Metrics = types.ObjectNull(annotationsMetricsSourceModelAttr())
 		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
 		sourceObject.Manual = types.ObjectNull(annotationsManualSourceModelAttr())
+		sourceObject.Dataprime = types.ObjectNull(annotationsDataprimeSourceModelAttr())
+		sourceObject.EventRecurrence = types.ObjectNull(annotationsEventRecurrenceSourceModelAttr())
 	case source.Spans != nil:
 		sourceObject.Spans, diags = flattenDashboardAnnotationSpansSourceModel(ctx, source.Spans)
 		sourceObject.Metrics = types.ObjectNull(annotationsMetricsSourceModelAttr())
 		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
 		sourceObject.Manual = types.ObjectNull(annotationsManualSourceModelAttr())
+		sourceObject.Dataprime = types.ObjectNull(annotationsDataprimeSourceModelAttr())
+		sourceObject.EventRecurrence = types.ObjectNull(annotationsEventRecurrenceSourceModelAttr())
 	case source.Manual != nil:
 		sourceObject.Manual, diags = flattenDashboardAnnotationManualSourceModel(ctx, source.Manual)
 		sourceObject.Metrics = types.ObjectNull(annotationsMetricsSourceModelAttr())
 		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
 		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+		sourceObject.Dataprime = types.ObjectNull(annotationsDataprimeSourceModelAttr())
+		sourceObject.EventRecurrence = types.ObjectNull(annotationsEventRecurrenceSourceModelAttr())
+	case source.Dataprime != nil:
+		sourceObject.Dataprime, diags = flattenDashboardAnnotationDataprimeSourceModel(ctx, source.Dataprime)
+		sourceObject.Metrics = types.ObjectNull(annotationsMetricsSourceModelAttr())
+		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+		sourceObject.Manual = types.ObjectNull(annotationsManualSourceModelAttr())
+		sourceObject.EventRecurrence = types.ObjectNull(annotationsEventRecurrenceSourceModelAttr())
+	case source.EventRecurrence != nil:
+		sourceObject.EventRecurrence, diags = flattenDashboardAnnotationEventRecurrenceSourceModel(ctx, source.EventRecurrence)
+		sourceObject.Metrics = types.ObjectNull(annotationsMetricsSourceModelAttr())
+		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+		sourceObject.Manual = types.ObjectNull(annotationsManualSourceModelAttr())
+		sourceObject.Dataprime = types.ObjectNull(annotationsDataprimeSourceModelAttr())
 	default:
 		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Annotation Source", fmt.Sprintf("unknown annotation source type %T", source))}
 	}
@@ -6559,6 +6916,205 @@ func flattenDashboardAnnotationStrategy(ctx context.Context, strategy *dashboard
 	}
 
 	return types.ObjectValueFrom(ctx, metricStrategyModelAttr(), strategyObject)
+}
+
+func flattenDashboardAnnotationDataprimeSourceModel(ctx context.Context, dataprime *dashboardservice.DataprimeSource) (types.Object, diag.Diagnostics) {
+	if dataprime == nil {
+		return types.ObjectNull(annotationsDataprimeSourceModelAttr()), nil
+	}
+
+	strategy, diags := flattenDataprimeSourceStrategy(ctx, dataprime.Strategy)
+	if diags.HasError() {
+		return types.ObjectNull(annotationsDataprimeSourceModelAttr()), diags
+	}
+
+	labelFields, diags := dashboardwidgets.FlattenObservationFields(ctx, dataprime.GetLabelFields())
+	if diags.HasError() {
+		return types.ObjectNull(annotationsDataprimeSourceModelAttr()), diags
+	}
+
+	dataModeType := types.StringValue(utils.UNSPECIFIED)
+	if dataprime.DataModeType != nil {
+		if s, ok := dataprimAnnotationDataModeTypeToSchema[*dataprime.DataModeType]; ok {
+			dataModeType = types.StringValue(s)
+		}
+	}
+
+	obj := &DashboardAnnotationDataprimeSourceModel{
+		Query:           utils.StringPointerToTypeString(dataprime.GetQuery().Text),
+		Strategy:        strategy,
+		LabelFields:     labelFields,
+		MessageTemplate: utils.StringPointerToTypeString(dataprime.MessageTemplate),
+		Orientation:     flattenManualAnnotationOrientation(dataprime.GetOrientation()),
+		DataModeType:    dataModeType,
+	}
+
+	return types.ObjectValueFrom(ctx, annotationsDataprimeSourceModelAttr(), obj)
+}
+
+func flattenDataprimeSourceStrategy(ctx context.Context, strategy *dashboardservice.DataprimeSourceStrategy) (types.Object, diag.Diagnostics) {
+	if strategy == nil {
+		return types.ObjectNull(dataprimeStrategyModelAttr()), nil
+	}
+
+	var strategyModel DashboardAnnotationDataprimeStrategyModel
+	var diags diag.Diagnostics
+	switch {
+	case strategy.Instant != nil:
+		strategyModel.Instant, diags = flattenDataprimeStrategyInstant(ctx, strategy.Instant)
+		strategyModel.Range = types.ObjectNull(rangeStrategyModelAttr())
+		strategyModel.Duration = types.ObjectNull(durationStrategyModelAttr())
+	case strategy.Range != nil:
+		strategyModel.Range, diags = flattenDataprimeStrategyRange(ctx, strategy.Range)
+		strategyModel.Instant = types.ObjectNull(instantStrategyModelAttr())
+		strategyModel.Duration = types.ObjectNull(durationStrategyModelAttr())
+	case strategy.Duration != nil:
+		strategyModel.Duration, diags = flattenDataprimeStrategyDuration(ctx, strategy.Duration)
+		strategyModel.Instant = types.ObjectNull(instantStrategyModelAttr())
+		strategyModel.Range = types.ObjectNull(rangeStrategyModelAttr())
+	default:
+		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten DataPrime Source Strategy", fmt.Sprintf("unknown dataprime strategy type %T", strategy))}
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(dataprimeStrategyModelAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, dataprimeStrategyModelAttr(), strategyModel)
+}
+
+func flattenDataprimeStrategyInstant(ctx context.Context, instant *dashboardservice.DataprimeSourceStrategyInstant) (types.Object, diag.Diagnostics) {
+	if instant == nil {
+		return types.ObjectNull(instantStrategyModelAttr()), nil
+	}
+	tsField, diags := dashboardwidgets.FlattenObservationField(ctx, instant.TimestampField)
+	if diags.HasError() {
+		return types.ObjectNull(instantStrategyModelAttr()), diags
+	}
+	return types.ObjectValueFrom(ctx, instantStrategyModelAttr(), &DashboardAnnotationInstantStrategyModel{TimestampField: tsField})
+}
+
+func flattenDataprimeStrategyRange(ctx context.Context, r *dashboardservice.DataprimeSourceStrategyRange) (types.Object, diag.Diagnostics) {
+	if r == nil {
+		return types.ObjectNull(rangeStrategyModelAttr()), nil
+	}
+	startField, diags := dashboardwidgets.FlattenObservationField(ctx, r.StartTimestampField)
+	if diags.HasError() {
+		return types.ObjectNull(rangeStrategyModelAttr()), diags
+	}
+	endField, diags := dashboardwidgets.FlattenObservationField(ctx, r.EndTimestampField)
+	if diags.HasError() {
+		return types.ObjectNull(rangeStrategyModelAttr()), diags
+	}
+	return types.ObjectValueFrom(ctx, rangeStrategyModelAttr(), &DashboardAnnotationRangeStrategyModel{
+		StartTimestampField: startField,
+		EndTimestampField:   endField,
+	})
+}
+
+func flattenDataprimeStrategyDuration(ctx context.Context, d *dashboardservice.DataprimeSourceStrategyDuration) (types.Object, diag.Diagnostics) {
+	if d == nil {
+		return types.ObjectNull(durationStrategyModelAttr()), nil
+	}
+	startField, diags := dashboardwidgets.FlattenObservationField(ctx, d.StartTimestampField)
+	if diags.HasError() {
+		return types.ObjectNull(durationStrategyModelAttr()), diags
+	}
+	durationField, diags := dashboardwidgets.FlattenObservationField(ctx, d.DurationField)
+	if diags.HasError() {
+		return types.ObjectNull(durationStrategyModelAttr()), diags
+	}
+	return types.ObjectValueFrom(ctx, durationStrategyModelAttr(), &DashboardAnnotationDurationStrategyModel{
+		StartTimestampField: startField,
+		DurationField:       durationField,
+	})
+}
+
+func flattenDashboardAnnotationEventRecurrenceSourceModel(ctx context.Context, er *dashboardservice.EventRecurrenceSource) (types.Object, diag.Diagnostics) {
+	if er == nil {
+		return types.ObjectNull(annotationsEventRecurrenceSourceModelAttr()), nil
+	}
+
+	recurrence, diags := flattenEventRecurrenceRecurrence(ctx, er.Recurrence)
+	if diags.HasError() {
+		return types.ObjectNull(annotationsEventRecurrenceSourceModelAttr()), diags
+	}
+
+	strategy, diags := flattenEventRecurrenceStrategy(ctx, er.Strategy)
+	if diags.HasError() {
+		return types.ObjectNull(annotationsEventRecurrenceSourceModelAttr()), diags
+	}
+
+	obj := &DashboardAnnotationEventRecurrenceSourceModel{
+		MessageTemplate: utils.StringPointerToTypeString(er.MessageTemplate),
+		Recurrence:      recurrence,
+		Strategy:        strategy,
+	}
+
+	return types.ObjectValueFrom(ctx, annotationsEventRecurrenceSourceModelAttr(), obj)
+}
+
+func flattenEventRecurrenceRecurrence(ctx context.Context, recurrence *dashboardservice.Recurrence) (types.Object, diag.Diagnostics) {
+	if recurrence == nil {
+		return types.ObjectNull(eventRecurrenceRecurrenceModelAttr()), nil
+	}
+
+	weeklyObj := types.ObjectNull(weeklyRecurrenceModelAttr())
+	if recurrence.Weekly != nil {
+		days := make([]attr.Value, 0, len(recurrence.Weekly.DaysOfWeek))
+		for _, d := range recurrence.Weekly.DaysOfWeek {
+			days = append(days, types.StringValue(dashboardwidgets.DashboardProtoToSchemaWeekday[d]))
+		}
+		daysList, diags := types.ListValue(types.StringType, days)
+		if diags.HasError() {
+			return types.ObjectNull(eventRecurrenceRecurrenceModelAttr()), diags
+		}
+		var diags2 diag.Diagnostics
+		weeklyObj, diags2 = types.ObjectValueFrom(ctx, weeklyRecurrenceModelAttr(), &DashboardAnnotationWeeklyRecurrenceModel{DaysOfWeek: daysList})
+		if diags2.HasError() {
+			return types.ObjectNull(eventRecurrenceRecurrenceModelAttr()), diags2
+		}
+	}
+
+	return types.ObjectValueFrom(ctx, eventRecurrenceRecurrenceModelAttr(), &DashboardAnnotationRecurrenceModel{Weekly: weeklyObj})
+}
+
+func flattenEventRecurrenceStrategy(ctx context.Context, strategy *dashboardservice.EventRecurrenceSourceStrategy) (types.Object, diag.Diagnostics) {
+	if strategy == nil {
+		return types.ObjectNull(eventRecurrenceStrategyModelAttr()), nil
+	}
+
+	var strategyModel DashboardAnnotationEventRecurrenceStrategyModel
+	var diags diag.Diagnostics
+	switch {
+	case strategy.Instant != nil:
+		hour := int64(0)
+		if strategy.Instant.StartTimeHour != nil {
+			hour = int64(*strategy.Instant.StartTimeHour)
+		}
+		strategyModel.Instant, diags = types.ObjectValueFrom(ctx, eventRecurrenceInstantStrategyModelAttr(),
+			&DashboardAnnotationEventRecurrenceInstantStrategyModel{StartTimeHour: types.Int64Value(hour)})
+		strategyModel.Duration = types.ObjectNull(eventRecurrenceDurationStrategyModelAttr())
+	case strategy.Duration != nil:
+		hour := int64(0)
+		if strategy.Duration.StartTimeHour != nil {
+			hour = int64(*strategy.Duration.StartTimeHour)
+		}
+		strategyModel.Duration, diags = types.ObjectValueFrom(ctx, eventRecurrenceDurationStrategyModelAttr(),
+			&DashboardAnnotationEventRecurrenceDurationStrategyModel{
+				StartTimeHour: types.Int64Value(hour),
+				Duration:      utils.StringPointerToTypeString(strategy.Duration.Duration),
+			})
+		strategyModel.Instant = types.ObjectNull(eventRecurrenceInstantStrategyModelAttr())
+	default:
+		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten EventRecurrence Strategy", fmt.Sprintf("unknown event recurrence strategy type %T", strategy))}
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(eventRecurrenceStrategyModelAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, eventRecurrenceStrategyModelAttr(), strategyModel)
 }
 
 func flattenDashboardAutoRefresh(ctx context.Context, dashboard *dashboardservice.Dashboard) (types.Object, diag.Diagnostics) {

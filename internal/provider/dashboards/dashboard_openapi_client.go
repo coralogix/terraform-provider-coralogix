@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
@@ -125,7 +124,6 @@ func (c *dashboardOpenAPIClient) Delete(ctx context.Context, id string) error {
 }
 
 func newDashboardOpenAPICreateRequest(dashboard dashboardservice.Dashboard, accessPolicy *string) dashboardservice.CreateDashboardRequestDataStructure {
-	discardOpenAPIAdditionalProperties(&dashboard)
 	request := dashboardservice.CreateDashboardRequestDataStructure{
 		Dashboard: dashboard,
 		RequestId: newDashboardOpenAPIRequestID(dashboardOpenAPIOperationCreate),
@@ -138,7 +136,6 @@ func newDashboardOpenAPICreateRequest(dashboard dashboardservice.Dashboard, acce
 }
 
 func newDashboardOpenAPIReplaceRequest(dashboard dashboardservice.Dashboard, accessPolicy *string) dashboardservice.ReplaceDashboardRequestDataStructure {
-	discardOpenAPIAdditionalProperties(&dashboard)
 	request := dashboardservice.ReplaceDashboardRequestDataStructure{
 		Dashboard: dashboard,
 		RequestId: newDashboardOpenAPIRequestID(dashboardOpenAPIOperationReplace),
@@ -148,47 +145,6 @@ func newDashboardOpenAPIReplaceRequest(dashboard dashboardservice.Dashboard, acc
 	}
 
 	return request
-}
-
-// discardOpenAPIAdditionalProperties restores protojson's historical
-// DiscardUnknown behavior for content_json. OpenAPI Generator captures unknown
-// JSON fields in AdditionalProperties, but the protobuf HTTP endpoint rejects
-// them when they are sent back.
-func discardOpenAPIAdditionalProperties(value any) {
-	discardAdditionalPropertiesValue(reflect.ValueOf(value))
-}
-
-func discardAdditionalPropertiesValue(value reflect.Value) {
-	if !value.IsValid() {
-		return
-	}
-
-	switch value.Kind() {
-	case reflect.Interface, reflect.Pointer:
-		if !value.IsNil() {
-			discardAdditionalPropertiesValue(value.Elem())
-		}
-	case reflect.Struct:
-		if value.Type().PkgPath() != reflect.TypeOf(dashboardservice.Dashboard{}).PkgPath() {
-			return
-		}
-		for i := 0; i < value.NumField(); i++ {
-			field := value.Field(i)
-			if value.Type().Field(i).Name == "AdditionalProperties" && field.CanSet() {
-				field.SetZero()
-				continue
-			}
-			discardAdditionalPropertiesValue(field)
-		}
-	case reflect.Slice, reflect.Array:
-		for i := 0; i < value.Len(); i++ {
-			discardAdditionalPropertiesValue(value.Index(i))
-		}
-	case reflect.Map:
-		for _, key := range value.MapKeys() {
-			discardAdditionalPropertiesValue(value.MapIndex(key))
-		}
-	}
 }
 
 func newDashboardOpenAPIRequestID(operation string) string {

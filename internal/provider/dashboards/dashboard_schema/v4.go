@@ -76,7 +76,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 								Optional: true,
 								Computed: true,
 								PlanModifiers: []planmodifier.String{
-									stringplanmodifier.UseStateForUnknown(),
+									stringplanmodifier.UseNonNullStateForUnknown(),
 								},
 							},
 							"rows": schema.ListNestedAttribute{
@@ -86,7 +86,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 											Optional: true,
 											Computed: true,
 											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
+												stringplanmodifier.UseNonNullStateForUnknown(),
 											},
 										},
 										"height": schema.Int64Attribute{
@@ -104,7 +104,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 														Optional: true,
 														Computed: true,
 														PlanModifiers: []planmodifier.String{
-															stringplanmodifier.UseStateForUnknown(),
+															stringplanmodifier.UseNonNullStateForUnknown(),
 														},
 													},
 													"title": schema.StringAttribute{
@@ -838,7 +838,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 														Optional: true,
 														Computed: true,
 														PlanModifiers: []planmodifier.Int64{
-															int64planmodifier.UseStateForUnknown(),
+															int64planmodifier.UseNonNullStateForUnknown(),
 														},
 														DeprecationMessage:  "Widget appearance.width is ignored by the API and has no effect.",
 														MarkdownDescription: "Deprecated: the widget appearance.width field is ignored by the API and has no effect.",
@@ -1181,7 +1181,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 						Optional: true,
 						Computed: true,
 						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.UseStateForUnknown(),
+							stringplanmodifier.UseNonNullStateForUnknown(),
 						},
 					},
 					"name": schema.StringAttribute{
@@ -1226,11 +1226,13 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 								Attributes: logsAndSpansAttributes(),
 								Optional:   true,
 							},
-							"manual": manualAnnotationSourceAttribute(),
+							"manual":           manualAnnotationSourceAttribute(),
+							"dataprime":        dataprimeAnnotationSourceAttribute(),
+							"event_recurrence": eventRecurrenceAnnotationSourceAttribute(),
 						},
 						Required: true,
 						Validators: []validator.Object{
-							dashboardwidgets.ExactlyOneOfChildren("metrics", "logs", "spans", "manual"),
+							dashboardwidgets.ExactlyOneOfChildren("metrics", "logs", "spans", "manual", "dataprime", "event_recurrence"),
 						},
 					},
 				},

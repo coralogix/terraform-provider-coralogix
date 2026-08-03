@@ -32,6 +32,7 @@ import (
 	dbfs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_folders_service"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
+	e2ms "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/events2metrics_service"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
@@ -57,7 +58,7 @@ type ClientSet struct {
 	legacySlos     *cxsdk.LegacySLOsClient
 	ruleGroups     *cxsdk.RuleGroupsClient
 	users          *UsersClient
-	events2Metrics *cxsdk.Events2MetricsClient
+	events2Metrics *e2ms.Events2MetricsServiceAPIService
 	groupGrpc      *cxsdk.GroupsClient
 	teams          *cxsdk.TeamsClient
 
@@ -151,7 +152,7 @@ func (c *ClientSet) Webhooks() *webhhooks.OutgoingWebhooksServiceAPIService {
 	return c.webhooks
 }
 
-func (c *ClientSet) Events2Metrics() *cxsdk.Events2MetricsClient {
+func (c *ClientSet) Events2Metrics() *e2ms.Events2MetricsServiceAPIService {
 	return c.events2Metrics
 }
 
@@ -258,7 +259,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 
 		users: NewUsersClient(region, apiKey),
 
-		events2Metrics: cxsdk.NewEvents2MetricsClient(grpcCreator),
+		events2Metrics: cs.Events2Metrics(),
 		groupGrpc:      cxsdk.NewGroupsClient(grpcCreator),
 
 		dahboardsFolders:      cs.DashboardFolders(),

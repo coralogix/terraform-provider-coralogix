@@ -25,8 +25,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coralogix/coralogix-management-sdk/go/openapi/dashboardjson"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboardjson"
 	"github.com/google/uuid"
 )
 
@@ -51,28 +51,6 @@ func TestNewDashboardOpenAPICreateRequest(t *testing.T) {
 		t.Fatalf("expected access policy %q, got %v", accessPolicy, request.AccessPolicy)
 	}
 	assertDashboardOpenAPIRequestID(t, request.RequestId, dashboardOpenAPIOperationCreate)
-}
-
-func TestNewDashboardOpenAPIRequestDiscardsUnknownProperties(t *testing.T) {
-	dashboard := dashboardservice.Dashboard{
-		Name: "test",
-		Layout: dashboardservice.Layout{
-			AdditionalProperties: map[string]interface{}{"unknownNested": true},
-		},
-		AdditionalProperties: map[string]interface{}{"unknownKey": "should-not-fail"},
-	}
-
-	request := newDashboardOpenAPICreateRequest(dashboard, nil)
-	content, err := json.Marshal(request)
-	if err != nil {
-		t.Fatalf("failed to marshal request: %s", err)
-	}
-
-	for _, unknownField := range []string{"unknownKey", "unknownNested"} {
-		if strings.Contains(string(content), unknownField) {
-			t.Fatalf("expected %q to be discarded, got request %s", unknownField, content)
-		}
-	}
 }
 
 func TestDashboardJSONUnmarshalRestoresProtoFieldNames(t *testing.T) {
