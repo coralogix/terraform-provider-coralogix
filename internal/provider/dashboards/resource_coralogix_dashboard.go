@@ -2851,6 +2851,14 @@ func expandColorsBy(colorsBy types.String) *dashboardservice.ColorsBy {
 		return &dashboardservice.ColorsBy{
 			Aggregation: map[string]interface{}{},
 		}
+	case "query":
+		return &dashboardservice.ColorsBy{
+			Query: map[string]interface{}{},
+		}
+	case "category":
+		return &dashboardservice.ColorsBy{
+			Category: map[string]interface{}{},
+		}
 	default:
 		return nil
 	}
@@ -4849,10 +4857,7 @@ func flattenHorizontalBarChart(ctx context.Context, chart *dashboardservice.Hori
 		return nil, diags
 	}
 
-	colorsBy, dg := flattenBarChartColorsBy(chart.ColorsBy)
-	if dg != nil {
-		return nil, diag.Diagnostics{dg}
-	}
+	colorsBy := flattenBarChartColorsBy(chart.ColorsBy)
 
 	return &dashboardwidgets.WidgetDefinitionModel{
 		HorizontalBarChart: &dashboardwidgets.HorizontalBarChartModel{
@@ -5484,10 +5489,7 @@ func flattenBarChart(ctx context.Context, barChart *dashboardservice.BarChart) (
 		return nil, diags
 	}
 
-	colorsBy, dg := flattenBarChartColorsBy(barChart.ColorsBy)
-	if dg != nil {
-		return nil, diag.Diagnostics{dg}
-	}
+	colorsBy := flattenBarChartColorsBy(barChart.ColorsBy)
 
 	xAxis, dg := flattenBarChartXAxis(barChart.XAxis)
 	if dg != nil {
@@ -5749,19 +5751,23 @@ func flattenHorizontalBarChartStackDefinition(stackDefinition *dashboardservice.
 	}
 }
 
-func flattenBarChartColorsBy(colorsBy *dashboardservice.ColorsBy) (types.String, diag.Diagnostic) {
+func flattenBarChartColorsBy(colorsBy *dashboardservice.ColorsBy) types.String {
 	if colorsBy == nil {
-		return types.StringNull(), nil
+		return types.StringNull()
 	}
 	switch {
 	case colorsBy.GroupBy != nil:
-		return types.StringValue("group_by"), nil
+		return types.StringValue("group_by")
 	case colorsBy.Stack != nil:
-		return types.StringValue("stack"), nil
+		return types.StringValue("stack")
 	case colorsBy.Aggregation != nil:
-		return types.StringValue("aggregation"), nil
+		return types.StringValue("aggregation")
+	case colorsBy.Query != nil:
+		return types.StringValue("query")
+	case colorsBy.Category != nil:
+		return types.StringValue("category")
 	default:
-		return types.StringNull(), diag.NewErrorDiagnostic("", fmt.Sprintf("unknown colors by type %T", colorsBy))
+		return types.StringNull()
 	}
 }
 
