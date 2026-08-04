@@ -37,6 +37,7 @@ import (
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 func ptr[T any](v T) *T {
@@ -985,6 +986,114 @@ func TestDataprimeAnnotationSourceRoundTrip(t *testing.T) {
 	}
 	if flattened.IsNull() {
 		t.Fatal("expected non-null flattened object")
+	}
+}
+
+func TestAnnotationScopeNilRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	scope, diags := flattenAnnotationScope(ctx, nil)
+	if diags.HasError() {
+		t.Fatalf("flattenAnnotationScope(nil): %v", diags)
+	}
+	if !scope.IsNull() {
+		t.Fatalf("expected null scope, got %v", scope)
+	}
+	expanded, diags := expandAnnotationScope(ctx, scope)
+	if diags.HasError() {
+		t.Fatalf("expandAnnotationScope(null): %v", diags)
+	}
+	if expanded != nil {
+		t.Fatalf("expected nil SDK scope, got %v", expanded)
+	}
+}
+
+func TestAnnotationScopeAllWidgetsRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	sdkScope := &dashboardservice.AnnotationWidgetScope{
+		AllWidgets: map[string]interface{}{},
+	}
+	flattened, diags := flattenAnnotationScope(ctx, sdkScope)
+	if diags.HasError() {
+		t.Fatalf("flattenAnnotationScope(allWidgets): %v", diags)
+	}
+	if flattened.IsNull() {
+		t.Fatal("expected non-null scope")
+	}
+	var s DashboardAnnotationScopeModel
+	if dg := flattened.As(ctx, &s, basetypes.ObjectAsOptions{}); dg.HasError() {
+		t.Fatalf("scope.As: %v", dg)
+	}
+	if s.AllWidgets.IsNull() {
+		t.Fatal("expected all_widgets to be set")
+	}
+	if !s.SpecificWidgets.IsNull() {
+		t.Fatal("expected specific_widgets to be null")
+	}
+	expanded, diags := expandAnnotationScope(ctx, flattened)
+	if diags.HasError() {
+		t.Fatalf("expandAnnotationScope(allWidgets): %v", diags)
+	}
+	if expanded == nil {
+		t.Fatal("expected non-nil SDK scope")
+	}
+	if expanded.AllWidgets == nil {
+		t.Fatal("expected AllWidgets to be set")
+	}
+	if expanded.SpecificWidgets != nil {
+		t.Fatal("expected SpecificWidgets to be nil")
+	}
+}
+
+func TestAnnotationScopeSpecificWidgetsRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	sdkScope := &dashboardservice.AnnotationWidgetScope{
+		SpecificWidgets: &dashboardservice.AnnotationWidgetScopeSpecificWidgets{
+			WidgetIds: []string{"widget-id-1", "widget-id-2"},
+		},
+	}
+	flattened, diags := flattenAnnotationScope(ctx, sdkScope)
+	if diags.HasError() {
+		t.Fatalf("flattenAnnotationScope(specificWidgets): %v", diags)
+	}
+	if flattened.IsNull() {
+		t.Fatal("expected non-null scope")
+	}
+	var s DashboardAnnotationScopeModel
+	if dg := flattened.As(ctx, &s, basetypes.ObjectAsOptions{}); dg.HasError() {
+		t.Fatalf("scope.As: %v", dg)
+	}
+	if s.SpecificWidgets.IsNull() {
+		t.Fatal("expected specific_widgets to be set")
+	}
+	if !s.AllWidgets.IsNull() {
+		t.Fatal("expected all_widgets to be null")
+	}
+	var sw DashboardAnnotationScopeSpecificWidgetsModel
+	if dg := s.SpecificWidgets.As(ctx, &sw, basetypes.ObjectAsOptions{}); dg.HasError() {
+		t.Fatalf("specific_widgets.As: %v", dg)
+	}
+	var ids []string
+	if dg := sw.WidgetIDs.ElementsAs(ctx, &ids, false); dg.HasError() {
+		t.Fatalf("widget_ids.ElementsAs: %v", dg)
+	}
+	if len(ids) != 2 || ids[0] != "widget-id-1" || ids[1] != "widget-id-2" {
+		t.Fatalf("unexpected widget_ids: %v", ids)
+	}
+	expanded, diags := expandAnnotationScope(ctx, flattened)
+	if diags.HasError() {
+		t.Fatalf("expandAnnotationScope(specificWidgets): %v", diags)
+	}
+	if expanded == nil {
+		t.Fatal("expected non-nil SDK scope")
+	}
+	if expanded.SpecificWidgets == nil {
+		t.Fatal("expected SpecificWidgets to be set")
+	}
+	if len(expanded.SpecificWidgets.WidgetIds) != 2 {
+		t.Fatalf("expected 2 widget IDs, got %d", len(expanded.SpecificWidgets.WidgetIds))
+	}
+	if expanded.SpecificWidgets.WidgetIds[0] != "widget-id-1" {
+		t.Fatalf("expected widget-id-1, got %q", expanded.SpecificWidgets.WidgetIds[0])
 	}
 }
 

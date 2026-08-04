@@ -631,6 +631,11 @@ resource "coralogix_dashboard" "dashboard" {
           }
         }
       }
+      # scope restricts this annotation to all widgets; omit to not apply a scope.
+      # Use specific_widgets = { widget_ids = ["<uuid>"] } to target individual widgets.
+      scope = {
+        all_widgets = {}
+      }
     },
     {
       name = "dataprime_annotation"

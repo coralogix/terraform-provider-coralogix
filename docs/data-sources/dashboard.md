@@ -41,7 +41,29 @@ Read-Only:
 - `enabled` (Boolean)
 - `id` (String)
 - `name` (String)
+- `scope` (Attributes) Restrict this annotation to specific widgets. Omit to show on all widgets. (see [below for nested schema](#nestedatt--annotations--scope))
 - `source` (Attributes) (see [below for nested schema](#nestedatt--annotations--source))
+
+<a id="nestedatt--annotations--scope"></a>
+### Nested Schema for `annotations.scope`
+
+Read-Only:
+
+- `all_widgets` (Attributes) Apply this annotation to every widget in the dashboard. (see [below for nested schema](#nestedatt--annotations--scope--all_widgets))
+- `specific_widgets` (Attributes) (see [below for nested schema](#nestedatt--annotations--scope--specific_widgets))
+
+<a id="nestedatt--annotations--scope--all_widgets"></a>
+### Nested Schema for `annotations.scope.all_widgets`
+
+
+<a id="nestedatt--annotations--scope--specific_widgets"></a>
+### Nested Schema for `annotations.scope.specific_widgets`
+
+Read-Only:
+
+- `widget_ids` (List of String) UUIDs of the widgets this annotation applies to.
+
+
 
 <a id="nestedatt--annotations--source"></a>
 ### Nested Schema for `annotations.source`

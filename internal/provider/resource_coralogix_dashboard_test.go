@@ -1759,3 +1759,143 @@ resource "coralogix_dashboard" "test" {
 		},
 	})
 }
+
+func TestAccCoralogixResourceDashboardAnnotationScope(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing annotation scope"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  annotations = [{
+    name    = "scoped annotation"
+    enabled = true
+    source = {
+      manual = {
+        orientation = "horizontal"
+        strategy = {
+          range = {
+            start_value = 10
+            end_value   = 90
+          }
+        }
+      }
+    }
+    scope = {
+      all_widgets = {}
+    }
+  }]
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          width = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{ type = "count" }]
+                  }
+                }
+              }]
+              legend = { is_visible = false }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.name", "scoped annotation"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "annotations.0.scope.all_widgets.%"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				Config: fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing annotation scope"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  annotations = [{
+    name    = "scoped annotation"
+    enabled = true
+    source = {
+      manual = {
+        orientation = "horizontal"
+        strategy = {
+          range = {
+            start_value = 10
+            end_value   = 90
+          }
+        }
+      }
+    }
+  }]
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          width = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{ type = "count" }]
+                  }
+                }
+              }]
+              legend = { is_visible = false }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.name", "scoped annotation"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}

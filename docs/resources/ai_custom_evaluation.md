@@ -84,7 +84,8 @@ resource "coralogix_ai_custom_evaluation" "example" {
 Required:
 
 - `application` (String) AI application name.
-- `subsystem` (String) AI application subsystem. Use an empty string only for applications without a subsystem.
+- `subsystem` (String) AI application subsystem.
+
 
 <a id="nestedatt--criteria"></a>
 ### Nested Schema for `criteria`
@@ -102,6 +103,7 @@ Optional:
 - `examples` (List of String) Example conversations for this criterion.
 - `flags` (String) Criterion flags.
 
+
 <a id="nestedatt--criteria--prohibited"></a>
 ### Nested Schema for `criteria.prohibited`
 
@@ -109,11 +111,3 @@ Optional:
 
 - `examples` (List of String) Example conversations for this criterion.
 - `flags` (String) Criterion flags.
-
-## Import
-
-Import is supported using the following syntax:
-
-```shell
-terraform import coralogix_ai_custom_evaluation.example <custom-evaluation-id>
-```
