@@ -1250,9 +1250,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 										ElementType:         types.StringType,
 										Required:            true,
 										MarkdownDescription: "UUIDs of the widgets this annotation applies to.",
-										Validators: []validator.List{
-											dashboardwidgets.WidgetIDsExistInLayout{},
-										},
 									},
 								},
 							},
