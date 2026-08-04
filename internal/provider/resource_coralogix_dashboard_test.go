@@ -1428,6 +1428,83 @@ resource "coralogix_dashboard" "test" {
 	})
 }
 
+func TestAccCoralogixResourceDashboardColorsBy(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	config := func(barColorsBy, horizontalColorsBy string) string {
+		return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing colors_by branches"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [
+          {
+            title = "bar chart"
+            definition = {
+              bar_chart = {
+                query     = { logs = { aggregation = { type = "count" } } }
+                colors_by = %q
+              }
+            }
+          },
+          {
+            title = "horizontal bar chart"
+            definition = {
+              horizontal_bar_chart = {
+                query     = { logs = { aggregation = { type = "count" } } }
+                colors_by = %q
+              }
+            }
+          },
+        ]
+      }]
+    }]
+  }
+}
+`, name, barColorsBy, horizontalColorsBy)
+	}
+	checks := func(barColorsBy, horizontalColorsBy string) resource.TestCheckFunc {
+		return resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.bar_chart.colors_by", barColorsBy),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.horizontal_bar_chart.colors_by", horizontalColorsBy),
+		)
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: config("query", "category"),
+				Check:  checks("query", "category"),
+			},
+			{
+				Config: config("category", "query"),
+				Check:  checks("category", "query"),
+			},
+			{
+				Config: config("stack", "aggregation"),
+				Check:  checks("stack", "aggregation"),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardManualAnnotation(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 	resource.ParallelTest(t, resource.TestCase{
