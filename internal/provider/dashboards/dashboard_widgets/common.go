@@ -2446,12 +2446,10 @@ func collectWidgetIDsFromLayout(ctx context.Context, layout types.Object) (map[s
 				if !ok {
 					continue
 				}
-				if idStr.IsUnknown() {
+				if idStr.IsUnknown() || idStr.IsNull() {
 					return knownIDs, true, nil
 				}
-				if !idStr.IsNull() {
-					knownIDs[idStr.ValueString()] = true
-				}
+				knownIDs[idStr.ValueString()] = true
 			}
 		}
 	}
