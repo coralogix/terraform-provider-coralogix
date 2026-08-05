@@ -63,7 +63,11 @@ func TestColorsByRoundTrip(t *testing.T) {
 				t.Fatalf("expandColorsBy(%q) populated branches = %v, want exactly [%q]", testCase.schemaValue, populated, testCase.restBranch)
 			}
 
-			if got := flattenBarChartColorsBy(expanded); got != types.StringValue(testCase.schemaValue) {
+			got, dg := flattenBarChartColorsBy(expanded)
+			if dg != nil {
+				t.Fatalf("flattenBarChartColorsBy(%q) returned diagnostic %v", testCase.schemaValue, dg)
+			}
+			if got != types.StringValue(testCase.schemaValue) {
 				t.Fatalf("flattenBarChartColorsBy round trip = %v, want %q", got, testCase.schemaValue)
 			}
 		})
@@ -95,7 +99,11 @@ func TestFlattenBarChartColorsByUnrecognizedReadsAsNull(t *testing.T) {
 		"unknown branch": {AdditionalProperties: map[string]interface{}{"rainbow": map[string]interface{}{}}},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if got := flattenBarChartColorsBy(colorsBy); !got.IsNull() {
+			got, dg := flattenBarChartColorsBy(colorsBy)
+			if dg != nil {
+				t.Fatalf("flattenBarChartColorsBy(%s) returned diagnostic %v, want none", name, dg)
+			}
+			if !got.IsNull() {
 				t.Fatalf("flattenBarChartColorsBy(%s) = %v, want null", name, got)
 			}
 		})

@@ -4857,7 +4857,10 @@ func flattenHorizontalBarChart(ctx context.Context, chart *dashboardservice.Hori
 		return nil, diags
 	}
 
-	colorsBy := flattenBarChartColorsBy(chart.ColorsBy)
+	colorsBy, dg := flattenBarChartColorsBy(chart.ColorsBy)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
 
 	return &dashboardwidgets.WidgetDefinitionModel{
 		HorizontalBarChart: &dashboardwidgets.HorizontalBarChartModel{
@@ -5489,7 +5492,10 @@ func flattenBarChart(ctx context.Context, barChart *dashboardservice.BarChart) (
 		return nil, diags
 	}
 
-	colorsBy := flattenBarChartColorsBy(barChart.ColorsBy)
+	colorsBy, dg := flattenBarChartColorsBy(barChart.ColorsBy)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
 
 	xAxis, dg := flattenBarChartXAxis(barChart.XAxis)
 	if dg != nil {
@@ -5751,23 +5757,23 @@ func flattenHorizontalBarChartStackDefinition(stackDefinition *dashboardservice.
 	}
 }
 
-func flattenBarChartColorsBy(colorsBy *dashboardservice.ColorsBy) types.String {
+func flattenBarChartColorsBy(colorsBy *dashboardservice.ColorsBy) (types.String, diag.Diagnostic) {
 	if colorsBy == nil {
-		return types.StringNull()
+		return types.StringNull(), nil
 	}
 	switch {
 	case colorsBy.GroupBy != nil:
-		return types.StringValue("group_by")
+		return types.StringValue("group_by"), nil
 	case colorsBy.Stack != nil:
-		return types.StringValue("stack")
+		return types.StringValue("stack"), nil
 	case colorsBy.Aggregation != nil:
-		return types.StringValue("aggregation")
+		return types.StringValue("aggregation"), nil
 	case colorsBy.Query != nil:
-		return types.StringValue("query")
+		return types.StringValue("query"), nil
 	case colorsBy.Category != nil:
-		return types.StringValue("category")
+		return types.StringValue("category"), nil
 	default:
-		return types.StringNull()
+		return types.StringNull(), nil
 	}
 }
 
