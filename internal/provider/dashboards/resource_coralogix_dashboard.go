@@ -5773,7 +5773,7 @@ func flattenBarChartColorsBy(colorsBy *dashboardservice.ColorsBy) (types.String,
 	case colorsBy.Category != nil:
 		return types.StringValue("category"), nil
 	default:
-		return types.StringNull(), nil
+		return types.StringNull(), diag.NewErrorDiagnostic("", fmt.Sprintf("unknown colors by type %T", colorsBy))
 	}
 }
 

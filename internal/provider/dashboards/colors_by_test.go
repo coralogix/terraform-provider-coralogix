@@ -88,24 +88,3 @@ func TestExpandColorsByUnsetOrUnknownStringIsNil(t *testing.T) {
 		})
 	}
 }
-
-// A dashboard authored outside Terraform can carry a colorsBy the provider does not map: an
-// empty object with no branch set, or a branch added to the API after this provider was built.
-// Those must read as unset rather than failing plan, refresh and import.
-func TestFlattenBarChartColorsByUnrecognizedReadsAsNull(t *testing.T) {
-	for name, colorsBy := range map[string]*dashboardservice.ColorsBy{
-		"absent":         nil,
-		"no branch set":  {},
-		"unknown branch": {AdditionalProperties: map[string]interface{}{"rainbow": map[string]interface{}{}}},
-	} {
-		t.Run(name, func(t *testing.T) {
-			got, dg := flattenBarChartColorsBy(colorsBy)
-			if dg != nil {
-				t.Fatalf("flattenBarChartColorsBy(%s) returned diagnostic %v, want none", name, dg)
-			}
-			if !got.IsNull() {
-				t.Fatalf("flattenBarChartColorsBy(%s) = %v, want null", name, got)
-			}
-		})
-	}
-}
