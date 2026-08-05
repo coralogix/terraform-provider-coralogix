@@ -254,8 +254,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"stack":       covered(widget+".{bar_chart,horizontal_bar_chart}.colors_by=stack", dashboardOpenAPINestedPresentationTestName),
 				"groupBy":     covered(widget+".{bar_chart,horizontal_bar_chart}.colors_by=group_by", dashboardOpenAPINestedPresentationTestName),
 				"aggregation": covered(widget+".{bar_chart,horizontal_bar_chart}.colors_by=aggregation", dashboardOpenAPINestedPresentationTestName),
-				"query":       apiOnly(widget+".{bar_chart,horizontal_bar_chart}.colors_by", false, "ColorsBy.query is declared in colors_by.proto but expandColorsBy and flattenBarChartColorsBy handle only stack, group_by, and aggregation"),
-				"category":    apiOnly(widget+".{bar_chart,horizontal_bar_chart}.colors_by", false, "ColorsBy.category is declared in colors_by.proto but expandColorsBy and flattenBarChartColorsBy handle only stack, group_by, and aggregation"),
+				"query":       covered(widget+".{bar_chart,horizontal_bar_chart}.colors_by=query", dashboardOpenAPINestedPresentationTestName),
+				"category":    covered(widget+".{bar_chart,horizontal_bar_chart}.colors_by=category", dashboardOpenAPINestedPresentationTestName),
 			},
 		},
 		"Dashboard": {

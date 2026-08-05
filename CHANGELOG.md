@@ -5,6 +5,8 @@
 - FIX: Adding a section, row, widget or annotation without an `id` no longer fails with "Provider produced inconsistent result after apply". Generated `id` fields (section, row, widget, line-chart `query_definitions[].id`, data-table aggregation, annotation) and widget `width` now use `UseNonNullStateForUnknown` so new nested elements stay `(known after apply)` instead of planning as null.
 - FEAT: Add support for `dataprime` and `event_recurrence` annotation source types. Dashboards using DataPrime queries or recurring calendar events as annotation sources can now be authored and round-tripped through Terraform.
 - FEAT: Add `scope` support to `annotations` — restrict an annotation to `all_widgets` or `specific_widgets`.
+- FEAT: Add `query` and `category` to `bar_chart.colors_by` and `horizontal_bar_chart.colors_by`. Dashboards using either value can now be authored and read back through Terraform.
+- FIX: `colors_by` now validates against the accepted values at plan time. Previously an unrecognized value was silently dropped from the request and then failed at apply with "Provider produced inconsistent result after apply", which never named the offending attribute.
 
 #### resource/coralogix_events2metric
 - CHORE: Migrate events2metric operations from the legacy gRPC client to the REST client.

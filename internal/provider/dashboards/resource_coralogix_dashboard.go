@@ -2851,6 +2851,14 @@ func expandColorsBy(colorsBy types.String) *dashboardservice.ColorsBy {
 		return &dashboardservice.ColorsBy{
 			Aggregation: map[string]interface{}{},
 		}
+	case "query":
+		return &dashboardservice.ColorsBy{
+			Query: map[string]interface{}{},
+		}
+	case "category":
+		return &dashboardservice.ColorsBy{
+			Category: map[string]interface{}{},
+		}
 	default:
 		return nil
 	}
@@ -5760,6 +5768,10 @@ func flattenBarChartColorsBy(colorsBy *dashboardservice.ColorsBy) (types.String,
 		return types.StringValue("stack"), nil
 	case colorsBy.Aggregation != nil:
 		return types.StringValue("aggregation"), nil
+	case colorsBy.Query != nil:
+		return types.StringValue("query"), nil
+	case colorsBy.Category != nil:
+		return types.StringValue("category"), nil
 	default:
 		return types.StringNull(), diag.NewErrorDiagnostic("", fmt.Sprintf("unknown colors by type %T", colorsBy))
 	}

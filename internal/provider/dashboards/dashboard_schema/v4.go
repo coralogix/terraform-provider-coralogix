@@ -571,6 +571,10 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	},
 																	"colors_by": schema.StringAttribute{
 																		Optional: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidColorsBy...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("Which dimension the bar colors follow. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidColorsBy, ", ")),
 																	},
 																	"xaxis": schema.SingleNestedAttribute{
 																		Optional: true,
@@ -760,6 +764,10 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	},
 																	"colors_by": schema.StringAttribute{
 																		Optional: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidColorsBy...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("Which dimension the bar colors follow. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidColorsBy, ", ")),
 																	},
 																	"unit": schema.StringAttribute{
 																		Optional: true,

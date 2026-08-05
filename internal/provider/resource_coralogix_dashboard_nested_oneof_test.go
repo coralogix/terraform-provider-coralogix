@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -42,12 +43,22 @@ const (
 	dashboardOpenAPIPresentationResolution dashboardOpenAPIPresentationGroup = "resolution-and-time-frames"
 	dashboardOpenAPIPresentationBarCharts  dashboardOpenAPIPresentationGroup = "bar-chart-axes"
 	dashboardOpenAPIPresentationHorizontal dashboardOpenAPIPresentationGroup = "horizontal-bar-options"
+	dashboardOpenAPIPresentationColorsBy   dashboardOpenAPIPresentationGroup = "colors-by-branches"
 )
 
 var dashboardOpenAPIPresentationGroups = []dashboardOpenAPIPresentationGroup{
 	dashboardOpenAPIPresentationResolution,
 	dashboardOpenAPIPresentationBarCharts,
 	dashboardOpenAPIPresentationHorizontal,
+	dashboardOpenAPIPresentationColorsBy,
+}
+
+// Widget count per presentation group, asserted in both Terraform state and the REST payload.
+var dashboardOpenAPIPresentationWidgetCounts = map[dashboardOpenAPIPresentationGroup]int{
+	dashboardOpenAPIPresentationResolution: 2,
+	dashboardOpenAPIPresentationBarCharts:  2,
+	dashboardOpenAPIPresentationHorizontal: 2,
+	dashboardOpenAPIPresentationColorsBy:   4,
 }
 
 type dashboardOpenAPINestedIDTracker struct {
@@ -230,7 +241,7 @@ func dashboardOpenAPIRunPresentationScenario(t *testing.T, group dashboardOpenAP
 func dashboardOpenAPIPresentationStateChecks(dashboardTimeFrame, queryTimeFrame, refresh, folderSelector, folderName string, group dashboardOpenAPIPresentationGroup) resource.TestCheckFunc {
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttr(dashboardResourceName, "auto_refresh.type", refresh),
-		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.#", "2"),
+		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.#", strconv.Itoa(dashboardOpenAPIPresentationWidgetCounts[group])),
 	}
 	switch group {
 	case dashboardOpenAPIPresentationResolution:
@@ -250,6 +261,13 @@ func dashboardOpenAPIPresentationStateChecks(dashboardTimeFrame, queryTimeFrame,
 			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.horizontal_bar_chart.colors_by", "aggregation"),
 			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.horizontal_bar_chart.y_axis_view_by", "category"),
 			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.horizontal_bar_chart.y_axis_view_by", "value"),
+		)
+	case dashboardOpenAPIPresentationColorsBy:
+		checks = append(checks,
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.bar_chart.colors_by", "query"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.bar_chart.colors_by", "category"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.definition.horizontal_bar_chart.colors_by", "query"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.3.definition.horizontal_bar_chart.colors_by", "category"),
 		)
 	default:
 		panic(fmt.Sprintf("unsupported presentation group %q", group))
@@ -298,8 +316,8 @@ func dashboardOpenAPIAssertPresentation(dashboard *dashboardservice.Dashboard, f
 	if err != nil {
 		return fmt.Errorf("dashboard fixture %q: %w", fixture, err)
 	}
-	if len(widgets) != 2 {
-		return fmt.Errorf("dashboard fixture %q: REST widgets = %d, want 2", fixture, len(widgets))
+	if wantWidgets := dashboardOpenAPIPresentationWidgetCounts[group]; len(widgets) != wantWidgets {
+		return fmt.Errorf("dashboard fixture %q: REST widgets = %d, want %d", fixture, len(widgets), wantWidgets)
 	}
 
 	switch group {
@@ -309,6 +327,8 @@ func dashboardOpenAPIAssertPresentation(dashboard *dashboardservice.Dashboard, f
 		return dashboardOpenAPIAssertPresentationBarCharts(dashboard, widgets, fixture)
 	case dashboardOpenAPIPresentationHorizontal:
 		return dashboardOpenAPIAssertPresentationHorizontalBars(dashboard, widgets, fixture)
+	case dashboardOpenAPIPresentationColorsBy:
+		return dashboardOpenAPIAssertPresentationColorsBy(dashboard, widgets, fixture)
 	default:
 		return fmt.Errorf("dashboard fixture %q: unsupported presentation group %q", fixture, group)
 	}
@@ -382,6 +402,30 @@ func dashboardOpenAPIAssertPresentationHorizontalBars(dashboard *dashboardservic
 		return fmt.Errorf("dashboard fixture %q: value horizontal bar adapter is absent", fixture)
 	}
 	return dashboardOpenAPIAssertOneOfBranch(valueHorizontalBar.YAxisViewBy, "HorizontalBarChartYAxisViewBy", "value", dashboard.GetId(), fixture)
+}
+
+func dashboardOpenAPIAssertPresentationColorsBy(dashboard *dashboardservice.Dashboard, widgets []dashboardservice.Widget, fixture string) error {
+	queryBar := widgets[0].GetDefinition().BarChart
+	categoryBar := widgets[1].GetDefinition().BarChart
+	if queryBar == nil || queryBar.ColorsBy == nil || categoryBar == nil || categoryBar.ColorsBy == nil {
+		return fmt.Errorf("dashboard fixture %q: bar chart colors-by adapters are absent", fixture)
+	}
+	if err := dashboardOpenAPIAssertOneOfBranch(queryBar.ColorsBy, "ColorsBy", "query", dashboard.GetId(), fixture); err != nil {
+		return err
+	}
+	if err := dashboardOpenAPIAssertOneOfBranch(categoryBar.ColorsBy, "ColorsBy", "category", dashboard.GetId(), fixture); err != nil {
+		return err
+	}
+
+	queryHorizontalBar := widgets[2].GetDefinition().HorizontalBarChart
+	categoryHorizontalBar := widgets[3].GetDefinition().HorizontalBarChart
+	if queryHorizontalBar == nil || queryHorizontalBar.ColorsBy == nil || categoryHorizontalBar == nil || categoryHorizontalBar.ColorsBy == nil {
+		return fmt.Errorf("dashboard fixture %q: horizontal bar chart colors-by adapters are absent", fixture)
+	}
+	if err := dashboardOpenAPIAssertOneOfBranch(queryHorizontalBar.ColorsBy, "ColorsBy", "query", dashboard.GetId(), fixture); err != nil {
+		return err
+	}
+	return dashboardOpenAPIAssertOneOfBranch(categoryHorizontalBar.ColorsBy, "ColorsBy", "category", dashboard.GetId(), fixture)
 }
 
 func dashboardOpenAPIPresentationConfig(name, folderName, dashboardTimeFrame, queryTimeFrame, refresh, folderSelector string) string {
@@ -478,16 +522,46 @@ func dashboardOpenAPIPresentationWidgets(group dashboardOpenAPIPresentationGroup
               y_axis_view_by = "value"
             } }
           },`
+	colorsBy := `          {
+            title = "bar-colors-by-query"
+            definition = { bar_chart = {
+              query     = { logs = { aggregation = { type = "count" } } }
+              colors_by = "query"
+            } }
+          },
+          {
+            title = "bar-colors-by-category"
+            definition = { bar_chart = {
+              query     = { logs = { aggregation = { type = "count" } } }
+              colors_by = "category"
+            } }
+          },
+          {
+            title = "horizontal-colors-by-query"
+            definition = { horizontal_bar_chart = {
+              query     = { logs = { aggregation = { type = "count" } } }
+              colors_by = "query"
+            } }
+          },
+          {
+            title = "horizontal-colors-by-category"
+            definition = { horizontal_bar_chart = {
+              query     = { logs = { aggregation = { type = "count" } } }
+              colors_by = "category"
+            } }
+          },`
 
 	switch group {
 	case dashboardOpenAPIPresentationAll:
-		return strings.Join([]string{resolution, barCharts, horizontalBars}, "\n")
+		return strings.Join([]string{resolution, barCharts, horizontalBars, colorsBy}, "\n")
 	case dashboardOpenAPIPresentationResolution:
 		return resolution
 	case dashboardOpenAPIPresentationBarCharts:
 		return barCharts
 	case dashboardOpenAPIPresentationHorizontal:
 		return horizontalBars
+	case dashboardOpenAPIPresentationColorsBy:
+		return colorsBy
 	default:
 		panic(fmt.Sprintf("unsupported presentation group %q", group))
 	}
