@@ -12,11 +12,20 @@ on:
   #     - '**/*.md'
   #     - '.github/workflows/release.yml'
 
+permissions:
+  contents: read
+
 jobs:
   release:
     name: release
     runs-on: ubuntu-latest
     if: github.repository_owner == 'coralogix'
+    # semantic-release pushes tags, creates releases and comments on the
+    # issues/PRs included in the release.
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v2

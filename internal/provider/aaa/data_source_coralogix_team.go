@@ -101,7 +101,7 @@ func (d *TeamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				err.Error(),
-				fmt.Sprintf("Team %q is in state, but no longer exists in Coralogix backend", intId),
+				fmt.Sprintf("Team %d is in state, but no longer exists in Coralogix backend", intId),
 			)
 		} else {
 			resp.Diagnostics.AddError(

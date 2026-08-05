@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -384,8 +386,21 @@ func setEnrichment(d *schema.ResourceData, enrichmentType string, enrichments []
 			"fields": flattenEnrichment(enrichments),
 		}
 	case "custom":
+		// The API's custom enrichment ID is a uint32, so parse it as one: this
+		// rejects negatives and out-of-range values that strconv.Atoi would
+		// accept on 64-bit builds and write into state, while the lookup above
+		// resolved a different number via StrToUint32.
+		parsedID, err := strconv.ParseUint(d.Id(), 10, 32)
+		if err != nil {
+			return diag.Errorf("invalid custom enrichment id %q: %s", d.Id(), err)
+		}
+		// custom_enrichment_id is schema.TypeInt, and int is 32-bit on the
+		// 386/arm builds we release, so bound the conversion explicitly.
+		if parsedID > math.MaxInt32 {
+			return diag.Errorf("custom enrichment id %q is out of representable range", d.Id())
+		}
 		flattenedEnrichment = map[string]interface{}{
-			"custom_enrichment_id": int(utils.StrToUint32(d.Id())),
+			"custom_enrichment_id": int(parsedID),
 			"fields":               flattenEnrichment(enrichments),
 		}
 	default:

@@ -8,13 +8,16 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+
 jobs:
   build:
     env:
       GO111MODULE: on
     strategy:
       matrix:
-        go-version: [ 1.24.x ]
+        go-version: [ 1.26.x ]
         os: [ ubuntu-latest ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -34,7 +37,7 @@ jobs:
       GO111MODULE: on
     strategy:
       matrix:
-        go-version: [ 1.24.x ]
+        go-version: [ 1.26.x ]
         os: [ ubuntu-latest ]
     runs-on: ${{ matrix.os }}
     steps:

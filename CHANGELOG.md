@@ -3,6 +3,15 @@
 #### resource/coralogix_dashboard
 - FIX: Schema v2/v3→v4 state upgrade no longer fails with `Missing Upgraded Resource State` when the dashboard was deleted outside Terraform. The upgrader no longer removes the resource from state (illegal inside a state upgrader); it returns a valid v4 state carrying the prior `id`, `name`, `description` and `content_json`, so the following refresh detects the missing dashboard and plans a recreate.
 
+#### resource/coralogix_team
+- FIX: The "no longer exists in Coralogix backend" warning rendered the team ID with `%q`, which formats an integer as a character literal (team `12345` printed as `'〹'`). It now prints the numeric ID. Also affects `data.coralogix_team`.
+
+#### resource/coralogix_enrichment
+- FIX: Read no longer silently reports a wrong `custom_enrichment_id` when the resource or data-source ID is not a valid `uint32`. Malformed, negative and out-of-range IDs now return an error instead of being written to state as `0` or a mismatched value.
+
+#### provider
+- CHORE: Bump `golang.org/x/crypto` to v0.52.0, `golang.org/x/net` to v0.55.0, `google.golang.org/grpc` to v1.82.1 and `github.com/cloudflare/circl` to v1.6.3 to clear open security advisories. The minimum Go version for building from source is now **1.26**, aligning with `coralogix-management-sdk` and `coralogix-operator`.
+
 # Release 3.9.0
 
 #### resource/coralogix_api_key
