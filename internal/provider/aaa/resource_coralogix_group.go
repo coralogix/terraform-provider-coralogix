@@ -145,7 +145,7 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	groupStr, _ = json.Marshal(getResp)
 	log.Printf("[INFO] Getting group: %s", groupStr)
-	state, diags := flattenSCIMGroup(getResp)
+	state, diags := flattenSCIMGroup(getResp, plan.Members)
 
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -182,8 +182,12 @@ func (r *GroupResource) getGroupWithScopeRetry(ctx context.Context, groupID, exp
 	)
 }
 
-func flattenSCIMGroup(group *clientset.SCIMGroup) (*GroupResourceModel, diag.Diagnostics) {
-	members, diags := flattenSCIMGroupMembers(group.Members)
+// flattenSCIMGroup builds the resource model from an API response. configuredMembers is the members
+// value the caller already holds — the plan on create and update, the prior state on read — and is
+// needed because the API cannot express the difference between "this group has no members" and
+// "membership is not set here". See flattenSCIMGroupMembers.
+func flattenSCIMGroup(group *clientset.SCIMGroup, configuredMembers types.Set) (*GroupResourceModel, diag.Diagnostics) {
+	members, diags := flattenSCIMGroupMembers(group.Members, configuredMembers)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -202,9 +206,22 @@ func flattenSCIMGroup(group *clientset.SCIMGroup) (*GroupResourceModel, diag.Dia
 	}, nil
 }
 
-func flattenSCIMGroupMembers(members []clientset.SCIMGroupMember) (types.Set, diag.Diagnostics) {
+// flattenSCIMGroupMembers converts the API's member list into the members attribute.
+//
+// An empty list from the API is ambiguous: it is what a group with no members looks like, and equally
+// what a group whose membership is not managed here looks like. Terraform draws a hard line between
+// those two — an empty set and a null set are different values, and the value returned from an apply
+// must equal the one that was planned. Returning a null set unconditionally therefore made
+// `members = []` impossible to apply: the empty set in the configuration came back as null and
+// Terraform rejected the result with "Provider produced inconsistent result after apply", on every
+// attempt, even though the members had in fact been removed. Echoing whichever the caller already had
+// keeps both configurations working: an explicit empty set stays empty, an absent attribute stays null.
+func flattenSCIMGroupMembers(members []clientset.SCIMGroupMember, configuredMembers types.Set) (types.Set, diag.Diagnostics) {
 	if len(members) == 0 {
-		return types.SetNull(types.StringType), nil
+		if configuredMembers.IsNull() || configuredMembers.IsUnknown() {
+			return types.SetNull(types.StringType), nil
+		}
+		return types.SetValue(types.StringType, []attr.Value{})
 	}
 	var diags diag.Diagnostics
 	membersIDs := make([]attr.Value, 0, len(members))
@@ -249,7 +266,7 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	respStr, _ := json.Marshal(getGroupResp)
 	log.Printf("[INFO] Received Group: %s", string(respStr))
 
-	state, diags = flattenSCIMGroup(getGroupResp)
+	state, diags = flattenSCIMGroup(getGroupResp, state.Members)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -311,7 +328,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	groupStr, _ = json.Marshal(getGroupResp)
 	log.Printf("[INFO] Received Group: %s", string(groupStr))
 
-	state, diags := flattenSCIMGroup(getGroupResp)
+	state, diags := flattenSCIMGroup(getGroupResp, plan.Members)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

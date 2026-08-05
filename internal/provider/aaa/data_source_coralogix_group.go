@@ -32,6 +32,7 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSourceWithConfigure = &GroupDataSource{}
@@ -142,7 +143,10 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	data, diags = flattenSCIMGroup(getGroupResp)
+	// A data source has nothing to echo back: every attribute is read-only, so Terraform never compares
+	// the result against a configured value. Passing a null set keeps a member-less group reporting
+	// members as null, which is what this data source has always done.
+	data, diags = flattenSCIMGroup(getGroupResp, types.SetNull(types.StringType))
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
