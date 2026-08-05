@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -41,34 +42,46 @@ func colorsByPopulatedBranches(colorsBy *dashboardservice.ColorsBy) []string {
 	return branches
 }
 
+// Keyed by the schema value the colors_by validator accepts; the value is the REST oneof branch
+// it must map to. Driving the test from DashboardValidColorsBy means widening the validator
+// without teaching expandColorsBy the new value fails here rather than silently at apply.
+var colorsByRESTBranches = map[string]string{
+	"stack":       "stack",
+	"group_by":    "groupBy",
+	"aggregation": "aggregation",
+	"query":       "query",
+	"category":    "category",
+}
+
 func TestColorsByRoundTrip(t *testing.T) {
-	for _, testCase := range []struct {
-		schemaValue string
-		restBranch  string
-	}{
-		{schemaValue: "stack", restBranch: "stack"},
-		{schemaValue: "group_by", restBranch: "groupBy"},
-		{schemaValue: "aggregation", restBranch: "aggregation"},
-		{schemaValue: "query", restBranch: "query"},
-		{schemaValue: "category", restBranch: "category"},
-	} {
-		t.Run(testCase.schemaValue, func(t *testing.T) {
-			expanded := expandColorsBy(types.StringValue(testCase.schemaValue))
+	if len(colorsByRESTBranches) != len(dashboardwidgets.DashboardValidColorsBy) {
+		t.Fatalf("colorsByRESTBranches covers %d values, DashboardValidColorsBy advertises %d: %v",
+			len(colorsByRESTBranches), len(dashboardwidgets.DashboardValidColorsBy), dashboardwidgets.DashboardValidColorsBy)
+	}
+
+	for _, schemaValue := range dashboardwidgets.DashboardValidColorsBy {
+		restBranch, ok := colorsByRESTBranches[schemaValue]
+		if !ok {
+			t.Fatalf("schema accepts colors_by = %q but this test has no expected REST branch for it", schemaValue)
+		}
+
+		t.Run(schemaValue, func(t *testing.T) {
+			expanded := expandColorsBy(types.StringValue(schemaValue))
 			if expanded == nil {
-				t.Fatalf("expandColorsBy(%q) = nil, want the %q branch", testCase.schemaValue, testCase.restBranch)
+				t.Fatalf("expandColorsBy(%q) = nil, want the %q branch", schemaValue, restBranch)
 			}
 
 			populated := colorsByPopulatedBranches(expanded)
-			if len(populated) != 1 || populated[0] != testCase.restBranch {
-				t.Fatalf("expandColorsBy(%q) populated branches = %v, want exactly [%q]", testCase.schemaValue, populated, testCase.restBranch)
+			if len(populated) != 1 || populated[0] != restBranch {
+				t.Fatalf("expandColorsBy(%q) populated branches = %v, want exactly [%q]", schemaValue, populated, restBranch)
 			}
 
 			got, dg := flattenBarChartColorsBy(expanded)
 			if dg != nil {
-				t.Fatalf("flattenBarChartColorsBy(%q) returned diagnostic %v", testCase.schemaValue, dg)
+				t.Fatalf("flattenBarChartColorsBy(%q) returned diagnostic %v", schemaValue, dg)
 			}
-			if got != types.StringValue(testCase.schemaValue) {
-				t.Fatalf("flattenBarChartColorsBy round trip = %v, want %q", got, testCase.schemaValue)
+			if got != types.StringValue(schemaValue) {
+				t.Fatalf("flattenBarChartColorsBy round trip = %v, want %q", got, schemaValue)
 			}
 		})
 	}

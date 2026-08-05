@@ -677,7 +677,7 @@ Read-Only:
 Read-Only:
 
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
-- `colors_by` (String)
+- `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
 - `data_mode_type` (String)
 - `group_name_template` (String)
 - `max_bars_per_chart` (Number)
@@ -2333,7 +2333,7 @@ Read-Only:
 Read-Only:
 
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
-- `colors_by` (String)
+- `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
 - `data_mode_type` (String)
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
