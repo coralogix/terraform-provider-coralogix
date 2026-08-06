@@ -1362,7 +1362,7 @@ Optional:
 Optional:
 
 - `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`. When `state` is `OK`, the Coralogix UI disables auto-retire ("Never") and a later UI save may clear this value.
-- `state` (String) No-data policy state. Valid values: ["OK" "ALERTING" "KEEP_LAST" "NO_DATA"]. `UNSPECIFIED` is a protobuf sentinel (not a UI option) and is rejected in configuration.
+- `state` (String) No-data policy state. Preferred values: ["OK" "ALERTING" "KEEP_LAST" "NO_DATA"]. `UNSPECIFIED` is a deprecated protobuf sentinel (not a UI option); omit `no_data_policy` for the same legacy behavior. It remains accepted with a warning and will be rejected in a future provider release.
 
 
 <a id="nestedatt--type_definition--logs_threshold--undetected_values_management"></a>
@@ -1671,7 +1671,7 @@ Optional:
 Optional:
 
 - `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`. When `state` is `OK`, the Coralogix UI disables auto-retire ("Never") and a later UI save may clear this value.
-- `state` (String) No-data policy state. Valid values: ["OK" "ALERTING" "KEEP_LAST" "NO_DATA"]. `UNSPECIFIED` is a protobuf sentinel (not a UI option) and is rejected in configuration.
+- `state` (String) No-data policy state. Preferred values: ["OK" "ALERTING" "KEEP_LAST" "NO_DATA"]. `UNSPECIFIED` is a deprecated protobuf sentinel (not a UI option); omit `no_data_policy` for the same legacy behavior. It remains accepted with a warning and will be rejected in a future provider release.
 
 
 <a id="nestedatt--type_definition--metric_threshold--undetected_values_management"></a>

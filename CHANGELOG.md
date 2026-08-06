@@ -1,7 +1,8 @@
 # Unreleased
 
 #### resource/coralogix_alert
-- DOC: Document that `no_data_policy.state` accepts `OK`, `ALERTING`, `KEEP_LAST`, and `NO_DATA` (rejecting the protobuf `UNSPECIFIED` sentinel), and that `auto_retire_seconds` is only honored for `ALERTING` / `KEEP_LAST` / `NO_DATA`.
+- DOC: Document preferred `no_data_policy.state` values (`OK`, `ALERTING`, `KEEP_LAST`, `NO_DATA`) and that `auto_retire_seconds` is only honored for `ALERTING` / `KEEP_LAST` / `NO_DATA`.
+- DEPRECATION: `no_data_policy.state = "UNSPECIFIED"` now emits a plan warning (still accepted); omit the block for equivalent legacy behavior. Reads map API `UNSPECIFIED` to unset.
 
 #### resource/coralogix_dashboard
 - CHORE: Use the shared SDK `dashboardjson.Unmarshal` helper for `content_json` (snake_case aliases, unknown-key discard) instead of a local copy. Create/replace no longer re-strip unknowns; that happens in Unmarshal, as in the operator.

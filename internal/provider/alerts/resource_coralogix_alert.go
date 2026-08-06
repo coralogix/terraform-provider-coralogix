@@ -3905,7 +3905,12 @@ func flattenNoDataPolicy(ctx context.Context, noDataPolicy *alerts.NoDataPolicy)
 		model.AutoRetireSeconds = types.Int64Value(int64(*autoRetireSeconds))
 	}
 	if noDataPolicy.State != nil {
-		model.State = types.StringValue(alerttypes.NoDataPolicyStateProtoToSchemaMap[*noDataPolicy.State])
+		state := alerttypes.NoDataPolicyStateProtoToSchemaMap[*noDataPolicy.State]
+		// Treat the protobuf sentinel as unset so refresh/import does not surface
+		// a non-user-facing value into Terraform state.
+		if state != "UNSPECIFIED" {
+			model.State = types.StringValue(state)
+		}
 	}
 	return types.ObjectValueFrom(ctx, alertschema.NoDataPolicyAttr(), model)
 }
