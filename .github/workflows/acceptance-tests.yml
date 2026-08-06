@@ -28,6 +28,7 @@ env:
   DASHBOARD_SHARD_PRESENTATION_RESOLUTION_AND_TIME_FRAMES: &dashboard_shard_presentation_resolution_and_time_frames '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$/resolution-and-time-frames$'
   DASHBOARD_SHARD_PRESENTATION_BAR_CHART_AXES: &dashboard_shard_presentation_bar_chart_axes '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$/bar-chart-axes$'
   DASHBOARD_SHARD_PRESENTATION_HORIZONTAL_BAR_OPTIONS: &dashboard_shard_presentation_horizontal_bar_options '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$/horizontal-bar-options$'
+  DASHBOARD_SHARD_PRESENTATION_COLORS_BY_BRANCHES: &dashboard_shard_presentation_colors_by_branches '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$/colors-by-branches$'
   DASHBOARD_SHARD_OPENAPI_BRANCHES: &dashboard_shard_openapi_branches '^TestAccCoralogixResourceDashboardOpenAPI(OneOfTransitions|LogsAggregationBranches|SpansAndFilterBranches|VariableBranches|AnnotationBranches)$'
   DASHBOARD_SHARD_CORE: &dashboard_shard_core '^TestAccCoralogix(DataSourceDashboard(_basic|AccessPolicy)|DataSourceDashboardsFolder_(basic|by_name)|ResourceDashboardsFolder|ResourceDashboard(ContentJSON(ProtobufSpellings|FolderOverride|DynamicQueriesTable)|RESTCreated(Hydration|UnsupportedDynamicHydration)|AccessPolicy|HexagonWidget|LinechartWidget|GaugeWidget(DataPrime|ThresholdType)?|DataTableWidget(ObservationFieldFilter)?|FromJson(WithFolder|WithVar)?|FolderIDNoDrift|MultiSelectSelectionType|LayoutColor|ManualAnnotation)?)$'
 
@@ -89,6 +90,8 @@ jobs:
             pattern: *dashboard_shard_presentation_bar_chart_axes
           - shard: presentation-horizontal-bar-options
             pattern: *dashboard_shard_presentation_horizontal_bar_options
+          - shard: presentation-colors-by-branches
+            pattern: *dashboard_shard_presentation_colors_by_branches
           - shard: openapi-branches
             pattern: *dashboard_shard_openapi_branches
           - shard: core
@@ -140,6 +143,7 @@ jobs:
             "$DASHBOARD_SHARD_PRESENTATION_RESOLUTION_AND_TIME_FRAMES"
             "$DASHBOARD_SHARD_PRESENTATION_BAR_CHART_AXES"
             "$DASHBOARD_SHARD_PRESENTATION_HORIZONTAL_BAR_OPTIONS"
+            "$DASHBOARD_SHARD_PRESENTATION_COLORS_BY_BRANCHES"
             "$DASHBOARD_SHARD_OPENAPI_BRANCHES"
             "$DASHBOARD_SHARD_CORE"
           )

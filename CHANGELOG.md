@@ -4,10 +4,18 @@
 - DOC: Document preferred `no_data_policy.state` values (`OK`, `ALERTING`, `KEEP_LAST`, `NO_DATA`) and that `auto_retire_seconds` is only honored for `ALERTING` / `KEEP_LAST` / `NO_DATA`.
 - DEPRECATION: `no_data_policy.state = "UNSPECIFIED"` now emits a plan warning (still accepted); omit the block for equivalent legacy behavior. Reads map API `UNSPECIFIED` to unset.
 
+#### resource/coralogix_tco_policies_logs
+- FEAT: Add `targets` to route matched logs to specific named datasets. Each target requires its own `priority`. Policy-level `priority` is now optional; omit it when `targets` is set.
+- FIX: `targets[*].priority_override.usage_tiers[*].daily_quota_percentage` is validated to `0`–`100`, matching the policy-level field.
+
 #### resource/coralogix_dashboard
+- FEAT: Add `reference` on widgets to reuse a widget from another dashboard by `dashboard_id` and `widget_id`. Exactly one of `definition` or `reference` must be set.
 - CHORE: Use the shared SDK `dashboardjson.Unmarshal` helper for `content_json` (snake_case aliases, unknown-key discard) instead of a local copy. Create/replace no longer re-strip unknowns; that happens in Unmarshal, as in the operator.
 - FIX: Adding a section, row, widget or annotation without an `id` no longer fails with "Provider produced inconsistent result after apply". Generated `id` fields (section, row, widget, line-chart `query_definitions[].id`, data-table aggregation, annotation) and widget `width` now use `UseNonNullStateForUnknown` so new nested elements stay `(known after apply)` instead of planning as null.
 - FEAT: Add support for `dataprime` and `event_recurrence` annotation source types. Dashboards using DataPrime queries or recurring calendar events as annotation sources can now be authored and round-tripped through Terraform.
+- FEAT: Add `scope` support to `annotations` — restrict an annotation to `all_widgets` or `specific_widgets`.
+- FEAT: Add `query` and `category` to `bar_chart.colors_by` and `horizontal_bar_chart.colors_by`. Dashboards using either value can now be authored and read back through Terraform.
+- FIX: `colors_by` now validates against the accepted values at plan time. Previously an unrecognized value was silently dropped from the request and then failed at apply with "Provider produced inconsistent result after apply", which never named the offending attribute.
 
 #### resource/coralogix_events2metric
 - CHORE: Migrate events2metric operations from the legacy gRPC client to the REST client.

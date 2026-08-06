@@ -248,6 +248,7 @@ var (
 	DashboardValidSpanFieldTypes          = []string{"metadata", "tag", "process_tag"}
 	DashboardValidSpanAggregationTypes    = []string{"metric", "dimension"}
 	DashboardValidColorSchemes            = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
+	DashboardValidColorsBy                = []string{"stack", "group_by", "aggregation", "query", "category"}
 	SectionValidColors                    = []string{"cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
 
 	DashboardSchemaToProtoThresholdType = map[string]dashboardservice.ThresholdType{

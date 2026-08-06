@@ -646,6 +646,11 @@ resource "coralogix_dashboard" "dashboard" {
           }
         }
       }
+      # scope restricts this annotation to all widgets; omit to not apply a scope.
+      # Use specific_widgets = { widget_ids = ["<uuid>"] } to target individual widgets.
+      scope = {
+        all_widgets = {}
+      }
     },
     {
       name = "dataprime_annotation"
@@ -757,6 +762,30 @@ resource "coralogix_dashboard" "widgets" {
   }
 }
 
+# Cross-dashboard widget reference: reuse a widget from another dashboard by ID.
+resource "coralogix_dashboard" "dashboard_with_widget_reference" {
+  name        = "portal monitoring shared"
+  description = "Dashboard that reuses a widget from coralogix_dashboard.dashboard"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          reference = {
+            dashboard_id = coralogix_dashboard.dashboard.id
+            widget_id    = coralogix_dashboard.dashboard.layout.sections[0].rows[0].widgets[0].id
+          }
+        }]
+      }]
+    }]
+  }
+}
+
 resource "coralogix_dashboard" "dashboard_from_json_with_folder" {
   content_json = file("./dashboard.json")
   folder = {
@@ -798,6 +827,7 @@ Optional:
 
 - `enabled` (Boolean)
 - `id` (String)
+- `scope` (Attributes) Restrict this annotation to specific widgets. Omit to show on all widgets. (see [below for nested schema](#nestedatt--annotations--scope))
 
 <a id="nestedatt--annotations--source"></a>
 ### Nested Schema for `annotations.source`
@@ -1250,6 +1280,27 @@ Required:
 
 
 
+<a id="nestedatt--annotations--scope"></a>
+### Nested Schema for `annotations.scope`
+
+Optional:
+
+- `all_widgets` (Attributes) Apply this annotation to every widget in the dashboard. (see [below for nested schema](#nestedatt--annotations--scope--all_widgets))
+- `specific_widgets` (Attributes) (see [below for nested schema](#nestedatt--annotations--scope--specific_widgets))
+
+<a id="nestedatt--annotations--scope--all_widgets"></a>
+### Nested Schema for `annotations.scope.all_widgets`
+
+
+<a id="nestedatt--annotations--scope--specific_widgets"></a>
+### Nested Schema for `annotations.scope.specific_widgets`
+
+Required:
+
+- `widget_ids` (List of String) UUIDs of the widgets this annotation applies to.
+
+
+
 
 <a id="nestedatt--auto_refresh"></a>
 ### Nested Schema for `auto_refresh`
@@ -1425,15 +1476,13 @@ Optional:
 <a id="nestedatt--layout--sections--rows--widgets"></a>
 ### Nested Schema for `layout.sections.rows.widgets`
 
-Required:
-
-- `definition` (Attributes) The widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown] (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
-
 Optional:
 
+- `definition` (Attributes) Inline widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown]. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 - `description` (String) Widget description.
 - `id` (String)
-- `title` (String) Widget title. Required for all widgets except markdown.
+- `reference` (Attributes) Reference to a widget on another dashboard. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--reference))
+- `title` (String) Widget title. Required for all inline widgets except markdown.
 - `width` (Number, Deprecated) Deprecated: the widget appearance.width field is ignored by the API and has no effect.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition"></a>
@@ -1456,7 +1505,7 @@ Optional:
 Optional:
 
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
-- `colors_by` (String)
+- `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
 - `data_mode_type` (String)
 - `group_name_template` (String)
 - `max_bars_per_chart` (Number)
@@ -3292,7 +3341,7 @@ Optional:
 Optional:
 
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
-- `colors_by` (String)
+- `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
 - `data_mode_type` (String)
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
@@ -4692,6 +4741,15 @@ Optional:
 - `stack_name_template` (String)
 
 
+
+
+<a id="nestedatt--layout--sections--rows--widgets--reference"></a>
+### Nested Schema for `layout.sections.rows.widgets.reference`
+
+Required:
+
+- `dashboard_id` (String) ID of the dashboard that owns the source widget.
+- `widget_id` (String) ID of the source widget within the referenced dashboard.
 
 
 

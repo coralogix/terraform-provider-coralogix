@@ -550,6 +550,97 @@ EOT
 	})
 }
 
+func TestAccCoralogixResourceDashboardWidgetReference(t *testing.T) {
+	sourceName := dashboardOpenAPIFixtureName(t.Name() + "-source")
+	consumerName := dashboardOpenAPIFixtureName(t.Name() + "-consumer")
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWidgetReference(sourceName, consumerName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coralogix_dashboard.source", "id"),
+					resource.TestCheckResourceAttrSet("coralogix_dashboard.source", "layout.sections.0.rows.0.widgets.0.id"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.reference.dashboard_id"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.reference.widget_id"),
+					resource.TestCheckResourceAttrPair(
+						dashboardResourceName, "layout.sections.0.rows.0.widgets.0.reference.dashboard_id",
+						"coralogix_dashboard.source", "id",
+					),
+					resource.TestCheckResourceAttrPair(
+						dashboardResourceName, "layout.sections.0.rows.0.widgets.0.reference.widget_id",
+						"coralogix_dashboard.source", "layout.sections.0.rows.0.widgets.0.id",
+					),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceDashboardWidgetReference(sourceName, consumerName string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" "source" {
+  name        = %q
+  description = "source dashboard for widget reference"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          definition = {
+            markdown = {
+              markdown_text = "shared widget"
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "consumer dashboard with widget reference"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          reference = {
+            dashboard_id = coralogix_dashboard.source.id
+            widget_id    = coralogix_dashboard.source.layout.sections[0].rows[0].widgets[0].id
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, sourceName, consumerName)
+}
+
 func TestAccCoralogixResourceDashboardGaugeWidgetThresholdType(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 	resource.ParallelTest(t, resource.TestCase{
@@ -1428,6 +1519,83 @@ resource "coralogix_dashboard" "test" {
 	})
 }
 
+func TestAccCoralogixResourceDashboardColorsBy(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	config := func(barColorsBy, horizontalColorsBy string) string {
+		return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing colors_by branches"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [
+          {
+            title = "bar chart"
+            definition = {
+              bar_chart = {
+                query     = { logs = { aggregation = { type = "count" } } }
+                colors_by = %q
+              }
+            }
+          },
+          {
+            title = "horizontal bar chart"
+            definition = {
+              horizontal_bar_chart = {
+                query     = { logs = { aggregation = { type = "count" } } }
+                colors_by = %q
+              }
+            }
+          },
+        ]
+      }]
+    }]
+  }
+}
+`, name, barColorsBy, horizontalColorsBy)
+	}
+	checks := func(barColorsBy, horizontalColorsBy string) resource.TestCheckFunc {
+		return resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.bar_chart.colors_by", barColorsBy),
+			resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.horizontal_bar_chart.colors_by", horizontalColorsBy),
+		)
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: config("query", "category"),
+				Check:  checks("query", "category"),
+			},
+			{
+				Config: config("category", "query"),
+				Check:  checks("category", "query"),
+			},
+			{
+				Config: config("stack", "aggregation"),
+				Check:  checks("stack", "aggregation"),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardManualAnnotation(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 	resource.ParallelTest(t, resource.TestCase{
@@ -1749,6 +1917,146 @@ resource "coralogix_dashboard" "test" {
 					PostApplyPostRefresh: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),
 					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardAnnotationScope(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing annotation scope"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  annotations = [{
+    name    = "scoped annotation"
+    enabled = true
+    source = {
+      manual = {
+        orientation = "horizontal"
+        strategy = {
+          range = {
+            start_value = 10
+            end_value   = 90
+          }
+        }
+      }
+    }
+    scope = {
+      all_widgets = {}
+    }
+  }]
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          width = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{ type = "count" }]
+                  }
+                }
+              }]
+              legend = { is_visible = false }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.name", "scoped annotation"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "annotations.0.scope.all_widgets.%"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				Config: fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing annotation scope"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  annotations = [{
+    name    = "scoped annotation"
+    enabled = true
+    source = {
+      manual = {
+        orientation = "horizontal"
+        strategy = {
+          range = {
+            start_value = 10
+            end_value   = 90
+          }
+        }
+      }
+    }
+  }]
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          width = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{ type = "count" }]
+                  }
+                }
+              }]
+              legend = { is_visible = false }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.name", "scoped annotation"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},
 			{

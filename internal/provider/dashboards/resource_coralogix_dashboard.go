@@ -112,11 +112,17 @@ type RowModel struct {
 	Widgets types.List   `tfsdk:"widgets"` //WidgetModel
 }
 
+type WidgetReferenceModel struct {
+	DashboardID types.String `tfsdk:"dashboard_id"`
+	WidgetID    types.String `tfsdk:"widget_id"`
+}
+
 type WidgetModel struct {
 	ID          types.String                            `tfsdk:"id"`
 	Title       types.String                            `tfsdk:"title"`
 	Description types.String                            `tfsdk:"description"`
 	Definition  *dashboardwidgets.WidgetDefinitionModel `tfsdk:"definition"`
+	Reference   *WidgetReferenceModel                   `tfsdk:"reference"`
 	Width       types.Int64                             `tfsdk:"width"`
 }
 
@@ -307,7 +313,19 @@ type DashboardAnnotationModel struct {
 	Name    types.String `tfsdk:"name"`
 	Enabled types.Bool   `tfsdk:"enabled"`
 	Source  types.Object `tfsdk:"source"` //DashboardAnnotationSourceModel
+	Scope   types.Object `tfsdk:"scope"`  //DashboardAnnotationScopeModel
 }
+
+type DashboardAnnotationScopeModel struct {
+	AllWidgets      types.Object `tfsdk:"all_widgets"`
+	SpecificWidgets types.Object `tfsdk:"specific_widgets"`
+}
+
+type DashboardAnnotationScopeSpecificWidgetsModel struct {
+	WidgetIDs types.List `tfsdk:"widget_ids"`
+}
+
+type DashboardAnnotationScopeAllWidgetsModel struct{}
 
 type DashboardAnnotationSourceModel struct {
 	Metrics         types.Object `tfsdk:"metrics"`          //DashboardAnnotationMetricSourceModel
@@ -862,8 +880,15 @@ func upgradeDashboardAnnotationsV0(ctx context.Context, annotations types.List) 
 	var upgradedGroups []DashboardAnnotationModel
 	annotations.ElementsAs(ctx, &priorAnnotationObjects, true)
 
+	type annotationModelV0 struct {
+		ID      types.String `tfsdk:"id"`
+		Name    types.String `tfsdk:"name"`
+		Enabled types.Bool   `tfsdk:"enabled"`
+		Source  types.Object `tfsdk:"source"`
+	}
+
 	for _, annotationObject := range priorAnnotationObjects {
-		var priorAnnotation DashboardAnnotationModel
+		var priorAnnotation annotationModelV0
 		if dg := annotationObject.As(ctx, &priorAnnotation, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -880,6 +905,7 @@ func upgradeDashboardAnnotationsV0(ctx context.Context, annotations types.List) 
 			Enabled: priorAnnotation.Enabled,
 			Source:  source,
 			ID:      priorAnnotation.ID,
+			Scope:   types.ObjectNull(annotationScopeModelAttr()),
 		}
 
 		upgradedGroups = append(upgradedGroups, upgradedGroup)
@@ -1157,13 +1183,49 @@ func expandAnnotation(ctx context.Context, annotation DashboardAnnotationModel) 
 		return nil, diags
 	}
 
+	scope, scopeDiags := expandAnnotationScope(ctx, annotation.Scope)
+	diags.Append(scopeDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.Annotation{
 		Id:      dashboardwidgets.ExpandDashboardIDs(annotation.ID),
 		Name:    utils.TypeStringToStringPointer(annotation.Name),
 		Enabled: typeBoolToBoolPointer(annotation.Enabled),
 		Source:  source,
+		Scope:   scope,
 	}, nil
 
+}
+
+func expandAnnotationScope(ctx context.Context, scope types.Object) (*dashboardservice.AnnotationWidgetScope, diag.Diagnostics) {
+	if scope.IsNull() || scope.IsUnknown() {
+		return nil, nil
+	}
+	var s DashboardAnnotationScopeModel
+	if diags := scope.As(ctx, &s, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	switch {
+	case objectIsKnown(s.AllWidgets):
+		return &dashboardservice.AnnotationWidgetScope{AllWidgets: map[string]interface{}{}}, nil
+	case objectIsKnown(s.SpecificWidgets):
+		var sw DashboardAnnotationScopeSpecificWidgetsModel
+		if diags := s.SpecificWidgets.As(ctx, &sw, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		var ids []string
+		if diags := sw.WidgetIDs.ElementsAs(ctx, &ids, false); diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.AnnotationWidgetScope{
+			SpecificWidgets: &dashboardservice.AnnotationWidgetScopeSpecificWidgets{WidgetIds: ids},
+		}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Annotation Scope",
+			"Annotation scope must be one of: all_widgets, specific_widgets")}
+	}
 }
 
 func expandAnnotationSource(ctx context.Context, source types.Object) (*dashboardservice.AnnotationSource, diag.Diagnostics) {
@@ -1947,13 +2009,23 @@ func expandDashboardWidgets(ctx context.Context, widgets types.List) ([]dashboar
 
 func expandWidget(ctx context.Context, widget WidgetModel) (*dashboardservice.Widget, diag.Diagnostics) {
 	id := dashboardwidgets.ExpandDashboardUUID(widget.ID)
-
 	title := utils.TypeStringToStringPointer(widget.Title)
 	description := utils.TypeStringToStringPointer(widget.Description)
 	appearance := &dashboardservice.WidgetAppearance{
 		Width: typeInt64ToInt32Pointer(widget.Width),
 	}
-	definition, diags := expandWidgetDefinition(ctx, widget.Definition)
+
+	var definition *dashboardservice.WidgetDefinition
+	var diags diag.Diagnostics
+	if widget.Definition != nil {
+		definition, diags = expandWidgetDefinition(ctx, widget.Definition)
+		if diags.HasError() {
+			return nil, diags
+		}
+	}
+
+	reference, refDiags := expandWidgetReference(widget.Reference)
+	diags.Append(refDiags...)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1964,7 +2036,24 @@ func expandWidget(ctx context.Context, widget WidgetModel) (*dashboardservice.Wi
 		Description: description,
 		Appearance:  appearance,
 		Definition:  definition,
+		Reference:   reference,
 	}, nil
+}
+
+func expandWidgetReference(reference *WidgetReferenceModel) (*dashboardservice.WidgetReference, diag.Diagnostics) {
+	if reference == nil {
+		return nil, nil
+	}
+
+	expanded := dashboardservice.NewWidgetReference()
+	if !reference.DashboardID.IsNull() && !reference.DashboardID.IsUnknown() {
+		expanded.SetDashboardId(reference.DashboardID.ValueString())
+	}
+	if !reference.WidgetID.IsNull() && !reference.WidgetID.IsUnknown() {
+		widgetID := dashboardservice.UUID{Value: reference.WidgetID.ValueStringPointer()}
+		expanded.SetWidgetId(widgetID)
+	}
+	return expanded, nil
 }
 
 func expandWidgetDefinition(ctx context.Context, definition *dashboardwidgets.WidgetDefinitionModel) (*dashboardservice.WidgetDefinition, diag.Diagnostics) {
@@ -2794,6 +2883,14 @@ func expandColorsBy(colorsBy types.String) *dashboardservice.ColorsBy {
 	case "aggregation":
 		return &dashboardservice.ColorsBy{
 			Aggregation: map[string]interface{}{},
+		}
+	case "query":
+		return &dashboardservice.ColorsBy{
+			Query: map[string]interface{}{},
+		}
+	case "category":
+		return &dashboardservice.ColorsBy{
+			Category: map[string]interface{}{},
 		}
 	default:
 		return nil
@@ -4205,6 +4302,12 @@ func widgetModelAttr() map[string]attr.Type {
 				},
 			},
 		},
+		"reference": types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"dashboard_id": types.StringType,
+				"widget_id":    types.StringType,
+			},
+		},
 		"width": types.Int64Type,
 	}
 }
@@ -4303,6 +4406,22 @@ func dashboardsAnnotationsModelAttr() map[string]attr.Type {
 		"source": types.ObjectType{
 			AttrTypes: annotationSourceModelAttr(),
 		},
+		"scope": types.ObjectType{
+			AttrTypes: annotationScopeModelAttr(),
+		},
+	}
+}
+
+func annotationScopeModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"all_widgets":      types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"specific_widgets": types.ObjectType{AttrTypes: annotationScopeSpecificWidgetsModelAttr()},
+	}
+}
+
+func annotationScopeSpecificWidgetsModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"widget_ids": types.ListType{ElemType: types.StringType},
 	}
 }
 
@@ -4723,7 +4842,18 @@ func flattenDashboardWidget(ctx context.Context, widget *dashboardservice.Widget
 		Description: utils.StringPointerToTypeString(widget.Description),
 		Width:       int32PointerToTypeInt64(widget.GetAppearance().Width),
 		Definition:  definition,
+		Reference:   flattenWidgetReference(widget.Reference),
 	}, nil
+}
+
+func flattenWidgetReference(reference *dashboardservice.WidgetReference) *WidgetReferenceModel {
+	if reference == nil {
+		return nil
+	}
+	return &WidgetReferenceModel{
+		DashboardID: utils.StringPointerToTypeString(reference.DashboardId),
+		WidgetID:    uuidToTypeString(reference.WidgetId),
+	}
 }
 
 func flattenDashboardWidgetDefinition(ctx context.Context, definition *dashboardservice.WidgetDefinition) (*dashboardwidgets.WidgetDefinitionModel, diag.Diagnostics) {
@@ -5688,6 +5818,10 @@ func flattenBarChartColorsBy(colorsBy *dashboardservice.ColorsBy) (types.String,
 		return types.StringValue("stack"), nil
 	case colorsBy.Aggregation != nil:
 		return types.StringValue("aggregation"), nil
+	case colorsBy.Query != nil:
+		return types.StringValue("query"), nil
+	case colorsBy.Category != nil:
+		return types.StringValue("category"), nil
 	default:
 		return types.StringNull(), diag.NewErrorDiagnostic("", fmt.Sprintf("unknown colors by type %T", colorsBy))
 	}
@@ -6503,12 +6637,49 @@ func flattenDashboardAnnotation(ctx context.Context, annotation *dashboardservic
 		return nil, diags
 	}
 
+	scope, scopeDiags := flattenAnnotationScope(ctx, annotation.Scope)
+	diags.Append(scopeDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &DashboardAnnotationModel{
 		ID:      utils.StringPointerToTypeString(annotation.Id),
 		Name:    utils.StringPointerToTypeString(annotation.Name),
 		Enabled: types.BoolPointerValue(annotation.Enabled),
 		Source:  source,
+		Scope:   scope,
 	}, nil
+}
+
+func flattenAnnotationScope(ctx context.Context, scope *dashboardservice.AnnotationWidgetScope) (types.Object, diag.Diagnostics) {
+	if scope == nil {
+		return types.ObjectNull(annotationScopeModelAttr()), nil
+	}
+	var s DashboardAnnotationScopeModel
+	if scope.HasAllWidgets() {
+		allWidgets, diags := types.ObjectValueFrom(ctx, map[string]attr.Type{}, DashboardAnnotationScopeAllWidgetsModel{})
+		if diags.HasError() {
+			return types.ObjectNull(annotationScopeModelAttr()), diags
+		}
+		s.AllWidgets = allWidgets
+		s.SpecificWidgets = types.ObjectNull(annotationScopeSpecificWidgetsModelAttr())
+	} else if scope.HasSpecificWidgets() {
+		ids, diags := types.ListValueFrom(ctx, types.StringType, scope.SpecificWidgets.WidgetIds)
+		if diags.HasError() {
+			return types.ObjectNull(annotationScopeModelAttr()), diags
+		}
+		sw, diags := types.ObjectValueFrom(ctx, annotationScopeSpecificWidgetsModelAttr(),
+			DashboardAnnotationScopeSpecificWidgetsModel{WidgetIDs: ids})
+		if diags.HasError() {
+			return types.ObjectNull(annotationScopeModelAttr()), diags
+		}
+		s.SpecificWidgets = sw
+		s.AllWidgets = types.ObjectNull(map[string]attr.Type{})
+	} else {
+		return types.ObjectNull(annotationScopeModelAttr()), nil
+	}
+	return types.ObjectValueFrom(ctx, annotationScopeModelAttr(), s)
 }
 
 func flattenDashboardAnnotationSource(ctx context.Context, source *dashboardservice.AnnotationSource) (types.Object, diag.Diagnostics) {

@@ -631,6 +631,11 @@ resource "coralogix_dashboard" "dashboard" {
           }
         }
       }
+      # scope restricts this annotation to all widgets; omit to not apply a scope.
+      # Use specific_widgets = { widget_ids = ["<uuid>"] } to target individual widgets.
+      scope = {
+        all_widgets = {}
+      }
     },
     {
       name = "dataprime_annotation"
@@ -735,6 +740,30 @@ resource "coralogix_dashboard" "widgets" {
                 is_visible = true
               }
             }
+          }
+        }]
+      }]
+    }]
+  }
+}
+
+# Cross-dashboard widget reference: reuse a widget from another dashboard by ID.
+resource "coralogix_dashboard" "dashboard_with_widget_reference" {
+  name        = "portal monitoring shared"
+  description = "Dashboard that reuses a widget from coralogix_dashboard.dashboard"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          reference = {
+            dashboard_id = coralogix_dashboard.dashboard.id
+            widget_id    = coralogix_dashboard.dashboard.layout.sections[0].rows[0].widgets[0].id
           }
         }]
       }]

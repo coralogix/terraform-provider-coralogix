@@ -109,14 +109,14 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 													},
 													"title": schema.StringAttribute{
 														Optional:            true,
-														MarkdownDescription: "Widget title. Required for all widgets except markdown.",
+														MarkdownDescription: "Widget title. Required for all inline widgets except markdown.",
 													},
 													"description": schema.StringAttribute{
 														Optional:            true,
 														MarkdownDescription: "Widget description.",
 													},
 													"definition": schema.SingleNestedAttribute{
-														Required: true,
+														Optional: true,
 														Attributes: map[string]schema.Attribute{
 															"line_chart": dashboardwidgets.LineChartSchema(),
 															"hexagon":    dashboardwidgets.HexagonSchema(),
@@ -571,6 +571,10 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	},
 																	"colors_by": schema.StringAttribute{
 																		Optional: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidColorsBy...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("Which dimension the bar colors follow. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidColorsBy, ", ")),
 																	},
 																	"xaxis": schema.SingleNestedAttribute{
 																		Optional: true,
@@ -760,6 +764,10 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	},
 																	"colors_by": schema.StringAttribute{
 																		Optional: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidColorsBy...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("Which dimension the bar colors follow. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidColorsBy, ", ")),
 																	},
 																	"unit": schema.StringAttribute{
 																		Optional: true,
@@ -829,10 +837,24 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																Optional: true,
 															},
 														},
-														MarkdownDescription: fmt.Sprintf("The widget definition. Can contain one of %v", dashboardwidgets.SupportedWidgetTypes),
+														MarkdownDescription: fmt.Sprintf("Inline widget definition. Can contain one of %v. Exactly one of `definition` or `reference` must be set.", dashboardwidgets.SupportedWidgetTypes),
 														Validators: []validator.Object{
 															dashboardwidgets.SupportedWidgetsExactlyOneOfChildren(),
 														},
+													},
+													"reference": schema.SingleNestedAttribute{
+														Optional: true,
+														Attributes: map[string]schema.Attribute{
+															"dashboard_id": schema.StringAttribute{
+																Required:            true,
+																MarkdownDescription: "ID of the dashboard that owns the source widget.",
+															},
+															"widget_id": schema.StringAttribute{
+																Required:            true,
+																MarkdownDescription: "ID of the source widget within the referenced dashboard.",
+															},
+														},
+														MarkdownDescription: "Reference to a widget on another dashboard. Exactly one of `definition` or `reference` must be set.",
 													},
 													"width": schema.Int64Attribute{
 														Optional: true,
@@ -843,6 +865,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 														DeprecationMessage:  "Widget appearance.width is ignored by the API and has no effect.",
 														MarkdownDescription: "Deprecated: the widget appearance.width field is ignored by the API and has no effect.",
 													},
+												},
+												Validators: []validator.Object{
+													dashboardwidgets.ExactlyOneOfChildren("definition", "reference"),
 												},
 											},
 											Validators: []validator.List{
@@ -1234,6 +1259,30 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 						Validators: []validator.Object{
 							dashboardwidgets.ExactlyOneOfChildren("metrics", "logs", "spans", "manual", "dataprime", "event_recurrence"),
 						},
+					},
+					"scope": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"all_widgets": schema.SingleNestedAttribute{
+								Optional:            true,
+								Attributes:          map[string]schema.Attribute{},
+								MarkdownDescription: "Apply this annotation to every widget in the dashboard.",
+							},
+							"specific_widgets": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"widget_ids": schema.ListAttribute{
+										ElementType:         types.StringType,
+										Required:            true,
+										MarkdownDescription: "UUIDs of the widgets this annotation applies to.",
+									},
+								},
+							},
+						},
+						Validators: []validator.Object{
+							dashboardwidgets.ExactlyOneOfChildren("all_widgets", "specific_widgets"),
+						},
+						MarkdownDescription: "Restrict this annotation to specific widgets. Omit to show on all widgets.",
 					},
 				},
 			},

@@ -41,7 +41,29 @@ Read-Only:
 - `enabled` (Boolean)
 - `id` (String)
 - `name` (String)
+- `scope` (Attributes) Restrict this annotation to specific widgets. Omit to show on all widgets. (see [below for nested schema](#nestedatt--annotations--scope))
 - `source` (Attributes) (see [below for nested schema](#nestedatt--annotations--source))
+
+<a id="nestedatt--annotations--scope"></a>
+### Nested Schema for `annotations.scope`
+
+Read-Only:
+
+- `all_widgets` (Attributes) Apply this annotation to every widget in the dashboard. (see [below for nested schema](#nestedatt--annotations--scope--all_widgets))
+- `specific_widgets` (Attributes) (see [below for nested schema](#nestedatt--annotations--scope--specific_widgets))
+
+<a id="nestedatt--annotations--scope--all_widgets"></a>
+### Nested Schema for `annotations.scope.all_widgets`
+
+
+<a id="nestedatt--annotations--scope--specific_widgets"></a>
+### Nested Schema for `annotations.scope.specific_widgets`
+
+Read-Only:
+
+- `widget_ids` (List of String) UUIDs of the widgets this annotation applies to.
+
+
 
 <a id="nestedatt--annotations--source"></a>
 ### Nested Schema for `annotations.source`
@@ -629,10 +651,11 @@ Read-Only:
 
 Read-Only:
 
-- `definition` (Attributes) The widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown] (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
+- `definition` (Attributes) Inline widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown]. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 - `description` (String) Widget description.
 - `id` (String)
-- `title` (String) Widget title. Required for all widgets except markdown.
+- `reference` (Attributes) Reference to a widget on another dashboard. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--reference))
+- `title` (String) Widget title. Required for all inline widgets except markdown.
 - `width` (Number) Deprecated: the widget appearance.width field is ignored by the API and has no effect.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition"></a>
@@ -655,7 +678,7 @@ Read-Only:
 Read-Only:
 
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
-- `colors_by` (String)
+- `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
 - `data_mode_type` (String)
 - `group_name_template` (String)
 - `max_bars_per_chart` (Number)
@@ -2311,7 +2334,7 @@ Read-Only:
 Read-Only:
 
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
-- `colors_by` (String)
+- `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
 - `data_mode_type` (String)
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
@@ -3576,6 +3599,15 @@ Read-Only:
 - `stack_name_template` (String)
 
 
+
+
+<a id="nestedatt--layout--sections--rows--widgets--reference"></a>
+### Nested Schema for `layout.sections.rows.widgets.reference`
+
+Read-Only:
+
+- `dashboard_id` (String) ID of the dashboard that owns the source widget.
+- `widget_id` (String) ID of the source widget within the referenced dashboard.
 
 
 

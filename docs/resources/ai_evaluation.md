@@ -257,13 +257,13 @@ resource "coralogix_ai_evaluation" "example" {
 
 - `application` (String) Name of the AI application this evaluation belongs to.
 - `config` (Attributes) AI evaluation configuration. (see [below for nested schema](#nestedatt--config))
+- `subsystem` (String) Subsystem within the application.
 - `target` (String) Target span content the evaluation runs against. Can be one of ["prompt" "response"].
 - `threshold` (Number) Score threshold. Must be between 0.0 and 1.0 inclusive.
 
 ### Optional
 
 - `is_enabled` (Boolean) Whether the evaluation is active.
-- `subsystem` (String) Subsystem within the application.
 
 ### Read-Only
 
@@ -345,7 +345,7 @@ Required:
 
 Optional:
 
-- `additional_context` (String) Additional context passed to the LLM evaluator. Defaults to `""`.
+- `additional_context` (String) Additional context passed to the LLM evaluator.
 
 
 <a id="nestedatt--config--restricted_topics"></a>
