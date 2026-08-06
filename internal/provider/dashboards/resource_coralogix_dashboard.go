@@ -112,11 +112,17 @@ type RowModel struct {
 	Widgets types.List   `tfsdk:"widgets"` //WidgetModel
 }
 
+type WidgetReferenceModel struct {
+	DashboardID types.String `tfsdk:"dashboard_id"`
+	WidgetID    types.String `tfsdk:"widget_id"`
+}
+
 type WidgetModel struct {
 	ID          types.String                            `tfsdk:"id"`
 	Title       types.String                            `tfsdk:"title"`
 	Description types.String                            `tfsdk:"description"`
 	Definition  *dashboardwidgets.WidgetDefinitionModel `tfsdk:"definition"`
+	Reference   *WidgetReferenceModel                   `tfsdk:"reference"`
 	Width       types.Int64                             `tfsdk:"width"`
 }
 
@@ -2003,13 +2009,23 @@ func expandDashboardWidgets(ctx context.Context, widgets types.List) ([]dashboar
 
 func expandWidget(ctx context.Context, widget WidgetModel) (*dashboardservice.Widget, diag.Diagnostics) {
 	id := dashboardwidgets.ExpandDashboardUUID(widget.ID)
-
 	title := utils.TypeStringToStringPointer(widget.Title)
 	description := utils.TypeStringToStringPointer(widget.Description)
 	appearance := &dashboardservice.WidgetAppearance{
 		Width: typeInt64ToInt32Pointer(widget.Width),
 	}
-	definition, diags := expandWidgetDefinition(ctx, widget.Definition)
+
+	var definition *dashboardservice.WidgetDefinition
+	var diags diag.Diagnostics
+	if widget.Definition != nil {
+		definition, diags = expandWidgetDefinition(ctx, widget.Definition)
+		if diags.HasError() {
+			return nil, diags
+		}
+	}
+
+	reference, refDiags := expandWidgetReference(widget.Reference)
+	diags.Append(refDiags...)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2020,7 +2036,24 @@ func expandWidget(ctx context.Context, widget WidgetModel) (*dashboardservice.Wi
 		Description: description,
 		Appearance:  appearance,
 		Definition:  definition,
+		Reference:   reference,
 	}, nil
+}
+
+func expandWidgetReference(reference *WidgetReferenceModel) (*dashboardservice.WidgetReference, diag.Diagnostics) {
+	if reference == nil {
+		return nil, nil
+	}
+
+	expanded := dashboardservice.NewWidgetReference()
+	if !reference.DashboardID.IsNull() && !reference.DashboardID.IsUnknown() {
+		expanded.SetDashboardId(reference.DashboardID.ValueString())
+	}
+	if !reference.WidgetID.IsNull() && !reference.WidgetID.IsUnknown() {
+		widgetID := dashboardservice.UUID{Value: reference.WidgetID.ValueStringPointer()}
+		expanded.SetWidgetId(widgetID)
+	}
+	return expanded, nil
 }
 
 func expandWidgetDefinition(ctx context.Context, definition *dashboardwidgets.WidgetDefinitionModel) (*dashboardservice.WidgetDefinition, diag.Diagnostics) {
@@ -4269,6 +4302,12 @@ func widgetModelAttr() map[string]attr.Type {
 				},
 			},
 		},
+		"reference": types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"dashboard_id": types.StringType,
+				"widget_id":    types.StringType,
+			},
+		},
 		"width": types.Int64Type,
 	}
 }
@@ -4803,7 +4842,18 @@ func flattenDashboardWidget(ctx context.Context, widget *dashboardservice.Widget
 		Description: utils.StringPointerToTypeString(widget.Description),
 		Width:       int32PointerToTypeInt64(widget.GetAppearance().Width),
 		Definition:  definition,
+		Reference:   flattenWidgetReference(widget.Reference),
 	}, nil
+}
+
+func flattenWidgetReference(reference *dashboardservice.WidgetReference) *WidgetReferenceModel {
+	if reference == nil {
+		return nil
+	}
+	return &WidgetReferenceModel{
+		DashboardID: utils.StringPointerToTypeString(reference.DashboardId),
+		WidgetID:    uuidToTypeString(reference.WidgetId),
+	}
 }
 
 func flattenDashboardWidgetDefinition(ctx context.Context, definition *dashboardservice.WidgetDefinition) (*dashboardwidgets.WidgetDefinitionModel, diag.Diagnostics) {

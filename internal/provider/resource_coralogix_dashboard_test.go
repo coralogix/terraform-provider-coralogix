@@ -550,6 +550,97 @@ EOT
 	})
 }
 
+func TestAccCoralogixResourceDashboardWidgetReference(t *testing.T) {
+	sourceName := dashboardOpenAPIFixtureName(t.Name() + "-source")
+	consumerName := dashboardOpenAPIFixtureName(t.Name() + "-consumer")
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWidgetReference(sourceName, consumerName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coralogix_dashboard.source", "id"),
+					resource.TestCheckResourceAttrSet("coralogix_dashboard.source", "layout.sections.0.rows.0.widgets.0.id"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.reference.dashboard_id"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.reference.widget_id"),
+					resource.TestCheckResourceAttrPair(
+						dashboardResourceName, "layout.sections.0.rows.0.widgets.0.reference.dashboard_id",
+						"coralogix_dashboard.source", "id",
+					),
+					resource.TestCheckResourceAttrPair(
+						dashboardResourceName, "layout.sections.0.rows.0.widgets.0.reference.widget_id",
+						"coralogix_dashboard.source", "layout.sections.0.rows.0.widgets.0.id",
+					),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceDashboardWidgetReference(sourceName, consumerName string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" "source" {
+  name        = %q
+  description = "source dashboard for widget reference"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          definition = {
+            markdown = {
+              markdown_text = "shared widget"
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "consumer dashboard with widget reference"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          reference = {
+            dashboard_id = coralogix_dashboard.source.id
+            widget_id    = coralogix_dashboard.source.layout.sections[0].rows[0].widgets[0].id
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, sourceName, consumerName)
+}
+
 func TestAccCoralogixResourceDashboardGaugeWidgetThresholdType(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 	resource.ParallelTest(t, resource.TestCase{
