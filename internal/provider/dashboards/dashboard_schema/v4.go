@@ -109,7 +109,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 													},
 													"title": schema.StringAttribute{
 														Optional:            true,
-														MarkdownDescription: "Widget title. Required for all widgets except markdown.",
+														MarkdownDescription: "Widget title. Required for all inline widgets except markdown.",
 													},
 													"description": schema.StringAttribute{
 														Optional:            true,
