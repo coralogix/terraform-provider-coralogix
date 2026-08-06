@@ -39,10 +39,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -52,7 +48,6 @@ import (
 var (
 	_                              resource.ResourceWithConfigure   = &TCOPoliciesLogsResource{}
 	_                              resource.ResourceWithImportState = &TCOPoliciesLogsResource{}
-	_                              resource.ResourceWithModifyPlan  = &TCOPoliciesLogsResource{}
 	tcoPoliciesPrioritySchemaToApi                                  = map[string]tcoPolicys.QuotaV1Priority{
 		"block":  tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_BLOCK,
 		"high":   tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_HIGH,
@@ -159,176 +154,11 @@ func (r *TCOPoliciesLogsResource) Configure(_ context.Context, req resource.Conf
 	r.client = clientSet.TCOPolicies()
 }
 
-// ModifyPlan normalizes per-target priorities and fills in prior state IDs.
-//
-// AtomicOverwrite assigns new UUIDs to ALL policies on every call, so any change
-// to a single policy causes all IDs to change. We fill in state IDs only when
-// nothing in the plan has actually changed, preventing perpetual drift.
-//
-// We also mirror the flatten behavior (Bug: API echoes policy-level priority back
-// onto targets): when the plan has a policy-level priority, strip per-target
-// priorities from plan targets so the plan matches what the provider will return
-// after apply.
-func (r *TCOPoliciesLogsResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	if req.Plan.Raw.IsNull() || req.State.Raw.IsNull() {
-		return // destroy or create — nothing to preserve
-	}
-
-	var plan, state TCOPoliciesListModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	var planPolicies, statePolicies []types.Object
-	resp.Diagnostics.Append(plan.Policies.ElementsAs(ctx, &planPolicies, true)...)
-	resp.Diagnostics.Append(state.Policies.ElementsAs(ctx, &statePolicies, true)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Normalize per-target priorities: strip them when the policy has a policy-level
-	// priority, matching the flatten behaviour so the plan is consistent with what
-	// the provider will return after apply.
-	normalizedPolicies, diags := normalizePlanTargetPriorities(ctx, planPolicies)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// If count differs or any element changed, AtomicOverwrite assigns new IDs to
-	// ALL policies — leave all ids as (known after apply).
-	resourceChanging := len(normalizedPolicies) != len(statePolicies)
-	if !resourceChanging {
-		for i, planObj := range normalizedPolicies {
-			if policyElementChanged(planObj, statePolicies[i]) {
-				resourceChanging = true
-				break
-			}
-		}
-	}
-
-	// Build updated policy elements: always write the normalized targets back
-	// (to suppress the per-target priorities when a policy-level priority exists),
-	// and fill in state IDs when nothing changed.
-	elemType := types.ObjectType{AttrTypes: policiesLogsAttr()}
-	newElems := make([]attr.Value, len(normalizedPolicies))
-	for i, planObj := range normalizedPolicies {
-		planAttrs := planObj.Attributes()
-		if !resourceChanging {
-			planAttrs["id"] = statePolicies[i].Attributes()["id"]
-		}
-		newObj, dg := types.ObjectValue(policiesLogsAttr(), planAttrs)
-		resp.Diagnostics.Append(dg...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		newElems[i] = newObj
-	}
-	newList, dg := types.ListValue(elemType, newElems)
-	resp.Diagnostics.Append(dg...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	plan.Policies = newList
-	resp.Diagnostics.Append(resp.Plan.Set(ctx, plan)...)
-}
-
-// normalizePlanTargetPriorities strips per-target priorities from plan targets for
-// policies that have a policy-level priority. This mirrors what the API does (echoes
-// the policy priority onto every target) and what the flatten does (Bug 1 fix: stores
-// null for target priorities when policy has a policy-level priority).
-func normalizePlanTargetPriorities(ctx context.Context, planPolicies []types.Object) ([]types.Object, diag.Diagnostics) {
-	result := make([]types.Object, len(planPolicies))
-	var diags diag.Diagnostics
-
-	for i, policyObj := range planPolicies {
-		policyAttrs := policyObj.Attributes()
-
-		priorityVal, ok := policyAttrs["priority"]
-		priorityStr, isStr := priorityVal.(types.String)
-		if !ok || !isStr || priorityStr.IsNull() || priorityStr.IsUnknown() {
-			result[i] = policyObj
-			continue
-		}
-
-		// Policy has a non-null priority — strip per-target priorities.
-		targetsVal, ok := policyAttrs["targets"]
-		if !ok {
-			result[i] = policyObj
-			continue
-		}
-		targetsList, isList := targetsVal.(types.List)
-		if !isList || targetsList.IsNull() || targetsList.IsUnknown() {
-			result[i] = policyObj
-			continue
-		}
-
-		var targetObjs []types.Object
-		if dg := targetsList.ElementsAs(ctx, &targetObjs, true); dg.HasError() {
-			diags.Append(dg...)
-			result[i] = policyObj
-			continue
-		}
-
-		newTargetElems := make([]attr.Value, len(targetObjs))
-		for j, targetObj := range targetObjs {
-			targetAttrs := targetObj.Attributes()
-			targetAttrs["priority"] = types.StringNull()
-			newTargetObj, dg := types.ObjectValue(v1TargetAttributes(), targetAttrs)
-			if dg.HasError() {
-				diags.Append(dg...)
-				newTargetElems[j] = targetObj
-				continue
-			}
-			newTargetElems[j] = newTargetObj
-		}
-
-		newTargetsList, dg := types.ListValue(types.ObjectType{AttrTypes: v1TargetAttributes()}, newTargetElems)
-		if dg.HasError() {
-			diags.Append(dg...)
-			result[i] = policyObj
-			continue
-		}
-
-		policyAttrs["targets"] = newTargetsList
-		newPolicyObj, dg := types.ObjectValue(policiesLogsAttr(), policyAttrs)
-		if dg.HasError() {
-			diags.Append(dg...)
-			result[i] = policyObj
-			continue
-		}
-		result[i] = newPolicyObj
-	}
-
-	return result, diags
-}
-
-// policyElementChanged returns true if any non-computed attribute in the plan object
-// differs from the corresponding state attribute.
-func policyElementChanged(plan, state types.Object) bool {
-	stateAttrs := state.Attributes()
-	for name, planVal := range plan.Attributes() {
-		if name == "id" || name == "order" {
-			continue // skip provider-assigned computed fields
-		}
-		stateVal, ok := stateAttrs[name]
-		if !ok || !planVal.Equal(stateVal) {
-			return true
-		}
-	}
-	return false
-}
-
 func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				Computed:            true,
 				MarkdownDescription: "This field can be ignored",
 			},
 			"policies": schema.ListNestedAttribute{
@@ -362,13 +192,10 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 							Validators: []validator.String{
 								stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 							},
-							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. Required when `targets` is not set. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`). Mutually exclusive with per-target priorities.", tcoPoliciesValidPriorities),
+							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. Priority must be set either here or on every target, not both — set this when `targets` is omitted, and omit it when `targets` is set. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).", tcoPoliciesValidPriorities),
 						},
 						"order": schema.Int64Attribute{
-							Computed: true,
-							PlanModifiers: []planmodifier.Int64{
-								int64planmodifier.UseNonNullStateForUnknown(),
-							},
+							Computed:            true,
 							MarkdownDescription: "The policy's order between the other policies.",
 						},
 						"archive_retention_id": schema.StringAttribute{
@@ -472,13 +299,12 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 									MarkdownDescription: "Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.",
 								},
 							},
-							MarkdownDescription: "Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback (\"Route the remaining quota to\" in the UI), which must be more restrictive than the last tier.",
+							MarkdownDescription: "Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback (\"Route the remaining quota to\" in the UI), which must be more restrictive than the last tier. Like `priority`, this is policy-level and cannot be combined with `targets`; use the per-target `priority_override` instead.",
 						},
 						"targets": schema.ListNestedAttribute{
 							Optional: true,
-							Computed: true,
-							PlanModifiers: []planmodifier.List{
-								listplanmodifier.UseStateForUnknown(),
+							Validators: []validator.List{
+								listvalidator.SizeAtLeast(1),
 							},
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
@@ -499,15 +325,11 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 										MarkdownDescription: "Dataspace name. Defaults to `default` when unset. Maximum 50 characters.",
 									},
 									"priority": schema.StringAttribute{
-										Optional: true,
-										Computed: true,
-										PlanModifiers: []planmodifier.String{
-											stringplanmodifier.UseStateForUnknown(),
-										},
+										Required: true,
 										Validators: []validator.String{
 											stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 										},
-										MarkdownDescription: fmt.Sprintf("Per-target priority. Can be one of %q. If omitted, the backend inherits the policy-level `priority` and stores it in state. **Note:** if you later change the policy-level `priority` without also updating this field, the stored value here takes precedence. To reset a target back to inheritance, remove the entire `targets` block and re-add it without `priority`.", tcoPoliciesValidPriorities),
+										MarkdownDescription: fmt.Sprintf("Per-target priority. Can be one of %q. Every target must carry its own priority.", tcoPoliciesValidPriorities),
 									},
 									"archive_retention_id": schema.StringAttribute{
 										Optional: true,
@@ -546,7 +368,7 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 									},
 								},
 							},
-							MarkdownDescription: "Route matched logs to specific named datasets with optional per-target priorities. When set, all targets must provide their own `priority` (policy-level `priority` must be omitted), or all must inherit a shared policy-level `priority`.",
+							MarkdownDescription: "Route matched logs to specific named datasets. Every target must specify its own `priority`. When `targets` is omitted the backend routes the policy to a single default `logs` dataset using the policy-level `priority`; that implicit target is not reflected in Terraform state.",
 						},
 					},
 				},
@@ -628,6 +450,12 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	priorTargets, diags := priorTargetsFromPolicies(ctx, plan.Policies)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteLogPolicies(ctx).
 		AtomicOverwriteLogPoliciesRequest(*rq).
@@ -638,7 +466,7 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 		)
 		return
 	}
-	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result)
+	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result, priorTargets)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -647,9 +475,23 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
-func (r *TCOPoliciesLogsResource) Read(ctx context.Context, _ resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *TCOPoliciesLogsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
+
+	// Prior state tells us which policies were configured without targets, so the backend's
+	// injected default target can be ignored for those. On import there is no prior state and
+	// every policy's targets come straight from the API.
+	var priorState TCOPoliciesListModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorState)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	priorTargets, diags := priorTargetsFromPolicies(ctx, priorState.Policies)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 
 	result, httpResponse, err := r.client.PoliciesServiceGetCompanyPolicies(ctx).SourceType(LogSource).Execute()
 	if err != nil {
@@ -667,7 +509,7 @@ func (r *TCOPoliciesLogsResource) Read(ctx context.Context, _ resource.ReadReque
 		return
 	}
 
-	state, diags := flattenGetTCOPoliciesLogsList(ctx, result)
+	state, diags := flattenGetTCOPoliciesLogsList(ctx, result, priorTargets)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -692,6 +534,12 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
+	priorTargets, diags := priorTargetsFromPolicies(ctx, plan.Policies)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteLogPolicies(ctx).
 		AtomicOverwriteLogPoliciesRequest(*rq).
@@ -710,7 +558,7 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result)
+	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result, priorTargets)
 
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -736,11 +584,11 @@ func (r *TCOPoliciesLogsResource) Delete(ctx context.Context, req resource.Delet
 	}
 }
 
-func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tcoPolicys.AtomicOverwriteLogPoliciesResponse) (*TCOPoliciesListModel, diag.Diagnostics) {
+func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tcoPolicys.AtomicOverwriteLogPoliciesResponse, priorTargets []types.List) (*TCOPoliciesListModel, diag.Diagnostics) {
 	policies := make([]*TCOPolicyLogsModel, 0)
 	var diags diag.Diagnostics
-	for _, policy := range overwriteResp.GetCreateResponses() {
-		tcoPolicy, dgs := flattenTCOLogsPolicy(ctx, policy.GetPolicy())
+	for i, policy := range overwriteResp.GetCreateResponses() {
+		tcoPolicy, dgs := flattenTCOLogsPolicy(ctx, policy.GetPolicy(), priorTargetsAt(priorTargets, i))
 		if dgs.HasError() {
 			diags.Append(dgs...)
 			continue
@@ -759,11 +607,11 @@ func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tco
 	return &TCOPoliciesListModel{Policies: policiesList}, nil
 }
 
-func flattenGetTCOPoliciesLogsList(ctx context.Context, getResp *tcoPolicys.GetCompanyPoliciesResponse) (*TCOPoliciesListModel, diag.Diagnostics) {
+func flattenGetTCOPoliciesLogsList(ctx context.Context, getResp *tcoPolicys.GetCompanyPoliciesResponse, priorTargets []types.List) (*TCOPoliciesListModel, diag.Diagnostics) {
 	policies := make([]*TCOPolicyLogsModel, 0)
 	var diags diag.Diagnostics
-	for _, policy := range getResp.GetPolicies() {
-		tcoPolicy, dgs := flattenTCOLogsPolicy(ctx, policy)
+	for i, policy := range getResp.GetPolicies() {
+		tcoPolicy, dgs := flattenTCOLogsPolicy(ctx, policy, priorTargetsAt(priorTargets, i))
 		if dgs.HasError() {
 			diags.Append(dgs...)
 			continue
@@ -782,7 +630,10 @@ func flattenGetTCOPoliciesLogsList(ctx context.Context, getResp *tcoPolicys.GetC
 	return &TCOPoliciesListModel{Policies: policiesList}, nil
 }
 
-func flattenTCOLogsPolicy(ctx context.Context, policy tcoPolicys.Policy) (*TCOPolicyLogsModel, diag.Diagnostics) {
+// flattenTCOLogsPolicy converts one API policy into its Terraform model. priorTargets is the
+// `targets` value already recorded for this policy (from the plan on create/update, or from prior
+// state on read); see flattenV1Targets for how it is used.
+func flattenTCOLogsPolicy(ctx context.Context, policy tcoPolicys.Policy, priorTargets types.List) (*TCOPolicyLogsModel, diag.Diagnostics) {
 	logsPolicy := policy
 
 	logRules := logsPolicy.LogRules
@@ -806,10 +657,7 @@ func flattenTCOLogsPolicy(ctx context.Context, policy tcoPolicys.Policy) (*TCOPo
 		priority = types.StringNull()
 	}
 
-	// When the policy has a policy-level priority the API echoes it back on every target.
-	// Strip those echoed priorities so state matches the plan (where target priorities are null).
-	stripTargetPriorities := policyPriority != tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_UNSPECIFIED
-	targets, diags := flattenV1Targets(ctx, logsPolicy.Targets, stripTargetPriorities)
+	targets, diags := flattenV1Targets(ctx, logsPolicy.Targets, priorTargets)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -857,10 +705,51 @@ func flattenQuotaBasedPriorityOverride(ctx context.Context, po *tcoPolicys.Prior
 	})
 }
 
-func flattenV1Targets(ctx context.Context, targets []tcoPolicys.V1Target, stripPriorities bool) (types.List, diag.Diagnostics) {
+// priorTargetsAt returns the `targets` value already recorded for the policy at index i, or a
+// non-null empty list when there is no entry for it. The fallback covers import (state has no
+// policies yet), the data source (no prior state at all), and a state/API length mismatch — in all
+// of those the API response is the only source of truth, so it must be surfaced rather than dropped.
+func priorTargetsAt(prior []types.List, i int) types.List {
+	if i < len(prior) {
+		return prior[i]
+	}
+	return types.ListValueMust(types.ObjectType{AttrTypes: v1TargetAttributes()}, []attr.Value{})
+}
+
+// priorTargetsFromPolicies pulls the per-policy `targets` values out of a plan or state policies
+// list, preserving order. A null/unknown list yields nil, which makes every lookup fall through to
+// priorTargetsAt's fallback.
+func priorTargetsFromPolicies(ctx context.Context, policies types.List) ([]types.List, diag.Diagnostics) {
+	if policies.IsNull() || policies.IsUnknown() {
+		return nil, nil
+	}
+
+	var policyObjects []types.Object
+	if diags := policies.ElementsAs(ctx, &policyObjects, true); diags.HasError() {
+		return nil, diags
+	}
+
+	result := make([]types.List, 0, len(policyObjects))
+	for _, po := range policyObjects {
+		var policy TCOPolicyLogsModel
+		if diags := po.As(ctx, &policy, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		result = append(result, policy.Targets)
+	}
+	return result, nil
+}
+
+// flattenV1Targets converts the API's targets into state.
+//
+// The backend injects a default target ({dataset: "logs", dataspace: "default", priority: <the
+// policy's priority>}) into every policy that was created without explicit targets. A null
+// priorTargets means this policy had no targets configured, so that injected default is the API's
+// own bookkeeping rather than user intent — keep `targets` null so it never shows up as drift.
+func flattenV1Targets(ctx context.Context, targets []tcoPolicys.V1Target, priorTargets types.List) (types.List, diag.Diagnostics) {
 	elemType := types.ObjectType{AttrTypes: v1TargetAttributes()}
-	if len(targets) == 0 {
-		return types.ListValueMust(elemType, []attr.Value{}), nil
+	if priorTargets.IsNull() || len(targets) == 0 {
+		return types.ListNull(elemType), nil
 	}
 
 	items := make([]V1TargetModel, 0, len(targets))
@@ -871,7 +760,7 @@ func flattenV1Targets(ctx context.Context, targets []tcoPolicys.V1Target, stripP
 		}
 
 		var priority types.String
-		if !stripPriorities && t.Priority != nil && *t.Priority != tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_UNSPECIFIED {
+		if t.Priority != nil && *t.Priority != tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_UNSPECIFIED {
 			priority = types.StringValue(tcoPoliciesPriorityApiToSchema[*t.Priority])
 		} else {
 			priority = types.StringNull()
@@ -1008,14 +897,6 @@ func extractTcoPolicyLog(ctx context.Context, plan TCOPolicyLogsModel) (*tcoPoli
 	targets, diags := expandV1Targets(ctx, plan.Targets)
 	if diags.HasError() {
 		return nil, diags
-	}
-	// API rejects a request where both policy-level priority and per-target priorities are
-	// set. When the policy has a policy-level priority, the backend echoes back targets with
-	// matching per-target priorities; on the next update those echoed values must be stripped.
-	if priority != tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_UNSPECIFIED {
-		for i := range targets {
-			targets[i].Priority = nil
-		}
 	}
 	enabled := !plan.Enabled.ValueBool()
 

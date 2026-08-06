@@ -53,6 +53,9 @@ func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.subsystems.names.*", "mobile"),
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.subsystems.names.*", "web"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.archive_retention_id", "e1c980d0-c910-4c54-8326-67f3cf95645a"),
+					// No targets were configured, so the default target the backend injects must
+					// not land in state — otherwise every subsequent plan drifts.
+					resource.TestCheckNoResourceAttr(tcoPoliciesResourceName, "policies.0.targets"),
 
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.1.name", "Example tco_policy from terraform 2"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.1.priority", "medium"),
@@ -283,9 +286,8 @@ func testAccCoralogixResourceTCOPoliciesLogsQuotaBasedOverride() string {
 }
 
 // TestAccCoralogixResourceTCOPoliciesLogs_targets covers TCO log policies with the targets
-// block, exercising both the inherited-priority mode (policy-level priority applies to all
-// targets) and the per-target-priority mode (each target carries its own priority and
-// policy-level priority is omitted).
+// block. Every target carries its own priority — the backend requires one on each target — and
+// the policy-level priority is omitted.
 func TestAccCoralogixResourceTCOPoliciesLogs_targets(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -293,19 +295,6 @@ func TestAccCoralogixResourceTCOPoliciesLogs_targets(t *testing.T) {
 		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				// Step 1: targets inherit the policy-level priority.
-				Config: testAccCoralogixResourceTCOPoliciesLogsTargetsInherited(),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with targets (inherited priority)"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.priority", "medium"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "2"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "dataset-a"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataspace", "default"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.dataset", "dataset-b"),
-				),
-			},
-			{
-				// Step 2: each target carries its own priority; policy-level priority omitted.
 				Config: testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with per-target priorities"),
@@ -318,28 +307,6 @@ func TestAccCoralogixResourceTCOPoliciesLogs_targets(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccCoralogixResourceTCOPoliciesLogsTargetsInherited() string {
-	return `resource "coralogix_tco_policies_logs" "test" {
-  policies = [
-    {
-      name       = "Example tco_policy with targets (inherited priority)"
-      priority   = "medium"
-      severities = ["info", "warning"]
-      targets = [
-        {
-          dataset   = "dataset-a"
-          dataspace = "default"
-        },
-        {
-          dataset = "dataset-b"
-        },
-      ]
-    },
-  ]
-}
-`
 }
 
 func testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority() string {
@@ -364,10 +331,10 @@ func testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority() string {
 `
 }
 
-// TestAccCoralogixResourceTCOPoliciesLogs_mixedTargets verifies that policies with
-// targets and policies without targets coexist correctly in the same resource.
-// The policy with targets must have exactly the targets that were configured;
-// the backend may echo computed defaults for the policy without targets.
+// TestAccCoralogixResourceTCOPoliciesLogs_mixedTargets verifies that policies with targets and
+// policies without targets coexist correctly in the same resource. The policy with targets must
+// have exactly the targets that were configured; the policy without targets must have none in
+// state, even though the backend injects a default target for it.
 func TestAccCoralogixResourceTCOPoliciesLogs_mixedTargets(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -377,15 +344,17 @@ func TestAccCoralogixResourceTCOPoliciesLogs_mixedTargets(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceTCOPoliciesLogsMixedTargets(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					// Policy 0: has targets.
+					// Policy 0: has targets, each with its own priority.
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "policy-with-targets"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.priority", "medium"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "1"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "dataset-a"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataspace", "default"),
-					// Policy 1: no targets configured — backend may echo computed defaults.
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority", "medium"),
+					// Policy 1: no targets configured — the backend's injected default must not
+					// reach state.
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.1.name", "policy-without-targets"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.1.priority", "low"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesResourceName, "policies.1.targets"),
 				),
 			},
 		},
@@ -397,11 +366,11 @@ func testAccCoralogixResourceTCOPoliciesLogsMixedTargets() string {
   policies = [
     {
       name       = "policy-with-targets"
-      priority   = "medium"
       severities = ["info"]
       targets = [
         {
-          dataset = "dataset-a"
+          dataset  = "dataset-a"
+          priority = "medium"
         },
       ]
     },

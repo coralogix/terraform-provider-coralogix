@@ -96,7 +96,9 @@ func (d *TCOPoliciesLogsDataSource) Read(ctx context.Context, _ datasource.ReadR
 		return
 	}
 
-	state, diags := flattenGetTCOPoliciesLogsList(ctx, result)
+	// nil prior targets: a data source has no prior state, so every policy's targets are reported
+	// exactly as the API returns them, including the default target the backend injects.
+	state, diags := flattenGetTCOPoliciesLogsList(ctx, result, nil)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

@@ -94,40 +94,24 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
         ]
       }
     },
-    # Targets: route matched logs to specific named datasets.
-    # This policy has no targets — standard priority-based routing.
+    # No targets — standard priority-based routing. Behind the scenes the backend routes the
+    # policy to a single default `logs` dataset using the policy-level priority; that implicit
+    # target is not reflected in Terraform state, so `targets` stays absent here.
     {
       name       = "Example tco_policy without targets"
       priority   = "medium"
       severities = ["info", "warning"]
     },
-    # Targets with inherited priority: all targets share the policy-level priority.
-    # Omit `priority` on each target to inherit from the policy.
-    # Note: if you later change the policy-level `priority`, the inherited value
-    # already stored in state will take precedence until you remove and re-add targets.
+    # Targets: route matched logs to specific named datasets. Every target carries its own
+    # priority, and the policy-level priority is omitted.
     {
-      name       = "Example tco_policy with targets (inherited priority)"
-      priority   = "medium"
+      name       = "Example tco_policy with targets"
       severities = ["info", "warning"]
       targets = [
         {
           dataset   = "dataset-a"
           dataspace = "default"
-        },
-        {
-          dataset = "dataset-b"
-        },
-      ]
-    },
-    # Per-target priorities: each target carries its own priority.
-    # When using per-target priorities, omit the policy-level priority.
-    {
-      name       = "Example tco_policy with per-target priorities"
-      severities = ["info", "warning"]
-      targets = [
-        {
-          dataset  = "dataset-a"
-          priority = "medium"
+          priority  = "medium"
         },
         {
           dataset  = "dataset-b"

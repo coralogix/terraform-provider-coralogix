@@ -109,40 +109,24 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
         ]
       }
     },
-    # Targets: route matched logs to specific named datasets.
-    # This policy has no targets — standard priority-based routing.
+    # No targets — standard priority-based routing. Behind the scenes the backend routes the
+    # policy to a single default `logs` dataset using the policy-level priority; that implicit
+    # target is not reflected in Terraform state, so `targets` stays absent here.
     {
       name       = "Example tco_policy without targets"
       priority   = "medium"
       severities = ["info", "warning"]
     },
-    # Targets with inherited priority: all targets share the policy-level priority.
-    # Omit `priority` on each target to inherit from the policy.
-    # Note: if you later change the policy-level `priority`, the inherited value
-    # already stored in state will take precedence until you remove and re-add targets.
+    # Targets: route matched logs to specific named datasets. Every target carries its own
+    # priority, and the policy-level priority is omitted.
     {
-      name       = "Example tco_policy with targets (inherited priority)"
-      priority   = "medium"
+      name       = "Example tco_policy with targets"
       severities = ["info", "warning"]
       targets = [
         {
           dataset   = "dataset-a"
           dataspace = "default"
-        },
-        {
-          dataset = "dataset-b"
-        },
-      ]
-    },
-    # Per-target priorities: each target carries its own priority.
-    # When using per-target priorities, omit the policy-level priority.
-    {
-      name       = "Example tco_policy with per-target priorities"
-      severities = ["info", "warning"]
-      targets = [
-        {
-          dataset  = "dataset-a"
-          priority = "medium"
+          priority  = "medium"
         },
         {
           dataset  = "dataset-b"
@@ -179,11 +163,11 @@ Optional:
 - `description` (String) The policy description
 - `dpxl_expression` (String) DataPrime expression to match logs for this policy. Mutually exclusive with `severities` — set exactly one. The expression must include a version prefix, e.g. `<v1> $d.severity == 'INFO'`.
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. Required when `targets` is not set. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`). Mutually exclusive with per-target priorities.
-- `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
+- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. Priority must be set either here or on every target, not both — set this when `targets` is omitted, and omit it when `targets` is set. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).
+- `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier. Like `priority`, this is policy-level and cannot be combined with `targets`; use the per-target `priority_override` instead. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
 - `severities` (Set of String) The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"].
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
-- `targets` (Attributes List) Route matched logs to specific named datasets with optional per-target priorities. When set, all targets must provide their own `priority` (policy-level `priority` must be omitted), or all must inherit a shared policy-level `priority`. (see [below for nested schema](#nestedatt--policies--targets))
+- `targets` (Attributes List) Route matched logs to specific named datasets. Every target must specify its own `priority`. When `targets` is omitted the backend routes the policy to a single default `logs` dataset using the policy-level `priority`; that implicit target is not reflected in Terraform state. (see [below for nested schema](#nestedatt--policies--targets))
 
 Read-Only:
 
@@ -237,12 +221,12 @@ Optional:
 Required:
 
 - `dataset` (String) Name of the dataset to route matched logs to. Must be non-empty.
+- `priority` (String) Per-target priority. Can be one of ["block" "high" "low" "medium"]. Every target must carry its own priority.
 
 Optional:
 
 - `archive_retention_id` (String) ID of an archive retention policy to apply to this target.
 - `dataspace` (String) Dataspace name. Defaults to `default` when unset. Maximum 50 characters.
-- `priority` (String) Per-target priority. Can be one of ["block" "high" "low" "medium"]. If omitted, the backend inherits the policy-level `priority` and stores it in state. **Note:** if you later change the policy-level `priority` without also updating this field, the stored value here takes precedence. To reset a target back to inheritance, remove the entire `targets` block and re-add it without `priority`.
 - `priority_override` (Attributes) Dynamically reassign this target's priority based on daily quota consumption tiers. (see [below for nested schema](#nestedatt--policies--targets--priority_override))
 
 <a id="nestedatt--policies--targets--priority_override"></a>

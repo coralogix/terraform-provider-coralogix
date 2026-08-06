@@ -1,7 +1,7 @@
 # Unreleased
 
 #### resource/coralogix_tco_policies_logs
-- FEAT: Add `targets` block to route matched logs to specific named datasets with optional per-target priorities. Policy-level `priority` is now optional; it may be omitted when every target carries its own priority.
+- FEAT: Add `targets` to route matched logs to specific named datasets. Each target requires its own `priority`. Policy-level `priority` is now optional; omit it when `targets` is set.
 
 #### resource/coralogix_dashboard
 - CHORE: Use the shared SDK `dashboardjson.Unmarshal` helper for `content_json` (snake_case aliases, unknown-key discard) instead of a local copy. Create/replace no longer re-strip unknowns; that happens in Unmarshal, as in the operator.
