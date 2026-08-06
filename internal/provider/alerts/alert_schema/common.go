@@ -83,6 +83,10 @@ func (g GroupByValidator) ValidateList(ctx context.Context, request validator.Li
 
 const priorityDeprecationMessage = "This field will be removed in the future in favor of the 'override' property where possible."
 
+const noDataPolicyUnspecifiedDeprecationMessage = "`UNSPECIFIED` is a protobuf sentinel, not a UI option. " +
+	"Omit `no_data_policy` entirely for the same legacy no-data handling, or set `state` to one of " +
+	"`OK`, `ALERTING`, `KEEP_LAST`, or `NO_DATA`. `UNSPECIFIED` will be rejected in a future provider release."
+
 type PriorityDeprecationWarning struct {
 }
 
@@ -127,6 +131,26 @@ func (p PriorityDeprecationWarning) ValidateString(ctx context.Context, req vali
 		!utils.ObjIsNullOrUnknown(typeDefinitionModel.MetricThreshold) ||
 		!utils.ObjIsNullOrUnknown(typeDefinitionModel.SloThreshold) {
 		resp.Diagnostics.AddAttributeWarning(req.Path, "Deprecated Attribute", priorityDeprecationMessage)
+	}
+}
+
+// NoDataPolicyUnspecifiedDeprecationWarning warns when config uses the protobuf UNSPECIFIED sentinel.
+type NoDataPolicyUnspecifiedDeprecationWarning struct{}
+
+func (n NoDataPolicyUnspecifiedDeprecationWarning) Description(ctx context.Context) string {
+	return "Warns that no_data_policy.state = UNSPECIFIED is deprecated."
+}
+
+func (n NoDataPolicyUnspecifiedDeprecationWarning) MarkdownDescription(ctx context.Context) string {
+	return "Warns that `no_data_policy.state = \"UNSPECIFIED\"` is deprecated."
+}
+
+func (n NoDataPolicyUnspecifiedDeprecationWarning) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	if req.ConfigValue.ValueString() == "UNSPECIFIED" {
+		resp.Diagnostics.AddAttributeWarning(req.Path, "Deprecated Attribute", noDataPolicyUnspecifiedDeprecationMessage)
 	}
 }
 
@@ -586,16 +610,24 @@ func noDataPolicySchema() schema.SingleNestedAttribute {
 		},
 		Attributes: map[string]schema.Attribute{
 			"auto_retire_seconds": schema.Int64Attribute{
-				Optional:            true,
-				MarkdownDescription: "The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds.",
+				Optional: true,
+				MarkdownDescription: "The timeframe in seconds for auto retiring values that were detected as no-data. " +
+					"Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`. " +
+					"When `state` is `OK`, the Coralogix UI disables auto-retire (\"Never\") and a later UI save may clear this value.",
 			},
 			"state": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(alerttypes.ValidNoDataPolicyStates...),
+					stringvalidator.OneOf(alerttypes.AcceptedNoDataPolicyStates...),
+					NoDataPolicyUnspecifiedDeprecationWarning{},
 				},
-				MarkdownDescription: fmt.Sprintf("No-data policy state. Valid values: %q.", alerttypes.ValidNoDataPolicyStates),
+				MarkdownDescription: fmt.Sprintf(
+					"No-data policy state. Preferred values: %q. "+
+						"`UNSPECIFIED` is a deprecated protobuf sentinel (not a UI option); omit `no_data_policy` for the same legacy behavior. "+
+						"It remains accepted with a warning and will be rejected in a future provider release.",
+					alerttypes.ValidNoDataPolicyStates,
+				),
 			},
 		},
 	}

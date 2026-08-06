@@ -3905,6 +3905,9 @@ func flattenNoDataPolicy(ctx context.Context, noDataPolicy *alerts.NoDataPolicy)
 		model.AutoRetireSeconds = types.Int64Value(int64(*autoRetireSeconds))
 	}
 	if noDataPolicy.State != nil {
+		// Preserve UNSPECIFIED in state while it remains accepted (with a deprecation
+		// warning). Dropping it to null would cause inconsistent-result / perpetual
+		// diffs for configs that still set state = "UNSPECIFIED".
 		model.State = types.StringValue(alerttypes.NoDataPolicyStateProtoToSchemaMap[*noDataPolicy.State])
 	}
 	return types.ObjectValueFrom(ctx, alertschema.NoDataPolicyAttr(), model)
