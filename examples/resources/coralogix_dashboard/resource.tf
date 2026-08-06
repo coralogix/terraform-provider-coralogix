@@ -747,6 +747,30 @@ resource "coralogix_dashboard" "widgets" {
   }
 }
 
+# Cross-dashboard widget reference: reuse a widget from another dashboard by ID.
+resource "coralogix_dashboard" "dashboard_with_widget_reference" {
+  name        = "portal monitoring shared"
+  description = "Dashboard that reuses a widget from coralogix_dashboard.dashboard"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          reference = {
+            dashboard_id = coralogix_dashboard.dashboard.id
+            widget_id    = coralogix_dashboard.dashboard.layout.sections[0].rows[0].widgets[0].id
+          }
+        }]
+      }]
+    }]
+  }
+}
+
 resource "coralogix_dashboard" "dashboard_from_json_with_folder" {
   content_json = file("./dashboard.json")
   folder = {

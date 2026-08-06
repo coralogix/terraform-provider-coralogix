@@ -231,8 +231,8 @@ func TestDashboardWidgetDefinitionExactlyOneOfAtFullSchemaLevel(t *testing.T) {
 	if !ok {
 		t.Fatal("widget definition is not a single nested attribute")
 	}
-	if !definition.Required {
-		t.Fatal("widget definition is not Required; the zero-set case below would not be a distinct, reachable state")
+	if !definition.Optional {
+		t.Fatal("widget definition is not Optional; reference widgets omit definition")
 	}
 
 	definitionPath := path.Root("definition")

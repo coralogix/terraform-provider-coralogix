@@ -762,6 +762,30 @@ resource "coralogix_dashboard" "widgets" {
   }
 }
 
+# Cross-dashboard widget reference: reuse a widget from another dashboard by ID.
+resource "coralogix_dashboard" "dashboard_with_widget_reference" {
+  name        = "portal monitoring shared"
+  description = "Dashboard that reuses a widget from coralogix_dashboard.dashboard"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          reference = {
+            dashboard_id = coralogix_dashboard.dashboard.id
+            widget_id    = coralogix_dashboard.dashboard.layout.sections[0].rows[0].widgets[0].id
+          }
+        }]
+      }]
+    }]
+  }
+}
+
 resource "coralogix_dashboard" "dashboard_from_json_with_folder" {
   content_json = file("./dashboard.json")
   folder = {
@@ -1452,15 +1476,13 @@ Optional:
 <a id="nestedatt--layout--sections--rows--widgets"></a>
 ### Nested Schema for `layout.sections.rows.widgets`
 
-Required:
-
-- `definition` (Attributes) The widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown] (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
-
 Optional:
 
+- `definition` (Attributes) Inline widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown]. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 - `description` (String) Widget description.
 - `id` (String)
-- `title` (String) Widget title. Required for all widgets except markdown.
+- `reference` (Attributes) Reference to a widget on another dashboard. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--reference))
+- `title` (String) Widget title. Required for all inline widgets except markdown.
 - `width` (Number, Deprecated) Deprecated: the widget appearance.width field is ignored by the API and has no effect.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition"></a>
@@ -4719,6 +4741,15 @@ Optional:
 - `stack_name_template` (String)
 
 
+
+
+<a id="nestedatt--layout--sections--rows--widgets--reference"></a>
+### Nested Schema for `layout.sections.rows.widgets.reference`
+
+Required:
+
+- `dashboard_id` (String) ID of the dashboard that owns the source widget.
+- `widget_id` (String) ID of the source widget within the referenced dashboard.
 
 
 

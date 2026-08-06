@@ -5,6 +5,7 @@
 - FIX: `targets[*].priority_override.usage_tiers[*].daily_quota_percentage` is validated to `0`–`100`, matching the policy-level field.
 
 #### resource/coralogix_dashboard
+- FEAT: Add `reference` on widgets to reuse a widget from another dashboard by `dashboard_id` and `widget_id`. Exactly one of `definition` or `reference` must be set.
 - CHORE: Use the shared SDK `dashboardjson.Unmarshal` helper for `content_json` (snake_case aliases, unknown-key discard) instead of a local copy. Create/replace no longer re-strip unknowns; that happens in Unmarshal, as in the operator.
 - FIX: Adding a section, row, widget or annotation without an `id` no longer fails with "Provider produced inconsistent result after apply". Generated `id` fields (section, row, widget, line-chart `query_definitions[].id`, data-table aggregation, annotation) and widget `width` now use `UseNonNullStateForUnknown` so new nested elements stay `(known after apply)` instead of planning as null.
 - FEAT: Add support for `dataprime` and `event_recurrence` annotation source types. Dashboards using DataPrime queries or recurring calendar events as annotation sources can now be authored and round-tripped through Terraform.
