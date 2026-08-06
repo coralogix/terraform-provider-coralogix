@@ -2,7 +2,7 @@
 
 #### resource/coralogix_alert
 - DOC: Document preferred `no_data_policy.state` values (`OK`, `ALERTING`, `KEEP_LAST`, `NO_DATA`) and that `auto_retire_seconds` is only honored for `ALERTING` / `KEEP_LAST` / `NO_DATA`.
-- DEPRECATION: `no_data_policy.state = "UNSPECIFIED"` now emits a plan warning (still accepted); omit the block for equivalent legacy behavior. Reads map API `UNSPECIFIED` to unset.
+- DEPRECATION: `no_data_policy.state = "UNSPECIFIED"` now emits a plan warning (still accepted and round-tripped in state); omit the block for equivalent legacy behavior.
 
 #### resource/coralogix_tco_policies_logs
 - FEAT: Add `targets` to route matched logs to specific named datasets. Each target requires its own `priority`. Policy-level `priority` is now optional; omit it when `targets` is set.
