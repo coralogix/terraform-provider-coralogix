@@ -42,9 +42,8 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
       }
     },
     {
-      name     = "Example tco_policy from terraform 3"
-      priority = "high"
-
+      name       = "Example tco_policy from terraform 3"
+      priority   = "high"
       severities = ["error", "warning", "critical"]
       applications = {
         rule_type = "starts_with"
@@ -56,9 +55,8 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
       }
     },
     {
-      name     = "Example tco_policy from terraform 4"
-      priority = "high"
-
+      name       = "Example tco_policy from terraform 4"
+      priority   = "high"
       severities = ["error", "warning", "critical"]
       applications = {
         rule_type = "starts_with"
@@ -94,6 +92,26 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
           { daily_quota_percentage = 80, priority = "low" },
         ]
       }
-    }
+    },
+    {
+      name       = "Example tco_policy without targets"
+      priority   = "medium"
+      severities = ["info", "warning"]
+    },
+    {
+      name       = "Example tco_policy with targets"
+      severities = ["info", "warning"]
+      targets = [
+        {
+          dataset   = "dataset-a"
+          dataspace = "default"
+          priority  = "medium"
+        },
+        {
+          dataset  = "dataset-b"
+          priority = "low"
+        },
+      ]
+    },
   ]
 }

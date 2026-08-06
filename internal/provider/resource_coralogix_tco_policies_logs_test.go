@@ -53,6 +53,9 @@ func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.subsystems.names.*", "mobile"),
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.subsystems.names.*", "web"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.archive_retention_id", "e1c980d0-c910-4c54-8326-67f3cf95645a"),
+					// No targets were configured, so the default target the backend injects must
+					// not land in state — otherwise every subsequent plan drifts.
+					resource.TestCheckNoResourceAttr(tcoPoliciesResourceName, "policies.0.targets"),
 
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.1.name", "Example tco_policy from terraform 2"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.1.priority", "medium"),
@@ -276,6 +279,157 @@ func testAccCoralogixResourceTCOPoliciesLogsQuotaBasedOverride() string {
           { daily_quota_percentage = 80, priority = "low" },
         ]
       }
+    },
+  ]
+}
+`
+}
+
+// TestAccCoralogixResourceTCOPoliciesLogs_targets covers TCO log policies with the targets
+// block. Every target carries its own priority — the backend requires one on each target — and
+// the policy-level priority is omitted.
+func TestAccCoralogixResourceTCOPoliciesLogs_targets(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with per-target priorities"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "2"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "dataset-a"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority", "medium"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.dataset", "dataset-b"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.priority", "low"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority() string {
+	return `resource "coralogix_tco_policies_logs" "test" {
+  policies = [
+    {
+      name       = "Example tco_policy with per-target priorities"
+      severities = ["info", "warning"]
+      targets = [
+        {
+          dataset  = "dataset-a"
+          priority = "medium"
+        },
+        {
+          dataset  = "dataset-b"
+          priority = "low"
+        },
+      ]
+    },
+  ]
+}
+`
+}
+
+// TestAccCoralogixResourceTCOPoliciesLogs_mixedTargets verifies that policies with targets and
+// policies without targets coexist correctly in the same resource. The policy with targets must
+// have exactly the targets that were configured; the policy without targets must have none in
+// state, even though the backend injects a default target for it.
+func TestAccCoralogixResourceTCOPoliciesLogs_mixedTargets(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesLogsMixedTargets(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					// Policy 0: has targets, each with its own priority.
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "policy-with-targets"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "1"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "dataset-a"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataspace", "default"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority", "medium"),
+					// Policy 1: no targets configured — the backend's injected default must not
+					// reach state.
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.1.name", "policy-without-targets"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.1.priority", "low"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesResourceName, "policies.1.targets"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceTCOPoliciesLogsMixedTargets() string {
+	return `resource "coralogix_tco_policies_logs" "test" {
+  policies = [
+    {
+      name       = "policy-with-targets"
+      severities = ["info"]
+      targets = [
+        {
+          dataset  = "dataset-a"
+          priority = "medium"
+        },
+      ]
+    },
+    {
+      name       = "policy-without-targets"
+      priority   = "low"
+      severities = ["warning"]
+    },
+  ]
+}
+`
+}
+
+// TestAccCoralogixResourceTCOPoliciesLogs_targetPriorityOverride covers the per-target
+// priority_override block. Priority lives entirely on the target here, so the policy carries
+// neither a priority nor a policy-level override. Tier priorities must be less restrictive than
+// the target's own priority, hence the `block` base.
+func TestAccCoralogixResourceTCOPoliciesLogs_targetPriorityOverride(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesLogsTargetPriorityOverride(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "1"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority", "block"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority_override.usage_tiers.#", "2"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority_override.usage_tiers.0.daily_quota_percentage", "50"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority_override.usage_tiers.0.priority", "medium"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority_override.usage_tiers.1.priority", "low"),
+					// Priority is owned by the target, so neither policy-level field is set.
+					resource.TestCheckNoResourceAttr(tcoPoliciesResourceName, "policies.0.priority"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesResourceName, "policies.0.quota_based_priority_override"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceTCOPoliciesLogsTargetPriorityOverride() string {
+	return `resource "coralogix_tco_policies_logs" "test" {
+  policies = [
+    {
+      name       = "Example tco_policy with per-target priority override"
+      severities = ["info"]
+      targets = [
+        {
+          dataset  = "logs"
+          priority = "block"
+          priority_override = {
+            usage_tiers = [
+              { daily_quota_percentage = 50, priority = "medium" },
+              { daily_quota_percentage = 80, priority = "low" },
+            ]
+          }
+        },
+      ]
     },
   ]
 }

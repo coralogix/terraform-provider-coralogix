@@ -39,10 +39,11 @@ Read-Only:
 - `id` (String) tco-policy ID.
 - `name` (String) tco-policy name.
 - `order` (Number) The policy's order between the other policies.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).
+- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. Priority must be set either here or on every target, not both — set this when `targets` is omitted, and omit it when `targets` is set. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).
 - `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
 - `severities` (Set of String) The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"].
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
+- `targets` (Attributes List) Route matched logs to specific named datasets. Every target must specify its own `priority`. When `targets` is omitted the backend routes the policy to a single default `logs` dataset using the policy-level `priority`; that implicit target is not reflected in Terraform state. (see [below for nested schema](#nestedatt--policies--targets))
 
 <a id="nestedatt--policies--applications"></a>
 ### Nested Schema for `policies.applications`
@@ -77,3 +78,30 @@ Read-Only:
 
 - `names` (Set of String)
 - `rule_type` (String)
+
+
+<a id="nestedatt--policies--targets"></a>
+### Nested Schema for `policies.targets`
+
+Read-Only:
+
+- `archive_retention_id` (String) ID of an archive retention policy to apply to this target.
+- `dataset` (String) Name of the dataset to route matched logs to. Must be non-empty.
+- `dataspace` (String) Dataspace name. Defaults to `default` when unset. Maximum 50 characters.
+- `priority` (String) Per-target priority. Can be one of ["block" "high" "low" "medium"]. Every target must carry its own priority.
+- `priority_override` (Attributes) Dynamically reassign this target's priority based on daily quota consumption tiers. (see [below for nested schema](#nestedatt--policies--targets--priority_override))
+
+<a id="nestedatt--policies--targets--priority_override"></a>
+### Nested Schema for `policies.targets.priority_override`
+
+Read-Only:
+
+- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the target's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. (see [below for nested schema](#nestedatt--policies--targets--priority_override--usage_tiers))
+
+<a id="nestedatt--policies--targets--priority_override--usage_tiers"></a>
+### Nested Schema for `policies.targets.priority_override.usage_tiers`
+
+Read-Only:
+
+- `daily_quota_percentage` (Number) Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
+- `priority` (String) The priority to apply when this tier is active. Can be one of ["block" "high" "low" "medium"].
