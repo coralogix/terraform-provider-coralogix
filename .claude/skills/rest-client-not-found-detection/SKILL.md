@@ -1,6 +1,6 @@
 ---
 name: rest-client-not-found-detection
-description: "Use when a REST-backed resource (SCIM group/user, Grafana) fails to soft-delete on 404, or when cxsdk.Code returns Unknown for a status.Error from rest/client.go. Check with status.Code, not cxsdk.Code. Do NOT wrap REST errors in SdkAPIError just to force cxsdk.Code."
+description: "Use when a REST-backed resource (SCIM group/user, Grafana) fails to soft-delete on 404, or when cxsdk.Code returns Unknown for a status.Error from rest/client.go."
 ---
 
 # REST clients return bare status errors — use status.Code

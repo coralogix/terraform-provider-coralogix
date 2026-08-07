@@ -82,7 +82,7 @@ func TestAccCoralogixDataSourceGroupByName_exactMatch(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceGroup(userName, displayName, scopeName) +
 					testAccCoralogixDataSourceGroupPrefixSibling(displayName) +
-					testAccCoralogixDataSourceGroupByName_read(),
+					testAccCoralogixDataSourceGroupByNameExactMatch_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(groupDataSourceName, "display_name", displayName),
 					resource.TestCheckResourceAttrPair(groupDataSourceName, "id", groupResourceName, "id"),
@@ -116,6 +116,16 @@ func testAccCoralogixDataSourceGroup_read() string {
 func testAccCoralogixDataSourceGroupByName_read() string {
 	return `data "coralogix_group" "test" {
 	display_name = coralogix_group.test.display_name
+}
+`
+}
+
+// depends_on forces the prefix sibling to exist before lookup; without it the
+// data source can read before the sibling is created and miss the regression.
+func testAccCoralogixDataSourceGroupByNameExactMatch_read() string {
+	return `data "coralogix_group" "test" {
+	display_name = coralogix_group.test.display_name
+	depends_on   = [coralogix_group.prefix_sibling]
 }
 `
 }
