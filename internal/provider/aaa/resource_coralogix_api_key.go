@@ -51,6 +51,8 @@ type ApiKeyResource struct {
 	client *apiKeys.APIKeysServiceAPIService
 }
 
+var _ resource.ResourceWithUpgradeState = &ApiKeyResource{}
+
 func (r *ApiKeyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_api_key"
 
@@ -590,10 +592,15 @@ func (r *ApiKeyResource) UpgradeState(context.Context) map[int64]resource.StateU
 			PriorSchema: &schemaV0,
 
 			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				type OwnerV0 struct {
+					UserId types.String `tfsdk:"user_id"`
+					TeamId types.String `tfsdk:"team_id"`
+				}
+
 				type ApiKeyModelV0 struct {
 					ID     types.String `tfsdk:"id"`
 					Name   types.String `tfsdk:"name"`
-					Owner  *Owner       `tfsdk:"owner"`
+					Owner  *OwnerV0     `tfsdk:"owner"`
 					Active types.Bool   `tfsdk:"active"`
 					Hashed types.Bool   `tfsdk:"hashed"`
 					Value  types.String `tfsdk:"value"`
@@ -612,16 +619,29 @@ func (r *ApiKeyResource) UpgradeState(context.Context) map[int64]resource.StateU
 					resp.Diagnostics.Append(diags...)
 					return
 				}
+				if permissions.IsNull() {
+					permissions = types.SetValueMust(types.StringType, []attr.Value{})
+				}
+
+				var owner *Owner
+				if dataV0.Owner != nil {
+					owner = &Owner{
+						UserId:         dataV0.Owner.UserId,
+						TeamId:         dataV0.Owner.TeamId,
+						OrganisationId: types.StringNull(),
+					}
+				}
 
 				dataV1 := ApiKeyModel{
-					ID:          dataV0.ID,
-					Name:        dataV0.Name,
-					Owner:       dataV0.Owner,
-					Active:      dataV0.Active,
-					Hashed:      dataV0.Hashed,
-					Value:       dataV0.Value,
-					Permissions: permissions,
-					Presets:     types.SetNull(types.StringType),
+					ID:           dataV0.ID,
+					Name:         dataV0.Name,
+					Owner:        owner,
+					Active:       dataV0.Active,
+					Hashed:       dataV0.Hashed,
+					Value:        dataV0.Value,
+					Permissions:  permissions,
+					Presets:      types.SetNull(types.StringType),
+					AccessPolicy: types.StringNull(),
 				}
 
 				diags = resp.State.Set(ctx, dataV1)
