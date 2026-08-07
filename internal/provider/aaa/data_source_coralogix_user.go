@@ -82,10 +82,7 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(
-				err.Error(),
-				fmt.Sprintf("User %q is in state, but no longer exists in Coralogix backend", id),
-			)
+			resp.Diagnostics.AddError(fmt.Sprintf("User %q not found", id), "")
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",
