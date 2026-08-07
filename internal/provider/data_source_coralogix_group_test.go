@@ -15,6 +15,8 @@
 package provider
 
 import (
+	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -55,7 +57,50 @@ func TestAccCoralogixDataSourceGroupByName(t *testing.T) {
 					testAccCoralogixDataSourceGroupByName_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(groupDataSourceName, "display_name", displayName),
+					// The id pair is what proves the lookup resolved the right group.
+					resource.TestCheckResourceAttrPair(groupDataSourceName, "id", groupResourceName, "id"),
+					resource.TestCheckResourceAttrPair(groupDataSourceName, "role", groupResourceName, "role"),
+					resource.TestCheckResourceAttrPair(groupDataSourceName, "scope_id", groupResourceName, "scope_id"),
+					resource.TestCheckResourceAttrPair(groupDataSourceName, "members.#", groupResourceName, "members.#"),
+					resource.TestCheckResourceAttrPair(groupDataSourceName, "members.0", groupResourceName, "members.0"),
 				),
+			},
+		},
+	})
+}
+
+// TestAccCoralogixDataSourceGroupByName_exactMatch guards against a prefix match: one group
+// name is a strict prefix of the other, and the lookup must return the shorter one.
+func TestAccCoralogixDataSourceGroupByName_exactMatch(t *testing.T) {
+	userName := randUserName()
+	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
+	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceGroup(userName, displayName, scopeName) +
+					testAccCoralogixDataSourceGroupPrefixSibling(displayName) +
+					testAccCoralogixDataSourceGroupByName_read(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupDataSourceName, "display_name", displayName),
+					resource.TestCheckResourceAttrPair(groupDataSourceName, "id", groupResourceName, "id"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixDataSourceGroupByName_notFound(t *testing.T) {
+	displayName := acctest.RandomWithPrefix("tf-acc-test-group-missing")
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixDataSourceGroupByMissingName_read(displayName),
+				ExpectError: regexp.MustCompile("Group with display name .* not found"),
 			},
 		},
 	})
@@ -73,4 +118,20 @@ func testAccCoralogixDataSourceGroupByName_read() string {
 	display_name = coralogix_group.test.display_name
 }
 `
+}
+
+func testAccCoralogixDataSourceGroupPrefixSibling(displayName string) string {
+	return fmt.Sprintf(`
+	resource "coralogix_group" "prefix_sibling" {
+		display_name = "%s-suffix"
+		role         = "Read Only"
+	}
+`, displayName)
+}
+
+func testAccCoralogixDataSourceGroupByMissingName_read(displayName string) string {
+	return fmt.Sprintf(`data "coralogix_group" "missing" {
+	display_name = "%s"
+}
+`, displayName)
 }

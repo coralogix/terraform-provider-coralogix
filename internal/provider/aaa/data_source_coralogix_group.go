@@ -16,7 +16,6 @@ package aaa
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -29,7 +28,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	teamGroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/team_groups_management_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
@@ -41,8 +41,8 @@ func NewGroupDataSource() datasource.DataSource {
 }
 
 type GroupDataSource struct {
-	client     *clientset.GroupsClient
-	grpcClient *cxsdk.GroupsClient
+	client          *clientset.GroupsClient
+	teamGroupClient *teamGroups.TeamGroupsManagementServiceAPIService
 }
 
 func (d *GroupDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -64,7 +64,7 @@ func (d *GroupDataSource) Configure(_ context.Context, req datasource.ConfigureR
 	}
 
 	d.client = clientSet.Groups()
-	d.grpcClient = clientSet.GroupGrpc()
+	d.teamGroupClient = clientSet.TeamGroups()
 }
 
 func (d *GroupDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -102,23 +102,25 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	//Get refreshed Group value from Coralogix
 	if displayName := data.DisplayName.ValueString(); displayName != "" {
 		log.Printf("[INFO] Listing Groups to find by display name: %s", displayName)
-		listGroupReq := &cxsdk.GetTeamGroupsRequest{}
-		listGroupResp, err := d.grpcClient.List(ctx, listGroupReq)
+		getByNameResp, httpResponse, err := d.teamGroupClient.
+			GroupsMgmtServiceGetTeamGroupByName(ctx, displayName).
+			Execute()
 		if err != nil {
 			log.Printf("[ERROR] Received error when listing groups: %s", err.Error())
-			listGroupReqStr, _ := json.Marshal(listGroupReq)
-			resp.Diagnostics.AddError(
-				"Error listing Groups",
-				utils.FormatRpcErrors(err, "List", string(listGroupReqStr)),
-			)
+			apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
+			if cxsdkOpenapi.IsNotFound(apiErr) {
+				resp.Diagnostics.AddError(fmt.Sprintf("Group with display name %q not found", displayName), "")
+			} else {
+				resp.Diagnostics.AddError(
+					"Error listing Groups",
+					utils.FormatOpenAPIErrors(apiErr, "GetTeamGroupByName", displayName),
+				)
+			}
 			return
 		}
 
-		for _, group := range listGroupResp.Groups {
-			if group.Name == data.DisplayName.ValueString() {
-				groupID = strconv.Itoa(int(group.GroupId.Id))
-				break
-			}
+		if getByNameResp != nil && getByNameResp.Group != nil && getByNameResp.Group.GroupId != nil {
+			groupID = strconv.FormatInt(*getByNameResp.Group.GroupId, 10)
 		}
 
 		if groupID == "" {
