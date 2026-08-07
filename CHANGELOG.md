@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.9.0
+
 #### resource/coralogix_api_key
 - FIX: Schema v0→v1 state upgrade no longer fails with `Value Conversion Error ... Struct defines fields not found in object: organisation_id`. The upgrader now decodes prior state into a v0-shaped owner type, sets `owner.organisation_id` and `access_policy` to null, and tolerates an absent `owner`.
 
