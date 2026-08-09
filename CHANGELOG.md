@@ -1,5 +1,11 @@
 # Unreleased
 
+#### provider
+- FIX: API error diagnostics now classify failures by HTTP status and include the backend's response body, instead of showing only the bare error text.
+- FIX: gRPC error diagnostics now surface the attached `google.rpc` details (for example, per-field validation messages).
+- FIX: Error diagnostics no longer echo the request payload, so credentials carried in a request body cannot leak into CLI or CI logs.
+- FIX: Error diagnostics label the failing call `operation` instead of `url`, matching the value callers pass (`Read`, `Create`, `List`, …).
+
 # Release 3.9.0
 
 #### resource/coralogix_api_key
