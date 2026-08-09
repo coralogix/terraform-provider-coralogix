@@ -37,6 +37,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 var (
@@ -573,6 +574,13 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 		return
 	}
 
+	var priorState dashboardResourceModelV3
+	diags = req.State.Get(ctx, &priorState)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	//Get refreshed Dashboard value from Coralogix
 	id := stateID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
@@ -584,7 +592,15 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 				fmt.Sprintf("Dashboard %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
-			resp.State.RemoveResource(ctx)
+			upgradedState, upgradeErr := dashboardStateForMissingDashboard(resp.State.Schema.Type().TerraformType(ctx), priorState)
+			if upgradeErr != nil {
+				resp.Diagnostics.AddError(
+					"Error upgrading Dashboard state",
+					upgradeErr.Error(),
+				)
+				return
+			}
+			resp.State.Raw = upgradedState
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
@@ -595,12 +611,6 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 	}
 	log.Printf("[INFO] Received Dashboard: %s", dashboardLogString(getDashboardResp.Dashboard))
 
-	var priorState dashboardResourceModelV3
-	diags = req.State.Get(ctx, &priorState)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 	state := DashboardResourceModel{
 		ID:           priorState.ID,
 		Name:         priorState.Name,
@@ -625,6 +635,32 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
+}
+
+func dashboardStateForMissingDashboard(schemaType tftypes.Type, priorState dashboardResourceModelV3) (tftypes.Value, error) {
+	objectType, ok := schemaType.(tftypes.Object)
+	if !ok {
+		return tftypes.Value{}, fmt.Errorf("dashboard schema type is %T, expected an object type", schemaType)
+	}
+
+	attributes := make(map[string]tftypes.Value, len(objectType.AttributeTypes))
+	for name, attributeType := range objectType.AttributeTypes {
+		attributes[name] = tftypes.NewValue(attributeType, nil)
+	}
+	for name, priorValue := range map[string]types.String{
+		"id":           priorState.ID,
+		"name":         priorState.Name,
+		"description":  priorState.Description,
+		"content_json": priorState.ContentJson,
+	} {
+		attributeType, ok := objectType.AttributeTypes[name]
+		if !ok || !attributeType.Is(tftypes.String) || priorValue.IsNull() || priorValue.IsUnknown() {
+			continue
+		}
+		attributes[name] = tftypes.NewValue(attributeType, priorValue.ValueString())
+	}
+
+	return tftypes.NewValue(objectType, attributes), nil
 }
 
 func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
