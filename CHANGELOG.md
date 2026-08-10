@@ -32,8 +32,22 @@
 - FIX: Schema v0→v1 state upgrade converts `permutations.limit` from string to int64 so pre-v1 state loads.
 - FIX: Omitted `metric_fields.*.aggregations` children no longer fail after apply when the API returns the full aggregation set. Those attributes now use `UseNonNullStateForUnknown`.
 
+#### data-source/coralogix_group
+- CHORE: Lookup by `display_name` no longer uses the gRPC API.
+- FIX: A group that is not on the first page of results can now be found by `display_name`.
+
+#### resource/coralogix_group
+- FIX: A group deleted outside Terraform is now removed from state on read instead of failing with an error.
+
+#### resource/coralogix_user
+- FIX: A user deleted outside Terraform is now removed from state on read instead of failing with an error.
+
+#### resource/coralogix_grafana_folder
+- FIX: A folder that is already gone is treated as deleted instead of failing with an error.
+
 #### provider
 - CHORE: Bump `terraform-plugin-framework` to v1.17.0.
+- CHORE: SCIM users and groups now use `api.<domain>` instead of `ng-api-http.<domain>`.
 
 # Release 3.8.0
 

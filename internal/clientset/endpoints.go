@@ -35,7 +35,8 @@ func GrpcTargetFromDomain(domain string) string {
 
 // ScimRestBaseURL returns the HTTPS base URL for SCIM REST APIs (users, groups) for the
 // given provider env or domain. PrivateLink management hosts use api.private.* directly;
-// public regions use ng-api-http.* (matching coralogix-management-sdk CoralogixRestEndpointFromRegion).
+// public regions use api.* (same host family as the OpenAPI management clients).
+// Note: CoralogixRestEndpointFromRegion still returns ng-api-http.*; SCIM is on api.*.
 func ScimRestBaseURL(regionOrDomain string) string {
 	regionOrDomain = normalizeProviderDomain(regionOrDomain)
 	if strings.HasPrefix(regionOrDomain, "api.private.") {
@@ -44,23 +45,25 @@ func ScimRestBaseURL(regionOrDomain string) string {
 
 	switch strings.ToLower(regionOrDomain) {
 	case "us1", "usa1":
-		return "https://ng-api-http.coralogix.us"
+		return "https://api.coralogix.us"
 	case "us2", "usa2":
-		return "https://ng-api-http.cx498.coralogix.com"
+		return "https://api.cx498.coralogix.com"
 	case "us3", "usa3":
-		return "https://ng-api-http.us3.coralogix.com"
+		return "https://api.us3.coralogix.com"
 	case "eu1", "europe1":
-		return "https://ng-api-http.coralogix.com"
+		return "https://api.coralogix.com"
 	case "eu2", "europe2":
-		return "https://ng-api-http.eu2.coralogix.com"
+		return "https://api.eu2.coralogix.com"
 	case "ap1", "apac1":
-		return "https://ng-api-http.app.coralogix.in"
+		return "https://api.app.coralogix.in"
 	case "ap2", "apac2":
-		return "https://ng-api-http.coralogixsg.com"
+		return "https://api.coralogixsg.com"
 	case "ap3", "apac3":
-		return "https://ng-api-http.ap3.coralogix.com"
+		return "https://api.ap3.coralogix.com"
 	default:
-		return fmt.Sprintf("https://ng-api-http.%s", regionOrDomain)
+		// Mirrors the SDK's normalizeCoralogixDomain: a domain that already carries the
+		// api. prefix must not become api.api.<domain>.
+		return fmt.Sprintf("https://api.%s", strings.TrimPrefix(regionOrDomain, "api."))
 	}
 }
 

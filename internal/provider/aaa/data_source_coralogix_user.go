@@ -23,10 +23,10 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var _ datasource.DataSourceWithConfigure = &UserDataSource{}
@@ -81,11 +81,8 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	getUserResp, err := d.client.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(
-				err.Error(),
-				fmt.Sprintf("User %q is in state, but no longer exists in Coralogix backend", id),
-			)
+		if status.Code(err) == codes.NotFound {
+			resp.Diagnostics.AddError(fmt.Sprintf("User %q not found", id), "")
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",

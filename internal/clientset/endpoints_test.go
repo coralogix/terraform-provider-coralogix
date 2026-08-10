@@ -58,14 +58,36 @@ func TestScimRestBaseURL(t *testing.T) {
 		regionOrDomain string
 		want           string
 	}{
-		{
-			regionOrDomain: "api.private.eu2.coralogix.com",
-			want:           "https://api.private.eu2.coralogix.com",
-		},
-		{
-			regionOrDomain: "EU2",
-			want:           "https://ng-api-http.eu2.coralogix.com",
-		},
+		// All 8 regions, short and long aliases.
+		{regionOrDomain: "us1", want: "https://api.coralogix.us"},
+		{regionOrDomain: "usa1", want: "https://api.coralogix.us"},
+		{regionOrDomain: "us2", want: "https://api.cx498.coralogix.com"},
+		{regionOrDomain: "usa2", want: "https://api.cx498.coralogix.com"},
+		{regionOrDomain: "us3", want: "https://api.us3.coralogix.com"},
+		{regionOrDomain: "usa3", want: "https://api.us3.coralogix.com"},
+		{regionOrDomain: "eu1", want: "https://api.coralogix.com"},
+		{regionOrDomain: "europe1", want: "https://api.coralogix.com"},
+		{regionOrDomain: "eu2", want: "https://api.eu2.coralogix.com"},
+		{regionOrDomain: "europe2", want: "https://api.eu2.coralogix.com"},
+		{regionOrDomain: "ap1", want: "https://api.app.coralogix.in"},
+		{regionOrDomain: "apac1", want: "https://api.app.coralogix.in"},
+		{regionOrDomain: "ap2", want: "https://api.coralogixsg.com"},
+		{regionOrDomain: "apac2", want: "https://api.coralogixsg.com"},
+		{regionOrDomain: "ap3", want: "https://api.ap3.coralogix.com"},
+		{regionOrDomain: "apac3", want: "https://api.ap3.coralogix.com"},
+		// Region codes are case-insensitive.
+		{regionOrDomain: "EU2", want: "https://api.eu2.coralogix.com"},
+		{regionOrDomain: "EUROPE2", want: "https://api.eu2.coralogix.com"},
+		// Custom domains get the api. prefix.
+		{regionOrDomain: "custom.example.com", want: "https://api.custom.example.com"},
+		// A domain that already carries the prefix must not become api.api.<domain>.
+		{regionOrDomain: "api.eu2.coralogix.com", want: "https://api.eu2.coralogix.com"},
+		// PrivateLink hosts are used as-is.
+		{regionOrDomain: "api.private.eu2.coralogix.com", want: "https://api.private.eu2.coralogix.com"},
+		{regionOrDomain: "api.private.eu1.coralogix.com", want: "https://api.private.eu1.coralogix.com"},
+		// Scheme and trailing slash are trimmed.
+		{regionOrDomain: "https://custom.example.com/", want: "https://api.custom.example.com"},
+		{regionOrDomain: "https://api.private.us1.coralogix.com/", want: "https://api.private.us1.coralogix.com"},
 	}
 
 	for _, tt := range tests {
@@ -75,10 +97,5 @@ func TestScimRestBaseURL(t *testing.T) {
 				t.Fatalf("ScimRestBaseURL(%q) = %q, want %q", tt.regionOrDomain, got, tt.want)
 			}
 		})
-	}
-
-	// SDK default for unknown domain must not be used for PrivateLink hosts.
-	if got := ScimRestBaseURL("api.private.eu1.coralogix.com"); got == "https://ng-api-http.api.private.eu1.coralogix.com" {
-		t.Fatalf("ScimRestBaseURL must not use ng-api-http prefix for api.private.*, got %q", got)
 	}
 }

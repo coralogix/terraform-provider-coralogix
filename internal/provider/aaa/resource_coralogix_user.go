@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func NewUserResource() resource.Resource {
@@ -279,7 +280,7 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	getUserResp, err := r.client.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("User %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -359,7 +360,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	getUserResp, err := r.client.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("User %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),

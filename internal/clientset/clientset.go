@@ -48,6 +48,7 @@ import (
 	prgs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/rule_groups_service"
 	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
 	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
+	teamGroupss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/team_groups_management_service"
 
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
@@ -59,7 +60,6 @@ type ClientSet struct {
 	ruleGroups     *cxsdk.RuleGroupsClient
 	users          *UsersClient
 	events2Metrics *e2ms.Events2MetricsServiceAPIService
-	groupGrpc      *cxsdk.GroupsClient
 	teams          *cxsdk.TeamsClient
 
 	dahboardsFolders      *dbfs.DashboardFoldersServiceAPIService
@@ -90,6 +90,7 @@ type ClientSet struct {
 	aiEvaluations         *aievaluations.AIEvaluationsServiceAPIService
 	grafana               *GrafanaClient
 	groups                *GroupsClient
+	teamGroups            *teamGroupss.TeamGroupsManagementServiceAPIService
 }
 
 func (c *ClientSet) ParsingRuleGroups() *prgs.RuleGroupsServiceAPIService {
@@ -204,8 +205,8 @@ func (c *ClientSet) IpAccess() *ipaccess.IPAccessServiceAPIService {
 	return c.ipaccess
 }
 
-func (c *ClientSet) GroupGrpc() *cxsdk.GroupsClient {
-	return c.groupGrpc
+func (c *ClientSet) TeamGroups() *teamGroupss.TeamGroupsManagementServiceAPIService {
+	return c.teamGroups
 }
 
 func (c *ClientSet) GetNotifications() (*connectors.ConnectorsServiceAPIService, *globalRouters.GlobalRoutersServiceAPIService, *presets.PresetsServiceAPIService) {
@@ -260,7 +261,6 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		users: NewUsersClient(region, apiKey),
 
 		events2Metrics: cs.Events2Metrics(),
-		groupGrpc:      cxsdk.NewGroupsClient(grpcCreator),
 
 		dahboardsFolders:      cs.DashboardFolders(),
 		parsingRuleGroups:     cs.RuleGroups(),
@@ -290,5 +290,6 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		alertScheduler:        cs.AlertScheduler(),
 		grafana:               NewGrafanaClient(apikeyCPC),
 		groups:                NewGroupsClient(region, apiKey),
+		teamGroups:            cs.Groups(),
 	}
 }
