@@ -41,7 +41,7 @@ jobs:
       GO111MODULE: on
     strategy:
       matrix:
-        go-version: [ 1.25.x ]
+        go-version: [ 1.26.x ]
         os: [ ubuntu-latest ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -102,7 +102,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v6
         with:
-          go-version: 1.25.x
+          go-version: 1.26.x
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -126,7 +126,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v6
         with:
-          go-version: 1.25.x
+          go-version: 1.26.x
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -178,7 +178,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v6
         with:
-          go-version: 1.25.x
+          go-version: 1.26.x
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:

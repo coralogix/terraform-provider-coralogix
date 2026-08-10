@@ -207,8 +207,8 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Team %q is in state, but no longer exists in Coralogix backend", intId),
-				fmt.Sprintf("%q will be recreated when you apply", intId),
+				fmt.Sprintf("Team %d is in state, but no longer exists in Coralogix backend", intId),
+				fmt.Sprintf("%d will be recreated when you apply", intId),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {

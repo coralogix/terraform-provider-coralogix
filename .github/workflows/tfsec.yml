@@ -8,6 +8,10 @@ on:
   pull_request:
     branches:
       - master
+
+permissions:
+  contents: read
+
 jobs:
   tfsec:
     runs-on: ubuntu-latest
