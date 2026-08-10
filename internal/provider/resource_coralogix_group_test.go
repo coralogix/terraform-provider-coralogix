@@ -112,3 +112,69 @@ func testAccCoralogixResourceGroup(userName, displayName, scopeName string) stri
 	}
 `, scopeName, userName, displayName)
 }
+
+// A group's member list must be emptiable with `members = []`, not only by deleting the attribute.
+// Both configurations send the same request, so before the fix the empty set removed the members and
+// then failed with "Provider produced inconsistent result after apply" — on that apply and on every
+// retry, because state kept null while the configuration kept `[]`.
+func TestAccCoralogixResourceGroupEmptyMembers(t *testing.T) {
+	userName := randUserName()
+	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceGroupWithMember(userName, displayName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupResourceName, "members.#", "1"),
+					resource.TestCheckResourceAttrPair(groupResourceName, "members.0", "coralogix_user.test", "id"),
+				),
+			},
+			{
+				// Emptying the set: an update, and the plan afterwards has to be empty.
+				Config: testAccCoralogixResourceGroupEmptyMembers(userName, displayName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupResourceName, "members.#", "0"),
+				),
+			},
+			{
+				// Creating a group that starts with no members fails the same way, so it is covered too.
+				Taint:  []string{groupResourceName},
+				Config: testAccCoralogixResourceGroupEmptyMembers(userName, displayName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupResourceName, "members.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceGroupWithMember(userName, displayName string) string {
+	return fmt.Sprintf(`
+	resource "coralogix_user" "test" {
+		user_name = "%s"
+	}
+
+	resource "coralogix_group" "test" {
+		display_name = "%s"
+		role         = "Read Only"
+		members      = [coralogix_user.test.id]
+	}
+`, userName, displayName)
+}
+
+func testAccCoralogixResourceGroupEmptyMembers(userName, displayName string) string {
+	return fmt.Sprintf(`
+	resource "coralogix_user" "test" {
+		user_name = "%s"
+	}
+
+	resource "coralogix_group" "test" {
+		display_name = "%s"
+		role         = "Read Only"
+		members      = []
+	}
+`, userName, displayName)
+}

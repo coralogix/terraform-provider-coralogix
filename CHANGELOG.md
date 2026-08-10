@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_group
+- FIX: `members = []` no longer fails with "Provider produced inconsistent result after apply". An empty member list from the API was always flattened to null, so an explicitly empty set could never round-trip; the members were removed but every apply reported a failure, on the first attempt and on every retry. Emptiness is now reported as whichever the configuration asked for, so `members = []` and omitting the attribute both work.
+
 #### resource/coralogix_dashboard
 - FIX: Schema v2/v3→v4 state upgrade no longer fails with `Missing Upgraded Resource State` when the dashboard was deleted outside Terraform. The upgrader no longer removes the resource from state (illegal inside a state upgrader); it returns a valid v4 state carrying the prior `id`, `name`, `description` and `content_json`, so the following refresh detects the missing dashboard and plans a recreate.
 
