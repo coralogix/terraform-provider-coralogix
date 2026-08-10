@@ -389,30 +389,46 @@ func TestDashboardResourceDeleteFailurePreservesStateForRetry(t *testing.T) {
 	}
 }
 
-func TestDashboardStateUpgradeNotFoundRemovesStateWithWarning(t *testing.T) {
-	server := dashboardNotFoundTestServer(t)
-	defer server.Close()
+func TestDashboardStateUpgradeNotFoundKeepsUpgradedStateWithWarning(t *testing.T) {
+	for _, testCase := range []struct {
+		name        string
+		priorSchema schema.Schema
+	}{
+		{name: "prior schema v2", priorSchema: dashboardschema.V2()},
+		{name: "prior schema v3", priorSchema: dashboardschema.V3()},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			server := dashboardNotFoundTestServer(t)
+			defer server.Close()
 
-	ctx := context.Background()
-	priorSchema := dashboardschema.V3()
-	priorState := dashboardErrorPathState(ctx, priorSchema, dashboardErrorPathTestID, `{"id":"`+dashboardErrorPathTestID+`"}`)
-	response := frameworkresource.UpgradeStateResponse{State: tfsdk.State{Schema: dashboardschema.V4()}}
+			ctx := context.Background()
+			contentJSON := `{"id":"` + dashboardErrorPathTestID + `"}`
+			priorState := dashboardErrorPathState(ctx, testCase.priorSchema, dashboardErrorPathTestID, contentJSON)
+			response := frameworkresource.UpgradeStateResponse{State: tfsdk.State{Schema: dashboardschema.V4()}}
 
-	upgradeDashboardStateV3ToV4(
-		ctx,
-		frameworkresource.UpgradeStateRequest{State: &priorState},
-		&response,
-		newDashboardOpenAPITestClient(server, ""),
-	)
+			upgradeDashboardStateV3ToV4(
+				ctx,
+				frameworkresource.UpgradeStateRequest{State: &priorState},
+				&response,
+				newDashboardOpenAPITestClient(server, ""),
+			)
 
-	if response.Diagnostics.HasError() {
-		t.Fatalf("state upgrade diagnostics = %v, want warning only", response.Diagnostics)
-	}
-	if response.Diagnostics.WarningsCount() != 1 {
-		t.Fatalf("state upgrade warning count = %d, want 1", response.Diagnostics.WarningsCount())
-	}
-	if !response.State.Raw.IsNull() {
-		t.Fatalf("state upgrade state = %#v, want removed resource", response.State.Raw)
+			if response.Diagnostics.HasError() {
+				t.Fatalf("state upgrade diagnostics = %v, want warning only", response.Diagnostics)
+			}
+			if response.Diagnostics.WarningsCount() != 1 {
+				t.Fatalf("state upgrade warning count = %d, want 1", response.Diagnostics.WarningsCount())
+			}
+			if response.State.Raw.Type() == nil || response.State.Raw.IsNull() {
+				t.Fatalf("state upgrade state = %#v, want state the framework accepts as upgraded", response.State.Raw)
+			}
+			if wantType := dashboardschema.V4().Type().TerraformType(ctx); !response.State.Raw.Type().Equal(wantType) {
+				t.Fatalf("upgraded state type = %v, want the v4 resource schema type", response.State.Raw.Type())
+			}
+			assertDashboardStateID(t, ctx, response.State, dashboardErrorPathTestID)
+			assertDashboardStateString(t, ctx, response.State, "content_json", contentJSON)
+			assertDashboardStateString(t, ctx, response.State, "access_policy", "")
+		})
 	}
 }
 
@@ -513,6 +529,24 @@ func assertDashboardStateID(t *testing.T, ctx context.Context, state tfsdk.State
 	}
 	if id.ValueString() != want {
 		t.Fatalf("state ID = %q, want %q", id.ValueString(), want)
+	}
+}
+
+func assertDashboardStateString(t *testing.T, ctx context.Context, state tfsdk.State, attribute, want string) {
+	t.Helper()
+	var value types.String
+	diagnostics := state.GetAttribute(ctx, path.Root(attribute), &value)
+	if diagnostics.HasError() {
+		t.Fatalf("read state %s diagnostics = %v", attribute, diagnostics)
+	}
+	if want == "" {
+		if !value.IsNull() {
+			t.Fatalf("state %s = %q, want null", attribute, value.ValueString())
+		}
+		return
+	}
+	if value.ValueString() != want {
+		t.Fatalf("state %s = %q, want %q", attribute, value.ValueString(), want)
 	}
 }
 
