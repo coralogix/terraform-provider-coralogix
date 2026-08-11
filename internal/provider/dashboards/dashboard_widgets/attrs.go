@@ -115,6 +115,9 @@ func SpansFilterModelAttr() map[string]attr.Type {
 		"operator": types.ObjectType{
 			AttrTypes: FilterOperatorModelAttr(),
 		},
+		"observation_field": types.ObjectType{
+			AttrTypes: spanObservationFieldAttr(),
+		},
 	}
 }
 

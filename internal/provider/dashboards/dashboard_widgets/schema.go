@@ -57,6 +57,10 @@ func SpansFilterSchema() schema.Attribute {
 					Required:   true,
 				},
 				"operator": FilterOperatorSchema(),
+				"observation_field": schema.SingleNestedAttribute{
+					Attributes: spanObservationFieldSchema(),
+					Optional:   true,
+				},
 			},
 		},
 		Optional: true,

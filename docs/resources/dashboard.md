@@ -1996,6 +1996,10 @@ Required:
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--operator))
 
+Optional:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--observation_field))
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.field`
 
@@ -2015,6 +2019,19 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -2468,6 +2485,10 @@ Required:
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--operator))
 
+Optional:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--observation_field))
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.field`
 
@@ -2487,6 +2508,19 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -2715,7 +2749,9 @@ Required:
 
 Optional:
 
+- `editor_mode` (String) The metrics query editor mode. Valid values are: builder, text, unspecified.
 - `promql_query_type` (String) The PromQL query type. Valid values are: instant, range, unspecified.
+- `series_limit_type` (String) The metrics series limit type. Valid values are: by_point_count, by_series_count, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans"></a>
@@ -2760,6 +2796,10 @@ Required:
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--operator))
 
+Optional:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--observation_field))
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.field`
 
@@ -2779,6 +2819,19 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -2891,7 +2944,7 @@ Required:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -3220,7 +3273,7 @@ Required:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -3299,7 +3352,7 @@ Optional:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -3374,7 +3427,7 @@ Optional:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -3478,7 +3531,7 @@ Optional:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -3538,7 +3591,7 @@ Required:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -3728,7 +3781,7 @@ Required:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -4030,7 +4083,7 @@ Required:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -4082,7 +4135,7 @@ Optional:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -4202,7 +4255,7 @@ Optional:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -4276,7 +4329,7 @@ Optional:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -4679,6 +4732,10 @@ Required:
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--operator))
 
+Optional:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--observation_field))
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.field`
 
@@ -4698,6 +4755,19 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -5117,6 +5187,10 @@ Required:
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--operator))
 
+Optional:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--observation_field))
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.field`
 
@@ -5136,6 +5210,19 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -5181,7 +5268,7 @@ Required:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -5584,6 +5671,10 @@ Required:
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--operator))
 
+Optional:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--observation_field))
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.field`
 
@@ -5603,6 +5694,19 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -6035,6 +6139,10 @@ Required:
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--operator))
 
+Optional:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--observation_field))
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.field`
 
@@ -6054,6 +6162,19 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -6109,7 +6230,7 @@ Optional:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
@@ -6530,6 +6651,10 @@ Required:
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--operator))
 
+Optional:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--observation_field))
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.field`
 
@@ -6549,6 +6674,19 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 

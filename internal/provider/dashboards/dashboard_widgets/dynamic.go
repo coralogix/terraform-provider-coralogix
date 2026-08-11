@@ -41,6 +41,22 @@ import (
 )
 
 var (
+	dashboardSchemaToProtoMetricsEditorMode = map[string]dashboardservice.MetricsQueryEditorMode{
+		utils.UNSPECIFIED: dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_UNSPECIFIED,
+		"builder":         dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_BUILDER,
+		"text":            dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_TEXT,
+	}
+	dashboardProtoToSchemaMetricsEditorMode = utils.ReverseMap(dashboardSchemaToProtoMetricsEditorMode)
+	dashboardValidMetricsEditorModes        = utils.GetKeys(dashboardSchemaToProtoMetricsEditorMode)
+
+	dashboardSchemaToProtoMetricsSeriesLimitType = map[string]dashboardservice.MetricsSeriesLimitType{
+		utils.UNSPECIFIED: dashboardservice.METRICSSERIESLIMITTYPE_METRICS_SERIES_LIMIT_TYPE_UNSPECIFIED,
+		"by_point_count":  dashboardservice.METRICSSERIESLIMITTYPE_METRICS_SERIES_LIMIT_TYPE_BY_POINT_COUNT,
+		"by_series_count": dashboardservice.METRICSSERIESLIMITTYPE_METRICS_SERIES_LIMIT_TYPE_BY_SERIES_COUNT,
+	}
+	dashboardProtoToSchemaMetricsSeriesLimitType = utils.ReverseMap(dashboardSchemaToProtoMetricsSeriesLimitType)
+	dashboardValidMetricsSeriesLimitTypes        = utils.GetKeys(dashboardSchemaToProtoMetricsSeriesLimitType)
+
 	dashboardSchemaToProtoSpanRelationType = map[string]dashboardservice.SpanRelationType{
 		utils.UNSPECIFIED: dashboardservice.SPANRELATIONTYPE_SPAN_RELATION_TYPE_NONE_UNSPECIFIED,
 		"other":           dashboardservice.SPANRELATIONTYPE_SPAN_RELATION_TYPE_OTHER,
@@ -280,6 +296,24 @@ func dynamicMetricsQuerySchema() schema.Attribute {
 					stringvalidator.OneOf(DashboardValidPromQLQueryType...),
 				},
 				MarkdownDescription: fmt.Sprintf("The PromQL query type. Valid values are: %s.", strings.Join(DashboardValidPromQLQueryType, ", ")),
+			},
+			"editor_mode": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidMetricsEditorModes...),
+				},
+				MarkdownDescription: fmt.Sprintf("The metrics query editor mode. Valid values are: %s.", strings.Join(dashboardValidMetricsEditorModes, ", ")),
+			},
+			"series_limit_type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidMetricsSeriesLimitTypes...),
+				},
+				MarkdownDescription: fmt.Sprintf("The metrics series limit type. Valid values are: %s.", strings.Join(dashboardValidMetricsSeriesLimitTypes, ", ")),
 			},
 		},
 	}
@@ -1192,6 +1226,8 @@ func dynamicMetricsQueryAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"promql_query":      types.StringType,
 		"promql_query_type": types.StringType,
+		"editor_mode":       types.StringType,
+		"series_limit_type": types.StringType,
 	}
 }
 
@@ -1722,6 +1758,8 @@ func expandDynamicMetricsQuery(metrics *DynamicQueryMetricsModel) *dashboardserv
 	return &dashboardservice.Metrics{
 		PromqlQuery:     ExpandPromqlQuery(metrics.PromqlQuery),
 		PromqlQueryType: OptionalEnumPointer(metrics.PromqlQueryType, DashboardSchemaToProtoPromQLQueryType),
+		EditorMode:      OptionalEnumPointer(metrics.EditorMode, dashboardSchemaToProtoMetricsEditorMode),
+		SeriesLimitType: OptionalEnumPointer(metrics.SeriesLimitType, dashboardSchemaToProtoMetricsSeriesLimitType),
 	}
 }
 
@@ -1752,19 +1790,41 @@ func expandSpanObservationFields(ctx context.Context, groupBy types.List) ([]das
 			diags.Append(dg...)
 			continue
 		}
-		keypath, dg := typeStringListToStringSlice(ctx, model.Keypath)
+		field, dg := expandSpanObservationFieldModel(ctx, model)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
 		}
-		fields = append(fields, dashboardservice.SpanObservationField{
-			Keypath:      keypath,
-			Scope:        OptionalEnumPointer(model.Scope, DashboardSchemaToProtoObservationFieldScope),
-			RelationType: OptionalEnumPointer(model.RelationType, dashboardSchemaToProtoSpanRelationType),
-		})
+		fields = append(fields, *field)
 	}
 
 	return fields, diags
+}
+
+func expandSpanObservationFieldObject(ctx context.Context, field types.Object) (*dashboardservice.SpanObservationField, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(field) {
+		return nil, nil
+	}
+
+	var model SpanObservationFieldModel
+	if dg := field.As(ctx, &model, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return nil, dg
+	}
+
+	return expandSpanObservationFieldModel(ctx, model)
+}
+
+func expandSpanObservationFieldModel(ctx context.Context, model SpanObservationFieldModel) (*dashboardservice.SpanObservationField, diag.Diagnostics) {
+	keypath, dg := typeStringListToStringSlice(ctx, model.Keypath)
+	if dg.HasError() {
+		return nil, dg
+	}
+
+	return &dashboardservice.SpanObservationField{
+		Keypath:      keypath,
+		Scope:        OptionalEnumPointer(model.Scope, DashboardSchemaToProtoObservationFieldScope),
+		RelationType: OptionalEnumPointer(model.RelationType, dashboardSchemaToProtoSpanRelationType),
+	}, nil
 }
 
 func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics) {
@@ -2749,6 +2809,8 @@ func flattenDynamicMetricsQuery(metrics *dashboardservice.Metrics) *DynamicQuery
 		Metrics: &DynamicQueryMetricsModel{
 			PromqlQuery:     flattenPromqlQuery(metrics.PromqlQuery),
 			PromqlQueryType: flattenOptionalEnum(metrics.PromqlQueryType, DashboardProtoToSchemaPromQLQueryType),
+			EditorMode:      flattenOptionalEnum(metrics.EditorMode, dashboardProtoToSchemaMetricsEditorMode),
+			SeriesLimitType: flattenOptionalEnum(metrics.SeriesLimitType, dashboardProtoToSchemaMetricsSeriesLimitType),
 		},
 	}
 }
@@ -2769,6 +2831,20 @@ func flattenDynamicDataPrimeQuery(dataPrime *dashboardservice.Dataprime) *Dynami
 			DataModeType: flattenOptionalEnum(dataPrime.DataModeType, DashboardProtoToSchemaDataModeType),
 		},
 	}
+}
+
+func flattenSpanObservationFieldObject(ctx context.Context, field *dashboardservice.SpanObservationField) (types.Object, diag.Diagnostics) {
+	if field == nil {
+		return types.ObjectNull(spanObservationFieldAttr()), nil
+	}
+
+	model := &SpanObservationFieldModel{
+		Keypath:      utils.StringSliceToTypeStringList(field.GetKeypath()),
+		Scope:        flattenOptionalEnum(field.Scope, DashboardProtoToSchemaObservationFieldScope),
+		RelationType: flattenOptionalEnum(field.RelationType, dashboardProtoToSchemaSpanRelationType),
+	}
+
+	return types.ObjectValueFrom(ctx, spanObservationFieldAttr(), model)
 }
 
 func flattenSpanObservationFields(ctx context.Context, fields []dashboardservice.SpanObservationField) (types.List, diag.Diagnostics) {

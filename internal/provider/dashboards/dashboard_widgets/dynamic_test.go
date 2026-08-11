@@ -130,6 +130,61 @@ func TestDynamicWidgetLogsStatRoundTrip(t *testing.T) {
 	}
 }
 
+func TestDynamicWidgetMetricsStatFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	metricsQuery := &DynamicQueryMetricsModel{
+		PromqlQuery:     types.StringValue("rate(x[5m])"),
+		PromqlQueryType: types.StringValue("instant"),
+		EditorMode:      types.StringValue("text"),
+		SeriesLimitType: types.StringValue("by_series_count"),
+	}
+
+	queryDefinitions := types.ListValueMust(
+		types.ObjectType{AttrTypes: dynamicQueryDefinitionModelAttr()},
+		[]attr.Value{
+			types.ObjectValueMust(dynamicQueryDefinitionModelAttr(), map[string]attr.Value{
+				"id":   types.StringValue("query-1"),
+				"name": types.StringValue("rate by service"),
+				"query": types.ObjectValueMust(dynamicQueryModelAttr(), map[string]attr.Value{
+					"logs":       types.ObjectNull(dynamicLogsQueryAttr()),
+					"spans":      types.ObjectNull(dynamicSpansQueryAttr()),
+					"metrics":    objectFrom(ctx, t, dynamicMetricsQueryAttr(), metricsQuery),
+					"data_prime": types.ObjectNull(dynamicDataPrimeQueryAttr()),
+				}),
+			}),
+		},
+	)
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitions,
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			Stat: &DynamicStatModel{
+				AllowAbbreviation: types.BoolNull(),
+				CategoryFields:    types.ListNull(ObservationFieldsObject()),
+				CustomUnit:        types.StringNull(),
+				DecimalPrecision:  types.Int64Null(),
+				DisplaySeriesName: types.BoolNull(),
+				Legend:            nil,
+				LegendBy:          types.StringValue("unspecified"),
+				Max:               types.Float64Null(),
+				Min:               types.Float64Null(),
+				ThresholdBy:       types.StringValue("unspecified"),
+				ThresholdType:     types.StringValue("absolute"),
+				Thresholds:        dynamicThresholdList(),
+				Unit:              types.StringValue("bytes"),
+				ValueField:        observationFieldObject("duration", "metadata"),
+				ValueFields:       types.ListNull(ObservationFieldsObject()),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
 func observationFieldObject(keypath, scope string) types.Object {
 	return types.ObjectValueMust(ObservationFieldAttr(), map[string]attr.Value{
 		"keypath": types.ListValueMust(types.StringType, []attr.Value{types.StringValue(keypath)}),

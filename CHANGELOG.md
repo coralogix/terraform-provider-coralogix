@@ -2,6 +2,7 @@
 
 #### resource/coralogix_dashboard
 - FEAT: Add typed HCL support for the `dynamic` widget definition, including logs/spans/metrics/data_prime query definitions, a top-level `time_frame`, and the `stat`, `stat_card`, `table`, `time_series_lines_multi`, `time_series_bars`, `vertical_bars`, `vertical_bars_multi`, `horizontal_bars`, `horizontal_bars_multi`, `gauge`, `pie_chart`, `hexagon_bins`, `heatmap` and `geomap` visualizations (full field fidelity).
+- FIX: Spans query filters now round-trip their `observation_field`, and the `simple_value` legend column is no longer dropped on read — both were previously silently lost on import for every widget that uses them.
 - FIX: Schema v2/v3→v4 state upgrade no longer fails with `Missing Upgraded Resource State` when the dashboard was deleted outside Terraform. The upgrader no longer removes the resource from state (illegal inside a state upgrader); it returns a valid v4 state carrying the prior `id`, `name`, `description` and `content_json`, so the following refresh detects the missing dashboard and plans a recreate.
 
 #### resource/coralogix_team

@@ -98,6 +98,7 @@ var (
 		"avg":             dashboardservice.LEGENDCOLUMN_LEGEND_COLUMN_AVG,
 		"last":            dashboardservice.LEGENDCOLUMN_LEGEND_COLUMN_LAST,
 		"name":            dashboardservice.LEGENDCOLUMN_LEGEND_COLUMN_NAME,
+		"simple_value":    dashboardservice.LEGENDCOLUMN_LEGEND_COLUMN_SIMPLE_VALUE,
 	}
 	DashboardLegendColumnProtoToSchema   = utils.ReverseMap(DashboardLegendColumnSchemaToProto)
 	DashboardValidLegendColumns          = utils.GetKeys(DashboardLegendColumnSchemaToProto)
@@ -477,6 +478,8 @@ type DynamicQuerySpansModel struct {
 type DynamicQueryMetricsModel struct {
 	PromqlQuery     types.String `tfsdk:"promql_query"`
 	PromqlQueryType types.String `tfsdk:"promql_query_type"`
+	EditorMode      types.String `tfsdk:"editor_mode"`
+	SeriesLimitType types.String `tfsdk:"series_limit_type"`
 }
 
 type DynamicQueryDataPrimeModel struct {
@@ -1115,8 +1118,9 @@ type DataTableQuerySpansModel struct {
 }
 
 type SpansFilterModel struct {
-	Field    *SpansFieldModel     `tfsdk:"field"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
+	Field            *SpansFieldModel     `tfsdk:"field"`
+	Operator         *FilterOperatorModel `tfsdk:"operator"`
+	ObservationField types.Object         `tfsdk:"observation_field"` // SpanObservationFieldModel
 }
 
 type DataTableSpansQueryGroupingModel struct {
@@ -1915,9 +1919,9 @@ func FlattenSpansFilters(ctx context.Context, filters []dashboardservice.SpansFi
 	var diagnostics diag.Diagnostics
 	filtersElements := make([]attr.Value, 0, len(filters))
 	for i := range filters {
-		flattenedFilter, dg := FlattenSpansFilter(&filters[i])
-		if dg != nil {
-			diagnostics.Append(dg)
+		flattenedFilter, dg := FlattenSpansFilter(ctx, &filters[i])
+		if dg.HasError() {
+			diagnostics.Append(dg...)
 			continue
 		}
 		filterElement, diags := types.ObjectValueFrom(ctx, SpansFilterModelAttr(), flattenedFilter)
@@ -1931,24 +1935,30 @@ func FlattenSpansFilters(ctx context.Context, filters []dashboardservice.SpansFi
 	return types.ListValueMust(types.ObjectType{AttrTypes: SpansFilterModelAttr()}, filtersElements), diagnostics
 }
 
-func FlattenSpansFilter(filter *dashboardservice.SpansFilter) (*SpansFilterModel, diag.Diagnostic) {
+func FlattenSpansFilter(ctx context.Context, filter *dashboardservice.SpansFilter) (*SpansFilterModel, diag.Diagnostics) {
 	if filter == nil {
 		return nil, nil
 	}
 
 	operator, dg := FlattenFilterOperator(filter.Operator)
 	if dg != nil {
-		return nil, dg
+		return nil, diag.Diagnostics{dg}
 	}
 
 	field, dg := FlattenSpansField(filter.Field)
 	if dg != nil {
-		return nil, dg
+		return nil, diag.Diagnostics{dg}
+	}
+
+	observationField, diags := flattenSpanObservationFieldObject(ctx, filter.ObservationField)
+	if diags.HasError() {
+		return nil, diags
 	}
 
 	return &SpansFilterModel{
-		Field:    field,
-		Operator: operator,
+		Field:            field,
+		Operator:         operator,
+		ObservationField: observationField,
 	}, nil
 }
 

@@ -333,8 +333,14 @@ func expandSpansFilter(ctx context.Context, spansFilter SpansFilterModel) (*dash
 		return nil, diag.Diagnostics{dg}
 	}
 
+	observationField, obsDiags := expandSpanObservationFieldObject(ctx, spansFilter.ObservationField)
+	if obsDiags.HasError() {
+		return nil, obsDiags
+	}
+
 	return &dashboardservice.SpansFilter{
-		Field:    field,
-		Operator: operator,
+		Field:            field,
+		Operator:         operator,
+		ObservationField: observationField,
 	}, nil
 }
