@@ -579,6 +579,189 @@ func TestDynamicWidgetTimeSeriesBarsFullFidelityRoundTrip(t *testing.T) {
 	assertDynamicRoundTrip(ctx, t, original)
 }
 
+func barsColorsBy() *DynamicColorsByModel {
+	return &DynamicColorsByModel{
+		Aggregation: types.StringValue(`{"by":"agg"}`),
+		Category:    types.StringValue(`{"by":"cat"}`),
+		GroupBy:     types.StringValue(`{"by":"grp"}`),
+		Query:       types.StringValue(`{"by":"qry"}`),
+		Stack:       types.StringValue(`{"by":"stk"}`),
+	}
+}
+
+func barsQueryFieldSettingsList() types.List {
+	return types.ListValueMust(types.ObjectType{AttrTypes: dynamicBarsQueryFieldSettingsModelAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicBarsQueryFieldSettingsModelAttr(), map[string]attr.Value{
+			"query_id":    types.StringValue("query-1"),
+			"value_field": observationFieldObject("value", "metadata"),
+		}),
+	})
+}
+
+func barsSortOrder() *DynamicSortOrderModel {
+	return &DynamicSortOrderModel{
+		OrderDirection: types.StringValue("asc"),
+		Strategy: &DynamicSortStrategyModel{
+			Category:     types.StringValue(`{"c":"x"}`),
+			QueryValue:   &DynamicSortByQueryValueModel{QueryID: types.StringValue("query-1")},
+			StrategyType: types.StringValue("by_value"),
+		},
+	}
+}
+
+func barsLegend() *LegendModel {
+	return &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("sum")}),
+		GroupByQuery: types.BoolValue(false),
+		Placement:    types.StringValue("bottom"),
+	}
+}
+
+func TestDynamicWidgetVerticalBarsFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			VerticalBars: &DynamicVerticalBarsModel{
+				AllowAbbreviation: types.BoolValue(true),
+				BarValueDisplay:   types.StringValue("both"),
+				CategoryFields:    observationFieldList("category", "user_data"),
+				ColorScheme:       types.StringValue("classic"),
+				ColorsBy:          barsColorsBy(),
+				CustomUnit:        types.StringValue("reqs"),
+				DecimalPrecision:  types.Int64Value(3),
+				GroupNameTemplate: types.StringValue("{{group}}"),
+				HashColors:        types.BoolValue(true),
+				Legend:            barsLegend(),
+				MaxBarsPerChart:   types.Int64Value(50),
+				MaxSlicesPerBar:   types.Int64Value(10),
+				ScaleType:         types.StringValue("linear"),
+				SortBy:            types.StringValue("value"),
+				StackNameTemplate: types.StringValue("{{stack}}"),
+				SubCategoryFields: observationFieldList("sub", "label"),
+				Unit:              types.StringValue("usd"),
+				ValueField:        observationFieldObject("value", "metadata"),
+				YAxisMax:          float32TestValue(100),
+				YAxisMin:          float32TestValue(0),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetVerticalBarsMultiFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			VerticalBarsMulti: &DynamicVerticalBarsMultiModel{
+				AllowAbbreviation:  types.BoolValue(true),
+				BarValueDisplay:    types.StringValue("top"),
+				CategoryFields:     observationFieldList("category", "user_data"),
+				ColorScheme:        types.StringValue("classic"),
+				ColorsBy:           barsColorsBy(),
+				CustomUnit:         types.StringValue("reqs"),
+				DecimalPrecision:   types.Int64Value(2),
+				GroupNameTemplate:  types.StringValue("{{group}}"),
+				HashColors:         types.BoolValue(false),
+				Legend:             barsLegend(),
+				MaxBarsPerChart:    types.Int64Value(25),
+				QueryFieldSettings: barsQueryFieldSettingsList(),
+				ScaleType:          types.StringValue("logarithmic"),
+				SortOrder:          barsSortOrder(),
+				Unit:               types.StringValue("bytes"),
+				YAxisMax:           float32TestValue(100),
+				YAxisMin:           float32TestValue(0),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetHorizontalBarsFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			HorizontalBars: &DynamicHorizontalBarsModel{
+				AllowAbbreviation: types.BoolValue(true),
+				CategoryFields:    observationFieldList("category", "user_data"),
+				ColorScheme:       types.StringValue("classic"),
+				ColorsBy:          barsColorsBy(),
+				CustomUnit:        types.StringValue("reqs"),
+				DecimalPrecision:  types.Int64Value(3),
+				DisplayOnBar:      types.BoolValue(true),
+				GroupNameTemplate: types.StringValue("{{group}}"),
+				HashColors:        types.BoolValue(true),
+				Legend:            barsLegend(),
+				MaxBarsPerChart:   types.Int64Value(50),
+				MaxSlicesPerBar:   types.Int64Value(10),
+				ScaleType:         types.StringValue("linear"),
+				SortBy:            types.StringValue("name"),
+				StackNameTemplate: types.StringValue("{{stack}}"),
+				SubCategoryFields: observationFieldList("sub", "label"),
+				Unit:              types.StringValue("usd"),
+				ValueField:        observationFieldObject("value", "metadata"),
+				YAxisMax:          float32TestValue(100),
+				YAxisMin:          float32TestValue(0),
+				YAxisViewBy:       types.StringValue("category"),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetHorizontalBarsMultiFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			HorizontalBarsMulti: &DynamicHorizontalBarsMultiModel{
+				AllowAbbreviation:  types.BoolValue(true),
+				CategoryFields:     observationFieldList("category", "user_data"),
+				ColorScheme:        types.StringValue("classic"),
+				ColorsBy:           barsColorsBy(),
+				CustomUnit:         types.StringValue("reqs"),
+				DecimalPrecision:   types.Int64Value(2),
+				DisplayOnBar:       types.BoolValue(false),
+				GroupNameTemplate:  types.StringValue("{{group}}"),
+				HashColors:         types.BoolValue(false),
+				Legend:             barsLegend(),
+				MaxBarsPerChart:    types.Int64Value(25),
+				QueryFieldSettings: barsQueryFieldSettingsList(),
+				ScaleType:          types.StringValue("logarithmic"),
+				SortOrder:          barsSortOrder(),
+				Unit:               types.StringValue("bytes"),
+				YAxisMax:           float32TestValue(100),
+				YAxisMin:           float32TestValue(0),
+				YAxisViewBy:        types.StringValue("value"),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
 func TestDynamicWidgetTableEmptyListsFlattenToNull(t *testing.T) {
 	ctx := context.Background()
 

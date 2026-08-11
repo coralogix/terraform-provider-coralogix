@@ -194,9 +194,13 @@ func DynamicSchema() schema.Attribute {
 					"table":                   dynamicTableSchema(),
 					"time_series_lines_multi": dynamicTimeSeriesLinesMultiSchema(),
 					"time_series_bars":        dynamicTimeSeriesBarsSchema(),
+					"vertical_bars":           dynamicVerticalBarsSchema(),
+					"vertical_bars_multi":     dynamicVerticalBarsMultiSchema(),
+					"horizontal_bars":         dynamicHorizontalBarsSchema(),
+					"horizontal_bars_multi":   dynamicHorizontalBarsMultiSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines_multi", "time_series_bars"),
+					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi"),
 				},
 			},
 		},
@@ -1202,6 +1206,10 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 		"table":                   types.ObjectType{AttrTypes: dynamicTableModelAttr()},
 		"time_series_lines_multi": types.ObjectType{AttrTypes: dynamicTimeSeriesLinesMultiModelAttr()},
 		"time_series_bars":        types.ObjectType{AttrTypes: dynamicTimeSeriesBarsModelAttr()},
+		"vertical_bars":           types.ObjectType{AttrTypes: dynamicVerticalBarsModelAttr()},
+		"vertical_bars_multi":     types.ObjectType{AttrTypes: dynamicVerticalBarsMultiModelAttr()},
+		"horizontal_bars":         types.ObjectType{AttrTypes: dynamicHorizontalBarsModelAttr()},
+		"horizontal_bars_multi":   types.ObjectType{AttrTypes: dynamicHorizontalBarsMultiModelAttr()},
 	}
 }
 
@@ -1777,6 +1785,30 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{TimeSeriesBars: bars}, nil
+	case visualization.VerticalBars != nil:
+		verticalBars, diags := expandDynamicVerticalBars(ctx, visualization.VerticalBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{VerticalBars: verticalBars}, nil
+	case visualization.VerticalBarsMulti != nil:
+		verticalBarsMulti, diags := expandDynamicVerticalBarsMulti(ctx, visualization.VerticalBarsMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{VerticalBarsMulti: verticalBarsMulti}, nil
+	case visualization.HorizontalBars != nil:
+		horizontalBars, diags := expandDynamicHorizontalBars(ctx, visualization.HorizontalBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{HorizontalBars: horizontalBars}, nil
+	case visualization.HorizontalBarsMulti != nil:
+		horizontalBarsMulti, diags := expandDynamicHorizontalBarsMulti(ctx, visualization.HorizontalBarsMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{HorizontalBarsMulti: horizontalBarsMulti}, nil
 	default:
 		return nil, nil
 	}
@@ -2723,10 +2755,34 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{TimeSeriesBars: bars}, nil
+	case visualization.VerticalBars != nil:
+		verticalBars, diags := flattenDynamicVerticalBars(ctx, visualization.VerticalBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{VerticalBars: verticalBars}, nil
+	case visualization.VerticalBarsMulti != nil:
+		verticalBarsMulti, diags := flattenDynamicVerticalBarsMulti(ctx, visualization.VerticalBarsMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{VerticalBarsMulti: verticalBarsMulti}, nil
+	case visualization.HorizontalBars != nil:
+		horizontalBars, diags := flattenDynamicHorizontalBars(ctx, visualization.HorizontalBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{HorizontalBars: horizontalBars}, nil
+	case visualization.HorizontalBarsMulti != nil:
+		horizontalBarsMulti, diags := flattenDynamicHorizontalBarsMulti(ctx, visualization.HorizontalBarsMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{HorizontalBarsMulti: horizontalBarsMulti}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Unsupported Dashboard Widget Definition",
-			"The dynamic widget uses a visualization variant this provider version does not support as typed HCL yet. Only `stat`, `stat_card`, `table`, `time_series_lines_multi`, and `time_series_bars` are currently supported.",
+			"The dynamic widget uses a visualization variant this provider version does not support as typed HCL yet. Only `stat`, `stat_card`, `table`, `time_series_lines_multi`, `time_series_bars`, `vertical_bars`, `vertical_bars_multi`, `horizontal_bars`, and `horizontal_bars_multi` are currently supported.",
 		)}
 	}
 }
