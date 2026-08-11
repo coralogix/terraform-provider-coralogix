@@ -629,7 +629,7 @@ func TestFlattenDashboardRejectsDynamicWidgetWithoutPartialState(t *testing.T) {
 		t.Fatal("flatten dynamic dashboard returned no error diagnostic")
 	}
 	detail := diags.Errors()[0].Summary() + ": " + diags.Errors()[0].Detail()
-	for _, expected := range []string{"Unsupported Dashboard Widget Definition", "dynamic", "content_json", "import", "data-source"} {
+	for _, expected := range []string{"Unsupported Dashboard Widget Definition", "dynamic", "visualization", "stat"} {
 		if !strings.Contains(detail, expected) {
 			t.Errorf("dynamic dashboard diagnostic %q does not contain %q", detail, expected)
 		}
