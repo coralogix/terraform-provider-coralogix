@@ -18,7 +18,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -68,11 +70,17 @@ func TestDynamicWidgetLogsStatRoundTrip(t *testing.T) {
 		},
 		Visualization: &DynamicVisualizationModel{
 			Stat: &DynamicStatModel{
-				ValueField: types.ObjectValueMust(ObservationFieldAttr(), map[string]attr.Value{
-					"keypath": types.ListValueMust(types.StringType, []attr.Value{types.StringValue("duration")}),
-					"scope":   types.StringValue("metadata"),
-				}),
-				Unit: types.StringValue("bytes"),
+				AllowAbbreviation: types.BoolNull(),
+				CategoryFields:    types.ListNull(ObservationFieldsObject()),
+				CustomUnit:        types.StringNull(),
+				DecimalPrecision:  types.Int64Null(),
+				DisplaySeriesName: types.BoolNull(),
+				Legend:            nil,
+				LegendBy:          types.StringValue("unspecified"),
+				Max:               types.Float64Null(),
+				Min:               types.Float64Null(),
+				ThresholdBy:       types.StringValue("unspecified"),
+				ThresholdType:     types.StringValue("absolute"),
 				Thresholds: types.ListValueMust(types.ObjectType{AttrTypes: dynamicThresholdAttr()}, []attr.Value{
 					types.ObjectValueMust(dynamicThresholdAttr(), map[string]attr.Value{
 						"from":  types.Float64Value(10),
@@ -80,8 +88,12 @@ func TestDynamicWidgetLogsStatRoundTrip(t *testing.T) {
 						"label": types.StringValue("high"),
 					}),
 				}),
-				ThresholdType: types.StringValue("absolute"),
-				Legend:        nil,
+				Unit: types.StringValue("bytes"),
+				ValueField: types.ObjectValueMust(ObservationFieldAttr(), map[string]attr.Value{
+					"keypath": types.ListValueMust(types.StringType, []attr.Value{types.StringValue("duration")}),
+					"scope":   types.StringValue("metadata"),
+				}),
+				ValueFields: types.ListNull(ObservationFieldsObject()),
 			},
 		},
 	}
@@ -127,6 +139,270 @@ func TestDynamicWidgetLogsStatRoundTrip(t *testing.T) {
 
 	if !originalObject.Equal(flattenedObject) {
 		t.Fatalf("dynamic model did not round-trip.\noriginal:  %s\nflattened: %s", originalObject, flattenedObject)
+	}
+}
+
+func observationFieldObject(keypath, scope string) types.Object {
+	return types.ObjectValueMust(ObservationFieldAttr(), map[string]attr.Value{
+		"keypath": types.ListValueMust(types.StringType, []attr.Value{types.StringValue(keypath)}),
+		"scope":   types.StringValue(scope),
+	})
+}
+
+func observationFieldList(keypath, scope string) types.List {
+	return types.ListValueMust(ObservationFieldsObject(), []attr.Value{observationFieldObject(keypath, scope)})
+}
+
+func dynamicThresholdList() types.List {
+	return types.ListValueMust(types.ObjectType{AttrTypes: dynamicThresholdAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicThresholdAttr(), map[string]attr.Value{
+			"from":  types.Float64Value(10),
+			"color": types.StringValue("#ff0000"),
+			"label": types.StringValue("high"),
+		}),
+	})
+}
+
+func queryDefinitionsFixture(ctx context.Context, t *testing.T) types.List {
+	t.Helper()
+	logs := &DynamicQueryLogsModel{
+		LuceneQuery:  types.StringValue("level:error"),
+		GroupBy:      observationFieldList("service", "user_data"),
+		Aggregations: types.ListNull(types.ObjectType{AttrTypes: AggregationModelAttr()}),
+		Filters:      types.ListNull(types.ObjectType{AttrTypes: LogsFilterModelAttr()}),
+		DataModeType: types.StringValue("archive"),
+	}
+	return types.ListValueMust(
+		types.ObjectType{AttrTypes: dynamicQueryDefinitionModelAttr()},
+		[]attr.Value{
+			types.ObjectValueMust(dynamicQueryDefinitionModelAttr(), map[string]attr.Value{
+				"id":   types.StringValue("query-1"),
+				"name": types.StringValue("errors by service"),
+				"query": types.ObjectValueMust(dynamicQueryModelAttr(), map[string]attr.Value{
+					"logs":       objectFrom(ctx, t, dynamicLogsQueryAttr(), logs),
+					"spans":      types.ObjectNull(dynamicSpansQueryAttr()),
+					"metrics":    types.ObjectNull(dynamicMetricsQueryAttr()),
+					"data_prime": types.ObjectNull(dynamicDataPrimeQueryAttr()),
+				}),
+			}),
+		},
+	)
+}
+
+func assertDynamicRoundTrip(ctx context.Context, t *testing.T, original *DynamicModel) {
+	t.Helper()
+
+	originalObject, diags := types.ObjectValueFrom(ctx, dynamicModelAttr(), original)
+	if diags.HasError() {
+		t.Fatalf("normalizing original dynamic model: %v", diags)
+	}
+
+	definition, diags := ExpandDynamic(ctx, original)
+	if diags.HasError() {
+		t.Fatalf("expanding dynamic model: %v", diags)
+	}
+	if definition == nil || definition.Dynamic == nil {
+		t.Fatal("ExpandDynamic returned no dynamic widget")
+	}
+
+	flattened, diags := FlattenDynamic(ctx, definition.Dynamic)
+	if diags.HasError() {
+		t.Fatalf("flattening dynamic widget: %v", diags)
+	}
+	if flattened == nil || flattened.Dynamic == nil {
+		t.Fatal("FlattenDynamic returned no dynamic model")
+	}
+
+	flattenedObject, diags := types.ObjectValueFrom(ctx, dynamicModelAttr(), flattened.Dynamic)
+	if diags.HasError() {
+		t.Fatalf("normalizing flattened dynamic model: %v", diags)
+	}
+
+	if !originalObject.Equal(flattenedObject) {
+		t.Fatalf("dynamic model did not round-trip.\noriginal:  %s\nflattened: %s", originalObject, flattenedObject)
+	}
+}
+
+func TestDynamicWidgetStatFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("min")}),
+		GroupByQuery: types.BoolValue(true),
+		Placement:    types.StringValue("bottom"),
+	}
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			Stat: &DynamicStatModel{
+				AllowAbbreviation: types.BoolValue(true),
+				CategoryFields:    observationFieldList("category", "user_data"),
+				CustomUnit:        types.StringValue("widgets"),
+				DecimalPrecision:  types.Int64Value(3),
+				DisplaySeriesName: types.BoolValue(true),
+				Legend:            legend,
+				LegendBy:          types.StringValue("thresholds"),
+				Max:               types.Float64Value(100),
+				Min:               types.Float64Value(0),
+				ThresholdBy:       types.StringValue("background"),
+				ThresholdType:     types.StringValue("absolute"),
+				Thresholds:        dynamicThresholdList(),
+				Unit:              types.StringValue("bytes"),
+				ValueField:        observationFieldObject("duration", "metadata"),
+				ValueFields:       observationFieldList("duration2", "metadata"),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetStatCardFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("max")}),
+		GroupByQuery: types.BoolValue(false),
+		Placement:    types.StringValue("bottom"),
+	}
+
+	templateVariables := types.ListValueMust(types.ObjectType{AttrTypes: dynamicTemplateVariableAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicTemplateVariableAttr(), map[string]attr.Value{
+			"mapped_values":     types.StringValue(`{"a":"1","b":"2"}`),
+			"observation_field": observationFieldObject("tvar", "user_data"),
+		}),
+	})
+
+	visualElement := func(name string) *DynamicStatVisualElementModel {
+		return &DynamicStatVisualElementModel{
+			MappedValues:      types.StringValue(`{"x":"y"}`),
+			ObservationField:  observationFieldObject(name, "user_data"),
+			TemplateText:      types.StringValue("text-" + name),
+			TemplateVariables: templateVariables,
+		}
+	}
+
+	sections := types.ListValueMust(types.ObjectType{AttrTypes: dynamicMappingSectionAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicMappingSectionAttr(), map[string]attr.Value{
+			"color":  types.StringValue("green"),
+			"map_to": types.StringValue("OK"),
+			"value":  types.StringValue("200"),
+		}),
+	})
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			StatCard: &DynamicStatCardModel{
+				AllowAbbreviation: types.BoolValue(true),
+				CategoryFields:    observationFieldList("category", "user_data"),
+				ColorLabelMapping: &DynamicColorLabelMappingModel{
+					ColorBy: types.StringValue("background"),
+					Range: &DynamicRangeMappingModel{
+						MinMax: &DynamicMinMaxModel{
+							Auto: types.BoolNull(),
+							Custom: &DynamicMinMaxCustomModel{
+								Max: types.Float64Value(50),
+								Min: types.Float64Value(5),
+							},
+						},
+						ThresholdType: types.StringValue("relative"),
+						Thresholds:    dynamicThresholdList(),
+					},
+					Regex: &DynamicSectionsMappingModel{Sections: sections},
+					Value: &DynamicSectionsMappingModel{Sections: sections},
+				},
+				CustomUnit:       types.StringValue("cards"),
+				DecimalPrecision: types.Int64Value(2),
+				Label:            visualElement("label"),
+				Legend:           legend,
+				LegendBy:         types.StringValue("groups"),
+				PrimaryValue:     visualElement("primary"),
+				Title:            visualElement("title"),
+				Unit:             types.StringValue("usd"),
+				ValueFields:      observationFieldList("value", "metadata"),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetStatCardMinMaxAutoRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			StatCard: &DynamicStatCardModel{
+				AllowAbbreviation: types.BoolNull(),
+				CategoryFields:    types.ListNull(ObservationFieldsObject()),
+				ColorLabelMapping: &DynamicColorLabelMappingModel{
+					ColorBy: types.StringValue("unspecified"),
+					Range: &DynamicRangeMappingModel{
+						MinMax: &DynamicMinMaxModel{
+							Auto:   types.BoolValue(true),
+							Custom: nil,
+						},
+						ThresholdType: types.StringValue("unspecified"),
+						Thresholds:    types.ListNull(types.ObjectType{AttrTypes: dynamicThresholdAttr()}),
+					},
+					Regex: nil,
+					Value: nil,
+				},
+				CustomUnit:       types.StringNull(),
+				DecimalPrecision: types.Int64Null(),
+				Label:            nil,
+				Legend:           nil,
+				LegendBy:         types.StringValue("unspecified"),
+				PrimaryValue:     nil,
+				Title:            nil,
+				Unit:             types.StringValue("unspecified"),
+				ValueFields:      types.ListNull(ObservationFieldsObject()),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicMappedValuesPreservesEquivalentJSON(t *testing.T) {
+	ctx := context.Background()
+	modifier := utils.PreserveStateForEquivalentJSON{}
+
+	state := types.StringValue(`{"a":"1","b":"2"}`)
+	equivalentConfig := types.StringValue("{\n  \"b\": \"2\",\n  \"a\": \"1\"\n}")
+	resp := &planmodifier.StringResponse{PlanValue: equivalentConfig}
+	modifier.PlanModifyString(ctx, planmodifier.StringRequest{
+		ConfigValue: equivalentConfig,
+		StateValue:  state,
+		PlanValue:   equivalentConfig,
+	}, resp)
+	if !resp.PlanValue.Equal(state) {
+		t.Fatalf("equivalent JSON should preserve state.\nstate: %s\nplan:  %s", state, resp.PlanValue)
+	}
+
+	differentConfig := types.StringValue(`{"a":"9"}`)
+	resp2 := &planmodifier.StringResponse{PlanValue: differentConfig}
+	modifier.PlanModifyString(ctx, planmodifier.StringRequest{
+		ConfigValue: differentConfig,
+		StateValue:  state,
+		PlanValue:   differentConfig,
+	}, resp2)
+	if !resp2.PlanValue.Equal(differentConfig) {
+		t.Fatalf("non-equivalent JSON should keep the configured plan value, got %s", resp2.PlanValue)
 	}
 }
 

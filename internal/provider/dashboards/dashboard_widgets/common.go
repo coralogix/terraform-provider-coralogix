@@ -489,21 +489,92 @@ type SpanObservationFieldModel struct {
 }
 
 type DynamicVisualizationModel struct {
-	Stat *DynamicStatModel `tfsdk:"stat"`
+	Stat     *DynamicStatModel     `tfsdk:"stat"`
+	StatCard *DynamicStatCardModel `tfsdk:"stat_card"`
 }
 
 type DynamicStatModel struct {
-	ValueField    types.Object `tfsdk:"value_field"` //ObservationFieldModel
-	Unit          types.String `tfsdk:"unit"`
-	Thresholds    types.List   `tfsdk:"thresholds"` //DynamicThresholdModel
-	ThresholdType types.String `tfsdk:"threshold_type"`
-	Legend        *LegendModel `tfsdk:"legend"`
+	AllowAbbreviation types.Bool    `tfsdk:"allow_abbreviation"`
+	CategoryFields    types.List    `tfsdk:"category_fields"` //ObservationFieldModel
+	CustomUnit        types.String  `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64   `tfsdk:"decimal_precision"`
+	DisplaySeriesName types.Bool    `tfsdk:"display_series_name"`
+	Legend            *LegendModel  `tfsdk:"legend"`
+	LegendBy          types.String  `tfsdk:"legend_by"`
+	Max               types.Float64 `tfsdk:"max"`
+	Min               types.Float64 `tfsdk:"min"`
+	ThresholdBy       types.String  `tfsdk:"threshold_by"`
+	ThresholdType     types.String  `tfsdk:"threshold_type"`
+	Thresholds        types.List    `tfsdk:"thresholds"` //DynamicThresholdModel
+	Unit              types.String  `tfsdk:"unit"`
+	ValueField        types.Object  `tfsdk:"value_field"`  //ObservationFieldModel
+	ValueFields       types.List    `tfsdk:"value_fields"` //ObservationFieldModel
 }
 
 type DynamicThresholdModel struct {
 	From  types.Float64 `tfsdk:"from"`
 	Color types.String  `tfsdk:"color"`
 	Label types.String  `tfsdk:"label"`
+}
+
+type DynamicStatCardModel struct {
+	AllowAbbreviation types.Bool                     `tfsdk:"allow_abbreviation"`
+	CategoryFields    types.List                     `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorLabelMapping *DynamicColorLabelMappingModel `tfsdk:"color_label_mapping"`
+	CustomUnit        types.String                   `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64                    `tfsdk:"decimal_precision"`
+	Label             *DynamicStatVisualElementModel `tfsdk:"label"`
+	Legend            *LegendModel                   `tfsdk:"legend"`
+	LegendBy          types.String                   `tfsdk:"legend_by"`
+	PrimaryValue      *DynamicStatVisualElementModel `tfsdk:"primary_value"`
+	Title             *DynamicStatVisualElementModel `tfsdk:"title"`
+	Unit              types.String                   `tfsdk:"unit"`
+	ValueFields       types.List                     `tfsdk:"value_fields"` //ObservationFieldModel
+}
+
+type DynamicStatVisualElementModel struct {
+	MappedValues      types.String `tfsdk:"mapped_values"`
+	ObservationField  types.Object `tfsdk:"observation_field"` //ObservationFieldModel
+	TemplateText      types.String `tfsdk:"template_text"`
+	TemplateVariables types.List   `tfsdk:"template_variables"` //DynamicTemplateVariableModel
+}
+
+type DynamicTemplateVariableModel struct {
+	MappedValues     types.String `tfsdk:"mapped_values"`
+	ObservationField types.Object `tfsdk:"observation_field"` //ObservationFieldModel
+}
+
+type DynamicColorLabelMappingModel struct {
+	ColorBy types.String                 `tfsdk:"color_by"`
+	Range   *DynamicRangeMappingModel    `tfsdk:"range"`
+	Regex   *DynamicSectionsMappingModel `tfsdk:"regex"`
+	Value   *DynamicSectionsMappingModel `tfsdk:"value"`
+}
+
+type DynamicRangeMappingModel struct {
+	MinMax        *DynamicMinMaxModel `tfsdk:"min_max"`
+	ThresholdType types.String        `tfsdk:"threshold_type"`
+	Thresholds    types.List          `tfsdk:"thresholds"` //DynamicThresholdModel
+}
+
+type DynamicMinMaxModel struct {
+	Auto   types.Bool                `tfsdk:"auto"`
+	Custom *DynamicMinMaxCustomModel `tfsdk:"custom"`
+}
+
+type DynamicMinMaxCustomModel struct {
+	Max types.Float64 `tfsdk:"max"`
+	Min types.Float64 `tfsdk:"min"`
+}
+
+type DynamicSectionsMappingModel struct {
+	Sections types.List `tfsdk:"sections"` //DynamicMappingSectionModel
+}
+
+type DynamicMappingSectionModel struct {
+	Color types.String `tfsdk:"color"`
+	MapTo types.String `tfsdk:"map_to"`
+	Value types.String `tfsdk:"value"`
 }
 
 type LineChartModel struct {

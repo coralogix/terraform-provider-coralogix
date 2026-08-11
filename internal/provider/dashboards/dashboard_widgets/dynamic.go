@@ -16,13 +16,16 @@ package dashboard_widgets
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -46,6 +49,45 @@ var (
 	}
 	dashboardProtoToSchemaSpanRelationType = utils.ReverseMap(dashboardSchemaToProtoSpanRelationType)
 	dashboardValidSpanRelationTypes        = utils.GetKeys(dashboardSchemaToProtoSpanRelationType)
+
+	dashboardSchemaToProtoLegendBy = map[string]dashboardservice.LegendBy{
+		utils.UNSPECIFIED: dashboardservice.LEGENDBY_LEGEND_BY_UNSPECIFIED,
+		"thresholds":      dashboardservice.LEGENDBY_LEGEND_BY_THRESHOLDS,
+		"groups":          dashboardservice.LEGENDBY_LEGEND_BY_GROUPS,
+	}
+	dashboardProtoToSchemaLegendBy = utils.ReverseMap(dashboardSchemaToProtoLegendBy)
+	dashboardValidLegendBy         = utils.GetKeys(dashboardSchemaToProtoLegendBy)
+
+	dashboardSchemaToProtoThresholdBy = map[string]dashboardservice.CommonThresholdBy{
+		utils.UNSPECIFIED: dashboardservice.COMMONTHRESHOLDBY_THRESHOLD_BY_UNSPECIFIED,
+		"value":           dashboardservice.COMMONTHRESHOLDBY_THRESHOLD_BY_VALUE,
+		"background":      dashboardservice.COMMONTHRESHOLDBY_THRESHOLD_BY_BACKGROUND,
+	}
+	dashboardProtoToSchemaThresholdBy = utils.ReverseMap(dashboardSchemaToProtoThresholdBy)
+	dashboardValidThresholdBy         = utils.GetKeys(dashboardSchemaToProtoThresholdBy)
+
+	dashboardSchemaToProtoColorApplyTarget = map[string]dashboardservice.ColorApplyTarget{
+		utils.UNSPECIFIED: dashboardservice.COLORAPPLYTARGET_COLOR_APPLY_TARGET_UNSPECIFIED,
+		"value":           dashboardservice.COLORAPPLYTARGET_COLOR_APPLY_TARGET_VALUE,
+		"background":      dashboardservice.COLORAPPLYTARGET_COLOR_APPLY_TARGET_BACKGROUND,
+		"row":             dashboardservice.COLORAPPLYTARGET_COLOR_APPLY_TARGET_ROW,
+	}
+	dashboardProtoToSchemaColorApplyTarget = utils.ReverseMap(dashboardSchemaToProtoColorApplyTarget)
+	dashboardValidColorApplyTarget         = utils.GetKeys(dashboardSchemaToProtoColorApplyTarget)
+
+	dashboardSchemaToProtoColorSolidType = map[string]dashboardservice.ColorSolidType{
+		utils.UNSPECIFIED: dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_UNSPECIFIED,
+		"blue":            dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_BLUE,
+		"green":           dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_GREEN,
+		"red":             dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_RED,
+		"purple":          dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_PURPLE,
+		"cyan":            dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_CYAN,
+		"magenta":         dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_MAGENTA,
+		"orange":          dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_ORANGE,
+		"yellow":          dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_YELLOW,
+	}
+	dashboardProtoToSchemaColorSolidType = utils.ReverseMap(dashboardSchemaToProtoColorSolidType)
+	dashboardValidColorSolidType         = utils.GetKeys(dashboardSchemaToProtoColorSolidType)
 )
 
 func DynamicSchema() schema.Attribute {
@@ -84,10 +126,11 @@ func DynamicSchema() schema.Attribute {
 			"visualization": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"stat": dynamicStatSchema(),
+					"stat":      dynamicStatSchema(),
+					"stat_card": dynamicStatCardSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat"),
+					ExactlyOneOfChildren("stat", "stat_card"),
 				},
 			},
 		},
@@ -225,34 +268,51 @@ func dynamicStatSchema() schema.Attribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Attributes: map[string]schema.Attribute{
-			"value_field": schema.SingleNestedAttribute{
-				Attributes: ObservationFieldSchema(),
-				Optional:   true,
+			"allow_abbreviation": schema.BoolAttribute{
+				Optional: true,
 			},
-			"unit": schema.StringAttribute{
+			"category_fields": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: ObservationFieldSchema(),
+				},
+			},
+			"custom_unit": schema.StringAttribute{
+				Optional: true,
+			},
+			"decimal_precision": schema.Int64Attribute{
+				Optional: true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, math.MaxInt32),
+				},
+			},
+			"display_series_name": schema.BoolAttribute{
+				Optional: true,
+			},
+			"legend": LegendSchema(),
+			"legend_by": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
+					stringvalidator.OneOf(dashboardValidLegendBy...),
 				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
+				MarkdownDescription: fmt.Sprintf("How the legend is grouped. Valid values are: %s.", strings.Join(dashboardValidLegendBy, ", ")),
 			},
-			"thresholds": schema.ListNestedAttribute{
+			"max": schema.Float64Attribute{
 				Optional: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"from": schema.Float64Attribute{
-							Optional: true,
-						},
-						"color": schema.StringAttribute{
-							Optional: true,
-						},
-						"label": schema.StringAttribute{
-							Optional: true,
-						},
-					},
+			},
+			"min": schema.Float64Attribute{
+				Optional: true,
+			},
+			"threshold_by": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidThresholdBy...),
 				},
+				MarkdownDescription: fmt.Sprintf("Which part of the widget the threshold colors. Valid values are: %s.", strings.Join(dashboardValidThresholdBy, ", ")),
 			},
 			"threshold_type": schema.StringAttribute{
 				Optional: true,
@@ -263,7 +323,226 @@ func dynamicStatSchema() schema.Attribute {
 				},
 				MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(DashboardValidThresholdTypes, ", ")),
 			},
+			"thresholds": dynamicThresholdsSchema(),
+			"unit": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(DashboardValidUnits...),
+				},
+				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
+			},
+			"value_field": schema.SingleNestedAttribute{
+				Attributes: ObservationFieldSchema(),
+				Optional:   true,
+			},
+			"value_fields": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: ObservationFieldSchema(),
+				},
+			},
+		},
+	}
+}
+
+func dynamicThresholdsSchema() schema.Attribute {
+	return schema.ListNestedAttribute{
+		Optional: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"from": schema.Float64Attribute{
+					Optional: true,
+				},
+				"color": schema.StringAttribute{
+					Optional: true,
+				},
+				"label": schema.StringAttribute{
+					Optional: true,
+				},
+			},
+		},
+	}
+}
+
+func dynamicStatCardSchema() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"allow_abbreviation": schema.BoolAttribute{
+				Optional: true,
+			},
+			"category_fields": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: ObservationFieldSchema(),
+				},
+			},
+			"color_label_mapping": dynamicColorLabelMappingSchema(),
+			"custom_unit": schema.StringAttribute{
+				Optional: true,
+			},
+			"decimal_precision": schema.Int64Attribute{
+				Optional: true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, math.MaxInt32),
+				},
+			},
+			"label":  dynamicStatVisualElementSchema(),
 			"legend": LegendSchema(),
+			"legend_by": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidLegendBy...),
+				},
+				MarkdownDescription: fmt.Sprintf("How the legend is grouped. Valid values are: %s.", strings.Join(dashboardValidLegendBy, ", ")),
+			},
+			"primary_value": dynamicStatVisualElementSchema(),
+			"title":         dynamicStatVisualElementSchema(),
+			"unit": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(DashboardValidUnits...),
+				},
+				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
+			},
+			"value_fields": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: ObservationFieldSchema(),
+				},
+			},
+		},
+	}
+}
+
+func dynamicStatVisualElementSchema() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"mapped_values": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Mapped values encoded as a JSON object string.",
+				PlanModifiers: []planmodifier.String{
+					utils.PreserveStateForEquivalentJSON{},
+				},
+			},
+			"observation_field": schema.SingleNestedAttribute{
+				Attributes: ObservationFieldSchema(),
+				Optional:   true,
+			},
+			"template_text": schema.StringAttribute{
+				Optional: true,
+			},
+			"template_variables": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"mapped_values": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "Mapped values encoded as a JSON object string.",
+							PlanModifiers: []planmodifier.String{
+								utils.PreserveStateForEquivalentJSON{},
+							},
+						},
+						"observation_field": schema.SingleNestedAttribute{
+							Attributes: ObservationFieldSchema(),
+							Optional:   true,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func dynamicColorLabelMappingSchema() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"color_by": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidColorApplyTarget...),
+				},
+				MarkdownDescription: fmt.Sprintf("Which part of the widget the color applies to. Valid values are: %s.", strings.Join(dashboardValidColorApplyTarget, ", ")),
+			},
+			"range": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"min_max": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"auto": schema.BoolAttribute{
+								Optional: true,
+							},
+							"custom": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"max": schema.Float64Attribute{
+										Optional: true,
+									},
+									"min": schema.Float64Attribute{
+										Optional: true,
+									},
+								},
+							},
+						},
+						Validators: []validator.Object{
+							ExactlyOneOfChildren("auto", "custom"),
+						},
+					},
+					"threshold_type": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+						Validators: []validator.String{
+							stringvalidator.OneOf(DashboardValidThresholdTypes...),
+						},
+						MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(DashboardValidThresholdTypes, ", ")),
+					},
+					"thresholds": dynamicThresholdsSchema(),
+				},
+			},
+			"regex": dynamicMappingSectionsSchema(),
+			"value": dynamicMappingSectionsSchema(),
+		},
+	}
+}
+
+func dynamicMappingSectionsSchema() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"sections": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"color": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+							Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+							Validators: []validator.String{
+								stringvalidator.OneOf(dashboardValidColorSolidType...),
+							},
+							MarkdownDescription: fmt.Sprintf("The section color. Valid values are: %s.", strings.Join(dashboardValidColorSolidType, ", ")),
+						},
+						"map_to": schema.StringAttribute{
+							Optional: true,
+						},
+						"value": schema.StringAttribute{
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -367,20 +646,35 @@ func spanObservationFieldAttr() map[string]attr.Type {
 
 func dynamicVisualizationModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"stat": types.ObjectType{AttrTypes: dynamicStatModelAttr()},
+		"stat":      types.ObjectType{AttrTypes: dynamicStatModelAttr()},
+		"stat_card": types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
 	}
 }
 
 func dynamicStatModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"value_field": ObservationFieldsObject(),
-		"unit":        types.StringType,
+		"allow_abbreviation": types.BoolType,
+		"category_fields": types.ListType{
+			ElemType: ObservationFieldsObject(),
+		},
+		"custom_unit":         types.StringType,
+		"decimal_precision":   types.Int64Type,
+		"display_series_name": types.BoolType,
+		"legend": types.ObjectType{
+			AttrTypes: LegendAttr(),
+		},
+		"legend_by":      types.StringType,
+		"max":            types.Float64Type,
+		"min":            types.Float64Type,
+		"threshold_by":   types.StringType,
+		"threshold_type": types.StringType,
 		"thresholds": types.ListType{
 			ElemType: types.ObjectType{AttrTypes: dynamicThresholdAttr()},
 		},
-		"threshold_type": types.StringType,
-		"legend": types.ObjectType{
-			AttrTypes: LegendAttr(),
+		"unit":        types.StringType,
+		"value_field": ObservationFieldsObject(),
+		"value_fields": types.ListType{
+			ElemType: ObservationFieldsObject(),
 		},
 	}
 }
@@ -390,6 +684,94 @@ func dynamicThresholdAttr() map[string]attr.Type {
 		"from":  types.Float64Type,
 		"color": types.StringType,
 		"label": types.StringType,
+	}
+}
+
+func dynamicStatCardModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"allow_abbreviation": types.BoolType,
+		"category_fields": types.ListType{
+			ElemType: ObservationFieldsObject(),
+		},
+		"color_label_mapping": types.ObjectType{AttrTypes: dynamicColorLabelMappingAttr()},
+		"custom_unit":         types.StringType,
+		"decimal_precision":   types.Int64Type,
+		"label":               types.ObjectType{AttrTypes: dynamicStatVisualElementAttr()},
+		"legend":              types.ObjectType{AttrTypes: LegendAttr()},
+		"legend_by":           types.StringType,
+		"primary_value":       types.ObjectType{AttrTypes: dynamicStatVisualElementAttr()},
+		"title":               types.ObjectType{AttrTypes: dynamicStatVisualElementAttr()},
+		"unit":                types.StringType,
+		"value_fields": types.ListType{
+			ElemType: ObservationFieldsObject(),
+		},
+	}
+}
+
+func dynamicStatVisualElementAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"mapped_values":     types.StringType,
+		"observation_field": ObservationFieldsObject(),
+		"template_text":     types.StringType,
+		"template_variables": types.ListType{
+			ElemType: types.ObjectType{AttrTypes: dynamicTemplateVariableAttr()},
+		},
+	}
+}
+
+func dynamicTemplateVariableAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"mapped_values":     types.StringType,
+		"observation_field": ObservationFieldsObject(),
+	}
+}
+
+func dynamicColorLabelMappingAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"color_by": types.StringType,
+		"range":    types.ObjectType{AttrTypes: dynamicRangeMappingAttr()},
+		"regex":    types.ObjectType{AttrTypes: dynamicSectionsMappingAttr()},
+		"value":    types.ObjectType{AttrTypes: dynamicSectionsMappingAttr()},
+	}
+}
+
+func dynamicRangeMappingAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"min_max":        types.ObjectType{AttrTypes: dynamicMinMaxAttr()},
+		"threshold_type": types.StringType,
+		"thresholds": types.ListType{
+			ElemType: types.ObjectType{AttrTypes: dynamicThresholdAttr()},
+		},
+	}
+}
+
+func dynamicMinMaxAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"auto":   types.BoolType,
+		"custom": types.ObjectType{AttrTypes: dynamicMinMaxCustomAttr()},
+	}
+}
+
+func dynamicMinMaxCustomAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"max": types.Float64Type,
+		"min": types.Float64Type,
+	}
+}
+
+func dynamicSectionsMappingAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"sections": types.ListType{
+			ElemType: types.ObjectType{AttrTypes: dynamicMappingSectionAttr()},
+		},
+	}
+}
+
+func dynamicMappingSectionAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"color":  types.StringType,
+		"map_to": types.StringType,
+		"value":  types.StringType,
 	}
 }
 
@@ -615,6 +997,12 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{Stat: stat}, nil
+	case visualization.StatCard != nil:
+		statCard, diags := expandDynamicStatCard(ctx, visualization.StatCard)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{StatCard: statCard}, nil
 	default:
 		return nil, nil
 	}
@@ -630,6 +1018,16 @@ func expandDynamicStat(ctx context.Context, stat *DynamicStatModel) (*dashboards
 		return nil, diags
 	}
 
+	categoryFields, diags := ExpandObservationFields(ctx, stat.CategoryFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	valueFields, diags := ExpandObservationFields(ctx, stat.ValueFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	thresholds, diags := expandDynamicThresholds(ctx, stat.Thresholds)
 	if diags.HasError() {
 		return nil, diags
@@ -641,12 +1039,253 @@ func expandDynamicStat(ctx context.Context, stat *DynamicStatModel) (*dashboards
 	}
 
 	return &dashboardservice.Stat{
-		ValueField:    valueField,
-		Unit:          OptionalEnumPointer(stat.Unit, DashboardSchemaToProtoUnit),
-		Thresholds:    thresholds,
-		ThresholdType: OptionalEnumPointer(stat.ThresholdType, DashboardSchemaToProtoThresholdType),
-		Legend:        legend,
+		AllowAbbreviation: stat.AllowAbbreviation.ValueBoolPointer(),
+		CategoryFields:    categoryFields,
+		CustomUnit:        stat.CustomUnit.ValueStringPointer(),
+		DecimalPrecision:  expandInt32Pointer(stat.DecimalPrecision),
+		DisplaySeriesName: stat.DisplaySeriesName.ValueBoolPointer(),
+		Legend:            legend,
+		LegendBy:          OptionalEnumPointer(stat.LegendBy, dashboardSchemaToProtoLegendBy),
+		Max:               stat.Max.ValueFloat64Pointer(),
+		Min:               stat.Min.ValueFloat64Pointer(),
+		ThresholdBy:       OptionalEnumPointer(stat.ThresholdBy, dashboardSchemaToProtoThresholdBy),
+		ThresholdType:     OptionalEnumPointer(stat.ThresholdType, DashboardSchemaToProtoThresholdType),
+		Thresholds:        thresholds,
+		Unit:              OptionalEnumPointer(stat.Unit, DashboardSchemaToProtoUnit),
+		ValueField:        valueField,
+		ValueFields:       valueFields,
 	}, nil
+}
+
+func expandDynamicStatCard(ctx context.Context, statCard *DynamicStatCardModel) (*dashboardservice.StatCard, diag.Diagnostics) {
+	if statCard == nil {
+		return nil, nil
+	}
+
+	categoryFields, diags := ExpandObservationFields(ctx, statCard.CategoryFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	valueFields, diags := ExpandObservationFields(ctx, statCard.ValueFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	colorLabelMapping, diags := expandDynamicColorLabelMapping(ctx, statCard.ColorLabelMapping)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	label, diags := expandDynamicStatVisualElement(ctx, statCard.Label)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	primaryValue, diags := expandDynamicStatVisualElement(ctx, statCard.PrimaryValue)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	title, diags := expandDynamicStatVisualElement(ctx, statCard.Title)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	legend, diags := ExpandLegend(ctx, statCard.Legend)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboardservice.StatCard{
+		AllowAbbreviation: statCard.AllowAbbreviation.ValueBoolPointer(),
+		CategoryFields:    categoryFields,
+		ColorLabelMapping: colorLabelMapping,
+		CustomUnit:        statCard.CustomUnit.ValueStringPointer(),
+		DecimalPrecision:  expandInt32Pointer(statCard.DecimalPrecision),
+		Label:             label,
+		Legend:            legend,
+		LegendBy:          OptionalEnumPointer(statCard.LegendBy, dashboardSchemaToProtoLegendBy),
+		PrimaryValue:      primaryValue,
+		Title:             title,
+		Unit:              OptionalEnumPointer(statCard.Unit, DashboardSchemaToProtoUnit),
+		ValueFields:       valueFields,
+	}, nil
+}
+
+func expandDynamicStatVisualElement(ctx context.Context, element *DynamicStatVisualElementModel) (*dashboardservice.StatVisualElement, diag.Diagnostics) {
+	if element == nil {
+		return nil, nil
+	}
+
+	observationField, diags := ExpandObservationFieldObject(ctx, element.ObservationField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	mappedValues, diags := expandJSONStringToMap(element.MappedValues)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	templateVariables, diags := expandDynamicTemplateVariables(ctx, element.TemplateVariables)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboardservice.StatVisualElement{
+		MappedValues:      mappedValues,
+		ObservationField:  observationField,
+		TemplateText:      element.TemplateText.ValueStringPointer(),
+		TemplateVariables: templateVariables,
+	}, nil
+}
+
+func expandDynamicTemplateVariables(ctx context.Context, variables types.List) ([]dashboardservice.DisplayNameTemplateVariable, diag.Diagnostics) {
+	var models []DynamicTemplateVariableModel
+	diags := variables.ElementsAs(ctx, &models, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	expanded := make([]dashboardservice.DisplayNameTemplateVariable, 0, len(models))
+	for i := range models {
+		observationField, dg := ExpandObservationFieldObject(ctx, models[i].ObservationField)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		mappedValues, dg := expandJSONStringToMap(models[i].MappedValues)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		expanded = append(expanded, dashboardservice.DisplayNameTemplateVariable{
+			MappedValues:     mappedValues,
+			ObservationField: observationField,
+		})
+	}
+
+	return expanded, diags
+}
+
+func expandDynamicColorLabelMapping(ctx context.Context, mapping *DynamicColorLabelMappingModel) (*dashboardservice.ColorLabelMapping, diag.Diagnostics) {
+	if mapping == nil {
+		return nil, nil
+	}
+
+	rangeMapping, diags := expandDynamicRangeMapping(ctx, mapping.Range)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	regex, diags := expandDynamicSectionsRegex(ctx, mapping.Regex)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	value, diags := expandDynamicSectionsValue(ctx, mapping.Value)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboardservice.ColorLabelMapping{
+		ColorBy: OptionalEnumPointer(mapping.ColorBy, dashboardSchemaToProtoColorApplyTarget),
+		Range:   rangeMapping,
+		Regex:   regex,
+		Value:   value,
+	}, nil
+}
+
+func expandDynamicRangeMapping(ctx context.Context, rangeMapping *DynamicRangeMappingModel) (*dashboardservice.RangeMapping, diag.Diagnostics) {
+	if rangeMapping == nil {
+		return nil, nil
+	}
+
+	thresholds, diags := expandDynamicThresholds(ctx, rangeMapping.Thresholds)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var minMax *dashboardservice.MinMax
+	if rangeMapping.MinMax != nil {
+		minMax = &dashboardservice.MinMax{}
+		if rangeMapping.MinMax.Auto.ValueBool() {
+			minMax.Auto = map[string]interface{}{}
+		}
+		if rangeMapping.MinMax.Custom != nil {
+			minMax.Custom = &dashboardservice.MinMaxCustom{
+				Max: rangeMapping.MinMax.Custom.Max.ValueFloat64Pointer(),
+				Min: rangeMapping.MinMax.Custom.Min.ValueFloat64Pointer(),
+			}
+		}
+	}
+
+	return &dashboardservice.RangeMapping{
+		MinMax:        minMax,
+		ThresholdType: OptionalEnumPointer(rangeMapping.ThresholdType, DashboardSchemaToProtoThresholdType),
+		Thresholds:    thresholds,
+	}, nil
+}
+
+func expandDynamicSectionsRegex(ctx context.Context, mapping *DynamicSectionsMappingModel) (*dashboardservice.RegexMapping, diag.Diagnostics) {
+	if mapping == nil {
+		return nil, nil
+	}
+	sections, diags := expandDynamicMappingSections(ctx, mapping.Sections)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardservice.RegexMapping{Sections: sections}, nil
+}
+
+func expandDynamicSectionsValue(ctx context.Context, mapping *DynamicSectionsMappingModel) (*dashboardservice.ColorLabelMappingValueMapping, diag.Diagnostics) {
+	if mapping == nil {
+		return nil, nil
+	}
+	sections, diags := expandDynamicMappingSections(ctx, mapping.Sections)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardservice.ColorLabelMappingValueMapping{Sections: sections}, nil
+}
+
+func expandDynamicMappingSections(ctx context.Context, sections types.List) ([]dashboardservice.MappingSection, diag.Diagnostics) {
+	var models []DynamicMappingSectionModel
+	diags := sections.ElementsAs(ctx, &models, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	expanded := make([]dashboardservice.MappingSection, 0, len(models))
+	for i := range models {
+		expanded = append(expanded, dashboardservice.MappingSection{
+			Color: OptionalEnumPointer(models[i].Color, dashboardSchemaToProtoColorSolidType),
+			MapTo: models[i].MapTo.ValueStringPointer(),
+			Value: models[i].Value.ValueStringPointer(),
+		})
+	}
+
+	return expanded, diags
+}
+
+func expandInt32Pointer(value types.Int64) *int32 {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	converted := int32(value.ValueInt64())
+	return &converted
+}
+
+func expandJSONStringToMap(value types.String) (map[string]interface{}, diag.Diagnostics) {
+	if value.IsNull() || value.IsUnknown() {
+		return nil, nil
+	}
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(value.ValueString()), &parsed); err != nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid mapped_values JSON", err.Error())}
+	}
+	return parsed, nil
 }
 
 func expandDynamicThresholds(ctx context.Context, thresholds types.List) ([]dashboardservice.CommonThreshold, diag.Diagnostics) {
@@ -892,10 +1531,16 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{Stat: stat}, nil
+	case visualization.StatCard != nil:
+		statCard, diags := flattenDynamicStatCard(ctx, visualization.StatCard)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{StatCard: statCard}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Unsupported Dashboard Widget Definition",
-			"The dynamic widget uses a visualization variant this provider version does not support as typed HCL yet. Only `stat` is currently supported.",
+			"The dynamic widget uses a visualization variant this provider version does not support as typed HCL yet. Only `stat` and `stat_card` are currently supported.",
 		)}
 	}
 }
@@ -910,18 +1555,255 @@ func flattenDynamicStat(ctx context.Context, stat *dashboardservice.Stat) (*Dyna
 		return nil, diags
 	}
 
+	categoryFields, diags := FlattenObservationFields(ctx, stat.GetCategoryFields())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	valueFields, diags := FlattenObservationFields(ctx, stat.GetValueFields())
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	thresholds, diags := flattenDynamicThresholds(ctx, stat.GetThresholds())
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &DynamicStatModel{
-		ValueField:    valueField,
-		Unit:          flattenOptionalEnum(stat.Unit, DashboardProtoToSchemaUnit),
-		Thresholds:    thresholds,
-		ThresholdType: flattenOptionalEnum(stat.ThresholdType, DashboardProtoToSchemaThresholdType),
-		Legend:        FlattenLegend(stat.Legend),
+		AllowAbbreviation: types.BoolPointerValue(stat.AllowAbbreviation),
+		CategoryFields:    categoryFields,
+		CustomUnit:        types.StringPointerValue(stat.CustomUnit),
+		DecimalPrecision:  flattenInt32Pointer(stat.DecimalPrecision),
+		DisplaySeriesName: types.BoolPointerValue(stat.DisplaySeriesName),
+		Legend:            FlattenLegend(stat.Legend),
+		LegendBy:          flattenOptionalEnum(stat.LegendBy, dashboardProtoToSchemaLegendBy),
+		Max:               types.Float64PointerValue(stat.Max),
+		Min:               types.Float64PointerValue(stat.Min),
+		ThresholdBy:       flattenOptionalEnum(stat.ThresholdBy, dashboardProtoToSchemaThresholdBy),
+		ThresholdType:     flattenOptionalEnum(stat.ThresholdType, DashboardProtoToSchemaThresholdType),
+		Thresholds:        thresholds,
+		Unit:              flattenOptionalEnum(stat.Unit, DashboardProtoToSchemaUnit),
+		ValueField:        valueField,
+		ValueFields:       valueFields,
 	}, nil
+}
+
+func flattenDynamicStatCard(ctx context.Context, statCard *dashboardservice.StatCard) (*DynamicStatCardModel, diag.Diagnostics) {
+	if statCard == nil {
+		return nil, nil
+	}
+
+	categoryFields, diags := FlattenObservationFields(ctx, statCard.GetCategoryFields())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	valueFields, diags := FlattenObservationFields(ctx, statCard.GetValueFields())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	colorLabelMapping, diags := flattenDynamicColorLabelMapping(ctx, statCard.ColorLabelMapping)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	label, diags := flattenDynamicStatVisualElement(ctx, statCard.Label)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	primaryValue, diags := flattenDynamicStatVisualElement(ctx, statCard.PrimaryValue)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	title, diags := flattenDynamicStatVisualElement(ctx, statCard.Title)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &DynamicStatCardModel{
+		AllowAbbreviation: types.BoolPointerValue(statCard.AllowAbbreviation),
+		CategoryFields:    categoryFields,
+		ColorLabelMapping: colorLabelMapping,
+		CustomUnit:        types.StringPointerValue(statCard.CustomUnit),
+		DecimalPrecision:  flattenInt32Pointer(statCard.DecimalPrecision),
+		Label:             label,
+		Legend:            FlattenLegend(statCard.Legend),
+		LegendBy:          flattenOptionalEnum(statCard.LegendBy, dashboardProtoToSchemaLegendBy),
+		PrimaryValue:      primaryValue,
+		Title:             title,
+		Unit:              flattenOptionalEnum(statCard.Unit, DashboardProtoToSchemaUnit),
+		ValueFields:       valueFields,
+	}, nil
+}
+
+func flattenDynamicStatVisualElement(ctx context.Context, element *dashboardservice.StatVisualElement) (*DynamicStatVisualElementModel, diag.Diagnostics) {
+	if element == nil {
+		return nil, nil
+	}
+
+	observationField, diags := FlattenObservationField(ctx, element.ObservationField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	templateVariables, diags := flattenDynamicTemplateVariables(ctx, element.GetTemplateVariables())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &DynamicStatVisualElementModel{
+		MappedValues:      flattenMapToJSONString(element.MappedValues),
+		ObservationField:  observationField,
+		TemplateText:      types.StringPointerValue(element.TemplateText),
+		TemplateVariables: templateVariables,
+	}, nil
+}
+
+func flattenDynamicTemplateVariables(ctx context.Context, variables []dashboardservice.DisplayNameTemplateVariable) (types.List, diag.Diagnostics) {
+	if len(variables) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: dynamicTemplateVariableAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	elements := make([]attr.Value, 0, len(variables))
+	for i := range variables {
+		observationField, dg := FlattenObservationField(ctx, variables[i].ObservationField)
+		if dg.HasError() {
+			diagnostics.Append(dg...)
+			continue
+		}
+		model := &DynamicTemplateVariableModel{
+			MappedValues:     flattenMapToJSONString(variables[i].MappedValues),
+			ObservationField: observationField,
+		}
+		element, dg := types.ObjectValueFrom(ctx, dynamicTemplateVariableAttr(), model)
+		if dg.HasError() {
+			diagnostics.Append(dg...)
+			continue
+		}
+		elements = append(elements, element)
+	}
+
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: dynamicTemplateVariableAttr()}), diagnostics
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dynamicTemplateVariableAttr()}, elements)
+}
+
+func flattenDynamicColorLabelMapping(ctx context.Context, mapping *dashboardservice.ColorLabelMapping) (*DynamicColorLabelMappingModel, diag.Diagnostics) {
+	if mapping == nil {
+		return nil, nil
+	}
+
+	rangeMapping, diags := flattenDynamicRangeMapping(ctx, mapping.Range)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var regex *DynamicSectionsMappingModel
+	if mapping.Regex != nil {
+		sections, dg := flattenDynamicMappingSections(ctx, mapping.Regex.GetSections())
+		if dg.HasError() {
+			return nil, dg
+		}
+		regex = &DynamicSectionsMappingModel{Sections: sections}
+	}
+
+	var value *DynamicSectionsMappingModel
+	if mapping.Value != nil {
+		sections, dg := flattenDynamicMappingSections(ctx, mapping.Value.GetSections())
+		if dg.HasError() {
+			return nil, dg
+		}
+		value = &DynamicSectionsMappingModel{Sections: sections}
+	}
+
+	return &DynamicColorLabelMappingModel{
+		ColorBy: flattenOptionalEnum(mapping.ColorBy, dashboardProtoToSchemaColorApplyTarget),
+		Range:   rangeMapping,
+		Regex:   regex,
+		Value:   value,
+	}, nil
+}
+
+func flattenDynamicRangeMapping(ctx context.Context, rangeMapping *dashboardservice.RangeMapping) (*DynamicRangeMappingModel, diag.Diagnostics) {
+	if rangeMapping == nil {
+		return nil, nil
+	}
+
+	thresholds, diags := flattenDynamicThresholds(ctx, rangeMapping.GetThresholds())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var minMax *DynamicMinMaxModel
+	if rangeMapping.MinMax != nil {
+		minMax = &DynamicMinMaxModel{Auto: types.BoolNull()}
+		if rangeMapping.MinMax.Auto != nil {
+			minMax.Auto = types.BoolValue(true)
+		}
+		if rangeMapping.MinMax.Custom != nil {
+			minMax.Custom = &DynamicMinMaxCustomModel{
+				Max: types.Float64PointerValue(rangeMapping.MinMax.Custom.Max),
+				Min: types.Float64PointerValue(rangeMapping.MinMax.Custom.Min),
+			}
+		}
+	}
+
+	return &DynamicRangeMappingModel{
+		MinMax:        minMax,
+		ThresholdType: flattenOptionalEnum(rangeMapping.ThresholdType, DashboardProtoToSchemaThresholdType),
+		Thresholds:    thresholds,
+	}, nil
+}
+
+func flattenDynamicMappingSections(ctx context.Context, sections []dashboardservice.MappingSection) (types.List, diag.Diagnostics) {
+	if len(sections) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: dynamicMappingSectionAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	elements := make([]attr.Value, 0, len(sections))
+	for i := range sections {
+		model := &DynamicMappingSectionModel{
+			Color: flattenOptionalEnum(sections[i].Color, dashboardProtoToSchemaColorSolidType),
+			MapTo: types.StringPointerValue(sections[i].MapTo),
+			Value: types.StringPointerValue(sections[i].Value),
+		}
+		element, dg := types.ObjectValueFrom(ctx, dynamicMappingSectionAttr(), model)
+		if dg.HasError() {
+			diagnostics.Append(dg...)
+			continue
+		}
+		elements = append(elements, element)
+	}
+
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: dynamicMappingSectionAttr()}), diagnostics
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dynamicMappingSectionAttr()}, elements)
+}
+
+func flattenInt32Pointer(value *int32) types.Int64 {
+	if value == nil {
+		return types.Int64Null()
+	}
+	return types.Int64Value(int64(*value))
+}
+
+func flattenMapToJSONString(value map[string]interface{}) types.String {
+	if value == nil {
+		return types.StringNull()
+	}
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return types.StringNull()
+	}
+	return types.StringValue(string(encoded))
 }
 
 func flattenDynamicThresholds(ctx context.Context, thresholds []dashboardservice.CommonThreshold) (types.List, diag.Diagnostics) {
