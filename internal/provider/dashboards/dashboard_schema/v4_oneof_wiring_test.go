@@ -192,6 +192,39 @@ func TestV4VariablesOneOfGroupsAreMigratedToExactlyOneOfChildren(t *testing.T) {
 	}
 }
 
+// TestV4VariablesV2ChildGroupValidatorsAreWired walks variables_v2 and checks
+// that every ExactlyOneOfChildren / AtLeastOneOfChildren childNames list
+// resolves to real attribute keys on its container (plain strings with no
+// compiler tie back to the schema map).
+func TestV4VariablesV2ChildGroupValidatorsAreWired(t *testing.T) {
+	root := V4()
+	variablesV2, ok := root.Attributes["variables_v2"].(schema.ListNestedAttribute)
+	if !ok {
+		t.Fatal("variables_v2 is not a list nested attribute")
+	}
+
+	var containers []dashboardOneOfContainer
+	dashboardWalkOneOfContainers("variables_v2[]", variablesV2.NestedObject.Attributes, &containers)
+	if len(containers) == 0 {
+		t.Fatal("walked zero containers under variables_v2; the walker is likely broken")
+	}
+
+	exactlyGroups := dashboardAssertOneOfGroupsMigrated(t, containers)
+	atLeastGroups := dashboardAssertAtLeastOneOfChildrenWired(t, containers)
+
+	// Floor based on current variables_v2 schema shape: source/value/query
+	// oneofs plus nested field/operator/selection groups, and
+	// value_display_options AtLeastOneOfChildren(value_regex, label_regex).
+	const minExactlyGroups = 10
+	if exactlyGroups < minExactlyGroups {
+		t.Errorf("found %d ExactlyOneOfChildren groups under variables_v2, want at least %d", exactlyGroups, minExactlyGroups)
+	}
+	const minAtLeastGroups = 1
+	if atLeastGroups < minAtLeastGroups {
+		t.Errorf("found %d AtLeastOneOfChildren groups under variables_v2, want at least %d", atLeastGroups, minAtLeastGroups)
+	}
+}
+
 // dashboardAssertOneOfGroupsMigrated asserts, for every container walked
 // from a subtree root, that (1) no child attribute still carries an
 // old-style child-attached ExactlyOneOfObject validator, and (2) wherever an
@@ -233,6 +266,36 @@ func dashboardAssertOneOfGroupsMigrated(t *testing.T, containers []dashboardOneO
 		}
 	}
 	return migratedGroups
+}
+
+// dashboardAssertAtLeastOneOfChildrenWired asserts that every
+// AtLeastOneOfChildren childNames list resolves to real attribute keys on
+// the same container. Returns how many containers carry that validator.
+func dashboardAssertAtLeastOneOfChildrenWired(t *testing.T, containers []dashboardOneOfContainer) int {
+	t.Helper()
+	groups := 0
+	for _, container := range containers {
+		var matches [][]string
+		for _, v := range container.validators {
+			if av, ok := v.(dashboardwidgets.AtLeastOneOfChildrenValidator); ok {
+				matches = append(matches, av.ChildNames)
+			}
+		}
+		if len(matches) > 1 {
+			t.Errorf("%s has %d AtLeastOneOfChildren validators attached, want at most 1", container.path, len(matches))
+			continue
+		}
+		if len(matches) == 1 {
+			groups++
+			got := dashboardSortedCopy(matches[0])
+			if unknown := dashboardUnknownChildNames(got, container.attributes); len(unknown) > 0 {
+				t.Errorf("%s: AtLeastOneOfChildren childNames = %v reference attribute(s) %v not present in this container's attribute keys %v; "+
+					"childNames is a plain string list with no compiler tie back to the schema map, so this is likely drift from a rename",
+					container.path, got, unknown, dashboardSortedKeys(container.attributes))
+			}
+		}
+	}
+	return groups
 }
 
 // dashboardOneOfCase describes one known oneof parent attribute outside the

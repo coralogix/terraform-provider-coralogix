@@ -915,7 +915,8 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 			},
 		},
 		"variables": schema.ListNestedAttribute{
-			Optional: true,
+			Optional:           true,
+			DeprecationMessage: "Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration.",
 			NestedObject: schema.NestedAttributeObject{
 				Attributes: map[string]schema.Attribute{
 					"name": schema.StringAttribute{
@@ -1136,8 +1137,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 			Validators: []validator.List{
 				listvalidator.SizeAtLeast(1),
 			},
-			MarkdownDescription: "List of variables that can be used within the dashboard for dynamic content.",
+			MarkdownDescription: "Deprecated: list of legacy variables. Use `variables_v2` for new dashboard variables.",
 		},
+		"variables_v2": VariablesV2Schema(),
 		"filters": schema.ListNestedAttribute{
 			Optional: true,
 			NestedObject: schema.NestedAttributeObject{
@@ -1313,6 +1315,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 					path.MatchRelative().AtParent().AtName("description"),
 					path.MatchRelative().AtParent().AtName("layout"),
 					path.MatchRelative().AtParent().AtName("variables"),
+					path.MatchRelative().AtParent().AtName("variables_v2"),
 					path.MatchRelative().AtParent().AtName("filters"),
 					path.MatchRelative().AtParent().AtName("time_frame"),
 					path.MatchRelative().AtParent().AtName("annotations"),

@@ -462,11 +462,14 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"query":        covered(variable+".source.query", "TestAccCoralogixResourceDashboard"),
 			},
 		},
-		"MultiStringValue": apiOnlyModel(
-			"ast/variables_v2/variable_value.proto#VariableValueV2.MultiStringValue.value",
-			"the provider exposes legacy variables, not variables_v2 values",
-			"all", "list", "selectedAll",
-		),
+		"MultiStringValue": {
+			ProtoSource: "ast/variables_v2/variable_value.proto#VariableValueV2.MultiStringValue.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"all":         covered("variables_v2[*].value.multi_string.all", "TestAccCoralogixResourceDashboardVariablesV2MultiStringAll"),
+				"list":        covered("variables_v2[*].value.multi_string.list", "TestAccCoralogixResourceDashboardVariablesV2Promql"),
+				"selectedAll": covered("variables_v2[*].value.multi_string.selected_all", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue"),
+			},
+		},
 		"PieChartQuery": {
 			ProtoSource: "ast/widgets/pie_chart.proto#PieChart.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -510,31 +513,43 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"labelValue": covered(variableQuery+".metrics.label_value", dashboardOpenAPIVariablesTestName),
 			},
 		},
-		"QuerySourceLogsQueryType": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.LogsQuery.Type.value",
-			"the provider exposes legacy variables, not VariableSourceV2",
-			"fieldName", "fieldValue",
-		),
-		"QuerySourceMetricsQueryOperator": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.Operator.value",
-			"the provider exposes legacy variables, not VariableSourceV2",
-			"equals", "notEquals",
-		),
-		"QuerySourceMetricsQueryStringOrVariable": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.StringOrVariable.value",
-			"the provider exposes legacy variables, not VariableSourceV2",
-			"stringValue", "variableName",
-		),
-		"QuerySourceMetricsQueryType": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.Type.value",
-			"the provider exposes legacy variables, not VariableSourceV2",
-			"metricName", "labelName", "labelValue", "promqlQuery",
-		),
-		"QuerySourceSpansQueryType": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.SpansQuery.Type.value",
-			"the provider exposes legacy variables, not VariableSourceV2",
-			"fieldName", "fieldValue",
-		),
+		"QuerySourceLogsQueryType": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.LogsQuery.Type.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"fieldName":  covered("variables_v2[*].source.query.logs_query.type.field_name", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldName"),
+				"fieldValue": covered("variables_v2[*].source.query.logs_query.type.field_value", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue"),
+			},
+		},
+		"QuerySourceMetricsQueryOperator": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.Operator.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"equals":    covered("variables_v2[*].source.query.metrics_query.type.label_value.label_filters[*].operator", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue"),
+				"notEquals": covered("variables_v2[*].source.query.metrics_query.type.label_value.label_filters[*].operator", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue"),
+			},
+		},
+		"QuerySourceMetricsQueryStringOrVariable": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.StringOrVariable.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"stringValue":  covered("variables_v2[*].source.query.metrics_query.*.string_value", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue"),
+				"variableName": covered("variables_v2[*].source.query.metrics_query.*.variable_name", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue"),
+			},
+		},
+		"QuerySourceMetricsQueryType": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.Type.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"metricName":  covered("variables_v2[*].source.query.metrics_query.type.metric_name", "TestAccCoralogixResourceDashboardVariablesV2Metrics"),
+				"labelName":   covered("variables_v2[*].source.query.metrics_query.type.label_name", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelName"),
+				"labelValue":  covered("variables_v2[*].source.query.metrics_query.type.label_value", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue"),
+				"promqlQuery": covered("variables_v2[*].source.query.metrics_query.type.promql_query", "TestAccCoralogixResourceDashboardVariablesV2Promql"),
+			},
+		},
+		"QuerySourceSpansQueryType": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.SpansQuery.Type.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"fieldName":  covered("variables_v2[*].source.query.spans_query.type.field_name", "TestAccCoralogixResourceDashboardVariablesV2SpansFieldName"),
+				"fieldValue": covered("variables_v2[*].source.query.spans_query.type.field_value", "TestAccCoralogixResourceDashboardVariablesV2SpansFieldValue"),
+			},
+		},
 		"QuerySpansQueryType": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.SpansQuery.Type.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -587,11 +602,18 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			"stat-card visual elements are reachable only below WidgetDefinition.dynamic",
 			"observationField", "mappedValues",
 		),
-		"TextboxDefaultValue": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.TextboxSource.TextboxDefaultValue.value",
-			"the provider exposes legacy variables, not VariableSourceV2 textbox sources",
-			"singleString", "singleNumeric", "defaultStringValue", "defaultNumericValue", "defaultLuceneValue", "defaultRegexValue", "defaultIntervalValue",
-		),
+		"TextboxDefaultValue": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.TextboxSource.TextboxDefaultValue.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"singleString":         structuredRejected("variables_v2[*].source.textbox.default_value.single_string", "deprecated protobuf default; Terraform exposes default_string_value instead"),
+				"singleNumeric":        structuredRejected("variables_v2[*].source.textbox.default_value.single_numeric", "deprecated protobuf default; Terraform exposes default_numeric_value instead"),
+				"defaultStringValue":   covered("variables_v2[*].source.textbox.default_value.default_string_value", "TestAccCoralogixResourceDashboardVariablesV2Textbox"),
+				"defaultNumericValue":  covered("variables_v2[*].source.textbox.default_value.default_numeric_value", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"defaultLuceneValue":   covered("variables_v2[*].source.textbox.default_value.default_lucene_value", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"defaultRegexValue":    covered("variables_v2[*].source.textbox.default_value.default_regex_value", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"defaultIntervalValue": covered("variables_v2[*].source.textbox.default_value.default_interval_value", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+			},
+		},
 		"TimeFrameSelect": {
 			ProtoSource: "common/time_frame.proto#TimeFrameSelect.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -607,21 +629,34 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"multiSelect": covered("variables[*].definition.multi_select", dashboardOpenAPIVariablesTestName),
 			},
 		},
-		"VariableSourceV2": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.value",
-			"DashboardResourceModel exposes the legacy variables schema, not variables_v2",
-			"static", "query", "textbox",
-		),
-		"VariableSourceV2QuerySource": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.value",
-			"DashboardResourceModel exposes the legacy variables schema, not variables_v2",
-			"logsQuery", "metricsQuery", "spansQuery", "dataprimeQuery",
-		),
-		"VariableValueV2": apiOnlyModel(
-			"ast/variables_v2/variable_value.proto#VariableValueV2.value",
-			"DashboardResourceModel exposes the legacy variables schema, not variables_v2",
-			"multiString", "singleString", "singleNumeric", "regex", "lucene", "interval",
-		),
+		"VariableSourceV2": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"static":  covered("variables_v2[*].source.static", "TestAccCoralogixResourceDashboardVariablesV2Static"),
+				"query":   covered("variables_v2[*].source.query", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue"),
+				"textbox": covered("variables_v2[*].source.textbox", "TestAccCoralogixResourceDashboardVariablesV2Textbox"),
+			},
+		},
+		"VariableSourceV2QuerySource": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"logsQuery":      covered("variables_v2[*].source.query.logs_query", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue"),
+				"metricsQuery":   covered("variables_v2[*].source.query.metrics_query", "TestAccCoralogixResourceDashboardVariablesV2Metrics"),
+				"spansQuery":     covered("variables_v2[*].source.query.spans_query", "TestAccCoralogixResourceDashboardVariablesV2SpansFieldValue"),
+				"dataprimeQuery": covered("variables_v2[*].source.query.dataprime_query", "TestAccCoralogixResourceDashboardVariablesV2Dataprime"),
+			},
+		},
+		"VariableValueV2": {
+			ProtoSource: "ast/variables_v2/variable_value.proto#VariableValueV2.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"multiString":   covered("variables_v2[*].value.multi_string", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue"),
+				"singleString":  covered("variables_v2[*].value.single_string", "TestAccCoralogixResourceDashboardVariablesV2Static"),
+				"singleNumeric": covered("variables_v2[*].value.single_numeric", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"regex":         covered("variables_v2[*].value.regex", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"lucene":        covered("variables_v2[*].value.lucene", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"interval":      covered("variables_v2[*].value.interval", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+			},
+		},
 		"Visualization": observedAPIOnlyModel(
 			"ast/widgets/dynamic.proto#Dynamic.Visualization.value",
 			"all Visualization branches are children of WidgetDefinition.dynamic, which is reachable through content_json but absent from the structured schema and flattener; import and data-source reads cannot reconstruct it",

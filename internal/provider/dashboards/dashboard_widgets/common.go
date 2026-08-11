@@ -107,6 +107,39 @@ var (
 	DashboardOrderDirectionProtoToSchema = utils.ReverseMap(DashboardOrderDirectionSchemaToProto)
 	DashboardValidOrderDirections        = utils.GetKeys(DashboardOrderDirectionSchemaToProto)
 
+	// V2 variables accept ORDER_DIRECTION_NONE; keep it off the shared map so
+	// legacy variables / widget order_by flatten cannot write "none" into state
+	// that OneOf(DashboardValidOrderDirections) would then reject.
+	DashboardOrderDirectionSchemaToProtoV2 = map[string]dashboardservice.OrderDirection{
+		"asc":  dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_ASC,
+		"desc": dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_DESC,
+		"none": dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_NONE,
+	}
+	DashboardOrderDirectionProtoToSchemaV2 = utils.ReverseMap(DashboardOrderDirectionSchemaToProtoV2)
+	DashboardValidOrderDirectionsV2        = utils.GetKeys(DashboardOrderDirectionSchemaToProtoV2)
+
+	DashboardSchemaToProtoDisplayTypeV2 = map[string]dashboardservice.VariableDisplayTypeV2{
+		"label_value": dashboardservice.VARIABLEDISPLAYTYPEV2_VARIABLE_DISPLAY_TYPE_V2_LABEL_VALUE,
+		"value":       dashboardservice.VARIABLEDISPLAYTYPEV2_VARIABLE_DISPLAY_TYPE_V2_VALUE,
+		"nothing":     dashboardservice.VARIABLEDISPLAYTYPEV2_VARIABLE_DISPLAY_TYPE_V2_NOTHING,
+	}
+	DashboardProtoToSchemaDisplayTypeV2 = utils.ReverseMap(DashboardSchemaToProtoDisplayTypeV2)
+	DashboardValidDisplayTypesV2        = utils.GetKeys(DashboardSchemaToProtoDisplayTypeV2)
+
+	DashboardSchemaToProtoVariableV2RefreshStrategy = map[string]dashboardservice.VariableSourceV2RefreshStrategy{
+		"on_dashboard_load":    dashboardservice.VARIABLESOURCEV2REFRESHSTRATEGY_REFRESH_STRATEGY_ON_DASHBOARD_LOAD,
+		"on_time_frame_change": dashboardservice.VARIABLESOURCEV2REFRESHSTRATEGY_REFRESH_STRATEGY_ON_TIME_FRAME_CHANGE,
+	}
+	DashboardProtoToSchemaVariableV2RefreshStrategy = utils.ReverseMap(DashboardSchemaToProtoVariableV2RefreshStrategy)
+	DashboardValidVariableV2RefreshStrategies       = utils.GetKeys(DashboardSchemaToProtoVariableV2RefreshStrategy)
+
+	DashboardSchemaToProtoDataModeTypeV2 = map[string]dashboardservice.V1CommonDataModeType{
+		"high":    dashboardservice.V1COMMONDATAMODETYPE_DATA_MODE_TYPE_HIGH_UNSPECIFIED,
+		"archive": dashboardservice.V1COMMONDATAMODETYPE_DATA_MODE_TYPE_ARCHIVE,
+	}
+	DashboardProtoToSchemaDataModeTypeV2 = utils.ReverseMap(DashboardSchemaToProtoDataModeTypeV2)
+	DashboardValidDataModeTypesV2        = utils.GetKeys(DashboardSchemaToProtoDataModeTypeV2)
+
 	DashboardValidMultiSelectSelectionTypes = []string{
 		"multi",
 		"single",
@@ -1990,6 +2023,53 @@ func (v ExactlyOneOfChildrenValidator) ValidateObject(_ context.Context, req val
 		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Attribute Combination",
 			"No attribute was configured in this one-of group. Configure exactly one value.")
 	}
+}
+
+// AtLeastOneOfChildren validates that at least one named direct child attribute
+// is set when the parent object is configured.
+func AtLeastOneOfChildren(childNames ...string) validator.Object {
+	return AtLeastOneOfChildrenValidator{ChildNames: childNames}
+}
+
+// AtLeastOneOfChildrenValidator is the object validator behind AtLeastOneOfChildren.
+type AtLeastOneOfChildrenValidator struct {
+	ChildNames []string
+}
+
+func (v AtLeastOneOfChildrenValidator) Description(_ context.Context) string {
+	return fmt.Sprintf("At least one of these attributes must be configured: `%s`.", strings.Join(v.ChildNames, "`, `"))
+}
+
+func (v AtLeastOneOfChildrenValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v AtLeastOneOfChildrenValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	attrs := req.ConfigValue.Attributes()
+	knownSet := 0
+	unknownCount := 0
+	for _, name := range v.ChildNames {
+		val, ok := attrs[name]
+		if !ok {
+			continue
+		}
+		if val.IsUnknown() {
+			unknownCount++
+			continue
+		}
+		if !val.IsNull() {
+			knownSet++
+		}
+	}
+	if unknownCount > 0 || knownSet > 0 {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(req.Path, "Invalid Attribute Combination",
+		fmt.Sprintf("Configure at least one of: `%s`.", strings.Join(v.ChildNames, "`, `")))
 }
 
 // FriendlyExactlyOneOfObjectValidator is exported (rather than kept as an

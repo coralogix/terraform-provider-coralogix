@@ -1,6 +1,8 @@
 # Unreleased
 
 #### resource/coralogix_dashboard
+- FEAT: Add `variables_v2` with static, textbox, and query-backed dashboard variables.
+- DEPRECATION: Mark `variables` as deprecated. Use `variables_v2` for new dashboard variables.
 - FIX: Schema v2/v3→v4 state upgrade no longer fails with `Missing Upgraded Resource State` when the dashboard was deleted outside Terraform. The upgrader no longer removes the resource from state (illegal inside a state upgrader); it returns a valid v4 state carrying the prior `id`, `name`, `description` and `content_json`, so the following refresh detects the missing dashboard and plans a recreate.
 
 #### resource/coralogix_team

@@ -65,7 +65,8 @@ type DashboardResourceModel struct {
 	Description  types.String                     `tfsdk:"description"`
 	Layout       types.Object                     `tfsdk:"layout"`    //DashboardLayoutModel
 	Variables    types.List                       `tfsdk:"variables"` //DashboardVariableModel
-	Filters      types.List                       `tfsdk:"filters"`   //DashboardFilterModel
+	VariablesV2  types.List                       `tfsdk:"variables_v2"`
+	Filters      types.List                       `tfsdk:"filters"` //DashboardFilterModel
 	TimeFrame    *dashboardwidgets.TimeFrameModel `tfsdk:"time_frame"`
 	Folder       types.Object                     `tfsdk:"folder"`       //DashboardFolderModel
 	Annotations  types.List                       `tfsdk:"annotations"`  //DashboardAnnotationModel
@@ -617,6 +618,7 @@ func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateR
 		Description:  priorState.Description,
 		Layout:       priorState.Layout,
 		Variables:    priorState.Variables,
+		VariablesV2:  types.ListNull(dashboardVariablesV2ElementType()),
 		Filters:      priorState.Filters,
 		TimeFrame:    priorState.TimeFrame,
 		Folder:       priorState.Folder,
@@ -734,6 +736,7 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 		Description: priorStateData.Description,
 		Layout:      newLayout,
 		Variables:   priorStateData.Variables,
+		VariablesV2: priorStateData.VariablesV2,
 		Filters:     priorStateData.Filters,
 		TimeFrame:   priorStateData.TimeFrame,
 		Folder:      priorStateData.Folder,
@@ -1115,6 +1118,11 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 		return nil, diags
 	}
 
+	variablesV2, diags := expandDashboardVariablesV2(ctx, plan.VariablesV2)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	filters, diags := expandDashboardFilters(ctx, plan.Filters)
 	if diags.HasError() {
 		return nil, diags
@@ -1136,6 +1144,7 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 		Description: utils.TypeStringToStringPointer(plan.Description),
 		Layout:      layoutValue,
 		Variables:   variables,
+		VariablesV2: variablesV2,
 		Filters:     filters,
 		Annotations: annotations,
 	}
@@ -3838,6 +3847,11 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response
 		return nil, diags
 	}
 
+	variablesV2, diags := flattenDashboardVariablesV2(ctx, dashboard.GetVariablesV2(), plan.VariablesV2)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	filters, diags := flattenDashboardFilters(ctx, dashboard.GetFilters())
 	if diags.HasError() {
 		return nil, diags
@@ -3864,6 +3878,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response
 		Description:  utils.StringPointerToTypeString(dashboard.Description),
 		Layout:       layout,
 		Variables:    variables,
+		VariablesV2:  variablesV2,
 		Filters:      filters,
 		TimeFrame:    timeFrame,
 		Folder:       folder,
@@ -3904,6 +3919,7 @@ func flattenContentJSONDashboard(ctx context.Context, plan DashboardResourceMode
 		Description:  types.StringNull(),
 		Layout:       types.ObjectNull(layoutModelAttr()),
 		Variables:    types.ListNull(types.ObjectType{AttrTypes: dashboardsVariablesModelAttr()}),
+		VariablesV2:  types.ListNull(dashboardVariablesV2ElementType()),
 		Filters:      types.ListNull(types.ObjectType{AttrTypes: dashboardsFiltersModelAttr()}),
 		TimeFrame:    nil,
 		Folder:       folder,
