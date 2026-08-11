@@ -378,6 +378,126 @@ func TestDynamicWidgetStatCardMinMaxAutoRoundTrip(t *testing.T) {
 	assertDynamicRoundTrip(ctx, t, original)
 }
 
+func TestDynamicWidgetTableFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	columns := types.ListValueMust(types.ObjectType{AttrTypes: dynamicTableColumnModelAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicTableColumnModelAttr(), map[string]attr.Value{
+			"field": observationFieldObject("status", "user_data"),
+		}),
+		types.ObjectValueMust(dynamicTableColumnModelAttr(), map[string]attr.Value{
+			"field": observationFieldObject("duration", "metadata"),
+		}),
+	})
+
+	linkActions := types.ListValueMust(types.ObjectType{AttrTypes: dynamicTableLinkActionModelAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicTableLinkActionModelAttr(), map[string]attr.Value{
+			"id":                        types.StringValue("11111111-1111-1111-1111-111111111111"),
+			"name":                      types.StringValue("open trace"),
+			"should_open_in_new_window": types.BoolValue(true),
+			"url":                       types.StringValue("https://example.com/{{traceId}}"),
+		}),
+	})
+
+	valuesMappings := types.ListValueMust(types.ObjectType{AttrTypes: dynamicTableValueMappingModelAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicTableValueMappingModelAttr(), map[string]attr.Value{
+			"input_value":   types.StringValue("200"),
+			"replace_value": types.StringValue("OK"),
+			"type":          types.StringValue("value"),
+		}),
+	})
+
+	definition := &DynamicTablePropertyDefinitionModel{
+		Alignment:         types.StringValue("center"),
+		ColumnDisplayName: types.StringValue("Status Code"),
+		Link:              &DynamicTablePropertyLinkModel{Actions: linkActions},
+		RegexExtract:      types.StringValue(`(\d+)`),
+		Thresholds: &DynamicTablePropertyThresholdsModel{
+			Max:    types.Float64Value(100),
+			Min:    types.Float64Value(0),
+			Type:   types.StringValue("absolute"),
+			Values: dynamicThresholdList(),
+		},
+		Units: &DynamicTablePropertyUnitsModel{
+			AllowAbbreviation: types.BoolValue(true),
+			CustomUnit:        types.StringValue("reqs"),
+			DecimalPrecision:  types.Int64Value(2),
+			Max:               types.Float64Value(100),
+			Min:               types.Float64Value(0),
+			Unit:              types.StringValue("bytes"),
+		},
+		ValuesAlias:   types.StringValue("code"),
+		ValuesMapping: &DynamicTablePropertyValuesMappingModel{Mappings: valuesMappings},
+	}
+
+	properties := types.ListValueMust(types.ObjectType{AttrTypes: dynamicTablePropertyModelAttr()}, []attr.Value{
+		objectFrom(ctx, t, dynamicTablePropertyModelAttr(), &DynamicTablePropertyModel{
+			ID:         types.StringValue("22222222-2222-2222-2222-222222222222"),
+			Definition: definition,
+		}),
+	})
+
+	rules := types.ListValueMust(types.ObjectType{AttrTypes: dynamicTableRuleModelAttr()}, []attr.Value{
+		objectFrom(ctx, t, dynamicTableRuleModelAttr(), &DynamicTableRuleModel{
+			Description: types.StringValue("color errors"),
+			ID:          types.StringValue("33333333-3333-3333-3333-333333333333"),
+			Name:        types.StringValue("errors rule"),
+			Properties:  properties,
+			RuleScope: &DynamicTableRuleScopeModel{
+				Field:     observationFieldObject("status", "user_data"),
+				FieldType: types.StringValue("number"),
+				Regex:     types.StringValue("5.."),
+			},
+		}),
+	})
+
+	columnWidths := types.ListValueMust(types.ObjectType{AttrTypes: dynamicTableColumnWidthModelAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicTableColumnWidthModelAttr(), map[string]attr.Value{
+			"column_name": types.StringValue("status"),
+			"width":       types.Int64Value(120),
+		}),
+	})
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			Table: &DynamicTableModel{
+				Columns: columns,
+				Rules:   rules,
+				Settings: &DynamicTableSettingsModel{
+					ColumnWidths: columnWidths,
+					RowStyle:     types.StringValue("two_line"),
+				},
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetTableEmptyListsFlattenToNull(t *testing.T) {
+	ctx := context.Background()
+
+	columns, diags := flattenDynamicTableColumns(ctx, nil)
+	if diags.HasError() {
+		t.Fatalf("flattening empty columns: %v", diags)
+	}
+	if !columns.IsNull() {
+		t.Fatalf("empty columns should flatten to null, got %s", columns)
+	}
+
+	rules, diags := flattenDynamicTableRules(ctx, nil)
+	if diags.HasError() {
+		t.Fatalf("flattening empty rules: %v", diags)
+	}
+	if !rules.IsNull() {
+		t.Fatalf("empty rules should flatten to null, got %s", rules)
+	}
+}
+
 func TestDynamicMappedValuesPreservesEquivalentJSON(t *testing.T) {
 	ctx := context.Background()
 	modifier := utils.PreserveStateForEquivalentJSON{}
