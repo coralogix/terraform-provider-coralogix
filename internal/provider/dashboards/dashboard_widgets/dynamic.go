@@ -208,9 +208,12 @@ func DynamicSchema() schema.Attribute {
 					"horizontal_bars_multi":   dynamicHorizontalBarsMultiSchema(),
 					"gauge":                   dynamicGaugeSchema(),
 					"pie_chart":               dynamicPieChartSchema(),
+					"hexagon_bins":            dynamicHexagonBinsSchema(),
+					"heatmap":                 dynamicHeatmapSchema(),
+					"geomap":                  dynamicGeomapSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi", "gauge", "pie_chart"),
+					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi", "gauge", "pie_chart", "hexagon_bins", "heatmap", "geomap"),
 				},
 			},
 		},
@@ -1222,6 +1225,9 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 		"horizontal_bars_multi":   types.ObjectType{AttrTypes: dynamicHorizontalBarsMultiModelAttr()},
 		"gauge":                   types.ObjectType{AttrTypes: dynamicGaugeModelAttr()},
 		"pie_chart":               types.ObjectType{AttrTypes: dynamicPieChartModelAttr()},
+		"hexagon_bins":            types.ObjectType{AttrTypes: dynamicHexagonBinsModelAttr()},
+		"heatmap":                 types.ObjectType{AttrTypes: dynamicHeatmapModelAttr()},
+		"geomap":                  types.ObjectType{AttrTypes: dynamicGeomapModelAttr()},
 	}
 }
 
@@ -1833,8 +1839,29 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{PieChart: pieChart}, nil
+	case visualization.HexagonBins != nil:
+		hexagonBins, diags := expandDynamicHexagonBins(ctx, visualization.HexagonBins)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{HexagonBins: hexagonBins}, nil
+	case visualization.Heatmap != nil:
+		heatmap, diags := expandDynamicHeatmap(ctx, visualization.Heatmap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{Heatmap: heatmap}, nil
+	case visualization.Geomap != nil:
+		geomap, diags := expandDynamicGeomap(ctx, visualization.Geomap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{Geomap: geomap}, nil
 	default:
-		return nil, nil
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Unsupported Dashboard Widget Definition",
+			"The dynamic widget uses an unknown or unsupported visualization variant.",
+		)}
 	}
 }
 
@@ -2815,10 +2842,28 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{PieChart: pieChart}, nil
+	case visualization.HexagonBins != nil:
+		hexagonBins, diags := flattenDynamicHexagonBins(ctx, visualization.HexagonBins)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{HexagonBins: hexagonBins}, nil
+	case visualization.Heatmap != nil:
+		heatmap, diags := flattenDynamicHeatmap(ctx, visualization.Heatmap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{Heatmap: heatmap}, nil
+	case visualization.Geomap != nil:
+		geomap, diags := flattenDynamicGeomap(ctx, visualization.Geomap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{Geomap: geomap}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Unsupported Dashboard Widget Definition",
-			"The dynamic widget uses a visualization variant this provider version does not support as typed HCL yet. The `hexagon_bins`, `heatmap`, and `geomap` variants are not yet modeled.",
+			"The dynamic widget uses an unknown or unsupported visualization variant.",
 		)}
 	}
 }

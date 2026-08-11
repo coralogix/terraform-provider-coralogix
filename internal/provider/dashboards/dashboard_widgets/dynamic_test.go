@@ -854,6 +854,136 @@ func TestDynamicWidgetPieChartFullFidelityRoundTrip(t *testing.T) {
 	assertDynamicRoundTrip(ctx, t, original)
 }
 
+func TestDynamicWidgetHexagonBinsFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("avg")}),
+		GroupByQuery: types.BoolValue(true),
+		Placement:    types.StringValue("bottom"),
+	}
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			HexagonBins: &DynamicHexagonBinsModel{
+				AllowAbbreviation: types.BoolValue(true),
+				CategoryFields:    observationFieldList("category", "user_data"),
+				CustomUnit:        types.StringValue("hexes"),
+				DecimalPrecision:  types.Int64Value(2),
+				Legend:            legend,
+				LegendBy:          types.StringValue("thresholds"),
+				Max:               types.Float64Value(100),
+				Min:               types.Float64Value(0),
+				ThresholdType:     types.StringValue("absolute"),
+				Thresholds:        dynamicThresholdList(),
+				Unit:              types.StringValue("bytes"),
+				ValueField:        observationFieldObject("duration", "metadata"),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetHeatmapFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			Heatmap: &DynamicHeatmapModel{
+				AllowAbbreviation:   types.BoolValue(true),
+				ColorAxisMax:        float32TestValue(100),
+				ColorAxisMin:        float32TestValue(0),
+				ColorRange:          types.StringValue("blue_reversed"),
+				CustomUnit:          types.StringValue("cells"),
+				DecimalPrecision:    types.Int64Value(3),
+				HistogramBucketUnit: types.StringValue("milliseconds"),
+				Preset:              types.StringValue("green_reversed"),
+				ScaleType:           types.StringValue("linear"),
+				ShowNumbers:         types.BoolValue(true),
+				Tooltip: &DynamicHeatmapTooltipModel{
+					Labels:          observationFieldList("tip", "user_data"),
+					MessageTemplate: types.StringValue("{{value}}"),
+				},
+				Unit:            types.StringValue("usd"),
+				ValueField:      observationFieldObject("value", "metadata"),
+				XAxisFields:     observationFieldList("x", "user_data"),
+				XAxisTimeFormat: types.StringValue("hh_mm"),
+				YAxisFields:     observationFieldList("y", "user_data"),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetGeomapFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	fieldBased := func(name string) *DynamicGeomapAggregationFieldBasedModel {
+		return &DynamicGeomapAggregationFieldBasedModel{
+			Field: observationFieldObject(name, "metadata"),
+		}
+	}
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			Geomap: &DynamicGeomapModel{
+				Aggregation: &DynamicGeomapAggregationModel{
+					Avg:   fieldBased("avg_field"),
+					Count: types.BoolValue(true),
+					Max:   fieldBased("max_field"),
+					Min:   fieldBased("min_field"),
+					Sum:   fieldBased("sum_field"),
+				},
+				AllowAbbreviation: types.BoolValue(true),
+				Color: &DynamicGeomapColorModel{
+					ColorRange: types.StringValue("red_reversed"),
+					Size:       types.StringValue("orange"),
+				},
+				Config: &DynamicGeomapFieldConfigModel{
+					AwsRegionConfig: &DynamicGeomapAwsRegionConfigModel{
+						AwsRegionField: observationFieldObject("region", "metadata"),
+					},
+					CoordinateConfig: &DynamicGeomapCoordinateConfigModel{
+						LatitudeField:  observationFieldObject("lat", "metadata"),
+						LongitudeField: observationFieldObject("lon", "metadata"),
+					},
+				},
+				CustomUnit:       types.StringValue("points"),
+				DecimalPrecision: types.Int64Value(2),
+				MinMax: &DynamicMinMaxModel{
+					Auto: types.BoolNull(),
+					Custom: &DynamicMinMaxCustomModel{
+						Max: types.Float64Value(50),
+						Min: types.Float64Value(5),
+					},
+				},
+				Tooltip: &DynamicGeomapTooltipModel{
+					Labels:          observationFieldList("tip", "user_data"),
+					MessageTemplate: types.StringValue("{{lat}},{{lon}}"),
+				},
+				Unit: types.StringValue("usd"),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
 func TestDynamicWidgetTableEmptyListsFlattenToNull(t *testing.T) {
 	ctx := context.Background()
 

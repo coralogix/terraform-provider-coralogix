@@ -502,6 +502,96 @@ type DynamicVisualizationModel struct {
 	HorizontalBarsMulti  *DynamicHorizontalBarsMultiModel  `tfsdk:"horizontal_bars_multi"`
 	Gauge                *DynamicGaugeModel                `tfsdk:"gauge"`
 	PieChart             *DynamicPieChartModel             `tfsdk:"pie_chart"`
+	HexagonBins          *DynamicHexagonBinsModel          `tfsdk:"hexagon_bins"`
+	Heatmap              *DynamicHeatmapModel              `tfsdk:"heatmap"`
+	Geomap               *DynamicGeomapModel               `tfsdk:"geomap"`
+}
+
+type DynamicHexagonBinsModel struct {
+	AllowAbbreviation types.Bool    `tfsdk:"allow_abbreviation"`
+	CategoryFields    types.List    `tfsdk:"category_fields"` //ObservationFieldModel
+	CustomUnit        types.String  `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64   `tfsdk:"decimal_precision"`
+	Legend            *LegendModel  `tfsdk:"legend"`
+	LegendBy          types.String  `tfsdk:"legend_by"`
+	Max               types.Float64 `tfsdk:"max"`
+	Min               types.Float64 `tfsdk:"min"`
+	ThresholdType     types.String  `tfsdk:"threshold_type"`
+	Thresholds        types.List    `tfsdk:"thresholds"` //DynamicThresholdModel
+	Unit              types.String  `tfsdk:"unit"`
+	ValueField        types.Object  `tfsdk:"value_field"` //ObservationFieldModel
+}
+
+type DynamicHeatmapModel struct {
+	AllowAbbreviation   types.Bool                  `tfsdk:"allow_abbreviation"`
+	ColorAxisMax        Float32Value                `tfsdk:"color_axis_max"`
+	ColorAxisMin        Float32Value                `tfsdk:"color_axis_min"`
+	ColorRange          types.String                `tfsdk:"color_range"`
+	CustomUnit          types.String                `tfsdk:"custom_unit"`
+	DecimalPrecision    types.Int64                 `tfsdk:"decimal_precision"`
+	HistogramBucketUnit types.String                `tfsdk:"histogram_bucket_unit"`
+	Preset              types.String                `tfsdk:"preset"`
+	ScaleType           types.String                `tfsdk:"scale_type"`
+	ShowNumbers         types.Bool                  `tfsdk:"show_numbers"`
+	Tooltip             *DynamicHeatmapTooltipModel `tfsdk:"tooltip"`
+	Unit                types.String                `tfsdk:"unit"`
+	ValueField          types.Object                `tfsdk:"value_field"`  //ObservationFieldModel
+	XAxisFields         types.List                  `tfsdk:"x_axis_fields"` //ObservationFieldModel
+	XAxisTimeFormat     types.String                `tfsdk:"x_axis_time_format"`
+	YAxisFields         types.List                  `tfsdk:"y_axis_fields"` //ObservationFieldModel
+}
+
+type DynamicHeatmapTooltipModel struct {
+	Labels          types.List   `tfsdk:"labels"` //ObservationFieldModel
+	MessageTemplate types.String `tfsdk:"message_template"`
+}
+
+type DynamicGeomapModel struct {
+	Aggregation       *DynamicGeomapAggregationModel `tfsdk:"aggregation"`
+	AllowAbbreviation types.Bool                     `tfsdk:"allow_abbreviation"`
+	Color             *DynamicGeomapColorModel       `tfsdk:"color"`
+	Config            *DynamicGeomapFieldConfigModel `tfsdk:"config"`
+	CustomUnit        types.String                   `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64                    `tfsdk:"decimal_precision"`
+	MinMax            *DynamicMinMaxModel            `tfsdk:"min_max"`
+	Tooltip           *DynamicGeomapTooltipModel     `tfsdk:"tooltip"`
+	Unit              types.String                   `tfsdk:"unit"`
+}
+
+type DynamicGeomapAggregationModel struct {
+	Avg   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"avg"`
+	Count types.Bool                               `tfsdk:"count"`
+	Max   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"max"`
+	Min   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"min"`
+	Sum   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"sum"`
+}
+
+type DynamicGeomapAggregationFieldBasedModel struct {
+	Field types.Object `tfsdk:"field"` //ObservationFieldModel
+}
+
+type DynamicGeomapColorModel struct {
+	ColorRange types.String `tfsdk:"color_range"`
+	Size       types.String `tfsdk:"size"`
+}
+
+type DynamicGeomapFieldConfigModel struct {
+	AwsRegionConfig  *DynamicGeomapAwsRegionConfigModel  `tfsdk:"aws_region_config"`
+	CoordinateConfig *DynamicGeomapCoordinateConfigModel `tfsdk:"coordinate_config"`
+}
+
+type DynamicGeomapAwsRegionConfigModel struct {
+	AwsRegionField types.Object `tfsdk:"aws_region_field"` //ObservationFieldModel
+}
+
+type DynamicGeomapCoordinateConfigModel struct {
+	LatitudeField  types.Object `tfsdk:"latitude_field"`  //ObservationFieldModel
+	LongitudeField types.Object `tfsdk:"longitude_field"` //ObservationFieldModel
+}
+
+type DynamicGeomapTooltipModel struct {
+	Labels          types.List   `tfsdk:"labels"` //ObservationFieldModel
+	MessageTemplate types.String `tfsdk:"message_template"`
 }
 
 type DynamicGaugeModel struct {
