@@ -1772,96 +1772,124 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 		return nil, nil
 	}
 
+	for _, group := range []func(context.Context, *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics, bool){
+		expandDynamicVisualizationStatGroup,
+		expandDynamicVisualizationChartGroup,
+		expandDynamicVisualizationGeoGroup,
+	} {
+		if viz, diags, handled := group(ctx, visualization); handled {
+			return viz, diags
+		}
+	}
+
+	return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+		"Unsupported Dashboard Widget Definition",
+		"The dynamic widget uses an unknown or unsupported visualization variant.",
+	)}
+}
+
+func expandDynamicVisualizationStatGroup(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics, bool) {
 	switch {
 	case visualization.Stat != nil:
 		stat, diags := expandDynamicStat(ctx, visualization.Stat)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &dashboardservice.Visualization{Stat: stat}, nil
+		return &dashboardservice.Visualization{Stat: stat}, nil, true
 	case visualization.StatCard != nil:
 		statCard, diags := expandDynamicStatCard(ctx, visualization.StatCard)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &dashboardservice.Visualization{StatCard: statCard}, nil
+		return &dashboardservice.Visualization{StatCard: statCard}, nil, true
 	case visualization.Table != nil:
 		table, diags := expandDynamicTable(ctx, visualization.Table)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &dashboardservice.Visualization{Table: table}, nil
-	case visualization.TimeSeriesLinesMulti != nil:
-		linesMulti, diags := expandDynamicTimeSeriesLinesMulti(ctx, visualization.TimeSeriesLinesMulti)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &dashboardservice.Visualization{TimeSeriesLinesMulti: linesMulti}, nil
-	case visualization.TimeSeriesBars != nil:
-		bars, diags := expandDynamicTimeSeriesBars(ctx, visualization.TimeSeriesBars)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &dashboardservice.Visualization{TimeSeriesBars: bars}, nil
-	case visualization.VerticalBars != nil:
-		verticalBars, diags := expandDynamicVerticalBars(ctx, visualization.VerticalBars)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &dashboardservice.Visualization{VerticalBars: verticalBars}, nil
-	case visualization.VerticalBarsMulti != nil:
-		verticalBarsMulti, diags := expandDynamicVerticalBarsMulti(ctx, visualization.VerticalBarsMulti)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &dashboardservice.Visualization{VerticalBarsMulti: verticalBarsMulti}, nil
-	case visualization.HorizontalBars != nil:
-		horizontalBars, diags := expandDynamicHorizontalBars(ctx, visualization.HorizontalBars)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &dashboardservice.Visualization{HorizontalBars: horizontalBars}, nil
-	case visualization.HorizontalBarsMulti != nil:
-		horizontalBarsMulti, diags := expandDynamicHorizontalBarsMulti(ctx, visualization.HorizontalBarsMulti)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &dashboardservice.Visualization{HorizontalBarsMulti: horizontalBarsMulti}, nil
+		return &dashboardservice.Visualization{Table: table}, nil, true
 	case visualization.Gauge != nil:
 		gauge, diags := expandDynamicGauge(ctx, visualization.Gauge)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &dashboardservice.Visualization{Gauge: gauge}, nil
+		return &dashboardservice.Visualization{Gauge: gauge}, nil, true
 	case visualization.PieChart != nil:
 		pieChart, diags := expandDynamicPieChart(ctx, visualization.PieChart)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &dashboardservice.Visualization{PieChart: pieChart}, nil
+		return &dashboardservice.Visualization{PieChart: pieChart}, nil, true
+	default:
+		return nil, nil, false
+	}
+}
+
+func expandDynamicVisualizationChartGroup(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics, bool) {
+	switch {
+	case visualization.TimeSeriesLinesMulti != nil:
+		linesMulti, diags := expandDynamicTimeSeriesLinesMulti(ctx, visualization.TimeSeriesLinesMulti)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &dashboardservice.Visualization{TimeSeriesLinesMulti: linesMulti}, nil, true
+	case visualization.TimeSeriesBars != nil:
+		bars, diags := expandDynamicTimeSeriesBars(ctx, visualization.TimeSeriesBars)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &dashboardservice.Visualization{TimeSeriesBars: bars}, nil, true
+	case visualization.VerticalBars != nil:
+		verticalBars, diags := expandDynamicVerticalBars(ctx, visualization.VerticalBars)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &dashboardservice.Visualization{VerticalBars: verticalBars}, nil, true
+	case visualization.VerticalBarsMulti != nil:
+		verticalBarsMulti, diags := expandDynamicVerticalBarsMulti(ctx, visualization.VerticalBarsMulti)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &dashboardservice.Visualization{VerticalBarsMulti: verticalBarsMulti}, nil, true
+	case visualization.HorizontalBars != nil:
+		horizontalBars, diags := expandDynamicHorizontalBars(ctx, visualization.HorizontalBars)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &dashboardservice.Visualization{HorizontalBars: horizontalBars}, nil, true
+	case visualization.HorizontalBarsMulti != nil:
+		horizontalBarsMulti, diags := expandDynamicHorizontalBarsMulti(ctx, visualization.HorizontalBarsMulti)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &dashboardservice.Visualization{HorizontalBarsMulti: horizontalBarsMulti}, nil, true
+	default:
+		return nil, nil, false
+	}
+}
+
+func expandDynamicVisualizationGeoGroup(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics, bool) {
+	switch {
 	case visualization.HexagonBins != nil:
 		hexagonBins, diags := expandDynamicHexagonBins(ctx, visualization.HexagonBins)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &dashboardservice.Visualization{HexagonBins: hexagonBins}, nil
+		return &dashboardservice.Visualization{HexagonBins: hexagonBins}, nil, true
 	case visualization.Heatmap != nil:
 		heatmap, diags := expandDynamicHeatmap(ctx, visualization.Heatmap)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &dashboardservice.Visualization{Heatmap: heatmap}, nil
+		return &dashboardservice.Visualization{Heatmap: heatmap}, nil, true
 	case visualization.Geomap != nil:
 		geomap, diags := expandDynamicGeomap(ctx, visualization.Geomap)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &dashboardservice.Visualization{Geomap: geomap}, nil
+		return &dashboardservice.Visualization{Geomap: geomap}, nil, true
 	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
-			"Unsupported Dashboard Widget Definition",
-			"The dynamic widget uses an unknown or unsupported visualization variant.",
-		)}
+		return nil, nil, false
 	}
 }
 
@@ -2775,96 +2803,124 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 		return nil, nil
 	}
 
+	for _, group := range []func(context.Context, *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics, bool){
+		flattenDynamicVisualizationStatGroup,
+		flattenDynamicVisualizationChartGroup,
+		flattenDynamicVisualizationGeoGroup,
+	} {
+		if model, diags, handled := group(ctx, visualization); handled {
+			return model, diags
+		}
+	}
+
+	return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+		"Unsupported Dashboard Widget Definition",
+		"The dynamic widget uses an unknown or unsupported visualization variant.",
+	)}
+}
+
+func flattenDynamicVisualizationStatGroup(ctx context.Context, visualization *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics, bool) {
 	switch {
 	case visualization.Stat != nil:
 		stat, diags := flattenDynamicStat(ctx, visualization.Stat)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &DynamicVisualizationModel{Stat: stat}, nil
+		return &DynamicVisualizationModel{Stat: stat}, nil, true
 	case visualization.StatCard != nil:
 		statCard, diags := flattenDynamicStatCard(ctx, visualization.StatCard)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &DynamicVisualizationModel{StatCard: statCard}, nil
+		return &DynamicVisualizationModel{StatCard: statCard}, nil, true
 	case visualization.Table != nil:
 		table, diags := flattenDynamicTable(ctx, visualization.Table)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &DynamicVisualizationModel{Table: table}, nil
-	case visualization.TimeSeriesLinesMulti != nil:
-		linesMulti, diags := flattenDynamicTimeSeriesLinesMulti(ctx, visualization.TimeSeriesLinesMulti)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &DynamicVisualizationModel{TimeSeriesLinesMulti: linesMulti}, nil
-	case visualization.TimeSeriesBars != nil:
-		bars, diags := flattenDynamicTimeSeriesBars(ctx, visualization.TimeSeriesBars)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &DynamicVisualizationModel{TimeSeriesBars: bars}, nil
-	case visualization.VerticalBars != nil:
-		verticalBars, diags := flattenDynamicVerticalBars(ctx, visualization.VerticalBars)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &DynamicVisualizationModel{VerticalBars: verticalBars}, nil
-	case visualization.VerticalBarsMulti != nil:
-		verticalBarsMulti, diags := flattenDynamicVerticalBarsMulti(ctx, visualization.VerticalBarsMulti)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &DynamicVisualizationModel{VerticalBarsMulti: verticalBarsMulti}, nil
-	case visualization.HorizontalBars != nil:
-		horizontalBars, diags := flattenDynamicHorizontalBars(ctx, visualization.HorizontalBars)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &DynamicVisualizationModel{HorizontalBars: horizontalBars}, nil
-	case visualization.HorizontalBarsMulti != nil:
-		horizontalBarsMulti, diags := flattenDynamicHorizontalBarsMulti(ctx, visualization.HorizontalBarsMulti)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &DynamicVisualizationModel{HorizontalBarsMulti: horizontalBarsMulti}, nil
+		return &DynamicVisualizationModel{Table: table}, nil, true
 	case visualization.Gauge != nil:
 		gauge, diags := flattenDynamicGauge(ctx, visualization.Gauge)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &DynamicVisualizationModel{Gauge: gauge}, nil
+		return &DynamicVisualizationModel{Gauge: gauge}, nil, true
 	case visualization.PieChart != nil:
 		pieChart, diags := flattenDynamicPieChart(ctx, visualization.PieChart)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &DynamicVisualizationModel{PieChart: pieChart}, nil
+		return &DynamicVisualizationModel{PieChart: pieChart}, nil, true
+	default:
+		return nil, nil, false
+	}
+}
+
+func flattenDynamicVisualizationChartGroup(ctx context.Context, visualization *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics, bool) {
+	switch {
+	case visualization.TimeSeriesLinesMulti != nil:
+		linesMulti, diags := flattenDynamicTimeSeriesLinesMulti(ctx, visualization.TimeSeriesLinesMulti)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &DynamicVisualizationModel{TimeSeriesLinesMulti: linesMulti}, nil, true
+	case visualization.TimeSeriesBars != nil:
+		bars, diags := flattenDynamicTimeSeriesBars(ctx, visualization.TimeSeriesBars)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &DynamicVisualizationModel{TimeSeriesBars: bars}, nil, true
+	case visualization.VerticalBars != nil:
+		verticalBars, diags := flattenDynamicVerticalBars(ctx, visualization.VerticalBars)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &DynamicVisualizationModel{VerticalBars: verticalBars}, nil, true
+	case visualization.VerticalBarsMulti != nil:
+		verticalBarsMulti, diags := flattenDynamicVerticalBarsMulti(ctx, visualization.VerticalBarsMulti)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &DynamicVisualizationModel{VerticalBarsMulti: verticalBarsMulti}, nil, true
+	case visualization.HorizontalBars != nil:
+		horizontalBars, diags := flattenDynamicHorizontalBars(ctx, visualization.HorizontalBars)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &DynamicVisualizationModel{HorizontalBars: horizontalBars}, nil, true
+	case visualization.HorizontalBarsMulti != nil:
+		horizontalBarsMulti, diags := flattenDynamicHorizontalBarsMulti(ctx, visualization.HorizontalBarsMulti)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &DynamicVisualizationModel{HorizontalBarsMulti: horizontalBarsMulti}, nil, true
+	default:
+		return nil, nil, false
+	}
+}
+
+func flattenDynamicVisualizationGeoGroup(ctx context.Context, visualization *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics, bool) {
+	switch {
 	case visualization.HexagonBins != nil:
 		hexagonBins, diags := flattenDynamicHexagonBins(ctx, visualization.HexagonBins)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &DynamicVisualizationModel{HexagonBins: hexagonBins}, nil
+		return &DynamicVisualizationModel{HexagonBins: hexagonBins}, nil, true
 	case visualization.Heatmap != nil:
 		heatmap, diags := flattenDynamicHeatmap(ctx, visualization.Heatmap)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &DynamicVisualizationModel{Heatmap: heatmap}, nil
+		return &DynamicVisualizationModel{Heatmap: heatmap}, nil, true
 	case visualization.Geomap != nil:
 		geomap, diags := flattenDynamicGeomap(ctx, visualization.Geomap)
 		if diags.HasError() {
-			return nil, diags
+			return nil, diags, true
 		}
-		return &DynamicVisualizationModel{Geomap: geomap}, nil
+		return &DynamicVisualizationModel{Geomap: geomap}, nil, true
 	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
-			"Unsupported Dashboard Widget Definition",
-			"The dynamic widget uses an unknown or unsupported visualization variant.",
-		)}
+		return nil, nil, false
 	}
 }
 

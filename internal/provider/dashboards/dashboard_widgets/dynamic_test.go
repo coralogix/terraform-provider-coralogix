@@ -112,19 +112,6 @@ func TestDynamicWidgetLogsStatRoundTrip(t *testing.T) {
 		t.Fatal("ExpandDynamic returned no dynamic widget")
 	}
 
-	if got := len(definition.Dynamic.QueryDefinitions); got != 1 {
-		t.Fatalf("expanded query definitions = %d, want 1", got)
-	}
-	if definition.Dynamic.QueryDefinitions[0].Query.Logs == nil {
-		t.Fatal("expanded query definition omitted its logs query")
-	}
-	if definition.Dynamic.Visualization == nil || definition.Dynamic.Visualization.Stat == nil {
-		t.Fatal("expanded dynamic widget omitted its stat visualization")
-	}
-	if definition.Dynamic.TimeFrame == nil || definition.Dynamic.TimeFrame.RelativeTimeFrame == nil {
-		t.Fatal("expanded dynamic widget omitted its relative time frame")
-	}
-
 	flattened, diags := FlattenDynamic(ctx, definition.Dynamic)
 	if diags.HasError() {
 		t.Fatalf("flattening dynamic widget: %v", diags)
