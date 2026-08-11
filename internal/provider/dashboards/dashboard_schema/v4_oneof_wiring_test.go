@@ -215,7 +215,7 @@ func TestV4VariablesV2ChildGroupValidatorsAreWired(t *testing.T) {
 	// Floor based on current variables_v2 schema shape: source/value/query
 	// oneofs plus nested field/operator/selection groups, and
 	// value_display_options AtLeastOneOfChildren(value_regex, label_regex).
-	const minExactlyGroups = 10
+	const minExactlyGroups = 8
 	if exactlyGroups < minExactlyGroups {
 		t.Errorf("found %d ExactlyOneOfChildren groups under variables_v2, want at least %d", exactlyGroups, minExactlyGroups)
 	}

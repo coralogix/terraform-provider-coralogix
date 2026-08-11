@@ -663,7 +663,6 @@ func TestExpandFlattenVariablesV2QueryWireShapes(t *testing.T) {
 			t.Fatalf("spans field value: %v", diags)
 		}
 		spansInner, diags := types.ObjectValue(spansInnerType.AttrTypes, map[string]attr.Value{
-			"field_name":  types.ObjectNull(spansInnerType.AttrTypes["field_name"].(types.ObjectType).AttrTypes),
 			"field_value": spansFieldValue,
 		})
 		if diags.HasError() {

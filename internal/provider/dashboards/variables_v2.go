@@ -113,12 +113,7 @@ type logsQueryV2Model struct {
 }
 
 type logsQueryTypeV2Model struct {
-	FieldName  *logsFieldNameV2Model  `tfsdk:"field_name"`
 	FieldValue *logsFieldValueV2Model `tfsdk:"field_value"`
-}
-
-type logsFieldNameV2Model struct {
-	LogRegex types.String `tfsdk:"log_regex"`
 }
 
 type logsFieldValueV2Model struct {
@@ -130,12 +125,7 @@ type spansQueryV2Model struct {
 }
 
 type spansQueryTypeV2Model struct {
-	FieldName  *spansFieldNameV2Model  `tfsdk:"field_name"`
 	FieldValue *spansFieldValueV2Model `tfsdk:"field_value"`
-}
-
-type spansFieldNameV2Model struct {
-	SpanRegex types.String `tfsdk:"span_regex"`
 }
 
 type spansFieldValueV2Model struct {
@@ -472,62 +462,54 @@ func expandLogsQueryV2(ctx context.Context, model *logsQueryV2Model) (*dashboard
 	if model.Type == nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expanding variables_v2 logs_query", "type is required")}
 	}
-	queryType := &dashboardservice.QuerySourceLogsQueryType{}
-	var diags diag.Diagnostics
-	switch {
-	case model.Type.FieldName != nil:
-		queryType.FieldName = &dashboardservice.QuerySourceLogsQueryTypeFieldName{
-			LogRegex: utils.TypeStringToStringPointer(model.Type.FieldName.LogRegex),
-		}
-	case model.Type.FieldValue != nil:
-		observationField, obsDiags := dashboardwidgets.ExpandObservationFieldObject(ctx, model.Type.FieldValue.ObservationField)
-		diags.Append(obsDiags...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		queryType.FieldValue = &dashboardservice.QuerySourceLogsQueryTypeFieldValue{
-			ObservationField: observationField,
-		}
-	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expanding variables_v2 logs_query", "type must set field_name or field_value")}
+	if model.Type.FieldValue == nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expanding variables_v2 logs_query", "type must set field_value")}
 	}
-	return &dashboardservice.QuerySourceLogsQuery{Type: queryType}, diags
+	var diags diag.Diagnostics
+	observationField, obsDiags := dashboardwidgets.ExpandObservationFieldObject(ctx, model.Type.FieldValue.ObservationField)
+	diags.Append(obsDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardservice.QuerySourceLogsQuery{
+		Type: &dashboardservice.QuerySourceLogsQueryType{
+			FieldValue: &dashboardservice.QuerySourceLogsQueryTypeFieldValue{
+				ObservationField: observationField,
+			},
+		},
+	}, diags
 }
 
 func expandSpansQueryV2(ctx context.Context, model *spansQueryV2Model) (*dashboardservice.QuerySourceSpansQuery, diag.Diagnostics) {
 	if model.Type == nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expanding variables_v2 spans_query", "type is required")}
 	}
-	queryType := &dashboardservice.QuerySourceSpansQueryType{}
-	var diags diag.Diagnostics
-	switch {
-	case model.Type.FieldName != nil:
-		queryType.FieldName = &dashboardservice.QuerySourceSpansQueryTypeFieldName{
-			SpanRegex: utils.TypeStringToStringPointer(model.Type.FieldName.SpanRegex),
-		}
-	case model.Type.FieldValue != nil:
-		fieldValue := &dashboardservice.QuerySourceSpansQueryTypeFieldValue{}
-		if model.Type.FieldValue.Value != nil {
-			spanField, dg := dashboardwidgets.ExpandSpansField(model.Type.FieldValue.Value)
-			if dg != nil {
-				diags.Append(dg)
-				return nil, diags
-			}
-			fieldValue.Value = spanField
-		}
-		if !utils.ObjIsNullOrUnknown(model.Type.FieldValue.ObservationField) {
-			observationField, obsDiags := dashboardwidgets.ExpandObservationFieldObject(ctx, model.Type.FieldValue.ObservationField)
-			diags.Append(obsDiags...)
-			if diags.HasError() {
-				return nil, diags
-			}
-			fieldValue.ObservationField = observationField
-		}
-		queryType.FieldValue = fieldValue
-	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expanding variables_v2 spans_query", "type must set field_name or field_value")}
+	if model.Type.FieldValue == nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expanding variables_v2 spans_query", "type must set field_value")}
 	}
-	return &dashboardservice.QuerySourceSpansQuery{Type: queryType}, diags
+	var diags diag.Diagnostics
+	fieldValue := &dashboardservice.QuerySourceSpansQueryTypeFieldValue{}
+	if model.Type.FieldValue.Value != nil {
+		spanField, dg := dashboardwidgets.ExpandSpansField(model.Type.FieldValue.Value)
+		if dg != nil {
+			diags.Append(dg)
+			return nil, diags
+		}
+		fieldValue.Value = spanField
+	}
+	if !utils.ObjIsNullOrUnknown(model.Type.FieldValue.ObservationField) {
+		observationField, obsDiags := dashboardwidgets.ExpandObservationFieldObject(ctx, model.Type.FieldValue.ObservationField)
+		diags.Append(obsDiags...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		fieldValue.ObservationField = observationField
+	}
+	return &dashboardservice.QuerySourceSpansQuery{
+		Type: &dashboardservice.QuerySourceSpansQueryType{
+			FieldValue: fieldValue,
+		},
+	}, diags
 }
 
 func expandMetricsQueryV2(ctx context.Context, model *metricsQueryV2Model) (*dashboardservice.QuerySourceMetricsQuery, diag.Diagnostics) {
@@ -1090,25 +1072,16 @@ func flattenQuerySourceV2(ctx context.Context, source *dashboardservice.Variable
 func flattenLogsQueryV2(ctx context.Context, query *dashboardservice.QuerySourceLogsQuery, objectType types.ObjectType) (types.Object, diag.Diagnostics) {
 	typeType := objectType.AttrTypes["type"].(types.ObjectType)
 	typeAttrs := map[string]attr.Value{
-		"field_name":  nullValueForType(typeType.AttrTypes["field_name"]),
 		"field_value": nullValueForType(typeType.AttrTypes["field_value"]),
 	}
 	var diags diag.Diagnostics
-	if query.Type != nil {
-		switch {
-		case query.Type.FieldName != nil:
-			typeAttrs["field_name"] = types.ObjectValueMust(
-				typeType.AttrTypes["field_name"].(types.ObjectType).AttrTypes,
-				map[string]attr.Value{"log_regex": types.StringPointerValue(query.Type.FieldName.LogRegex)},
-			)
-		case query.Type.FieldValue != nil:
-			observationField, obsDiags := dashboardwidgets.FlattenObservationField(ctx, query.Type.FieldValue.ObservationField)
-			diags.Append(obsDiags...)
-			typeAttrs["field_value"] = types.ObjectValueMust(
-				typeType.AttrTypes["field_value"].(types.ObjectType).AttrTypes,
-				map[string]attr.Value{"observation_field": observationField},
-			)
-		}
+	if query.Type != nil && query.Type.FieldValue != nil {
+		observationField, obsDiags := dashboardwidgets.FlattenObservationField(ctx, query.Type.FieldValue.ObservationField)
+		diags.Append(obsDiags...)
+		typeAttrs["field_value"] = types.ObjectValueMust(
+			typeType.AttrTypes["field_value"].(types.ObjectType).AttrTypes,
+			map[string]attr.Value{"observation_field": observationField},
+		)
 	}
 	if diags.HasError() {
 		return types.ObjectNull(objectType.AttrTypes), diags
@@ -1121,40 +1094,31 @@ func flattenLogsQueryV2(ctx context.Context, query *dashboardservice.QuerySource
 func flattenSpansQueryV2(ctx context.Context, query *dashboardservice.QuerySourceSpansQuery, objectType types.ObjectType) (types.Object, diag.Diagnostics) {
 	typeType := objectType.AttrTypes["type"].(types.ObjectType)
 	typeAttrs := map[string]attr.Value{
-		"field_name":  nullValueForType(typeType.AttrTypes["field_name"]),
 		"field_value": nullValueForType(typeType.AttrTypes["field_value"]),
 	}
 	var diags diag.Diagnostics
-	if query.Type != nil {
-		switch {
-		case query.Type.FieldName != nil:
-			typeAttrs["field_name"] = types.ObjectValueMust(
-				typeType.AttrTypes["field_name"].(types.ObjectType).AttrTypes,
-				map[string]attr.Value{"span_regex": types.StringPointerValue(query.Type.FieldName.SpanRegex)},
-			)
-		case query.Type.FieldValue != nil:
-			fieldValueType := typeType.AttrTypes["field_value"].(types.ObjectType)
-			fieldValueAttrs := map[string]attr.Value{
-				"value":             nullValueForType(fieldValueType.AttrTypes["value"]),
-				"observation_field": nullValueForType(fieldValueType.AttrTypes["observation_field"]),
-			}
-			if query.Type.FieldValue.Value != nil {
-				spanModel, dg := dashboardwidgets.FlattenSpansField(query.Type.FieldValue.Value)
-				if dg != nil {
-					diags.Append(dg)
-				} else {
-					spanObj, spanDiags := types.ObjectValueFrom(ctx, fieldValueType.AttrTypes["value"].(types.ObjectType).AttrTypes, spanModel)
-					diags.Append(spanDiags...)
-					fieldValueAttrs["value"] = spanObj
-				}
-			}
-			if query.Type.FieldValue.ObservationField != nil {
-				observationField, obsDiags := dashboardwidgets.FlattenObservationField(ctx, query.Type.FieldValue.ObservationField)
-				diags.Append(obsDiags...)
-				fieldValueAttrs["observation_field"] = observationField
-			}
-			typeAttrs["field_value"] = types.ObjectValueMust(fieldValueType.AttrTypes, fieldValueAttrs)
+	if query.Type != nil && query.Type.FieldValue != nil {
+		fieldValueType := typeType.AttrTypes["field_value"].(types.ObjectType)
+		fieldValueAttrs := map[string]attr.Value{
+			"value":             nullValueForType(fieldValueType.AttrTypes["value"]),
+			"observation_field": nullValueForType(fieldValueType.AttrTypes["observation_field"]),
 		}
+		if query.Type.FieldValue.Value != nil {
+			spanModel, dg := dashboardwidgets.FlattenSpansField(query.Type.FieldValue.Value)
+			if dg != nil {
+				diags.Append(dg)
+			} else {
+				spanObj, spanDiags := types.ObjectValueFrom(ctx, fieldValueType.AttrTypes["value"].(types.ObjectType).AttrTypes, spanModel)
+				diags.Append(spanDiags...)
+				fieldValueAttrs["value"] = spanObj
+			}
+		}
+		if query.Type.FieldValue.ObservationField != nil {
+			observationField, obsDiags := dashboardwidgets.FlattenObservationField(ctx, query.Type.FieldValue.ObservationField)
+			diags.Append(obsDiags...)
+			fieldValueAttrs["observation_field"] = observationField
+		}
+		typeAttrs["field_value"] = types.ObjectValueMust(fieldValueType.AttrTypes, fieldValueAttrs)
 	}
 	if diags.HasError() {
 		return types.ObjectNull(objectType.AttrTypes), diags

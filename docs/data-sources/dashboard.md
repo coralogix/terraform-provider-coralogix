@@ -1140,7 +1140,7 @@ Read-Only:
 Read-Only:
 
 - `field` (String)
-- `order_direction` (String) The order direction. Can be one of ["unspecified" "asc" "desc"].
+- `order_direction` (String) The order direction. Can be one of ["asc" "desc" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query"></a>
@@ -3666,7 +3666,7 @@ Read-Only:
 - `selected_values` (List of String)
 - `selection_type` (String) Selection mode of the variable. Can be one of `multi`, `single`. Omit to use the API default (multi-select with an implicit "All" option).
 - `source` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source))
-- `values_order_direction` (String) The order direction of the values. Can be one of `unspecified`, `asc`, `desc`.
+- `values_order_direction` (String) The order direction of the values. Can be one of `asc`, `desc`, `unspecified`.
 
 <a id="nestedatt--variables--definition--multi_select--source"></a>
 ### Nested Schema for `variables.definition.multi_select.source`
@@ -3973,16 +3973,7 @@ Read-Only:
 
 Read-Only:
 
-- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_name))
 - `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_value))
-
-<a id="nestedatt--variables_v2--source--query--logs_query--type--field_name"></a>
-### Nested Schema for `variables_v2.source.query.logs_query.type.field_name`
-
-Read-Only:
-
-- `log_regex` (String)
-
 
 <a id="nestedatt--variables_v2--source--query--logs_query--type--field_value"></a>
 ### Nested Schema for `variables_v2.source.query.logs_query.type.field_value`
@@ -4133,16 +4124,7 @@ Read-Only:
 
 Read-Only:
 
-- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_name))
 - `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value))
-
-<a id="nestedatt--variables_v2--source--query--spans_query--type--field_name"></a>
-### Nested Schema for `variables_v2.source.query.spans_query.type.field_name`
-
-Read-Only:
-
-- `span_regex` (String)
-
 
 <a id="nestedatt--variables_v2--source--query--spans_query--type--field_value"></a>
 ### Nested Schema for `variables_v2.source.query.spans_query.type.field_value`

@@ -314,21 +314,19 @@ func querySourceV2Schema() schema.SingleNestedAttribute {
 func logsQueryV2Schema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{Optional: true, Attributes: map[string]schema.Attribute{
 		"type": schema.SingleNestedAttribute{Required: true, Attributes: map[string]schema.Attribute{
-			"field_name":  schema.SingleNestedAttribute{Optional: true, Attributes: map[string]schema.Attribute{"log_regex": schema.StringAttribute{Required: true}}},
-			"field_value": schema.SingleNestedAttribute{Optional: true, Attributes: map[string]schema.Attribute{"observation_field": observationFieldV2Schema(true)}},
-		}, Validators: []validator.Object{dashboardwidgets.ExactlyOneOfChildren("field_name", "field_value")}},
+			"field_value": schema.SingleNestedAttribute{Required: true, Attributes: map[string]schema.Attribute{"observation_field": observationFieldV2Schema(true)}},
+		}},
 	}}
 }
 
 func spansQueryV2Schema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{Optional: true, Attributes: map[string]schema.Attribute{
 		"type": schema.SingleNestedAttribute{Required: true, Attributes: map[string]schema.Attribute{
-			"field_name": schema.SingleNestedAttribute{Optional: true, Attributes: map[string]schema.Attribute{"span_regex": schema.StringAttribute{Required: true}}},
-			"field_value": schema.SingleNestedAttribute{Optional: true, Attributes: map[string]schema.Attribute{
+			"field_value": schema.SingleNestedAttribute{Required: true, Attributes: map[string]schema.Attribute{
 				"value":             dashboardwidgets.SpansFieldSchema(),
 				"observation_field": observationFieldV2Schema(false),
 			}, Validators: []validator.Object{dashboardwidgets.ExactlyOneOfChildren("value", "observation_field")}},
-		}, Validators: []validator.Object{dashboardwidgets.ExactlyOneOfChildren("field_name", "field_value")}},
+		}},
 	}}
 }
 

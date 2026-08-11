@@ -2615,7 +2615,7 @@ Optional:
 Optional:
 
 - `field` (String)
-- `order_direction` (String) The order direction. Can be one of ["unspecified" "asc" "desc"].
+- `order_direction` (String) The order direction. Can be one of ["asc" "desc" "unspecified"].
 
 
 
@@ -4959,7 +4959,7 @@ Optional:
 
 Required:
 
-- `values_order_direction` (String) The order direction of the values. Can be one of `unspecified`, `asc`, `desc`.
+- `values_order_direction` (String) The order direction of the values. Can be one of `asc`, `desc`, `unspecified`.
 
 Optional:
 
@@ -5291,18 +5291,9 @@ Required:
 <a id="nestedatt--variables_v2--source--query--logs_query--type"></a>
 ### Nested Schema for `variables_v2.source.query.logs_query.type`
 
-Optional:
-
-- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_name))
-- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_value))
-
-<a id="nestedatt--variables_v2--source--query--logs_query--type--field_name"></a>
-### Nested Schema for `variables_v2.source.query.logs_query.type.field_name`
-
 Required:
 
-- `log_regex` (String)
-
+- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_value))
 
 <a id="nestedatt--variables_v2--source--query--logs_query--type--field_value"></a>
 ### Nested Schema for `variables_v2.source.query.logs_query.type.field_value`
@@ -5460,18 +5451,9 @@ Required:
 <a id="nestedatt--variables_v2--source--query--spans_query--type"></a>
 ### Nested Schema for `variables_v2.source.query.spans_query.type`
 
-Optional:
-
-- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_name))
-- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value))
-
-<a id="nestedatt--variables_v2--source--query--spans_query--type--field_name"></a>
-### Nested Schema for `variables_v2.source.query.spans_query.type.field_name`
-
 Required:
 
-- `span_regex` (String)
-
+- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value))
 
 <a id="nestedatt--variables_v2--source--query--spans_query--type--field_value"></a>
 ### Nested Schema for `variables_v2.source.query.spans_query.type.field_value`
