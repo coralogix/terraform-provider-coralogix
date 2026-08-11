@@ -151,6 +151,14 @@ var (
 	}
 	dashboardProtoToSchemaFieldDataType = utils.ReverseMap(dashboardSchemaToProtoFieldDataType)
 	dashboardValidFieldDataType         = utils.GetKeys(dashboardSchemaToProtoFieldDataType)
+
+	dashboardSchemaToProtoPieChartLabelSource = map[string]dashboardservice.VisualizationPieChartLabelSource{
+		utils.UNSPECIFIED: dashboardservice.VISUALIZATIONPIECHARTLABELSOURCE_LABEL_SOURCE_UNSPECIFIED,
+		"inner":           dashboardservice.VISUALIZATIONPIECHARTLABELSOURCE_LABEL_SOURCE_INNER,
+		"stack":           dashboardservice.VISUALIZATIONPIECHARTLABELSOURCE_LABEL_SOURCE_STACK,
+	}
+	dashboardProtoToSchemaPieChartLabelSource = utils.ReverseMap(dashboardSchemaToProtoPieChartLabelSource)
+	dashboardValidPieChartLabelSource         = utils.GetKeys(dashboardSchemaToProtoPieChartLabelSource)
 )
 
 func DynamicSchema() schema.Attribute {
@@ -198,9 +206,11 @@ func DynamicSchema() schema.Attribute {
 					"vertical_bars_multi":     dynamicVerticalBarsMultiSchema(),
 					"horizontal_bars":         dynamicHorizontalBarsSchema(),
 					"horizontal_bars_multi":   dynamicHorizontalBarsMultiSchema(),
+					"gauge":                   dynamicGaugeSchema(),
+					"pie_chart":               dynamicPieChartSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi"),
+					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi", "gauge", "pie_chart"),
 				},
 			},
 		},
@@ -1210,6 +1220,8 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 		"vertical_bars_multi":     types.ObjectType{AttrTypes: dynamicVerticalBarsMultiModelAttr()},
 		"horizontal_bars":         types.ObjectType{AttrTypes: dynamicHorizontalBarsModelAttr()},
 		"horizontal_bars_multi":   types.ObjectType{AttrTypes: dynamicHorizontalBarsMultiModelAttr()},
+		"gauge":                   types.ObjectType{AttrTypes: dynamicGaugeModelAttr()},
+		"pie_chart":               types.ObjectType{AttrTypes: dynamicPieChartModelAttr()},
 	}
 }
 
@@ -1809,6 +1821,18 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{HorizontalBarsMulti: horizontalBarsMulti}, nil
+	case visualization.Gauge != nil:
+		gauge, diags := expandDynamicGauge(ctx, visualization.Gauge)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{Gauge: gauge}, nil
+	case visualization.PieChart != nil:
+		pieChart, diags := expandDynamicPieChart(ctx, visualization.PieChart)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{PieChart: pieChart}, nil
 	default:
 		return nil, nil
 	}
@@ -2779,10 +2803,22 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{HorizontalBarsMulti: horizontalBarsMulti}, nil
+	case visualization.Gauge != nil:
+		gauge, diags := flattenDynamicGauge(ctx, visualization.Gauge)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{Gauge: gauge}, nil
+	case visualization.PieChart != nil:
+		pieChart, diags := flattenDynamicPieChart(ctx, visualization.PieChart)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{PieChart: pieChart}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Unsupported Dashboard Widget Definition",
-			"The dynamic widget uses a visualization variant this provider version does not support as typed HCL yet. Only `stat`, `stat_card`, `table`, `time_series_lines_multi`, `time_series_bars`, `vertical_bars`, `vertical_bars_multi`, `horizontal_bars`, and `horizontal_bars_multi` are currently supported.",
+			"The dynamic widget uses a visualization variant this provider version does not support as typed HCL yet. The `hexagon_bins`, `heatmap`, and `geomap` variants are not yet modeled.",
 		)}
 	}
 }

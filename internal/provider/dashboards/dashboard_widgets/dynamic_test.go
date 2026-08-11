@@ -762,6 +762,98 @@ func TestDynamicWidgetHorizontalBarsMultiFullFidelityRoundTrip(t *testing.T) {
 	assertDynamicRoundTrip(ctx, t, original)
 }
 
+func TestDynamicWidgetGaugeFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("avg")}),
+		GroupByQuery: types.BoolValue(true),
+		Placement:    types.StringValue("bottom"),
+	}
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			Gauge: &DynamicGaugeModel{
+				AllowAbbreviation: types.BoolValue(true),
+				ArcDisplay: &DynamicArcDisplayModel{
+					ThresholdArc: types.BoolValue(true),
+					ValueArc:     types.BoolValue(false),
+				},
+				CategoryFields:    observationFieldList("category", "user_data"),
+				CustomUnit:        types.StringValue("gauges"),
+				DecimalPrecision:  types.Int64Value(2),
+				DisplaySeriesName: types.BoolValue(true),
+				Legend:            legend,
+				LegendBy:          types.StringValue("thresholds"),
+				Max:               types.Float64Value(100),
+				Min:               types.Float64Value(0),
+				ShowInnerArc:      types.BoolValue(true),
+				ShowMinMax:        types.BoolValue(true),
+				ShowOuterArc:      types.BoolValue(false),
+				ThresholdType:     types.StringValue("absolute"),
+				Thresholds:        dynamicThresholdList(),
+				Unit:              types.StringValue("bytes"),
+				ValueField:        observationFieldObject("duration", "metadata"),
+				ValueFields:       observationFieldList("duration2", "metadata"),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetPieChartFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("sum")}),
+		GroupByQuery: types.BoolValue(false),
+		Placement:    types.StringValue("side"),
+	}
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			PieChart: &DynamicPieChartModel{
+				AllowAbbreviation: types.BoolValue(true),
+				CategoryFields:    observationFieldList("category", "user_data"),
+				ColorScheme:       types.StringValue("classic"),
+				CustomUnit:        types.StringValue("slices"),
+				DecimalPrecision:  types.Int64Value(2),
+				GroupNameTemplate: types.StringValue("{{group}}"),
+				HashColors:        types.BoolValue(true),
+				LabelDefinition: &DynamicPieChartLabelDefinitionModel{
+					IsVisible:      types.BoolValue(true),
+					LabelSource:    types.StringValue("inner"),
+					ShowName:       types.BoolValue(true),
+					ShowPercentage: types.BoolValue(false),
+					ShowValue:      types.BoolValue(true),
+				},
+				Legend:             legend,
+				MaxSlicesPerChart:  types.Int64Value(10),
+				MaxSlicesPerStack:  types.Int64Value(5),
+				MinSlicePercentage: types.Int64Value(1),
+				ShowTotal:          types.BoolValue(true),
+				StackNameTemplate:  types.StringValue("{{stack}}"),
+				SubCategoryFields:  observationFieldList("sub", "label"),
+				Unit:               types.StringValue("usd"),
+				ValueField:         observationFieldObject("value", "metadata"),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
 func TestDynamicWidgetTableEmptyListsFlattenToNull(t *testing.T) {
 	ctx := context.Background()
 

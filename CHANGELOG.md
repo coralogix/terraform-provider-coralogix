@@ -1,7 +1,7 @@
 # Unreleased
 
 #### resource/coralogix_dashboard
-- FEAT: Add typed HCL support for the `dynamic` widget definition, including logs/spans/metrics/data_prime query definitions, a top-level `time_frame`, and the `stat`, `stat_card`, `table`, `time_series_lines_multi`, `time_series_bars`, `vertical_bars`, `vertical_bars_multi`, `horizontal_bars` and `horizontal_bars_multi` visualizations (full field fidelity).
+- FEAT: Add typed HCL support for the `dynamic` widget definition, including logs/spans/metrics/data_prime query definitions, a top-level `time_frame`, and the `stat`, `stat_card`, `table`, `time_series_lines_multi`, `time_series_bars`, `vertical_bars`, `vertical_bars_multi`, `horizontal_bars`, `horizontal_bars_multi`, `gauge` and `pie_chart` visualizations (full field fidelity).
 - FIX: Schema v2/v3→v4 state upgrade no longer fails with `Missing Upgraded Resource State` when the dashboard was deleted outside Terraform. The upgrader no longer removes the resource from state (illegal inside a state upgrader); it returns a valid v4 state carrying the prior `id`, `name`, `description` and `content_json`, so the following refresh detects the missing dashboard and plans a recreate.
 
 #### resource/coralogix_team
