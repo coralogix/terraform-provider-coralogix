@@ -838,3 +838,87 @@ func TestExpandFlattenVariablesV2QueryWireShapes(t *testing.T) {
 		}
 	})
 }
+
+func TestFloat32PointerToTypeFloat64PreservesConfiguredFractions(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		in   float64
+	}{
+		{name: "tenth", in: 0.1},
+		{name: "one_point_one", in: 1.1},
+		{name: "exact_half", in: 0.5},
+		{name: "exact_quarter", in: 0.25},
+		{name: "integer", in: 42},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			expanded := typeFloat64ToFloat32Pointer(types.Float64Value(tc.in))
+			got := float32PointerToTypeFloat64(expanded)
+			if got.IsNull() || got.IsUnknown() {
+				t.Fatalf("got null/unknown, want %v", tc.in)
+			}
+			if got.ValueFloat64() != tc.in {
+				t.Fatalf("got %v, want %v (raw widen would be %v)", got.ValueFloat64(), tc.in, float64(*expanded))
+			}
+		})
+	}
+
+	if !float32PointerToTypeFloat64(nil).IsNull() {
+		t.Fatal("nil pointer should flatten to null")
+	}
+}
+
+func TestExpandFlattenSingleNumericFractionalRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	elementType := dashboardVariablesV2ElementType()
+	valueType := elementType.AttrTypes["value"].(types.ObjectType)
+	numericType := valueType.AttrTypes["single_numeric"].(types.ObjectType)
+
+	model := &numericValueLabelFlatModel{
+		Value: types.Float64Value(0.1),
+		Label: types.StringValue("0.1"),
+	}
+	expanded := expandNumericValueLabel(model)
+	if expanded == nil || expanded.Value == nil {
+		t.Fatal("expected expanded numeric value")
+	}
+
+	flattened := flattenNumericValueLabelFlat(expanded, numericType)
+	attrs := flattened.Attributes()
+	gotValue, ok := attrs["value"].(types.Float64)
+	if !ok {
+		t.Fatalf("value attr type = %T", attrs["value"])
+	}
+	if gotValue.ValueFloat64() != 0.1 {
+		t.Fatalf("single_numeric.value = %v, want 0.1", gotValue.ValueFloat64())
+	}
+
+	textboxExpanded, diags := expandTextboxDefaultValueV2(&textboxDefaultValueV2Model{
+		DefaultNumericValue: &textboxNumericValueV2Model{
+			Value:     types.Float64Value(0.1),
+			Min:       types.Float64Value(0.1),
+			Max:       types.Float64Value(1.1),
+			IsInteger: types.BoolValue(false),
+		},
+	})
+	if diags.HasError() {
+		t.Fatalf("expand textbox numeric: %v", diags)
+	}
+	num := textboxExpanded.DefaultNumericValue
+	if float32PointerToTypeFloat64(num.Value).ValueFloat64() != 0.1 {
+		t.Fatalf("textbox value = %v, want 0.1", float32PointerToTypeFloat64(num.Value).ValueFloat64())
+	}
+	if float32PointerToTypeFloat64(num.Min).ValueFloat64() != 0.1 {
+		t.Fatalf("textbox min = %v, want 0.1", float32PointerToTypeFloat64(num.Min).ValueFloat64())
+	}
+	if float32PointerToTypeFloat64(num.Max).ValueFloat64() != 1.1 {
+		t.Fatalf("textbox max = %v, want 1.1", float32PointerToTypeFloat64(num.Max).ValueFloat64())
+	}
+}

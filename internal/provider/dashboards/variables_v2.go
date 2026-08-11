@@ -17,6 +17,7 @@ package dashboards
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
@@ -1498,7 +1499,15 @@ func float32PointerToTypeFloat64(value *float32) types.Float64 {
 	if value == nil {
 		return types.Float64Null()
 	}
-	return types.Float64Value(float64(*value))
+	return types.Float64Value(float32ToSchemaFloat64(*value))
+}
+
+func float32ToSchemaFloat64(value float32) float64 {
+	parsed, err := strconv.ParseFloat(strconv.FormatFloat(float64(value), 'f', -1, 32), 64)
+	if err != nil {
+		return float64(value)
+	}
+	return parsed
 }
 
 func boolPointerIfSet(value types.Bool) *bool {
