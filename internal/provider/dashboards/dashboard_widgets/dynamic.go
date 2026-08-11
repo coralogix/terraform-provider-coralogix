@@ -216,6 +216,7 @@ func DynamicSchema() schema.Attribute {
 					"stat":                    dynamicStatSchema(),
 					"stat_card":               dynamicStatCardSchema(),
 					"table":                   dynamicTableSchema(),
+					"time_series_lines":       dynamicTimeSeriesLinesSchema(),
 					"time_series_lines_multi": dynamicTimeSeriesLinesMultiSchema(),
 					"time_series_bars":        dynamicTimeSeriesBarsSchema(),
 					"vertical_bars":           dynamicVerticalBarsSchema(),
@@ -229,7 +230,7 @@ func DynamicSchema() schema.Attribute {
 					"geomap":                  dynamicGeomapSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi", "gauge", "pie_chart", "hexagon_bins", "heatmap", "geomap"),
+					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi", "gauge", "pie_chart", "hexagon_bins", "heatmap", "geomap"),
 				},
 			},
 		},
@@ -911,6 +912,110 @@ func dynamicTableSettingsSchema() schema.Attribute {
 	}
 }
 
+func dynamicTimeSeriesLinesSchema() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional:            true,
+		DeprecationMessage:  "Deprecated: use time_series_lines_multi instead.",
+		MarkdownDescription: "Deprecated: use `time_series_lines_multi` instead. Retained at full fidelity for importing dashboards that still use the singular time series lines visualization.",
+		Attributes: map[string]schema.Attribute{
+			"allow_abbreviation": schema.BoolAttribute{
+				Optional: true,
+			},
+			"category_fields": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: ObservationFieldSchema(),
+				},
+			},
+			"color_scheme": schema.StringAttribute{
+				Optional: true,
+			},
+			"connect_nulls": schema.BoolAttribute{
+				Optional: true,
+			},
+			"custom_unit": schema.StringAttribute{
+				Optional: true,
+			},
+			"decimal_precision": schema.Int64Attribute{
+				Optional: true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, math.MaxInt32),
+				},
+			},
+			"hash_colors": schema.BoolAttribute{
+				Optional: true,
+			},
+			"legend": LegendSchema(),
+			"scale_type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(DashboardValidScaleTypes...),
+				},
+				MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(DashboardValidScaleTypes, ", ")),
+			},
+			"series_count_limit": schema.StringAttribute{
+				Optional: true,
+			},
+			"series_name_template": schema.StringAttribute{
+				Optional: true,
+			},
+			"stacked_line": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidStackedLine...),
+				},
+				MarkdownDescription: fmt.Sprintf("How lines are stacked. Valid values are: %s.", strings.Join(dashboardValidStackedLine, ", ")),
+			},
+			"temporal_field": schema.SingleNestedAttribute{
+				Attributes: ObservationFieldSchema(),
+				Optional:   true,
+			},
+			"tooltip": dynamicTimeSeriesTooltipSchema(),
+			"unit": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(DashboardValidUnits...),
+				},
+				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
+			},
+			"use_data_time_range": schema.BoolAttribute{
+				Optional: true,
+			},
+			"value_fields": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: ObservationFieldSchema(),
+				},
+			},
+			"x_axis_time_format": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidXAxisTimeFormat...),
+				},
+				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(dashboardValidXAxisTimeFormat, ", ")),
+			},
+			"y_axis_max": schema.Float64Attribute{
+				Optional:            true,
+				CustomType:          Float32Type{},
+				MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
+			},
+			"y_axis_min": schema.Float64Attribute{
+				Optional:            true,
+				CustomType:          Float32Type{},
+				MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
+			},
+		},
+	}
+}
+
 func dynamicTimeSeriesLinesMultiSchema() schema.Attribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
@@ -1253,6 +1358,7 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 		"stat":                    types.ObjectType{AttrTypes: dynamicStatModelAttr()},
 		"stat_card":               types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
 		"table":                   types.ObjectType{AttrTypes: dynamicTableModelAttr()},
+		"time_series_lines":       types.ObjectType{AttrTypes: dynamicTimeSeriesLinesModelAttr()},
 		"time_series_lines_multi": types.ObjectType{AttrTypes: dynamicTimeSeriesLinesMultiModelAttr()},
 		"time_series_bars":        types.ObjectType{AttrTypes: dynamicTimeSeriesBarsModelAttr()},
 		"vertical_bars":           types.ObjectType{AttrTypes: dynamicVerticalBarsModelAttr()},
@@ -1264,6 +1370,35 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 		"hexagon_bins":            types.ObjectType{AttrTypes: dynamicHexagonBinsModelAttr()},
 		"heatmap":                 types.ObjectType{AttrTypes: dynamicHeatmapModelAttr()},
 		"geomap":                  types.ObjectType{AttrTypes: dynamicGeomapModelAttr()},
+	}
+}
+
+func dynamicTimeSeriesLinesModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"allow_abbreviation": types.BoolType,
+		"category_fields": types.ListType{
+			ElemType: ObservationFieldsObject(),
+		},
+		"color_scheme":         types.StringType,
+		"connect_nulls":        types.BoolType,
+		"custom_unit":          types.StringType,
+		"decimal_precision":    types.Int64Type,
+		"hash_colors":          types.BoolType,
+		"legend":               types.ObjectType{AttrTypes: LegendAttr()},
+		"scale_type":           types.StringType,
+		"series_count_limit":   types.StringType,
+		"series_name_template": types.StringType,
+		"stacked_line":         types.StringType,
+		"temporal_field":       ObservationFieldsObject(),
+		"tooltip":              types.ObjectType{AttrTypes: dynamicTimeSeriesTooltipModelAttr()},
+		"unit":                 types.StringType,
+		"use_data_time_range":  types.BoolType,
+		"value_fields": types.ListType{
+			ElemType: ObservationFieldsObject(),
+		},
+		"x_axis_time_format": types.StringType,
+		"y_axis_max":         Float32Type{},
+		"y_axis_min":         Float32Type{},
 	}
 }
 
@@ -1887,6 +2022,12 @@ func expandDynamicVisualizationStatGroup(ctx context.Context, visualization *Dyn
 
 func expandDynamicVisualizationChartGroup(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics, bool) {
 	switch {
+	case visualization.TimeSeriesLines != nil:
+		lines, diags := expandDynamicTimeSeriesLines(ctx, visualization.TimeSeriesLines)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &dashboardservice.Visualization{TimeSeriesLines: lines}, nil, true
 	case visualization.TimeSeriesLinesMulti != nil:
 		linesMulti, diags := expandDynamicTimeSeriesLinesMulti(ctx, visualization.TimeSeriesLinesMulti)
 		if diags.HasError() {
@@ -1951,6 +2092,55 @@ func expandDynamicVisualizationGeoGroup(ctx context.Context, visualization *Dyna
 	default:
 		return nil, nil, false
 	}
+}
+
+func expandDynamicTimeSeriesLines(ctx context.Context, lines *DynamicTimeSeriesLinesModel) (*dashboardservice.TimeSeriesLines, diag.Diagnostics) {
+	if lines == nil {
+		return nil, nil
+	}
+
+	categoryFields, diags := ExpandObservationFields(ctx, lines.CategoryFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	valueFields, diags := ExpandObservationFields(ctx, lines.ValueFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	temporalField, diags := ExpandObservationFieldObject(ctx, lines.TemporalField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	legend, diags := ExpandLegend(ctx, lines.Legend)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboardservice.TimeSeriesLines{
+		AllowAbbreviation:  lines.AllowAbbreviation.ValueBoolPointer(),
+		CategoryFields:     categoryFields,
+		ColorScheme:        lines.ColorScheme.ValueStringPointer(),
+		ConnectNulls:       lines.ConnectNulls.ValueBoolPointer(),
+		CustomUnit:         lines.CustomUnit.ValueStringPointer(),
+		DecimalPrecision:   expandInt32Pointer(lines.DecimalPrecision),
+		HashColors:         lines.HashColors.ValueBoolPointer(),
+		Legend:             legend,
+		ScaleType:          OptionalEnumPointer(lines.ScaleType, DashboardSchemaToProtoScaleType),
+		SeriesCountLimit:   lines.SeriesCountLimit.ValueStringPointer(),
+		SeriesNameTemplate: lines.SeriesNameTemplate.ValueStringPointer(),
+		StackedLine:        OptionalEnumPointer(lines.StackedLine, dashboardSchemaToProtoStackedLine),
+		TemporalField:      temporalField,
+		Tooltip:            expandDynamicTimeSeriesTooltip(lines.Tooltip),
+		Unit:               OptionalEnumPointer(lines.Unit, DashboardSchemaToProtoUnit),
+		UseDataTimeRange:   lines.UseDataTimeRange.ValueBoolPointer(),
+		ValueFields:        valueFields,
+		XAxisTimeFormat:    OptionalEnumPointer(lines.XAxisTimeFormat, dashboardSchemaToProtoXAxisTimeFormat),
+		YAxisMax:           expandFloat32Pointer(lines.YAxisMax),
+		YAxisMin:           expandFloat32Pointer(lines.YAxisMin),
+	}, nil
 }
 
 func expandDynamicTimeSeriesLinesMulti(ctx context.Context, linesMulti *DynamicTimeSeriesLinesMultiModel) (*dashboardservice.TimeSeriesLinesMulti, diag.Diagnostics) {
@@ -2934,6 +3124,12 @@ func flattenDynamicVisualizationStatGroup(ctx context.Context, visualization *da
 
 func flattenDynamicVisualizationChartGroup(ctx context.Context, visualization *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics, bool) {
 	switch {
+	case visualization.TimeSeriesLines != nil:
+		lines, diags := flattenDynamicTimeSeriesLines(ctx, visualization.TimeSeriesLines)
+		if diags.HasError() {
+			return nil, diags, true
+		}
+		return &DynamicVisualizationModel{TimeSeriesLines: lines}, nil, true
 	case visualization.TimeSeriesLinesMulti != nil:
 		linesMulti, diags := flattenDynamicTimeSeriesLinesMulti(ctx, visualization.TimeSeriesLinesMulti)
 		if diags.HasError() {
@@ -2998,6 +3194,50 @@ func flattenDynamicVisualizationGeoGroup(ctx context.Context, visualization *das
 	default:
 		return nil, nil, false
 	}
+}
+
+func flattenDynamicTimeSeriesLines(ctx context.Context, lines *dashboardservice.TimeSeriesLines) (*DynamicTimeSeriesLinesModel, diag.Diagnostics) {
+	if lines == nil {
+		return nil, nil
+	}
+
+	categoryFields, diags := FlattenObservationFields(ctx, lines.GetCategoryFields())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	valueFields, diags := FlattenObservationFields(ctx, lines.GetValueFields())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	temporalField, diags := FlattenObservationField(ctx, lines.TemporalField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &DynamicTimeSeriesLinesModel{
+		AllowAbbreviation:  types.BoolPointerValue(lines.AllowAbbreviation),
+		CategoryFields:     categoryFields,
+		ColorScheme:        types.StringPointerValue(lines.ColorScheme),
+		ConnectNulls:       types.BoolPointerValue(lines.ConnectNulls),
+		CustomUnit:         types.StringPointerValue(lines.CustomUnit),
+		DecimalPrecision:   flattenInt32Pointer(lines.DecimalPrecision),
+		HashColors:         types.BoolPointerValue(lines.HashColors),
+		Legend:             FlattenLegend(lines.Legend),
+		ScaleType:          flattenOptionalEnum(lines.ScaleType, DashboardProtoToSchemaScaleType),
+		SeriesCountLimit:   types.StringPointerValue(lines.SeriesCountLimit),
+		SeriesNameTemplate: types.StringPointerValue(lines.SeriesNameTemplate),
+		StackedLine:        flattenOptionalEnum(lines.StackedLine, dashboardProtoToSchemaStackedLine),
+		TemporalField:      temporalField,
+		Tooltip:            flattenDynamicTimeSeriesTooltip(lines.Tooltip),
+		Unit:               flattenOptionalEnum(lines.Unit, DashboardProtoToSchemaUnit),
+		UseDataTimeRange:   types.BoolPointerValue(lines.UseDataTimeRange),
+		ValueFields:        valueFields,
+		XAxisTimeFormat:    flattenOptionalEnum(lines.XAxisTimeFormat, dashboardProtoToSchemaXAxisTimeFormat),
+		YAxisMax:           flattenFloat32Pointer(lines.YAxisMax),
+		YAxisMin:           flattenFloat32Pointer(lines.YAxisMin),
+	}, nil
 }
 
 func flattenDynamicTimeSeriesLinesMulti(ctx context.Context, linesMulti *dashboardservice.TimeSeriesLinesMulti) (*DynamicTimeSeriesLinesMultiModel, diag.Diagnostics) {

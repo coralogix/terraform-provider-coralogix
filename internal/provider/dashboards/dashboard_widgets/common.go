@@ -497,6 +497,7 @@ type DynamicVisualizationModel struct {
 	Stat                 *DynamicStatModel                 `tfsdk:"stat"`
 	StatCard             *DynamicStatCardModel             `tfsdk:"stat_card"`
 	Table                *DynamicTableModel                `tfsdk:"table"`
+	TimeSeriesLines      *DynamicTimeSeriesLinesModel      `tfsdk:"time_series_lines"`
 	TimeSeriesLinesMulti *DynamicTimeSeriesLinesMultiModel `tfsdk:"time_series_lines_multi"`
 	TimeSeriesBars       *DynamicTimeSeriesBarsModel       `tfsdk:"time_series_bars"`
 	VerticalBars         *DynamicVerticalBarsModel         `tfsdk:"vertical_bars"`
@@ -538,7 +539,7 @@ type DynamicHeatmapModel struct {
 	ShowNumbers         types.Bool                  `tfsdk:"show_numbers"`
 	Tooltip             *DynamicHeatmapTooltipModel `tfsdk:"tooltip"`
 	Unit                types.String                `tfsdk:"unit"`
-	ValueField          types.Object                `tfsdk:"value_field"`  //ObservationFieldModel
+	ValueField          types.Object                `tfsdk:"value_field"`   //ObservationFieldModel
 	XAxisFields         types.List                  `tfsdk:"x_axis_fields"` //ObservationFieldModel
 	XAxisTimeFormat     types.String                `tfsdk:"x_axis_time_format"`
 	YAxisFields         types.List                  `tfsdk:"y_axis_fields"` //ObservationFieldModel
@@ -765,6 +766,29 @@ type DynamicSortStrategyModel struct {
 
 type DynamicSortByQueryValueModel struct {
 	QueryID types.String `tfsdk:"query_id"`
+}
+
+type DynamicTimeSeriesLinesModel struct {
+	AllowAbbreviation  types.Bool                     `tfsdk:"allow_abbreviation"`
+	CategoryFields     types.List                     `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorScheme        types.String                   `tfsdk:"color_scheme"`
+	ConnectNulls       types.Bool                     `tfsdk:"connect_nulls"`
+	CustomUnit         types.String                   `tfsdk:"custom_unit"`
+	DecimalPrecision   types.Int64                    `tfsdk:"decimal_precision"`
+	HashColors         types.Bool                     `tfsdk:"hash_colors"`
+	Legend             *LegendModel                   `tfsdk:"legend"`
+	ScaleType          types.String                   `tfsdk:"scale_type"`
+	SeriesCountLimit   types.String                   `tfsdk:"series_count_limit"`
+	SeriesNameTemplate types.String                   `tfsdk:"series_name_template"`
+	StackedLine        types.String                   `tfsdk:"stacked_line"`
+	TemporalField      types.Object                   `tfsdk:"temporal_field"` //ObservationFieldModel
+	Tooltip            *DynamicTimeSeriesTooltipModel `tfsdk:"tooltip"`
+	Unit               types.String                   `tfsdk:"unit"`
+	UseDataTimeRange   types.Bool                     `tfsdk:"use_data_time_range"`
+	ValueFields        types.List                     `tfsdk:"value_fields"` //ObservationFieldModel
+	XAxisTimeFormat    types.String                   `tfsdk:"x_axis_time_format"`
+	YAxisMax           Float32Value                   `tfsdk:"y_axis_max"`
+	YAxisMin           Float32Value                   `tfsdk:"y_axis_min"`
 }
 
 type DynamicTimeSeriesLinesMultiModel struct {

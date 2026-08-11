@@ -1811,6 +1811,7 @@ Read-Only:
 - `stat_card` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card))
 - `table` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table))
 - `time_series_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars))
+- `time_series_lines` (Attributes) Deprecated: use `time_series_lines_multi` instead. Retained at full fidelity for importing dashboards that still use the singular time series lines visualization. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines))
 - `time_series_lines_multi` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi))
 - `vertical_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars))
 - `vertical_bars_multi` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi))
@@ -3024,6 +3025,80 @@ Read-Only:
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--value_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.value_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--category_fields))
+- `color_scheme` (String)
+- `connect_nulls` (Boolean)
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `hash_colors` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--legend))
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `series_count_limit` (String)
+- `series_name_template` (String)
+- `stacked_line` (String) How lines are stacked. Valid values are: absolute, relative, unspecified.
+- `temporal_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--temporal_field))
+- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--tooltip))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `use_data_time_range` (Boolean)
+- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--value_fields))
+- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, simple_value, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--temporal_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.temporal_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--tooltip"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.tooltip`
+
+Read-Only:
+
+- `show_all_series` (Boolean)
+- `show_labels` (Boolean)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--value_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines.value_fields`
 
 Read-Only:
 

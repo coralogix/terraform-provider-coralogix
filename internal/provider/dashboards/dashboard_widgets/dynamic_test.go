@@ -575,6 +575,53 @@ func TestDynamicWidgetTimeSeriesLinesMultiFullFidelityRoundTrip(t *testing.T) {
 	assertDynamicRoundTrip(ctx, t, original)
 }
 
+func TestDynamicWidgetTimeSeriesLinesFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("avg")}),
+		GroupByQuery: types.BoolValue(true),
+		Placement:    types.StringValue("side"),
+	}
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			TimeSeriesLines: &DynamicTimeSeriesLinesModel{
+				AllowAbbreviation:  types.BoolValue(true),
+				CategoryFields:     observationFieldList("category", "user_data"),
+				ColorScheme:        types.StringValue("classic"),
+				ConnectNulls:       types.BoolValue(true),
+				CustomUnit:         types.StringValue("reqs"),
+				DecimalPrecision:   types.Int64Value(4),
+				HashColors:         types.BoolValue(true),
+				Legend:             legend,
+				ScaleType:          types.StringValue("logarithmic"),
+				SeriesCountLimit:   types.StringValue("100"),
+				SeriesNameTemplate: types.StringValue("{{label}}"),
+				StackedLine:        types.StringValue("absolute"),
+				TemporalField:      observationFieldObject("timestamp", "metadata"),
+				Tooltip: &DynamicTimeSeriesTooltipModel{
+					ShowAllSeries: types.BoolValue(true),
+					ShowLabels:    types.BoolValue(false),
+				},
+				Unit:             types.StringValue("bytes"),
+				UseDataTimeRange: types.BoolValue(true),
+				ValueFields:      observationFieldList("value", "metadata"),
+				XAxisTimeFormat:  types.StringValue("dd_mm_hh_mm"),
+				YAxisMax:         float32TestValue(100),
+				YAxisMin:         float32TestValue(0),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
 func TestDynamicWidgetTimeSeriesBarsFullFidelityRoundTrip(t *testing.T) {
 	ctx := context.Background()
 
