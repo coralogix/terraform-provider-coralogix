@@ -356,7 +356,7 @@ Read-Only:
 Read-Only:
 
 - `custom_unit` (String)
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
 - `value` (Number)
 
 
@@ -368,7 +368,7 @@ Read-Only:
 - `custom_unit` (String)
 - `end_value` (Number)
 - `start_value` (Number)
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
 
 
 
@@ -651,7 +651,7 @@ Read-Only:
 
 Read-Only:
 
-- `definition` (Attributes) Inline widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown]. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
+- `definition` (Attributes) Inline widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown dynamic]. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 - `description` (String) Widget description.
 - `id` (String)
 - `reference` (Attributes) Reference to a widget on another dashboard. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--reference))
@@ -665,6 +665,7 @@ Read-Only:
 
 - `bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart))
 - `data_table` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table))
+- `dynamic` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic))
 - `gauge` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge))
 - `hexagon` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon))
 - `horizontal_bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart))
@@ -686,7 +687,7 @@ Read-Only:
 - `scale_type` (String)
 - `sort_by` (String) The field to sort by. Can be one of name, unspecified, value.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `unit` (String) The unit of the chart. Can be one of bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query"></a>
@@ -1547,6 +1548,1718 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic`
+
+Read-Only:
+
+- `query_definitions` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame))
+- `visualization` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions`
+
+Read-Only:
+
+- `id` (String)
+- `name` (String)
+- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query`
+
+Read-Only:
+
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--data_prime))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--data_prime"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.data_prime`
+
+Read-Only:
+
+- `data_mode_type` (String) The data mode type. Valid values are: archive, unspecified.
+- `query` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs`
+
+Read-Only:
+
+- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--aggregations))
+- `data_mode_type` (String) The data mode type. Valid values are: archive, unspecified.
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters))
+- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--group_by))
+- `lucene_query` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--aggregations"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.aggregations`
+
+Read-Only:
+
+- `field` (String)
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--aggregations--observation_field))
+- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
+- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--aggregations--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.aggregations.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters`
+
+Read-Only:
+
+- `field` (String)
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters--observation_field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.filters.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--logs--group_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.logs.group_by`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.metrics`
+
+Read-Only:
+
+- `promql_query` (String)
+- `promql_query_type` (String) The PromQL query type. Valid values are: instant, range, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans`
+
+Read-Only:
+
+- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--aggregations))
+- `data_mode_type` (String) The data mode type. Valid values are: archive, unspecified.
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters))
+- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--group_by))
+- `lucene_query` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--aggregations"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.aggregations`
+
+Read-Only:
+
+- `field` (String)
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--aggregations--observation_field))
+- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
+- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--aggregations--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.aggregations.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.field`
+
+Read-Only:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--group_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.group_by`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization`
+
+Read-Only:
+
+- `gauge` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge))
+- `geomap` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap))
+- `heatmap` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap))
+- `hexagon_bins` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins))
+- `horizontal_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars))
+- `horizontal_bars_multi` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi))
+- `pie_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart))
+- `stat` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat))
+- `stat_card` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card))
+- `table` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table))
+- `time_series_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars))
+- `time_series_lines_multi` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi))
+- `vertical_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars))
+- `vertical_bars_multi` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.gauge`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `arc_display` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--arc_display))
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--category_fields))
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `display_series_name` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--legend))
+- `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
+- `max` (Number)
+- `min` (Number)
+- `show_inner_arc` (Boolean) Deprecated: use `arc_display.value_arc` instead.
+- `show_min_max` (Boolean)
+- `show_outer_arc` (Boolean) Deprecated: use `arc_display.threshold_arc` instead.
+- `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
+- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--thresholds))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_field))
+- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_fields))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--arc_display"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.gauge.arc_display`
+
+Read-Only:
+
+- `threshold_arc` (Boolean)
+- `value_arc` (Boolean)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.gauge.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.gauge.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--thresholds"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.gauge.thresholds`
+
+Read-Only:
+
+- `color` (String)
+- `from` (Number)
+- `label` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.gauge.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--value_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.gauge.value_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap`
+
+Read-Only:
+
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation))
+- `allow_abbreviation` (Boolean)
+- `color` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--color))
+- `config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config))
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `min_max` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--min_max))
+- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation`
+
+Read-Only:
+
+- `avg` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--avg))
+- `count` (Boolean)
+- `max` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--max))
+- `min` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--min))
+- `sum` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--sum))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--avg"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.avg`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--avg--field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--avg--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.avg.field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--max"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.max`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--max--field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--max--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.max.field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--min"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.min`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--min--field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--min--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.min.field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--sum"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.sum`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--sum--field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--aggregation--sum--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.aggregation.sum.field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--color"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.color`
+
+Read-Only:
+
+- `color_range` (String) The gradient color range. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
+- `size` (String) The solid size color. Valid values are: blue, cyan, green, magenta, orange, purple, red, unspecified, yellow.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config`
+
+Read-Only:
+
+- `aws_region_config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config))
+- `coordinate_config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.aws_region_config`
+
+Read-Only:
+
+- `aws_region_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config--aws_region_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config--aws_region_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.aws_region_config.aws_region_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.coordinate_config`
+
+Read-Only:
+
+- `latitude_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--latitude_field))
+- `longitude_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--longitude_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--latitude_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.coordinate_config.latitude_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--longitude_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.coordinate_config.longitude_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--min_max"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.min_max`
+
+Read-Only:
+
+- `auto` (Boolean)
+- `custom` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--min_max--custom))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--min_max--custom"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.min_max.custom`
+
+Read-Only:
+
+- `max` (Number)
+- `min` (Number)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.tooltip`
+
+Read-Only:
+
+- `labels` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip--labels))
+- `message_template` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip--labels"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.tooltip.labels`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.heatmap`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `color_axis_max` (Number) The maximum value for the gradient color axis. Stored at float32 precision by the API.
+- `color_axis_min` (Number) The minimum value for the gradient color axis. Stored at float32 precision by the API.
+- `color_range` (String) The gradient color range. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `histogram_bucket_unit` (String) The histogram bucket unit. Valid values are: bytes, bytes_iec, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, seconds, unspecified.
+- `preset` (String) The color preset. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `show_numbers` (Boolean)
+- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--value_field))
+- `x_axis_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--x_axis_fields))
+- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
+- `y_axis_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--y_axis_fields))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.tooltip`
+
+Read-Only:
+
+- `labels` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip--labels))
+- `message_template` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip--labels"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.tooltip.labels`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--x_axis_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.x_axis_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--y_axis_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.y_axis_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--category_fields))
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--legend))
+- `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
+- `max` (Number)
+- `min` (Number)
+- `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
+- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--thresholds))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--value_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--thresholds"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.thresholds`
+
+Read-Only:
+
+- `color` (String)
+- `from` (Number)
+- `label` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.hexagon_bins.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--category_fields))
+- `color_scheme` (String)
+- `colors_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--colors_by))
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `display_on_bar` (Boolean)
+- `group_name_template` (String)
+- `hash_colors` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--legend))
+- `max_bars_per_chart` (Number)
+- `max_slices_per_bar` (Number)
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `sort_by` (String) How bars are sorted. Valid values are: name, unspecified, value.
+- `stack_name_template` (String)
+- `sub_category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--sub_category_fields))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--value_field))
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+- `y_axis_view_by` (String) How the y-axis is viewed. Valid values are: category, unspecified, value.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--colors_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.colors_by`
+
+Read-Only:
+
+- `aggregation` (String) Encoded as a JSON object string.
+- `category` (String) Encoded as a JSON object string.
+- `group_by` (String) Encoded as a JSON object string.
+- `query` (String) Encoded as a JSON object string.
+- `stack` (String) Encoded as a JSON object string.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--sub_category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.sub_category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--category_fields))
+- `color_scheme` (String)
+- `colors_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--colors_by))
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `display_on_bar` (Boolean)
+- `group_name_template` (String)
+- `hash_colors` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--legend))
+- `max_bars_per_chart` (Number)
+- `query_field_settings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings))
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `sort_order` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+- `y_axis_view_by` (String) How the y-axis is viewed. Valid values are: category, unspecified, value.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--colors_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.colors_by`
+
+Read-Only:
+
+- `aggregation` (String) Encoded as a JSON object string.
+- `category` (String) Encoded as a JSON object string.
+- `group_by` (String) Encoded as a JSON object string.
+- `query` (String) Encoded as a JSON object string.
+- `stack` (String) Encoded as a JSON object string.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.query_field_settings`
+
+Read-Only:
+
+- `query_id` (String)
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings--value_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.query_field_settings.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order`
+
+Read-Only:
+
+- `order_direction` (String) The sort order direction. Valid values are: asc, desc, none, unspecified.
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.strategy`
+
+Read-Only:
+
+- `category` (String) Encoded as a JSON object string.
+- `query_value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy--query_value))
+- `strategy_type` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy--query_value"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.strategy.query_value`
+
+Read-Only:
+
+- `query_id` (String)
+
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--category_fields))
+- `color_scheme` (String)
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `group_name_template` (String)
+- `hash_colors` (Boolean)
+- `label_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--label_definition))
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--legend))
+- `max_slices_per_chart` (Number)
+- `max_slices_per_stack` (Number)
+- `min_slice_percentage` (Number)
+- `show_total` (Boolean)
+- `stack_name_template` (String)
+- `sub_category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--sub_category_fields))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--value_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--label_definition"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.label_definition`
+
+Read-Only:
+
+- `is_visible` (Boolean)
+- `label_source` (String) The label source. Valid values are: inner, stack, unspecified.
+- `show_name` (Boolean)
+- `show_percentage` (Boolean)
+- `show_value` (Boolean)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--sub_category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.sub_category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.pie_chart.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--category_fields))
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `display_series_name` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--legend))
+- `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
+- `max` (Number)
+- `min` (Number)
+- `threshold_by` (String) Which part of the widget the threshold colors. Valid values are: background, unspecified, value.
+- `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
+- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--thresholds))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_field))
+- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_fields))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--thresholds"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat.thresholds`
+
+Read-Only:
+
+- `color` (String)
+- `from` (Number)
+- `label` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat.value_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--category_fields))
+- `color_label_mapping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping))
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `label` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label))
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--legend))
+- `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
+- `primary_value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value))
+- `title` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--value_fields))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping`
+
+Read-Only:
+
+- `color_by` (String) Which part of the widget the color applies to. Valid values are: background, row, unspecified, value.
+- `range` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range))
+- `regex` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex))
+- `value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range`
+
+Read-Only:
+
+- `min_max` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max))
+- `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
+- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--thresholds))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range.min_max`
+
+Read-Only:
+
+- `auto` (Boolean)
+- `custom` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max--custom))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max--custom"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range.min_max.custom`
+
+Read-Only:
+
+- `max` (Number)
+- `min` (Number)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--thresholds"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range.thresholds`
+
+Read-Only:
+
+- `color` (String)
+- `from` (Number)
+- `label` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.regex`
+
+Read-Only:
+
+- `sections` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex--sections))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex--sections"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.regex.sections`
+
+Read-Only:
+
+- `color` (String) The section color. Valid values are: blue, cyan, green, magenta, orange, purple, red, unspecified, yellow.
+- `map_to` (String)
+- `value` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.value`
+
+Read-Only:
+
+- `sections` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value--sections))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value--sections"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.value.sections`
+
+Read-Only:
+
+- `color` (String) The section color. Valid values are: blue, cyan, green, magenta, orange, purple, red, unspecified, yellow.
+- `map_to` (String)
+- `value` (String)
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label`
+
+Read-Only:
+
+- `mapped_values` (String) Mapped values encoded as a JSON object string.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--observation_field))
+- `template_text` (String)
+- `template_variables` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.template_variables`
+
+Read-Only:
+
+- `mapped_values` (String) Mapped values encoded as a JSON object string.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables--observation_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.template_variables.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value`
+
+Read-Only:
+
+- `mapped_values` (String) Mapped values encoded as a JSON object string.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--observation_field))
+- `template_text` (String)
+- `template_variables` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.template_variables`
+
+Read-Only:
+
+- `mapped_values` (String) Mapped values encoded as a JSON object string.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables--observation_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.template_variables.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title`
+
+Read-Only:
+
+- `mapped_values` (String) Mapped values encoded as a JSON object string.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--observation_field))
+- `template_text` (String)
+- `template_variables` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.template_variables`
+
+Read-Only:
+
+- `mapped_values` (String) Mapped values encoded as a JSON object string.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables--observation_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.template_variables.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--value_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.value_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table`
+
+Read-Only:
+
+- `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns))
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules))
+- `settings` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.columns`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns--field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.columns.field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules`
+
+Read-Only:
+
+- `description` (String)
+- `id` (String)
+- `name` (String)
+- `properties` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties))
+- `rule_scope` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties`
+
+Read-Only:
+
+- `definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition))
+- `id` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition`
+
+Read-Only:
+
+- `alignment` (String) The text alignment. Valid values are: center, left, right, unspecified.
+- `column_display_name` (String)
+- `link` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link))
+- `regex_extract` (String)
+- `thresholds` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds))
+- `units` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--units))
+- `values_alias` (String)
+- `values_mapping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.link`
+
+Read-Only:
+
+- `actions` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link--actions))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link--actions"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.link.actions`
+
+Read-Only:
+
+- `id` (String)
+- `name` (String)
+- `should_open_in_new_window` (Boolean)
+- `url` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.thresholds`
+
+Read-Only:
+
+- `max` (Number)
+- `min` (Number)
+- `type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
+- `values` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds--values))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds--values"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.thresholds.values`
+
+Read-Only:
+
+- `color` (String)
+- `from` (Number)
+- `label` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--units"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.units`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `max` (Number)
+- `min` (Number)
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.values_mapping`
+
+Read-Only:
+
+- `mappings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping--mappings))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping--mappings"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.values_mapping.mappings`
+
+Read-Only:
+
+- `input_value` (String)
+- `replace_value` (String)
+- `type` (String) The values mapping type. Valid values are: regex, unspecified, value.
+
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.rule_scope`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope--field))
+- `field_type` (String) The field data type. Valid values are: array, boolean, enum, number, object, regex, string, timestamp, union, unspecified.
+- `regex` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.rule_scope.field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.settings`
+
+Read-Only:
+
+- `column_widths` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings--column_widths))
+- `row_style` (String) The row style. Valid values are: condensed, json, list, one_line, two_line, unspecified.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings--column_widths"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.settings.column_widths`
+
+Read-Only:
+
+- `column_name` (String)
+- `width` (Number)
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `bar_value_display` (String) Where bar values are displayed. Valid values are: both, inside, top, unspecified.
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--category_fields))
+- `color_scheme` (String)
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `hash_colors` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--legend))
+- `max_slices_per_bar` (Number)
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `series_name_template` (String)
+- `sort_by` (String) How bars are sorted. Valid values are: name, unspecified, value.
+- `temporal_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--temporal_field))
+- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--tooltip))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--value_fields))
+- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--temporal_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.temporal_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--tooltip"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.tooltip`
+
+Read-Only:
+
+- `show_all_series` (Boolean)
+- `show_labels` (Boolean)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--value_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_bars.value_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi`
+
+Read-Only:
+
+- `connect_nulls` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--legend))
+- `query_display_settings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings))
+- `stacked_line` (String) How lines are stacked. Valid values are: absolute, relative, unspecified.
+- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--tooltip))
+- `use_data_time_range` (Boolean)
+- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--category_fields))
+- `color_scheme` (String)
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `hash_colors` (Boolean)
+- `query_id` (String)
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `series_count_limit` (String)
+- `series_name_template` (String)
+- `temporal_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--temporal_field))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--value_fields))
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--temporal_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.temporal_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--value_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.query_display_settings.value_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--tooltip"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.time_series_lines_multi.tooltip`
+
+Read-Only:
+
+- `show_all_series` (Boolean)
+- `show_labels` (Boolean)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `bar_value_display` (String) Where bar values are displayed. Valid values are: both, inside, top, unspecified.
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--category_fields))
+- `color_scheme` (String)
+- `colors_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--colors_by))
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `group_name_template` (String)
+- `hash_colors` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--legend))
+- `max_bars_per_chart` (Number)
+- `max_slices_per_bar` (Number)
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `sort_by` (String) How bars are sorted. Valid values are: name, unspecified, value.
+- `stack_name_template` (String)
+- `sub_category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--sub_category_fields))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--value_field))
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--colors_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.colors_by`
+
+Read-Only:
+
+- `aggregation` (String) Encoded as a JSON object string.
+- `category` (String) Encoded as a JSON object string.
+- `group_by` (String) Encoded as a JSON object string.
+- `query` (String) Encoded as a JSON object string.
+- `stack` (String) Encoded as a JSON object string.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--sub_category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.sub_category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `bar_value_display` (String) Where bar values are displayed. Valid values are: both, inside, top, unspecified.
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--category_fields))
+- `color_scheme` (String)
+- `colors_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--colors_by))
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `group_name_template` (String)
+- `hash_colors` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--legend))
+- `max_bars_per_chart` (Number)
+- `query_field_settings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings))
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `sort_order` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--colors_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.colors_by`
+
+Read-Only:
+
+- `aggregation` (String) Encoded as a JSON object string.
+- `category` (String) Encoded as a JSON object string.
+- `group_by` (String) Encoded as a JSON object string.
+- `query` (String) Encoded as a JSON object string.
+- `stack` (String) Encoded as a JSON object string.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.query_field_settings`
+
+Read-Only:
+
+- `query_id` (String)
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings--value_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.query_field_settings.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order`
+
+Read-Only:
+
+- `order_direction` (String) The sort order direction. Valid values are: asc, desc, none, unspecified.
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.strategy`
+
+Read-Only:
+
+- `category` (String) Encoded as a JSON object string.
+- `query_value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy--query_value))
+- `strategy_type` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy--query_value"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.strategy.query_value`
+
+Read-Only:
+
+- `query_id` (String)
+
+
+
+
+
+
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge`
 
@@ -1937,7 +3650,7 @@ Read-Only:
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query))
 - `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
 - `thresholds` (Attributes Set) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--thresholds))
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--legend"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.legend`
@@ -2343,7 +4056,7 @@ Read-Only:
 - `scale_type` (String)
 - `sort_by` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `unit` (String) The unit of the chart. Can be one of bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
 - `y_axis_view_by` (String)
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query"></a>
@@ -2783,7 +4496,7 @@ Read-Only:
 - `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query`

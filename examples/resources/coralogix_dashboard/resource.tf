@@ -743,6 +743,120 @@ resource "coralogix_dashboard" "widgets" {
           }
         }]
       }]
+      },
+      {
+        # The typed `dynamic` widget pairs one or more `query_definitions` with a
+        # single `visualization`. Each query uses exactly one source (logs here) and
+        # each widget picks exactly one of the 14 visualizations.
+        rows = [{
+          height = 19
+          widgets = [
+            {
+              title = "dynamic stat - error volume"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "errors"
+                    query = {
+                      logs = {
+                        lucene_query = "coralogix.metadata.severity=\"5\" OR coralogix.metadata.severity=\"6\""
+                        group_by = [{
+                          keypath = ["subsystemname"]
+                          scope   = "label"
+                        }]
+                        aggregations = [{
+                          type = "count"
+                        }]
+                      }
+                    }
+                  }]
+                  time_frame = {
+                    relative = {
+                      duration = "seconds:900"
+                    }
+                  }
+                  visualization = {
+                    stat = {
+                      decimal_precision = 0
+                      threshold_type    = "absolute"
+                      thresholds = [
+                        { from = 0, color = "green" },
+                        { from = 1000, color = "red" },
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            {
+              title = "dynamic table - by application"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "logs"
+                    query = {
+                      logs = {
+                        lucene_query = "*"
+                        group_by = [{
+                          keypath = ["applicationname"]
+                          scope   = "label"
+                        }]
+                        aggregations = [{
+                          type = "count"
+                        }]
+                      }
+                    }
+                  }]
+                  visualization = {
+                    table = {
+                      columns = [
+                        { field = { keypath = ["applicationname"], scope = "label" } },
+                        { field = { keypath = ["subsystemname"], scope = "label" } },
+                      ]
+                      settings = {
+                        row_style = "one_line"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              title = "dynamic time series - avg latency"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "latency"
+                    query = {
+                      logs = {
+                        lucene_query = "*"
+                        group_by = [{
+                          keypath = ["subsystemname"]
+                          scope   = "label"
+                        }]
+                        aggregations = [{
+                          type  = "avg"
+                          field = "meta.responseTime.numeric"
+                        }]
+                      }
+                    }
+                  }]
+                  visualization = {
+                    time_series_lines_multi = {
+                      connect_nulls      = true
+                      stacked_line       = "absolute"
+                      x_axis_time_format = "hh_mm"
+                      tooltip = {
+                        show_all_series = true
+                        show_labels     = false
+                      }
+                    }
+                  }
+                }
+              }
+            },
+          ]
+        }]
     }]
   }
 }
