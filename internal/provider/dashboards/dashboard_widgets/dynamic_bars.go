@@ -24,27 +24,18 @@ import (
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var (
-	dashboardSchemaToProtoOrderDirection = map[string]dashboardservice.OrderDirection{
-		utils.UNSPECIFIED: dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_UNSPECIFIED,
-		"asc":             dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_ASC,
-		"desc":            dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_DESC,
-		"none":            dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_NONE,
-	}
-	dashboardProtoToSchemaOrderDirection = utils.ReverseMap(dashboardSchemaToProtoOrderDirection)
-	dashboardValidOrderDirection         = utils.GetKeys(dashboardSchemaToProtoOrderDirection)
-
 	dashboardSchemaToProtoHorizontalBarsYAxisViewBy = map[string]dashboardservice.HorizontalBarsYAxisViewBy{
 		utils.UNSPECIFIED: dashboardservice.HORIZONTALBARSYAXISVIEWBY_Y_AXIS_VIEW_BY_UNSPECIFIED,
 		"category":        dashboardservice.HORIZONTALBARSYAXISVIEWBY_Y_AXIS_VIEW_BY_CATEGORY,
@@ -63,28 +54,6 @@ var (
 )
 
 // Shared schema helpers -----------------------------------------------------
-
-func dynamicColorsBySchema() schema.Attribute {
-	jsonAttr := func() schema.Attribute {
-		return schema.StringAttribute{
-			Optional:            true,
-			MarkdownDescription: "Encoded as a JSON object string.",
-			PlanModifiers: []planmodifier.String{
-				utils.PreserveStateForEquivalentJSON{},
-			},
-		}
-	}
-	return schema.SingleNestedAttribute{
-		Optional: true,
-		Attributes: map[string]schema.Attribute{
-			"aggregation": jsonAttr(),
-			"category":    jsonAttr(),
-			"group_by":    jsonAttr(),
-			"query":       jsonAttr(),
-			"stack":       jsonAttr(),
-		},
-	}
-}
 
 func dynamicBarsQueryFieldSettingsSchema() schema.Attribute {
 	return schema.ListNestedAttribute{
@@ -112,19 +81,17 @@ func dynamicSortOrderSchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidOrderDirection...),
+					stringvalidator.OneOf(DashboardValidOrderDirections...),
 				},
-				MarkdownDescription: fmt.Sprintf("The sort order direction. Valid values are: %s.", strings.Join(dashboardValidOrderDirection, ", ")),
+				MarkdownDescription: fmt.Sprintf("The sort order direction. Valid values are: %s.", strings.Join(DashboardValidOrderDirections, ", ")),
 			},
 			"strategy": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"category": schema.StringAttribute{
+						CustomType:          JSONStringType{},
 						Optional:            true,
 						MarkdownDescription: "Encoded as a JSON object string.",
-						PlanModifiers: []planmodifier.String{
-							utils.PreserveStateForEquivalentJSON{},
-						},
 					},
 					"query_value": schema.SingleNestedAttribute{
 						Optional: true,
@@ -137,6 +104,9 @@ func dynamicSortOrderSchema() schema.Attribute {
 					"strategy_type": schema.StringAttribute{
 						Optional: true,
 					},
+				},
+				Validators: []validator.Object{
+					ExactlyOneOfChildren("category", "query_value"),
 				},
 			},
 		},
@@ -170,7 +140,7 @@ func dynamicVerticalBarsSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": dynamicColorsBySchema(),
+			"colors_by": ColorsBySchema(),
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
 			},
@@ -226,27 +196,25 @@ func dynamicVerticalBarsSchema() schema.Attribute {
 					Attributes: ObservationFieldSchema(),
 				},
 			},
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit": UnitSchema(),
 			"value_field": schema.SingleNestedAttribute{
 				Attributes: ObservationFieldSchema(),
 				Optional:   true,
 			},
 			"y_axis_max": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
 			},
 			"y_axis_min": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
 			},
 		},
@@ -278,7 +246,7 @@ func dynamicVerticalBarsMultiSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": dynamicColorsBySchema(),
+			"colors_by": ColorsBySchema(),
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
 			},
@@ -312,23 +280,21 @@ func dynamicVerticalBarsMultiSchema() schema.Attribute {
 				MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(DashboardValidScaleTypes, ", ")),
 			},
 			"sort_order": dynamicSortOrderSchema(),
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit":       UnitSchema(),
 			"y_axis_max": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
 			},
 			"y_axis_min": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
 			},
 		},
@@ -351,7 +317,7 @@ func dynamicHorizontalBarsSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": dynamicColorsBySchema(),
+			"colors_by": ColorsBySchema(),
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
 			},
@@ -410,27 +376,25 @@ func dynamicHorizontalBarsSchema() schema.Attribute {
 					Attributes: ObservationFieldSchema(),
 				},
 			},
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit": UnitSchema(),
 			"value_field": schema.SingleNestedAttribute{
 				Attributes: ObservationFieldSchema(),
 				Optional:   true,
 			},
 			"y_axis_max": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
 			},
 			"y_axis_min": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
 			},
 			"y_axis_view_by": schema.StringAttribute{
@@ -462,7 +426,7 @@ func dynamicHorizontalBarsMultiSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": dynamicColorsBySchema(),
+			"colors_by": ColorsBySchema(),
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
 			},
@@ -499,23 +463,21 @@ func dynamicHorizontalBarsMultiSchema() schema.Attribute {
 				MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(DashboardValidScaleTypes, ", ")),
 			},
 			"sort_order": dynamicSortOrderSchema(),
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit":       UnitSchema(),
 			"y_axis_max": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
 			},
 			"y_axis_min": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
 			},
 			"y_axis_view_by": schema.StringAttribute{
@@ -533,16 +495,6 @@ func dynamicHorizontalBarsMultiSchema() schema.Attribute {
 
 // Model attribute maps ------------------------------------------------------
 
-func dynamicColorsByModelAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"aggregation": types.StringType,
-		"category":    types.StringType,
-		"group_by":    types.StringType,
-		"query":       types.StringType,
-		"stack":       types.StringType,
-	}
-}
-
 func dynamicBarsQueryFieldSettingsModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"query_id":    types.StringType,
@@ -559,7 +511,7 @@ func dynamicSortOrderModelAttr() map[string]attr.Type {
 
 func dynamicSortStrategyModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"category":      types.StringType,
+		"category":      JSONStringType{},
 		"query_value":   types.ObjectType{AttrTypes: dynamicSortByQueryValueModelAttr()},
 		"strategy_type": types.StringType,
 	}
@@ -579,7 +531,7 @@ func dynamicVerticalBarsModelAttr() map[string]attr.Type {
 			ElemType: ObservationFieldsObject(),
 		},
 		"color_scheme":        types.StringType,
-		"colors_by":           types.ObjectType{AttrTypes: dynamicColorsByModelAttr()},
+		"colors_by":           types.StringType,
 		"custom_unit":         types.StringType,
 		"decimal_precision":   types.Int64Type,
 		"group_name_template": types.StringType,
@@ -608,7 +560,7 @@ func dynamicVerticalBarsMultiModelAttr() map[string]attr.Type {
 			ElemType: ObservationFieldsObject(),
 		},
 		"color_scheme":        types.StringType,
-		"colors_by":           types.ObjectType{AttrTypes: dynamicColorsByModelAttr()},
+		"colors_by":           types.StringType,
 		"custom_unit":         types.StringType,
 		"decimal_precision":   types.Int64Type,
 		"group_name_template": types.StringType,
@@ -633,7 +585,7 @@ func dynamicHorizontalBarsModelAttr() map[string]attr.Type {
 			ElemType: ObservationFieldsObject(),
 		},
 		"color_scheme":        types.StringType,
-		"colors_by":           types.ObjectType{AttrTypes: dynamicColorsByModelAttr()},
+		"colors_by":           types.StringType,
 		"custom_unit":         types.StringType,
 		"decimal_precision":   types.Int64Type,
 		"display_on_bar":      types.BoolType,
@@ -663,7 +615,7 @@ func dynamicHorizontalBarsMultiModelAttr() map[string]attr.Type {
 			ElemType: ObservationFieldsObject(),
 		},
 		"color_scheme":        types.StringType,
-		"colors_by":           types.ObjectType{AttrTypes: dynamicColorsByModelAttr()},
+		"colors_by":           types.StringType,
 		"custom_unit":         types.StringType,
 		"decimal_precision":   types.Int64Type,
 		"display_on_bar":      types.BoolType,
@@ -685,54 +637,6 @@ func dynamicHorizontalBarsMultiModelAttr() map[string]attr.Type {
 
 // Shared expand/flatten helpers ---------------------------------------------
 
-func expandDynamicColorsBy(colorsBy *DynamicColorsByModel) (*dashboardservice.ColorsBy, diag.Diagnostics) {
-	if colorsBy == nil {
-		return nil, nil
-	}
-
-	aggregation, diags := expandJSONStringToMap(colorsBy.Aggregation)
-	if diags.HasError() {
-		return nil, diags
-	}
-	category, diags := expandJSONStringToMap(colorsBy.Category)
-	if diags.HasError() {
-		return nil, diags
-	}
-	groupBy, diags := expandJSONStringToMap(colorsBy.GroupBy)
-	if diags.HasError() {
-		return nil, diags
-	}
-	query, diags := expandJSONStringToMap(colorsBy.Query)
-	if diags.HasError() {
-		return nil, diags
-	}
-	stack, diags := expandJSONStringToMap(colorsBy.Stack)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &dashboardservice.ColorsBy{
-		Aggregation: aggregation,
-		Category:    category,
-		GroupBy:     groupBy,
-		Query:       query,
-		Stack:       stack,
-	}, nil
-}
-
-func flattenDynamicColorsBy(colorsBy *dashboardservice.ColorsBy) *DynamicColorsByModel {
-	if colorsBy == nil {
-		return nil
-	}
-	return &DynamicColorsByModel{
-		Aggregation: flattenMapToJSONString(colorsBy.Aggregation),
-		Category:    flattenMapToJSONString(colorsBy.Category),
-		GroupBy:     flattenMapToJSONString(colorsBy.GroupBy),
-		Query:       flattenMapToJSONString(colorsBy.Query),
-		Stack:       flattenMapToJSONString(colorsBy.Stack),
-	}
-}
-
 func expandDynamicSortOrder(ctx context.Context, sortOrder *DynamicSortOrderModel) (*dashboardservice.VisualizationSortOrder, diag.Diagnostics) {
 	if sortOrder == nil {
 		return nil, nil
@@ -744,7 +648,7 @@ func expandDynamicSortOrder(ctx context.Context, sortOrder *DynamicSortOrderMode
 	}
 
 	return &dashboardservice.VisualizationSortOrder{
-		OrderDirection: OptionalEnumPointer(sortOrder.OrderDirection, dashboardSchemaToProtoOrderDirection),
+		OrderDirection: OptionalEnumPointer(sortOrder.OrderDirection, DashboardOrderDirectionSchemaToProto),
 		Strategy:       strategy,
 	}, nil
 }
@@ -754,7 +658,7 @@ func expandDynamicSortStrategy(strategy *DynamicSortStrategyModel) (*dashboardse
 		return nil, nil
 	}
 
-	category, diags := expandJSONStringToMap(strategy.Category)
+	category, diags := expandJSONStringToMap("sort_order.strategy.category", strategy.Category)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -778,7 +682,7 @@ func flattenDynamicSortOrder(sortOrder *dashboardservice.VisualizationSortOrder)
 		return nil
 	}
 	return &DynamicSortOrderModel{
-		OrderDirection: flattenOptionalEnum(sortOrder.OrderDirection, dashboardProtoToSchemaOrderDirection),
+		OrderDirection: flattenOptionalEnum(sortOrder.OrderDirection, DashboardOrderDirectionProtoToSchema),
 		Strategy:       flattenDynamicSortStrategy(sortOrder.Strategy),
 	}
 }
@@ -933,17 +837,12 @@ func expandDynamicVerticalBars(ctx context.Context, bars *DynamicVerticalBarsMod
 	if diags.HasError() {
 		return nil, diags
 	}
-	colorsBy, diags := expandDynamicColorsBy(bars.ColorsBy)
-	if diags.HasError() {
-		return nil, diags
-	}
-
 	return &dashboardservice.VerticalBars{
 		AllowAbbreviation: bars.AllowAbbreviation.ValueBoolPointer(),
 		BarValueDisplay:   OptionalEnumPointer(bars.BarValueDisplay, dashboardSchemaToProtoBarValueDisplay),
 		CategoryFields:    categoryFields,
 		ColorScheme:       bars.ColorScheme.ValueStringPointer(),
-		ColorsBy:          colorsBy,
+		ColorsBy:          ExpandColorsBy(bars.ColorsBy),
 		CustomUnit:        bars.CustomUnit.ValueStringPointer(),
 		DecimalPrecision:  expandInt32Pointer(bars.DecimalPrecision),
 		GroupNameTemplate: bars.GroupNameTemplate.ValueStringPointer(),
@@ -975,10 +874,6 @@ func expandDynamicVerticalBarsMulti(ctx context.Context, bars *DynamicVerticalBa
 	if diags.HasError() {
 		return nil, diags
 	}
-	colorsBy, diags := expandDynamicColorsBy(bars.ColorsBy)
-	if diags.HasError() {
-		return nil, diags
-	}
 	queryFieldSettings, diags := expandDynamicVerticalBarsQueryFieldSettings(ctx, bars.QueryFieldSettings)
 	if diags.HasError() {
 		return nil, diags
@@ -993,7 +888,7 @@ func expandDynamicVerticalBarsMulti(ctx context.Context, bars *DynamicVerticalBa
 		BarValueDisplay:    OptionalEnumPointer(bars.BarValueDisplay, dashboardSchemaToProtoBarValueDisplay),
 		CategoryFields:     categoryFields,
 		ColorScheme:        bars.ColorScheme.ValueStringPointer(),
-		ColorsBy:           colorsBy,
+		ColorsBy:           ExpandColorsBy(bars.ColorsBy),
 		CustomUnit:         bars.CustomUnit.ValueStringPointer(),
 		DecimalPrecision:   expandInt32Pointer(bars.DecimalPrecision),
 		GroupNameTemplate:  bars.GroupNameTemplate.ValueStringPointer(),
@@ -1030,16 +925,11 @@ func expandDynamicHorizontalBars(ctx context.Context, bars *DynamicHorizontalBar
 	if diags.HasError() {
 		return nil, diags
 	}
-	colorsBy, diags := expandDynamicColorsBy(bars.ColorsBy)
-	if diags.HasError() {
-		return nil, diags
-	}
-
 	return &dashboardservice.HorizontalBars{
 		AllowAbbreviation: bars.AllowAbbreviation.ValueBoolPointer(),
 		CategoryFields:    categoryFields,
 		ColorScheme:       bars.ColorScheme.ValueStringPointer(),
-		ColorsBy:          colorsBy,
+		ColorsBy:          ExpandColorsBy(bars.ColorsBy),
 		CustomUnit:        bars.CustomUnit.ValueStringPointer(),
 		DecimalPrecision:  expandInt32Pointer(bars.DecimalPrecision),
 		DisplayOnBar:      bars.DisplayOnBar.ValueBoolPointer(),
@@ -1073,10 +963,6 @@ func expandDynamicHorizontalBarsMulti(ctx context.Context, bars *DynamicHorizont
 	if diags.HasError() {
 		return nil, diags
 	}
-	colorsBy, diags := expandDynamicColorsBy(bars.ColorsBy)
-	if diags.HasError() {
-		return nil, diags
-	}
 	queryFieldSettings, diags := expandDynamicHorizontalBarsQueryFieldSettings(ctx, bars.QueryFieldSettings)
 	if diags.HasError() {
 		return nil, diags
@@ -1090,7 +976,7 @@ func expandDynamicHorizontalBarsMulti(ctx context.Context, bars *DynamicHorizont
 		AllowAbbreviation:  bars.AllowAbbreviation.ValueBoolPointer(),
 		CategoryFields:     categoryFields,
 		ColorScheme:        bars.ColorScheme.ValueStringPointer(),
-		ColorsBy:           colorsBy,
+		ColorsBy:           ExpandColorsBy(bars.ColorsBy),
 		CustomUnit:         bars.CustomUnit.ValueStringPointer(),
 		DecimalPrecision:   expandInt32Pointer(bars.DecimalPrecision),
 		DisplayOnBar:       bars.DisplayOnBar.ValueBoolPointer(),
@@ -1128,12 +1014,17 @@ func flattenDynamicVerticalBars(ctx context.Context, bars *dashboardservice.Vert
 		return nil, diags
 	}
 
+	colorsBy, dg := FlattenColorsBy(bars.ColorsBy)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
 	return &DynamicVerticalBarsModel{
 		AllowAbbreviation: types.BoolPointerValue(bars.AllowAbbreviation),
 		BarValueDisplay:   flattenOptionalEnum(bars.BarValueDisplay, dashboardProtoToSchemaBarValueDisplay),
 		CategoryFields:    categoryFields,
 		ColorScheme:       types.StringPointerValue(bars.ColorScheme),
-		ColorsBy:          flattenDynamicColorsBy(bars.ColorsBy),
+		ColorsBy:          colorsBy,
 		CustomUnit:        types.StringPointerValue(bars.CustomUnit),
 		DecimalPrecision:  flattenInt32Pointer(bars.DecimalPrecision),
 		GroupNameTemplate: types.StringPointerValue(bars.GroupNameTemplate),
@@ -1166,12 +1057,17 @@ func flattenDynamicVerticalBarsMulti(ctx context.Context, bars *dashboardservice
 		return nil, diags
 	}
 
+	colorsBy, dg := FlattenColorsBy(bars.ColorsBy)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
 	return &DynamicVerticalBarsMultiModel{
 		AllowAbbreviation:  types.BoolPointerValue(bars.AllowAbbreviation),
 		BarValueDisplay:    flattenOptionalEnum(bars.BarValueDisplay, dashboardProtoToSchemaBarValueDisplay),
 		CategoryFields:     categoryFields,
 		ColorScheme:        types.StringPointerValue(bars.ColorScheme),
-		ColorsBy:           flattenDynamicColorsBy(bars.ColorsBy),
+		ColorsBy:           colorsBy,
 		CustomUnit:         types.StringPointerValue(bars.CustomUnit),
 		DecimalPrecision:   flattenInt32Pointer(bars.DecimalPrecision),
 		GroupNameTemplate:  types.StringPointerValue(bars.GroupNameTemplate),
@@ -1205,11 +1101,16 @@ func flattenDynamicHorizontalBars(ctx context.Context, bars *dashboardservice.Ho
 		return nil, diags
 	}
 
+	colorsBy, dg := FlattenColorsBy(bars.ColorsBy)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
 	return &DynamicHorizontalBarsModel{
 		AllowAbbreviation: types.BoolPointerValue(bars.AllowAbbreviation),
 		CategoryFields:    categoryFields,
 		ColorScheme:       types.StringPointerValue(bars.ColorScheme),
-		ColorsBy:          flattenDynamicColorsBy(bars.ColorsBy),
+		ColorsBy:          colorsBy,
 		CustomUnit:        types.StringPointerValue(bars.CustomUnit),
 		DecimalPrecision:  flattenInt32Pointer(bars.DecimalPrecision),
 		DisplayOnBar:      types.BoolPointerValue(bars.DisplayOnBar),
@@ -1244,11 +1145,16 @@ func flattenDynamicHorizontalBarsMulti(ctx context.Context, bars *dashboardservi
 		return nil, diags
 	}
 
+	colorsBy, dg := FlattenColorsBy(bars.ColorsBy)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
 	return &DynamicHorizontalBarsMultiModel{
 		AllowAbbreviation:  types.BoolPointerValue(bars.AllowAbbreviation),
 		CategoryFields:     categoryFields,
 		ColorScheme:        types.StringPointerValue(bars.ColorScheme),
-		ColorsBy:           flattenDynamicColorsBy(bars.ColorsBy),
+		ColorsBy:           colorsBy,
 		CustomUnit:         types.StringPointerValue(bars.CustomUnit),
 		DecimalPrecision:   flattenInt32Pointer(bars.DecimalPrecision),
 		DisplayOnBar:       types.BoolPointerValue(bars.DisplayOnBar),

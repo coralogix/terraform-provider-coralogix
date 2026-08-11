@@ -747,7 +747,7 @@ resource "coralogix_dashboard" "widgets" {
       {
         # The typed `dynamic` widget pairs one or more `query_definitions` with a
         # single `visualization`. Each query uses exactly one source (logs here) and
-        # each widget picks exactly one of the 14 visualizations.
+        # each widget picks exactly one of the supported visualizations.
         rows = [{
           height = 19
           widgets = [

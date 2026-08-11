@@ -951,25 +951,6 @@ func ParseDuration(ti, fieldsName string) (*time.Duration, diag.Diagnostic) {
 	return &duration, nil
 }
 
-type PreserveStateForEquivalentJSON struct{}
-
-func (m PreserveStateForEquivalentJSON) Description(_ context.Context) string {
-	return "Preserves the previous state value when the configured JSON is semantically equivalent."
-}
-
-func (m PreserveStateForEquivalentJSON) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-func (m PreserveStateForEquivalentJSON) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
-		return
-	}
-	if JSONStringsEqual(req.ConfigValue.ValueString(), req.StateValue.ValueString()) {
-		resp.PlanValue = req.StateValue
-	}
-}
-
 func JSONStringsEqualPlanModifier(_ context.Context, plan planmodifier.StringRequest, req *stringplanmodifier.RequiresReplaceIfFuncResponse) {
 	if diffType, _ := jsondiff.Compare([]byte(plan.PlanValue.ValueString()), []byte(plan.StateValue.ValueString()), &jsondiff.Options{}); !(diffType == jsondiff.FullMatch || diffType == jsondiff.SupersetMatch) {
 		req.RequiresReplace = false

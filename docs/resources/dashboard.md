@@ -762,7 +762,7 @@ resource "coralogix_dashboard" "widgets" {
       {
         # The typed `dynamic` widget pairs one or more `query_definitions` with a
         # single `visualization`. Each query uses exactly one source (logs here) and
-        # each widget picks exactly one of the 14 visualizations.
+        # each widget picks exactly one of the supported visualizations.
         rows = [{
           height = 19
           widgets = [
@@ -1993,21 +1993,12 @@ Required:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--observation_field))
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.field`
-
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.operator`
@@ -2019,6 +2010,15 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--observation_field"></a>
@@ -2482,21 +2482,12 @@ Optional:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--observation_field))
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.field`
-
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.operator`
@@ -2508,6 +2499,15 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--observation_field"></a>
@@ -2612,7 +2612,7 @@ Optional:
 Optional:
 
 - `field` (String)
-- `order_direction` (String) The order direction. Can be one of ["asc" "desc" "unspecified"].
+- `order_direction` (String) The order direction. Can be one of ["asc" "desc" "none" "unspecified"].
 
 
 
@@ -2625,6 +2625,7 @@ Required:
 
 Optional:
 
+- `interpretation` (String, Deprecated) Deprecated: superseded by the `visualization` block. Retained at full fidelity for importing dashboards that still set it. Valid values are: categorical_analysis_horizontal_bars, categorical_analysis_pie_chart, categorical_analysis_vertical_bars, multi_value_kpi, multi_value_kpi_gauge, multi_value_kpi_hexagon_bins, multi_value_kpi_stat, multi_value_kpi_stat_card, raw_data_table, single_value_kpi, single_value_kpi_gauge, single_value_kpi_stat, single_value_kpi_stat_card, trend_over_time_line, unspecified.
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--time_frame))
 - `visualization` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization))
 
@@ -2637,11 +2638,8 @@ Required:
 
 Optional:
 
-- `name` (String)
-
-Read-Only:
-
 - `id` (String)
+- `name` (String)
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query`
@@ -2793,21 +2791,12 @@ Required:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--observation_field))
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.field`
-
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.operator`
@@ -2819,6 +2808,15 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--observation_field"></a>
@@ -3182,11 +3180,11 @@ Optional:
 - `allow_abbreviation` (Boolean)
 - `color_axis_max` (Number) The maximum value for the gradient color axis. Stored at float32 precision by the API.
 - `color_axis_min` (Number) The minimum value for the gradient color axis. Stored at float32 precision by the API.
-- `color_range` (String) The gradient color range. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
+- `color_range` (String) The gradient color range. Mutually exclusive with `preset`. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
 - `custom_unit` (String)
 - `decimal_precision` (Number)
 - `histogram_bucket_unit` (String) The histogram bucket unit. Valid values are: bytes, bytes_iec, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, seconds, unspecified.
-- `preset` (String) The color preset. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
+- `preset` (String) The color preset. Mutually exclusive with `color_range`. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
 - `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
 - `show_numbers` (Boolean)
 - `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip))
@@ -3308,7 +3306,7 @@ Optional:
 - `allow_abbreviation` (Boolean)
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--category_fields))
 - `color_scheme` (String)
-- `colors_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--colors_by))
+- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
 - `custom_unit` (String)
 - `decimal_precision` (Number)
 - `display_on_bar` (Boolean)
@@ -3334,18 +3332,6 @@ Required:
 
 - `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
 - `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
-
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--colors_by"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.colors_by`
-
-Optional:
-
-- `aggregation` (String) Encoded as a JSON object string.
-- `category` (String) Encoded as a JSON object string.
-- `group_by` (String) Encoded as a JSON object string.
-- `query` (String) Encoded as a JSON object string.
-- `stack` (String) Encoded as a JSON object string.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--legend"></a>
@@ -3386,7 +3372,7 @@ Optional:
 - `allow_abbreviation` (Boolean)
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--category_fields))
 - `color_scheme` (String)
-- `colors_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--colors_by))
+- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
 - `custom_unit` (String)
 - `decimal_precision` (Number)
 - `display_on_bar` (Boolean)
@@ -3409,18 +3395,6 @@ Required:
 
 - `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
 - `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
-
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--colors_by"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.colors_by`
-
-Optional:
-
-- `aggregation` (String) Encoded as a JSON object string.
-- `category` (String) Encoded as a JSON object string.
-- `group_by` (String) Encoded as a JSON object string.
-- `query` (String) Encoded as a JSON object string.
-- `stack` (String) Encoded as a JSON object string.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--legend"></a>
@@ -4132,7 +4106,7 @@ Optional:
 - `hash_colors` (Boolean)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--legend))
 - `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
-- `series_count_limit` (String)
+- `series_count_limit` (Number)
 - `series_name_template` (String)
 - `stacked_line` (String) How lines are stacked. Valid values are: absolute, relative, unspecified.
 - `temporal_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--temporal_field))
@@ -4232,7 +4206,7 @@ Optional:
 - `decimal_precision` (Number)
 - `hash_colors` (Boolean)
 - `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
-- `series_count_limit` (String)
+- `series_count_limit` (Number)
 - `series_name_template` (String)
 - `temporal_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--temporal_field))
 - `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
@@ -4287,7 +4261,7 @@ Optional:
 - `bar_value_display` (String) Where bar values are displayed. Valid values are: both, inside, top, unspecified.
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--category_fields))
 - `color_scheme` (String)
-- `colors_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--colors_by))
+- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
 - `custom_unit` (String)
 - `decimal_precision` (Number)
 - `group_name_template` (String)
@@ -4311,18 +4285,6 @@ Required:
 
 - `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
 - `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
-
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--colors_by"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.colors_by`
-
-Optional:
-
-- `aggregation` (String) Encoded as a JSON object string.
-- `category` (String) Encoded as a JSON object string.
-- `group_by` (String) Encoded as a JSON object string.
-- `query` (String) Encoded as a JSON object string.
-- `stack` (String) Encoded as a JSON object string.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--legend"></a>
@@ -4364,7 +4326,7 @@ Optional:
 - `bar_value_display` (String) Where bar values are displayed. Valid values are: both, inside, top, unspecified.
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--category_fields))
 - `color_scheme` (String)
-- `colors_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--colors_by))
+- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
 - `custom_unit` (String)
 - `decimal_precision` (Number)
 - `group_name_template` (String)
@@ -4385,18 +4347,6 @@ Required:
 
 - `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
 - `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
-
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--colors_by"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.colors_by`
-
-Optional:
-
-- `aggregation` (String) Encoded as a JSON object string.
-- `category` (String) Encoded as a JSON object string.
-- `group_by` (String) Encoded as a JSON object string.
-- `query` (String) Encoded as a JSON object string.
-- `stack` (String) Encoded as a JSON object string.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--legend"></a>
@@ -4804,21 +4754,12 @@ Optional:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--observation_field))
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.field`
-
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator`
@@ -4830,6 +4771,15 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--observation_field"></a>
@@ -5259,21 +5209,12 @@ Required:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--observation_field))
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.field`
-
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.operator`
@@ -5285,6 +5226,15 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--observation_field"></a>
@@ -5743,21 +5693,12 @@ Required:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--observation_field))
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.field`
-
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.operator`
@@ -5769,6 +5710,15 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--observation_field"></a>
@@ -6211,21 +6161,12 @@ Required:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--observation_field))
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.field`
-
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.operator`
@@ -6237,6 +6178,15 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--observation_field"></a>
@@ -6723,21 +6673,12 @@ Required:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--observation_field))
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.field`
-
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.operator`
@@ -6749,6 +6690,15 @@ Required:
 Optional:
 
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--observation_field"></a>
@@ -6886,7 +6836,7 @@ Optional:
 
 Required:
 
-- `values_order_direction` (String) The order direction of the values. Can be one of `asc`, `desc`, `unspecified`.
+- `values_order_direction` (String) The order direction of the values. Can be one of `asc`, `desc`, `none`, `unspecified`.
 
 Optional:
 

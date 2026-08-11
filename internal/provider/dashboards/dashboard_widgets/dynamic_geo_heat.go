@@ -23,10 +23,12 @@ import (
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -111,9 +113,9 @@ func dynamicHexagonBinsSchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidLegendBy...),
+					stringvalidator.OneOf(DashboardValidLegendBys...),
 				},
-				MarkdownDescription: fmt.Sprintf("How the legend is grouped. Valid values are: %s.", strings.Join(dashboardValidLegendBy, ", ")),
+				MarkdownDescription: fmt.Sprintf("How the legend is grouped. Valid values are: %s.", strings.Join(DashboardValidLegendBys, ", ")),
 			},
 			"max": schema.Float64Attribute{
 				Optional: true,
@@ -131,15 +133,7 @@ func dynamicHexagonBinsSchema() schema.Attribute {
 				MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(DashboardValidThresholdTypes, ", ")),
 			},
 			"thresholds": dynamicThresholdsSchema(),
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit":       UnitSchema(),
 			"value_field": schema.SingleNestedAttribute{
 				Attributes: ObservationFieldSchema(),
 				Optional:   true,
@@ -156,23 +150,28 @@ func dynamicHeatmapSchema() schema.Attribute {
 				Optional: true,
 			},
 			"color_axis_max": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The maximum value for the gradient color axis. Stored at float32 precision by the API.",
 			},
 			"color_axis_min": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The minimum value for the gradient color axis. Stored at float32 precision by the API.",
 			},
 			"color_range": schema.StringAttribute{
 				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
 					stringvalidator.OneOf(dashboardValidColorGradientType...),
+					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("preset")),
 				},
-				MarkdownDescription: fmt.Sprintf("The gradient color range. Valid values are: %s.", strings.Join(dashboardValidColorGradientType, ", ")),
+				MarkdownDescription: fmt.Sprintf("The gradient color range. Mutually exclusive with `preset`. Valid values are: %s.", strings.Join(dashboardValidColorGradientType, ", ")),
 			},
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
@@ -194,12 +193,10 @@ func dynamicHeatmapSchema() schema.Attribute {
 			},
 			"preset": schema.StringAttribute{
 				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
 					stringvalidator.OneOf(dashboardValidHeatmapColorPreset...),
 				},
-				MarkdownDescription: fmt.Sprintf("The color preset. Valid values are: %s.", strings.Join(dashboardValidHeatmapColorPreset, ", ")),
+				MarkdownDescription: fmt.Sprintf("The color preset. Mutually exclusive with `color_range`. Valid values are: %s.", strings.Join(dashboardValidHeatmapColorPreset, ", ")),
 			},
 			"scale_type": schema.StringAttribute{
 				Optional: true,
@@ -214,15 +211,7 @@ func dynamicHeatmapSchema() schema.Attribute {
 				Optional: true,
 			},
 			"tooltip": dynamicHeatmapTooltipSchema(),
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit":    UnitSchema(),
 			"value_field": schema.SingleNestedAttribute{
 				Attributes: ObservationFieldSchema(),
 				Optional:   true,
@@ -282,8 +271,6 @@ func dynamicGeomapSchema() schema.Attribute {
 				Attributes: map[string]schema.Attribute{
 					"color_range": schema.StringAttribute{
 						Optional: true,
-						Computed: true,
-						Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 						Validators: []validator.String{
 							stringvalidator.OneOf(dashboardValidColorGradientType...),
 						},
@@ -291,13 +278,14 @@ func dynamicGeomapSchema() schema.Attribute {
 					},
 					"size": schema.StringAttribute{
 						Optional: true,
-						Computed: true,
-						Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 						Validators: []validator.String{
 							stringvalidator.OneOf(dashboardValidColorSolidType...),
 						},
 						MarkdownDescription: fmt.Sprintf("The solid size color. Valid values are: %s.", strings.Join(dashboardValidColorSolidType, ", ")),
 					},
+				},
+				Validators: []validator.Object{
+					ExactlyOneOfChildren("color_range", "size"),
 				},
 			},
 			"config": schema.SingleNestedAttribute{
@@ -326,6 +314,9 @@ func dynamicGeomapSchema() schema.Attribute {
 						},
 					},
 				},
+				Validators: []validator.Object{
+					ExactlyOneOfChildren("aws_region_config", "coordinate_config"),
+				},
 			},
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
@@ -341,6 +332,9 @@ func dynamicGeomapSchema() schema.Attribute {
 				Attributes: map[string]schema.Attribute{
 					"auto": schema.BoolAttribute{
 						Optional: true,
+						Validators: []validator.Bool{
+							mustBeTrueValidator{},
+						},
 					},
 					"custom": schema.SingleNestedAttribute{
 						Optional: true,
@@ -372,15 +366,7 @@ func dynamicGeomapSchema() schema.Attribute {
 					},
 				},
 			},
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit": UnitSchema(),
 		},
 	}
 }
@@ -403,10 +389,16 @@ func dynamicGeomapAggregationSchema() schema.Attribute {
 			"avg": fieldBased(),
 			"count": schema.BoolAttribute{
 				Optional: true,
+				Validators: []validator.Bool{
+					mustBeTrueValidator{},
+				},
 			},
 			"max": fieldBased(),
 			"min": fieldBased(),
 			"sum": fieldBased(),
+		},
+		Validators: []validator.Object{
+			ExactlyOneOfChildren("avg", "count", "max", "min", "sum"),
 		},
 	}
 }
@@ -564,7 +556,7 @@ func expandDynamicHexagonBins(ctx context.Context, m *DynamicHexagonBinsModel) (
 		CustomUnit:        m.CustomUnit.ValueStringPointer(),
 		DecimalPrecision:  expandInt32Pointer(m.DecimalPrecision),
 		Legend:            legend,
-		LegendBy:          OptionalEnumPointer(m.LegendBy, dashboardSchemaToProtoLegendBy),
+		LegendBy:          OptionalEnumPointer(m.LegendBy, DashboardSchemaToProtoLegendBy),
 		Max:               m.Max.ValueFloat64Pointer(),
 		Min:               m.Min.ValueFloat64Pointer(),
 		ThresholdType:     OptionalEnumPointer(m.ThresholdType, DashboardSchemaToProtoThresholdType),
@@ -822,7 +814,7 @@ func flattenDynamicHexagonBins(ctx context.Context, m *dashboardservice.HexagonB
 		CustomUnit:        types.StringPointerValue(m.CustomUnit),
 		DecimalPrecision:  flattenInt32Pointer(m.DecimalPrecision),
 		Legend:            FlattenLegend(m.Legend),
-		LegendBy:          flattenOptionalEnum(m.LegendBy, dashboardProtoToSchemaLegendBy),
+		LegendBy:          flattenOptionalEnum(m.LegendBy, DashboardProtoToSchemaLegendBy),
 		Max:               types.Float64PointerValue(m.Max),
 		Min:               types.Float64PointerValue(m.Min),
 		ThresholdType:     flattenOptionalEnum(m.ThresholdType, DashboardProtoToSchemaThresholdType),

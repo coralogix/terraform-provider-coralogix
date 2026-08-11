@@ -25,7 +25,9 @@ import (
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -65,14 +67,6 @@ var (
 	}
 	dashboardProtoToSchemaSpanRelationType = utils.ReverseMap(dashboardSchemaToProtoSpanRelationType)
 	dashboardValidSpanRelationTypes        = utils.GetKeys(dashboardSchemaToProtoSpanRelationType)
-
-	dashboardSchemaToProtoLegendBy = map[string]dashboardservice.LegendBy{
-		utils.UNSPECIFIED: dashboardservice.LEGENDBY_LEGEND_BY_UNSPECIFIED,
-		"thresholds":      dashboardservice.LEGENDBY_LEGEND_BY_THRESHOLDS,
-		"groups":          dashboardservice.LEGENDBY_LEGEND_BY_GROUPS,
-	}
-	dashboardProtoToSchemaLegendBy = utils.ReverseMap(dashboardSchemaToProtoLegendBy)
-	dashboardValidLegendBy         = utils.GetKeys(dashboardSchemaToProtoLegendBy)
 
 	dashboardSchemaToProtoStackedLine = map[string]dashboardservice.VisualizationStackedLine{
 		utils.UNSPECIFIED: dashboardservice.VISUALIZATIONSTACKEDLINE_STACKED_LINE_UNSPECIFIED,
@@ -175,7 +169,46 @@ var (
 	}
 	dashboardProtoToSchemaPieChartLabelSource = utils.ReverseMap(dashboardSchemaToProtoPieChartLabelSource)
 	dashboardValidPieChartLabelSource         = utils.GetKeys(dashboardSchemaToProtoPieChartLabelSource)
+
+	dashboardSchemaToProtoInterpretation = map[string]dashboardservice.Interpretation{
+		utils.UNSPECIFIED:                      dashboardservice.INTERPRETATION_INTERPRETATION_UNSPECIFIED,
+		"raw_data_table":                       dashboardservice.INTERPRETATION_INTERPRETATION_RAW_DATA_TABLE,
+		"trend_over_time_line":                 dashboardservice.INTERPRETATION_INTERPRETATION_TREND_OVER_TIME_LINE,
+		"single_value_kpi":                     dashboardservice.INTERPRETATION_INTERPRETATION_SINGLE_VALUE_KPI,
+		"multi_value_kpi":                      dashboardservice.INTERPRETATION_INTERPRETATION_MULTI_VALUE_KPI,
+		"categorical_analysis_vertical_bars":   dashboardservice.INTERPRETATION_INTERPRETATION_CATEGORICAL_ANALYSIS_VERTICAL_BARS,
+		"single_value_kpi_stat":                dashboardservice.INTERPRETATION_INTERPRETATION_SINGLE_VALUE_KPI_STAT,
+		"single_value_kpi_gauge":               dashboardservice.INTERPRETATION_INTERPRETATION_SINGLE_VALUE_KPI_GAUGE,
+		"multi_value_kpi_stat":                 dashboardservice.INTERPRETATION_INTERPRETATION_MULTI_VALUE_KPI_STAT,
+		"multi_value_kpi_gauge":                dashboardservice.INTERPRETATION_INTERPRETATION_MULTI_VALUE_KPI_GAUGE,
+		"multi_value_kpi_hexagon_bins":         dashboardservice.INTERPRETATION_INTERPRETATION_MULTI_VALUE_KPI_HEXAGON_BINS,
+		"categorical_analysis_pie_chart":       dashboardservice.INTERPRETATION_INTERPRETATION_CATEGORICAL_ANALYSIS_PIE_CHART,
+		"categorical_analysis_horizontal_bars": dashboardservice.INTERPRETATION_INTERPRETATION_CATEGORICAL_ANALYSIS_HORIZONTAL_BARS,
+		"single_value_kpi_stat_card":           dashboardservice.INTERPRETATION_INTERPRETATION_SINGLE_VALUE_KPI_STAT_CARD,
+		"multi_value_kpi_stat_card":            dashboardservice.INTERPRETATION_INTERPRETATION_MULTI_VALUE_KPI_STAT_CARD,
+	}
+	dashboardProtoToSchemaInterpretation = utils.ReverseMap(dashboardSchemaToProtoInterpretation)
+	dashboardValidInterpretation         = utils.GetKeys(dashboardSchemaToProtoInterpretation)
 )
+
+type mustBeTrueValidator struct{}
+
+func (v mustBeTrueValidator) Description(context.Context) string {
+	return "value must be true when set"
+}
+
+func (v mustBeTrueValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v mustBeTrueValidator) ValidateBool(ctx context.Context, req validator.BoolRequest, resp *validator.BoolResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	if !req.ConfigValue.ValueBool() {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid value", "this marker must be true when set; omit it otherwise")
+	}
+}
 
 func DynamicSchema() schema.Attribute {
 	return schema.SingleNestedAttribute{
@@ -186,6 +219,7 @@ func DynamicSchema() schema.Attribute {
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
+							Optional: true,
 							Computed: true,
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseNonNullStateForUnknown(),
@@ -207,6 +241,18 @@ func DynamicSchema() schema.Attribute {
 							},
 						},
 					},
+				},
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
+			},
+			"interpretation": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				DeprecationMessage:  "Deprecated: superseded by the visualization block.",
+				MarkdownDescription: fmt.Sprintf("Deprecated: superseded by the `visualization` block. Retained at full fidelity for importing dashboards that still set it. Valid values are: %s.", strings.Join(dashboardValidInterpretation, ", ")),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidInterpretation...),
 				},
 			},
 			"time_frame": TimeFrameSchema(),
@@ -413,9 +459,9 @@ func dynamicStatSchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidLegendBy...),
+					stringvalidator.OneOf(DashboardValidLegendBys...),
 				},
-				MarkdownDescription: fmt.Sprintf("How the legend is grouped. Valid values are: %s.", strings.Join(dashboardValidLegendBy, ", ")),
+				MarkdownDescription: fmt.Sprintf("How the legend is grouped. Valid values are: %s.", strings.Join(DashboardValidLegendBys, ", ")),
 			},
 			"max": schema.Float64Attribute{
 				Optional: true,
@@ -442,15 +488,7 @@ func dynamicStatSchema() schema.Attribute {
 				MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(DashboardValidThresholdTypes, ", ")),
 			},
 			"thresholds": dynamicThresholdsSchema(),
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit":       UnitSchema(),
 			"value_field": schema.SingleNestedAttribute{
 				Attributes: ObservationFieldSchema(),
 				Optional:   true,
@@ -514,21 +552,13 @@ func dynamicStatCardSchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidLegendBy...),
+					stringvalidator.OneOf(DashboardValidLegendBys...),
 				},
-				MarkdownDescription: fmt.Sprintf("How the legend is grouped. Valid values are: %s.", strings.Join(dashboardValidLegendBy, ", ")),
+				MarkdownDescription: fmt.Sprintf("How the legend is grouped. Valid values are: %s.", strings.Join(DashboardValidLegendBys, ", ")),
 			},
 			"primary_value": dynamicStatVisualElementSchema(),
 			"title":         dynamicStatVisualElementSchema(),
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit":          UnitSchema(),
 			"value_fields": schema.ListNestedAttribute{
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
@@ -544,11 +574,9 @@ func dynamicStatVisualElementSchema() schema.Attribute {
 		Optional: true,
 		Attributes: map[string]schema.Attribute{
 			"mapped_values": schema.StringAttribute{
+				CustomType:          JSONStringType{},
 				Optional:            true,
 				MarkdownDescription: "Mapped values encoded as a JSON object string.",
-				PlanModifiers: []planmodifier.String{
-					utils.PreserveStateForEquivalentJSON{},
-				},
 			},
 			"observation_field": schema.SingleNestedAttribute{
 				Attributes: ObservationFieldSchema(),
@@ -562,11 +590,9 @@ func dynamicStatVisualElementSchema() schema.Attribute {
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"mapped_values": schema.StringAttribute{
+							CustomType:          JSONStringType{},
 							Optional:            true,
 							MarkdownDescription: "Mapped values encoded as a JSON object string.",
-							PlanModifiers: []planmodifier.String{
-								utils.PreserveStateForEquivalentJSON{},
-							},
 						},
 						"observation_field": schema.SingleNestedAttribute{
 							Attributes: ObservationFieldSchema(),
@@ -600,6 +626,9 @@ func dynamicColorLabelMappingSchema() schema.Attribute {
 						Attributes: map[string]schema.Attribute{
 							"auto": schema.BoolAttribute{
 								Optional: true,
+								Validators: []validator.Bool{
+									mustBeTrueValidator{},
+								},
 							},
 							"custom": schema.SingleNestedAttribute{
 								Optional: true,
@@ -727,8 +756,6 @@ func dynamicTablePropertyDefinitionSchema() schema.Attribute {
 		Attributes: map[string]schema.Attribute{
 			"alignment": schema.StringAttribute{
 				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
 					stringvalidator.OneOf(dashboardValidTextAlignment...),
 				},
@@ -810,15 +837,7 @@ func dynamicTablePropertyDefinitionSchema() schema.Attribute {
 					"min": schema.Float64Attribute{
 						Optional: true,
 					},
-					"unit": schema.StringAttribute{
-						Optional: true,
-						Computed: true,
-						Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-						Validators: []validator.String{
-							stringvalidator.OneOf(DashboardValidUnits...),
-						},
-						MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-					},
+					"unit": UnitSchema(),
 				},
 			},
 			"values_alias": schema.StringAttribute{
@@ -852,6 +871,12 @@ func dynamicTablePropertyDefinitionSchema() schema.Attribute {
 				},
 			},
 		},
+		Validators: []validator.Object{
+			ExactlyOneOfChildren(
+				"thresholds", "alignment", "units", "regex_extract",
+				"link", "values_alias", "values_mapping", "column_display_name",
+			),
+		},
 	}
 }
 
@@ -865,8 +890,6 @@ func dynamicTableRuleScopeSchema() schema.Attribute {
 			},
 			"field_type": schema.StringAttribute{
 				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
 					stringvalidator.OneOf(dashboardValidFieldDataType...),
 				},
@@ -875,6 +898,9 @@ func dynamicTableRuleScopeSchema() schema.Attribute {
 			"regex": schema.StringAttribute{
 				Optional: true,
 			},
+		},
+		Validators: []validator.Object{
+			ExactlyOneOfChildren("field", "regex", "field_type"),
 		},
 	}
 }
@@ -955,7 +981,7 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 				},
 				MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(DashboardValidScaleTypes, ", ")),
 			},
-			"series_count_limit": schema.StringAttribute{
+			"series_count_limit": schema.Int64Attribute{
 				Optional: true,
 			},
 			"series_name_template": schema.StringAttribute{
@@ -975,15 +1001,7 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 				Optional:   true,
 			},
 			"tooltip": dynamicTimeSeriesTooltipSchema(),
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit":    UnitSchema(),
 			"use_data_time_range": schema.BoolAttribute{
 				Optional: true,
 			},
@@ -1003,13 +1021,19 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(dashboardValidXAxisTimeFormat, ", ")),
 			},
 			"y_axis_max": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
 			},
 			"y_axis_min": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
 			},
 		},
@@ -1121,15 +1145,7 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 				Optional:   true,
 			},
 			"tooltip": dynamicTimeSeriesTooltipSchema(),
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit":    UnitSchema(),
 			"value_fields": schema.ListNestedAttribute{
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
@@ -1146,13 +1162,19 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(dashboardValidXAxisTimeFormat, ", ")),
 			},
 			"y_axis_max": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
 			},
 			"y_axis_min": schema.Float64Attribute{
-				Optional:            true,
-				CustomType:          Float32Type{},
+				Optional:   true,
+				CustomType: Float32Type{},
+				Validators: []validator.Float64{
+					float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+				},
 				MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
 			},
 		},
@@ -1200,7 +1222,7 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 					},
 					MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(DashboardValidScaleTypes, ", ")),
 				},
-				"series_count_limit": schema.StringAttribute{
+				"series_count_limit": schema.Int64Attribute{
 					Optional: true,
 				},
 				"series_name_template": schema.StringAttribute{
@@ -1210,15 +1232,7 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 					Attributes: ObservationFieldSchema(),
 					Optional:   true,
 				},
-				"unit": schema.StringAttribute{
-					Optional: true,
-					Computed: true,
-					Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-					Validators: []validator.String{
-						stringvalidator.OneOf(DashboardValidUnits...),
-					},
-					MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-				},
+				"unit": UnitSchema(),
 				"value_fields": schema.ListNestedAttribute{
 					Optional: true,
 					NestedObject: schema.NestedAttributeObject{
@@ -1226,13 +1240,19 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 					},
 				},
 				"y_axis_max": schema.Float64Attribute{
-					Optional:            true,
-					CustomType:          Float32Type{},
+					Optional:   true,
+					CustomType: Float32Type{},
+					Validators: []validator.Float64{
+						float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+					},
 					MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
 				},
 				"y_axis_min": schema.Float64Attribute{
-					Optional:            true,
-					CustomType:          Float32Type{},
+					Optional:   true,
+					CustomType: Float32Type{},
+					Validators: []validator.Float64{
+						float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+					},
 					MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
 				},
 			},
@@ -1267,6 +1287,7 @@ func dynamicModelAttr() map[string]attr.Type {
 				AttrTypes: dynamicQueryDefinitionModelAttr(),
 			},
 		},
+		"interpretation": types.StringType,
 		"time_frame": types.ObjectType{
 			AttrTypes: TimeFrameModelAttr(),
 		},
@@ -1386,7 +1407,7 @@ func dynamicTimeSeriesLinesModelAttr() map[string]attr.Type {
 		"hash_colors":          types.BoolType,
 		"legend":               types.ObjectType{AttrTypes: LegendAttr()},
 		"scale_type":           types.StringType,
-		"series_count_limit":   types.StringType,
+		"series_count_limit":   types.Int64Type,
 		"series_name_template": types.StringType,
 		"stacked_line":         types.StringType,
 		"temporal_field":       ObservationFieldsObject(),
@@ -1456,7 +1477,7 @@ func dynamicQueryDisplaySettingsModelAttr() map[string]attr.Type {
 		"hash_colors":          types.BoolType,
 		"query_id":             types.StringType,
 		"scale_type":           types.StringType,
-		"series_count_limit":   types.StringType,
+		"series_count_limit":   types.Int64Type,
 		"series_name_template": types.StringType,
 		"temporal_field":       ObservationFieldsObject(),
 		"unit":                 types.StringType,
@@ -1663,7 +1684,7 @@ func dynamicStatCardModelAttr() map[string]attr.Type {
 
 func dynamicStatVisualElementAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"mapped_values":     types.StringType,
+		"mapped_values":     JSONStringType{},
 		"observation_field": ObservationFieldsObject(),
 		"template_text":     types.StringType,
 		"template_variables": types.ListType{
@@ -1674,7 +1695,7 @@ func dynamicStatVisualElementAttr() map[string]attr.Type {
 
 func dynamicTemplateVariableAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"mapped_values":     types.StringType,
+		"mapped_values":     JSONStringType{},
 		"observation_field": ObservationFieldsObject(),
 	}
 }
@@ -1751,6 +1772,7 @@ func ExpandDynamic(ctx context.Context, dynamic *DynamicModel) (*dashboardservic
 	return &dashboardservice.WidgetDefinition{
 		Dynamic: &dashboardservice.WidgetsDynamic{
 			QueryDefinitions: queryDefinitions,
+			Interpretation:   OptionalEnumPointer(dynamic.Interpretation, dashboardSchemaToProtoInterpretation),
 			TimeFrame:        timeFrame,
 			Visualization:    visualization,
 		},
@@ -2129,7 +2151,7 @@ func expandDynamicTimeSeriesLines(ctx context.Context, lines *DynamicTimeSeriesL
 		HashColors:         lines.HashColors.ValueBoolPointer(),
 		Legend:             legend,
 		ScaleType:          OptionalEnumPointer(lines.ScaleType, DashboardSchemaToProtoScaleType),
-		SeriesCountLimit:   lines.SeriesCountLimit.ValueStringPointer(),
+		SeriesCountLimit:   int64ToStringPointer(lines.SeriesCountLimit),
 		SeriesNameTemplate: lines.SeriesNameTemplate.ValueStringPointer(),
 		StackedLine:        OptionalEnumPointer(lines.StackedLine, dashboardSchemaToProtoStackedLine),
 		TemporalField:      temporalField,
@@ -2250,7 +2272,7 @@ func expandDynamicQueryDisplaySettings(ctx context.Context, settings types.List)
 			HashColors:         models[i].HashColors.ValueBoolPointer(),
 			QueryId:            models[i].QueryID.ValueString(),
 			ScaleType:          OptionalEnumPointer(models[i].ScaleType, DashboardSchemaToProtoScaleType),
-			SeriesCountLimit:   models[i].SeriesCountLimit.ValueStringPointer(),
+			SeriesCountLimit:   int64ToStringPointer(models[i].SeriesCountLimit),
 			SeriesNameTemplate: models[i].SeriesNameTemplate.ValueStringPointer(),
 			TemporalField:      temporalField,
 			Unit:               OptionalEnumPointer(models[i].Unit, DashboardSchemaToProtoUnit),
@@ -2574,7 +2596,7 @@ func expandDynamicStat(ctx context.Context, stat *DynamicStatModel) (*dashboards
 		DecimalPrecision:  expandInt32Pointer(stat.DecimalPrecision),
 		DisplaySeriesName: stat.DisplaySeriesName.ValueBoolPointer(),
 		Legend:            legend,
-		LegendBy:          OptionalEnumPointer(stat.LegendBy, dashboardSchemaToProtoLegendBy),
+		LegendBy:          OptionalEnumPointer(stat.LegendBy, DashboardSchemaToProtoLegendBy),
 		Max:               stat.Max.ValueFloat64Pointer(),
 		Min:               stat.Min.ValueFloat64Pointer(),
 		ThresholdBy:       OptionalEnumPointer(stat.ThresholdBy, dashboardSchemaToProtoThresholdBy),
@@ -2634,7 +2656,7 @@ func expandDynamicStatCard(ctx context.Context, statCard *DynamicStatCardModel) 
 		DecimalPrecision:  expandInt32Pointer(statCard.DecimalPrecision),
 		Label:             label,
 		Legend:            legend,
-		LegendBy:          OptionalEnumPointer(statCard.LegendBy, dashboardSchemaToProtoLegendBy),
+		LegendBy:          OptionalEnumPointer(statCard.LegendBy, DashboardSchemaToProtoLegendBy),
 		PrimaryValue:      primaryValue,
 		Title:             title,
 		Unit:              OptionalEnumPointer(statCard.Unit, DashboardSchemaToProtoUnit),
@@ -2652,7 +2674,7 @@ func expandDynamicStatVisualElement(ctx context.Context, element *DynamicStatVis
 		return nil, diags
 	}
 
-	mappedValues, diags := expandJSONStringToMap(element.MappedValues)
+	mappedValues, diags := expandJSONStringToMap("mapped_values", element.MappedValues)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2684,7 +2706,7 @@ func expandDynamicTemplateVariables(ctx context.Context, variables types.List) (
 			diags.Append(dg...)
 			continue
 		}
-		mappedValues, dg := expandJSONStringToMap(models[i].MappedValues)
+		mappedValues, dg := expandJSONStringToMap("mapped_values", models[i].MappedValues)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2806,13 +2828,13 @@ func expandInt32Pointer(value types.Int64) *int32 {
 	return &converted
 }
 
-func expandJSONStringToMap(value types.String) (map[string]interface{}, diag.Diagnostics) {
+func expandJSONStringToMap(attributeName string, value JSONStringValue) (map[string]interface{}, diag.Diagnostics) {
 	if value.IsNull() || value.IsUnknown() {
 		return nil, nil
 	}
 	var parsed map[string]interface{}
 	if err := json.Unmarshal([]byte(value.ValueString()), &parsed); err != nil {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid mapped_values JSON", err.Error())}
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(fmt.Sprintf("Invalid %s JSON", attributeName), err.Error())}
 	}
 	return parsed, nil
 }
@@ -2859,6 +2881,7 @@ func FlattenDynamic(ctx context.Context, dynamic *dashboardservice.WidgetsDynami
 	return &WidgetDefinitionModel{
 		Dynamic: &DynamicModel{
 			QueryDefinitions: queryDefinitions,
+			Interpretation:   flattenOptionalEnum(dynamic.Interpretation, dashboardProtoToSchemaInterpretation),
 			TimeFrame:        timeFrame,
 			Visualization:    visualization,
 		},
@@ -3226,7 +3249,7 @@ func flattenDynamicTimeSeriesLines(ctx context.Context, lines *dashboardservice.
 		HashColors:         types.BoolPointerValue(lines.HashColors),
 		Legend:             FlattenLegend(lines.Legend),
 		ScaleType:          flattenOptionalEnum(lines.ScaleType, DashboardProtoToSchemaScaleType),
-		SeriesCountLimit:   types.StringPointerValue(lines.SeriesCountLimit),
+		SeriesCountLimit:   stringPointerToInt64(lines.SeriesCountLimit),
 		SeriesNameTemplate: types.StringPointerValue(lines.SeriesNameTemplate),
 		StackedLine:        flattenOptionalEnum(lines.StackedLine, dashboardProtoToSchemaStackedLine),
 		TemporalField:      temporalField,
@@ -3336,7 +3359,7 @@ func flattenDynamicQueryDisplaySettings(ctx context.Context, settings []dashboar
 			HashColors:         types.BoolPointerValue(settings[i].HashColors),
 			QueryID:            types.StringValue(settings[i].QueryId),
 			ScaleType:          flattenOptionalEnum(settings[i].ScaleType, DashboardProtoToSchemaScaleType),
-			SeriesCountLimit:   types.StringPointerValue(settings[i].SeriesCountLimit),
+			SeriesCountLimit:   stringPointerToInt64(settings[i].SeriesCountLimit),
 			SeriesNameTemplate: types.StringPointerValue(settings[i].SeriesNameTemplate),
 			TemporalField:      temporalField,
 			Unit:               flattenOptionalEnum(settings[i].Unit, DashboardProtoToSchemaUnit),
@@ -3736,7 +3759,7 @@ func flattenDynamicStat(ctx context.Context, stat *dashboardservice.Stat) (*Dyna
 		DecimalPrecision:  flattenInt32Pointer(stat.DecimalPrecision),
 		DisplaySeriesName: types.BoolPointerValue(stat.DisplaySeriesName),
 		Legend:            FlattenLegend(stat.Legend),
-		LegendBy:          flattenOptionalEnum(stat.LegendBy, dashboardProtoToSchemaLegendBy),
+		LegendBy:          flattenOptionalEnum(stat.LegendBy, DashboardProtoToSchemaLegendBy),
 		Max:               types.Float64PointerValue(stat.Max),
 		Min:               types.Float64PointerValue(stat.Min),
 		ThresholdBy:       flattenOptionalEnum(stat.ThresholdBy, dashboardProtoToSchemaThresholdBy),
@@ -3791,7 +3814,7 @@ func flattenDynamicStatCard(ctx context.Context, statCard *dashboardservice.Stat
 		DecimalPrecision:  flattenInt32Pointer(statCard.DecimalPrecision),
 		Label:             label,
 		Legend:            FlattenLegend(statCard.Legend),
-		LegendBy:          flattenOptionalEnum(statCard.LegendBy, dashboardProtoToSchemaLegendBy),
+		LegendBy:          flattenOptionalEnum(statCard.LegendBy, DashboardProtoToSchemaLegendBy),
 		PrimaryValue:      primaryValue,
 		Title:             title,
 		Unit:              flattenOptionalEnum(statCard.Unit, DashboardProtoToSchemaUnit),
@@ -3954,15 +3977,15 @@ func flattenInt32Pointer(value *int32) types.Int64 {
 	return types.Int64Value(int64(*value))
 }
 
-func flattenMapToJSONString(value map[string]interface{}) types.String {
+func flattenMapToJSONString(value map[string]interface{}) JSONStringValue {
 	if value == nil {
-		return types.StringNull()
+		return NewJSONStringNull()
 	}
 	encoded, err := json.Marshal(value)
 	if err != nil {
-		return types.StringNull()
+		return NewJSONStringNull()
 	}
-	return types.StringValue(string(encoded))
+	return NewJSONStringValue(string(encoded))
 }
 
 func flattenDynamicThresholds(ctx context.Context, thresholds []dashboardservice.CommonThreshold) (types.List, diag.Diagnostics) {

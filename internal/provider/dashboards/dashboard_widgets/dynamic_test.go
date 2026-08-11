@@ -18,9 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
@@ -278,6 +276,7 @@ func TestDynamicWidgetStatFullFidelityRoundTrip(t *testing.T) {
 
 	original := &DynamicModel{
 		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		Interpretation:   types.StringValue("single_value_kpi_stat"),
 		TimeFrame: &TimeFrameModel{
 			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
 		},
@@ -317,14 +316,14 @@ func TestDynamicWidgetStatCardFullFidelityRoundTrip(t *testing.T) {
 
 	templateVariables := types.ListValueMust(types.ObjectType{AttrTypes: dynamicTemplateVariableAttr()}, []attr.Value{
 		types.ObjectValueMust(dynamicTemplateVariableAttr(), map[string]attr.Value{
-			"mapped_values":     types.StringValue(`{"a":"1","b":"2"}`),
+			"mapped_values":     jsonStringTestValue(`{"a":"1","b":"2"}`),
 			"observation_field": observationFieldObject("tvar", "user_data"),
 		}),
 	})
 
 	visualElement := func(name string) *DynamicStatVisualElementModel {
 		return &DynamicStatVisualElementModel{
-			MappedValues:      types.StringValue(`{"x":"y"}`),
+			MappedValues:      jsonStringTestValue(`{"x":"y"}`),
 			ObservationField:  observationFieldObject(name, "user_data"),
 			TemplateText:      types.StringValue("text-" + name),
 			TemplateVariables: templateVariables,
@@ -541,7 +540,7 @@ func TestDynamicWidgetTimeSeriesLinesMultiFullFidelityRoundTrip(t *testing.T) {
 			HashColors:         types.BoolValue(true),
 			QueryID:            types.StringValue("query-1"),
 			ScaleType:          types.StringValue("logarithmic"),
-			SeriesCountLimit:   types.StringValue("100"),
+			SeriesCountLimit:   types.Int64Value(100),
 			SeriesNameTemplate: types.StringValue("{{label}}"),
 			TemporalField:      observationFieldObject("timestamp", "metadata"),
 			Unit:               types.StringValue("bytes"),
@@ -601,7 +600,7 @@ func TestDynamicWidgetTimeSeriesLinesFullFidelityRoundTrip(t *testing.T) {
 				HashColors:         types.BoolValue(true),
 				Legend:             legend,
 				ScaleType:          types.StringValue("logarithmic"),
-				SeriesCountLimit:   types.StringValue("100"),
+				SeriesCountLimit:   types.Int64Value(100),
 				SeriesNameTemplate: types.StringValue("{{label}}"),
 				StackedLine:        types.StringValue("absolute"),
 				TemporalField:      observationFieldObject("timestamp", "metadata"),
@@ -668,14 +667,8 @@ func TestDynamicWidgetTimeSeriesBarsFullFidelityRoundTrip(t *testing.T) {
 	assertDynamicRoundTrip(ctx, t, original)
 }
 
-func barsColorsBy() *DynamicColorsByModel {
-	return &DynamicColorsByModel{
-		Aggregation: types.StringValue(`{"by":"agg"}`),
-		Category:    types.StringValue(`{"by":"cat"}`),
-		GroupBy:     types.StringValue(`{"by":"grp"}`),
-		Query:       types.StringValue(`{"by":"qry"}`),
-		Stack:       types.StringValue(`{"by":"stk"}`),
-	}
+func barsColorsBy() types.String {
+	return types.StringValue("stack")
 }
 
 func barsQueryFieldSettingsList() types.List {
@@ -691,7 +684,7 @@ func barsSortOrder() *DynamicSortOrderModel {
 	return &DynamicSortOrderModel{
 		OrderDirection: types.StringValue("asc"),
 		Strategy: &DynamicSortStrategyModel{
-			Category:     types.StringValue(`{"c":"x"}`),
+			Category:     jsonStringTestValue(`{"c":"x"}`),
 			QueryValue:   &DynamicSortByQueryValueModel{QueryID: types.StringValue("query-1")},
 			StrategyType: types.StringValue("by_value"),
 		},
@@ -1032,21 +1025,13 @@ func TestDynamicWidgetGeomapFullFidelityRoundTrip(t *testing.T) {
 		Visualization: &DynamicVisualizationModel{
 			Geomap: &DynamicGeomapModel{
 				Aggregation: &DynamicGeomapAggregationModel{
-					Avg:   fieldBased("avg_field"),
-					Count: types.BoolValue(true),
-					Max:   fieldBased("max_field"),
-					Min:   fieldBased("min_field"),
-					Sum:   fieldBased("sum_field"),
+					Avg: fieldBased("avg_field"),
 				},
 				AllowAbbreviation: types.BoolValue(true),
 				Color: &DynamicGeomapColorModel{
 					ColorRange: types.StringValue("red_reversed"),
-					Size:       types.StringValue("orange"),
 				},
 				Config: &DynamicGeomapFieldConfigModel{
-					AwsRegionConfig: &DynamicGeomapAwsRegionConfigModel{
-						AwsRegionField: observationFieldObject("region", "metadata"),
-					},
 					CoordinateConfig: &DynamicGeomapCoordinateConfigModel{
 						LatitudeField:  observationFieldObject("lat", "metadata"),
 						LongitudeField: observationFieldObject("lon", "metadata"),
@@ -1093,31 +1078,134 @@ func TestDynamicWidgetTableEmptyListsFlattenToNull(t *testing.T) {
 	}
 }
 
-func TestDynamicMappedValuesPreservesEquivalentJSON(t *testing.T) {
-	ctx := context.Background()
-	modifier := utils.PreserveStateForEquivalentJSON{}
+func jsonStringTestValue(s string) JSONStringValue {
+	return NewJSONStringValue(s)
+}
 
-	state := types.StringValue(`{"a":"1","b":"2"}`)
-	equivalentConfig := types.StringValue("{\n  \"b\": \"2\",\n  \"a\": \"1\"\n}")
-	resp := &planmodifier.StringResponse{PlanValue: equivalentConfig}
-	modifier.PlanModifyString(ctx, planmodifier.StringRequest{
-		ConfigValue: equivalentConfig,
-		StateValue:  state,
-		PlanValue:   equivalentConfig,
-	}, resp)
-	if !resp.PlanValue.Equal(state) {
-		t.Fatalf("equivalent JSON should preserve state.\nstate: %s\nplan:  %s", state, resp.PlanValue)
+func TestJSONStringValueSemanticEquals(t *testing.T) {
+	ctx := context.Background()
+
+	for _, tc := range []struct {
+		name  string
+		left  JSONStringValue
+		right JSONStringValue
+		want  bool
+	}{
+		{
+			name:  "key order differs",
+			left:  jsonStringTestValue(`{"b":1,"a":2}`),
+			right: jsonStringTestValue(`{"a":2,"b":1}`),
+			want:  true,
+		},
+		{
+			name:  "pretty printed",
+			left:  jsonStringTestValue("{\n  \"a\": 1\n}"),
+			right: jsonStringTestValue(`{"a":1}`),
+			want:  true,
+		},
+		{
+			name:  "number renormalized",
+			left:  jsonStringTestValue(`{"a":1.0}`),
+			right: jsonStringTestValue(`{"a":1}`),
+			want:  true,
+		},
+		{
+			name:  "different values",
+			left:  jsonStringTestValue(`{"a":1}`),
+			right: jsonStringTestValue(`{"a":2}`),
+			want:  false,
+		},
+		{
+			name:  "null and null",
+			left:  NewJSONStringNull(),
+			right: NewJSONStringNull(),
+			want:  true,
+		},
+		{
+			name:  "null and known",
+			left:  NewJSONStringNull(),
+			right: jsonStringTestValue(`{"a":1}`),
+			want:  false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			equal, diags := tc.left.StringSemanticEquals(ctx, tc.right)
+			if diags.HasError() {
+				t.Fatalf("semantic equals returned diagnostics: %v", diags)
+			}
+			if equal != tc.want {
+				t.Fatalf("StringSemanticEquals(%s, %s) = %t, want %t", tc.left, tc.right, equal, tc.want)
+			}
+		})
+	}
+}
+
+func TestDynamicMappedValuesNonCanonicalJSONRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	nonCanonicalElement := "{\n  \"warn\": \"2\",\n  \"ok\": 1.0\n}"
+	nonCanonicalVariable := "{ \"z\": \"last\", \"a\": \"first\" }"
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			StatCard: &DynamicStatCardModel{
+				CategoryFields: types.ListNull(ObservationFieldsObject()),
+				ValueFields:    types.ListNull(ObservationFieldsObject()),
+				PrimaryValue: &DynamicStatVisualElementModel{
+					MappedValues:     jsonStringTestValue(nonCanonicalElement),
+					ObservationField: observationFieldObject("primary", "user_data"),
+					TemplateVariables: types.ListValueMust(types.ObjectType{AttrTypes: dynamicTemplateVariableAttr()}, []attr.Value{
+						types.ObjectValueMust(dynamicTemplateVariableAttr(), map[string]attr.Value{
+							"mapped_values":     jsonStringTestValue(nonCanonicalVariable),
+							"observation_field": observationFieldObject("tvar", "user_data"),
+						}),
+					}),
+				},
+			},
+		},
 	}
 
-	differentConfig := types.StringValue(`{"a":"9"}`)
-	resp2 := &planmodifier.StringResponse{PlanValue: differentConfig}
-	modifier.PlanModifyString(ctx, planmodifier.StringRequest{
-		ConfigValue: differentConfig,
-		StateValue:  state,
-		PlanValue:   differentConfig,
-	}, resp2)
-	if !resp2.PlanValue.Equal(differentConfig) {
-		t.Fatalf("non-equivalent JSON should keep the configured plan value, got %s", resp2.PlanValue)
+	definition, diags := ExpandDynamic(ctx, original)
+	if diags.HasError() {
+		t.Fatalf("expanding dynamic model: %v", diags)
+	}
+
+	flattened, diags := FlattenDynamic(ctx, definition.Dynamic)
+	if diags.HasError() {
+		t.Fatalf("flattening dynamic widget: %v", diags)
+	}
+
+	got := flattened.Dynamic.Visualization.StatCard.PrimaryValue
+	if got.MappedValues.ValueString() == nonCanonicalElement {
+		t.Fatal("expected the API round-trip to renormalize the JSON; fixture is no longer a regression guard")
+	}
+
+	equal, diags := jsonStringTestValue(nonCanonicalElement).StringSemanticEquals(ctx, got.MappedValues)
+	if diags.HasError() {
+		t.Fatalf("semantic equals returned diagnostics: %v", diags)
+	}
+	if !equal {
+		t.Fatalf("non-canonical mapped_values must be semantically equal after round-trip.\nconfig:    %s\nflattened: %s", nonCanonicalElement, got.MappedValues)
+	}
+
+	var variables []DynamicTemplateVariableModel
+	if diags := got.TemplateVariables.ElementsAs(ctx, &variables, true); diags.HasError() {
+		t.Fatalf("reading flattened template variables: %v", diags)
+	}
+	if len(variables) != 1 {
+		t.Fatalf("expected 1 template variable, got %d", len(variables))
+	}
+
+	equal, diags = jsonStringTestValue(nonCanonicalVariable).StringSemanticEquals(ctx, variables[0].MappedValues)
+	if diags.HasError() {
+		t.Fatalf("semantic equals returned diagnostics: %v", diags)
+	}
+	if !equal {
+		t.Fatalf("non-canonical template variable mapped_values must be semantically equal after round-trip.\nconfig:    %s\nflattened: %s", nonCanonicalVariable, variables[0].MappedValues)
 	}
 }
 
@@ -1165,4 +1253,57 @@ func objectFrom(ctx context.Context, t *testing.T, attrTypes map[string]attr.Typ
 		t.Fatalf("building object value: %v", diags)
 	}
 	return object
+}
+
+func TestDynamicWidgetGeomapUnionArmsRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	fieldBased := func(name string) *DynamicGeomapAggregationFieldBasedModel {
+		return &DynamicGeomapAggregationFieldBasedModel{
+			Field: observationFieldObject(name, "metadata"),
+		}
+	}
+
+	geomapWith := func(mutate func(*DynamicGeomapModel)) *DynamicModel {
+		geomap := &DynamicGeomapModel{
+			Aggregation: &DynamicGeomapAggregationModel{Avg: fieldBased("avg_field")},
+			Config: &DynamicGeomapFieldConfigModel{
+				CoordinateConfig: &DynamicGeomapCoordinateConfigModel{
+					LatitudeField:  observationFieldObject("lat", "metadata"),
+					LongitudeField: observationFieldObject("lon", "metadata"),
+				},
+			},
+		}
+		mutate(geomap)
+		return &DynamicModel{
+			QueryDefinitions: queryDefinitionsFixture(ctx, t),
+			Visualization:    &DynamicVisualizationModel{Geomap: geomap},
+		}
+	}
+
+	for name, mutate := range map[string]func(*DynamicGeomapModel){
+		"aggregation_avg": func(g *DynamicGeomapModel) { g.Aggregation = &DynamicGeomapAggregationModel{Avg: fieldBased("f")} },
+		"aggregation_count": func(g *DynamicGeomapModel) {
+			g.Aggregation = &DynamicGeomapAggregationModel{Count: types.BoolValue(true)}
+		},
+		"aggregation_max": func(g *DynamicGeomapModel) { g.Aggregation = &DynamicGeomapAggregationModel{Max: fieldBased("f")} },
+		"aggregation_min": func(g *DynamicGeomapModel) { g.Aggregation = &DynamicGeomapAggregationModel{Min: fieldBased("f")} },
+		"aggregation_sum": func(g *DynamicGeomapModel) { g.Aggregation = &DynamicGeomapAggregationModel{Sum: fieldBased("f")} },
+		"color_range": func(g *DynamicGeomapModel) {
+			g.Color = &DynamicGeomapColorModel{ColorRange: types.StringValue("red_reversed")}
+		},
+		"color_size": func(g *DynamicGeomapModel) { g.Color = &DynamicGeomapColorModel{Size: types.StringValue("orange")} },
+		"config_aws_region": func(g *DynamicGeomapModel) {
+			g.Config = &DynamicGeomapFieldConfigModel{
+				AwsRegionConfig: &DynamicGeomapAwsRegionConfigModel{AwsRegionField: observationFieldObject("region", "metadata")},
+			}
+		},
+		"min_max_auto": func(g *DynamicGeomapModel) {
+			g.MinMax = &DynamicMinMaxModel{Auto: types.BoolValue(true)}
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assertDynamicRoundTrip(ctx, t, geomapWith(mutate))
+		})
+	}
 }

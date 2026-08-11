@@ -75,9 +75,9 @@ func dynamicGaugeSchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidLegendBy...),
+					stringvalidator.OneOf(DashboardValidLegendBys...),
 				},
-				MarkdownDescription: fmt.Sprintf("How the legend is grouped. Valid values are: %s.", strings.Join(dashboardValidLegendBy, ", ")),
+				MarkdownDescription: fmt.Sprintf("How the legend is grouped. Valid values are: %s.", strings.Join(DashboardValidLegendBys, ", ")),
 			},
 			"max": schema.Float64Attribute{
 				Optional: true,
@@ -106,15 +106,7 @@ func dynamicGaugeSchema() schema.Attribute {
 				MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(DashboardValidThresholdTypes, ", ")),
 			},
 			"thresholds": dynamicThresholdsSchema(),
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit":       UnitSchema(),
 			"value_field": schema.SingleNestedAttribute{
 				Attributes: ObservationFieldSchema(),
 				Optional:   true,
@@ -217,15 +209,7 @@ func dynamicPieChartSchema() schema.Attribute {
 					Attributes: ObservationFieldSchema(),
 				},
 			},
-			"unit": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidUnits...),
-				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-			},
+			"unit": UnitSchema(),
 			"value_field": schema.SingleNestedAttribute{
 				Attributes: ObservationFieldSchema(),
 				Optional:   true,
@@ -344,7 +328,7 @@ func expandDynamicGauge(ctx context.Context, gauge *DynamicGaugeModel) (*dashboa
 		DecimalPrecision:  expandInt32Pointer(gauge.DecimalPrecision),
 		DisplaySeriesName: gauge.DisplaySeriesName.ValueBoolPointer(),
 		Legend:            legend,
-		LegendBy:          OptionalEnumPointer(gauge.LegendBy, dashboardSchemaToProtoLegendBy),
+		LegendBy:          OptionalEnumPointer(gauge.LegendBy, DashboardSchemaToProtoLegendBy),
 		Max:               gauge.Max.ValueFloat64Pointer(),
 		Min:               gauge.Min.ValueFloat64Pointer(),
 		ShowInnerArc:      gauge.ShowInnerArc.ValueBoolPointer(),
@@ -462,7 +446,7 @@ func flattenDynamicGauge(ctx context.Context, gauge *dashboardservice.Visualizat
 		DecimalPrecision:  flattenInt32Pointer(gauge.DecimalPrecision),
 		DisplaySeriesName: types.BoolPointerValue(gauge.DisplaySeriesName),
 		Legend:            FlattenLegend(gauge.Legend),
-		LegendBy:          flattenOptionalEnum(gauge.LegendBy, dashboardProtoToSchemaLegendBy),
+		LegendBy:          flattenOptionalEnum(gauge.LegendBy, DashboardProtoToSchemaLegendBy),
 		Max:               types.Float64PointerValue(gauge.Max),
 		Min:               types.Float64PointerValue(gauge.Min),
 		ShowInnerArc:      types.BoolPointerValue(gauge.ShowInnerArc),

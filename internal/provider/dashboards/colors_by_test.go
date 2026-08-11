@@ -44,7 +44,7 @@ func colorsByPopulatedBranches(colorsBy *dashboardservice.ColorsBy) []string {
 
 // Keyed by the schema value the colors_by validator accepts; the value is the REST oneof branch
 // it must map to. Driving the test from DashboardValidColorsBy means widening the validator
-// without teaching expandColorsBy the new value fails here rather than silently at apply.
+// without teaching ExpandColorsBy the new value fails here rather than silently at apply.
 var colorsByRESTBranches = map[string]string{
 	"stack":       "stack",
 	"group_by":    "groupBy",
@@ -66,22 +66,22 @@ func TestColorsByRoundTrip(t *testing.T) {
 		}
 
 		t.Run(schemaValue, func(t *testing.T) {
-			expanded := expandColorsBy(types.StringValue(schemaValue))
+			expanded := dashboardwidgets.ExpandColorsBy(types.StringValue(schemaValue))
 			if expanded == nil {
-				t.Fatalf("expandColorsBy(%q) = nil, want the %q branch", schemaValue, restBranch)
+				t.Fatalf("ExpandColorsBy(%q) = nil, want the %q branch", schemaValue, restBranch)
 			}
 
 			populated := colorsByPopulatedBranches(expanded)
 			if len(populated) != 1 || populated[0] != restBranch {
-				t.Fatalf("expandColorsBy(%q) populated branches = %v, want exactly [%q]", schemaValue, populated, restBranch)
+				t.Fatalf("ExpandColorsBy(%q) populated branches = %v, want exactly [%q]", schemaValue, populated, restBranch)
 			}
 
-			got, dg := flattenBarChartColorsBy(expanded)
+			got, dg := dashboardwidgets.FlattenColorsBy(expanded)
 			if dg != nil {
-				t.Fatalf("flattenBarChartColorsBy(%q) returned diagnostic %v", schemaValue, dg)
+				t.Fatalf("FlattenColorsBy(%q) returned diagnostic %v", schemaValue, dg)
 			}
 			if got != types.StringValue(schemaValue) {
-				t.Fatalf("flattenBarChartColorsBy round trip = %v, want %q", got, schemaValue)
+				t.Fatalf("FlattenColorsBy round trip = %v, want %q", got, schemaValue)
 			}
 		})
 	}
@@ -95,8 +95,8 @@ func TestExpandColorsByUnsetOrUnknownStringIsNil(t *testing.T) {
 		"unmapped": types.StringValue("rainbow"),
 	} {
 		t.Run(name, func(t *testing.T) {
-			if got := expandColorsBy(value); got != nil {
-				t.Fatalf("expandColorsBy(%v) = %+v, want nil so no colorsBy is sent", value, got)
+			if got := dashboardwidgets.ExpandColorsBy(value); got != nil {
+				t.Fatalf("ExpandColorsBy(%v) = %+v, want nil so no colorsBy is sent", value, got)
 			}
 		})
 	}
