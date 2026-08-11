@@ -1,5 +1,10 @@
 # Unreleased
 
+#### provider
+- FIX: API error diagnostics now classify failures by HTTP status and include the backend's response body, instead of showing only the bare error text.
+- FIX: gRPC error diagnostics now surface the attached `google.rpc` details (for example, per-field validation messages).
+- FIX: Error diagnostics no longer echo the request payload, so credentials carried in a request body cannot leak into CLI or CI logs.
+- FIX: Error diagnostics label the failing call `operation` instead of `url`, matching the value callers pass (`Read`, `Create`, `List`, …).
 #### resource/coralogix_dashboard
 - FIX: Schema v2/v3→v4 state upgrade no longer fails with `Missing Upgraded Resource State` when the dashboard was deleted outside Terraform. The upgrader no longer removes the resource from state (illegal inside a state upgrader); it returns a valid v4 state carrying the prior `id`, `name`, `description` and `content_json`, so the following refresh detects the missing dashboard and plans a recreate.
 

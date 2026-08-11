@@ -23,6 +23,7 @@ import (
 	"maps"
 	"math/big"
 	"math/rand"
+	"net/http"
 	"net/url"
 	"reflect"
 	"regexp"
@@ -32,6 +33,7 @@ import (
 	"time"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	gouuid "github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -49,30 +51,34 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func FormatRpcErrors(err error, url, requestStr string) string {
+func FormatRpcErrors(err error, operation, _ string) string {
+	details := formatRpcErrorDetails(err)
 	switch cxsdk.Code(err) {
 	case codes.Internal:
-		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\nurl - %s\nrequest - %s", err, url, requestStr)
+		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\noperation - %s%s", err, operation, details)
 	case codes.InvalidArgument:
-		return fmt.Sprintf("invalid argument error.\nerror - %s\nurl - %s\nrequest - %s", err, url, requestStr)
+		return fmt.Sprintf("invalid argument error.\nerror - %s\noperation - %s%s", err, operation, details)
 	default:
-		return err.Error()
+		return fmt.Sprintf("error - %s\noperation - %s%s", err, operation, details)
 	}
 }
 
-func FormatOpenAPIErrors(err error, url, obj any) string {
-	formattedReq, formattingErr := json.MarshalIndent(obj, "", "   ")
-	formattedOrError := string(formattedReq)
-	if formattingErr != nil {
-		formattedOrError = formattingErr.Error()
+func formatRpcErrorDetails(err error) string {
+	details := cxsdk.Details(err)
+	if details == "" || strings.Contains(err.Error(), details) {
+		return ""
 	}
-	switch cxsdk.Code(err) {
-	case codes.Internal:
-		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\nurl - %s\nrequest - %s", err, url, string(formattedReq))
-	case codes.InvalidArgument:
-		return fmt.Sprintf("invalid argument error.\nerror - %s\nurl - %s\nrequest - %s", err, url, formattedOrError)
+	return fmt.Sprintf("\ndetails - %s", details)
+}
+
+func FormatOpenAPIErrors(err error, operation string, _ any) string {
+	switch code := cxsdkOpenapi.Code(err); {
+	case code >= http.StatusInternalServerError:
+		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\noperation - %s", err, operation)
+	case code == http.StatusBadRequest || code == http.StatusUnprocessableEntity:
+		return fmt.Sprintf("invalid argument error.\nerror - %s\noperation - %s", err, operation)
 	default:
-		return err.Error()
+		return fmt.Sprintf("error - %s\noperation - %s", err, operation)
 	}
 }
 
