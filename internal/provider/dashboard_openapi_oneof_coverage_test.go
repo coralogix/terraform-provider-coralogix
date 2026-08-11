@@ -516,7 +516,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"QuerySourceLogsQueryType": {
 			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.LogsQuery.Type.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"fieldName":  covered("variables_v2[*].source.query.logs_query.type.field_name", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldName"),
+				"fieldName":  apiOnly(dashboardNoProviderPath, false, "variables_v2 logs_query type schema only exposes field_value"),
 				"fieldValue": covered("variables_v2[*].source.query.logs_query.type.field_value", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue"),
 			},
 		},
@@ -546,7 +546,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"QuerySourceSpansQueryType": {
 			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.SpansQuery.Type.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"fieldName":  covered("variables_v2[*].source.query.spans_query.type.field_name", "TestAccCoralogixResourceDashboardVariablesV2SpansFieldName"),
+				"fieldName":  apiOnly(dashboardNoProviderPath, false, "variables_v2 spans_query type schema only exposes field_value"),
 				"fieldValue": covered("variables_v2[*].source.query.spans_query.type.field_value", "TestAccCoralogixResourceDashboardVariablesV2SpansFieldValue"),
 			},
 		},
@@ -983,6 +983,22 @@ func TestDashboardProtoOneOfInventoryAgainstCheckout(t *testing.T) {
 	}
 
 	protoInventory := parseDashboardProtoOneOfs(t, dashboardRoot, dashboardRoot)
+	assertDashboardProtoInventoryCounts(t, protoInventory)
+
+	for _, source := range dashboardSingleArmProtoOneOfs {
+		assertDashboardProtoBranch(t, protoInventory, source)
+	}
+	for _, branch := range dashboardProtoOnlyBranches {
+		assertDashboardProtoBranch(t, protoInventory, branch.ProtoSource)
+	}
+
+	externalFile := filepath.Join(protoRoot, "com", "coralogixapis", "events", "v3", "events_query_filter.proto")
+	parseDashboardProtoFile(t, protoRoot, externalFile, protoInventory)
+	assertDashboardManifestMatchesProtoBranches(t, protoInventory)
+}
+
+func assertDashboardProtoInventoryCounts(t *testing.T, protoInventory map[string][]string) {
+	t.Helper()
 	if got := len(protoInventory); got != 71 {
 		t.Fatalf("dashboard protobuf oneofs = %d, want 71", got)
 	}
@@ -997,29 +1013,12 @@ func TestDashboardProtoOneOfInventoryAgainstCheckout(t *testing.T) {
 	if multiBranchOneOfs != 64 || multiBranches != 216 {
 		t.Fatalf("dashboard protobuf multi-branch inventory = %d oneofs/%d branches, want 64/216", multiBranchOneOfs, multiBranches)
 	}
+}
 
-	for _, source := range dashboardSingleArmProtoOneOfs {
-		assertDashboardProtoBranch(t, protoInventory, source)
-	}
-	for _, branch := range dashboardProtoOnlyBranches {
-		assertDashboardProtoBranch(t, protoInventory, branch.ProtoSource)
-	}
-
-	externalFile := filepath.Join(protoRoot, "com", "coralogixapis", "events", "v3", "events_query_filter.proto")
-	parseDashboardProtoFile(t, protoRoot, externalFile, protoInventory)
+func assertDashboardManifestMatchesProtoBranches(t *testing.T, protoInventory map[string][]string) {
+	t.Helper()
 	for model, coverage := range dashboardOpenAPIOneOfCoverage {
-		var protoBranches []string
-		for _, source := range strings.Split(coverage.ProtoSource, " + ") {
-			branches, ok := protoInventory[source]
-			if !ok {
-				t.Errorf("%s references nonexistent protobuf oneof %s", model, source)
-				continue
-			}
-			for _, branch := range branches {
-				protoBranches = append(protoBranches, snakeToLowerCamel(branch))
-			}
-		}
-		sort.Strings(protoBranches)
+		protoBranches := dashboardProtoBranchesForCoverage(t, model, coverage.ProtoSource, protoInventory)
 		manifestBranches := make([]string, 0, len(coverage.Branches))
 		for branch := range coverage.Branches {
 			manifestBranches = append(manifestBranches, branch)
@@ -1031,6 +1030,23 @@ func TestDashboardProtoOneOfInventoryAgainstCheckout(t *testing.T) {
 	}
 }
 
+func dashboardProtoBranchesForCoverage(t *testing.T, model, protoSource string, protoInventory map[string][]string) []string {
+	t.Helper()
+	var protoBranches []string
+	for _, source := range strings.Split(protoSource, " + ") {
+		branches, ok := protoInventory[source]
+		if !ok {
+			t.Errorf("%s references nonexistent protobuf oneof %s", model, source)
+			continue
+		}
+		for _, branch := range branches {
+			protoBranches = append(protoBranches, snakeToLowerCamel(branch))
+		}
+	}
+	sort.Strings(protoBranches)
+	return protoBranches
+}
+
 func validateDashboardOneOfCoverage(t *testing.T, tests map[string]struct{}, model, branch string, coverage dashboardOneOfBranchCoverage) {
 	t.Helper()
 	if coverage.ProviderPath == "" {
@@ -1039,55 +1055,13 @@ func validateDashboardOneOfCoverage(t *testing.T, tests map[string]struct{}, mod
 
 	switch coverage.Status {
 	case dashboardOneOfAcceptanceCovered:
-		if coverage.FixtureOrTest == "" {
-			t.Errorf("%s.%s is covered without a fixture/test", model, branch)
-		}
-		if !coverage.ImportHydration || !coverage.DataSourceHydration {
-			t.Errorf("%s.%s is acceptance-covered without both hydration paths", model, branch)
-		}
+		validateDashboardOneOfAcceptanceCovered(t, model, branch, coverage)
 	case dashboardOneOfAcceptanceGap:
-		if coverage.FixtureOrTest != "" {
-			t.Errorf("%s.%s is an acceptance gap but references %s", model, branch, coverage.FixtureOrTest)
-		}
-		if !coverage.ImportHydration || !coverage.DataSourceHydration {
-			t.Errorf("%s.%s is a structured branch without both hydration paths", model, branch)
-		}
+		validateDashboardOneOfAcceptanceGap(t, model, branch, coverage)
 	case dashboardOneOfAPIOnly:
-		if coverage.Explanation == "" || coverage.FixtureOrTest == "" || coverage.SupportDecision == "" {
-			t.Errorf("%s.%s API-only decision is missing category, explanation, or executable evidence", model, branch)
-		}
-		switch coverage.SupportDecision {
-		case dashboardOneOfContentJSONSupported:
-			modelType, ok := dashboardGeneratedModelType(model)
-			if !ok || !dashboardGeneratedTypeReachable(reflect.TypeOf(dashboardservice.Dashboard{}), modelType) {
-				t.Errorf("%s.%s claims content_json support but %s is not reachable from Dashboard", model, branch, model)
-			}
-			if coverage.FixtureOrTest != dashboardContentJSONGeneratedOneOfContractTestName && coverage.FixtureOrTest != dashboardContentJSONDynamicQueriesTableTestName {
-				t.Errorf("%s.%s content_json decision references unrelated evidence %s", model, branch, coverage.FixtureOrTest)
-			}
-		case dashboardOneOfStructuredRejected:
-			if coverage.FixtureOrTest != dashboardStructuredRejectionContractTestName {
-				t.Errorf("%s.%s structured rejection does not reference %s", model, branch, dashboardStructuredRejectionContractTestName)
-			}
-		case dashboardOneOfReadHydratable:
-			if !coverage.ImportHydration && !coverage.DataSourceHydration {
-				t.Errorf("%s.%s claims read hydration without an import or data-source path", model, branch)
-			}
-		case dashboardOneOfReadRejected:
-			if coverage.ImportHydration || coverage.DataSourceHydration {
-				t.Errorf("%s.%s claims deterministic read rejection and hydration", model, branch)
-			}
-		case dashboardOneOfOutsideCRUD:
-			if coverage.FixtureOrTest != dashboardOutsideCRUDContractTestName || coverage.ImportHydration || coverage.DataSourceHydration {
-				t.Errorf("%s.%s outside-CRUD decision has inconsistent evidence or hydration", model, branch)
-			}
-		default:
-			t.Errorf("%s.%s has unknown API-only support decision %q", model, branch, coverage.SupportDecision)
-		}
+		validateDashboardOneOfAPIOnly(t, model, branch, coverage)
 	case dashboardOneOfLegacyMigration:
-		if coverage.Explanation == "" || coverage.FixtureOrTest == "" || coverage.SupportDecision != dashboardOneOfLegacyOnly {
-			t.Errorf("%s.%s legacy migration classification is incomplete", model, branch)
-		}
+		validateDashboardOneOfLegacyMigration(t, model, branch, coverage)
 	default:
 		t.Errorf("%s.%s has unknown status %q", model, branch, coverage.Status)
 	}
@@ -1096,6 +1070,78 @@ func validateDashboardOneOfCoverage(t *testing.T, tests map[string]struct{}, mod
 		if _, ok := tests[coverage.FixtureOrTest]; !ok {
 			t.Errorf("%s.%s references nonexistent test %s", model, branch, coverage.FixtureOrTest)
 		}
+	}
+}
+
+func validateDashboardOneOfAcceptanceCovered(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	if coverage.FixtureOrTest == "" {
+		t.Errorf("%s.%s is covered without a fixture/test", model, branch)
+	}
+	if !coverage.ImportHydration || !coverage.DataSourceHydration {
+		t.Errorf("%s.%s is acceptance-covered without both hydration paths", model, branch)
+	}
+}
+
+func validateDashboardOneOfAcceptanceGap(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	if coverage.FixtureOrTest != "" {
+		t.Errorf("%s.%s is an acceptance gap but references %s", model, branch, coverage.FixtureOrTest)
+	}
+	if !coverage.ImportHydration || !coverage.DataSourceHydration {
+		t.Errorf("%s.%s is a structured branch without both hydration paths", model, branch)
+	}
+}
+
+func validateDashboardOneOfAPIOnly(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	if coverage.Explanation == "" || coverage.FixtureOrTest == "" || coverage.SupportDecision == "" {
+		t.Errorf("%s.%s API-only decision is missing category, explanation, or executable evidence", model, branch)
+	}
+	validateDashboardOneOfAPIOnlySupportDecision(t, model, branch, coverage)
+}
+
+func validateDashboardOneOfAPIOnlySupportDecision(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	switch coverage.SupportDecision {
+	case dashboardOneOfContentJSONSupported:
+		validateDashboardOneOfContentJSONSupported(t, model, branch, coverage)
+	case dashboardOneOfStructuredRejected:
+		if coverage.FixtureOrTest != dashboardStructuredRejectionContractTestName {
+			t.Errorf("%s.%s structured rejection does not reference %s", model, branch, dashboardStructuredRejectionContractTestName)
+		}
+	case dashboardOneOfReadHydratable:
+		if !coverage.ImportHydration && !coverage.DataSourceHydration {
+			t.Errorf("%s.%s claims read hydration without an import or data-source path", model, branch)
+		}
+	case dashboardOneOfReadRejected:
+		if coverage.ImportHydration || coverage.DataSourceHydration {
+			t.Errorf("%s.%s claims deterministic read rejection and hydration", model, branch)
+		}
+	case dashboardOneOfOutsideCRUD:
+		if coverage.FixtureOrTest != dashboardOutsideCRUDContractTestName || coverage.ImportHydration || coverage.DataSourceHydration {
+			t.Errorf("%s.%s outside-CRUD decision has inconsistent evidence or hydration", model, branch)
+		}
+	default:
+		t.Errorf("%s.%s has unknown API-only support decision %q", model, branch, coverage.SupportDecision)
+	}
+}
+
+func validateDashboardOneOfContentJSONSupported(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	modelType, ok := dashboardGeneratedModelType(model)
+	if !ok || !dashboardGeneratedTypeReachable(reflect.TypeOf(dashboardservice.Dashboard{}), modelType) {
+		t.Errorf("%s.%s claims content_json support but %s is not reachable from Dashboard", model, branch, model)
+	}
+	if coverage.FixtureOrTest != dashboardContentJSONGeneratedOneOfContractTestName && coverage.FixtureOrTest != dashboardContentJSONDynamicQueriesTableTestName {
+		t.Errorf("%s.%s content_json decision references unrelated evidence %s", model, branch, coverage.FixtureOrTest)
+	}
+}
+
+func validateDashboardOneOfLegacyMigration(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	if coverage.Explanation == "" || coverage.FixtureOrTest == "" || coverage.SupportDecision != dashboardOneOfLegacyOnly {
+		t.Errorf("%s.%s legacy migration classification is incomplete", model, branch)
 	}
 }
 
