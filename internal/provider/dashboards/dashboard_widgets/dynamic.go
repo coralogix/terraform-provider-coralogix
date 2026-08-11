@@ -58,6 +58,37 @@ var (
 	dashboardProtoToSchemaLegendBy = utils.ReverseMap(dashboardSchemaToProtoLegendBy)
 	dashboardValidLegendBy         = utils.GetKeys(dashboardSchemaToProtoLegendBy)
 
+	dashboardSchemaToProtoStackedLine = map[string]dashboardservice.VisualizationStackedLine{
+		utils.UNSPECIFIED: dashboardservice.VISUALIZATIONSTACKEDLINE_STACKED_LINE_UNSPECIFIED,
+		"absolute":        dashboardservice.VISUALIZATIONSTACKEDLINE_STACKED_LINE_ABSOLUTE,
+		"relative":        dashboardservice.VISUALIZATIONSTACKEDLINE_STACKED_LINE_RELATIVE,
+	}
+	dashboardProtoToSchemaStackedLine = utils.ReverseMap(dashboardSchemaToProtoStackedLine)
+	dashboardValidStackedLine         = utils.GetKeys(dashboardSchemaToProtoStackedLine)
+
+	dashboardSchemaToProtoXAxisTimeFormat = map[string]dashboardservice.XAxisTimeFormat{
+		utils.UNSPECIFIED: dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_UNSPECIFIED,
+		"auto":            dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_AUTO,
+		"dd_mm":           dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_DD_MM,
+		"mm_dd":           dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_MM_DD,
+		"hh_mm":           dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_HH_MM,
+		"dd_mm_hh_mm":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_DD_MM_HH_MM,
+		"hh_mm_dd_mm":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_HH_MM_DD_MM,
+		"mm_dd_hh_mm":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_MM_DD_HH_MM,
+		"hh_mm_mm_dd":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_HH_MM_MM_DD,
+	}
+	dashboardProtoToSchemaXAxisTimeFormat = utils.ReverseMap(dashboardSchemaToProtoXAxisTimeFormat)
+	dashboardValidXAxisTimeFormat         = utils.GetKeys(dashboardSchemaToProtoXAxisTimeFormat)
+
+	dashboardSchemaToProtoBarValueDisplay = map[string]dashboardservice.VisualizationBarValueDisplay{
+		utils.UNSPECIFIED: dashboardservice.VISUALIZATIONBARVALUEDISPLAY_BAR_VALUE_DISPLAY_UNSPECIFIED,
+		"top":             dashboardservice.VISUALIZATIONBARVALUEDISPLAY_BAR_VALUE_DISPLAY_TOP,
+		"inside":          dashboardservice.VISUALIZATIONBARVALUEDISPLAY_BAR_VALUE_DISPLAY_INSIDE,
+		"both":            dashboardservice.VISUALIZATIONBARVALUEDISPLAY_BAR_VALUE_DISPLAY_BOTH,
+	}
+	dashboardProtoToSchemaBarValueDisplay = utils.ReverseMap(dashboardSchemaToProtoBarValueDisplay)
+	dashboardValidBarValueDisplay         = utils.GetKeys(dashboardSchemaToProtoBarValueDisplay)
+
 	dashboardSchemaToProtoThresholdBy = map[string]dashboardservice.CommonThresholdBy{
 		utils.UNSPECIFIED: dashboardservice.COMMONTHRESHOLDBY_THRESHOLD_BY_UNSPECIFIED,
 		"value":           dashboardservice.COMMONTHRESHOLDBY_THRESHOLD_BY_VALUE,
@@ -158,12 +189,14 @@ func DynamicSchema() schema.Attribute {
 			"visualization": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"stat":      dynamicStatSchema(),
-					"stat_card": dynamicStatCardSchema(),
-					"table":     dynamicTableSchema(),
+					"stat":                    dynamicStatSchema(),
+					"stat_card":               dynamicStatCardSchema(),
+					"table":                   dynamicTableSchema(),
+					"time_series_lines_multi": dynamicTimeSeriesLinesMultiSchema(),
+					"time_series_bars":        dynamicTimeSeriesBarsSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card", "table"),
+					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines_multi", "time_series_bars"),
 				},
 			},
 		},
@@ -827,6 +860,244 @@ func dynamicTableSettingsSchema() schema.Attribute {
 	}
 }
 
+func dynamicTimeSeriesLinesMultiSchema() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"connect_nulls": schema.BoolAttribute{
+				Optional: true,
+			},
+			"legend":                 LegendSchema(),
+			"query_display_settings": dynamicQueryDisplaySettingsSchema(),
+			"stacked_line": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidStackedLine...),
+				},
+				MarkdownDescription: fmt.Sprintf("How lines are stacked. Valid values are: %s.", strings.Join(dashboardValidStackedLine, ", ")),
+			},
+			"tooltip": dynamicTimeSeriesTooltipSchema(),
+			"use_data_time_range": schema.BoolAttribute{
+				Optional: true,
+			},
+			"x_axis_time_format": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidXAxisTimeFormat...),
+				},
+				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(dashboardValidXAxisTimeFormat, ", ")),
+			},
+		},
+	}
+}
+
+func dynamicTimeSeriesBarsSchema() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"allow_abbreviation": schema.BoolAttribute{
+				Optional: true,
+			},
+			"bar_value_display": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidBarValueDisplay...),
+				},
+				MarkdownDescription: fmt.Sprintf("Where bar values are displayed. Valid values are: %s.", strings.Join(dashboardValidBarValueDisplay, ", ")),
+			},
+			"category_fields": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: ObservationFieldSchema(),
+				},
+			},
+			"color_scheme": schema.StringAttribute{
+				Optional: true,
+			},
+			"custom_unit": schema.StringAttribute{
+				Optional: true,
+			},
+			"decimal_precision": schema.Int64Attribute{
+				Optional: true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, math.MaxInt32),
+				},
+			},
+			"hash_colors": schema.BoolAttribute{
+				Optional: true,
+			},
+			"legend": LegendSchema(),
+			"max_slices_per_bar": schema.Int64Attribute{
+				Optional: true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, math.MaxInt32),
+				},
+			},
+			"scale_type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(DashboardValidScaleTypes...),
+				},
+				MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(DashboardValidScaleTypes, ", ")),
+			},
+			"series_name_template": schema.StringAttribute{
+				Optional: true,
+			},
+			"sort_by": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(DashboardValidSortBy...),
+				},
+				MarkdownDescription: fmt.Sprintf("How bars are sorted. Valid values are: %s.", strings.Join(DashboardValidSortBy, ", ")),
+			},
+			"temporal_field": schema.SingleNestedAttribute{
+				Attributes: ObservationFieldSchema(),
+				Optional:   true,
+			},
+			"tooltip": dynamicTimeSeriesTooltipSchema(),
+			"unit": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(DashboardValidUnits...),
+				},
+				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
+			},
+			"value_fields": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: ObservationFieldSchema(),
+				},
+			},
+			"x_axis_time_format": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+				Validators: []validator.String{
+					stringvalidator.OneOf(dashboardValidXAxisTimeFormat...),
+				},
+				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(dashboardValidXAxisTimeFormat, ", ")),
+			},
+			"y_axis_max": schema.Float64Attribute{
+				Optional:            true,
+				CustomType:          Float32Type{},
+				MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
+			},
+			"y_axis_min": schema.Float64Attribute{
+				Optional:            true,
+				CustomType:          Float32Type{},
+				MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
+			},
+		},
+	}
+}
+
+func dynamicQueryDisplaySettingsSchema() schema.Attribute {
+	return schema.ListNestedAttribute{
+		Optional: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"allow_abbreviation": schema.BoolAttribute{
+					Optional: true,
+				},
+				"category_fields": schema.ListNestedAttribute{
+					Optional: true,
+					NestedObject: schema.NestedAttributeObject{
+						Attributes: ObservationFieldSchema(),
+					},
+				},
+				"color_scheme": schema.StringAttribute{
+					Optional: true,
+				},
+				"custom_unit": schema.StringAttribute{
+					Optional: true,
+				},
+				"decimal_precision": schema.Int64Attribute{
+					Optional: true,
+					Validators: []validator.Int64{
+						int64validator.Between(0, math.MaxInt32),
+					},
+				},
+				"hash_colors": schema.BoolAttribute{
+					Optional: true,
+				},
+				"query_id": schema.StringAttribute{
+					Required: true,
+				},
+				"scale_type": schema.StringAttribute{
+					Optional: true,
+					Computed: true,
+					Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+					Validators: []validator.String{
+						stringvalidator.OneOf(DashboardValidScaleTypes...),
+					},
+					MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(DashboardValidScaleTypes, ", ")),
+				},
+				"series_count_limit": schema.StringAttribute{
+					Optional: true,
+				},
+				"series_name_template": schema.StringAttribute{
+					Optional: true,
+				},
+				"temporal_field": schema.SingleNestedAttribute{
+					Attributes: ObservationFieldSchema(),
+					Optional:   true,
+				},
+				"unit": schema.StringAttribute{
+					Optional: true,
+					Computed: true,
+					Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+					Validators: []validator.String{
+						stringvalidator.OneOf(DashboardValidUnits...),
+					},
+					MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
+				},
+				"value_fields": schema.ListNestedAttribute{
+					Optional: true,
+					NestedObject: schema.NestedAttributeObject{
+						Attributes: ObservationFieldSchema(),
+					},
+				},
+				"y_axis_max": schema.Float64Attribute{
+					Optional:            true,
+					CustomType:          Float32Type{},
+					MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
+				},
+				"y_axis_min": schema.Float64Attribute{
+					Optional:            true,
+					CustomType:          Float32Type{},
+					MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
+				},
+			},
+		},
+	}
+}
+
+func dynamicTimeSeriesTooltipSchema() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"show_all_series": schema.BoolAttribute{
+				Optional: true,
+			},
+			"show_labels": schema.BoolAttribute{
+				Optional: true,
+			},
+		},
+	}
+}
+
 func DynamicType() types.ObjectType {
 	return types.ObjectType{
 		AttrTypes: dynamicModelAttr(),
@@ -926,9 +1197,84 @@ func spanObservationFieldAttr() map[string]attr.Type {
 
 func dynamicVisualizationModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"stat":      types.ObjectType{AttrTypes: dynamicStatModelAttr()},
-		"stat_card": types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
-		"table":     types.ObjectType{AttrTypes: dynamicTableModelAttr()},
+		"stat":                    types.ObjectType{AttrTypes: dynamicStatModelAttr()},
+		"stat_card":               types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
+		"table":                   types.ObjectType{AttrTypes: dynamicTableModelAttr()},
+		"time_series_lines_multi": types.ObjectType{AttrTypes: dynamicTimeSeriesLinesMultiModelAttr()},
+		"time_series_bars":        types.ObjectType{AttrTypes: dynamicTimeSeriesBarsModelAttr()},
+	}
+}
+
+func dynamicTimeSeriesLinesMultiModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"connect_nulls": types.BoolType,
+		"legend":        types.ObjectType{AttrTypes: LegendAttr()},
+		"query_display_settings": types.ListType{
+			ElemType: types.ObjectType{AttrTypes: dynamicQueryDisplaySettingsModelAttr()},
+		},
+		"stacked_line":        types.StringType,
+		"tooltip":             types.ObjectType{AttrTypes: dynamicTimeSeriesTooltipModelAttr()},
+		"use_data_time_range": types.BoolType,
+		"x_axis_time_format":  types.StringType,
+	}
+}
+
+func dynamicTimeSeriesBarsModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"allow_abbreviation": types.BoolType,
+		"bar_value_display":  types.StringType,
+		"category_fields": types.ListType{
+			ElemType: ObservationFieldsObject(),
+		},
+		"color_scheme":         types.StringType,
+		"custom_unit":          types.StringType,
+		"decimal_precision":    types.Int64Type,
+		"hash_colors":          types.BoolType,
+		"legend":               types.ObjectType{AttrTypes: LegendAttr()},
+		"max_slices_per_bar":   types.Int64Type,
+		"scale_type":           types.StringType,
+		"series_name_template": types.StringType,
+		"sort_by":              types.StringType,
+		"temporal_field":       ObservationFieldsObject(),
+		"tooltip":              types.ObjectType{AttrTypes: dynamicTimeSeriesTooltipModelAttr()},
+		"unit":                 types.StringType,
+		"value_fields": types.ListType{
+			ElemType: ObservationFieldsObject(),
+		},
+		"x_axis_time_format": types.StringType,
+		"y_axis_max":         Float32Type{},
+		"y_axis_min":         Float32Type{},
+	}
+}
+
+func dynamicQueryDisplaySettingsModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"allow_abbreviation": types.BoolType,
+		"category_fields": types.ListType{
+			ElemType: ObservationFieldsObject(),
+		},
+		"color_scheme":         types.StringType,
+		"custom_unit":          types.StringType,
+		"decimal_precision":    types.Int64Type,
+		"hash_colors":          types.BoolType,
+		"query_id":             types.StringType,
+		"scale_type":           types.StringType,
+		"series_count_limit":   types.StringType,
+		"series_name_template": types.StringType,
+		"temporal_field":       ObservationFieldsObject(),
+		"unit":                 types.StringType,
+		"value_fields": types.ListType{
+			ElemType: ObservationFieldsObject(),
+		},
+		"y_axis_max": Float32Type{},
+		"y_axis_min": Float32Type{},
+	}
+}
+
+func dynamicTimeSeriesTooltipModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"show_all_series": types.BoolType,
+		"show_labels":     types.BoolType,
 	}
 }
 
@@ -1419,9 +1765,160 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{Table: table}, nil
+	case visualization.TimeSeriesLinesMulti != nil:
+		linesMulti, diags := expandDynamicTimeSeriesLinesMulti(ctx, visualization.TimeSeriesLinesMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{TimeSeriesLinesMulti: linesMulti}, nil
+	case visualization.TimeSeriesBars != nil:
+		bars, diags := expandDynamicTimeSeriesBars(ctx, visualization.TimeSeriesBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{TimeSeriesBars: bars}, nil
 	default:
 		return nil, nil
 	}
+}
+
+func expandDynamicTimeSeriesLinesMulti(ctx context.Context, linesMulti *DynamicTimeSeriesLinesMultiModel) (*dashboardservice.TimeSeriesLinesMulti, diag.Diagnostics) {
+	if linesMulti == nil {
+		return nil, nil
+	}
+
+	legend, diags := ExpandLegend(ctx, linesMulti.Legend)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	queryDisplaySettings, diags := expandDynamicQueryDisplaySettings(ctx, linesMulti.QueryDisplaySettings)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboardservice.TimeSeriesLinesMulti{
+		ConnectNulls:         linesMulti.ConnectNulls.ValueBoolPointer(),
+		Legend:               legend,
+		QueryDisplaySettings: queryDisplaySettings,
+		StackedLine:          OptionalEnumPointer(linesMulti.StackedLine, dashboardSchemaToProtoStackedLine),
+		Tooltip:              expandDynamicTimeSeriesTooltip(linesMulti.Tooltip),
+		UseDataTimeRange:     linesMulti.UseDataTimeRange.ValueBoolPointer(),
+		XAxisTimeFormat:      OptionalEnumPointer(linesMulti.XAxisTimeFormat, dashboardSchemaToProtoXAxisTimeFormat),
+	}, nil
+}
+
+func expandDynamicTimeSeriesBars(ctx context.Context, bars *DynamicTimeSeriesBarsModel) (*dashboardservice.TimeSeriesBars, diag.Diagnostics) {
+	if bars == nil {
+		return nil, nil
+	}
+
+	categoryFields, diags := ExpandObservationFields(ctx, bars.CategoryFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	valueFields, diags := ExpandObservationFields(ctx, bars.ValueFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	temporalField, diags := ExpandObservationFieldObject(ctx, bars.TemporalField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	legend, diags := ExpandLegend(ctx, bars.Legend)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboardservice.TimeSeriesBars{
+		AllowAbbreviation:  bars.AllowAbbreviation.ValueBoolPointer(),
+		BarValueDisplay:    OptionalEnumPointer(bars.BarValueDisplay, dashboardSchemaToProtoBarValueDisplay),
+		CategoryFields:     categoryFields,
+		ColorScheme:        bars.ColorScheme.ValueStringPointer(),
+		CustomUnit:         bars.CustomUnit.ValueStringPointer(),
+		DecimalPrecision:   expandInt32Pointer(bars.DecimalPrecision),
+		HashColors:         bars.HashColors.ValueBoolPointer(),
+		Legend:             legend,
+		MaxSlicesPerBar:    expandInt32Pointer(bars.MaxSlicesPerBar),
+		ScaleType:          OptionalEnumPointer(bars.ScaleType, DashboardSchemaToProtoScaleType),
+		SeriesNameTemplate: bars.SeriesNameTemplate.ValueStringPointer(),
+		SortBy:             OptionalEnumPointer(bars.SortBy, DashboardSchemaToProtoSortBy),
+		TemporalField:      temporalField,
+		Tooltip:            expandDynamicTimeSeriesTooltip(bars.Tooltip),
+		Unit:               OptionalEnumPointer(bars.Unit, DashboardSchemaToProtoUnit),
+		ValueFields:        valueFields,
+		XAxisTimeFormat:    OptionalEnumPointer(bars.XAxisTimeFormat, dashboardSchemaToProtoXAxisTimeFormat),
+		YAxisMax:           expandFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           expandFloat32Pointer(bars.YAxisMin),
+	}, nil
+}
+
+func expandDynamicQueryDisplaySettings(ctx context.Context, settings types.List) ([]dashboardservice.QueryDisplaySettings, diag.Diagnostics) {
+	var models []DynamicQueryDisplaySettingsModel
+	diags := settings.ElementsAs(ctx, &models, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	expanded := make([]dashboardservice.QueryDisplaySettings, 0, len(models))
+	for i := range models {
+		categoryFields, dg := ExpandObservationFields(ctx, models[i].CategoryFields)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		valueFields, dg := ExpandObservationFields(ctx, models[i].ValueFields)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		temporalField, dg := ExpandObservationFieldObject(ctx, models[i].TemporalField)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		expanded = append(expanded, dashboardservice.QueryDisplaySettings{
+			AllowAbbreviation:  models[i].AllowAbbreviation.ValueBoolPointer(),
+			CategoryFields:     categoryFields,
+			ColorScheme:        models[i].ColorScheme.ValueStringPointer(),
+			CustomUnit:         models[i].CustomUnit.ValueStringPointer(),
+			DecimalPrecision:   expandInt32Pointer(models[i].DecimalPrecision),
+			HashColors:         models[i].HashColors.ValueBoolPointer(),
+			QueryId:            models[i].QueryID.ValueString(),
+			ScaleType:          OptionalEnumPointer(models[i].ScaleType, DashboardSchemaToProtoScaleType),
+			SeriesCountLimit:   models[i].SeriesCountLimit.ValueStringPointer(),
+			SeriesNameTemplate: models[i].SeriesNameTemplate.ValueStringPointer(),
+			TemporalField:      temporalField,
+			Unit:               OptionalEnumPointer(models[i].Unit, DashboardSchemaToProtoUnit),
+			ValueFields:        valueFields,
+			YAxisMax:           expandFloat32Pointer(models[i].YAxisMax),
+			YAxisMin:           expandFloat32Pointer(models[i].YAxisMin),
+		})
+	}
+
+	return expanded, diags
+}
+
+func expandDynamicTimeSeriesTooltip(tooltip *DynamicTimeSeriesTooltipModel) *dashboardservice.TimeSeriesTooltip {
+	if tooltip == nil {
+		return nil
+	}
+
+	return &dashboardservice.TimeSeriesTooltip{
+		ShowAllSeries: tooltip.ShowAllSeries.ValueBoolPointer(),
+		ShowLabels:    tooltip.ShowLabels.ValueBoolPointer(),
+	}
+}
+
+func expandFloat32Pointer(value Float32Value) *float32 {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	converted := float32(value.ValueFloat64())
+	return &converted
 }
 
 func expandDynamicTable(ctx context.Context, table *DynamicTableModel) (*dashboardservice.Table, diag.Diagnostics) {
@@ -2214,12 +2711,160 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{Table: table}, nil
+	case visualization.TimeSeriesLinesMulti != nil:
+		linesMulti, diags := flattenDynamicTimeSeriesLinesMulti(ctx, visualization.TimeSeriesLinesMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{TimeSeriesLinesMulti: linesMulti}, nil
+	case visualization.TimeSeriesBars != nil:
+		bars, diags := flattenDynamicTimeSeriesBars(ctx, visualization.TimeSeriesBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{TimeSeriesBars: bars}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Unsupported Dashboard Widget Definition",
-			"The dynamic widget uses a visualization variant this provider version does not support as typed HCL yet. Only `stat`, `stat_card`, and `table` are currently supported.",
+			"The dynamic widget uses a visualization variant this provider version does not support as typed HCL yet. Only `stat`, `stat_card`, `table`, `time_series_lines_multi`, and `time_series_bars` are currently supported.",
 		)}
 	}
+}
+
+func flattenDynamicTimeSeriesLinesMulti(ctx context.Context, linesMulti *dashboardservice.TimeSeriesLinesMulti) (*DynamicTimeSeriesLinesMultiModel, diag.Diagnostics) {
+	if linesMulti == nil {
+		return nil, nil
+	}
+
+	queryDisplaySettings, diags := flattenDynamicQueryDisplaySettings(ctx, linesMulti.GetQueryDisplaySettings())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &DynamicTimeSeriesLinesMultiModel{
+		ConnectNulls:         types.BoolPointerValue(linesMulti.ConnectNulls),
+		Legend:               FlattenLegend(linesMulti.Legend),
+		QueryDisplaySettings: queryDisplaySettings,
+		StackedLine:          flattenOptionalEnum(linesMulti.StackedLine, dashboardProtoToSchemaStackedLine),
+		Tooltip:              flattenDynamicTimeSeriesTooltip(linesMulti.Tooltip),
+		UseDataTimeRange:     types.BoolPointerValue(linesMulti.UseDataTimeRange),
+		XAxisTimeFormat:      flattenOptionalEnum(linesMulti.XAxisTimeFormat, dashboardProtoToSchemaXAxisTimeFormat),
+	}, nil
+}
+
+func flattenDynamicTimeSeriesBars(ctx context.Context, bars *dashboardservice.TimeSeriesBars) (*DynamicTimeSeriesBarsModel, diag.Diagnostics) {
+	if bars == nil {
+		return nil, nil
+	}
+
+	categoryFields, diags := FlattenObservationFields(ctx, bars.GetCategoryFields())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	valueFields, diags := FlattenObservationFields(ctx, bars.GetValueFields())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	temporalField, diags := FlattenObservationField(ctx, bars.TemporalField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &DynamicTimeSeriesBarsModel{
+		AllowAbbreviation:  types.BoolPointerValue(bars.AllowAbbreviation),
+		BarValueDisplay:    flattenOptionalEnum(bars.BarValueDisplay, dashboardProtoToSchemaBarValueDisplay),
+		CategoryFields:     categoryFields,
+		ColorScheme:        types.StringPointerValue(bars.ColorScheme),
+		CustomUnit:         types.StringPointerValue(bars.CustomUnit),
+		DecimalPrecision:   flattenInt32Pointer(bars.DecimalPrecision),
+		HashColors:         types.BoolPointerValue(bars.HashColors),
+		Legend:             FlattenLegend(bars.Legend),
+		MaxSlicesPerBar:    flattenInt32Pointer(bars.MaxSlicesPerBar),
+		ScaleType:          flattenOptionalEnum(bars.ScaleType, DashboardProtoToSchemaScaleType),
+		SeriesNameTemplate: types.StringPointerValue(bars.SeriesNameTemplate),
+		SortBy:             flattenOptionalEnum(bars.SortBy, DashboardProtoToSchemaSortBy),
+		TemporalField:      temporalField,
+		Tooltip:            flattenDynamicTimeSeriesTooltip(bars.Tooltip),
+		Unit:               flattenOptionalEnum(bars.Unit, DashboardProtoToSchemaUnit),
+		ValueFields:        valueFields,
+		XAxisTimeFormat:    flattenOptionalEnum(bars.XAxisTimeFormat, dashboardProtoToSchemaXAxisTimeFormat),
+		YAxisMax:           flattenFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           flattenFloat32Pointer(bars.YAxisMin),
+	}, nil
+}
+
+func flattenDynamicQueryDisplaySettings(ctx context.Context, settings []dashboardservice.QueryDisplaySettings) (types.List, diag.Diagnostics) {
+	if len(settings) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: dynamicQueryDisplaySettingsModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	elements := make([]attr.Value, 0, len(settings))
+	for i := range settings {
+		categoryFields, dg := FlattenObservationFields(ctx, settings[i].GetCategoryFields())
+		if dg.HasError() {
+			diagnostics.Append(dg...)
+			continue
+		}
+		valueFields, dg := FlattenObservationFields(ctx, settings[i].GetValueFields())
+		if dg.HasError() {
+			diagnostics.Append(dg...)
+			continue
+		}
+		temporalField, dg := FlattenObservationField(ctx, settings[i].TemporalField)
+		if dg.HasError() {
+			diagnostics.Append(dg...)
+			continue
+		}
+		model := &DynamicQueryDisplaySettingsModel{
+			AllowAbbreviation:  types.BoolPointerValue(settings[i].AllowAbbreviation),
+			CategoryFields:     categoryFields,
+			ColorScheme:        types.StringPointerValue(settings[i].ColorScheme),
+			CustomUnit:         types.StringPointerValue(settings[i].CustomUnit),
+			DecimalPrecision:   flattenInt32Pointer(settings[i].DecimalPrecision),
+			HashColors:         types.BoolPointerValue(settings[i].HashColors),
+			QueryID:            types.StringValue(settings[i].QueryId),
+			ScaleType:          flattenOptionalEnum(settings[i].ScaleType, DashboardProtoToSchemaScaleType),
+			SeriesCountLimit:   types.StringPointerValue(settings[i].SeriesCountLimit),
+			SeriesNameTemplate: types.StringPointerValue(settings[i].SeriesNameTemplate),
+			TemporalField:      temporalField,
+			Unit:               flattenOptionalEnum(settings[i].Unit, DashboardProtoToSchemaUnit),
+			ValueFields:        valueFields,
+			YAxisMax:           flattenFloat32Pointer(settings[i].YAxisMax),
+			YAxisMin:           flattenFloat32Pointer(settings[i].YAxisMin),
+		}
+		element, dg := types.ObjectValueFrom(ctx, dynamicQueryDisplaySettingsModelAttr(), model)
+		if dg.HasError() {
+			diagnostics.Append(dg...)
+			continue
+		}
+		elements = append(elements, element)
+	}
+
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: dynamicQueryDisplaySettingsModelAttr()}), diagnostics
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dynamicQueryDisplaySettingsModelAttr()}, elements)
+}
+
+func flattenDynamicTimeSeriesTooltip(tooltip *dashboardservice.TimeSeriesTooltip) *DynamicTimeSeriesTooltipModel {
+	if tooltip == nil {
+		return nil
+	}
+
+	return &DynamicTimeSeriesTooltipModel{
+		ShowAllSeries: types.BoolPointerValue(tooltip.ShowAllSeries),
+		ShowLabels:    types.BoolPointerValue(tooltip.ShowLabels),
+	}
+}
+
+func flattenFloat32Pointer(value *float32) Float32Value {
+	if value == nil {
+		return Float32Value{Float64Value: basetypes.NewFloat64Null()}
+	}
+	return Float32Value{Float64Value: basetypes.NewFloat64Value(float64(*value))}
 }
 
 func flattenDynamicTable(ctx context.Context, table *dashboardservice.Table) (*DynamicTableModel, diag.Diagnostics) {

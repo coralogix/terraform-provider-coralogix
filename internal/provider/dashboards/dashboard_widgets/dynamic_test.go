@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 func TestDynamicWidgetLogsStatRoundTrip(t *testing.T) {
@@ -478,6 +479,106 @@ func TestDynamicWidgetTableFullFidelityRoundTrip(t *testing.T) {
 	assertDynamicRoundTrip(ctx, t, original)
 }
 
+func TestDynamicWidgetTimeSeriesLinesMultiFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("avg")}),
+		GroupByQuery: types.BoolValue(true),
+		Placement:    types.StringValue("side"),
+	}
+
+	queryDisplaySettings := types.ListValueMust(types.ObjectType{AttrTypes: dynamicQueryDisplaySettingsModelAttr()}, []attr.Value{
+		objectFrom(ctx, t, dynamicQueryDisplaySettingsModelAttr(), &DynamicQueryDisplaySettingsModel{
+			AllowAbbreviation:  types.BoolValue(true),
+			CategoryFields:     observationFieldList("category", "user_data"),
+			ColorScheme:        types.StringValue("classic"),
+			CustomUnit:         types.StringValue("reqs"),
+			DecimalPrecision:   types.Int64Value(2),
+			HashColors:         types.BoolValue(true),
+			QueryID:            types.StringValue("query-1"),
+			ScaleType:          types.StringValue("logarithmic"),
+			SeriesCountLimit:   types.StringValue("100"),
+			SeriesNameTemplate: types.StringValue("{{label}}"),
+			TemporalField:      observationFieldObject("timestamp", "metadata"),
+			Unit:               types.StringValue("bytes"),
+			ValueFields:        observationFieldList("value", "metadata"),
+			YAxisMax:           float32TestValue(100),
+			YAxisMin:           float32TestValue(0),
+		}),
+	})
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			TimeSeriesLinesMulti: &DynamicTimeSeriesLinesMultiModel{
+				ConnectNulls:         types.BoolValue(true),
+				Legend:               legend,
+				QueryDisplaySettings: queryDisplaySettings,
+				StackedLine:          types.StringValue("absolute"),
+				Tooltip: &DynamicTimeSeriesTooltipModel{
+					ShowAllSeries: types.BoolValue(true),
+					ShowLabels:    types.BoolValue(false),
+				},
+				UseDataTimeRange: types.BoolValue(true),
+				XAxisTimeFormat:  types.StringValue("dd_mm_hh_mm"),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetTimeSeriesBarsFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("sum")}),
+		GroupByQuery: types.BoolValue(false),
+		Placement:    types.StringValue("bottom"),
+	}
+
+	original := &DynamicModel{
+		QueryDefinitions: queryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			TimeSeriesBars: &DynamicTimeSeriesBarsModel{
+				AllowAbbreviation:  types.BoolValue(true),
+				BarValueDisplay:    types.StringValue("both"),
+				CategoryFields:     observationFieldList("category", "user_data"),
+				ColorScheme:        types.StringValue("classic"),
+				CustomUnit:         types.StringValue("reqs"),
+				DecimalPrecision:   types.Int64Value(3),
+				HashColors:         types.BoolValue(true),
+				Legend:             legend,
+				MaxSlicesPerBar:    types.Int64Value(10),
+				ScaleType:          types.StringValue("linear"),
+				SeriesNameTemplate: types.StringValue("{{label}}"),
+				SortBy:             types.StringValue("value"),
+				TemporalField:      observationFieldObject("timestamp", "metadata"),
+				Tooltip: &DynamicTimeSeriesTooltipModel{
+					ShowAllSeries: types.BoolValue(false),
+					ShowLabels:    types.BoolValue(true),
+				},
+				Unit:            types.StringValue("usd"),
+				ValueFields:     observationFieldList("value", "metadata"),
+				XAxisTimeFormat: types.StringValue("hh_mm"),
+				YAxisMax:        float32TestValue(100),
+				YAxisMin:        float32TestValue(0),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
 func TestDynamicWidgetTableEmptyListsFlattenToNull(t *testing.T) {
 	ctx := context.Background()
 
@@ -523,6 +624,43 @@ func TestDynamicMappedValuesPreservesEquivalentJSON(t *testing.T) {
 	}, resp2)
 	if !resp2.PlanValue.Equal(differentConfig) {
 		t.Fatalf("non-equivalent JSON should keep the configured plan value, got %s", resp2.PlanValue)
+	}
+}
+
+func float32TestValue(f float64) Float32Value {
+	return Float32Value{Float64Value: basetypes.NewFloat64Value(f)}
+}
+
+func TestFloat32ValueSemanticEquals(t *testing.T) {
+	ctx := context.Background()
+
+	config := float32TestValue(0.1)
+	afterRoundTrip := float32TestValue(float64(float32(0.1)))
+
+	equal, diags := config.Float64SemanticEquals(ctx, afterRoundTrip)
+	if diags.HasError() {
+		t.Fatalf("semantic equals returned diagnostics: %v", diags)
+	}
+	if !equal {
+		t.Fatalf("expected 0.1 and float64(float32(0.1)) to be semantically equal, got not equal")
+	}
+
+	different := float32TestValue(0.2)
+	equal, diags = config.Float64SemanticEquals(ctx, different)
+	if diags.HasError() {
+		t.Fatalf("semantic equals returned diagnostics: %v", diags)
+	}
+	if equal {
+		t.Fatalf("expected 0.1 and 0.2 to be semantically unequal, got equal")
+	}
+
+	nullValue := Float32Value{Float64Value: basetypes.NewFloat64Null()}
+	equal, diags = config.Float64SemanticEquals(ctx, nullValue)
+	if diags.HasError() {
+		t.Fatalf("semantic equals returned diagnostics: %v", diags)
+	}
+	if equal {
+		t.Fatalf("expected a known value and null to be semantically unequal, got equal")
 	}
 }
 
