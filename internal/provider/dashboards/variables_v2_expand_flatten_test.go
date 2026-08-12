@@ -111,13 +111,13 @@ func TestExpandFlattenVariablesV2StaticRoundTrip(t *testing.T) {
 	if expanded[0].GetName() != "environment" {
 		t.Fatalf("name = %q", expanded[0].GetName())
 	}
-	if expanded[0].Source == nil || expanded[0].Source.Static == nil {
+	if expanded[0].Source.Static == nil {
 		t.Fatal("expected static source")
 	}
 	if len(expanded[0].Source.Static.Values) != 1 || expanded[0].Source.Static.Values[0].GetLabel() != "production" {
 		t.Fatalf("static values = %#v", expanded[0].Source.Static.Values)
 	}
-	if expanded[0].Value == nil || expanded[0].Value.SingleString == nil || expanded[0].Value.SingleString.Value == nil {
+	if expanded[0].Value.SingleString == nil || expanded[0].Value.SingleString.Value == nil {
 		t.Fatal("expected single string value")
 	}
 	if expanded[0].Value.SingleString.Value.GetValue() != "production" || expanded[0].Value.SingleString.Value.GetLabel() != "production" {
@@ -345,27 +345,24 @@ func TestExpandVariableV2OptionalEnumsOmitUnset(t *testing.T) {
 	if expandDiags.HasError() {
 		t.Fatalf("expand: %v", expandDiags)
 	}
-	if expanded.DisplayType != nil {
-		t.Fatalf("null display_type should omit API enum, got %q", *expanded.DisplayType)
+	if expanded.DisplayType != "" {
+		t.Fatalf("null display_type should expand to empty required enum, got %q", expanded.DisplayType)
 	}
 }
 
 func TestFlattenVariableV2DisplayTypeUnspecifiedIsNull(t *testing.T) {
 	ctx := context.Background()
 	elementType := dashboardVariablesV2ElementType()
-	unspecified := dashboardservice.VARIABLEDISPLAYTYPEV2_VARIABLE_DISPLAY_TYPE_V2_UNSPECIFIED
-	name := "search"
-	displayName := "Search"
 	hello := "hello"
 
 	flattened, diags := flattenDashboardVariableV2(ctx, &dashboardservice.VariableV2{
-		Name:        &name,
-		DisplayName: &displayName,
-		DisplayType: &unspecified,
-		Source: &dashboardservice.VariableSourceV2{
+		Name:        "search",
+		DisplayName: "Search",
+		DisplayType: dashboardservice.VARIABLEDISPLAYTYPEV2_VARIABLE_DISPLAY_TYPE_V2_UNSPECIFIED,
+		Source: dashboardservice.VariableSourceV2{
 			Textbox: &dashboardservice.TextboxSource{},
 		},
-		Value: &dashboardservice.VariableValueV2{
+		Value: dashboardservice.VariableValueV2{
 			SingleString: &dashboardservice.SingleStringValue{
 				Value: &dashboardservice.StringValueLabel{Value: &hello},
 			},

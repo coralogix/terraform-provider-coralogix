@@ -196,7 +196,7 @@ func testAccCheckDashboardVariablesV2StaticLabelOnAPI(resourceName, wantLabel st
 		}
 		dashboard := resp.GetDashboard()
 		vars := dashboard.GetVariablesV2()
-		if len(vars) == 0 || vars[0].Source == nil || vars[0].Source.Static == nil || len(vars[0].Source.Static.Values) == 0 {
+		if len(vars) == 0 || vars[0].Source.Static == nil || len(vars[0].Source.Static.Values) == 0 {
 			return fmt.Errorf("dashboard %s has no static variables_v2 values", rs.Primary.ID)
 		}
 		got := vars[0].Source.Static.Values[0].GetLabel()

@@ -1,6 +1,12 @@
 # Unreleased
 
 #### provider
+- CHORE: Bump `coralogix-management-sdk` to include OpenAPI required fields for dashboard `variables_v2`.
+
+#### resource/coralogix_dashboard
+- FIX: Adapt `variables_v2` expand/flatten to SDK required value types (`id`, `name`, `display_name`, `display_type`, `source`, `value`, static/query `all_option` / `values_order_direction`, static `values[].value`/`label`, logs `observation_field`, metrics `label_name`).
+
+#### provider
 - FIX: API error diagnostics now classify failures by HTTP status and include the backend's response body, instead of showing only the bare error text.
 - FIX: gRPC error diagnostics now surface the attached `google.rpc` details (for example, per-field validation messages).
 - FIX: Error diagnostics no longer echo the request payload, so credentials carried in a request body cannot leak into CLI or CI logs.

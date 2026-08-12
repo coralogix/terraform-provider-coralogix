@@ -11,6 +11,7 @@ repos:
       - id: go-imports
       - id: go-cyclo
         args: [-over=15]
+        exclude: _test\.go$
       - id: validate-toml
       - id: no-go-testing
       - id: golangci-lint
