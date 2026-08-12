@@ -19,18 +19,17 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"net/http"
 	"strconv"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	teamss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/teams_service"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
-	"google.golang.org/grpc/codes"
-
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -46,7 +45,7 @@ func NewTeamResource() resource.Resource {
 }
 
 type TeamResource struct {
-	client *cxsdk.TeamsClient
+	client *teamss.TeamsServiceAPIService
 }
 
 func (r *TeamResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -117,6 +116,12 @@ type TeamResourceModel struct {
 	DailyQuota types.Float64 `tfsdk:"daily_quota"`
 }
 
+// teamIDValue extracts the numeric ID from a V2TeamId value. GetId() has a pointer
+// receiver, so a temporary variable is required to make the value addressable.
+func teamIDValue(id teamss.V2TeamId) int64 {
+	return id.GetId()
+}
+
 func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan *TeamResourceModel
 	diags := req.Plan.Get(ctx, &plan)
@@ -130,34 +135,35 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		resp.Diagnostics = diags
 		return
 	}
-	log.Printf("[INFO] Creating new Team: %s", protojson.Format(createTeamReq))
-	createTeamResp, err := r.client.Create(ctx, createTeamReq)
+	log.Printf("[INFO] Creating new Team: %s", utils.FormatJSON(createTeamReq))
+	createTeamResp, httpResponse, err := r.client.
+		TeamServiceCreateTeamInOrg(ctx).
+		TeamServiceCreateTeamInOrgRequest(*createTeamReq).
+		Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Team",
-			utils.FormatRpcErrors(err, cxsdk.CreateTeamInOrgRPC, protojson.Format(createTeamReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", createTeamReq),
 		)
 
 		return
 	}
-	log.Printf("[INFO] Submitted new team: %s", protojson.Format(createTeamResp.GetTeamId()))
+	teamId := teamIDValue(createTeamResp.GetTeamId())
+	log.Printf("[INFO] Submitted new team: %d", teamId)
 
-	getTeamReq := &cxsdk.GetTeamRequest{
-		TeamId: createTeamResp.GetTeamId(),
-	}
-	getTeamResp, err := r.client.Get(ctx, getTeamReq)
+	getTeamResp, httpResponse, err := r.client.TeamServiceGetTeam(ctx, teamId).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Team",
-			utils.FormatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
+	log.Printf("[INFO] Received Team: %s", utils.FormatJSON(getTeamResp))
 	state := TeamResourceModel{
-		ID:         types.StringValue(strconv.Itoa(int(getTeamResp.GetTeamId().GetId()))),
+		ID:         types.StringValue(strconv.FormatInt(teamIDValue(getTeamResp.GetTeamId()), 10)),
 		Name:       types.StringValue(getTeamResp.GetTeamName()),
 		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
 		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
@@ -167,14 +173,14 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractCreateTeam(plan *TeamResourceModel) (*cxsdk.CreateTeamInOrgRequest, diag.Diagnostics) {
+func extractCreateTeam(plan *TeamResourceModel) (*teamss.TeamServiceCreateTeamInOrgRequest, diag.Diagnostics) {
 	var dailyQuota *float64
 	if !(plan.DailyQuota.IsUnknown() || plan.DailyQuota.IsNull()) {
 		dailyQuota = new(float64)
 		*dailyQuota = plan.DailyQuota.ValueFloat64()
 	}
 
-	return &cxsdk.CreateTeamInOrgRequest{
+	return &teamss.TeamServiceCreateTeamInOrgRequest{
 		TeamName:   plan.Name.ValueString(),
 		DailyQuota: dailyQuota,
 	}, nil
@@ -188,7 +194,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	intId, err := strconv.Atoi(plan.ID.ValueString())
+	teamId, err := strconv.ParseInt(plan.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing Team ID",
@@ -196,33 +202,28 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		)
 		return
 	}
-	getTeamReq := &cxsdk.GetTeamRequest{
-		TeamId: &cxsdk.TeamID{
-			Id: uint32(intId),
-		},
-	}
-	log.Printf("[INFO] Reading Team: %s", protojson.Format(getTeamReq))
-	getTeamResp, err := r.client.Get(ctx, getTeamReq)
+	log.Printf("[INFO] Reading Team: %d", teamId)
+	getTeamResp, httpResponse, err := r.client.TeamServiceGetTeam(ctx, teamId).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Team %d is in state, but no longer exists in Coralogix backend", intId),
-				fmt.Sprintf("%d will be recreated when you apply", intId),
+				fmt.Sprintf("Team %d is in state, but no longer exists in Coralogix backend", teamId),
+				fmt.Sprintf("%d will be recreated when you apply", teamId),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Team",
-				utils.FormatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
+	log.Printf("[INFO] Received Team: %s", utils.FormatJSON(getTeamResp))
 
 	state := TeamResourceModel{
-		ID:         types.StringValue(strconv.Itoa(int(getTeamResp.GetTeamId().GetId()))),
+		ID:         types.StringValue(strconv.FormatInt(teamIDValue(getTeamResp.GetTeamId()), 10)),
 		Name:       types.StringValue(getTeamResp.GetTeamName()),
 		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
 		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
@@ -240,19 +241,22 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	updateReq, diags := extractUpdateTeam(plan)
+	teamId, updateReq, diags := extractUpdateTeam(plan)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return
 	}
-	log.Printf("[INFO] Updating Team: %s", protojson.Format(updateReq))
+	log.Printf("[INFO] Updating Team: %s", utils.FormatJSON(updateReq))
 
-	_, err := r.client.Update(ctx, updateReq)
+	_, httpResponse, err := r.client.
+		TeamServiceUpdateTeam(ctx, teamId).
+		TeamServiceUpdateTeamRequest(*updateReq).
+		Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Team",
-			utils.FormatRpcErrors(err, cxsdk.UpdateTeamRPC, protojson.Format(updateReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", updateReq),
 		)
 
 		return
@@ -260,21 +264,18 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	log.Printf("[INFO] Updated team: %s", plan.ID.ValueString())
 
-	getTeamReq := &cxsdk.GetTeamRequest{
-		TeamId: updateReq.GetTeamId(),
-	}
-	getTeamResp, err := r.client.Get(ctx, getTeamReq)
+	getTeamResp, httpResponse, err := r.client.TeamServiceGetTeam(ctx, teamId).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Team",
-			utils.FormatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
+	log.Printf("[INFO] Received Team: %s", utils.FormatJSON(getTeamResp))
 	state := TeamResourceModel{
-		ID:         types.StringValue(strconv.Itoa(int(getTeamResp.GetTeamId().GetId()))),
+		ID:         types.StringValue(strconv.FormatInt(teamIDValue(getTeamResp.GetTeamId()), 10)),
 		Name:       types.StringValue(getTeamResp.GetTeamName()),
 		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
 		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
@@ -284,21 +285,19 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractUpdateTeam(plan *TeamResourceModel) (*cxsdk.UpdateTeamRequest, diag.Diagnostics) {
+func extractUpdateTeam(plan *TeamResourceModel) (int64, *teamss.TeamServiceUpdateTeamRequest, diag.Diagnostics) {
 	dailyQuota := new(float64)
 	*dailyQuota = plan.DailyQuota.ValueFloat64()
 
-	id, err := strconv.Atoi(plan.ID.ValueString())
+	teamId, err := strconv.ParseInt(plan.ID.ValueString(), 10, 64)
 	if err != nil {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error converting team id to int", err.Error())}
+		return 0, nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error converting team id to int", err.Error())}
 	}
-	teamId := &cxsdk.TeamID{Id: uint32(id)}
 
 	teamName := new(string)
 	*teamName = plan.Name.ValueString()
 
-	return &cxsdk.UpdateTeamRequest{
-		TeamId:     teamId,
+	return teamId, &teamss.TeamServiceUpdateTeamRequest{
 		TeamName:   teamName,
 		DailyQuota: dailyQuota,
 	}, nil
@@ -313,7 +312,7 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	}
 
 	log.Printf("[INFO] Deleting Team: %s", state.ID.ValueString())
-	id, err := strconv.Atoi(state.ID.ValueString())
+	teamId, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting Team",
@@ -322,14 +321,13 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		return
 	}
 
-	deleteReq := &cxsdk.DeleteTeamRequest{TeamId: &cxsdk.TeamID{Id: uint32(id)}}
-	log.Printf("[INFO] Deleting Team: %s", protojson.Format(deleteReq))
-	_, err = r.client.Delete(ctx, deleteReq)
+	log.Printf("[INFO] Deleting Team: %d", teamId)
+	_, httpResponse, err := r.client.TeamServiceDeleteTeam(ctx, teamId).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error deleting Team",
-			utils.FormatRpcErrors(err, cxsdk.DeleteTeamRPC, protojson.Format(deleteReq)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}

@@ -19,17 +19,17 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"net/http"
 	"strconv"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	teamss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/teams_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
@@ -41,7 +41,7 @@ func NewTeamDataSource() datasource.DataSource {
 }
 
 type TeamDataSource struct {
-	client *cxsdk.TeamsClient
+	client *teamss.TeamsServiceAPIService
 }
 
 func (d *TeamDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -81,7 +81,7 @@ func (d *TeamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 	//Get refreshed Team value from Coralogix
-	intId, err := strconv.Atoi(data.ID.ValueString())
+	teamId, err := strconv.ParseInt(data.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing Team ID",
@@ -89,32 +89,27 @@ func (d *TeamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		)
 		return
 	}
-	getTeamReq := &cxsdk.GetTeamRequest{
-		TeamId: &cxsdk.TeamID{
-			Id: uint32(intId),
-		},
-	}
-	log.Printf("[INFO] Reading Team: %s", protojson.Format(getTeamReq))
-	getTeamResp, err := d.client.Get(ctx, getTeamReq)
+	log.Printf("[INFO] Reading Team: %d", teamId)
+	getTeamResp, httpResponse, err := d.client.TeamServiceGetTeam(ctx, teamId).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				err.Error(),
-				fmt.Sprintf("Team %d is in state, but no longer exists in Coralogix backend", intId),
+				fmt.Sprintf("Team %d is in state, but no longer exists in Coralogix backend", teamId),
 			)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Team",
-				utils.FormatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
+	log.Printf("[INFO] Received Team: %s", utils.FormatJSON(getTeamResp))
 
 	data = &TeamResourceModel{
-		ID:         types.StringValue(strconv.Itoa(int(getTeamResp.GetTeamId().GetId()))),
+		ID:         types.StringValue(strconv.FormatInt(teamIDValue(getTeamResp.GetTeamId()), 10)),
 		Name:       types.StringValue(getTeamResp.GetTeamName()),
 		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
 		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
