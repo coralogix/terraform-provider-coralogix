@@ -121,6 +121,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 															"line_chart": dashboardwidgets.LineChartSchema(),
 															"hexagon":    dashboardwidgets.HexagonSchema(),
 															"data_table": dashboardwidgets.DataTableSchema(),
+															"dynamic":    dashboardwidgets.DynamicSchema(),
 															"gauge": schema.SingleNestedAttribute{
 																Attributes: map[string]schema.Attribute{
 																	"query": schema.SingleNestedAttribute{
@@ -941,9 +942,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 									"values_order_direction": schema.StringAttribute{
 										Required: true,
 										Validators: []validator.String{
-											stringvalidator.OneOf(dashboardwidgets.DashboardValidOrderDirections...),
+											stringvalidator.OneOf(dashboardwidgets.DashboardValidSortOrderDirections...),
 										},
-										MarkdownDescription: fmt.Sprintf("The order direction of the values. Can be one of `%s`.", strings.Join(dashboardwidgets.DashboardValidOrderDirections, "`, `")),
+										MarkdownDescription: fmt.Sprintf("The order direction of the values. Can be one of `%s`.", strings.Join(dashboardwidgets.DashboardValidSortOrderDirections, "`, `")),
 									},
 									"selection_type": schema.StringAttribute{
 										Optional: true,

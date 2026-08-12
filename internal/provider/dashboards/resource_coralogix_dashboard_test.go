@@ -605,7 +605,7 @@ func dashboardJSONContainsKey(encoded []byte, key string) bool {
 	return contains(value)
 }
 
-func TestFlattenDashboardRejectsDynamicWidgetWithoutPartialState(t *testing.T) {
+func TestFlattenDashboardDynamicTableWidget(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "testdata", "dashboards", "content_json_dynamic_queries_table.json"))
 	if err != nil {
 		t.Fatalf("read dynamic content_json fixture: %s", err)
@@ -622,17 +622,11 @@ func TestFlattenDashboardRejectsDynamicWidgetWithoutPartialState(t *testing.T) {
 		ContentJson:  types.StringNull(),
 		AccessPolicy: types.StringNull(),
 	}, &dashboardOpenAPIReadResult{Dashboard: dashboard})
-	if flattened != nil {
-		t.Fatalf("flatten dynamic dashboard returned partial state: %#v", flattened)
+	if diags.HasError() {
+		t.Fatalf("flatten dynamic table dashboard returned errors: %v", diags.Errors())
 	}
-	if !diags.HasError() {
-		t.Fatal("flatten dynamic dashboard returned no error diagnostic")
-	}
-	detail := diags.Errors()[0].Summary() + ": " + diags.Errors()[0].Detail()
-	for _, expected := range []string{"Unsupported Dashboard Widget Definition", "dynamic", "content_json", "import", "data-source"} {
-		if !strings.Contains(detail, expected) {
-			t.Errorf("dynamic dashboard diagnostic %q does not contain %q", detail, expected)
-		}
+	if flattened == nil {
+		t.Fatal("flatten dynamic table dashboard returned nil state")
 	}
 }
 

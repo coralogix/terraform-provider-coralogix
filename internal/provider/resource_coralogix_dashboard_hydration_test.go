@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -187,12 +186,11 @@ func TestAccCoralogixResourceDashboardRESTCreatedHydration(t *testing.T) {
 	})
 }
 
-func TestAccCoralogixResourceDashboardRESTCreatedUnsupportedDynamicHydration(t *testing.T) {
-	const fixture = "TestAccCoralogixResourceDashboardRESTCreatedUnsupportedDynamicHydration"
+func TestAccCoralogixResourceDashboardRESTCreatedDynamicHydration(t *testing.T) {
+	const fixture = "TestAccCoralogixResourceDashboardRESTCreatedDynamicHydration"
 	dashboardName := dashboardOpenAPIFixtureName(fixture)
 	variables := config.Variables{}
 	var dashboardID string
-	diagnostic := regexp.MustCompile(`(?s)Unsupported Dashboard Widget Definition.*dynamic.*content_json.*import.*data-source`)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -212,12 +210,16 @@ func TestAccCoralogixResourceDashboardRESTCreatedUnsupportedDynamicHydration(t *
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:             dashboardOpenAPIUnsupportedDynamicImportConfig(),
-				ResourceName:       dashboardResourceName,
-				ImportState:        true,
-				ImportStatePersist: true,
-				ImportStateIdFunc:  dashboardOpenAPIImportID(&dashboardID, fixture),
-				ExpectError:        diagnostic,
+				Config:            dashboardOpenAPIUnsupportedDynamicImportConfig(),
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateIdFunc: dashboardOpenAPIImportID(&dashboardID, fixture),
+				ImportStateCheck: func(states []*terraform.InstanceState) error {
+					if len(states) != 1 {
+						return fmt.Errorf("REST-created dynamic dashboard import returned %d states, want 1", len(states))
+					}
+					return nil
+				},
 			},
 			{
 				Config: `
@@ -230,7 +232,7 @@ data "coralogix_dashboard" "backend" {
 }
 `,
 				ConfigVariables: variables,
-				ExpectError:     diagnostic,
+				Check:           resource.TestCheckResourceAttrSet("data.coralogix_dashboard.backend", "name"),
 			},
 		},
 	})

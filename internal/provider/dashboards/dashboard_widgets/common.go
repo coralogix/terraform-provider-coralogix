@@ -64,6 +64,8 @@ var (
 		"custom":          dashboardservice.COMMONUNIT_UNIT_CUSTOM,
 		"percent01":       dashboardservice.COMMONUNIT_UNIT_PERCENT_ZERO_ONE,
 		"percent100":      dashboardservice.COMMONUNIT_UNIT_PERCENT_ZERO_HUNDRED,
+		"percent":         dashboardservice.COMMONUNIT_UNIT_PERCENT,
+		"datetime_iso":    dashboardservice.COMMONUNIT_UNIT_DATETIME_ISO,
 	}
 	DashboardProtoToSchemaUnit = utils.ReverseMap(DashboardSchemaToProtoUnit)
 	DashboardValidUnits        = utils.GetKeys(DashboardSchemaToProtoUnit)
@@ -96,6 +98,7 @@ var (
 		"avg":             dashboardservice.LEGENDCOLUMN_LEGEND_COLUMN_AVG,
 		"last":            dashboardservice.LEGENDCOLUMN_LEGEND_COLUMN_LAST,
 		"name":            dashboardservice.LEGENDCOLUMN_LEGEND_COLUMN_NAME,
+		"simple_value":    dashboardservice.LEGENDCOLUMN_LEGEND_COLUMN_SIMPLE_VALUE,
 	}
 	DashboardLegendColumnProtoToSchema   = utils.ReverseMap(DashboardLegendColumnSchemaToProto)
 	DashboardValidLegendColumns          = utils.GetKeys(DashboardLegendColumnSchemaToProto)
@@ -103,9 +106,18 @@ var (
 		utils.UNSPECIFIED: dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_UNSPECIFIED,
 		"asc":             dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_ASC,
 		"desc":            dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_DESC,
+		"none":            dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_NONE,
 	}
 	DashboardOrderDirectionProtoToSchema = utils.ReverseMap(DashboardOrderDirectionSchemaToProto)
-	DashboardValidOrderDirections        = utils.GetKeys(DashboardOrderDirectionSchemaToProto)
+	// The map carries every SDK value so a backend NONE flattens to "none"
+	// rather than an empty string, but the API rejects NONE on a data table's
+	// order_by ("Order direction must be specified") while accepting it for
+	// sort orders, so the two surfaces advertise different value sets.
+	DashboardValidOrderDirections = slices.DeleteFunc(
+		utils.GetKeys(DashboardOrderDirectionSchemaToProto),
+		func(direction string) bool { return direction == "none" },
+	)
+	DashboardValidSortOrderDirections = utils.GetKeys(DashboardOrderDirectionSchemaToProto)
 
 	DashboardValidMultiSelectSelectionTypes = []string{
 		"multi",
@@ -295,6 +307,7 @@ var (
 		"bar_chart",
 		"horizontal_bar_chart",
 		"markdown",
+		"dynamic",
 	}
 )
 
@@ -312,6 +325,53 @@ func OptionalEnumPointer[T ~string](value types.String, values map[string]T) *T 
 	}
 
 	return &converted
+}
+
+func ExpandColorsBy(colorsBy types.String) *dashboardservice.ColorsBy {
+	switch colorsBy.ValueString() {
+	case "stack":
+		return &dashboardservice.ColorsBy{
+			Stack: map[string]interface{}{},
+		}
+	case "group_by":
+		return &dashboardservice.ColorsBy{
+			GroupBy: map[string]interface{}{},
+		}
+	case "aggregation":
+		return &dashboardservice.ColorsBy{
+			Aggregation: map[string]interface{}{},
+		}
+	case "query":
+		return &dashboardservice.ColorsBy{
+			Query: map[string]interface{}{},
+		}
+	case "category":
+		return &dashboardservice.ColorsBy{
+			Category: map[string]interface{}{},
+		}
+	default:
+		return nil
+	}
+}
+
+func FlattenColorsBy(colorsBy *dashboardservice.ColorsBy) (types.String, diag.Diagnostic) {
+	if colorsBy == nil {
+		return types.StringNull(), nil
+	}
+	switch {
+	case colorsBy.GroupBy != nil:
+		return types.StringValue("group_by"), nil
+	case colorsBy.Stack != nil:
+		return types.StringValue("stack"), nil
+	case colorsBy.Aggregation != nil:
+		return types.StringValue("aggregation"), nil
+	case colorsBy.Query != nil:
+		return types.StringValue("query"), nil
+	case colorsBy.Category != nil:
+		return types.StringValue("category"), nil
+	default:
+		return types.StringNull(), diag.NewErrorDiagnostic("", fmt.Sprintf("unknown colors by type %T", colorsBy))
+	}
 }
 
 func legacyDurationToOpenAPI(value, fieldName string) (*string, diag.Diagnostic) {
@@ -433,6 +493,577 @@ type WidgetDefinitionModel struct {
 	BarChart           *BarChartModel           `tfsdk:"bar_chart"`
 	HorizontalBarChart *HorizontalBarChartModel `tfsdk:"horizontal_bar_chart"`
 	Markdown           *MarkdownModel           `tfsdk:"markdown"`
+	Dynamic            *DynamicModel            `tfsdk:"dynamic"`
+}
+
+type DynamicModel struct {
+	QueryDefinitions types.List                 `tfsdk:"query_definitions"` //DynamicQueryDefinitionModel
+	Interpretation   types.String               `tfsdk:"interpretation"`
+	TimeFrame        *TimeFrameModel            `tfsdk:"time_frame"`
+	Visualization    *DynamicVisualizationModel `tfsdk:"visualization"`
+}
+
+type DynamicQueryDefinitionModel struct {
+	ID    types.String       `tfsdk:"id"`
+	Name  types.String       `tfsdk:"name"`
+	Query *DynamicQueryModel `tfsdk:"query"`
+}
+
+type DynamicQueryModel struct {
+	Logs      *DynamicQueryLogsModel      `tfsdk:"logs"`
+	Spans     *DynamicQuerySpansModel     `tfsdk:"spans"`
+	Metrics   *DynamicQueryMetricsModel   `tfsdk:"metrics"`
+	DataPrime *DynamicQueryDataPrimeModel `tfsdk:"data_prime"`
+}
+
+type DynamicQueryLogsModel struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	GroupBy      types.List   `tfsdk:"group_by"`     //ObservationFieldModel
+	Aggregations types.List   `tfsdk:"aggregations"` //LogsAggregationModel
+	Filters      types.List   `tfsdk:"filters"`      //LogsFilterModel
+	DataModeType types.String `tfsdk:"data_mode_type"`
+}
+
+type DynamicQuerySpansModel struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	GroupBy      types.List   `tfsdk:"group_by"`     //SpanObservationFieldModel
+	Aggregations types.List   `tfsdk:"aggregations"` //LogsAggregationModel
+	Filters      types.List   `tfsdk:"filters"`      //SpansFilterModel
+	DataModeType types.String `tfsdk:"data_mode_type"`
+}
+
+type DynamicQueryMetricsModel struct {
+	PromqlQuery     types.String `tfsdk:"promql_query"`
+	PromqlQueryType types.String `tfsdk:"promql_query_type"`
+	EditorMode      types.String `tfsdk:"editor_mode"`
+	SeriesLimitType types.String `tfsdk:"series_limit_type"`
+}
+
+type DynamicQueryDataPrimeModel struct {
+	Query        types.String `tfsdk:"query"`
+	DataModeType types.String `tfsdk:"data_mode_type"`
+}
+
+type SpanObservationFieldModel struct {
+	Keypath      types.List   `tfsdk:"keypath"` //types.String
+	Scope        types.String `tfsdk:"scope"`
+	RelationType types.String `tfsdk:"relation_type"`
+}
+
+type DynamicVisualizationModel struct {
+	Stat                 *DynamicStatModel                 `tfsdk:"stat"`
+	StatCard             *DynamicStatCardModel             `tfsdk:"stat_card"`
+	Table                *DynamicTableModel                `tfsdk:"table"`
+	TimeSeriesLines      *DynamicTimeSeriesLinesModel      `tfsdk:"time_series_lines"`
+	TimeSeriesLinesMulti *DynamicTimeSeriesLinesMultiModel `tfsdk:"time_series_lines_multi"`
+	TimeSeriesBars       *DynamicTimeSeriesBarsModel       `tfsdk:"time_series_bars"`
+	VerticalBars         *DynamicVerticalBarsModel         `tfsdk:"vertical_bars"`
+	VerticalBarsMulti    *DynamicVerticalBarsMultiModel    `tfsdk:"vertical_bars_multi"`
+	HorizontalBars       *DynamicHorizontalBarsModel       `tfsdk:"horizontal_bars"`
+	HorizontalBarsMulti  *DynamicHorizontalBarsMultiModel  `tfsdk:"horizontal_bars_multi"`
+	Gauge                *DynamicGaugeModel                `tfsdk:"gauge"`
+	PieChart             *DynamicPieChartModel             `tfsdk:"pie_chart"`
+	HexagonBins          *DynamicHexagonBinsModel          `tfsdk:"hexagon_bins"`
+	Heatmap              *DynamicHeatmapModel              `tfsdk:"heatmap"`
+	Geomap               *DynamicGeomapModel               `tfsdk:"geomap"`
+}
+
+type DynamicHexagonBinsModel struct {
+	AllowAbbreviation types.Bool    `tfsdk:"allow_abbreviation"`
+	CategoryFields    types.List    `tfsdk:"category_fields"` //ObservationFieldModel
+	CustomUnit        types.String  `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64   `tfsdk:"decimal_precision"`
+	Legend            *LegendModel  `tfsdk:"legend"`
+	LegendBy          types.String  `tfsdk:"legend_by"`
+	Max               types.Float64 `tfsdk:"max"`
+	Min               types.Float64 `tfsdk:"min"`
+	ThresholdType     types.String  `tfsdk:"threshold_type"`
+	Thresholds        types.List    `tfsdk:"thresholds"` //DynamicThresholdModel
+	Unit              types.String  `tfsdk:"unit"`
+	ValueField        types.Object  `tfsdk:"value_field"` //ObservationFieldModel
+}
+
+type DynamicHeatmapModel struct {
+	AllowAbbreviation   types.Bool                  `tfsdk:"allow_abbreviation"`
+	ColorAxisMax        Float32Value                `tfsdk:"color_axis_max"`
+	ColorAxisMin        Float32Value                `tfsdk:"color_axis_min"`
+	ColorRange          types.String                `tfsdk:"color_range"`
+	CustomUnit          types.String                `tfsdk:"custom_unit"`
+	DecimalPrecision    types.Int64                 `tfsdk:"decimal_precision"`
+	HistogramBucketUnit types.String                `tfsdk:"histogram_bucket_unit"`
+	Preset              types.String                `tfsdk:"preset"`
+	ScaleType           types.String                `tfsdk:"scale_type"`
+	ShowNumbers         types.Bool                  `tfsdk:"show_numbers"`
+	Tooltip             *DynamicHeatmapTooltipModel `tfsdk:"tooltip"`
+	Unit                types.String                `tfsdk:"unit"`
+	ValueField          types.Object                `tfsdk:"value_field"`   //ObservationFieldModel
+	XAxisFields         types.List                  `tfsdk:"x_axis_fields"` //ObservationFieldModel
+	XAxisTimeFormat     types.String                `tfsdk:"x_axis_time_format"`
+	YAxisFields         types.List                  `tfsdk:"y_axis_fields"` //ObservationFieldModel
+}
+
+type DynamicHeatmapTooltipModel struct {
+	Labels          types.List   `tfsdk:"labels"` //ObservationFieldModel
+	MessageTemplate types.String `tfsdk:"message_template"`
+}
+
+type DynamicGeomapModel struct {
+	Aggregation       *DynamicGeomapAggregationModel `tfsdk:"aggregation"`
+	AllowAbbreviation types.Bool                     `tfsdk:"allow_abbreviation"`
+	Color             *DynamicGeomapColorModel       `tfsdk:"color"`
+	Config            *DynamicGeomapFieldConfigModel `tfsdk:"config"`
+	CustomUnit        types.String                   `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64                    `tfsdk:"decimal_precision"`
+	MinMax            *DynamicMinMaxModel            `tfsdk:"min_max"`
+	Tooltip           *DynamicGeomapTooltipModel     `tfsdk:"tooltip"`
+	Unit              types.String                   `tfsdk:"unit"`
+}
+
+type DynamicGeomapAggregationModel struct {
+	Avg   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"avg"`
+	Count types.Bool                               `tfsdk:"count"`
+	Max   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"max"`
+	Min   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"min"`
+	Sum   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"sum"`
+}
+
+type DynamicGeomapAggregationFieldBasedModel struct {
+	Field types.Object `tfsdk:"field"` //ObservationFieldModel
+}
+
+type DynamicGeomapColorModel struct {
+	ColorRange types.String `tfsdk:"color_range"`
+	Size       types.String `tfsdk:"size"`
+}
+
+type DynamicGeomapFieldConfigModel struct {
+	AwsRegionConfig  *DynamicGeomapAwsRegionConfigModel  `tfsdk:"aws_region_config"`
+	CoordinateConfig *DynamicGeomapCoordinateConfigModel `tfsdk:"coordinate_config"`
+}
+
+type DynamicGeomapAwsRegionConfigModel struct {
+	AwsRegionField types.Object `tfsdk:"aws_region_field"` //ObservationFieldModel
+}
+
+type DynamicGeomapCoordinateConfigModel struct {
+	LatitudeField  types.Object `tfsdk:"latitude_field"`  //ObservationFieldModel
+	LongitudeField types.Object `tfsdk:"longitude_field"` //ObservationFieldModel
+}
+
+type DynamicGeomapTooltipModel struct {
+	Labels          types.List   `tfsdk:"labels"` //ObservationFieldModel
+	MessageTemplate types.String `tfsdk:"message_template"`
+}
+
+type DynamicGaugeModel struct {
+	AllowAbbreviation types.Bool              `tfsdk:"allow_abbreviation"`
+	ArcDisplay        *DynamicArcDisplayModel `tfsdk:"arc_display"`
+	CategoryFields    types.List              `tfsdk:"category_fields"` //ObservationFieldModel
+	CustomUnit        types.String            `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64             `tfsdk:"decimal_precision"`
+	DisplaySeriesName types.Bool              `tfsdk:"display_series_name"`
+	Legend            *LegendModel            `tfsdk:"legend"`
+	LegendBy          types.String            `tfsdk:"legend_by"`
+	Max               types.Float64           `tfsdk:"max"`
+	Min               types.Float64           `tfsdk:"min"`
+	ShowInnerArc      types.Bool              `tfsdk:"show_inner_arc"`
+	ShowMinMax        types.Bool              `tfsdk:"show_min_max"`
+	ShowOuterArc      types.Bool              `tfsdk:"show_outer_arc"`
+	ThresholdType     types.String            `tfsdk:"threshold_type"`
+	Thresholds        types.List              `tfsdk:"thresholds"` //DynamicThresholdModel
+	Unit              types.String            `tfsdk:"unit"`
+	ValueField        types.Object            `tfsdk:"value_field"`  //ObservationFieldModel
+	ValueFields       types.List              `tfsdk:"value_fields"` //ObservationFieldModel
+}
+
+type DynamicArcDisplayModel struct {
+	ThresholdArc types.Bool `tfsdk:"threshold_arc"`
+	ValueArc     types.Bool `tfsdk:"value_arc"`
+}
+
+type DynamicPieChartModel struct {
+	AllowAbbreviation  types.Bool                           `tfsdk:"allow_abbreviation"`
+	CategoryFields     types.List                           `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorScheme        types.String                         `tfsdk:"color_scheme"`
+	CustomUnit         types.String                         `tfsdk:"custom_unit"`
+	DecimalPrecision   types.Int64                          `tfsdk:"decimal_precision"`
+	GroupNameTemplate  types.String                         `tfsdk:"group_name_template"`
+	HashColors         types.Bool                           `tfsdk:"hash_colors"`
+	LabelDefinition    *DynamicPieChartLabelDefinitionModel `tfsdk:"label_definition"`
+	Legend             *LegendModel                         `tfsdk:"legend"`
+	MaxSlicesPerChart  types.Int64                          `tfsdk:"max_slices_per_chart"`
+	MaxSlicesPerStack  types.Int64                          `tfsdk:"max_slices_per_stack"`
+	MinSlicePercentage types.Int64                          `tfsdk:"min_slice_percentage"`
+	ShowTotal          types.Bool                           `tfsdk:"show_total"`
+	StackNameTemplate  types.String                         `tfsdk:"stack_name_template"`
+	SubCategoryFields  types.List                           `tfsdk:"sub_category_fields"` //ObservationFieldModel
+	Unit               types.String                         `tfsdk:"unit"`
+	ValueField         types.Object                         `tfsdk:"value_field"` //ObservationFieldModel
+}
+
+type DynamicPieChartLabelDefinitionModel struct {
+	IsVisible      types.Bool   `tfsdk:"is_visible"`
+	LabelSource    types.String `tfsdk:"label_source"`
+	ShowName       types.Bool   `tfsdk:"show_name"`
+	ShowPercentage types.Bool   `tfsdk:"show_percentage"`
+	ShowValue      types.Bool   `tfsdk:"show_value"`
+}
+
+type DynamicVerticalBarsModel struct {
+	AllowAbbreviation types.Bool   `tfsdk:"allow_abbreviation"`
+	BarValueDisplay   types.String `tfsdk:"bar_value_display"`
+	CategoryFields    types.List   `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorScheme       types.String `tfsdk:"color_scheme"`
+	ColorsBy          types.String `tfsdk:"colors_by"`
+	CustomUnit        types.String `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64  `tfsdk:"decimal_precision"`
+	GroupNameTemplate types.String `tfsdk:"group_name_template"`
+	HashColors        types.Bool   `tfsdk:"hash_colors"`
+	Legend            *LegendModel `tfsdk:"legend"`
+	MaxBarsPerChart   types.Int64  `tfsdk:"max_bars_per_chart"`
+	MaxSlicesPerBar   types.Int64  `tfsdk:"max_slices_per_bar"`
+	ScaleType         types.String `tfsdk:"scale_type"`
+	SortBy            types.String `tfsdk:"sort_by"`
+	StackNameTemplate types.String `tfsdk:"stack_name_template"`
+	SubCategoryFields types.List   `tfsdk:"sub_category_fields"` //ObservationFieldModel
+	Unit              types.String `tfsdk:"unit"`
+	ValueField        types.Object `tfsdk:"value_field"` //ObservationFieldModel
+	YAxisMax          Float32Value `tfsdk:"y_axis_max"`
+	YAxisMin          Float32Value `tfsdk:"y_axis_min"`
+}
+
+type DynamicVerticalBarsMultiModel struct {
+	AllowAbbreviation  types.Bool             `tfsdk:"allow_abbreviation"`
+	BarValueDisplay    types.String           `tfsdk:"bar_value_display"`
+	CategoryFields     types.List             `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorScheme        types.String           `tfsdk:"color_scheme"`
+	ColorsBy           types.String           `tfsdk:"colors_by"`
+	CustomUnit         types.String           `tfsdk:"custom_unit"`
+	DecimalPrecision   types.Int64            `tfsdk:"decimal_precision"`
+	GroupNameTemplate  types.String           `tfsdk:"group_name_template"`
+	HashColors         types.Bool             `tfsdk:"hash_colors"`
+	Legend             *LegendModel           `tfsdk:"legend"`
+	MaxBarsPerChart    types.Int64            `tfsdk:"max_bars_per_chart"`
+	QueryFieldSettings types.List             `tfsdk:"query_field_settings"` //DynamicBarsQueryFieldSettingsModel
+	ScaleType          types.String           `tfsdk:"scale_type"`
+	SortOrder          *DynamicSortOrderModel `tfsdk:"sort_order"`
+	Unit               types.String           `tfsdk:"unit"`
+	YAxisMax           Float32Value           `tfsdk:"y_axis_max"`
+	YAxisMin           Float32Value           `tfsdk:"y_axis_min"`
+}
+
+type DynamicHorizontalBarsModel struct {
+	AllowAbbreviation types.Bool   `tfsdk:"allow_abbreviation"`
+	CategoryFields    types.List   `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorScheme       types.String `tfsdk:"color_scheme"`
+	ColorsBy          types.String `tfsdk:"colors_by"`
+	CustomUnit        types.String `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64  `tfsdk:"decimal_precision"`
+	DisplayOnBar      types.Bool   `tfsdk:"display_on_bar"`
+	GroupNameTemplate types.String `tfsdk:"group_name_template"`
+	HashColors        types.Bool   `tfsdk:"hash_colors"`
+	Legend            *LegendModel `tfsdk:"legend"`
+	MaxBarsPerChart   types.Int64  `tfsdk:"max_bars_per_chart"`
+	MaxSlicesPerBar   types.Int64  `tfsdk:"max_slices_per_bar"`
+	ScaleType         types.String `tfsdk:"scale_type"`
+	SortBy            types.String `tfsdk:"sort_by"`
+	StackNameTemplate types.String `tfsdk:"stack_name_template"`
+	SubCategoryFields types.List   `tfsdk:"sub_category_fields"` //ObservationFieldModel
+	Unit              types.String `tfsdk:"unit"`
+	ValueField        types.Object `tfsdk:"value_field"` //ObservationFieldModel
+	YAxisMax          Float32Value `tfsdk:"y_axis_max"`
+	YAxisMin          Float32Value `tfsdk:"y_axis_min"`
+	YAxisViewBy       types.String `tfsdk:"y_axis_view_by"`
+}
+
+type DynamicHorizontalBarsMultiModel struct {
+	AllowAbbreviation  types.Bool             `tfsdk:"allow_abbreviation"`
+	CategoryFields     types.List             `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorScheme        types.String           `tfsdk:"color_scheme"`
+	ColorsBy           types.String           `tfsdk:"colors_by"`
+	CustomUnit         types.String           `tfsdk:"custom_unit"`
+	DecimalPrecision   types.Int64            `tfsdk:"decimal_precision"`
+	DisplayOnBar       types.Bool             `tfsdk:"display_on_bar"`
+	GroupNameTemplate  types.String           `tfsdk:"group_name_template"`
+	HashColors         types.Bool             `tfsdk:"hash_colors"`
+	Legend             *LegendModel           `tfsdk:"legend"`
+	MaxBarsPerChart    types.Int64            `tfsdk:"max_bars_per_chart"`
+	QueryFieldSettings types.List             `tfsdk:"query_field_settings"` //DynamicBarsQueryFieldSettingsModel
+	ScaleType          types.String           `tfsdk:"scale_type"`
+	SortOrder          *DynamicSortOrderModel `tfsdk:"sort_order"`
+	Unit               types.String           `tfsdk:"unit"`
+	YAxisMax           Float32Value           `tfsdk:"y_axis_max"`
+	YAxisMin           Float32Value           `tfsdk:"y_axis_min"`
+	YAxisViewBy        types.String           `tfsdk:"y_axis_view_by"`
+}
+
+type DynamicBarsQueryFieldSettingsModel struct {
+	QueryID    types.String `tfsdk:"query_id"`
+	ValueField types.Object `tfsdk:"value_field"` //ObservationFieldModel
+}
+
+type DynamicSortOrderModel struct {
+	OrderDirection types.String              `tfsdk:"order_direction"`
+	Strategy       *DynamicSortStrategyModel `tfsdk:"strategy"`
+}
+
+type DynamicSortStrategyModel struct {
+	Category     JSONStringValue               `tfsdk:"category"`
+	QueryValue   *DynamicSortByQueryValueModel `tfsdk:"query_value"`
+	StrategyType types.String                  `tfsdk:"strategy_type"`
+}
+
+type DynamicSortByQueryValueModel struct {
+	QueryID types.String `tfsdk:"query_id"`
+}
+
+type DynamicTimeSeriesLinesModel struct {
+	AllowAbbreviation  types.Bool                     `tfsdk:"allow_abbreviation"`
+	CategoryFields     types.List                     `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorScheme        types.String                   `tfsdk:"color_scheme"`
+	ConnectNulls       types.Bool                     `tfsdk:"connect_nulls"`
+	CustomUnit         types.String                   `tfsdk:"custom_unit"`
+	DecimalPrecision   types.Int64                    `tfsdk:"decimal_precision"`
+	HashColors         types.Bool                     `tfsdk:"hash_colors"`
+	Legend             *LegendModel                   `tfsdk:"legend"`
+	ScaleType          types.String                   `tfsdk:"scale_type"`
+	SeriesCountLimit   types.Int64                    `tfsdk:"series_count_limit"`
+	SeriesNameTemplate types.String                   `tfsdk:"series_name_template"`
+	StackedLine        types.String                   `tfsdk:"stacked_line"`
+	TemporalField      types.Object                   `tfsdk:"temporal_field"` //ObservationFieldModel
+	Tooltip            *DynamicTimeSeriesTooltipModel `tfsdk:"tooltip"`
+	Unit               types.String                   `tfsdk:"unit"`
+	UseDataTimeRange   types.Bool                     `tfsdk:"use_data_time_range"`
+	ValueFields        types.List                     `tfsdk:"value_fields"` //ObservationFieldModel
+	XAxisTimeFormat    types.String                   `tfsdk:"x_axis_time_format"`
+	YAxisMax           Float32Value                   `tfsdk:"y_axis_max"`
+	YAxisMin           Float32Value                   `tfsdk:"y_axis_min"`
+}
+
+type DynamicTimeSeriesLinesMultiModel struct {
+	ConnectNulls         types.Bool                     `tfsdk:"connect_nulls"`
+	Legend               *LegendModel                   `tfsdk:"legend"`
+	QueryDisplaySettings types.List                     `tfsdk:"query_display_settings"` //DynamicQueryDisplaySettingsModel
+	StackedLine          types.String                   `tfsdk:"stacked_line"`
+	Tooltip              *DynamicTimeSeriesTooltipModel `tfsdk:"tooltip"`
+	UseDataTimeRange     types.Bool                     `tfsdk:"use_data_time_range"`
+	XAxisTimeFormat      types.String                   `tfsdk:"x_axis_time_format"`
+}
+
+type DynamicTimeSeriesBarsModel struct {
+	AllowAbbreviation  types.Bool                     `tfsdk:"allow_abbreviation"`
+	BarValueDisplay    types.String                   `tfsdk:"bar_value_display"`
+	CategoryFields     types.List                     `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorScheme        types.String                   `tfsdk:"color_scheme"`
+	CustomUnit         types.String                   `tfsdk:"custom_unit"`
+	DecimalPrecision   types.Int64                    `tfsdk:"decimal_precision"`
+	HashColors         types.Bool                     `tfsdk:"hash_colors"`
+	Legend             *LegendModel                   `tfsdk:"legend"`
+	MaxSlicesPerBar    types.Int64                    `tfsdk:"max_slices_per_bar"`
+	ScaleType          types.String                   `tfsdk:"scale_type"`
+	SeriesNameTemplate types.String                   `tfsdk:"series_name_template"`
+	SortBy             types.String                   `tfsdk:"sort_by"`
+	TemporalField      types.Object                   `tfsdk:"temporal_field"` //ObservationFieldModel
+	Tooltip            *DynamicTimeSeriesTooltipModel `tfsdk:"tooltip"`
+	Unit               types.String                   `tfsdk:"unit"`
+	ValueFields        types.List                     `tfsdk:"value_fields"` //ObservationFieldModel
+	XAxisTimeFormat    types.String                   `tfsdk:"x_axis_time_format"`
+	YAxisMax           Float32Value                   `tfsdk:"y_axis_max"`
+	YAxisMin           Float32Value                   `tfsdk:"y_axis_min"`
+}
+
+type DynamicQueryDisplaySettingsModel struct {
+	AllowAbbreviation  types.Bool   `tfsdk:"allow_abbreviation"`
+	CategoryFields     types.List   `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorScheme        types.String `tfsdk:"color_scheme"`
+	CustomUnit         types.String `tfsdk:"custom_unit"`
+	DecimalPrecision   types.Int64  `tfsdk:"decimal_precision"`
+	HashColors         types.Bool   `tfsdk:"hash_colors"`
+	QueryID            types.String `tfsdk:"query_id"`
+	ScaleType          types.String `tfsdk:"scale_type"`
+	SeriesCountLimit   types.Int64  `tfsdk:"series_count_limit"`
+	SeriesNameTemplate types.String `tfsdk:"series_name_template"`
+	TemporalField      types.Object `tfsdk:"temporal_field"` //ObservationFieldModel
+	Unit               types.String `tfsdk:"unit"`
+	ValueFields        types.List   `tfsdk:"value_fields"` //ObservationFieldModel
+	YAxisMax           Float32Value `tfsdk:"y_axis_max"`
+	YAxisMin           Float32Value `tfsdk:"y_axis_min"`
+}
+
+type DynamicTimeSeriesTooltipModel struct {
+	ShowAllSeries types.Bool `tfsdk:"show_all_series"`
+	ShowLabels    types.Bool `tfsdk:"show_labels"`
+}
+
+type DynamicStatModel struct {
+	AllowAbbreviation types.Bool    `tfsdk:"allow_abbreviation"`
+	CategoryFields    types.List    `tfsdk:"category_fields"` //ObservationFieldModel
+	CustomUnit        types.String  `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64   `tfsdk:"decimal_precision"`
+	DisplaySeriesName types.Bool    `tfsdk:"display_series_name"`
+	Legend            *LegendModel  `tfsdk:"legend"`
+	LegendBy          types.String  `tfsdk:"legend_by"`
+	Max               types.Float64 `tfsdk:"max"`
+	Min               types.Float64 `tfsdk:"min"`
+	ThresholdBy       types.String  `tfsdk:"threshold_by"`
+	ThresholdType     types.String  `tfsdk:"threshold_type"`
+	Thresholds        types.List    `tfsdk:"thresholds"` //DynamicThresholdModel
+	Unit              types.String  `tfsdk:"unit"`
+	ValueField        types.Object  `tfsdk:"value_field"`  //ObservationFieldModel
+	ValueFields       types.List    `tfsdk:"value_fields"` //ObservationFieldModel
+}
+
+type DynamicThresholdModel struct {
+	From  types.Float64 `tfsdk:"from"`
+	Color types.String  `tfsdk:"color"`
+	Label types.String  `tfsdk:"label"`
+}
+
+type DynamicStatCardModel struct {
+	AllowAbbreviation types.Bool                     `tfsdk:"allow_abbreviation"`
+	CategoryFields    types.List                     `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorLabelMapping *DynamicColorLabelMappingModel `tfsdk:"color_label_mapping"`
+	CustomUnit        types.String                   `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64                    `tfsdk:"decimal_precision"`
+	Label             *DynamicStatVisualElementModel `tfsdk:"label"`
+	Legend            *LegendModel                   `tfsdk:"legend"`
+	LegendBy          types.String                   `tfsdk:"legend_by"`
+	PrimaryValue      *DynamicStatVisualElementModel `tfsdk:"primary_value"`
+	Title             *DynamicStatVisualElementModel `tfsdk:"title"`
+	Unit              types.String                   `tfsdk:"unit"`
+	ValueFields       types.List                     `tfsdk:"value_fields"` //ObservationFieldModel
+}
+
+type DynamicStatVisualElementModel struct {
+	MappedValues      JSONStringValue `tfsdk:"mapped_values"`
+	ObservationField  types.Object    `tfsdk:"observation_field"` //ObservationFieldModel
+	TemplateText      types.String    `tfsdk:"template_text"`
+	TemplateVariables types.List      `tfsdk:"template_variables"` //DynamicTemplateVariableModel
+}
+
+type DynamicTemplateVariableModel struct {
+	MappedValues     JSONStringValue `tfsdk:"mapped_values"`
+	ObservationField types.Object    `tfsdk:"observation_field"` //ObservationFieldModel
+}
+
+type DynamicColorLabelMappingModel struct {
+	ColorBy types.String                 `tfsdk:"color_by"`
+	Range   *DynamicRangeMappingModel    `tfsdk:"range"`
+	Regex   *DynamicSectionsMappingModel `tfsdk:"regex"`
+	Value   *DynamicSectionsMappingModel `tfsdk:"value"`
+}
+
+type DynamicRangeMappingModel struct {
+	MinMax        *DynamicMinMaxModel `tfsdk:"min_max"`
+	ThresholdType types.String        `tfsdk:"threshold_type"`
+	Thresholds    types.List          `tfsdk:"thresholds"` //DynamicThresholdModel
+}
+
+type DynamicMinMaxModel struct {
+	Auto   types.Bool                `tfsdk:"auto"`
+	Custom *DynamicMinMaxCustomModel `tfsdk:"custom"`
+}
+
+type DynamicMinMaxCustomModel struct {
+	Max types.Float64 `tfsdk:"max"`
+	Min types.Float64 `tfsdk:"min"`
+}
+
+type DynamicSectionsMappingModel struct {
+	Sections types.List `tfsdk:"sections"` //DynamicMappingSectionModel
+}
+
+type DynamicMappingSectionModel struct {
+	Color types.String `tfsdk:"color"`
+	MapTo types.String `tfsdk:"map_to"`
+	Value types.String `tfsdk:"value"`
+}
+
+type DynamicTableModel struct {
+	Columns  types.List                 `tfsdk:"columns"` //DynamicTableColumnModel
+	Rules    types.List                 `tfsdk:"rules"`   //DynamicTableRuleModel
+	Settings *DynamicTableSettingsModel `tfsdk:"settings"`
+}
+
+type DynamicTableColumnModel struct {
+	Field types.Object `tfsdk:"field"` //ObservationFieldModel
+}
+
+type DynamicTableRuleModel struct {
+	Description types.String                `tfsdk:"description"`
+	ID          types.String                `tfsdk:"id"`
+	Name        types.String                `tfsdk:"name"`
+	Properties  types.List                  `tfsdk:"properties"` //DynamicTablePropertyModel
+	RuleScope   *DynamicTableRuleScopeModel `tfsdk:"rule_scope"`
+}
+
+type DynamicTablePropertyModel struct {
+	ID         types.String                         `tfsdk:"id"`
+	Definition *DynamicTablePropertyDefinitionModel `tfsdk:"definition"`
+}
+
+type DynamicTablePropertyDefinitionModel struct {
+	Alignment         types.String                            `tfsdk:"alignment"`
+	ColumnDisplayName types.String                            `tfsdk:"column_display_name"`
+	Link              *DynamicTablePropertyLinkModel          `tfsdk:"link"`
+	RegexExtract      types.String                            `tfsdk:"regex_extract"`
+	Thresholds        *DynamicTablePropertyThresholdsModel    `tfsdk:"thresholds"`
+	Units             *DynamicTablePropertyUnitsModel         `tfsdk:"units"`
+	ValuesAlias       types.String                            `tfsdk:"values_alias"`
+	ValuesMapping     *DynamicTablePropertyValuesMappingModel `tfsdk:"values_mapping"`
+}
+
+type DynamicTablePropertyLinkModel struct {
+	Actions types.List `tfsdk:"actions"` //DynamicTableLinkActionModel
+}
+
+type DynamicTableLinkActionModel struct {
+	ID                    types.String `tfsdk:"id"`
+	Name                  types.String `tfsdk:"name"`
+	ShouldOpenInNewWindow types.Bool   `tfsdk:"should_open_in_new_window"`
+	Url                   types.String `tfsdk:"url"`
+}
+
+type DynamicTablePropertyThresholdsModel struct {
+	Max    types.Float64 `tfsdk:"max"`
+	Min    types.Float64 `tfsdk:"min"`
+	Type   types.String  `tfsdk:"type"`
+	Values types.List    `tfsdk:"values"` //DynamicThresholdModel
+}
+
+type DynamicTablePropertyUnitsModel struct {
+	AllowAbbreviation types.Bool    `tfsdk:"allow_abbreviation"`
+	CustomUnit        types.String  `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64   `tfsdk:"decimal_precision"`
+	Max               types.Float64 `tfsdk:"max"`
+	Min               types.Float64 `tfsdk:"min"`
+	Unit              types.String  `tfsdk:"unit"`
+}
+
+type DynamicTablePropertyValuesMappingModel struct {
+	Mappings types.List `tfsdk:"mappings"` //DynamicTableValueMappingModel
+}
+
+type DynamicTableValueMappingModel struct {
+	InputValue   types.String `tfsdk:"input_value"`
+	ReplaceValue types.String `tfsdk:"replace_value"`
+	Type         types.String `tfsdk:"type"`
+}
+
+type DynamicTableRuleScopeModel struct {
+	Field     types.Object `tfsdk:"field"` //ObservationFieldModel
+	FieldType types.String `tfsdk:"field_type"`
+	Regex     types.String `tfsdk:"regex"`
+}
+
+type DynamicTableSettingsModel struct {
+	ColumnWidths types.List   `tfsdk:"column_widths"` //DynamicTableColumnWidthModel
+	RowStyle     types.String `tfsdk:"row_style"`
+}
+
+type DynamicTableColumnWidthModel struct {
+	ColumnName types.String `tfsdk:"column_name"`
+	Width      types.Int64  `tfsdk:"width"`
 }
 
 type LineChartModel struct {
@@ -560,8 +1191,9 @@ type DataTableQuerySpansModel struct {
 }
 
 type SpansFilterModel struct {
-	Field    *SpansFieldModel     `tfsdk:"field"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
+	Field            *SpansFieldModel     `tfsdk:"field"`
+	Operator         *FilterOperatorModel `tfsdk:"operator"`
+	ObservationField types.Object         `tfsdk:"observation_field"` // SpanObservationFieldModel
 }
 
 type DataTableSpansQueryGroupingModel struct {
@@ -849,7 +1481,7 @@ func (s spansFieldValidator) MarkdownDescription(ctx context.Context) string {
 }
 
 func (s spansFieldValidator) ValidateObject(ctx context.Context, request validator.ObjectRequest, response *validator.ObjectResponse) {
-	if request.ConfigValue.IsNull() {
+	if request.ConfigValue.IsNull() || request.ConfigValue.IsUnknown() {
 		return
 	}
 
@@ -880,7 +1512,7 @@ func (f filterOperatorValidator) MarkdownDescription(_ context.Context) string {
 }
 
 func (f filterOperatorValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-	if req.ConfigValue.IsNull() {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}
 
@@ -915,7 +1547,7 @@ func (s spansAggregationValidator) MarkdownDescription(ctx context.Context) stri
 }
 
 func (s spansAggregationValidator) ValidateObject(ctx context.Context, request validator.ObjectRequest, response *validator.ObjectResponse) {
-	if request.ConfigValue.IsNull() {
+	if request.ConfigValue.IsNull() || request.ConfigValue.IsUnknown() {
 		return
 	}
 
@@ -945,7 +1577,7 @@ func (l logsAggregationValidator) MarkdownDescription(ctx context.Context) strin
 }
 
 func (l logsAggregationValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-	if req.ConfigValue.IsNull() {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}
 
@@ -1360,9 +1992,9 @@ func FlattenSpansFilters(ctx context.Context, filters []dashboardservice.SpansFi
 	var diagnostics diag.Diagnostics
 	filtersElements := make([]attr.Value, 0, len(filters))
 	for i := range filters {
-		flattenedFilter, dg := FlattenSpansFilter(&filters[i])
-		if dg != nil {
-			diagnostics.Append(dg)
+		flattenedFilter, dg := FlattenSpansFilter(ctx, &filters[i])
+		if dg.HasError() {
+			diagnostics.Append(dg...)
 			continue
 		}
 		filterElement, diags := types.ObjectValueFrom(ctx, SpansFilterModelAttr(), flattenedFilter)
@@ -1376,24 +2008,30 @@ func FlattenSpansFilters(ctx context.Context, filters []dashboardservice.SpansFi
 	return types.ListValueMust(types.ObjectType{AttrTypes: SpansFilterModelAttr()}, filtersElements), diagnostics
 }
 
-func FlattenSpansFilter(filter *dashboardservice.SpansFilter) (*SpansFilterModel, diag.Diagnostic) {
+func FlattenSpansFilter(ctx context.Context, filter *dashboardservice.SpansFilter) (*SpansFilterModel, diag.Diagnostics) {
 	if filter == nil {
 		return nil, nil
 	}
 
 	operator, dg := FlattenFilterOperator(filter.Operator)
 	if dg != nil {
-		return nil, dg
+		return nil, diag.Diagnostics{dg}
 	}
 
 	field, dg := FlattenSpansField(filter.Field)
 	if dg != nil {
-		return nil, dg
+		return nil, diag.Diagnostics{dg}
+	}
+
+	observationField, diags := flattenSpanObservationFieldObject(ctx, filter.ObservationField)
+	if diags.HasError() {
+		return nil, diags
 	}
 
 	return &SpansFilterModel{
-		Field:    field,
-		Operator: operator,
+		Field:            field,
+		Operator:         operator,
+		ObservationField: observationField,
 	}, nil
 }
 

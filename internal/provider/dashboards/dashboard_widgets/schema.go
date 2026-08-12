@@ -54,9 +54,17 @@ func SpansFilterSchema() schema.Attribute {
 			Attributes: map[string]schema.Attribute{
 				"field": schema.SingleNestedAttribute{
 					Attributes: SpansFieldAttributes(),
-					Required:   true,
+					Optional:   true,
 				},
 				"operator": FilterOperatorSchema(),
+				"observation_field": schema.SingleNestedAttribute{
+					Attributes:          spanObservationFieldSchema(),
+					Optional:            true,
+					MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
+				},
+			},
+			Validators: []validator.Object{
+				ExactlyOneOfChildren("field", "observation_field"),
 			},
 		},
 		Optional: true,
@@ -307,6 +315,19 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 		Validators: []validator.List{
 			listvalidator.SizeAtLeast(1),
 		},
+	}
+}
+
+// ColorsBySchema is the shared `colors_by` attribute. The API models it as a
+// oneof of empty messages; exposing it as a plain string enum keeps it
+// writable HCL instead of a nested object of JSON-object strings.
+func ColorsBySchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidColorsBy...),
+		},
+		MarkdownDescription: fmt.Sprintf("What colors are derived from. Valid values are: %s.", strings.Join(DashboardValidColorsBy, ", ")),
 	}
 }
 

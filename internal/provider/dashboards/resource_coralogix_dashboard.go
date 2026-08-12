@@ -2102,6 +2102,8 @@ func expandWidgetDefinition(ctx context.Context, definition *dashboardwidgets.Wi
 		return dashboardwidgets.ExpandHexagon(ctx, definition.Hexagon)
 	case definition.LineChart != nil:
 		return dashboardwidgets.ExpandLineChart(ctx, definition.LineChart)
+	case definition.Dynamic != nil:
+		return dashboardwidgets.ExpandDynamic(ctx, definition.Dynamic)
 	case definition.DataTable != nil:
 		return dashboardwidgets.ExpandDataTable(ctx, definition.DataTable)
 	case definition.BarChart != nil:
@@ -2145,7 +2147,7 @@ func expandHorizontalBarChart(ctx context.Context, chart *dashboardwidgets.Horiz
 			ScaleType:         dashboardwidgets.OptionalEnumPointer(chart.ScaleType, dashboardwidgets.DashboardSchemaToProtoScaleType),
 			GroupNameTemplate: utils.TypeStringToStringPointer(chart.GroupNameTemplate),
 			Unit:              dashboardwidgets.OptionalEnumPointer(chart.Unit, dashboardwidgets.DashboardSchemaToProtoUnit),
-			ColorsBy:          expandColorsBy(chart.ColorsBy),
+			ColorsBy:          dashboardwidgets.ExpandColorsBy(chart.ColorsBy),
 			DisplayOnBar:      typeBoolToBoolPointer(chart.DisplayOnBar),
 			YAxisViewBy:       expandYAxisViewBy(chart.YAxisViewBy),
 			SortBy:            dashboardwidgets.OptionalEnumPointer(chart.SortBy, dashboardwidgets.DashboardSchemaToProtoSortBy),
@@ -2896,7 +2898,7 @@ func expandBarChart(ctx context.Context, chart *dashboardwidgets.BarChartModel) 
 			GroupNameTemplate: utils.TypeStringToStringPointer(chart.GroupNameTemplate),
 			StackDefinition:   expandBarChartStackDefinition(chart.StackDefinition),
 			ScaleType:         dashboardwidgets.OptionalEnumPointer(chart.ScaleType, dashboardwidgets.DashboardSchemaToProtoScaleType),
-			ColorsBy:          expandColorsBy(chart.ColorsBy),
+			ColorsBy:          dashboardwidgets.ExpandColorsBy(chart.ColorsBy),
 			XAxis:             xaxis,
 			Unit:              dashboardwidgets.OptionalEnumPointer(chart.Unit, dashboardwidgets.DashboardSchemaToProtoUnit),
 			SortBy:            dashboardwidgets.OptionalEnumPointer(chart.SortBy, dashboardwidgets.DashboardSchemaToProtoSortBy),
@@ -2904,33 +2906,6 @@ func expandBarChart(ctx context.Context, chart *dashboardwidgets.BarChartModel) 
 			DataModeType:      dashboardwidgets.OptionalEnumPointer(chart.DataModeType, dashboardwidgets.DashboardSchemaToProtoDataModeType),
 		},
 	}, nil
-}
-
-func expandColorsBy(colorsBy types.String) *dashboardservice.ColorsBy {
-	switch colorsBy.ValueString() {
-	case "stack":
-		return &dashboardservice.ColorsBy{
-			Stack: map[string]interface{}{},
-		}
-	case "group_by":
-		return &dashboardservice.ColorsBy{
-			GroupBy: map[string]interface{}{},
-		}
-	case "aggregation":
-		return &dashboardservice.ColorsBy{
-			Aggregation: map[string]interface{}{},
-		}
-	case "query":
-		return &dashboardservice.ColorsBy{
-			Query: map[string]interface{}{},
-		}
-	case "category":
-		return &dashboardservice.ColorsBy{
-			Category: map[string]interface{}{},
-		}
-	default:
-		return nil
-	}
 }
 
 func expandXAis(xaxis *dashboardwidgets.BarChartXAxisModel) (*dashboardservice.XAxis, diag.Diagnostic) {
@@ -3997,6 +3972,7 @@ func widgetModelAttr() map[string]attr.Type {
 				"hexagon":    dashboardwidgets.HexagonType(),
 				"line_chart": dashboardwidgets.LineChartType(),
 				"data_table": dashboardwidgets.DataTableType(),
+				"dynamic":    dashboardwidgets.DynamicType(),
 				"gauge": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
 						"query": types.ObjectType{
@@ -4915,10 +4891,7 @@ func flattenDashboardWidgetDefinition(ctx context.Context, definition *dashboard
 	case definition.Markdown != nil:
 		return flattenMarkdown(definition.Markdown), nil
 	case definition.Dynamic != nil:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
-			"Unsupported Dashboard Widget Definition",
-			"The backend returned a dynamic widget. Dynamic widgets are supported only when configuring content_json; import and data-source reads cannot reconstruct content_json as structured Terraform state.",
-		)}
+		return dashboardwidgets.FlattenDynamic(ctx, definition.Dynamic)
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Widget Definition", "unknown widget definition type")}
 	}
@@ -4943,7 +4916,7 @@ func flattenHorizontalBarChart(ctx context.Context, chart *dashboardservice.Hori
 		return nil, diags
 	}
 
-	colorsBy, dg := flattenBarChartColorsBy(chart.ColorsBy)
+	colorsBy, dg := dashboardwidgets.FlattenColorsBy(chart.ColorsBy)
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
@@ -5578,7 +5551,7 @@ func flattenBarChart(ctx context.Context, barChart *dashboardservice.BarChart) (
 		return nil, diags
 	}
 
-	colorsBy, dg := flattenBarChartColorsBy(barChart.ColorsBy)
+	colorsBy, dg := dashboardwidgets.FlattenColorsBy(barChart.ColorsBy)
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
@@ -5840,26 +5813,6 @@ func flattenHorizontalBarChartStackDefinition(stackDefinition *dashboardservice.
 	return &dashboardwidgets.BarChartStackDefinitionModel{
 		MaxSlicesPerBar:   int32PointerToTypeInt64(stackDefinition.MaxSlicesPerBar),
 		StackNameTemplate: utils.StringPointerToTypeString(stackDefinition.StackNameTemplate),
-	}
-}
-
-func flattenBarChartColorsBy(colorsBy *dashboardservice.ColorsBy) (types.String, diag.Diagnostic) {
-	if colorsBy == nil {
-		return types.StringNull(), nil
-	}
-	switch {
-	case colorsBy.GroupBy != nil:
-		return types.StringValue("group_by"), nil
-	case colorsBy.Stack != nil:
-		return types.StringValue("stack"), nil
-	case colorsBy.Aggregation != nil:
-		return types.StringValue("aggregation"), nil
-	case colorsBy.Query != nil:
-		return types.StringValue("query"), nil
-	case colorsBy.Category != nil:
-		return types.StringValue("category"), nil
-	default:
-		return types.StringNull(), diag.NewErrorDiagnostic("", fmt.Sprintf("unknown colors by type %T", colorsBy))
 	}
 }
 
