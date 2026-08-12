@@ -31,7 +31,8 @@ Coralogix Custom Dashboard. For more info please review - https://coralogix.com/
 - `layout` (Attributes) Layout configuration for the dashboard's visual elements. (see [below for nested schema](#nestedatt--layout))
 - `name` (String) Display name of the dashboard.
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--time_frame))
-- `variables` (Attributes List) List of variables that can be used within the dashboard for dynamic content. (see [below for nested schema](#nestedatt--variables))
+- `variables` (Attributes List) Deprecated: list of legacy variables. Use `variables_v2` for new dashboard variables. (see [below for nested schema](#nestedatt--variables))
+- `variables_v2` (Attributes List) Dashboard variables v2. This replaces `variables`. Both forms can coexist during migration. (see [below for nested schema](#nestedatt--variables_v2))
 
 <a id="nestedatt--annotations"></a>
 ### Nested Schema for `annotations`
@@ -3883,3 +3884,476 @@ Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+
+
+
+
+<a id="nestedatt--variables_v2"></a>
+### Nested Schema for `variables_v2`
+
+Read-Only:
+
+- `description` (String)
+- `display_full_row` (Boolean)
+- `display_name` (String)
+- `display_type` (String) Valid values are ["label_value" "nothing" "value"].
+- `id` (String) Variable UUID. The provider generates a UUID when this is omitted.
+- `name` (String) Variable name. Use letters, digits, and underscores for portability. The API does not enforce this format.
+- `source` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source))
+- `value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value))
+
+<a id="nestedatt--variables_v2--source"></a>
+### Nested Schema for `variables_v2.source`
+
+Read-Only:
+
+- `query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query))
+- `static` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--static))
+- `textbox` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox))
+
+<a id="nestedatt--variables_v2--source--query"></a>
+### Nested Schema for `variables_v2.source.query`
+
+Read-Only:
+
+- `all_option` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--all_option))
+- `dataprime_query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--dataprime_query))
+- `logs_query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query))
+- `metrics_query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query))
+- `refresh_strategy` (String) Valid values are ["on_dashboard_load" "on_time_frame_change"].
+- `spans_query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query))
+- `value_display_options` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--value_display_options))
+- `values_order_direction` (String) Valid values are ["asc" "desc" "none"].
+
+<a id="nestedatt--variables_v2--source--query--all_option"></a>
+### Nested Schema for `variables_v2.source.query.all_option`
+
+Read-Only:
+
+- `include_all` (Boolean)
+- `label` (String)
+
+
+<a id="nestedatt--variables_v2--source--query--dataprime_query"></a>
+### Nested Schema for `variables_v2.source.query.dataprime_query`
+
+Read-Only:
+
+- `type` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--dataprime_query--type))
+
+<a id="nestedatt--variables_v2--source--query--dataprime_query--type"></a>
+### Nested Schema for `variables_v2.source.query.dataprime_query.type`
+
+Read-Only:
+
+- `query_text` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--dataprime_query--type--query_text))
+
+<a id="nestedatt--variables_v2--source--query--dataprime_query--type--query_text"></a>
+### Nested Schema for `variables_v2.source.query.dataprime_query.type.query_text`
+
+Read-Only:
+
+- `data_mode_type` (String) Valid values are ["archive" "high"].
+- `query` (String) Dataprime query text.
+
+
+
+
+<a id="nestedatt--variables_v2--source--query--logs_query"></a>
+### Nested Schema for `variables_v2.source.query.logs_query`
+
+Read-Only:
+
+- `type` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type))
+
+<a id="nestedatt--variables_v2--source--query--logs_query--type"></a>
+### Nested Schema for `variables_v2.source.query.logs_query.type`
+
+Read-Only:
+
+- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_value))
+
+<a id="nestedatt--variables_v2--source--query--logs_query--type--field_value"></a>
+### Nested Schema for `variables_v2.source.query.logs_query.type.field_value`
+
+Read-Only:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--logs_query--type--field_value--observation_field))
+
+<a id="nestedatt--variables_v2--source--query--logs_query--type--field_value--observation_field"></a>
+### Nested Schema for `variables_v2.source.query.logs_query.type.field_value.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+
+<a id="nestedatt--variables_v2--source--query--metrics_query"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query`
+
+Read-Only:
+
+- `type` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type))
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type`
+
+Read-Only:
+
+- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_name))
+- `label_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value))
+- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--metric_name))
+- `promql_query` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--promql_query))
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type--label_name"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type.label_name`
+
+Read-Only:
+
+- `metric_regex` (String)
+
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type.label_value`
+
+Read-Only:
+
+- `label_filters` (Attributes List) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters))
+- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_name))
+- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--metric_name))
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type.label_value.label_filters`
+
+Read-Only:
+
+- `label` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--label))
+- `metric` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--metric))
+- `operator` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--operator))
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--label"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type.label_value.label_filters.label`
+
+Read-Only:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--metric"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type.label_value.label_filters.metric`
+
+Read-Only:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--operator"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type.label_value.label_filters.operator`
+
+Read-Only:
+
+- `selected_values` (Attributes List) (see [below for nested schema](#nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--operator--selected_values))
+- `type` (String)
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_filters--operator--selected_values"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type.label_value.label_filters.operator.selected_values`
+
+Read-Only:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--label_name"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type.label_value.label_name`
+
+Read-Only:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type--label_value--metric_name"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type.label_value.metric_name`
+
+Read-Only:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type--metric_name"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type.metric_name`
+
+Read-Only:
+
+- `metric_regex` (String)
+
+
+<a id="nestedatt--variables_v2--source--query--metrics_query--type--promql_query"></a>
+### Nested Schema for `variables_v2.source.query.metrics_query.type.promql_query`
+
+Read-Only:
+
+- `promql_query_type` (String) Valid values are ["instant" "range"].
+- `query` (String)
+
+
+
+
+<a id="nestedatt--variables_v2--source--query--spans_query"></a>
+### Nested Schema for `variables_v2.source.query.spans_query`
+
+Read-Only:
+
+- `type` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type))
+
+<a id="nestedatt--variables_v2--source--query--spans_query--type"></a>
+### Nested Schema for `variables_v2.source.query.spans_query.type`
+
+Read-Only:
+
+- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value))
+
+<a id="nestedatt--variables_v2--source--query--spans_query--type--field_value"></a>
+### Nested Schema for `variables_v2.source.query.spans_query.type.field_value`
+
+Read-Only:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value--observation_field))
+- `value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--query--spans_query--type--field_value--value))
+
+<a id="nestedatt--variables_v2--source--query--spans_query--type--field_value--observation_field"></a>
+### Nested Schema for `variables_v2.source.query.spans_query.type.field_value.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--variables_v2--source--query--spans_query--type--field_value--value"></a>
+### Nested Schema for `variables_v2.source.query.spans_query.type.field_value.value`
+
+Read-Only:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+
+
+
+<a id="nestedatt--variables_v2--source--query--value_display_options"></a>
+### Nested Schema for `variables_v2.source.query.value_display_options`
+
+Read-Only:
+
+- `label_regex` (String)
+- `value_regex` (String)
+
+
+
+<a id="nestedatt--variables_v2--source--static"></a>
+### Nested Schema for `variables_v2.source.static`
+
+Read-Only:
+
+- `all_option` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--static--all_option))
+- `values` (Attributes List) (see [below for nested schema](#nestedatt--variables_v2--source--static--values))
+- `values_order_direction` (String) Valid values are ["asc" "desc" "none"].
+
+<a id="nestedatt--variables_v2--source--static--all_option"></a>
+### Nested Schema for `variables_v2.source.static.all_option`
+
+Read-Only:
+
+- `include_all` (Boolean)
+- `label` (String)
+
+
+<a id="nestedatt--variables_v2--source--static--values"></a>
+### Nested Schema for `variables_v2.source.static.values`
+
+Read-Only:
+
+- `is_default` (Boolean)
+- `label` (String) Display label. When omitted, defaults to `value`. Setting `label` to the same string as `value` is allowed and does not drift.
+- `value` (String)
+
+
+
+<a id="nestedatt--variables_v2--source--textbox"></a>
+### Nested Schema for `variables_v2.source.textbox`
+
+Read-Only:
+
+- `default_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value))
+
+<a id="nestedatt--variables_v2--source--textbox--default_value"></a>
+### Nested Schema for `variables_v2.source.textbox.default_value`
+
+Read-Only:
+
+- `default_interval_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_interval_value))
+- `default_lucene_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_lucene_value))
+- `default_numeric_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_numeric_value))
+- `default_regex_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_regex_value))
+- `default_string_value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--source--textbox--default_value--default_string_value))
+
+<a id="nestedatt--variables_v2--source--textbox--default_value--default_interval_value"></a>
+### Nested Schema for `variables_v2.source.textbox.default_value.default_interval_value`
+
+Read-Only:
+
+- `value` (String)
+
+
+<a id="nestedatt--variables_v2--source--textbox--default_value--default_lucene_value"></a>
+### Nested Schema for `variables_v2.source.textbox.default_value.default_lucene_value`
+
+Read-Only:
+
+- `data_mode_type` (String) Valid values are ["archive" "high"].
+- `value` (String)
+
+
+<a id="nestedatt--variables_v2--source--textbox--default_value--default_numeric_value"></a>
+### Nested Schema for `variables_v2.source.textbox.default_value.default_numeric_value`
+
+Read-Only:
+
+- `is_integer` (Boolean)
+- `max` (Number)
+- `min` (Number)
+- `value` (Number)
+
+
+<a id="nestedatt--variables_v2--source--textbox--default_value--default_regex_value"></a>
+### Nested Schema for `variables_v2.source.textbox.default_value.default_regex_value`
+
+Read-Only:
+
+- `value` (String)
+
+
+<a id="nestedatt--variables_v2--source--textbox--default_value--default_string_value"></a>
+### Nested Schema for `variables_v2.source.textbox.default_value.default_string_value`
+
+Read-Only:
+
+- `value` (String)
+
+
+
+
+
+<a id="nestedatt--variables_v2--value"></a>
+### Nested Schema for `variables_v2.value`
+
+Read-Only:
+
+- `interval` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--interval))
+- `lucene` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--lucene))
+- `multi_string` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--multi_string))
+- `regex` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--regex))
+- `single_numeric` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--single_numeric))
+- `single_string` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--single_string))
+
+<a id="nestedatt--variables_v2--value--interval"></a>
+### Nested Schema for `variables_v2.value.interval`
+
+Read-Only:
+
+- `label` (String)
+- `value` (String)
+
+
+<a id="nestedatt--variables_v2--value--lucene"></a>
+### Nested Schema for `variables_v2.value.lucene`
+
+Read-Only:
+
+- `label` (String)
+- `value` (String)
+
+
+<a id="nestedatt--variables_v2--value--multi_string"></a>
+### Nested Schema for `variables_v2.value.multi_string`
+
+Read-Only:
+
+- `all` (Attributes) Select the synthetic All option from `all_option` (not every fetched value). (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--all))
+- `list` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--list))
+- `selected_all` (Attributes) Select every value returned by the query. This is the usual default for query variables. (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--selected_all))
+
+<a id="nestedatt--variables_v2--value--multi_string--all"></a>
+### Nested Schema for `variables_v2.value.multi_string.all`
+
+
+<a id="nestedatt--variables_v2--value--multi_string--list"></a>
+### Nested Schema for `variables_v2.value.multi_string.list`
+
+Read-Only:
+
+- `values` (Attributes List) (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--list--values))
+
+<a id="nestedatt--variables_v2--value--multi_string--list--values"></a>
+### Nested Schema for `variables_v2.value.multi_string.list.values`
+
+Read-Only:
+
+- `value` (Attributes) (see [below for nested schema](#nestedatt--variables_v2--value--multi_string--list--values--value))
+
+<a id="nestedatt--variables_v2--value--multi_string--list--values--value"></a>
+### Nested Schema for `variables_v2.value.multi_string.list.values.value`
+
+Read-Only:
+
+- `label` (String)
+- `value` (String)
+
+
+
+
+<a id="nestedatt--variables_v2--value--multi_string--selected_all"></a>
+### Nested Schema for `variables_v2.value.multi_string.selected_all`
+
+
+
+<a id="nestedatt--variables_v2--value--regex"></a>
+### Nested Schema for `variables_v2.value.regex`
+
+Read-Only:
+
+- `label` (String)
+- `value` (String)
+
+
+<a id="nestedatt--variables_v2--value--single_numeric"></a>
+### Nested Schema for `variables_v2.value.single_numeric`
+
+Read-Only:
+
+- `label` (String)
+- `value` (Number)
+
+
+<a id="nestedatt--variables_v2--value--single_string"></a>
+### Nested Schema for `variables_v2.value.single_string`
+
+Read-Only:
+
+- `label` (String)
+- `value` (String)

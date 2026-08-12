@@ -462,11 +462,14 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"query":        covered(variable+".source.query", "TestAccCoralogixResourceDashboard"),
 			},
 		},
-		"MultiStringValue": apiOnlyModel(
-			"ast/variables_v2/variable_value.proto#VariableValueV2.MultiStringValue.value",
-			"the provider exposes legacy variables, not variables_v2 values",
-			"all", "list", "selectedAll",
-		),
+		"MultiStringValue": {
+			ProtoSource: "ast/variables_v2/variable_value.proto#VariableValueV2.MultiStringValue.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"all":         covered("variables_v2[*].value.multi_string.all", "TestAccCoralogixResourceDashboardVariablesV2MultiStringAll"),
+				"list":        covered("variables_v2[*].value.multi_string.list", "TestAccCoralogixResourceDashboardVariablesV2Promql"),
+				"selectedAll": covered("variables_v2[*].value.multi_string.selected_all", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue"),
+			},
+		},
 		"PieChartQuery": {
 			ProtoSource: "ast/widgets/pie_chart.proto#PieChart.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -510,31 +513,43 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"labelValue": covered(variableQuery+".metrics.label_value", dashboardOpenAPIVariablesTestName),
 			},
 		},
-		"QuerySourceLogsQueryType": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.LogsQuery.Type.value",
-			"the provider exposes legacy variables, not VariableSourceV2",
-			"fieldName", "fieldValue",
-		),
-		"QuerySourceMetricsQueryOperator": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.Operator.value",
-			"the provider exposes legacy variables, not VariableSourceV2",
-			"equals", "notEquals",
-		),
-		"QuerySourceMetricsQueryStringOrVariable": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.StringOrVariable.value",
-			"the provider exposes legacy variables, not VariableSourceV2",
-			"stringValue", "variableName",
-		),
-		"QuerySourceMetricsQueryType": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.Type.value",
-			"the provider exposes legacy variables, not VariableSourceV2",
-			"metricName", "labelName", "labelValue", "promqlQuery",
-		),
-		"QuerySourceSpansQueryType": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.SpansQuery.Type.value",
-			"the provider exposes legacy variables, not VariableSourceV2",
-			"fieldName", "fieldValue",
-		),
+		"QuerySourceLogsQueryType": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.LogsQuery.Type.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"fieldName":  apiOnly(dashboardNoProviderPath, false, "variables_v2 logs_query type schema only exposes field_value"),
+				"fieldValue": covered("variables_v2[*].source.query.logs_query.type.field_value", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue"),
+			},
+		},
+		"QuerySourceMetricsQueryOperator": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.Operator.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"equals":    covered("variables_v2[*].source.query.metrics_query.type.label_value.label_filters[*].operator", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue"),
+				"notEquals": covered("variables_v2[*].source.query.metrics_query.type.label_value.label_filters[*].operator", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue"),
+			},
+		},
+		"QuerySourceMetricsQueryStringOrVariable": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.StringOrVariable.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"stringValue":  covered("variables_v2[*].source.query.metrics_query.*.string_value", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue"),
+				"variableName": covered("variables_v2[*].source.query.metrics_query.*.variable_name", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue"),
+			},
+		},
+		"QuerySourceMetricsQueryType": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.MetricsQuery.Type.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"metricName":  covered("variables_v2[*].source.query.metrics_query.type.metric_name", "TestAccCoralogixResourceDashboardVariablesV2Metrics"),
+				"labelName":   covered("variables_v2[*].source.query.metrics_query.type.label_name", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelName"),
+				"labelValue":  covered("variables_v2[*].source.query.metrics_query.type.label_value", "TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue"),
+				"promqlQuery": covered("variables_v2[*].source.query.metrics_query.type.promql_query", "TestAccCoralogixResourceDashboardVariablesV2Promql"),
+			},
+		},
+		"QuerySourceSpansQueryType": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.SpansQuery.Type.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"fieldName":  apiOnly(dashboardNoProviderPath, false, "variables_v2 spans_query type schema only exposes field_value"),
+				"fieldValue": covered("variables_v2[*].source.query.spans_query.type.field_value", "TestAccCoralogixResourceDashboardVariablesV2SpansFieldValue"),
+			},
+		},
 		"QuerySpansQueryType": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.SpansQuery.Type.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -587,11 +602,18 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			"stat-card visual elements are reachable only below WidgetDefinition.dynamic",
 			"observationField", "mappedValues",
 		),
-		"TextboxDefaultValue": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.TextboxSource.TextboxDefaultValue.value",
-			"the provider exposes legacy variables, not VariableSourceV2 textbox sources",
-			"singleString", "singleNumeric", "defaultStringValue", "defaultNumericValue", "defaultLuceneValue", "defaultRegexValue", "defaultIntervalValue",
-		),
+		"TextboxDefaultValue": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.TextboxSource.TextboxDefaultValue.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"singleString":         structuredRejected("variables_v2[*].source.textbox.default_value.single_string", "deprecated protobuf default; Terraform exposes default_string_value instead"),
+				"singleNumeric":        structuredRejected("variables_v2[*].source.textbox.default_value.single_numeric", "deprecated protobuf default; Terraform exposes default_numeric_value instead"),
+				"defaultStringValue":   covered("variables_v2[*].source.textbox.default_value.default_string_value", "TestAccCoralogixResourceDashboardVariablesV2Textbox"),
+				"defaultNumericValue":  covered("variables_v2[*].source.textbox.default_value.default_numeric_value", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"defaultLuceneValue":   covered("variables_v2[*].source.textbox.default_value.default_lucene_value", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"defaultRegexValue":    covered("variables_v2[*].source.textbox.default_value.default_regex_value", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"defaultIntervalValue": covered("variables_v2[*].source.textbox.default_value.default_interval_value", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+			},
+		},
 		"TimeFrameSelect": {
 			ProtoSource: "common/time_frame.proto#TimeFrameSelect.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -607,21 +629,34 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"multiSelect": covered("variables[*].definition.multi_select", dashboardOpenAPIVariablesTestName),
 			},
 		},
-		"VariableSourceV2": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.value",
-			"DashboardResourceModel exposes the legacy variables schema, not variables_v2",
-			"static", "query", "textbox",
-		),
-		"VariableSourceV2QuerySource": apiOnlyModel(
-			"ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.value",
-			"DashboardResourceModel exposes the legacy variables schema, not variables_v2",
-			"logsQuery", "metricsQuery", "spansQuery", "dataprimeQuery",
-		),
-		"VariableValueV2": apiOnlyModel(
-			"ast/variables_v2/variable_value.proto#VariableValueV2.value",
-			"DashboardResourceModel exposes the legacy variables schema, not variables_v2",
-			"multiString", "singleString", "singleNumeric", "regex", "lucene", "interval",
-		),
+		"VariableSourceV2": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"static":  covered("variables_v2[*].source.static", "TestAccCoralogixResourceDashboardVariablesV2Static"),
+				"query":   covered("variables_v2[*].source.query", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue"),
+				"textbox": covered("variables_v2[*].source.textbox", "TestAccCoralogixResourceDashboardVariablesV2Textbox"),
+			},
+		},
+		"VariableSourceV2QuerySource": {
+			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.QuerySource.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"logsQuery":      covered("variables_v2[*].source.query.logs_query", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue"),
+				"metricsQuery":   covered("variables_v2[*].source.query.metrics_query", "TestAccCoralogixResourceDashboardVariablesV2Metrics"),
+				"spansQuery":     covered("variables_v2[*].source.query.spans_query", "TestAccCoralogixResourceDashboardVariablesV2SpansFieldValue"),
+				"dataprimeQuery": covered("variables_v2[*].source.query.dataprime_query", "TestAccCoralogixResourceDashboardVariablesV2Dataprime"),
+			},
+		},
+		"VariableValueV2": {
+			ProtoSource: "ast/variables_v2/variable_value.proto#VariableValueV2.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"multiString":   covered("variables_v2[*].value.multi_string", "TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue"),
+				"singleString":  covered("variables_v2[*].value.single_string", "TestAccCoralogixResourceDashboardVariablesV2Static"),
+				"singleNumeric": covered("variables_v2[*].value.single_numeric", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"regex":         covered("variables_v2[*].value.regex", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"lucene":        covered("variables_v2[*].value.lucene", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+				"interval":      covered("variables_v2[*].value.interval", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
+			},
+		},
 		"Visualization": observedAPIOnlyModel(
 			"ast/widgets/dynamic.proto#Dynamic.Visualization.value",
 			"all Visualization branches are children of WidgetDefinition.dynamic, which is reachable through content_json but absent from the structured schema and flattener; import and data-source reads cannot reconstruct it",
@@ -948,6 +983,22 @@ func TestDashboardProtoOneOfInventoryAgainstCheckout(t *testing.T) {
 	}
 
 	protoInventory := parseDashboardProtoOneOfs(t, dashboardRoot, dashboardRoot)
+	assertDashboardProtoInventoryCounts(t, protoInventory)
+
+	for _, source := range dashboardSingleArmProtoOneOfs {
+		assertDashboardProtoBranch(t, protoInventory, source)
+	}
+	for _, branch := range dashboardProtoOnlyBranches {
+		assertDashboardProtoBranch(t, protoInventory, branch.ProtoSource)
+	}
+
+	externalFile := filepath.Join(protoRoot, "com", "coralogixapis", "events", "v3", "events_query_filter.proto")
+	parseDashboardProtoFile(t, protoRoot, externalFile, protoInventory)
+	assertDashboardManifestMatchesProtoBranches(t, protoInventory)
+}
+
+func assertDashboardProtoInventoryCounts(t *testing.T, protoInventory map[string][]string) {
+	t.Helper()
 	if got := len(protoInventory); got != 71 {
 		t.Fatalf("dashboard protobuf oneofs = %d, want 71", got)
 	}
@@ -962,29 +1013,12 @@ func TestDashboardProtoOneOfInventoryAgainstCheckout(t *testing.T) {
 	if multiBranchOneOfs != 64 || multiBranches != 216 {
 		t.Fatalf("dashboard protobuf multi-branch inventory = %d oneofs/%d branches, want 64/216", multiBranchOneOfs, multiBranches)
 	}
+}
 
-	for _, source := range dashboardSingleArmProtoOneOfs {
-		assertDashboardProtoBranch(t, protoInventory, source)
-	}
-	for _, branch := range dashboardProtoOnlyBranches {
-		assertDashboardProtoBranch(t, protoInventory, branch.ProtoSource)
-	}
-
-	externalFile := filepath.Join(protoRoot, "com", "coralogixapis", "events", "v3", "events_query_filter.proto")
-	parseDashboardProtoFile(t, protoRoot, externalFile, protoInventory)
+func assertDashboardManifestMatchesProtoBranches(t *testing.T, protoInventory map[string][]string) {
+	t.Helper()
 	for model, coverage := range dashboardOpenAPIOneOfCoverage {
-		var protoBranches []string
-		for _, source := range strings.Split(coverage.ProtoSource, " + ") {
-			branches, ok := protoInventory[source]
-			if !ok {
-				t.Errorf("%s references nonexistent protobuf oneof %s", model, source)
-				continue
-			}
-			for _, branch := range branches {
-				protoBranches = append(protoBranches, snakeToLowerCamel(branch))
-			}
-		}
-		sort.Strings(protoBranches)
+		protoBranches := dashboardProtoBranchesForCoverage(t, model, coverage.ProtoSource, protoInventory)
 		manifestBranches := make([]string, 0, len(coverage.Branches))
 		for branch := range coverage.Branches {
 			manifestBranches = append(manifestBranches, branch)
@@ -996,6 +1030,23 @@ func TestDashboardProtoOneOfInventoryAgainstCheckout(t *testing.T) {
 	}
 }
 
+func dashboardProtoBranchesForCoverage(t *testing.T, model, protoSource string, protoInventory map[string][]string) []string {
+	t.Helper()
+	var protoBranches []string
+	for _, source := range strings.Split(protoSource, " + ") {
+		branches, ok := protoInventory[source]
+		if !ok {
+			t.Errorf("%s references nonexistent protobuf oneof %s", model, source)
+			continue
+		}
+		for _, branch := range branches {
+			protoBranches = append(protoBranches, snakeToLowerCamel(branch))
+		}
+	}
+	sort.Strings(protoBranches)
+	return protoBranches
+}
+
 func validateDashboardOneOfCoverage(t *testing.T, tests map[string]struct{}, model, branch string, coverage dashboardOneOfBranchCoverage) {
 	t.Helper()
 	if coverage.ProviderPath == "" {
@@ -1004,55 +1055,13 @@ func validateDashboardOneOfCoverage(t *testing.T, tests map[string]struct{}, mod
 
 	switch coverage.Status {
 	case dashboardOneOfAcceptanceCovered:
-		if coverage.FixtureOrTest == "" {
-			t.Errorf("%s.%s is covered without a fixture/test", model, branch)
-		}
-		if !coverage.ImportHydration || !coverage.DataSourceHydration {
-			t.Errorf("%s.%s is acceptance-covered without both hydration paths", model, branch)
-		}
+		validateDashboardOneOfAcceptanceCovered(t, model, branch, coverage)
 	case dashboardOneOfAcceptanceGap:
-		if coverage.FixtureOrTest != "" {
-			t.Errorf("%s.%s is an acceptance gap but references %s", model, branch, coverage.FixtureOrTest)
-		}
-		if !coverage.ImportHydration || !coverage.DataSourceHydration {
-			t.Errorf("%s.%s is a structured branch without both hydration paths", model, branch)
-		}
+		validateDashboardOneOfAcceptanceGap(t, model, branch, coverage)
 	case dashboardOneOfAPIOnly:
-		if coverage.Explanation == "" || coverage.FixtureOrTest == "" || coverage.SupportDecision == "" {
-			t.Errorf("%s.%s API-only decision is missing category, explanation, or executable evidence", model, branch)
-		}
-		switch coverage.SupportDecision {
-		case dashboardOneOfContentJSONSupported:
-			modelType, ok := dashboardGeneratedModelType(model)
-			if !ok || !dashboardGeneratedTypeReachable(reflect.TypeOf(dashboardservice.Dashboard{}), modelType) {
-				t.Errorf("%s.%s claims content_json support but %s is not reachable from Dashboard", model, branch, model)
-			}
-			if coverage.FixtureOrTest != dashboardContentJSONGeneratedOneOfContractTestName && coverage.FixtureOrTest != dashboardContentJSONDynamicQueriesTableTestName {
-				t.Errorf("%s.%s content_json decision references unrelated evidence %s", model, branch, coverage.FixtureOrTest)
-			}
-		case dashboardOneOfStructuredRejected:
-			if coverage.FixtureOrTest != dashboardStructuredRejectionContractTestName {
-				t.Errorf("%s.%s structured rejection does not reference %s", model, branch, dashboardStructuredRejectionContractTestName)
-			}
-		case dashboardOneOfReadHydratable:
-			if !coverage.ImportHydration && !coverage.DataSourceHydration {
-				t.Errorf("%s.%s claims read hydration without an import or data-source path", model, branch)
-			}
-		case dashboardOneOfReadRejected:
-			if coverage.ImportHydration || coverage.DataSourceHydration {
-				t.Errorf("%s.%s claims deterministic read rejection and hydration", model, branch)
-			}
-		case dashboardOneOfOutsideCRUD:
-			if coverage.FixtureOrTest != dashboardOutsideCRUDContractTestName || coverage.ImportHydration || coverage.DataSourceHydration {
-				t.Errorf("%s.%s outside-CRUD decision has inconsistent evidence or hydration", model, branch)
-			}
-		default:
-			t.Errorf("%s.%s has unknown API-only support decision %q", model, branch, coverage.SupportDecision)
-		}
+		validateDashboardOneOfAPIOnly(t, model, branch, coverage)
 	case dashboardOneOfLegacyMigration:
-		if coverage.Explanation == "" || coverage.FixtureOrTest == "" || coverage.SupportDecision != dashboardOneOfLegacyOnly {
-			t.Errorf("%s.%s legacy migration classification is incomplete", model, branch)
-		}
+		validateDashboardOneOfLegacyMigration(t, model, branch, coverage)
 	default:
 		t.Errorf("%s.%s has unknown status %q", model, branch, coverage.Status)
 	}
@@ -1061,6 +1070,78 @@ func validateDashboardOneOfCoverage(t *testing.T, tests map[string]struct{}, mod
 		if _, ok := tests[coverage.FixtureOrTest]; !ok {
 			t.Errorf("%s.%s references nonexistent test %s", model, branch, coverage.FixtureOrTest)
 		}
+	}
+}
+
+func validateDashboardOneOfAcceptanceCovered(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	if coverage.FixtureOrTest == "" {
+		t.Errorf("%s.%s is covered without a fixture/test", model, branch)
+	}
+	if !coverage.ImportHydration || !coverage.DataSourceHydration {
+		t.Errorf("%s.%s is acceptance-covered without both hydration paths", model, branch)
+	}
+}
+
+func validateDashboardOneOfAcceptanceGap(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	if coverage.FixtureOrTest != "" {
+		t.Errorf("%s.%s is an acceptance gap but references %s", model, branch, coverage.FixtureOrTest)
+	}
+	if !coverage.ImportHydration || !coverage.DataSourceHydration {
+		t.Errorf("%s.%s is a structured branch without both hydration paths", model, branch)
+	}
+}
+
+func validateDashboardOneOfAPIOnly(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	if coverage.Explanation == "" || coverage.FixtureOrTest == "" || coverage.SupportDecision == "" {
+		t.Errorf("%s.%s API-only decision is missing category, explanation, or executable evidence", model, branch)
+	}
+	validateDashboardOneOfAPIOnlySupportDecision(t, model, branch, coverage)
+}
+
+func validateDashboardOneOfAPIOnlySupportDecision(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	switch coverage.SupportDecision {
+	case dashboardOneOfContentJSONSupported:
+		validateDashboardOneOfContentJSONSupported(t, model, branch, coverage)
+	case dashboardOneOfStructuredRejected:
+		if coverage.FixtureOrTest != dashboardStructuredRejectionContractTestName {
+			t.Errorf("%s.%s structured rejection does not reference %s", model, branch, dashboardStructuredRejectionContractTestName)
+		}
+	case dashboardOneOfReadHydratable:
+		if !coverage.ImportHydration && !coverage.DataSourceHydration {
+			t.Errorf("%s.%s claims read hydration without an import or data-source path", model, branch)
+		}
+	case dashboardOneOfReadRejected:
+		if coverage.ImportHydration || coverage.DataSourceHydration {
+			t.Errorf("%s.%s claims deterministic read rejection and hydration", model, branch)
+		}
+	case dashboardOneOfOutsideCRUD:
+		if coverage.FixtureOrTest != dashboardOutsideCRUDContractTestName || coverage.ImportHydration || coverage.DataSourceHydration {
+			t.Errorf("%s.%s outside-CRUD decision has inconsistent evidence or hydration", model, branch)
+		}
+	default:
+		t.Errorf("%s.%s has unknown API-only support decision %q", model, branch, coverage.SupportDecision)
+	}
+}
+
+func validateDashboardOneOfContentJSONSupported(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	modelType, ok := dashboardGeneratedModelType(model)
+	if !ok || !dashboardGeneratedTypeReachable(reflect.TypeOf(dashboardservice.Dashboard{}), modelType) {
+		t.Errorf("%s.%s claims content_json support but %s is not reachable from Dashboard", model, branch, model)
+	}
+	if coverage.FixtureOrTest != dashboardContentJSONGeneratedOneOfContractTestName && coverage.FixtureOrTest != dashboardContentJSONDynamicQueriesTableTestName {
+		t.Errorf("%s.%s content_json decision references unrelated evidence %s", model, branch, coverage.FixtureOrTest)
+	}
+}
+
+func validateDashboardOneOfLegacyMigration(t *testing.T, model, branch string, coverage dashboardOneOfBranchCoverage) {
+	t.Helper()
+	if coverage.Explanation == "" || coverage.FixtureOrTest == "" || coverage.SupportDecision != dashboardOneOfLegacyOnly {
+		t.Errorf("%s.%s legacy migration classification is incomplete", model, branch)
 	}
 }
 

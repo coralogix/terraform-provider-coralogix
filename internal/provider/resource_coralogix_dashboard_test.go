@@ -36,6 +36,733 @@ import (
 var dashboardResourceName = "coralogix_dashboard.test"
 var folderResourceName = "coralogix_dashboards_folder.test_folder"
 
+func testAccDashboardVariablesV2Layout(name string) string {
+	return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name = %q
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          definition = {
+            markdown = { markdown_text = "variables_v2" }
+          }
+        }]
+      }]
+    }]
+  }
+`, name)
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2Static(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// omit → label defaults to value
+				Config: testAccDashboardVariablesV2StaticConfig(name, `{ value = "production", is_default = true }`, "production"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.value", "production"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.label", "production"),
+					testAccCheckDashboardVariablesV2StaticLabelOnAPI(dashboardResourceName, "production"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// omit → label set
+				Config: testAccDashboardVariablesV2StaticConfig(name, `{ value = "production", label = "Prod", is_default = true }`, "production"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.label", "Prod"),
+					testAccCheckDashboardVariablesV2StaticLabelOnAPI(dashboardResourceName, "Prod"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// label set → omit (recomputes from value)
+				Config: testAccDashboardVariablesV2StaticConfig(name, `{ value = "production", is_default = true }`, "production"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.label", "production"),
+					testAccCheckDashboardVariablesV2StaticLabelOnAPI(dashboardResourceName, "production"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// omit → label set again (label set → omit → label set)
+				Config: testAccDashboardVariablesV2StaticConfig(name, `{ value = "production", label = "Prod", is_default = true }`, "production"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.label", "Prod"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// back to omit, then value change while label omitted
+				Config: testAccDashboardVariablesV2StaticConfig(name, `{ value = "production", is_default = true }`, "production"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.label", "production"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// omit → value change (label follows new value)
+				Config: testAccDashboardVariablesV2StaticConfig(name, `{ value = "prod", is_default = true }`, "prod"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.value", "prod"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.label", "prod"),
+					testAccCheckDashboardVariablesV2StaticLabelOnAPI(dashboardResourceName, "prod"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// label set on value A
+				Config: testAccDashboardVariablesV2StaticConfig(name, `{ value = "a", label = "Display", is_default = true }`, "a"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.value", "a"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.label", "Display"),
+					testAccCheckDashboardVariablesV2StaticLabelOnAPI(dashboardResourceName, "Display"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// value A → value B with label set (label stays)
+				Config: testAccDashboardVariablesV2StaticConfig(name, `{ value = "b", label = "Display", is_default = true }`, "b"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.value", "b"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.static.values.0.label", "Display"),
+					testAccCheckDashboardVariablesV2StaticLabelOnAPI(dashboardResourceName, "Display"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccDashboardVariablesV2StaticConfig(name, staticValue, selected string) string {
+	return testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [{
+    name         = "environment"
+    display_name = "Environment"
+    source = {
+      static = {
+        all_option = { include_all = false }
+        values = [` + staticValue + `]
+      }
+    }
+    value = {
+      single_string = { value = "` + selected + `", label = "` + selected + `" }
+    }
+  }]
+}`
+}
+
+// testAccCheckDashboardVariablesV2StaticLabelOnAPI asserts expand defaulted the
+// omitted static label onto the first static value in the live dashboard.
+func testAccCheckDashboardVariablesV2StaticLabelOnAPI(resourceName, wantLabel string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource %s not found", resourceName)
+		}
+		client, err := dashboardOpenAPINewAcceptanceClient()
+		if err != nil {
+			return err
+		}
+		resp, httpResp, err := client.DashboardsServiceGetDashboard(context.TODO(), rs.Primary.ID).Execute()
+		if err != nil {
+			return fmt.Errorf("get dashboard: %s", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Get", rs.Primary.ID))
+		}
+		dashboard := resp.GetDashboard()
+		vars := dashboard.GetVariablesV2()
+		if len(vars) == 0 || vars[0].Source == nil || vars[0].Source.Static == nil || len(vars[0].Source.Static.Values) == 0 {
+			return fmt.Errorf("dashboard %s has no static variables_v2 values", rs.Primary.ID)
+		}
+		got := vars[0].Source.Static.Values[0].GetLabel()
+		if got != wantLabel {
+			return fmt.Errorf("API static values[0].label = %q, want %q", got, wantLabel)
+		}
+		return nil
+	}
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2Textbox(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [{
+    name             = "search"
+    display_name     = "Search"
+    display_full_row = true
+    source = {
+      textbox = {
+        default_value = { default_string_value = { value = "hello" } }
+      }
+    }
+    value = { single_string = { value = "hello", label = "hello" } }
+  }]
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.textbox.default_value.default_string_value.value", "hello"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.display_full_row", "true"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2LogsFieldValue(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [{
+    name         = "svc"
+    display_name = "Service"
+    source = {
+      query = {
+        all_option = { include_all = false }
+        logs_query = {
+          type = {
+            field_value = {
+              observation_field = {
+                keypath = ["servicename"]
+                scope   = "user_data"
+              }
+            }
+          }
+        }
+      }
+    }
+    value = { multi_string = { selected_all = {} } }
+  }]
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.query.logs_query.type.field_value.observation_field.keypath.0", "servicename"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2SpansFieldValue(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [{
+    name         = "span"
+    display_name = "Span"
+    source = {
+      query = {
+        all_option = { include_all = false }
+        spans_query = {
+          type = {
+            field_value = {
+              observation_field = {
+                keypath = ["service.name"]
+                scope   = "user_data"
+              }
+            }
+          }
+        }
+      }
+    }
+    value = { multi_string = { selected_all = {} } }
+  }]
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.query.spans_query.type.field_value.observation_field.scope", "user_data"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2Metrics(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [{
+    name         = "metric"
+    display_name = "Metric"
+    source = {
+      query = {
+        all_option = { include_all = false }
+        metrics_query = {
+          type = { metric_name = { metric_regex = ".*" } }
+        }
+      }
+    }
+    value = { multi_string = { selected_all = {} } }
+  }]
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.query.metrics_query.type.metric_name.metric_regex", ".*"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2ValueDisplayOptions(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [{
+    name         = "svc"
+    display_name = "Service"
+    source = {
+      query = {
+        all_option = { include_all = false }
+        value_display_options = {
+          value_regex = ".*"
+        }
+        logs_query = {
+          type = {
+            field_value = {
+              observation_field = {
+                keypath = ["servicename"]
+                scope   = "user_data"
+              }
+            }
+          }
+        }
+      }
+    }
+    value = { multi_string = { selected_all = {} } }
+  }]
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.query.value_display_options.value_regex", ".*"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2Promql(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [{
+    name         = "prom"
+    display_name = "Prom"
+    source = {
+      query = {
+        all_option = { include_all = false }
+        metrics_query = {
+          type = { promql_query = { query = "vector(1)" } }
+        }
+      }
+    }
+    value = {
+      multi_string = {
+        list = {
+          values = [{ value = { value = "1", label = "one" } }]
+        }
+      }
+    }
+  }]
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.query.metrics_query.type.promql_query.query", "vector(1)"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.query.metrics_query.type.promql_query.promql_query_type", "instant"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				Config: testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [{
+    name         = "prom"
+    display_name = "Prom"
+    source = {
+      query = {
+        all_option = { include_all = false }
+        metrics_query = {
+          type = {
+            promql_query = {
+              query             = "vector(1)"
+              promql_query_type = "range"
+            }
+          }
+        }
+      }
+    }
+    value = {
+      multi_string = {
+        list = {
+          values = [{ value = { value = "1", label = "one" } }]
+        }
+      }
+    }
+  }]
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.query.metrics_query.type.promql_query.promql_query_type", "range"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2Dataprime(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [{
+    name         = "dp"
+    display_name = "DP"
+    source = {
+      query = {
+        all_option = { include_all = false }
+        dataprime_query = {
+          type = {
+            query_text = { query = "source logs | limit 10" }
+          }
+        }
+      }
+    }
+    value = { multi_string = { selected_all = {} } }
+  }]
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.query.dataprime_query.type.query_text.query", "source logs | limit 10"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.query.dataprime_query.type.query_text.data_mode_type", "high"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2MultiStringAll(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [{
+    name         = "svc"
+    display_name = "Service"
+    source = {
+      query = {
+        all_option = { include_all = true }
+        logs_query = {
+          type = {
+            field_value = {
+              observation_field = {
+                keypath = ["servicename"]
+                scope   = "user_data"
+              }
+            }
+          }
+        }
+      }
+    }
+    value = { multi_string = { all = {} } }
+  }]
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.value.multi_string.all.%", "0"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2MetricsLabelName(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [{
+    name         = "label_names"
+    display_name = "Label names"
+    source = {
+      query = {
+        all_option = { include_all = false }
+        metrics_query = {
+          type = { label_name = { metric_regex = "http_.*" } }
+        }
+      }
+    }
+    value = { multi_string = { selected_all = {} } }
+  }]
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.query.metrics_query.type.label_name.metric_regex", "http_.*"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardVariablesV2Layout(name) + `
+  variables_v2 = [
+    {
+      name         = "source_metric"
+      display_name = "Source metric"
+      source = {
+        static = {
+          all_option = { include_all = false }
+          values     = [{ value = "http_requests_total", is_default = true }]
+        }
+      }
+      value = {
+        single_string = { value = "http_requests_total", label = "http_requests_total" }
+      }
+    },
+    {
+      name         = "label_value"
+      display_name = "Label value"
+      source = {
+        query = {
+          all_option = { include_all = false }
+          metrics_query = {
+            type = {
+              label_value = {
+                metric_name = { variable_name = "source_metric" }
+                label_name  = { string_value = "service" }
+                label_filters = [
+                  {
+                    metric = { string_value = "http_requests_total" }
+                    label  = { string_value = "region" }
+                    operator = {
+                      type            = "not_equals"
+                      selected_values = [{ variable_name = "source_metric" }]
+                    }
+                  },
+                  {
+                    metric = { string_value = "http_requests_total" }
+                    label  = { string_value = "environment" }
+                    operator = {
+                      type            = "equals"
+                      selected_values = [{ string_value = "production" }]
+                    }
+                  },
+                ]
+              }
+            }
+          }
+        }
+      }
+      value = { multi_string = { selected_all = {} } }
+    },
+  ]
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.1.source.query.metrics_query.type.label_value.metric_name.variable_name", "source_metric"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.1.source.query.metrics_query.type.label_value.label_name.string_value", "service"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.1.source.query.metrics_query.type.label_value.label_filters.0.operator.type", "not_equals"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.1.source.query.metrics_query.type.label_value.label_filters.0.operator.selected_values.0.variable_name", "source_metric"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.1.source.query.metrics_query.type.label_value.label_filters.1.operator.type", "equals"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.1.source.query.metrics_query.type.label_value.label_filters.1.operator.selected_values.0.string_value", "production"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardVariablesV2TextboxValueConfig(name, `
+      textbox = {
+        default_value = {
+          default_numeric_value = { value = 42, min = 1, max = 100, is_integer = true }
+        }
+      }
+    `, `single_numeric = { value = 42, label = "42" }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.textbox.default_value.default_numeric_value.value", "42"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.value.single_numeric.value", "42"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				Config: testAccDashboardVariablesV2TextboxValueConfig(name, `
+      textbox = {
+        default_value = {
+          default_regex_value = { value = "error.*" }
+        }
+      }
+    `, `regex = { value = "error.*", label = "error.*" }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.textbox.default_value.default_regex_value.value", "error.*"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.value.regex.value", "error.*"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				Config: testAccDashboardVariablesV2TextboxValueConfig(name, `
+      textbox = {
+        default_value = {
+          default_lucene_value = { value = "severity:ERROR" }
+        }
+      }
+    `, `lucene = { value = "severity:ERROR", label = "severity:ERROR" }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.textbox.default_value.default_lucene_value.value", "severity:ERROR"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.textbox.default_value.default_lucene_value.data_mode_type", "high"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.value.lucene.value", "severity:ERROR"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				Config: testAccDashboardVariablesV2TextboxValueConfig(name, `
+      textbox = {
+        default_value = {
+          default_interval_value = { value = "1m" }
+        }
+      }
+    `, `interval = { value = "1m", label = "1m" }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.source.textbox.default_value.default_interval_value.value", "1m"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables_v2.0.value.interval.value", "1m"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccDashboardVariablesV2TextboxValueConfig(name, source, value string) string {
+	return testAccDashboardVariablesV2Layout(name) + fmt.Sprintf(`
+  variables_v2 = [{
+    name             = "typed"
+    display_name     = "Typed"
+    display_full_row = true
+    source = {
+%s
+    }
+    value = { %s }
+  }]
+}`, source, value)
+}
+
 func TestDashboardLegacyAcceptanceConfigsParse(t *testing.T) {
 	t.Parallel()
 	name := "tf-acc-dashboard-parse"

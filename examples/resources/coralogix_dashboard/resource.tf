@@ -566,25 +566,176 @@ resource "coralogix_dashboard" "dashboard" {
       },
     ]
   }
-  variables = [
+  # Prefer variables_v2 for new dashboards. Legacy `variables` remains available during migration.
+  variables_v2 = [
     {
-      name         = "test_variable"
-      display_name = "Test Variable"
-      definition = {
-        multi_select = {
-          selected_values = ["1", "2", "3"]
-          source = {
-            query = {
-              query = {
-                metrics = {
-                  metric_name = {
-                    metric_regex = "vector(1)"
-                  }
+      name         = "environment"
+      display_name = "Environment"
+      source = {
+        static = {
+          values_order_direction = "none"
+          all_option = {
+            include_all = false
+          }
+          values = [
+            {
+              value      = "production"
+              is_default = true
+            },
+            {
+              value = "staging"
+              label = "Staging"
+            },
+          ]
+        }
+      }
+      value = {
+        single_string = {
+          value = "production"
+          label = "production"
+        }
+      }
+    },
+    {
+      name             = "search"
+      display_name     = "Search"
+      display_full_row = true
+      source = {
+        textbox = {
+          default_value = {
+            default_string_value = {
+              value = "error"
+            }
+          }
+        }
+      }
+      value = {
+        single_string = {
+          value = "error"
+          label = "error"
+        }
+      }
+    },
+    {
+      name         = "service"
+      display_name = "Service"
+      source = {
+        query = {
+          all_option             = { include_all = false }
+          values_order_direction = "asc"
+          refresh_strategy       = "on_dashboard_load"
+          logs_query = {
+            type = {
+              field_value = {
+                observation_field = {
+                  keypath = ["servicename"]
+                  scope   = "user_data"
                 }
               }
             }
           }
-          values_order_direction = "asc"
+        }
+      }
+      value = {
+        multi_string = {
+          selected_all = {}
+        }
+      }
+    },
+    {
+      name         = "span_service"
+      display_name = "Span service"
+      source = {
+        query = {
+          all_option = { include_all = false }
+          spans_query = {
+            type = {
+              field_value = {
+                observation_field = {
+                  keypath = ["service.name"]
+                  scope   = "user_data"
+                }
+              }
+            }
+          }
+        }
+      }
+      value = {
+        multi_string = {
+          selected_all = {}
+        }
+      }
+    },
+    {
+      name         = "metric_name"
+      display_name = "Metric name"
+      source = {
+        query = {
+          all_option = { include_all = false }
+          metrics_query = {
+            type = {
+              metric_name = {
+                metric_regex = ".*"
+              }
+            }
+          }
+        }
+      }
+      value = {
+        multi_string = {
+          selected_all = {}
+        }
+      }
+    },
+    {
+      name         = "promql_values"
+      display_name = "PromQL values"
+      source = {
+        query = {
+          all_option = { include_all = false }
+          metrics_query = {
+            type = {
+              promql_query = {
+                query             = "vector(1)"
+                promql_query_type = "instant"
+              }
+            }
+          }
+        }
+      }
+      value = {
+        multi_string = {
+          list = {
+            values = [
+              {
+                value = {
+                  value = "1"
+                  label = "one"
+                }
+              },
+            ]
+          }
+        }
+      }
+    },
+    {
+      name         = "dataprime_values"
+      display_name = "DataPrime values"
+      source = {
+        query = {
+          all_option = { include_all = false }
+          dataprime_query = {
+            type = {
+              query_text = {
+                query = "source logs | limit 10"
+              }
+            }
+          }
+        }
+      }
+      value = {
+        multi_string = {
+          selected_all = {}
         }
       }
     },
