@@ -109,7 +109,15 @@ var (
 		"none":            dashboardservice.ORDERDIRECTION_ORDER_DIRECTION_NONE,
 	}
 	DashboardOrderDirectionProtoToSchema = utils.ReverseMap(DashboardOrderDirectionSchemaToProto)
-	DashboardValidOrderDirections        = utils.GetKeys(DashboardOrderDirectionSchemaToProto)
+	// The map carries every SDK value so a backend NONE flattens to "none"
+	// rather than an empty string, but the API rejects NONE on a data table's
+	// order_by ("Order direction must be specified") while accepting it for
+	// sort orders, so the two surfaces advertise different value sets.
+	DashboardValidOrderDirections = slices.DeleteFunc(
+		utils.GetKeys(DashboardOrderDirectionSchemaToProto),
+		func(direction string) bool { return direction == "none" },
+	)
+	DashboardValidSortOrderDirections = utils.GetKeys(DashboardOrderDirectionSchemaToProto)
 
 	DashboardValidMultiSelectSelectionTypes = []string{
 		"multi",

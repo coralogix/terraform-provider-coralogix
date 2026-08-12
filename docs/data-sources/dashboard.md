@@ -1151,7 +1151,7 @@ Read-Only:
 Read-Only:
 
 - `field` (String)
-- `order_direction` (String) The order direction. Can be one of ["asc" "desc" "none" "unspecified"].
+- `order_direction` (String) The order direction. Can be one of ["asc" "desc" "unspecified"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query"></a>
@@ -2362,7 +2362,7 @@ Read-Only:
 
 - `category` (String) Encoded as a JSON object string.
 - `query_value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy--query_value))
-- `strategy_type` (String)
+- `strategy_type` (String) Discriminator the API derives from the chosen strategy arm. Leave it unset; the backend populates it.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy--query_value"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.strategy.query_value`
@@ -3308,7 +3308,7 @@ Read-Only:
 
 - `category` (String) Encoded as a JSON object string.
 - `query_value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy--query_value))
-- `strategy_type` (String)
+- `strategy_type` (String) Discriminator the API derives from the chosen strategy arm. Leave it unset; the backend populates it.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy--query_value"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.strategy.query_value`

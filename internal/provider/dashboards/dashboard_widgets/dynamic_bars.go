@@ -81,9 +81,9 @@ func dynamicSortOrderSchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidOrderDirections...),
+					stringvalidator.OneOf(DashboardValidSortOrderDirections...),
 				},
-				MarkdownDescription: fmt.Sprintf("The sort order direction. Valid values are: %s.", strings.Join(DashboardValidOrderDirections, ", ")),
+				MarkdownDescription: fmt.Sprintf("The sort order direction. Valid values are: %s.", strings.Join(DashboardValidSortOrderDirections, ", ")),
 			},
 			"strategy": schema.SingleNestedAttribute{
 				Optional: true,
@@ -102,7 +102,9 @@ func dynamicSortOrderSchema() schema.Attribute {
 						},
 					},
 					"strategy_type": schema.StringAttribute{
-						Optional: true,
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Discriminator the API derives from the chosen strategy arm. Leave it unset; the backend populates it.",
 					},
 				},
 				Validators: []validator.Object{

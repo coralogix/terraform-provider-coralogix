@@ -734,6 +734,91 @@ func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceDashboardLegacyWidenedEnums(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	dataTablePrefix := "layout.sections.0.rows.0.widgets.0.definition.data_table."
+	lineChartPrefix := "layout.sections.0.rows.0.widgets.1.definition.line_chart."
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardWithWidget(name, `{
+  title = "data_table_order_direction_none"
+  definition = {
+    data_table = {
+      results_per_page = 20
+      row_style        = "one_line"
+      order_by = {
+        field           = "coralogix.timestamp"
+        order_direction = "desc"
+      }
+      columns = [
+        { field = "coralogix.timestamp" },
+        { field = "coralogix.text" },
+      ]
+      query = {
+        logs = {
+          lucene_query = "*"
+        }
+      }
+    }
+  }
+},
+{
+  title = "line_chart_widened_enums"
+  definition = {
+    line_chart = {
+      legend = {
+        is_visible = true
+        columns    = ["simple_value", "max"]
+        placement  = "auto"
+      }
+      query_definitions = [{
+        unit               = "percent"
+        series_count_limit = 50
+        query = {
+          metrics = {
+            promql_query = "vector(1)"
+          }
+        }
+      }, {
+        unit = "datetime_iso"
+        query = {
+          metrics = {
+            promql_query = "vector(2)"
+          }
+        }
+      }]
+    }
+  }
+}`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, dataTablePrefix+"order_by.field", "coralogix.timestamp"),
+					resource.TestCheckResourceAttr(dashboardResourceName, dataTablePrefix+"order_by.order_direction", "desc"),
+					resource.TestCheckResourceAttr(dashboardResourceName, lineChartPrefix+"legend.columns.0", "simple_value"),
+					resource.TestCheckResourceAttr(dashboardResourceName, lineChartPrefix+"legend.columns.1", "max"),
+					resource.TestCheckResourceAttr(dashboardResourceName, lineChartPrefix+"query_definitions.0.unit", "percent"),
+					resource.TestCheckResourceAttr(dashboardResourceName, lineChartPrefix+"query_definitions.0.series_count_limit", "50"),
+					resource.TestCheckResourceAttr(dashboardResourceName, lineChartPrefix+"query_definitions.1.unit", "datetime_iso"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardDataTableWidgetObservationFieldFilter(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 	resource.ParallelTest(t, resource.TestCase{

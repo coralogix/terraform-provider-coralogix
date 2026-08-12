@@ -588,3 +588,548 @@ func testAccCoralogixResourceDashboardDynamicVisualizationConfig(name string, wi
 }
 `, name, builder.String())
 }
+
+func TestAccCoralogixResourceDashboardDynamicQuerySources(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	spansPrefix := "layout.sections.0.rows.0.widgets.0.definition.dynamic.query_definitions.0.query.spans."
+	dataPrimePrefix := "layout.sections.0.rows.0.widgets.1.definition.dynamic.query_definitions.0.query.data_prime."
+	metricsExplicitPrefix := "layout.sections.0.rows.1.widgets.0.definition.dynamic.query_definitions.0.query.metrics."
+	metricsDefaultPrefix := "layout.sections.0.rows.1.widgets.1.definition.dynamic.query_definitions.0.query.metrics."
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardDynamicQuerySourcesConfig(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "dynamic spans"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"lucene_query", "*"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.keypath.0", "service"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.keypath.1", "name"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.scope", "user_data"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.relation_type", "unspecified"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"aggregations.0.type", "count"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.observation_field.keypath.0", "status"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.observation_field.keypath.1", "code"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.observation_field.scope", "user_data"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.observation_field.relation_type", "unspecified"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, spansPrefix+"filters.0.field"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.operator.type", "equals"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.operator.selected_values.0", "error"),
+					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"data_mode_type", "unspecified"),
+
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.title", "dynamic data prime"),
+					resource.TestCheckResourceAttr(dashboardResourceName, dataPrimePrefix+"query", "source logs | limit 10"),
+					resource.TestCheckResourceAttr(dashboardResourceName, dataPrimePrefix+"data_mode_type", "unspecified"),
+
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.title", "dynamic metrics explicit"),
+					resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"promql_query", "vector(1)"),
+					resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"promql_query_type", "instant"),
+					resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"editor_mode", "text"),
+					resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"series_limit_type", "by_series_count"),
+
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.1.title", "dynamic metrics defaults"),
+					resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"promql_query", "vector(2)"),
+					resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"promql_query_type", "unspecified"),
+					resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"editor_mode", "unspecified"),
+					resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"series_limit_type", "unspecified"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceDashboardDynamicQuerySourcesConfig(name string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "dynamic query source acceptance coverage"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [
+        {
+          height = 19
+          widgets = [
+            {
+              title = "dynamic spans"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "spans errors"
+                    query = {
+                      spans = {
+                        lucene_query = "*"
+                        group_by = [{
+                          keypath = ["service", "name"]
+                          scope   = "user_data"
+                        }]
+                        aggregations = [{
+                          type = "count"
+                        }]
+                        filters = [{
+                          observation_field = {
+                            keypath = ["status", "code"]
+                            scope   = "user_data"
+                          }
+                          operator = {
+                            type            = "equals"
+                            selected_values = ["error"]
+                          }
+                        }]
+                      }
+                    }
+                  }]
+                  visualization = {
+                    pie_chart = {
+                      show_total = true
+                    }
+                  }
+                }
+              }
+            },
+            {
+              title = "dynamic data prime"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "dataprime logs"
+                    query = {
+                      data_prime = {
+                        query = "source logs | limit 10"
+                      }
+                    }
+                  }]
+                  visualization = {
+                    pie_chart = {
+                      show_total = true
+                    }
+                  }
+                }
+              }
+            },
+          ]
+        },
+        {
+          height = 19
+          widgets = [
+            {
+              title = "dynamic metrics explicit"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "metrics explicit"
+                    query = {
+                      metrics = {
+                        promql_query      = "vector(1)"
+                        promql_query_type = "instant"
+                        editor_mode       = "text"
+                        series_limit_type = "by_series_count"
+                      }
+                    }
+                  }]
+                  visualization = {
+                    time_series_lines = {
+                      connect_nulls = true
+                    }
+                  }
+                }
+              }
+            },
+            {
+              title = "dynamic metrics defaults"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "metrics defaults"
+                    query = {
+                      metrics = {
+                        promql_query = "vector(2)"
+                      }
+                    }
+                  }]
+                  visualization = {
+                    time_series_lines = {
+                      connect_nulls = true
+                    }
+                  }
+                }
+              }
+            },
+          ]
+        },
+      ]
+    }]
+  }
+}
+`, name)
+}
+
+const (
+	dashboardDynamicSeriesLimitQueryID     = "40000000-0000-4000-8000-000000000001"
+	dashboardDynamicSeriesLimitDisplayUnit = "datetime_iso"
+)
+
+func TestAccCoralogixResourceDashboardOrderDirectionNone(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	barsPrefix := "layout.sections.0.rows.0.widgets.0.definition.dynamic.visualization.vertical_bars_multi."
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardOrderDirectionNoneConfig(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, barsPrefix+"sort_order.order_direction", "none"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.values_order_direction", "none"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+var dashboardDynamicSortStrategyArms = []struct {
+	name         string
+	body         string
+	strategyType string
+}{
+	{
+		name:         "category",
+		body:         `category = "{}"`,
+		strategyType: "",
+	},
+	{
+		name: "category-explicit-discriminator",
+		body: `category      = "{}"
+                        strategy_type = "STRATEGY_TYPE_CATEGORY"`,
+		strategyType: "STRATEGY_TYPE_CATEGORY",
+	},
+	{
+		name: "query-value",
+		body: `query_value = {
+                          query_id = "` + dashboardDynamicSortStrategyQueryID + `"
+                        }`,
+		strategyType: "",
+	},
+}
+
+const dashboardDynamicSortStrategyQueryID = "40000000-0000-4000-8000-000000000002"
+
+func TestAccCoralogixResourceDashboardDynamicBarsSortOrderStrategy(t *testing.T) {
+	t.Parallel()
+
+	for _, arm := range dashboardDynamicSortStrategyArms {
+		arm := arm
+		t.Run(arm.name, func(t *testing.T) {
+			name := dashboardOpenAPIFixtureName(t.Name())
+			prefix := "layout.sections.0.rows.0.widgets.0.definition.dynamic.visualization.vertical_bars_multi.sort_order."
+			resource.ParallelTest(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				CheckDestroy:             testAccCheckDashboardDestroy(t),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccCoralogixResourceDashboardDynamicSortStrategyConfig(name, arm.body),
+						Check: resource.ComposeAggregateTestCheckFunc(
+							resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+							resource.TestCheckResourceAttr(dashboardResourceName, prefix+"order_direction", "desc"),
+							resource.TestCheckResourceAttr(dashboardResourceName, prefix+"strategy.strategy_type", arm.strategyType),
+						),
+						ConfigPlanChecks: resource.ConfigPlanChecks{
+							PostApplyPostRefresh: []plancheck.PlanCheck{
+								plancheck.ExpectEmptyPlan(),
+							},
+						},
+					},
+					{
+						ResourceName:      dashboardResourceName,
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
+				},
+			})
+		})
+	}
+}
+
+func testAccCoralogixResourceDashboardDynamicSortStrategyConfig(name, strategy string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "dynamic bars sort order strategy acceptance coverage"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          title = "dynamic vertical bars multi sort strategy"
+          definition = {
+            dynamic = {
+              query_definitions = [{
+                id   = %q
+                name = "errors"
+                query = {
+                  logs = {
+                    lucene_query = "*"
+                    aggregations = [{
+                      type = "count"
+                    }]
+                  }
+                }
+              }]
+              visualization = {
+                vertical_bars_multi = {
+                  max_bars_per_chart = 10
+                  sort_order = {
+                    order_direction = "desc"
+                    strategy = {
+                      %s
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name, dashboardDynamicSortStrategyQueryID, strategy)
+}
+
+func testAccCoralogixResourceDashboardOrderDirectionNoneConfig(name string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "order direction none acceptance coverage"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  variables = [{
+    name         = "subsystem"
+    display_name = "Subsystem"
+    definition = {
+      multi_select = {
+        selected_values        = ["staging"]
+        values_order_direction = "none"
+        source = {
+          constant_list = ["staging", "production"]
+        }
+      }
+    }
+  }]
+  layout = {
+    sections = [{
+      rows = [
+        {
+          height = 19
+          widgets = [
+            {
+              title = "dynamic vertical bars multi sort order none"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "errors"
+                    query = {
+                      logs = {
+                        lucene_query = "*"
+                        aggregations = [{
+                          type = "count"
+                        }]
+                      }
+                    }
+                  }]
+                  visualization = {
+                    vertical_bars_multi = {
+                      max_bars_per_chart = 10
+                      sort_order = {
+                        order_direction = "none"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+          ]
+        },
+      ]
+    }]
+  }
+}
+`, name)
+}
+
+func TestAccCoralogixResourceDashboardDynamicSeriesCountLimit(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	linesPrefix := "layout.sections.0.rows.0.widgets.0.definition.dynamic.visualization.time_series_lines."
+	multiPrefix := "layout.sections.0.rows.0.widgets.1.definition.dynamic.visualization.time_series_lines_multi."
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardDynamicSeriesCountLimitConfig(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "dynamic lines series count limit"),
+					resource.TestCheckResourceAttr(dashboardResourceName, linesPrefix+"series_count_limit", "100"),
+					resource.TestCheckResourceAttr(dashboardResourceName, linesPrefix+"unit", "percent"),
+					resource.TestCheckResourceAttr(dashboardResourceName, linesPrefix+"legend.columns.0", "simple_value"),
+					resource.TestCheckResourceAttr(dashboardResourceName, linesPrefix+"legend.columns.1", "max"),
+					resource.TestCheckResourceAttr(dashboardResourceName, linesPrefix+"legend.is_visible", "true"),
+
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.title", "dynamic lines multi series count limit"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.dynamic.query_definitions.0.id", dashboardDynamicSeriesLimitQueryID),
+					resource.TestCheckResourceAttr(dashboardResourceName, multiPrefix+"query_display_settings.0.query_id", dashboardDynamicSeriesLimitQueryID),
+					resource.TestCheckResourceAttr(dashboardResourceName, multiPrefix+"query_display_settings.0.series_count_limit", "250"),
+					resource.TestCheckResourceAttr(dashboardResourceName, multiPrefix+"query_display_settings.0.unit", dashboardDynamicSeriesLimitDisplayUnit),
+					resource.TestCheckResourceAttr(dashboardResourceName, multiPrefix+"legend.columns.0", "simple_value"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceDashboardDynamicSeriesCountLimitConfig(name string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "dynamic series count limit acceptance coverage"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [
+        {
+          height = 19
+          widgets = [
+            {
+              title = "dynamic lines series count limit"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "latency"
+                    query = {
+                      logs = {
+                        lucene_query = "*"
+                        group_by = [{
+                          keypath = ["subsystemname"]
+                          scope   = "label"
+                        }]
+                        aggregations = [{
+                          type  = "avg"
+                          field = "meta.responseTime.numeric"
+                        }]
+                      }
+                    }
+                  }]
+                  visualization = {
+                    time_series_lines = {
+                      connect_nulls      = true
+                      series_count_limit = 100
+                      unit               = "percent"
+                      legend = {
+                        is_visible = true
+                        columns    = ["simple_value", "max"]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              title = "dynamic lines multi series count limit"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    id   = %q
+                    name = "errors"
+                    query = {
+                      logs = {
+                        lucene_query = "*"
+                        group_by = [{
+                          keypath = ["applicationname"]
+                          scope   = "label"
+                        }]
+                        aggregations = [{
+                          type = "count"
+                        }]
+                      }
+                    }
+                  }]
+                  visualization = {
+                    time_series_lines_multi = {
+                      connect_nulls = true
+                      legend = {
+                        is_visible = true
+                        columns    = ["simple_value"]
+                      }
+                      query_display_settings = [{
+                        query_id           = %q
+                        series_count_limit = 250
+                        unit               = %q
+                      }]
+                    }
+                  }
+                }
+              }
+            },
+          ]
+        },
+      ]
+    }]
+  }
+}
+`, name, dashboardDynamicSeriesLimitQueryID, dashboardDynamicSeriesLimitQueryID, dashboardDynamicSeriesLimitDisplayUnit)
+}
