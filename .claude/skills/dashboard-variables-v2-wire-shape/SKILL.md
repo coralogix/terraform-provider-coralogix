@@ -19,6 +19,7 @@ description: "Use when expanding/flattening coralogix_dashboard variables_v2, or
 - empty `value_display_options`: schema `AtLeastOneOfChildren` rejects `{}` (Framework cannot plan null when config keeps the block; omit the block or set a regex)
 - empty `multi_string.list.values` → flatten known empty list, not null (values is Required)
 - enums (`display_type`, order, refresh, data_mode) → `OptionalEnumPointer` (never pointer-to-empty)
+- OpenAPI-required fields (`VariableV2` id/name/display_name/display_type/source/value, static/query all_option + values_order_direction, ValueLabel value/label, AllOption.include_all, logs FieldValue.observation_field, metrics LabelValue.label_name) are non-pointer SDK values — expand with `requiredEnumValue` / `derefOrZero` / `ValueString()`, flatten by address (`&variable.Source`) and `types.StringValue` / `types.BoolValue`. TF schema stays Optional+Computed+Default where already defaulted; do not re-mark schema Required just because the Go type lost `*`.
 - static `values[].label`: Optional+Computed + `StaticValueLabelFromValue` (omit → plan=`value`). Flatten always stores API label (incl. label==value). Never `UseStateForUnknown` — needed for omit→set→omit and omit→value-change. Expand still copies `value` if label null/unknown.
 On flatten, fill missing oneof siblings as null from schema AttrTypes (API omits unset arms).
 
