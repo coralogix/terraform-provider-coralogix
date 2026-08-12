@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
@@ -1304,6 +1305,31 @@ func TestDynamicWidgetGeomapUnionArmsRoundTrip(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			assertDynamicRoundTrip(ctx, t, geomapWith(mutate))
+		})
+	}
+}
+
+func TestObjectValidatorsDeferOnUnknownConfig(t *testing.T) {
+	ctx := context.Background()
+
+	for name, tc := range map[string]struct {
+		validate  func(context.Context, validator.ObjectRequest, *validator.ObjectResponse)
+		attrTypes map[string]attr.Type
+	}{
+		"logs_aggregation":  {validate: logsAggregationValidator{}.ValidateObject, attrTypes: AggregationModelAttr()},
+		"spans_aggregation": {validate: spansAggregationValidator{}.ValidateObject, attrTypes: SpansAggregationModelAttr()},
+		"filter_operator":   {validate: filterOperatorValidator{}.ValidateObject, attrTypes: FilterOperatorModelAttr()},
+		"spans_field":       {validate: spansFieldValidator{}.ValidateObject, attrTypes: SpansFieldModelAttr()},
+	} {
+		t.Run(name, func(t *testing.T) {
+			resp := &validator.ObjectResponse{}
+			tc.validate(ctx, validator.ObjectRequest{
+				ConfigValue: types.ObjectUnknown(tc.attrTypes),
+			}, resp)
+
+			if resp.Diagnostics.HasError() {
+				t.Fatalf("unknown object produced diagnostics instead of deferring: %v", resp.Diagnostics.Errors())
+			}
 		})
 	}
 }

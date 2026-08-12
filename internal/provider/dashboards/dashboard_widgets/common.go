@@ -1481,7 +1481,7 @@ func (s spansFieldValidator) MarkdownDescription(ctx context.Context) string {
 }
 
 func (s spansFieldValidator) ValidateObject(ctx context.Context, request validator.ObjectRequest, response *validator.ObjectResponse) {
-	if request.ConfigValue.IsNull() {
+	if request.ConfigValue.IsNull() || request.ConfigValue.IsUnknown() {
 		return
 	}
 
@@ -1512,7 +1512,7 @@ func (f filterOperatorValidator) MarkdownDescription(_ context.Context) string {
 }
 
 func (f filterOperatorValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-	if req.ConfigValue.IsNull() {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}
 
@@ -1547,7 +1547,7 @@ func (s spansAggregationValidator) MarkdownDescription(ctx context.Context) stri
 }
 
 func (s spansAggregationValidator) ValidateObject(ctx context.Context, request validator.ObjectRequest, response *validator.ObjectResponse) {
-	if request.ConfigValue.IsNull() {
+	if request.ConfigValue.IsNull() || request.ConfigValue.IsUnknown() {
 		return
 	}
 
@@ -1577,7 +1577,7 @@ func (l logsAggregationValidator) MarkdownDescription(ctx context.Context) strin
 }
 
 func (l logsAggregationValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-	if req.ConfigValue.IsNull() {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}
 
