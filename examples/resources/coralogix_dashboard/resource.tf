@@ -894,6 +894,51 @@ resource "coralogix_dashboard" "widgets" {
           }
         }]
       }]
+      },
+      {
+        # A `dynamic` widget pairs one or more `query_definitions` with a single
+        # `visualization`. Each query picks exactly one source (logs here), and the
+        # widget picks exactly one visualization.
+        rows = [{
+          height = 19
+          widgets = [{
+            title = "dynamic stat - error volume"
+            definition = {
+              dynamic = {
+                query_definitions = [{
+                  name = "errors"
+                  query = {
+                    logs = {
+                      lucene_query = "coralogix.metadata.severity=\"5\" OR coralogix.metadata.severity=\"6\""
+                      group_by = [{
+                        keypath = ["subsystemname"]
+                        scope   = "label"
+                      }]
+                      aggregations = [{
+                        type = "count"
+                      }]
+                    }
+                  }
+                }]
+                time_frame = {
+                  relative = {
+                    duration = "seconds:900"
+                  }
+                }
+                visualization = {
+                  stat = {
+                    decimal_precision = 0
+                    threshold_type    = "absolute"
+                    thresholds = [
+                      { from = 0, color = "green" },
+                      { from = 1000, color = "red" },
+                    ]
+                  }
+                }
+              }
+            }
+          }]
+        }]
     }]
   }
 }

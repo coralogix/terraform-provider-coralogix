@@ -192,7 +192,7 @@ func TestAccCoralogixResourceDashboardRESTCreatedUnsupportedDynamicHydration(t *
 	dashboardName := dashboardOpenAPIFixtureName(fixture)
 	variables := config.Variables{}
 	var dashboardID string
-	diagnostic := regexp.MustCompile(`(?s)Unsupported Dashboard Widget Definition.*dynamic.*content_json.*import.*data-source`)
+	diagnostic := regexp.MustCompile(`(?s)Unsupported Dashboard Widget Definition.*dynamic widget.*content_json`)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {

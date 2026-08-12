@@ -34,8 +34,11 @@ import (
 func ObservationFieldSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"keypath": schema.ListAttribute{
-			ElementType:         types.StringType,
-			Required:            true,
+			ElementType: types.StringType,
+			Required:    true,
+			Validators: []validator.List{
+				listvalidator.SizeAtLeast(1),
+			},
 			MarkdownDescription: "Ordered path segments. Single element for literal-dot identifiers (`[\"log.level\"]`); multiple elements for nested paths (`[\"meta\",\"responseTime\"]`).",
 		},
 		"scope": schema.StringAttribute{

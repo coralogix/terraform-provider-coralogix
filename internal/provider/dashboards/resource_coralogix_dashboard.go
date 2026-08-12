@@ -2111,6 +2111,8 @@ func expandWidgetDefinition(ctx context.Context, definition *dashboardwidgets.Wi
 		return dashboardwidgets.ExpandHexagon(ctx, definition.Hexagon)
 	case definition.LineChart != nil:
 		return dashboardwidgets.ExpandLineChart(ctx, definition.LineChart)
+	case definition.Dynamic != nil:
+		return dashboardwidgets.ExpandDynamic(ctx, definition.Dynamic)
 	case definition.DataTable != nil:
 		return dashboardwidgets.ExpandDataTable(ctx, definition.DataTable)
 	case definition.BarChart != nil:
@@ -4013,6 +4015,7 @@ func widgetModelAttr() map[string]attr.Type {
 				"hexagon":    dashboardwidgets.HexagonType(),
 				"line_chart": dashboardwidgets.LineChartType(),
 				"data_table": dashboardwidgets.DataTableType(),
+				"dynamic":    dashboardwidgets.DynamicType(),
 				"gauge": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
 						"query": types.ObjectType{
@@ -4931,10 +4934,7 @@ func flattenDashboardWidgetDefinition(ctx context.Context, definition *dashboard
 	case definition.Markdown != nil:
 		return flattenMarkdown(definition.Markdown), nil
 	case definition.Dynamic != nil:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
-			"Unsupported Dashboard Widget Definition",
-			"The backend returned a dynamic widget. Dynamic widgets are supported only when configuring content_json; import and data-source reads cannot reconstruct content_json as structured Terraform state.",
-		)}
+		return dashboardwidgets.FlattenDynamic(ctx, definition.Dynamic)
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Widget Definition", "unknown widget definition type")}
 	}

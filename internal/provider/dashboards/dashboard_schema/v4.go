@@ -121,6 +121,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 															"line_chart": dashboardwidgets.LineChartSchema(),
 															"hexagon":    dashboardwidgets.HexagonSchema(),
 															"data_table": dashboardwidgets.DataTableSchema(),
+															"dynamic":    dashboardwidgets.DynamicSchema(),
 															"gauge": schema.SingleNestedAttribute{
 																Attributes: map[string]schema.Attribute{
 																	"query": schema.SingleNestedAttribute{
