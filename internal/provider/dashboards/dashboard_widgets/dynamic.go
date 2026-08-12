@@ -249,6 +249,7 @@ func DynamicSchema() schema.Attribute {
 			"interpretation": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
+				Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 				DeprecationMessage:  "Deprecated: superseded by the visualization block.",
 				MarkdownDescription: fmt.Sprintf("Deprecated: superseded by the `visualization` block. Retained at full fidelity for importing dashboards that still set it. Valid values are: %s.", strings.Join(dashboardValidInterpretation, ", ")),
 				Validators: []validator.String{

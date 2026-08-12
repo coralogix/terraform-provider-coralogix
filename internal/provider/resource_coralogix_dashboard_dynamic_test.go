@@ -52,6 +52,7 @@ func TestAccCoralogixResourceDashboardDynamicWidget(t *testing.T) {
 					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.dynamic.visualization.table.rules.0.properties.0.definition.alignment"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.title", "dynamic time series"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.dynamic.visualization.time_series_lines_multi.stacked_line", "absolute"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.dynamic.interpretation", "trend_over_time_line"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.dynamic.query_definitions.0.query.logs.aggregations.0.field", "meta.responseTime.numeric"),
 				),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -88,6 +89,7 @@ func TestAccCoralogixResourceDashboardDynamicWidget(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.dynamic.visualization.time_series_lines_multi.stacked_line", "unspecified"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.dynamic.visualization.time_series_lines_multi.x_axis_time_format", "unspecified"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.dynamic.interpretation", "unspecified"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.dynamic.visualization.time_series_lines_multi.connect_nulls", "true"),
 				),
 			},
@@ -102,10 +104,13 @@ func TestAccCoralogixResourceDashboardDynamicWidget(t *testing.T) {
 
 func testAccCoralogixResourceDashboardDynamicWidgets(name, statTitle, statThresholds string, setTimeSeriesOptionalEnums bool) string {
 	timeSeriesOptionalEnums := ""
+	dynamicInterpretation := ""
 	if setTimeSeriesOptionalEnums {
 		timeSeriesOptionalEnums = `
                     stacked_line       = "absolute"
                     x_axis_time_format = "hh_mm"`
+		dynamicInterpretation = `
+                interpretation = "trend_over_time_line"`
 	}
 	return fmt.Sprintf(`resource "coralogix_dashboard" "test" {
   name        = %q
@@ -222,7 +227,7 @@ func testAccCoralogixResourceDashboardDynamicWidgets(name, statTitle, statThresh
                       }]
                     }
                   }
-                }]
+                }]%s
                 visualization = {
                   time_series_lines_multi = {
                     connect_nulls      = true%s
@@ -240,7 +245,7 @@ func testAccCoralogixResourceDashboardDynamicWidgets(name, statTitle, statThresh
     }]
   }
 }
-`, name, statTitle, statThresholds, timeSeriesOptionalEnums)
+`, name, statTitle, statThresholds, dynamicInterpretation, timeSeriesOptionalEnums)
 }
 
 // dashboardDynamicVisualizationSpec describes one dynamic visualization branch

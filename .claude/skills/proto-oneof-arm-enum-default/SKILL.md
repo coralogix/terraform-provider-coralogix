@@ -1,6 +1,6 @@
 ---
 name: proto-oneof-arm-enum-default
-description: "Use when a Coralogix dashboard/widget create or update fails with 'at most one of [a, b, c] may be set' from a generated MarshalJSON, or when adding an Optional+Computed enum whose field is a protobuf oneof arm. Explains why a stringdefault of unspecified permanently breaks the union."
+description: "Use when an apply fails with 'at most one of [a, b, c] may be set', or when giving a schema Default to an enum whose proto field is a oneof arm."
 ---
 
 # A oneof arm must never carry a schema Default
