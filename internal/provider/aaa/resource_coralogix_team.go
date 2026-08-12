@@ -26,7 +26,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	teamss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/teams_service"
+	teamsservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/teams_service"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
@@ -45,7 +45,7 @@ func NewTeamResource() resource.Resource {
 }
 
 type TeamResource struct {
-	client *teamss.TeamsServiceAPIService
+	client *teamsservice.TeamsServiceAPIService
 }
 
 func (r *TeamResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -118,7 +118,7 @@ type TeamResourceModel struct {
 
 // teamIDValue extracts the numeric ID from a V2TeamId value. GetId() has a pointer
 // receiver, so a temporary variable is required to make the value addressable.
-func teamIDValue(id teamss.V2TeamId) int64 {
+func teamIDValue(id teamsservice.V2TeamId) int64 {
 	return id.GetId()
 }
 
@@ -173,14 +173,14 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractCreateTeam(plan *TeamResourceModel) (*teamss.TeamServiceCreateTeamInOrgRequest, diag.Diagnostics) {
+func extractCreateTeam(plan *TeamResourceModel) (*teamsservice.TeamServiceCreateTeamInOrgRequest, diag.Diagnostics) {
 	var dailyQuota *float64
 	if !(plan.DailyQuota.IsUnknown() || plan.DailyQuota.IsNull()) {
 		dailyQuota = new(float64)
 		*dailyQuota = plan.DailyQuota.ValueFloat64()
 	}
 
-	return &teamss.TeamServiceCreateTeamInOrgRequest{
+	return &teamsservice.TeamServiceCreateTeamInOrgRequest{
 		TeamName:   plan.Name.ValueString(),
 		DailyQuota: dailyQuota,
 	}, nil
@@ -285,7 +285,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractUpdateTeam(plan *TeamResourceModel) (int64, *teamss.TeamServiceUpdateTeamRequest, diag.Diagnostics) {
+func extractUpdateTeam(plan *TeamResourceModel) (int64, *teamsservice.TeamServiceUpdateTeamRequest, diag.Diagnostics) {
 	dailyQuota := new(float64)
 	*dailyQuota = plan.DailyQuota.ValueFloat64()
 
@@ -297,7 +297,7 @@ func extractUpdateTeam(plan *TeamResourceModel) (int64, *teamss.TeamServiceUpdat
 	teamName := new(string)
 	*teamName = plan.Name.ValueString()
 
-	return teamId, &teamss.TeamServiceUpdateTeamRequest{
+	return teamId, &teamsservice.TeamServiceUpdateTeamRequest{
 		TeamName:   teamName,
 		DailyQuota: dailyQuota,
 	}, nil

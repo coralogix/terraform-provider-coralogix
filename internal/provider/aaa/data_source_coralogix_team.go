@@ -26,7 +26,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	teamss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/teams_service"
+	teamsservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/teams_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -41,7 +41,7 @@ func NewTeamDataSource() datasource.DataSource {
 }
 
 type TeamDataSource struct {
-	client *teamss.TeamsServiceAPIService
+	client *teamsservice.TeamsServiceAPIService
 }
 
 func (d *TeamDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {

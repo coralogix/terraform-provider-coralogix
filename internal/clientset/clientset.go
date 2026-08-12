@@ -49,7 +49,7 @@ import (
 	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
 	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
 	teamGroupss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/team_groups_management_service"
-	teamss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/teams_service"
+	teamsservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/teams_service"
 
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
@@ -91,7 +91,7 @@ type ClientSet struct {
 	grafana               *GrafanaClient
 	groups                *GroupsClient
 	teamGroups            *teamGroupss.TeamGroupsManagementServiceAPIService
-	teams                 *teamss.TeamsServiceAPIService
+	teams                 *teamsservice.TeamsServiceAPIService
 }
 
 func (c *ClientSet) ParsingRuleGroups() *prgs.RuleGroupsServiceAPIService {
@@ -219,7 +219,7 @@ func (c *ClientSet) LegacySLOs() *cxsdk.LegacySLOsClient {
 	return c.legacySlos
 }
 
-func (c *ClientSet) Teams() *teamss.TeamsServiceAPIService {
+func (c *ClientSet) Teams() *teamsservice.TeamsServiceAPIService {
 	return c.teams
 }
 
