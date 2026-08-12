@@ -63,6 +63,9 @@ func SpansFilterSchema() schema.Attribute {
 			},
 		},
 		Optional: true,
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
 	}
 }
 

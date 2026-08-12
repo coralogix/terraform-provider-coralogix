@@ -368,6 +368,30 @@ func testAccCoralogixResourceDashboardDynamicStatConfig(name, statTitle, statThr
 func TestAccCoralogixResourceDashboardDynamicRejectsEmptyLists(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 
+	t.Run("spans_filters", func(t *testing.T) {
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { testAccPreCheck(t) },
+			ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+			Steps: []resource.TestStep{{
+				Config: fmt.Sprintf(`resource "coralogix_dashboard" "test" {
+  name = %q
+  layout = { sections = [{ rows = [{
+    height = 19
+    widgets = [{
+      title = "empty spans filters"
+      definition = { dynamic = {
+        query_definitions = [{ query = { spans = { lucene_query = "*", filters = [] } } }]
+        visualization     = { stat = {} }
+      }}
+    }]
+  }] }] }
+}
+`, name),
+				ExpectError: regexp.MustCompile(`(?s)list must contain at least 1 element`),
+			}},
+		})
+	})
+
 	for attribute, visualization := range map[string]string{
 		"thresholds":                `stat = { thresholds = [] }`,
 		"category_fields":           `stat = { category_fields = [] }`,
