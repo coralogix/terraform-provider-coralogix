@@ -93,6 +93,7 @@ var dashboardStructuredAcceptanceLifecycleTests = []string{
 	dashboardOpenAPIVariablesTestName,
 	dashboardOpenAPIAnnotationsTestName,
 	dashboardOpenAPITransitionTestName,
+	dashboardOpenAPIDynamicStatTestName,
 }
 
 func covered(path, testName string) dashboardOneOfBranchCoverage {
@@ -205,12 +206,23 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		variable      = "variables[*].definition.multi_select"
 		variableQuery = variable + ".source.query.query"
 		filter        = widget + ".*.query.*.filters[*]"
+		dynamicWidget = widget + ".dynamic"
+		dynamicQuery  = dynamicWidget + ".query_definitions[*].query"
 	)
+
+	visualization := observedAPIOnlyModel(
+		"ast/widgets/dynamic.proto#Dynamic.Visualization.value",
+		"the structured provider models only the stat visualization of WidgetDefinition.dynamic; the remaining branches stay content_json-only, and import and data-source reads reject them instead of writing partial structured state",
+		dashboardContentJSONDynamicQueriesTableTestName,
+		[]string{"table"},
+		"table", "timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti", "statCard",
+	)
+	visualization.Branches["stat"] = covered(dynamicWidget+".visualization.stat", dashboardOpenAPIDynamicStatTestName)
 
 	return map[string]dashboardOneOfModelCoverage{
 		"ActionDefinition": apiOnlyModel(
 			"common/action.proto#ActionDefinition.type",
-			"action definitions are reachable only below WidgetDefinition.dynamic, which the structured provider does not expose or flatten",
+			"action definitions are reachable only below Dashboard.actions, which is absent from the structured coralogix_dashboard schema and both converters",
 			"customAction", "goToDashboardAction",
 		),
 		"AnnotationSource": {
@@ -293,13 +305,15 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			"display-name template variables are reachable only below WidgetDefinition.dynamic",
 			"observationField", "mappedValues",
 		),
-		"DynamicQuery": observedAPIOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Query.value",
-			"WidgetDefinition.dynamic is reachable through content_json but is not exposed or flattened by the structured provider; import and data-source reads have no content_json plan to preserve",
-			dashboardContentJSONDynamicQueriesTableTestName,
-			[]string{"logs", "metrics", "spans"},
-			"logs", "spans", "metrics", "dataprime",
-		),
+		"DynamicQuery": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Query.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"logs":      covered(dynamicQuery+".logs", dashboardOpenAPIDynamicStatTestName),
+				"spans":     covered(dynamicQuery+".spans", dashboardOpenAPIDynamicStatTestName),
+				"metrics":   covered(dynamicQuery+".metrics", dashboardOpenAPIDynamicStatTestName),
+				"dataprime": covered(dynamicQuery+".data_prime", dashboardOpenAPIDynamicStatTestName),
+			},
+		},
 		"EqualsSelection": {
 			ProtoSource: "ast/filters/filter.proto#Filter.Equals.Selection.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -657,13 +671,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"interval":      covered("variables_v2[*].value.interval", "TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes"),
 			},
 		},
-		"Visualization": observedAPIOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.value",
-			"all Visualization branches are children of WidgetDefinition.dynamic, which is reachable through content_json but absent from the structured schema and flattener; import and data-source reads cannot reconstruct it",
-			dashboardContentJSONDynamicQueriesTableTestName,
-			[]string{"table"},
-			"table", "timeSeriesLines", "timeSeriesBars", "stat", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti", "statCard",
-		),
+		"Visualization": visualization,
 		"WidgetDefinition": {
 			ProtoSource: "ast/widget.proto#Widget.Definition.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -675,8 +683,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"horizontalBarChart": covered(widget+".horizontal_bar_chart", dashboardOpenAPILogsQueryTestName),
 				"markdown":           covered(widget+".markdown", dashboardOpenAPILogsQueryTestName),
 				"hexagon":            covered(widget+".hexagon", dashboardOpenAPILogsQueryTestName),
-				"dynamic": observedAPIOnly(dashboardNoProviderPath, dashboardContentJSONDynamicQueriesTableTestName, false,
-					"dynamic is supported through content_json, but SupportedWidgetTypes, widgetModelAttr, expandDashboardWidgetDefinition, and flattenDashboardWidgetDefinition omit it; import and data-source reads cannot reconstruct content_json"),
+				"dynamic":            covered(dynamicWidget, dashboardOpenAPIDynamicStatTestName),
 			},
 		},
 		"XAxis": {
@@ -781,7 +788,6 @@ func TestDashboardOpenAPIOneOfCoverageManifest(t *testing.T) {
 		t.Errorf("manifest branches = %d, want 216", manifestBranches)
 	}
 
-	assertDashboardAPIOnlyBranch(t, "WidgetDefinition", "dynamic", false)
 	assertDashboardAPIOnlyBranch(t, "Dashboard", "oneMinute", false)
 	assertDashboardAPIOnlyBranch(t, "Dashboard", "fifteenMinutes", false)
 }
@@ -844,16 +850,10 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 
 func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 	models := map[string][]string{
-		"WidgetDefinition": {"dynamic"},
-		"DynamicQuery":     {"logs", "metrics", "spans", "dataprime"},
-		"Visualization":    {"table", "timeSeriesLines", "timeSeriesBars", "stat", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti", "statCard"},
+		"Visualization": {"table", "timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti", "statCard"},
 	}
 	observed := map[string]struct{}{
-		"WidgetDefinition.dynamic": {},
-		"DynamicQuery.logs":        {},
-		"DynamicQuery.metrics":     {},
-		"DynamicQuery.spans":       {},
-		"Visualization.table":      {},
+		"Visualization.table": {},
 	}
 	for model, branches := range models {
 		for _, branch := range branches {

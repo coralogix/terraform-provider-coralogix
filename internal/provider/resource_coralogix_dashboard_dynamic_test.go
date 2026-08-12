@@ -15,16 +15,24 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 )
 
+const dashboardOpenAPIDynamicStatTestName = "TestAccCoralogixResourceDashboardDynamicStatWidget"
+
 func TestAccCoralogixResourceDashboardDynamicStatWidget(t *testing.T) {
-	name := dashboardOpenAPIFixtureName(t.Name())
+	ctx := context.Background()
+	var client *dashboardservice.DashboardServiceAPIService
+	fixture := t.Name()
+	name := dashboardOpenAPIFixtureName(fixture)
 	widgetPrefix := "layout.sections.0.rows.0.widgets.0.definition.dynamic."
 	statPrefix := widgetPrefix + "visualization.stat."
 	spansPrefix := "layout.sections.0.rows.0.widgets.1.definition.dynamic.query_definitions.0.query.spans."
@@ -35,123 +43,180 @@ func TestAccCoralogixResourceDashboardDynamicStatWidget(t *testing.T) {
 	thresholds := `{ from = 0, color = "green", label = "ok" }`
 	thresholdsUpdated := `{ from = 0, color = "green", label = "ok" }, { from = 1000, color = "red", label = "high" }`
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardDestroy(t),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCoralogixResourceDashboardDynamicStatConfig(name, "dynamic stat logs", thresholds, true),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "dynamic stat logs"),
-					resource.TestCheckResourceAttrSet(dashboardResourceName, widgetPrefix+"query_definitions.0.id"),
-					resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.name", "errors"),
-					resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.query.logs.group_by.0.keypath.0", "subsystemname"),
-					resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.query.logs.group_by.0.scope", "label"),
-					resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.query.logs.aggregations.0.type", "count"),
-					resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.query.logs.filters.0.field", "applicationname"),
-					resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.query.logs.data_mode_type", "unspecified"),
-					resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"interpretation", "single_value_kpi_stat"),
-					resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"time_frame.relative.duration", "seconds:900"),
+	backendCheck := func(state *terraform.State) error {
+		dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
+		if err != nil {
+			return err
+		}
+		return dashboardOpenAPIAssertDynamicStatWidgets(dashboard, fixture)
+	}
 
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"allow_abbreviation", "true"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"category_fields.0.keypath.0", "applicationname"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"category_fields.0.scope", "label"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"custom_unit", "widgets"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"decimal_precision", "2"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"display_series_name", "true"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"legend.is_visible", "true"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"legend.columns.0", "min"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"legend.group_by_query", "true"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"legend.placement", "bottom"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"legend_by", "thresholds"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"max", "100"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"min", "0"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"threshold_by", "background"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"threshold_type", "absolute"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"thresholds.0.from", "0"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"thresholds.0.color", "green"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"thresholds.0.label", "ok"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"unit", "custom"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"value_field.keypath.0", "meta.responseTime.numeric"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"value_field.scope", "user_data"),
-					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"value_fields.0.keypath.0", "meta.responseTime.numeric"),
+	steps := dashboardOpenAPIStructuredLifecycleSteps(
+		dashboardOpenAPILifecyclePhase{
+			Config: testAccCoralogixResourceDashboardDynamicStatConfig(name, "dynamic stat logs", thresholds, true),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+				resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "dynamic stat logs"),
+				resource.TestCheckResourceAttrSet(dashboardResourceName, widgetPrefix+"query_definitions.0.id"),
+				resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.name", "errors"),
+				resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.query.logs.group_by.0.keypath.0", "subsystemname"),
+				resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.query.logs.group_by.0.scope", "label"),
+				resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.query.logs.aggregations.0.type", "count"),
+				resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.query.logs.filters.0.field", "applicationname"),
+				resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"query_definitions.0.query.logs.data_mode_type", "unspecified"),
+				resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"interpretation", "single_value_kpi_stat"),
+				resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"time_frame.relative.duration", "seconds:900"),
 
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.title", "dynamic stat spans"),
-					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"lucene_query", "*"),
-					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.keypath.0", "service"),
-					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.keypath.1", "name"),
-					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.scope", "user_data"),
-					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.relation_type", "unspecified"),
-					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"aggregations.0.type", "count"),
-					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.field.type", "metadata"),
-					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.field.value", "application_name"),
-					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.operator.type", "equals"),
-					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.operator.selected_values.0", "api"),
-					resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"data_mode_type", "unspecified"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"allow_abbreviation", "true"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"category_fields.0.keypath.0", "applicationname"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"category_fields.0.scope", "label"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"custom_unit", "widgets"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"decimal_precision", "2"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"display_series_name", "true"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"legend.is_visible", "true"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"legend.columns.0", "min"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"legend.group_by_query", "true"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"legend.placement", "bottom"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"legend_by", "thresholds"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"max", "100"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"min", "0"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"threshold_by", "background"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"threshold_type", "absolute"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"thresholds.0.from", "0"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"thresholds.0.color", "green"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"thresholds.0.label", "ok"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"unit", "custom"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"value_field.keypath.0", "meta.responseTime.numeric"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"value_field.scope", "user_data"),
+				resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"value_fields.0.keypath.0", "meta.responseTime.numeric"),
 
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.title", "dynamic stat metrics explicit"),
-					resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"promql_query", "vector(1)"),
-					resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"promql_query_type", "instant"),
-					resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"editor_mode", "text"),
-					resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"series_limit_type", "by_series_count"),
+				resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.title", "dynamic stat spans"),
+				resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"lucene_query", "*"),
+				resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.keypath.0", "service"),
+				resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.keypath.1", "name"),
+				resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.scope", "user_data"),
+				resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"group_by.0.relation_type", "unspecified"),
+				resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"aggregations.0.type", "count"),
+				resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.field.type", "metadata"),
+				resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.field.value", "application_name"),
+				resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.operator.type", "equals"),
+				resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"filters.0.operator.selected_values.0", "api"),
+				resource.TestCheckResourceAttr(dashboardResourceName, spansPrefix+"data_mode_type", "unspecified"),
 
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.1.title", "dynamic stat metrics defaults"),
-					resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"promql_query", "vector(2)"),
-					resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"promql_query_type", "unspecified"),
-					resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"editor_mode", "unspecified"),
-					resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"series_limit_type", "unspecified"),
+				resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.title", "dynamic stat metrics explicit"),
+				resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"promql_query", "vector(1)"),
+				resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"promql_query_type", "instant"),
+				resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"editor_mode", "text"),
+				resource.TestCheckResourceAttr(dashboardResourceName, metricsExplicitPrefix+"series_limit_type", "by_series_count"),
 
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.2.widgets.0.title", "dynamic stat data prime"),
-					resource.TestCheckResourceAttr(dashboardResourceName, dataPrimePrefix+"query", "source logs | limit 10"),
-					resource.TestCheckResourceAttr(dashboardResourceName, dataPrimePrefix+"data_mode_type", "unspecified"),
-				),
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PostApplyPostRefresh: []plancheck.PlanCheck{
-						plancheck.ExpectEmptyPlan(),
-					},
-				},
-			},
+				resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.1.title", "dynamic stat metrics defaults"),
+				resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"promql_query", "vector(2)"),
+				resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"promql_query_type", "unspecified"),
+				resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"editor_mode", "unspecified"),
+				resource.TestCheckResourceAttr(dashboardResourceName, metricsDefaultPrefix+"series_limit_type", "unspecified"),
+
+				resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.2.widgets.0.title", "dynamic stat data prime"),
+				resource.TestCheckResourceAttr(dashboardResourceName, dataPrimePrefix+"query", "source logs | limit 10"),
+				resource.TestCheckResourceAttr(dashboardResourceName, dataPrimePrefix+"data_mode_type", "unspecified"),
+
+				backendCheck,
+			),
+		},
+		[]dashboardOpenAPILifecyclePhase{
 			{
 				Config: testAccCoralogixResourceDashboardDynamicStatConfig(name, "dynamic stat logs updated", thresholdsUpdated, true),
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionUpdate),
-					},
-					PostApplyPostRefresh: []plancheck.PlanCheck{
-						plancheck.ExpectEmptyPlan(),
-					},
-				},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "dynamic stat logs updated"),
 					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"thresholds.1.from", "1000"),
 					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"thresholds.1.color", "red"),
 					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"thresholds.1.label", "high"),
+					backendCheck,
 				),
 			},
 			{
 				Config: testAccCoralogixResourceDashboardDynamicStatConfig(name, "dynamic stat logs updated", thresholdsUpdated, false),
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionUpdate),
-					},
-					PostApplyPostRefresh: []plancheck.PlanCheck{
-						plancheck.ExpectEmptyPlan(),
-					},
-				},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(dashboardResourceName, widgetPrefix+"interpretation", "unspecified"),
 					resource.TestCheckResourceAttr(dashboardResourceName, statPrefix+"threshold_type", "unspecified"),
+					backendCheck,
 				),
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
 		},
+		resource.TestStep{
+			ResourceName:      dashboardResourceName,
+			ImportState:       true,
+			ImportStateVerify: true,
+			ImportStateCheck: dashboardOpenAPIImportDashboardCheck(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
+				return dashboardOpenAPIAssertDynamicStatWidgets(dashboard, fixture)
+			}),
+		},
+	)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			client = dashboardOpenAPIAcceptanceClient(t)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps:                    steps,
 	})
+}
+
+func dashboardOpenAPIAssertDynamicStatWidgets(dashboard *dashboardservice.Dashboard, fixture string) error {
+	expected := []struct {
+		row         int
+		widget      int
+		queryBranch string
+	}{
+		{row: 0, widget: 0, queryBranch: "logs"},
+		{row: 0, widget: 1, queryBranch: "spans"},
+		{row: 1, widget: 0, queryBranch: "metrics"},
+		{row: 1, widget: 1, queryBranch: "metrics"},
+		{row: 2, widget: 0, queryBranch: "dataprime"},
+	}
+
+	sections := dashboard.Layout.Sections
+	if len(sections) != 1 {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): sections = %d, want 1", fixture, dashboard.GetId(), len(sections))
+	}
+	rows := sections[0].GetRows()
+
+	for _, want := range expected {
+		if want.row >= len(rows) {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): rows = %d, want row %d", fixture, dashboard.GetId(), len(rows), want.row)
+		}
+		widgets := rows[want.row].GetWidgets()
+		if want.widget >= len(widgets) {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): row %d widgets = %d, want widget %d", fixture, dashboard.GetId(), want.row, len(widgets), want.widget)
+		}
+
+		definition := widgets[want.widget].Definition
+		if definition == nil {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): row %d widget %d has no definition", fixture, dashboard.GetId(), want.row, want.widget)
+		}
+		if err := dashboardOpenAPIAssertOneOfBranch(definition, "WidgetDefinition", "dynamic", dashboard.GetId(), fixture); err != nil {
+			return err
+		}
+
+		dynamic := definition.Dynamic
+		if len(dynamic.GetQueryDefinitions()) != 1 {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): row %d widget %d dynamic queryDefinitions = %d, want 1", fixture, dashboard.GetId(), want.row, want.widget, len(dynamic.GetQueryDefinitions()))
+		}
+		query := &dynamic.QueryDefinitions[0].Query
+		if err := dashboardOpenAPIAssertOneOfBranch(query, "DynamicQuery", want.queryBranch, dashboard.GetId(), fixture); err != nil {
+			return err
+		}
+
+		if dynamic.Visualization == nil {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): row %d widget %d dynamic visualization is nil", fixture, dashboard.GetId(), want.row, want.widget)
+		}
+		if err := dashboardOpenAPIAssertOneOfBranch(dynamic.Visualization, "Visualization", "stat", dashboard.GetId(), fixture); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func testAccCoralogixResourceDashboardDynamicStatConfig(name, statTitle, statThresholds string, setOptionalEnums bool) string {
