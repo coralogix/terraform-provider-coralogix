@@ -97,6 +97,54 @@ func TestCurrentSchemaDecodesNarrowDynamicStatState(t *testing.T) {
 	decodeAgainstSchema(t, V4(), narrowDynamicStatStateJSON)
 }
 
+// A dynamic stat card widget as written before the visualization gained
+// category_fields, value_fields and the template-variable elements.
+const narrowDynamicStatCardStateJSON = `{
+  "id": "dashboard-id",
+  "name": "dynamic stat card dashboard",
+  "layout": {
+    "sections": [{
+      "id": "section-id",
+      "rows": [{
+        "id": "row-id",
+        "appearance": {"height": 19},
+        "widgets": [{
+          "id": "widget-id",
+          "title": "stat card",
+          "definition": {
+            "dynamic": {
+              "query_definitions": [{
+                "id": "query-id",
+                "query": {"logs": {"lucene_query": "*", "data_mode_type": "unspecified"}}
+              }],
+              "visualization": {
+                "stat_card": {
+                  "unit": "milliseconds",
+                  "legend_by": "unspecified",
+                  "title": {"template_text": "p99"},
+                  "primary_value": {"observation_field": {"keypath": ["duration"], "scope": "metadata"}},
+                  "color_label_mapping": {
+                    "color_by": "value",
+                    "range": {
+                      "threshold_type": "absolute",
+                      "min_max": {"auto": true},
+                      "thresholds": [{"from": 0, "color": "green", "label": null}]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}`
+
+func TestCurrentSchemaDecodesNarrowDynamicStatCardState(t *testing.T) {
+	decodeAgainstSchema(t, V4(), narrowDynamicStatCardStateJSON)
+}
+
 // V1, V2 and V3 are wired as PriorSchema values in the resource's UpgradeState
 // map, so widening a schema helper they share with the current version
 // retroactively changes the type historical state is decoded against. Every

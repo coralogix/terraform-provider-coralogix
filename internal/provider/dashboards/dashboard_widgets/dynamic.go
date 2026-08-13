@@ -143,10 +143,11 @@ func DynamicSchema() schema.Attribute {
 			"visualization": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"stat": dynamicStatSchema(),
+					"stat":      dynamicStatSchema(),
+					"stat_card": dynamicStatCardSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat"),
+					ExactlyOneOfChildren("stat", "stat_card"),
 				},
 			},
 		},
@@ -374,26 +375,8 @@ func dynamicStatSchema() schema.Attribute {
 				},
 				MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(DashboardValidThresholdTypes, ", ")),
 			},
-			"thresholds": schema.ListNestedAttribute{
-				Optional: true,
-				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
-				},
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"from": schema.Float64Attribute{
-							Optional: true,
-						},
-						"color": schema.StringAttribute{
-							Optional: true,
-						},
-						"label": schema.StringAttribute{
-							Optional: true,
-						},
-					},
-				},
-			},
-			"unit": UnitSchema(),
+			"thresholds": dynamicThresholdsSchema(),
+			"unit":       UnitSchema(),
 			"value_field": schema.SingleNestedAttribute{
 				Attributes:          ObservationFieldSchema(),
 				Optional:            true,
@@ -515,7 +498,8 @@ func spanObservationFieldAttr() map[string]attr.Type {
 
 func dynamicVisualizationModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"stat": types.ObjectType{AttrTypes: dynamicStatModelAttr()},
+		"stat":      types.ObjectType{AttrTypes: dynamicStatModelAttr()},
+		"stat_card": types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
 	}
 }
 
@@ -780,6 +764,12 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{Stat: stat}, nil
+	case visualization.StatCard != nil:
+		statCard, diags := expandDynamicStatCard(ctx, visualization.StatCard)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{StatCard: statCard}, nil
 	default:
 		return nil, nil
 	}
@@ -1099,6 +1089,12 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{Stat: stat}, nil
+	case visualization.StatCard != nil:
+		statCard, diags := flattenDynamicStatCard(ctx, visualization.StatCard)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{StatCard: statCard}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Unsupported Dashboard Widget Definition",

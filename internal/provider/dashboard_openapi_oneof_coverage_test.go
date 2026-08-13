@@ -94,6 +94,7 @@ var dashboardStructuredAcceptanceLifecycleTests = []string{
 	dashboardOpenAPIAnnotationsTestName,
 	dashboardOpenAPITransitionTestName,
 	dashboardOpenAPIDynamicStatTestName,
+	dashboardOpenAPIDynamicStatCardTestName,
 }
 
 func covered(path, testName string) dashboardOneOfBranchCoverage {
@@ -208,6 +209,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		filter        = widget + ".*.query.*.filters[*]"
 		dynamicWidget = widget + ".dynamic"
 		dynamicQuery  = dynamicWidget + ".query_definitions[*].query"
+		statCard      = dynamicWidget + ".visualization.stat_card"
 	)
 
 	visualization := observedAPIOnlyModel(
@@ -215,9 +217,10 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"the structured provider models only the stat visualization of WidgetDefinition.dynamic; the remaining branches stay content_json-only, and import and data-source reads reject them instead of writing partial structured state",
 		dashboardContentJSONDynamicQueriesTableTestName,
 		[]string{"table"},
-		"table", "timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti", "statCard",
+		"table", "timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti",
 	)
 	visualization.Branches["stat"] = covered(dynamicWidget+".visualization.stat", dashboardOpenAPIDynamicStatTestName)
+	visualization.Branches["statCard"] = covered(statCard, dashboardOpenAPIDynamicStatCardTestName)
 
 	return map[string]dashboardOneOfModelCoverage{
 		"ActionDefinition": apiOnlyModel(
@@ -255,11 +258,14 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			"the provider CRUD client does not invoke the dashboard-check endpoint",
 			"dashboard", "dashboardId",
 		),
-		"ColorLabelMapping": apiOnlyModel(
-			"ast/widgets/common/color_label_mapping.proto#ColorLabelMapping.mapping_type",
-			"color label mappings are reachable only below WidgetDefinition.dynamic",
-			"range", "value", "regex",
-		),
+		"ColorLabelMapping": {
+			ProtoSource: "ast/widgets/common/color_label_mapping.proto#ColorLabelMapping.mapping_type",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"range": covered(statCard+".color_label_mapping.range", dashboardOpenAPIDynamicStatCardTestName),
+				"value": covered(statCard+".color_label_mapping.value", dashboardOpenAPIDynamicStatCardTestName),
+				"regex": covered(statCard+".color_label_mapping.regex", dashboardOpenAPIDynamicStatCardTestName),
+			},
+		},
 		"ColorsBy": {
 			ProtoSource: "ast/widgets/common/colors_by.proto#ColorsBy.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -300,11 +306,13 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"duration": covered("annotations[*].source.dataprime.strategy.duration", "TestAccCoralogixResourceDashboardDataprimeAnnotation"),
 			},
 		},
-		"DisplayNameTemplateVariable": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.StatCard.StatVisualElement.DisplayNameTemplateVariable.source",
-			"display-name template variables are reachable only below WidgetDefinition.dynamic",
-			"observationField", "mappedValues",
-		),
+		"DisplayNameTemplateVariable": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.StatCard.StatVisualElement.DisplayNameTemplateVariable.source",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"observationField": covered(statCard+".*.template_variables[*].observation_field", dashboardOpenAPIDynamicStatCardTestName),
+				"mappedValues":     covered(statCard+".*.template_variables[*].mapped_values", dashboardOpenAPIDynamicStatCardTestName),
+			},
+		},
 		"DynamicQuery": {
 			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -446,11 +454,13 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"range":   covered("annotations[*].source.manual.strategy.range", "TestAccCoralogixResourceDashboardManualAnnotation"),
 			},
 		},
-		"MinMax": apiOnlyModel(
-			"ast/widgets/common/min_max.proto#MinMax.value",
-			"MinMax is used by the dynamic geomap visualization, which the structured provider does not expose",
-			"auto", "custom",
-		),
+		"MinMax": {
+			ProtoSource: "ast/widgets/common/min_max.proto#MinMax.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"auto":   covered(statCard+".color_label_mapping.range.min_max.auto", dashboardOpenAPIDynamicStatCardTestName),
+				"custom": covered(statCard+".color_label_mapping.range.min_max.custom", dashboardOpenAPIDynamicStatCardTestName),
+			},
+		},
 		"MultiSelectQuery": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -611,11 +621,13 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"duration": covered("annotations[*].source.spans.strategy.duration", dashboardOpenAPIAnnotationsTestName),
 			},
 		},
-		"StatVisualElement": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.StatCard.StatVisualElement.value_type",
-			"stat-card visual elements are reachable only below WidgetDefinition.dynamic",
-			"observationField", "mappedValues",
-		),
+		"StatVisualElement": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.StatCard.StatVisualElement.value_type",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"observationField": covered(statCard+".{title,label,primary_value}.observation_field", dashboardOpenAPIDynamicStatCardTestName),
+				"mappedValues":     covered(statCard+".{title,label,primary_value}.mapped_values", dashboardOpenAPIDynamicStatCardTestName),
+			},
+		},
 		"TextboxDefaultValue": {
 			ProtoSource: "ast/variables_v2/variable_source.proto#VariableSourceV2.TextboxSource.TextboxDefaultValue.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -850,7 +862,7 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 
 func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 	models := map[string][]string{
-		"Visualization": {"table", "timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti", "statCard"},
+		"Visualization": {"table", "timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti"},
 	}
 	observed := map[string]struct{}{
 		"Visualization.table": {},
