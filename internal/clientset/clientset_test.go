@@ -40,7 +40,4 @@ func TestNewClientSet_UsersClientNotNil(t *testing.T) {
 	if pl.Users().BaseURL() != "https://api.private.eu2.coralogix.com/scim/Users" {
 		t.Fatalf("PrivateLink Users().BaseURL() = %q", pl.Users().BaseURL())
 	}
-	if pl.Groups().TargetUrl != "https://api.private.eu2.coralogix.com/scim/Groups" {
-		t.Fatalf("PrivateLink Groups TargetUrl = %q", pl.Groups().TargetUrl)
-	}
 }

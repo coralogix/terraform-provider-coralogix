@@ -1,5 +1,14 @@
 # Unreleased
 
+#### resource/coralogix_group
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
+#### data-source/coralogix_group
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
+#### resource/coralogix_group_attachment
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
 #### resource/coralogix_quota_allocation_rule_set
 - FEAT: Allow `rules = []` to clear all customer-managed quota allocation rules.
 - FEAT: Document the full known entity-type list (including `browserLogs/v2`) and note that the list is additive.
