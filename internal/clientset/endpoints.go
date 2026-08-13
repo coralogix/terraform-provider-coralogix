@@ -109,7 +109,7 @@ func invalidDomainError(domain, reason string) error {
 	return fmt.Errorf("invalid Coralogix domain %q: %s. The provider \"domain\" argument, or the CORALOGIX_DOMAIN environment variable, must be a hostname such as \"coralogix.com\", \"eu2.coralogix.com\" or \"api.private.eu2.coralogix.com\"; an \"https://\" prefix and a trailing \"/\" are accepted", domain, reason)
 }
 
-// ScimRestBaseURL returns the HTTPS base URL for SCIM REST APIs (users, groups) for the
+// ScimRestBaseURL returns the HTTPS base URL for SCIM REST APIs (users) for the
 // given provider env or domain. PrivateLink management hosts use api.private.* directly;
 // public regions use api.* (same host family as the OpenAPI management clients).
 // Note: CoralogixRestEndpointFromRegion still returns ng-api-http.*; SCIM is on api.*.

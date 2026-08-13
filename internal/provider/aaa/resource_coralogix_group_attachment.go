@@ -4,7 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	teamGroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/team_groups_management_service"
+
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -20,7 +24,7 @@ func NewGroupAttachmentResource() resource.Resource {
 }
 
 type GroupAttachmentResource struct {
-	cxClientsSet *clientset.ClientSet
+	client *teamGroups.TeamGroupsManagementServiceAPIService
 }
 
 type GroupAttachmentResourceModel struct {
@@ -42,7 +46,7 @@ func (r *GroupAttachmentResource) Configure(_ context.Context, req resource.Conf
 		return
 	}
 
-	r.cxClientsSet = clientSet
+	r.client = clientSet.TeamGroups()
 }
 
 func (r *GroupAttachmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -74,50 +78,28 @@ func (r *GroupAttachmentResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	groupId := plan.GroupID
-	getGroupResp, err := r.cxClientsSet.Groups().GetGroup(ctx, groupId)
+	groupID, diags := parseGroupID(plan.GroupID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	existing, err := r.listMembers(ctx, groupID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get group", err.Error())
 		return
 	}
-	if getGroupResp == nil {
-		resp.Diagnostics.AddError("Group not found", "Group not found")
-		return
-	}
 
-	existingMembers := make(map[string]bool)
-	for _, member := range getGroupResp.Members {
-		existingMembers[member.Value] = true
-	}
-
-	newMembers := make([]clientset.SCIMGroupMember, 0)
-	userIds := make([]string, 0)
-	for _, memberId := range plan.UserIDs {
-		if _, ok := existingMembers[memberId]; !ok {
-			newMembers = append(newMembers, clientset.SCIMGroupMember{Value: memberId})
-		}
-		userIds = append(userIds, memberId)
-	}
-
-	groupAttachmentReq := &clientset.SCIMGroup{
-		ID:          groupId,
-		DisplayName: getGroupResp.DisplayName,
-		Members:     append(getGroupResp.Members, newMembers...),
-		Role:        getGroupResp.Role,
-		ScopeID:     getGroupResp.ScopeID,
-	}
-
-	_, err = r.cxClientsSet.Groups().UpdateGroup(ctx, groupId, groupAttachmentReq)
-	if err != nil {
+	toAdd := userIDsToAdd(plan.UserIDs, existing)
+	if err := r.applyUserOp(ctx, groupID, "add", toAdd); err != nil {
 		resp.Diagnostics.AddError("Failed to attach users to group", err.Error())
 		return
 	}
 
 	state := &GroupAttachmentResourceModel{
-		GroupID: getGroupResp.ID,
-		UserIDs: userIds,
+		GroupID: plan.GroupID,
+		UserIDs: plan.UserIDs,
 	}
-
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -142,24 +124,26 @@ func (r *GroupAttachmentResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	getGroupResp, err := r.cxClientsSet.Groups().GetGroup(ctx, state.GroupID)
+	groupID, diags := parseGroupID(state.GroupID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	existing, err := r.listMembers(ctx, groupID)
 	if err != nil {
+		if isGroupNotFoundErr(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to get group", err.Error())
 		return
 	}
-	if getGroupResp == nil {
-		resp.Diagnostics.AddError("Group not found", "Group not found")
-		return
-	}
 
-	existingUserIds := make(map[string]bool)
-	for _, member := range getGroupResp.Members {
-		existingUserIds[member.Value] = true
-	}
-
+	existingSet := userIDSet(existing)
 	userIds := make([]string, 0)
 	for _, userId := range confUserIds {
-		if _, ok := existingUserIds[userId]; ok {
+		if _, ok := existingSet[userId]; ok {
 			userIds = append(userIds, userId)
 		}
 	}
@@ -184,65 +168,32 @@ func (r *GroupAttachmentResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	groupId := plan.GroupID
-	getGroupResp, err := r.cxClientsSet.Groups().GetGroup(ctx, groupId)
+	groupID, diags := parseGroupID(plan.GroupID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	existing, err := r.listMembers(ctx, groupID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get group", err.Error())
 		return
 	}
-	if getGroupResp == nil {
-		resp.Diagnostics.AddError("Group not found", "Group not found")
+
+	diffAdd, diffRemove := userIDDiff(plan.UserIDs, state.UserIDs)
+	if err := r.applyUserOp(ctx, groupID, "remove", userIDsToRemove(diffRemove, existing)); err != nil {
+		resp.Diagnostics.AddError("Failed to attach users to group", err.Error())
 		return
 	}
-
-	existingMembers := make(map[string]bool)
-	for _, member := range getGroupResp.Members {
-		existingMembers[member.Value] = true
-	}
-
-	membersInPlan := make(map[string]bool)
-	for _, userId := range plan.UserIDs {
-		membersInPlan[userId] = true
-	}
-
-	membersInState := make(map[string]bool)
-	for _, userId := range state.UserIDs {
-		membersInState[userId] = true
-	}
-
-	membersToApply := make([]clientset.SCIMGroupMember, 0)
-	for userId := range membersInPlan {
-		membersToApply = append(membersToApply, clientset.SCIMGroupMember{Value: userId})
-	}
-	for userId := range existingMembers {
-		if _, ok := membersInState[userId]; ok {
-			if _, ok := membersInPlan[userId]; !ok {
-				// user is in state but not in plan
-				continue
-			}
-		}
-		membersToApply = append(membersToApply, clientset.SCIMGroupMember{Value: userId})
-	}
-
-	groupAttachmentReq := &clientset.SCIMGroup{
-		ID:          groupId,
-		DisplayName: getGroupResp.DisplayName,
-		Members:     membersToApply,
-		Role:        getGroupResp.Role,
-		ScopeID:     getGroupResp.ScopeID,
-	}
-
-	_, err = r.cxClientsSet.Groups().UpdateGroup(ctx, groupId, groupAttachmentReq)
-	if err != nil {
+	if err := r.applyUserOp(ctx, groupID, "add", userIDsToAdd(diffAdd, existing)); err != nil {
 		resp.Diagnostics.AddError("Failed to attach users to group", err.Error())
 		return
 	}
 
 	state = &GroupAttachmentResourceModel{
-		GroupID: groupId,
+		GroupID: plan.GroupID,
 		UserIDs: plan.UserIDs,
 	}
-
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -255,39 +206,22 @@ func (r *GroupAttachmentResource) Delete(ctx context.Context, request resource.D
 		return
 	}
 
-	groupId := state.GroupID
-	getGroupResp, err := r.cxClientsSet.Groups().GetGroup(ctx, groupId)
+	groupID, diags := parseGroupID(state.GroupID)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+
+	existing, err := r.listMembers(ctx, groupID)
 	if err != nil {
+		if isGroupNotFoundErr(err) {
+			return
+		}
 		response.Diagnostics.AddError("Failed to get group", err.Error())
 		return
 	}
-	if getGroupResp == nil {
-		response.Diagnostics.AddError("Group not found", "Group not found")
-		return
-	}
 
-	membersToRemove := make(map[string]bool)
-	for _, userId := range state.UserIDs {
-		membersToRemove[userId] = true
-	}
-
-	remainMembers := make([]clientset.SCIMGroupMember, 0)
-	for _, member := range getGroupResp.Members {
-		if _, ok := membersToRemove[member.Value]; !ok {
-			remainMembers = append(remainMembers, member)
-		}
-	}
-
-	groupAttachmentReq := &clientset.SCIMGroup{
-		ID:          getGroupResp.ID,
-		DisplayName: getGroupResp.DisplayName,
-		Members:     remainMembers,
-		Role:        getGroupResp.Role,
-		ScopeID:     getGroupResp.ScopeID,
-	}
-
-	_, err = r.cxClientsSet.Groups().UpdateGroup(ctx, groupId, groupAttachmentReq)
-	if err != nil {
+	if err := r.applyUserOp(ctx, groupID, "remove", userIDsToRemove(state.UserIDs, existing)); err != nil {
 		response.Diagnostics.AddError("Failed to attach users to group", err.Error())
 		return
 	}
@@ -295,6 +229,26 @@ func (r *GroupAttachmentResource) Delete(ctx context.Context, request resource.D
 
 func (r *GroupAttachmentResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_group_attachment"
+}
+
+func (r *GroupAttachmentResource) listMembers(ctx context.Context, groupID int64) ([]string, error) {
+	ids, httpResp, err := listGroupUserIDs(ctx, r.client, groupID)
+	if err != nil {
+		apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
+		if cxsdkOpenapi.IsNotFound(apiErr) {
+			return nil, &groupNotFoundError{id: groupID}
+		}
+		return nil, fmt.Errorf("%s", utils.FormatOpenAPIErrors(apiErr, "GetGroupUsers", groupID))
+	}
+	return ids, nil
+}
+
+func (r *GroupAttachmentResource) applyUserOp(ctx context.Context, groupID int64, operationType string, userIDs []string) error {
+	httpResp, err := applyGroupUserOperation(ctx, r.client, groupID, operationType, userIDs)
+	if err != nil {
+		return fmt.Errorf("%s", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Update", groupID))
+	}
+	return nil
 }
 
 func extractGroupMembersIds(ctx context.Context, set types.Set) ([]string, diag.Diagnostics) {
@@ -315,5 +269,5 @@ func extractGroupMembersIds(ctx context.Context, set types.Set) ([]string, diag.
 		result = append(result, str)
 	}
 
-	return result, nil
+	return result, diags
 }

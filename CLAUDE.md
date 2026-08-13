@@ -37,7 +37,7 @@ Both implementations live in `internal/provider/provider.go`. To add a new resou
 
 **Resource packages.** Each Coralogix domain lives in its own subpackage under `internal/provider/<domain>/`, with `resource_*.go`, `data_source_*.go`, and `*_test.go` files. The cross-cutting `*_test.go` files at `internal/provider/` root are the acceptance-test entry points that import resource-specific fixtures from `examples/`.
 
-**Client layer.** `internal/clientset/` is the single factory for backend clients. `clientset.NewClientSet(env, apiKey, grpcURL)` returns a struct holding ~30 typed clients (alerts, dashboards, SLOs, TCO, AAA, notifications, …). Most are gRPC clients from `coralogix-management-sdk`; a few use REST (`rest/client.go`, `grafana-client.go`, `groups-client.go`). `callPropertiesCreator.go` builds the auth/metadata for outgoing gRPC calls. The clientset is what `Configure` hands to every resource as `ResourceData`/`DataSourceData`.
+**Client layer.** `internal/clientset/` is the single factory for backend clients. `clientset.NewClientSet(env, apiKey, grpcURL)` returns a struct holding ~30 typed clients (alerts, dashboards, SLOs, TCO, AAA, notifications, …). Most are OpenAPI clients from `coralogix-management-sdk`. A few still use REST (`rest/client.go`, `grafana-client.go`, `users_client.go` for SCIM users). `callPropertiesCreator.go` builds the auth/metadata for outgoing gRPC calls. The clientset is what `Configure` hands to every resource as `ResourceData`/`DataSourceData`.
 
 **Shared helpers.** `internal/utils/` has constants and generic helpers (map/slice utilities, schema helpers) used across all resource packages.
 

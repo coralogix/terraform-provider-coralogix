@@ -18,8 +18,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -178,26 +176,26 @@ func TestMembersUnmanaged(t *testing.T) {
 	}
 }
 
-func TestFlattenSCIMGroupMembers(t *testing.T) {
-	members, diags := flattenSCIMGroupMembers([]clientset.SCIMGroupMember{{Value: "user-1"}})
+func TestFlattenMemberIDs(t *testing.T) {
+	members, diags := flattenMemberIDs([]string{"user-1"})
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
 
 	expected := types.SetValueMust(types.StringType, []attr.Value{types.StringValue("user-1")})
 	if !members.Equal(expected) {
-		t.Errorf("flattenSCIMGroupMembers = %s, want %s", members, expected)
+		t.Errorf("flattenMemberIDs = %s, want %s", members, expected)
 	}
 
 	// A computed member list is always known, so no members is an empty set rather than null.
-	empty, diags := flattenSCIMGroupMembers(nil)
+	empty, diags := flattenMemberIDs(nil)
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
 	if empty.IsNull() {
-		t.Error("flattenSCIMGroupMembers(nil) = null, want an empty set")
+		t.Error("flattenMemberIDs(nil) = null, want an empty set")
 	}
 	if len(empty.Elements()) != 0 {
-		t.Errorf("flattenSCIMGroupMembers(nil) = %s, want an empty set", empty)
+		t.Errorf("flattenMemberIDs(nil) = %s, want an empty set", empty)
 	}
 }

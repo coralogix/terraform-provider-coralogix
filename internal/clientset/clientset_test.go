@@ -35,9 +35,4 @@ func TestNewClientSet_UsersClientNotNil(t *testing.T) {
 	if cs.Users() == nil {
 		t.Fatal("Users() must not be nil")
 	}
-
-	pl := NewClientSet("api.private.eu2.coralogix.com", "dummy-key", mustGrpcTargetFromDomain(t, "api.private.eu2.coralogix.com"))
-	if pl.Groups().TargetUrl != "https://api.private.eu2.coralogix.com/scim/Groups" {
-		t.Fatalf("PrivateLink Groups TargetUrl = %q", pl.Groups().TargetUrl)
-	}
 }
