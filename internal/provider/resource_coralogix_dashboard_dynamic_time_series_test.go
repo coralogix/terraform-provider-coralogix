@@ -203,6 +203,9 @@ func TestAccCoralogixResourceDashboardDynamicTimeSeriesRejectsEmptyLists(t *test
             value_fields = []
           }]
         }`,
+		"multi_query_display_settings": `time_series_lines_multi = {
+          query_display_settings = []
+        }`,
 		"multi_display_category_fields": `time_series_lines_multi = {
           query_display_settings = [{
             query_id        = "11111111-1111-4111-8111-111111111111"

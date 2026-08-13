@@ -3511,7 +3511,7 @@ Optional:
 
 - `connect_nulls` (Boolean)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--legend))
-- `query_display_settings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings))
+- `query_display_settings` (Attributes List) Per-query display settings. Each entry styles one query, named by `query_id`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings))
 - `stacked_line` (String) How lines are stacked. Valid values are: absolute, relative, unspecified.
 - `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--tooltip))
 - `use_data_time_range` (Boolean)
