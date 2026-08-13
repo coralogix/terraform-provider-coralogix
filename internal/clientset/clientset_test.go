@@ -29,6 +29,9 @@ func TestNewClientSet_UsersClientNotNil(t *testing.T) {
 	if cs.TeamGroups() == nil {
 		t.Fatal("TeamGroups() must not be nil")
 	}
+	if cs.Teams() == nil {
+		t.Fatal("Teams() must not be nil")
+	}
 	if cs.Users().BaseURL() != "https://api.eu2.coralogix.com/scim/Users" {
 		t.Fatalf("Users().BaseURL() = %q", cs.Users().BaseURL())
 	}

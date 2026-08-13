@@ -17,6 +17,7 @@
 - FIX: Schema v2/v3→v4 state upgrade no longer fails with `Missing Upgraded Resource State` when the dashboard was deleted outside Terraform. The upgrader no longer removes the resource from state (illegal inside a state upgrader); it returns a valid v4 state carrying the prior `id`, `name`, `description` and `content_json`, so the following refresh detects the missing dashboard and plans a recreate.
 
 #### resource/coralogix_team
+- CHORE: Migrate from the deprecated gRPC Teams client to the OpenAPI Teams REST client. No functional change. Also affects `data.coralogix_team`.
 - FIX: The "no longer exists in Coralogix backend" warning rendered the team ID with `%q`, which formats an integer as a character literal (team `12345` printed as `'〹'`). It now prints the numeric ID. Also affects `data.coralogix_team`.
 
 #### resource/coralogix_enrichment
