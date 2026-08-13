@@ -65,6 +65,7 @@ func TestAccCoralogixResourceDashboardContentJSONProtobufSpellings(t *testing.T)
 	snakeCase := dashboardContentJSONNamedFixtureFor(t, "content_json_snake_case.json", dashboardName)
 	canonical := dashboardContentJSONNamedFixtureFor(t, "content_json_canonical.json", dashboardName)
 	unknownFields := dashboardContentJSONNamedFixtureFor(t, "content_json_unknown_fields.json", dashboardName)
+	canonicalReformatted := dashboardContentJSONReformattedFixtureFor(t, canonical, "content_json_canonical_reformatted.json")
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
@@ -88,7 +89,7 @@ func TestAccCoralogixResourceDashboardContentJSONProtobufSpellings(t *testing.T)
 			{
 				Config: dashboardContentJSONConfig(canonical.path),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					dashboardContentJSONAssertReplaced(identity),
+					dashboardContentJSONAssertNotReplaced(identity),
 					resource.TestCheckResourceAttr(dashboardResourceName, "content_json", canonical.content),
 					dashboardContentJSONCheckDashboard(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
 						return dashboardOpenAPIAssertContentJSONTransport(dashboard, fixture)
@@ -97,9 +98,17 @@ func TestAccCoralogixResourceDashboardContentJSONProtobufSpellings(t *testing.T)
 				ConfigPlanChecks: dashboardContentJSONPlanChecks(true),
 			},
 			{
+				Config: dashboardContentJSONConfig(canonicalReformatted.path),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					dashboardContentJSONAssertNotReplaced(identity),
+					resource.TestCheckResourceAttr(dashboardResourceName, "content_json", canonicalReformatted.content),
+				),
+				ConfigPlanChecks: dashboardContentJSONPlanChecks(true),
+			},
+			{
 				Config: dashboardContentJSONConfig(unknownFields.path),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					dashboardContentJSONAssertReplaced(identity),
+					dashboardContentJSONAssertNotReplaced(identity),
 					resource.TestCheckResourceAttr(dashboardResourceName, "content_json", unknownFields.content),
 					dashboardContentJSONCheckDashboard(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
 						if err := dashboardOpenAPIAssertContentJSONTransport(dashboard, fixture); err != nil {
@@ -286,32 +295,31 @@ resource "coralogix_dashboard" "test" {
 `, fixturePath, dashboardName, accessPolicyBlock)
 }
 
-func dashboardContentJSONPlanChecks(expectReplacement bool) resource.ConfigPlanChecks {
+func dashboardContentJSONPlanChecks(expectUpdate bool) resource.ConfigPlanChecks {
 	checks := resource.ConfigPlanChecks{
 		PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 	}
-	if expectReplacement {
+	if expectUpdate {
 		checks.PreApply = []plancheck.PlanCheck{
-			plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionReplace),
+			plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionUpdate),
 		}
 	}
 
 	return checks
 }
 
-func dashboardContentJSONAssertReplaced(identity *dashboardOpenAPIIDTracker) resource.TestCheckFunc {
+func dashboardContentJSONAssertNotReplaced(identity *dashboardOpenAPIIDTracker) resource.TestCheckFunc {
 	return func(state *terraform.State) error {
 		id, err := dashboardOpenAPIResourceID(state, identity.resourceName, identity.fixture)
 		if err != nil {
 			return err
 		}
 		if identity.id == "" {
-			return fmt.Errorf("dashboard fixture %q (dashboard %q): resource ID was not captured before replacement", identity.fixture, id)
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): resource ID was not captured before the update", identity.fixture, id)
 		}
-		if id == identity.id {
-			return fmt.Errorf("dashboard fixture %q: resource ID did not change across required replacement: got %q", identity.fixture, id)
+		if id != identity.id {
+			return fmt.Errorf("dashboard fixture %q: content_json update replaced the dashboard, resource ID changed from %q to %q", identity.fixture, identity.id, id)
 		}
-		identity.id = id
 
 		return nil
 	}
@@ -473,4 +481,30 @@ func dashboardOpenAPICheckContentJSONFolderOverride(
 
 		return nil
 	}
+}
+
+// dashboardContentJSONReformattedFixtureFor rewrites a fixture so it is
+// semantically identical but lexically different: decoding into any and
+// re-encoding sorts object keys and changes indentation.
+func dashboardContentJSONReformattedFixtureFor(t *testing.T, source dashboardContentJSONFixture, name string) dashboardContentJSONFixture {
+	t.Helper()
+
+	var decoded any
+	if err := json.Unmarshal([]byte(source.content), &decoded); err != nil {
+		t.Fatalf("decode content_json fixture for reformatting: %s", err)
+	}
+	reformatted, err := json.MarshalIndent(decoded, "", "    ")
+	if err != nil {
+		t.Fatalf("re-encode content_json fixture for reformatting: %s", err)
+	}
+	if string(reformatted) == source.content {
+		t.Fatal("reformatted content_json fixture is byte-identical to its source, so it would not exercise JSON equivalence")
+	}
+
+	fixturePath := filepath.Join(t.TempDir(), name)
+	if err := os.WriteFile(fixturePath, reformatted, 0o600); err != nil {
+		t.Fatalf("write reformatted content_json fixture: %s", err)
+	}
+
+	return dashboardContentJSONFixture{path: fixturePath, content: string(reformatted)}
 }
