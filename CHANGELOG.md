@@ -1,5 +1,14 @@
 # Unreleased
 
+#### resource/coralogix_group
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
+#### data-source/coralogix_group
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
+#### resource/coralogix_group_attachment
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
 #### resource/coralogix_dashboard
 - FEAT: Report backend validation issues as warnings during `terraform plan`. The create API only validates structure, so problems such as stale variable references or duplicate widget ids used to surface only when the dashboard was rendered. Issues never fail a plan. Set `CORALOGIX_DASHBOARD_VALIDATION=false` to turn validation off, or `CORALOGIX_DASHBOARD_VALIDATION_TIMEOUT` to change the 5s call timeout.
 
