@@ -866,6 +866,17 @@ func FlattenDynamic(ctx context.Context, dynamic *dashboardservice.WidgetsDynami
 		return nil, nil
 	}
 
+	// The deprecated top-level query has no typed equivalent, and the API stores
+	// and returns it verbatim rather than migrating it to query_definitions.
+	// Flattening such a widget would drop its only data source, so refuse the
+	// read instead of writing state that silently loses it.
+	if dynamic.Query != nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Unsupported Dashboard Widget Definition",
+			"The dynamic widget uses the deprecated top-level `query`, which this provider cannot represent as typed HCL. Manage this dashboard with `content_json`, or move the widget to `query_definitions`, which holds the same queries.",
+		)}
+	}
+
 	queryDefinitions, diags := flattenDynamicQueryDefinitions(ctx, dynamic.GetQueryDefinitions())
 	if diags.HasError() {
 		return nil, diags

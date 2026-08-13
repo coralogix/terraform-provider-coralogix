@@ -636,6 +636,49 @@ func TestFlattenDashboardRejectsDynamicWidgetWithoutPartialState(t *testing.T) {
 	}
 }
 
+// A widget using the deprecated top-level query has no typed equivalent, and the
+// API returns it verbatim rather than migrating it to query_definitions
+// (verified against a real environment). Flattening it would drop the widget's
+// only data source, so the read must fail instead of writing state without it.
+func TestFlattenDashboardRejectsDynamicWidgetWithLegacyTopLevelQuery(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join("..", "testdata", "dashboards", "content_json_dynamic_legacy_query.json"))
+	if err != nil {
+		t.Fatalf("read legacy dynamic query fixture: %s", err)
+	}
+
+	dashboard := new(dashboardservice.Dashboard)
+	if err := json.Unmarshal(content, dashboard); err != nil {
+		t.Fatalf("unmarshal legacy dynamic dashboard response: %s", err)
+	}
+
+	dynamic := dashboard.Layout.Sections[0].GetRows()[0].GetWidgets()[0].Definition.Dynamic
+	if dynamic.Query == nil {
+		t.Fatal("fixture does not populate the deprecated top-level query")
+	}
+	if len(dynamic.GetQueryDefinitions()) != 0 {
+		t.Fatalf("fixture also populates query_definitions (%d), which is not the case under test", len(dynamic.GetQueryDefinitions()))
+	}
+
+	flattened, diags := flattenDashboard(context.Background(), DashboardResourceModel{
+		ID:           types.StringValue("backend-dashboard-id"),
+		Folder:       types.ObjectNull(dashboardFolderModelAttr()),
+		ContentJson:  types.StringNull(),
+		AccessPolicy: types.StringNull(),
+	}, &dashboardOpenAPIReadResult{Dashboard: dashboard})
+	if flattened != nil {
+		t.Fatalf("flatten returned partial state for a legacy dynamic query: %#v", flattened)
+	}
+	if !diags.HasError() {
+		t.Fatal("flatten silently dropped the deprecated top-level query instead of failing")
+	}
+	detail := diags.Errors()[0].Summary() + ": " + diags.Errors()[0].Detail()
+	for _, expected := range []string{"Unsupported Dashboard Widget Definition", "query", "content_json"} {
+		if !strings.Contains(detail, expected) {
+			t.Errorf("legacy dynamic query diagnostic %q does not contain %q", detail, expected)
+		}
+	}
+}
+
 func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
 	policy := types.StringValue(`{"version":"2025-01-01"}`)
 

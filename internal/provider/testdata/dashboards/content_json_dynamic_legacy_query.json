@@ -1,0 +1,58 @@
+{
+  "name": "legacy dynamic top-level query",
+  "layout": {
+    "sections": [
+      {
+        "id": {
+          "value": "10000000-0000-4000-8000-000000000000"
+        },
+        "rows": [
+          {
+            "id": {
+              "value": "20000000-0000-4000-8000-000000000001"
+            },
+            "appearance": {
+              "height": 19
+            },
+            "widgets": [
+              {
+                "id": {
+                  "value": "30000000-0000-4000-8000-000000000001"
+                },
+                "title": "Dynamic logs table",
+                "definition": {
+                  "dynamic": {
+                    "interpretation": "INTERPRETATION_UNSPECIFIED",
+                    "visualization": {
+                      "stat": {
+                        "decimalPrecision": 0
+                      }
+                    },
+                    "query": {
+                      "logs": {
+                        "luceneQuery": {
+                          "value": ""
+                        },
+                        "dataModeType": "DATA_MODE_TYPE_HIGH_UNSPECIFIED",
+                        "filters": [],
+                        "groupBy": [],
+                        "aggregation": []
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "variables": [],
+  "variablesV2": [],
+  "filters": [],
+  "relativeTimeFrame": "900s",
+  "annotations": [],
+  "off": {},
+  "actions": []
+}
