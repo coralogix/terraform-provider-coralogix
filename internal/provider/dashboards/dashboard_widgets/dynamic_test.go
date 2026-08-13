@@ -345,3 +345,122 @@ func objectFrom(ctx context.Context, t *testing.T, attrTypes map[string]attr.Typ
 	}
 	return object
 }
+
+// Sets range, regex and value together, which ExactlyOneOfChildren forbids in
+// real HCL. That is deliberate: it exercises every mapping branch through
+// expand/flatten in one pass. Do not collapse it to a single branch.
+func TestDynamicWidgetStatCardFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("max")}),
+		GroupByQuery: types.BoolValue(false),
+		Placement:    types.StringValue("bottom"),
+	}
+
+	templateVariables := types.ListValueMust(types.ObjectType{AttrTypes: dynamicTemplateVariableAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicTemplateVariableAttr(), map[string]attr.Value{
+			"mapped_values":     types.BoolValue(true),
+			"observation_field": observationFieldObject("tvar", "user_data"),
+		}),
+	})
+
+	visualElement := func(name string) *DynamicStatVisualElementModel {
+		return &DynamicStatVisualElementModel{
+			MappedValues:      types.BoolValue(true),
+			ObservationField:  observationFieldObject(name, "user_data"),
+			TemplateText:      types.StringValue("text-" + name),
+			TemplateVariables: templateVariables,
+		}
+	}
+
+	sections := types.ListValueMust(types.ObjectType{AttrTypes: dynamicMappingSectionAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicMappingSectionAttr(), map[string]attr.Value{
+			"color":  types.StringValue("green"),
+			"map_to": types.StringValue("OK"),
+			"value":  types.StringValue("200"),
+		}),
+	})
+
+	original := &DynamicModel{
+		QueryDefinitions: logsQueryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			StatCard: &DynamicStatCardModel{
+				AllowAbbreviation: types.BoolValue(true),
+				CategoryFields:    observationFieldList("category", "user_data"),
+				ColorLabelMapping: &DynamicColorLabelMappingModel{
+					ColorBy: types.StringValue("background"),
+					Range: &DynamicRangeMappingModel{
+						MinMax: &DynamicMinMaxModel{
+							Auto: types.BoolNull(),
+							Custom: &DynamicMinMaxCustomModel{
+								Max: types.Float64Value(50),
+								Min: types.Float64Value(5),
+							},
+						},
+						ThresholdType: types.StringValue("relative"),
+						Thresholds:    dynamicThresholdList(),
+					},
+					Regex: &DynamicSectionsMappingModel{Sections: sections},
+					Value: &DynamicSectionsMappingModel{Sections: sections},
+				},
+				CustomUnit:       types.StringValue("cards"),
+				DecimalPrecision: types.Int64Value(2),
+				Label:            visualElement("label"),
+				Legend:           legend,
+				LegendBy:         types.StringValue("groups"),
+				PrimaryValue:     visualElement("primary"),
+				Title:            visualElement("title"),
+				Unit:             types.StringValue("usd"),
+				ValueFields:      observationFieldList("value", "metadata"),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetStatCardMinMaxAutoRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	original := &DynamicModel{
+		QueryDefinitions: logsQueryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			StatCard: &DynamicStatCardModel{
+				AllowAbbreviation: types.BoolNull(),
+				CategoryFields:    types.ListNull(ObservationFieldsObject()),
+				ColorLabelMapping: &DynamicColorLabelMappingModel{
+					ColorBy: types.StringValue("unspecified"),
+					Range: &DynamicRangeMappingModel{
+						MinMax: &DynamicMinMaxModel{
+							Auto:   types.BoolValue(true),
+							Custom: nil,
+						},
+						ThresholdType: types.StringValue("unspecified"),
+						Thresholds:    types.ListNull(types.ObjectType{AttrTypes: dynamicThresholdAttr()}),
+					},
+					Regex: nil,
+					Value: nil,
+				},
+				CustomUnit:       types.StringNull(),
+				DecimalPrecision: types.Int64Null(),
+				Label:            nil,
+				Legend:           nil,
+				LegendBy:         types.StringValue("unspecified"),
+				PrimaryValue:     nil,
+				Title:            nil,
+				Unit:             types.StringValue("unspecified"),
+				ValueFields:      types.ListNull(ObservationFieldsObject()),
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}

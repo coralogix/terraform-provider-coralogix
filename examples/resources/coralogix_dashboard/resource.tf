@@ -937,7 +937,72 @@ resource "coralogix_dashboard" "widgets" {
                 }
               }
             }
-          }]
+            },
+            {
+              # `stat_card` shows a headline value with its own title and label.
+              # Each of the three text elements is read from a field
+              # (`observation_field`) or templated (`template_text`). `title` and
+              # `label` may instead set `mapped_values = true` to show the result
+              # of `color_label_mapping`; `primary_value` cannot, because it is
+              # the value that mapping reads from.
+              title = "dynamic stat card - p99 latency"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "latency"
+                    query = {
+                      logs = {
+                        lucene_query = "*"
+                        group_by = [{
+                          keypath = ["applicationname"]
+                          scope   = "label"
+                        }]
+                      }
+                    }
+                  }]
+                  visualization = {
+                    stat_card = {
+                      unit              = "milliseconds"
+                      decimal_precision = 1
+                      title = {
+                        template_text = "p99 latency"
+                      }
+                      label = {
+                        observation_field = {
+                          keypath = ["applicationname"]
+                          scope   = "label"
+                        }
+                      }
+                      primary_value = {
+                        observation_field = {
+                          keypath = ["meta.responseTime.numeric"]
+                          scope   = "user_data"
+                        }
+                      }
+                      # Colour the value by range. Exactly one of `range`, `value`
+                      # or `regex` may be set.
+                      color_label_mapping = {
+                        color_by = "value"
+                        range = {
+                          threshold_type = "absolute"
+                          min_max = {
+                            custom = {
+                              min = 0
+                              max = 1000
+                            }
+                          }
+                          thresholds = [
+                            { from = 0, color = "green", label = "fast" },
+                            { from = 500, color = "red", label = "slow" },
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
         }]
     }]
   }
