@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"net/http"
 	"strconv"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -114,20 +113,6 @@ type TeamResourceModel struct {
 	DailyQuota types.Float64 `tfsdk:"daily_quota"`
 }
 
-// teamIDValue extracts the numeric ID from a V2TeamId value. GetId() has a pointer
-// receiver, so a temporary variable is required to make the value addressable.
-func teamIDValue(id teamsservice.V2TeamId) int64 {
-	return id.GetId()
-}
-
-// isTeamNotFound reports whether err represents a real resource-not-found response.
-// httpResponse can be nil (e.g. on a network/DNS/timeout failure before any HTTP
-// response was received), so callers must not dereference httpResponse.StatusCode
-// directly; cxsdkOpenapi.NewAPIError guards that internally.
-func isTeamNotFound(httpResponse *http.Response, err error) bool {
-	return cxsdkOpenapi.IsNotFound(cxsdkOpenapi.NewAPIError(httpResponse, err))
-}
-
 func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan *TeamResourceModel
 	diags := req.Plan.Get(ctx, &plan)
@@ -155,7 +140,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 		return
 	}
-	teamId := teamIDValue(createTeamResp.GetTeamId())
+	teamId := createTeamResp.TeamId.GetId()
 	log.Printf("[INFO] Submitted new team: %d", teamId)
 
 	getTeamResp, httpResponse, err := r.client.TeamServiceGetTeam(ctx, teamId).Execute()
@@ -169,7 +154,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 	log.Printf("[INFO] Received Team: %s", utils.FormatJSON(getTeamResp))
 	state := TeamResourceModel{
-		ID:         types.StringValue(strconv.FormatInt(teamIDValue(getTeamResp.GetTeamId()), 10)),
+		ID:         types.StringValue(strconv.FormatInt(getTeamResp.TeamId.GetId(), 10)),
 		Name:       types.StringValue(getTeamResp.GetTeamName()),
 		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
 		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
@@ -212,7 +197,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	getTeamResp, httpResponse, err := r.client.TeamServiceGetTeam(ctx, teamId).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if isTeamNotFound(httpResponse, err) {
+		if cxsdkOpenapi.IsNotFound(cxsdkOpenapi.NewAPIError(httpResponse, err)) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Team %d is in state, but no longer exists in Coralogix backend", teamId),
 				fmt.Sprintf("%d will be recreated when you apply", teamId),
@@ -229,7 +214,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	log.Printf("[INFO] Received Team: %s", utils.FormatJSON(getTeamResp))
 
 	state := TeamResourceModel{
-		ID:         types.StringValue(strconv.FormatInt(teamIDValue(getTeamResp.GetTeamId()), 10)),
+		ID:         types.StringValue(strconv.FormatInt(getTeamResp.TeamId.GetId(), 10)),
 		Name:       types.StringValue(getTeamResp.GetTeamName()),
 		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
 		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
@@ -281,7 +266,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 	log.Printf("[INFO] Received Team: %s", utils.FormatJSON(getTeamResp))
 	state := TeamResourceModel{
-		ID:         types.StringValue(strconv.FormatInt(teamIDValue(getTeamResp.GetTeamId()), 10)),
+		ID:         types.StringValue(strconv.FormatInt(getTeamResp.TeamId.GetId(), 10)),
 		Name:       types.StringValue(getTeamResp.GetTeamName()),
 		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
 		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),

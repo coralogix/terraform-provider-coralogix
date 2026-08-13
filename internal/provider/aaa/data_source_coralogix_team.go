@@ -92,7 +92,7 @@ func (d *TeamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	getTeamResp, httpResponse, err := d.client.TeamServiceGetTeam(ctx, teamId).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if isTeamNotFound(httpResponse, err) {
+		if cxsdkOpenapi.IsNotFound(cxsdkOpenapi.NewAPIError(httpResponse, err)) {
 			resp.Diagnostics.AddWarning(
 				err.Error(),
 				fmt.Sprintf("Team %d is in state, but no longer exists in Coralogix backend", teamId),
@@ -108,7 +108,7 @@ func (d *TeamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	log.Printf("[INFO] Received Team: %s", utils.FormatJSON(getTeamResp))
 
 	data = &TeamResourceModel{
-		ID:         types.StringValue(strconv.FormatInt(teamIDValue(getTeamResp.GetTeamId()), 10)),
+		ID:         types.StringValue(strconv.FormatInt(getTeamResp.TeamId.GetId(), 10)),
 		Name:       types.StringValue(getTeamResp.GetTeamName()),
 		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
 		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
