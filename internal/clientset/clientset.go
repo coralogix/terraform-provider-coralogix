@@ -89,7 +89,6 @@ type ClientSet struct {
 	aiApplications        *aiapplications.AIApplicationsServiceAPIService
 	aiEvaluations         *aievaluations.AIEvaluationsServiceAPIService
 	grafana               *GrafanaClient
-	groups                *GroupsClient
 	teamGroups            *teamGroupss.TeamGroupsManagementServiceAPIService
 }
 
@@ -183,10 +182,6 @@ func (c *ClientSet) SLOs() *slos.SlosServiceAPIService {
 
 func (c *ClientSet) DashboardsFolders() *dbfs.DashboardFoldersServiceAPIService {
 	return c.dahboardsFolders
-}
-
-func (c *ClientSet) Groups() *GroupsClient {
-	return c.groups
 }
 
 func (c *ClientSet) Users() *UsersClient {
@@ -289,7 +284,6 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		customDataEnrichments: cs.CustomEnrichments(),
 		alertScheduler:        cs.AlertScheduler(),
 		grafana:               NewGrafanaClient(apikeyCPC),
-		groups:                NewGroupsClient(region, apiKey),
 		teamGroups:            cs.Groups(),
 	}
 }

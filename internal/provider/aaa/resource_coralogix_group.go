@@ -16,19 +16,18 @@ package aaa
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/cenkalti/backoff/v5"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
+	teamGroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/team_groups_management_service"
+
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -46,7 +45,8 @@ func NewGroupResource() resource.Resource {
 }
 
 type GroupResource struct {
-	client *clientset.GroupsClient
+	client *teamGroups.TeamGroupsManagementServiceAPIService
+	roles  *roless.RoleManagementServiceAPIService
 }
 
 func (r *GroupResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -67,7 +67,8 @@ func (r *GroupResource) Configure(_ context.Context, req resource.ConfigureReque
 		return
 	}
 
-	r.client = clientSet.Groups()
+	r.client = clientSet.TeamGroups()
+	r.roles = clientSet.CustomRoles()
 }
 
 func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -117,106 +118,37 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	createGroupRequest, diags := extractGroup(ctx, plan)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+	createReq, diags := r.extractCreateTeamGroupRequest(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
-	groupStr, _ := json.Marshal(createGroupRequest)
-	log.Printf("[INFO] Creating new group: %s", string(groupStr))
-	createResp, err := r.client.CreateGroup(ctx, createGroupRequest)
+
+	log.Printf("[INFO] Creating new group: %s", plan.DisplayName.ValueString())
+	createResp, httpResp, err := r.client.
+		GroupsMgmtServiceCreateTeamGroup(ctx).
+		CreateTeamGroupRequest(*createReq).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Group",
-			utils.FormatRpcErrors(err, r.client.TargetUrl, string(groupStr)),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Create", nil),
 		)
 		return
 	}
-
-	// Retry GetGroup with backoff when we set scope_id: API may have eventual consistency
-	// and not return nextGenScopeId on the first read after create.
-	getResp, err := r.getGroupWithScopeRetry(ctx, createResp.ID, plan.ScopeID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading group",
-			utils.FormatRpcErrors(err, r.client.TargetUrl, createResp.ID),
-		)
+	if createResp == nil || createResp.Group == nil || createResp.Group.GroupId == nil {
+		resp.Diagnostics.AddError("Error creating Group", "API returned an empty group")
 		return
 	}
 
-	groupStr, _ = json.Marshal(getResp)
-	log.Printf("[INFO] Getting group: %s", groupStr)
-	state, diags := flattenSCIMGroup(getResp)
-
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+	state, diags := r.readFlattenedGroupToState(ctx, *createResp.Group.GroupId, plan.ScopeID.ValueString(), plan.Role.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
-}
-
-// getGroupWithScopeRetry fetches the group and, when expectedScopeID is set,
-// retries with backoff until the API returns the scope (handles eventual consistency).
-func (r *GroupResource) getGroupWithScopeRetry(ctx context.Context, groupID, expectedScopeID string) (*clientset.SCIMGroup, error) {
-	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = time.Second
-	b.MaxInterval = 3 * time.Second
-
-	op := func() (*clientset.SCIMGroup, error) {
-		resp, err := r.client.GetGroup(ctx, groupID)
-		if err != nil {
-			return nil, err
-		}
-		if expectedScopeID != "" && resp.ScopeID == "" {
-			log.Printf("[INFO] Group %s scope_id not yet visible (eventual consistency), retrying", groupID)
-			return nil, fmt.Errorf("scope_id not yet visible")
-		}
-		return resp, nil
-	}
-
-	return backoff.Retry(ctx, op,
-		backoff.WithBackOff(b),
-		backoff.WithMaxTries(5),
-		backoff.WithMaxElapsedTime(10*time.Second),
-	)
-}
-
-func flattenSCIMGroup(group *clientset.SCIMGroup) (*GroupResourceModel, diag.Diagnostics) {
-	members, diags := flattenSCIMGroupMembers(group.Members)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	scopeId := types.StringNull()
-	if group.ScopeID != "" {
-		scopeId = types.StringValue(group.ScopeID)
-	}
-
-	return &GroupResourceModel{
-		ID:          types.StringValue(group.ID),
-		DisplayName: types.StringValue(group.DisplayName),
-		Members:     members,
-		Role:        types.StringValue(group.Role),
-		ScopeID:     scopeId,
-	}, nil
-}
-
-func flattenSCIMGroupMembers(members []clientset.SCIMGroupMember) (types.Set, diag.Diagnostics) {
-	if len(members) == 0 {
-		return types.SetNull(types.StringType), nil
-	}
-	var diags diag.Diagnostics
-	membersIDs := make([]attr.Value, 0, len(members))
-	for _, member := range members {
-		membersIDs = append(membersIDs, types.StringValue(member.Value))
-	}
-	if diags.HasError() {
-		return types.SetNull(types.StringType), diags
-	}
-
-	return types.SetValue(types.StringType, membersIDs)
 }
 
 func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -227,41 +159,32 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	//Get refreshed Group value from Coralogix
-	id := state.ID.ValueString()
-	log.Printf("[INFO] Reading Group: %s", id)
-	getGroupResp, err := r.client.GetGroup(ctx, id)
+	groupID, diags := parseGroupID(state.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[INFO] Reading Group: %d", groupID)
+	flattened, err := r.readFlattenedGroup(ctx, groupID, "", state.Role.ValueString())
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if isGroupNotFoundErr(err) {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", state.ID.ValueString()),
+				fmt.Sprintf("%s will be recreated when you apply", state.ID.ValueString()),
 			)
 			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Group",
-				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
-			)
+			return
 		}
-		return
-	}
-	respStr, _ := json.Marshal(getGroupResp)
-	log.Printf("[INFO] Received Group: %s", string(respStr))
-
-	state, diags = flattenSCIMGroup(getGroupResp)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+		resp.Diagnostics.AddError("Error reading Group", err.Error())
 		return
 	}
 
-	diags = resp.State.Set(ctx, &state)
+	diags = resp.State.Set(ctx, flattened)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
 	var plan *GroupResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -269,52 +192,51 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	groupUpdateReq, diags := extractGroup(ctx, plan)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+	groupID, diags := parseGroupID(plan.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	groupStr, _ := json.Marshal(groupUpdateReq)
-	log.Printf("[INFO] Updating Group: %s", string(groupStr))
-	groupID := plan.ID.ValueString()
-	groupUpdateResp, err := r.client.UpdateGroup(ctx, groupID, groupUpdateReq)
+	updateReq, diags := r.extractUpdateTeamGroupRequest(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[INFO] Updating Group: %d", groupID)
+	_, httpResp, err := r.client.
+		GroupsMgmtServiceUpdateTeamGroup(ctx, groupID).
+		UpdateTeamGroupRequest(*updateReq).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
+		apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
+		if cxsdkOpenapi.IsNotFound(apiErr) {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
+				fmt.Sprintf("%s will be recreated when you apply", plan.ID.ValueString()),
+			)
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error updating Group",
-			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, groupUpdateReq.ID), string(groupStr)),
+			utils.FormatOpenAPIErrors(apiErr, "Update", nil),
 		)
 		return
 	}
-	groupStr, _ = json.Marshal(groupUpdateResp)
-	log.Printf("[INFO] Submitted updated Group: %s", string(groupStr))
 
-	// Get refreshed Group value from Coralogix
-	id := plan.ID.ValueString()
-	getGroupResp, err := r.client.GetGroup(ctx, id)
+	state, err := r.readFlattenedGroup(ctx, groupID, plan.ScopeID.ValueString(), plan.Role.ValueString())
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if isGroupNotFoundErr(err) {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
+				fmt.Sprintf("%s will be recreated when you apply", plan.ID.ValueString()),
 			)
 			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Group",
-				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), string(groupStr)),
-			)
+			return
 		}
-		return
-	}
-	groupStr, _ = json.Marshal(getGroupResp)
-	log.Printf("[INFO] Received Group: %s", string(groupStr))
-
-	state, diags := flattenSCIMGroup(getGroupResp)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+		resp.Diagnostics.AddError("Error reading Group", err.Error())
 		return
 	}
 
@@ -330,60 +252,145 @@ func (r *GroupResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		return
 	}
 
-	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting Group %s", id)
-	if err := r.client.DeleteGroup(ctx, id); err != nil {
+	groupID, diags := parseGroupID(state.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[INFO] Deleting Group %d", groupID)
+	_, httpResp, err := r.client.GroupsMgmtServiceDeleteTeamGroup(ctx, groupID).Execute()
+	if err != nil {
+		apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
+		if cxsdkOpenapi.IsNotFound(apiErr) {
+			return
+		}
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Group %s", id),
-			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
+			fmt.Sprintf("Error Deleting Group %s", state.ID.ValueString()),
+			utils.FormatOpenAPIErrors(apiErr, "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Group %s deleted", id)
 }
 
 type GroupResourceModel struct {
 	ID          types.String `tfsdk:"id"`
 	DisplayName types.String `tfsdk:"display_name"`
-	Members     types.Set    `tfsdk:"members"` // Set of strings
+	Members     types.Set    `tfsdk:"members"`
 	Role        types.String `tfsdk:"role"`
 	ScopeID     types.String `tfsdk:"scope_id"`
 }
 
-func extractGroup(ctx context.Context, plan *GroupResourceModel) (*clientset.SCIMGroup, diag.Diagnostics) {
-	members, diags := extractGroupMembers(ctx, plan.Members)
+func (r *GroupResource) extractCreateTeamGroupRequest(ctx context.Context, plan *GroupResourceModel) (*teamGroups.CreateTeamGroupRequest, diag.Diagnostics) {
+	roleID, diags := lookupRoleID(ctx, r.roles, plan.Role.ValueString())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &clientset.SCIMGroup{
-		DisplayName: plan.DisplayName.ValueString(),
-		Members:     members,
-		Role:        plan.Role.ValueString(),
-		ScopeID:     plan.ScopeID.ValueString(),
-	}, nil
+	userIDs, memberDiags := extractMemberIDs(ctx, plan.Members)
+	diags.Append(memberDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	createReq := &teamGroups.CreateTeamGroupRequest{
+		Name:    teamGroups.PtrString(plan.DisplayName.ValueString()),
+		RoleId:  teamGroups.PtrInt64(roleID),
+		UserIds: userIDs,
+	}
+	if !plan.ScopeID.IsNull() && !plan.ScopeID.IsUnknown() && plan.ScopeID.ValueString() != "" {
+		createReq.Scope = &teamGroups.V2Scope{ScopeId: teamGroups.PtrString(plan.ScopeID.ValueString())}
+	}
+	return createReq, diags
 }
 
-func extractGroupMembers(ctx context.Context, members types.Set) ([]clientset.SCIMGroupMember, diag.Diagnostics) {
-	membersElements := members.Elements()
-	groupMembers := make([]clientset.SCIMGroupMember, 0, len(membersElements))
-	var diags diag.Diagnostics
-	for _, member := range membersElements {
-		val, err := member.ToTerraformValue(ctx)
-		if err != nil {
-			diags.AddError("Failed to convert value to Terraform", err.Error())
-			continue
-		}
-		var str string
-
-		if err = val.As(&str); err != nil {
-			diags.AddError("Failed to convert value to string", err.Error())
-			continue
-		}
-		groupMembers = append(groupMembers, clientset.SCIMGroupMember{Value: str})
-	}
+func (r *GroupResource) extractUpdateTeamGroupRequest(ctx context.Context, plan *GroupResourceModel) (*teamGroups.UpdateTeamGroupRequest, diag.Diagnostics) {
+	roleID, diags := lookupRoleID(ctx, r.roles, plan.Role.ValueString())
 	if diags.HasError() {
 		return nil, diags
 	}
-	return groupMembers, nil
+
+	userIDs, memberDiags := extractMemberIDs(ctx, plan.Members)
+	diags.Append(memberDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	updateReq := &teamGroups.UpdateTeamGroupRequest{
+		Name:        teamGroups.PtrString(plan.DisplayName.ValueString()),
+		RoleUpdate:  teamGroupRoleUpdate(roleID),
+		UserUpdates: teamGroupUserUpdates("set", userIDs),
+	}
+	updateReq.ScopeUpdate = scopeUpdateFromPlan(plan)
+	return updateReq, diags
+}
+
+func scopeUpdateFromPlan(plan *GroupResourceModel) *teamGroups.ScopeUpdate {
+	if plan.ScopeID.IsUnknown() || plan.ScopeID.IsNull() || plan.ScopeID.ValueString() == "" {
+		return nil
+	}
+	return teamGroupScopeSet(plan.ScopeID.ValueString())
+}
+
+func (r *GroupResource) readFlattenedGroupToState(ctx context.Context, groupID int64, expectedScopeID, preferredRole string) (*GroupResourceModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	state, err := r.readFlattenedGroup(ctx, groupID, expectedScopeID, preferredRole)
+	if err != nil {
+		diags.AddError("Error reading Group", err.Error())
+		return nil, diags
+	}
+	return state, diags
+}
+
+func (r *GroupResource) readFlattenedGroup(ctx context.Context, groupID int64, expectedScopeID, preferredRole string) (*GroupResourceModel, error) {
+	group, err := r.getGroupWithScopeRetry(ctx, groupID, expectedScopeID)
+	if err != nil {
+		return nil, err
+	}
+
+	memberIDs, httpResp, err := listGroupUserIDs(ctx, r.client, groupID)
+	if err != nil {
+		return nil, formatGroupReadError(httpResp, err, groupID)
+	}
+
+	state, diags := flattenTeamGroupWithPreferredRole(group, memberIDs, preferredRole)
+	if diags.HasError() {
+		return nil, fmt.Errorf("%s", diags[0].Detail())
+	}
+	return state, nil
+}
+
+func (r *GroupResource) getGroupWithScopeRetry(ctx context.Context, groupID int64, expectedScopeID string) (*teamGroups.TeamGroup, error) {
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = time.Second
+	b.MaxInterval = 3 * time.Second
+
+	op := func() (*teamGroups.TeamGroup, error) {
+		resp, httpResp, err := r.client.GroupsMgmtServiceGetTeamGroup(ctx, groupID).Execute()
+		if err != nil {
+			return nil, backoff.Permanent(formatGroupReadError(httpResp, err, groupID))
+		}
+		if resp == nil || resp.Group == nil {
+			return nil, fmt.Errorf("API returned an empty group")
+		}
+		if expectedScopeID != "" && (resp.Group.Scope == nil || resp.Group.Scope.GetScopeId() == "") {
+			log.Printf("[INFO] Group %d scope_id not yet visible (eventual consistency), retrying", groupID)
+			return nil, fmt.Errorf("scope_id not yet visible")
+		}
+		return resp.Group, nil
+	}
+
+	return backoff.Retry(ctx, op,
+		backoff.WithBackOff(b),
+		backoff.WithMaxTries(5),
+		backoff.WithMaxElapsedTime(10*time.Second),
+	)
+}
+
+func formatGroupReadError(httpResp *http.Response, err error, groupID int64) error {
+	apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
+	if cxsdkOpenapi.IsNotFound(apiErr) {
+		return &groupNotFoundError{id: groupID}
+	}
+	return fmt.Errorf("%s", utils.FormatOpenAPIErrors(apiErr, "Read", groupID))
 }

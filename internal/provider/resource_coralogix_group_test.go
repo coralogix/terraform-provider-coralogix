@@ -17,11 +17,13 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 
-	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -31,6 +33,7 @@ var groupResourceName = "coralogix_group.test"
 
 func TestAccCoralogixResourceGroup(t *testing.T) {
 	userName := randUserName()
+	userName2 := randUserName()
 	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
 	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
 	resource.Test(t, resource.TestCase{
@@ -50,24 +53,43 @@ func TestAccCoralogixResourceGroup(t *testing.T) {
 				),
 			},
 			{
+				Config:   testAccCoralogixResourceGroup(userName, displayName, scopeName),
+				PlanOnly: true,
+			},
+			{
 				ResourceName:      groupResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			{
+				Config: testAccCoralogixResourceGroupUpdatedMembers(userName, userName2, displayName, scopeName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupResourceName, "members.#", "2"),
+					resource.TestCheckResourceAttrPair(groupResourceName, "scope_id", "coralogix_scope.test", "id"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceGroupNoScope(userName, userName2, displayName, scopeName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupResourceName, "display_name", displayName),
+					resource.TestCheckResourceAttr(groupResourceName, "members.#", "2"),
+					resource.TestCheckResourceAttrPair(groupResourceName, "scope_id", "coralogix_scope.test", "id"),
+				),
+			},
+			{
+				Config:   testAccCoralogixResourceGroupNoScope(userName, userName2, displayName, scopeName),
+				PlanOnly: true,
 			},
 		},
 	})
 }
 
 func testAccCheckGroupDestroy(s *terraform.State) error {
-	// Configure the SDK provider so Meta() is set (ProtoV6 tests don't configure testAccProvider).
-	rc := terraform2.ResourceConfig{}
-	_ = testAccProvider.Configure(context.Background(), &rc)
-	meta := testAccProvider.Meta()
-	if meta == nil {
-		return nil
+	clients, err := testAccNewClientSet()
+	if err != nil {
+		return err
 	}
-	client := meta.(*clientset.ClientSet).Groups()
-
+	client := clients.TeamGroups()
 	ctx := context.TODO()
 
 	for _, rs := range s.RootModule().Resources {
@@ -75,11 +97,21 @@ func testAccCheckGroupDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.GetGroup(ctx, rs.Primary.ID)
-		if err == nil {
-			if resp.ID == rs.Primary.ID {
-				return fmt.Errorf("group still exists: %s", rs.Primary.ID)
+		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		if err != nil {
+			return fmt.Errorf("parse group id %q: %w", rs.Primary.ID, err)
+		}
+
+		resp, httpResp, err := client.GroupsMgmtServiceGetTeamGroup(ctx, id).Execute()
+		if err != nil {
+			apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
+			if cxsdkOpenapi.IsNotFound(apiErr) {
+				continue
 			}
+			return fmt.Errorf("get group: %s", utils.FormatOpenAPIErrors(apiErr, "Get", rs.Primary.ID))
+		}
+		if resp != nil && resp.Group != nil {
+			return fmt.Errorf("group still exists: %s", rs.Primary.ID)
 		}
 	}
 
@@ -88,7 +120,6 @@ func testAccCheckGroupDestroy(s *terraform.State) error {
 
 func testAccCoralogixResourceGroup(userName, displayName, scopeName string) string {
 	return fmt.Sprintf(`
-
 	resource "coralogix_scope" "test" {
 		display_name       = "%s"
 		default_expression = "<v1>true"
@@ -111,4 +142,63 @@ func testAccCoralogixResourceGroup(userName, displayName, scopeName string) stri
 		scope_id     = coralogix_scope.test.id
 	}
 `, scopeName, userName, displayName)
+}
+
+func testAccCoralogixResourceGroupUpdatedMembers(userName, userName2, displayName, scopeName string) string {
+	return fmt.Sprintf(`
+	resource "coralogix_scope" "test" {
+		display_name       = "%s"
+		default_expression = "<v1>true"
+		filters            = [
+		{
+			entity_type = "logs"
+			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
+		}
+		]
+	}
+
+	resource "coralogix_user" "test" {
+		user_name = "%s"
+	}
+
+	resource "coralogix_user" "test2" {
+		user_name = "%s"
+	}
+	
+	resource "coralogix_group" "test" {
+		display_name = "%s"
+		role         = "Read Only"
+		members      = [coralogix_user.test.id, coralogix_user.test2.id]
+		scope_id     = coralogix_scope.test.id
+	}
+`, scopeName, userName, userName2, displayName)
+}
+
+func testAccCoralogixResourceGroupNoScope(userName, userName2, displayName, scopeName string) string {
+	return fmt.Sprintf(`
+	resource "coralogix_scope" "test" {
+		display_name       = "%s"
+		default_expression = "<v1>true"
+		filters            = [
+		{
+			entity_type = "logs"
+			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
+		}
+		]
+	}
+
+	resource "coralogix_user" "test" {
+		user_name = "%s"
+	}
+
+	resource "coralogix_user" "test2" {
+		user_name = "%s"
+	}
+	
+	resource "coralogix_group" "test" {
+		display_name = "%s"
+		role         = "Read Only"
+		members      = [coralogix_user.test.id, coralogix_user.test2.id]
+	}
+`, scopeName, userName, userName2, displayName)
 }

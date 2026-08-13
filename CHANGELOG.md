@@ -1,5 +1,14 @@
 # Unreleased
 
+#### resource/coralogix_group
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
+#### data-source/coralogix_group
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
+#### resource/coralogix_group_attachment
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
 #### provider
 - FIX: API error diagnostics now classify failures by HTTP status and include the backend's response body, instead of showing only the bare error text.
 - FIX: gRPC error diagnostics now surface the attached `google.rpc` details (for example, per-field validation messages).
