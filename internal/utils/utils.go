@@ -183,30 +183,35 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 	case resourceschema.Float32Attribute:
 		return datasourceschema.Float32Attribute{
 			Computed:            true,
+			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 		}, true
 	case resourceschema.Float64Attribute:
 		return datasourceschema.Float64Attribute{
 			Computed:            true,
+			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 		}, true
 	case resourceschema.Int64Attribute:
 		return datasourceschema.Int64Attribute{
 			Computed:            true,
+			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 		}, true
 	case resourceschema.Int32Attribute:
 		return datasourceschema.Int32Attribute{
 			Computed:            true,
+			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 		}, true
 	case resourceschema.NumberAttribute:
 		return datasourceschema.NumberAttribute{
 			Computed:            true,
+			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 		}, true

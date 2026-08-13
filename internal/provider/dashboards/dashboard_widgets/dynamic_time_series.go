@@ -644,7 +644,11 @@ var dashboardValidXAxisTimeFormat = utils.GetKeys(dashboardSchemaToProtoXAxisTim
 
 func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 	return schema.ListNestedAttribute{
-		Optional: true,
+		Optional:            true,
+		MarkdownDescription: "Per-query display settings. Each entry styles one query, named by `query_id`.",
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
 				"allow_abbreviation": schema.BoolAttribute{
