@@ -4,6 +4,8 @@
 - CHORE: Bump `coralogix-management-sdk` to include OpenAPI required fields for dashboard `variables_v2`.
 
 #### resource/coralogix_dashboard
+- FEAT: Add the `time_series_lines_multi` and `time_series_bars` visualizations to the `dynamic` widget, plus the deprecated singular `time_series_lines` so dashboards using it can be imported and updated without loss.
+- FEAT: `dynamic.query_definitions[*].id` is now settable instead of read-only. It remains generated when omitted; setting it is required to reference a query from `time_series_lines_multi.query_display_settings[*].query_id`, which was previously impossible to author because the id could not be known in advance.
 - FIX: Adapt `variables_v2` expand/flatten to SDK required value types (`id`, `name`, `display_name`, `display_type`, `source`, `value`, static/query `all_option` / `values_order_direction`, static `values[].value`/`label`, logs `observation_field`, metrics `label_name`).
 
 #### provider
