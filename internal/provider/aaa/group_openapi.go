@@ -324,8 +324,12 @@ func userIDsToRemove(stateIDs, existingIDs []string) []string {
 }
 
 func applyGroupUserOperation(ctx context.Context, client *teamGroups.TeamGroupsManagementServiceAPIService, groupID int64, operationType string, userIDs []string) (*http.Response, error) {
-	if len(userIDs) == 0 {
+	// add/remove of an empty list is a no-op. set of an empty list replaces all members.
+	if len(userIDs) == 0 && operationType != "set" {
 		return nil, nil
+	}
+	if userIDs == nil {
+		userIDs = []string{}
 	}
 	_, httpResp, err := client.
 		GroupsMgmtServiceUpdateTeamGroup(ctx, groupID).
@@ -334,6 +338,36 @@ func applyGroupUserOperation(ctx context.Context, client *teamGroups.TeamGroupsM
 		}).
 		Execute()
 	return httpResp, err
+}
+
+// desiredAttachmentGroupUserIDs is the full member list for one attachment Update set.
+// Keep users this attachment does not own. Drop users in state but not in plan. Add plan users.
+func desiredAttachmentGroupUserIDs(existing, stateIDs, planIDs []string) []string {
+	state := userIDSet(stateIDs)
+	plan := userIDSet(planIDs)
+	seen := make(map[string]struct{}, len(existing)+len(planIDs))
+	out := make([]string, 0, len(existing)+len(planIDs))
+
+	for _, id := range existing {
+		if _, inState := state[id]; inState {
+			if _, inPlan := plan[id]; !inPlan {
+				continue
+			}
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	for _, id := range planIDs {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
 }
 
 func userIDDiff(planIDs, stateIDs []string) (add, remove []string) {
