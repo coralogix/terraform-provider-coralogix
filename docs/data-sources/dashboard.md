@@ -1770,6 +1770,7 @@ Read-Only:
 Read-Only:
 
 - `stat` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat))
+- `stat_card` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat`
@@ -1833,6 +1834,253 @@ Read-Only:
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_fields"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat.value_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean) Shorten large numbers, for example `1.2K` instead of `1200`.
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--category_fields))
+- `color_label_mapping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping))
+- `custom_unit` (String) A free-text unit label. Documented as taking effect only when `unit` is `custom`.
+- `decimal_precision` (Number) How many digits to show after the decimal point.
+- `label` (Attributes) Text element: read a field with `observation_field`, or write it with `template_text`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label))
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--legend))
+- `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
+- `primary_value` (Attributes) Text element: read a field with `observation_field`, or write it with `template_text`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value))
+- `title` (Attributes) Text element: read a field with `observation_field`, or write it with `template_text`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--value_fields))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping`
+
+Read-Only:
+
+- `color_by` (String) Which part of the widget the color applies to. Valid values are: background, row, unspecified, value.
+- `range` (Attributes) Colour by where the value falls in a numeric range. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range))
+- `regex` (Attributes) Colour by matching the value against regular expressions. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex))
+- `value` (Attributes) Colour by matching the value exactly. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range`
+
+Read-Only:
+
+- `min_max` (Attributes) The range ends. Either derived from the data (`auto`) or fixed (`custom`). (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max))
+- `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
+- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--thresholds))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range.min_max`
+
+Read-Only:
+
+- `auto` (Boolean) Set to `true` to derive the range ends from the data.
+- `custom` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max--custom))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--min_max--custom"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range.min_max.custom`
+
+Read-Only:
+
+- `max` (Number)
+- `min` (Number)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--range--thresholds"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.range.thresholds`
+
+Read-Only:
+
+- `color` (String)
+- `from` (Number)
+- `label` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.regex`
+
+Read-Only:
+
+- `sections` (Attributes List) One entry per value to match. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex--sections))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--regex--sections"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.regex.sections`
+
+Read-Only:
+
+- `color` (String) The section color. Valid values are: blue, cyan, green, magenta, orange, purple, red, unspecified, yellow.
+- `map_to` (String) Text to display instead of the matched value.
+- `value` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.value`
+
+Read-Only:
+
+- `sections` (Attributes List) One entry per value to match. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value--sections))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping--value--sections"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.color_label_mapping.value.sections`
+
+Read-Only:
+
+- `color` (String) The section color. Valid values are: blue, cyan, green, magenta, orange, purple, red, unspecified, yellow.
+- `map_to` (String) Text to display instead of the matched value.
+- `value` (String)
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label`
+
+Read-Only:
+
+- `mapped_values` (Boolean) Set to `true` to display the result of `color_label_mapping` instead of a field. Mutually exclusive with `observation_field`.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--observation_field))
+- `template_text` (String) Display text, which may reference variables declared in `template_variables`.
+- `template_variables` (Attributes List) Variables that `template_text` can reference. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.template_variables`
+
+Read-Only:
+
+- `mapped_values` (Boolean) Set to `true` to resolve the variable from the `color_label_mapping` result instead of a field. Mutually exclusive with `observation_field`.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables--observation_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label--template_variables--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.label.template_variables.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value`
+
+Read-Only:
+
+- `mapped_values` (Boolean) Not supported here: the primary value is the source the color label mapping reads from, so it cannot itself display the mapping result.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--observation_field))
+- `template_text` (String) Display text, which may reference variables declared in `template_variables`.
+- `template_variables` (Attributes List) Variables that `template_text` can reference. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.template_variables`
+
+Read-Only:
+
+- `mapped_values` (Boolean) Set to `true` to resolve the variable from the `color_label_mapping` result instead of a field. Mutually exclusive with `observation_field`.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables--observation_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value--template_variables--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.primary_value.template_variables.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title`
+
+Read-Only:
+
+- `mapped_values` (Boolean) Set to `true` to display the result of `color_label_mapping` instead of a field. Mutually exclusive with `observation_field`.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--observation_field))
+- `template_text` (String) Display text, which may reference variables declared in `template_variables`.
+- `template_variables` (Attributes List) Variables that `template_text` can reference. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.template_variables`
+
+Read-Only:
+
+- `mapped_values` (Boolean) Set to `true` to resolve the variable from the `color_label_mapping` result instead of a field. Mutually exclusive with `observation_field`.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables--observation_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--title--template_variables--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.title.template_variables.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--value_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat_card.value_fields`
 
 Read-Only:
 
