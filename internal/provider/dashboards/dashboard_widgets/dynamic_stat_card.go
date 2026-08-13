@@ -17,7 +17,6 @@ package dashboard_widgets
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -62,9 +61,9 @@ func dynamicStatCardSchema() schema.Attribute {
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.Between(0, 15),
 				},
-				MarkdownDescription: "How many digits to show after the decimal point.",
+				MarkdownDescription: "How many digits to show after the decimal point. Valid values are 0 to 15.",
 			},
 			"label":  dynamicStatVisualElementSchema(true),
 			"legend": LegendSchema(),

@@ -3079,7 +3079,7 @@ Optional:
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--category_fields))
 - `color_label_mapping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping))
 - `custom_unit` (String) A free-text unit label. Documented as taking effect only when `unit` is `custom`.
-- `decimal_precision` (Number) How many digits to show after the decimal point.
+- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `label` (Attributes) Text element: read a field with `observation_field`, or write it with `template_text`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label))
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--legend))
 - `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
