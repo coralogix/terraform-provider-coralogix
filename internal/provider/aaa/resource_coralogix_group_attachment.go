@@ -180,12 +180,8 @@ func (r *GroupAttachmentResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	diffAdd, diffRemove := userIDDiff(plan.UserIDs, state.UserIDs)
-	if err := r.applyUserOp(ctx, groupID, "remove", userIDsToRemove(diffRemove, existing)); err != nil {
-		resp.Diagnostics.AddError("Failed to attach users to group", err.Error())
-		return
-	}
-	if err := r.applyUserOp(ctx, groupID, "add", userIDsToAdd(diffAdd, existing)); err != nil {
+	desired := desiredAttachmentGroupUserIDs(existing, state.UserIDs, plan.UserIDs)
+	if err := r.applyUserOp(ctx, groupID, "set", desired); err != nil {
 		resp.Diagnostics.AddError("Failed to attach users to group", err.Error())
 		return
 	}
