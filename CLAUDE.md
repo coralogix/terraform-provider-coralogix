@@ -75,6 +75,15 @@ When the resource has a paired data source (`data_source_*.go`), check whether i
 
 Fields that take expressions — `coralogix_tco_policies_logs.dpxl_expression`, `coralogix_scope.default_expression`, `coralogix_scope.filters[*].expression` — require a version tag at the start of the string (e.g. `<v1> $d.severity == 'INFO'`, `<v1>true`). Bare expressions are rejected at API compile time. When adding a new expression-typed field, mention the prefix in `MarkdownDescription` and include it in test fixtures.
 
+### Migrating an existing resource to a new API
+
+Unchanged Terraform attributes are not a compatibility proof. Do both checks before the PR:
+
+1. **HCL string identity.** For every string the old API accepted and returned (role names, enum labels, display names), confirm the new API lists that exact string. If it renamed values, get the full mapping from backend. Do not alias one name and assume the rest match.
+2. **API-key permissions.** List every RPC the new create/update/read path calls. Map each to a permission in `mapRoleToPermission` (`internal/provider/aaa/resource_coralogix_api_key.go`). A new lookup on another service (name → id) needs that service's permission. Existing least-privilege keys that could do the old write will fail before the intended API. Avoid the extra call, or document the extra permission as a breaking change. Acc tests with a full admin key do not catch this.
+
+See `.claude/skills/api-migration-hcl-and-key-compat/SKILL.md`.
+
 ### Bumping the SDK in `go.mod`
 
 A bump usually requires adapting many resource files to the new SDK API surface (renamed types, changed signatures). PR #506 touched 17 resource files alongside `go.mod`. That's expected — bundle the bump and the adaptations in the same PR; they're not separable. After the bump: `go mod tidy && go build ./... && go vet ./...`, then the relevant `make testacc` runs to catch behaviour drift the compiler can't.
@@ -123,6 +132,7 @@ git diff master.. -- internal docs examples | grep -iE "BUGV2-|CX-[0-9]" || echo
 - **Null, unknown, and import safety:** Validators and extractors must tolerate `null`, `unknown`, and variable-derived values without panics. Import reads often start with only an ID, so dynamic or required-looking nested values must be hydrated from the backend before conversion.
 - **CRUD error paths:** After `resp.Diagnostics.AddError`, return immediately. A failed create/update must not continue into flatten/state writes, because empty IDs or zero-value state can poison later reads and plans.
 - **API behavior hidden by generated types:** Do not infer semantics from Go zero values alone. Check for exact numeric/string conversions, time windows that cross midnight, host/domain routing special cases, backend-only defaults, and hard-coded request values that users cannot express in schema.
+- **API migration compatibility:** When a resource switches backend (SCIM, REST, gRPC, OpenAPI) or create/update starts calling another service, "HCL unchanged" is not enough. Confirm every old round-trip string still exists on the new API. List every new RPC and map it to an API-key permission in `mapRoleToPermission`. Extra lookups (name → id) on another service break least-privilege keys even when schema and state stay the same. Acc tests with a full admin key miss this. See `.claude/skills/api-migration-hcl-and-key-compat/SKILL.md`.
 - **Regression coverage:** Prefer tests that exercise apply → read → second plan, set → change → remove for optional fields, import, unknown/variable config, and API-returned optional blocks. Many past bugs only appeared on the second plan or on update/import, not on initial create.
 
 ## Skill maintenance (dynamic)
