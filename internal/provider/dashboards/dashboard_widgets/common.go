@@ -62,8 +62,10 @@ var (
 		"usd_cents":       dashboardservice.COMMONUNIT_UNIT_USD_CENTS,
 		"usd":             dashboardservice.COMMONUNIT_UNIT_USD,
 		"custom":          dashboardservice.COMMONUNIT_UNIT_CUSTOM,
+		"percent":         dashboardservice.COMMONUNIT_UNIT_PERCENT,
 		"percent01":       dashboardservice.COMMONUNIT_UNIT_PERCENT_ZERO_ONE,
 		"percent100":      dashboardservice.COMMONUNIT_UNIT_PERCENT_ZERO_HUNDRED,
+		"datetime_iso":    dashboardservice.COMMONUNIT_UNIT_DATETIME_ISO,
 	}
 	DashboardProtoToSchemaUnit = utils.ReverseMap(DashboardSchemaToProtoUnit)
 	DashboardValidUnits        = utils.GetKeys(DashboardSchemaToProtoUnit)
@@ -182,6 +184,7 @@ var (
 		"custom":          dashboardservice.GAUGEUNIT_UNIT_CUSTOM,
 		"percent01":       dashboardservice.GAUGEUNIT_UNIT_PERCENT_ZERO_ONE,
 		"percent100":      dashboardservice.GAUGEUNIT_UNIT_PERCENT_ZERO_HUNDRED,
+		"datetime_iso":    dashboardservice.GAUGEUNIT_UNIT_DATETIME_ISO,
 	}
 	DashboardProtoToSchemaGaugeUnit           = utils.ReverseMap(DashboardSchemaToProtoGaugeUnit)
 	DashboardValidGaugeUnits                  = utils.GetKeys(DashboardSchemaToProtoGaugeUnit)
