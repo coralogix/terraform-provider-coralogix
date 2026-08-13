@@ -103,10 +103,12 @@ func DynamicSchema() schema.Attribute {
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
+							Optional: true,
 							Computed: true,
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseNonNullStateForUnknown(),
 							},
+							MarkdownDescription: "Identifier for this query. Generated when omitted. Set it explicitly when a visualization needs to reference the query, as `time_series_lines_multi.query_display_settings[*].query_id` does.",
 						},
 						"name": schema.StringAttribute{
 							Optional: true,
@@ -143,11 +145,14 @@ func DynamicSchema() schema.Attribute {
 			"visualization": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"stat":      dynamicStatSchema(),
-					"stat_card": dynamicStatCardSchema(),
+					"stat":                    dynamicStatSchema(),
+					"stat_card":               dynamicStatCardSchema(),
+					"time_series_lines":       dynamicTimeSeriesLinesSchema(),
+					"time_series_lines_multi": dynamicTimeSeriesLinesMultiSchema(),
+					"time_series_bars":        dynamicTimeSeriesBarsSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card"),
+					ExactlyOneOfChildren("stat", "stat_card", "time_series_lines", "time_series_lines_multi", "time_series_bars"),
 				},
 			},
 		},
@@ -219,7 +224,7 @@ func dynamicMetricsQuerySchema() schema.Attribute {
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidPromQLQueryType...),
 				},
-				MarkdownDescription: fmt.Sprintf("The PromQL query type. Valid values are: %s.", strings.Join(DashboardValidPromQLQueryType, ", ")),
+				MarkdownDescription: fmt.Sprintf("The PromQL query type. Use `range` for visualizations that plot values over time, such as the time-series ones; an instant query returns a single point and those charts render empty. Valid values are: %s.", strings.Join(DashboardValidPromQLQueryType, ", ")),
 			},
 			"editor_mode": schema.StringAttribute{
 				Optional: true,
@@ -498,8 +503,11 @@ func spanObservationFieldAttr() map[string]attr.Type {
 
 func dynamicVisualizationModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"stat":      types.ObjectType{AttrTypes: dynamicStatModelAttr()},
-		"stat_card": types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
+		"stat":                    types.ObjectType{AttrTypes: dynamicStatModelAttr()},
+		"stat_card":               types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
+		"time_series_lines":       types.ObjectType{AttrTypes: dynamicTimeSeriesLinesModelAttr()},
+		"time_series_lines_multi": types.ObjectType{AttrTypes: dynamicTimeSeriesLinesMultiModelAttr()},
+		"time_series_bars":        types.ObjectType{AttrTypes: dynamicTimeSeriesBarsModelAttr()},
 	}
 }
 
@@ -770,6 +778,24 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{StatCard: statCard}, nil
+	case visualization.TimeSeriesLines != nil:
+		lines, diags := expandDynamicTimeSeriesLines(ctx, visualization.TimeSeriesLines)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{TimeSeriesLines: lines}, nil
+	case visualization.TimeSeriesLinesMulti != nil:
+		linesMulti, diags := expandDynamicTimeSeriesLinesMulti(ctx, visualization.TimeSeriesLinesMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{TimeSeriesLinesMulti: linesMulti}, nil
+	case visualization.TimeSeriesBars != nil:
+		bars, diags := expandDynamicTimeSeriesBars(ctx, visualization.TimeSeriesBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{TimeSeriesBars: bars}, nil
 	default:
 		return nil, nil
 	}
@@ -1095,6 +1121,24 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{StatCard: statCard}, nil
+	case visualization.TimeSeriesLines != nil:
+		lines, diags := flattenDynamicTimeSeriesLines(ctx, visualization.TimeSeriesLines)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{TimeSeriesLines: lines}, nil
+	case visualization.TimeSeriesLinesMulti != nil:
+		linesMulti, diags := flattenDynamicTimeSeriesLinesMulti(ctx, visualization.TimeSeriesLinesMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{TimeSeriesLinesMulti: linesMulti}, nil
+	case visualization.TimeSeriesBars != nil:
+		bars, diags := flattenDynamicTimeSeriesBars(ctx, visualization.TimeSeriesBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{TimeSeriesBars: bars}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Unsupported Dashboard Widget Definition",
