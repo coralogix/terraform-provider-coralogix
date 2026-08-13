@@ -1,5 +1,10 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+- FEAT: Add the `stat_card` visualization to the `dynamic` widget: the `title`, `label` and `primary_value` elements (each reading a field, using template text, or showing the color-mapping result), display-name template variables, and `color_label_mapping` with its `range`, `value` and `regex` variants. Note that opening a `dynamic` `stat` widget in the Coralogix UI rewrites it to a `stat_card`. Releases 3.10.0 and 3.10.1 could not read the result, so `plan`, `apply` and `destroy` all failed against such a dashboard.
+- FIX: `unit` now accepts `percent` and `datetime_iso`, which the API supports but the shared unit map omitted; the gauge unit map was also missing `datetime_iso`. A widget saved with either unit — by the Coralogix UI, for example — read back as null, and the next apply overwrote it with `unspecified`. Affects every widget type exposing a `unit`, not only `dynamic`.
+- FIX: Stat-card configurations the API rejects are now caught at plan time with the attribute named, rather than failing the apply: a `color_label_mapping` requires exactly one of `range`, `value` and `regex`; an element cannot both read a field and show the mapping result, nor can a display-name template variable; `primary_value` cannot show the mapping result at all; and every list this visualization exposes rejects an explicit empty value.
+
 #### resource/coralogix_connector
 - FEAT: Add support for the `eventbridge` connector type.
 
@@ -38,11 +43,6 @@
 #### resource/coralogix_dashboard
 - FEAT: Add typed HCL support for the `dynamic` widget definition: `query_definitions` with the logs/spans/metrics/data_prime query union, a top-level `time_frame` and `interpretation`, and the `stat` visualization at full fidelity. The remaining visualizations follow in later releases; a dynamic widget using one of them, or using the deprecated top-level `query` instead of `query_definitions`, fails the read with a clear diagnostic instead of writing state that silently drops it. Previously every `dynamic` widget failed import and data-source reads.
 - DEPRECATION: Mark `dynamic.visualization.stat.value_field` as deprecated, matching the API. Use `value_fields`; the singular form is still read and written so existing dashboards import without losing it.
-- FEAT: Add the `stat_card` visualization to the `dynamic` widget: the `title`, `label` and `primary_value` elements (each reading a field or using template text), display-name template variables, and `color_label_mapping` with its `range`, `value` and `regex` variants.
-- FIX: `color_label_mapping` now requires exactly one of `range`, `value` and `regex` at plan time. Previously every arm was sent, and the API rejected the request with `at most one of [range, value, regex]` or `mapping type must be defined as range, value, or regex`.
-- FIX: A stat-card element setting both `observation_field` and `mapped_values` is now rejected at plan time instead of failing the apply with `at most one of [observationField, mappedValues]`. The same applies to display-name template variables.
-- FIX: `primary_value.mapped_values` is now rejected at plan time; the API refuses it because the primary value is the source the color label mapping reads from.
-- FIX: A `min_max` block that resolves to neither `auto = true` nor `custom` (only reachable when the value comes from a variable) now fails with a clear error instead of sending an empty range the API cannot store. A backend-returned empty range no longer lands in state as a block no configuration could reproduce.
 - FEAT: Add `variables_v2` with static, textbox, and query-backed dashboard variables.
 - DEPRECATION: Mark `variables` as deprecated. Use `variables_v2` for new dashboard variables.
 - FIX: Schema v2/v3→v4 state upgrade no longer fails with `Missing Upgraded Resource State` when the dashboard was deleted outside Terraform. The upgrader no longer removes the resource from state (illegal inside a state upgrader); it returns a valid v4 state carrying the prior `id`, `name`, `description` and `content_json`, so the following refresh detects the missing dashboard and plans a recreate.
