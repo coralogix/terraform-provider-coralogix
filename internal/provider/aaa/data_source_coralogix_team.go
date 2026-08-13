@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"net/http"
 	"strconv"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -93,7 +92,7 @@ func (d *TeamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	getTeamResp, httpResponse, err := d.client.TeamServiceGetTeam(ctx, teamId).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if isTeamNotFound(httpResponse, err) {
 			resp.Diagnostics.AddWarning(
 				err.Error(),
 				fmt.Sprintf("Team %d is in state, but no longer exists in Coralogix backend", teamId),

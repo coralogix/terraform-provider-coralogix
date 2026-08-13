@@ -122,6 +122,14 @@ func teamIDValue(id teamsservice.V2TeamId) int64 {
 	return id.GetId()
 }
 
+// isTeamNotFound reports whether err represents a real resource-not-found response.
+// httpResponse can be nil (e.g. on a network/DNS/timeout failure before any HTTP
+// response was received), so callers must not dereference httpResponse.StatusCode
+// directly; cxsdkOpenapi.NewAPIError guards that internally.
+func isTeamNotFound(httpResponse *http.Response, err error) bool {
+	return cxsdkOpenapi.IsNotFound(cxsdkOpenapi.NewAPIError(httpResponse, err))
+}
+
 func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan *TeamResourceModel
 	diags := req.Plan.Get(ctx, &plan)
@@ -206,7 +214,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	getTeamResp, httpResponse, err := r.client.TeamServiceGetTeam(ctx, teamId).Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if isTeamNotFound(httpResponse, err) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Team %d is in state, but no longer exists in Coralogix backend", teamId),
 				fmt.Sprintf("%d will be recreated when you apply", teamId),
