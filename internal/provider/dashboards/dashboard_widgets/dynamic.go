@@ -17,7 +17,6 @@ package dashboard_widgets
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -334,8 +333,9 @@ func dynamicStatSchema() schema.Attribute {
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.Between(0, 15),
 				},
+				MarkdownDescription: "How many digits to show after the decimal point. Valid values are 0 to 15.",
 			},
 			"display_series_name": schema.BoolAttribute{
 				Optional: true,
@@ -395,8 +395,10 @@ func dynamicStatSchema() schema.Attribute {
 			},
 			"unit": UnitSchema(),
 			"value_field": schema.SingleNestedAttribute{
-				Attributes: ObservationFieldSchema(),
-				Optional:   true,
+				Attributes:          ObservationFieldSchema(),
+				Optional:            true,
+				DeprecationMessage:  "Deprecated: superseded by value_fields.",
+				MarkdownDescription: "Deprecated: superseded by `value_fields`, which holds the same observation fields. Retained at full fidelity so dashboards that still set it can be imported and updated without losing it.",
 			},
 			"value_fields": schema.ListNestedAttribute{
 				Optional: true,

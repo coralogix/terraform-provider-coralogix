@@ -488,3 +488,36 @@ func TestAccCoralogixResourceDashboardDynamicRejectsEmptyLists(t *testing.T) {
 		})
 	}
 }
+
+// The proto documents decimal_precision as 0-15 (minimum: 0, maximum: 15). The
+// API does not enforce it — 16 is accepted and applied — so this is a plan-time
+// guard against a documented limit rather than a reflection of backend rejection.
+func TestAccCoralogixResourceDashboardDynamicRejectsOutOfRangeDecimalPrecision(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+
+	for _, precision := range []string{"16", "-1"} {
+		t.Run(precision, func(t *testing.T) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Steps: []resource.TestStep{{
+					Config: fmt.Sprintf(`resource "coralogix_dashboard" "test" {
+  name = %q
+  layout = { sections = [{ rows = [{
+    height = 19
+    widgets = [{
+      title = "out of range decimal precision"
+      definition = { dynamic = {
+        query_definitions = [{ query = { logs = { lucene_query = "*" } } }]
+        visualization     = { stat = { decimal_precision = %s } }
+      }}
+    }]
+  }] }] }
+}
+`, name, precision),
+					ExpectError: regexp.MustCompile(`(?s)must be between 0 and 15`),
+				}},
+			})
+		})
+	}
+}

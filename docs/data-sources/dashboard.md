@@ -1779,7 +1779,7 @@ Read-Only:
 - `allow_abbreviation` (Boolean)
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--category_fields))
 - `custom_unit` (String) Custom unit label. Takes effect only when `unit` is `custom`.
-- `decimal_precision` (Number)
+- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `display_series_name` (Boolean)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--legend))
 - `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
@@ -1789,7 +1789,7 @@ Read-Only:
 - `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--thresholds))
 - `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_field))
+- `value_field` (Attributes) Deprecated: superseded by `value_fields`, which holds the same observation fields. Retained at full fidelity so dashboards that still set it can be imported and updated without losing it. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_field))
 - `value_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--value_fields))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--category_fields"></a>

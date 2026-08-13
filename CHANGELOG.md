@@ -13,6 +13,7 @@
 - FIX: Error diagnostics label the failing call `operation` instead of `url`, matching the value callers pass (`Read`, `Create`, `List`, …).
 #### resource/coralogix_dashboard
 - FEAT: Add typed HCL support for the `dynamic` widget definition: `query_definitions` with the logs/spans/metrics/data_prime query union, a top-level `time_frame` and `interpretation`, and the `stat` visualization at full fidelity. The remaining visualizations follow in later releases; a dynamic widget using one of them still fails the read with a clear diagnostic instead of writing partial state. Previously every `dynamic` widget failed import and data-source reads.
+- DEPRECATION: Mark `dynamic.visualization.stat.value_field` as deprecated, matching the API. Use `value_fields`; the singular form is still read and written so existing dashboards import without losing it.
 - FEAT: Add `variables_v2` with static, textbox, and query-backed dashboard variables.
 - DEPRECATION: Mark `variables` as deprecated. Use `variables_v2` for new dashboard variables.
 - FIX: Schema v2/v3→v4 state upgrade no longer fails with `Missing Upgraded Resource State` when the dashboard was deleted outside Terraform. The upgrader no longer removes the resource from state (illegal inside a state upgrader); it returns a valid v4 state carrying the prior `id`, `name`, `description` and `content_json`, so the following refresh detects the missing dashboard and plans a recreate.
