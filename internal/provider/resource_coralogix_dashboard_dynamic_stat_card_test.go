@@ -254,6 +254,27 @@ func TestAccCoralogixResourceDashboardDynamicStatCardRejectsEmptyLists(t *testin
 	}
 }
 
+// Same documented 0-15 limit as the stat visualization; see the equivalent test
+// there for why this is a plan-time guard rather than a mirror of the API.
+func TestAccCoralogixResourceDashboardDynamicStatCardRejectsOutOfRangeDecimalPrecision(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+
+	for _, precision := range []string{"16", "-1"} {
+		t.Run(precision, func(t *testing.T) {
+			resource.ParallelTest(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Steps: []resource.TestStep{
+					{
+						Config:      testAccCoralogixResourceDashboardDynamicStatCardEmptyListConfig(name, "decimal_precision = "+precision),
+						ExpectError: regexp.MustCompile(`(?s)must be between 0 and 15`),
+					},
+				},
+			})
+		})
+	}
+}
+
 func TestAccCoralogixResourceDashboardDynamicStatCardRequiresOneColorMappingType(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 
