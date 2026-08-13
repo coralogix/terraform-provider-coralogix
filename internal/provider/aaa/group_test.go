@@ -97,6 +97,30 @@ func TestMembershipAddRemove(t *testing.T) {
 	}
 }
 
+func TestDesiredAttachmentGroupUserIDs(t *testing.T) {
+	t.Parallel()
+
+	got := desiredAttachmentGroupUserIDs([]string{"alice", "bob"}, []string{"bob"}, []string{"carol"})
+	if !sameStrings(got, []string{"alice", "carol"}) {
+		t.Errorf("replace attachment user: got %v", got)
+	}
+
+	got = desiredAttachmentGroupUserIDs([]string{"alice", "bob"}, []string{"bob"}, []string{"bob", "carol"})
+	if !sameStrings(got, []string{"alice", "bob", "carol"}) {
+		t.Errorf("add attachment user: got %v", got)
+	}
+
+	got = desiredAttachmentGroupUserIDs([]string{"alice", "bob"}, []string{"bob"}, []string{})
+	if !sameStrings(got, []string{"alice"}) {
+		t.Errorf("clear attachment users: got %v", got)
+	}
+
+	got = desiredAttachmentGroupUserIDs(nil, nil, []string{"carol"})
+	if !sameStrings(got, []string{"carol"}) {
+		t.Errorf("empty group: got %v", got)
+	}
+}
+
 func TestIdsToAddAndIntersect(t *testing.T) {
 	t.Parallel()
 
