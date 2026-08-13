@@ -328,6 +328,7 @@ var (
 		"bar_chart",
 		"horizontal_bar_chart",
 		"markdown",
+		"dynamic",
 	}
 )
 
@@ -466,6 +467,89 @@ type WidgetDefinitionModel struct {
 	BarChart           *BarChartModel           `tfsdk:"bar_chart"`
 	HorizontalBarChart *HorizontalBarChartModel `tfsdk:"horizontal_bar_chart"`
 	Markdown           *MarkdownModel           `tfsdk:"markdown"`
+	Dynamic            *DynamicModel            `tfsdk:"dynamic"`
+}
+
+type DynamicModel struct {
+	QueryDefinitions types.List                 `tfsdk:"query_definitions"` //DynamicQueryDefinitionModel
+	Interpretation   types.String               `tfsdk:"interpretation"`
+	TimeFrame        *TimeFrameModel            `tfsdk:"time_frame"`
+	Visualization    *DynamicVisualizationModel `tfsdk:"visualization"`
+}
+
+type DynamicQueryDefinitionModel struct {
+	ID    types.String       `tfsdk:"id"`
+	Name  types.String       `tfsdk:"name"`
+	Query *DynamicQueryModel `tfsdk:"query"`
+}
+
+type DynamicQueryModel struct {
+	Logs      *DynamicQueryLogsModel      `tfsdk:"logs"`
+	Spans     *DynamicQuerySpansModel     `tfsdk:"spans"`
+	Metrics   *DynamicQueryMetricsModel   `tfsdk:"metrics"`
+	DataPrime *DynamicQueryDataPrimeModel `tfsdk:"data_prime"`
+}
+
+type DynamicQueryLogsModel struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	GroupBy      types.List   `tfsdk:"group_by"`     //ObservationFieldModel
+	Aggregations types.List   `tfsdk:"aggregations"` //LogsAggregationModel
+	Filters      types.List   `tfsdk:"filters"`      //LogsFilterModel
+	DataModeType types.String `tfsdk:"data_mode_type"`
+}
+
+type DynamicQuerySpansModel struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	GroupBy      types.List   `tfsdk:"group_by"`     //SpanObservationFieldModel
+	Aggregations types.List   `tfsdk:"aggregations"` //LogsAggregationModel
+	Filters      types.List   `tfsdk:"filters"`      //SpansFilterModel
+	DataModeType types.String `tfsdk:"data_mode_type"`
+}
+
+type DynamicQueryMetricsModel struct {
+	PromqlQuery     types.String `tfsdk:"promql_query"`
+	PromqlQueryType types.String `tfsdk:"promql_query_type"`
+	EditorMode      types.String `tfsdk:"editor_mode"`
+	SeriesLimitType types.String `tfsdk:"series_limit_type"`
+}
+
+type DynamicQueryDataPrimeModel struct {
+	Query        types.String `tfsdk:"query"`
+	DataModeType types.String `tfsdk:"data_mode_type"`
+}
+
+type SpanObservationFieldModel struct {
+	Keypath      types.List   `tfsdk:"keypath"` //types.String
+	Scope        types.String `tfsdk:"scope"`
+	RelationType types.String `tfsdk:"relation_type"`
+}
+
+type DynamicVisualizationModel struct {
+	Stat *DynamicStatModel `tfsdk:"stat"`
+}
+
+type DynamicStatModel struct {
+	AllowAbbreviation types.Bool    `tfsdk:"allow_abbreviation"`
+	CategoryFields    types.List    `tfsdk:"category_fields"` //ObservationFieldModel
+	CustomUnit        types.String  `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64   `tfsdk:"decimal_precision"`
+	DisplaySeriesName types.Bool    `tfsdk:"display_series_name"`
+	Legend            *LegendModel  `tfsdk:"legend"`
+	LegendBy          types.String  `tfsdk:"legend_by"`
+	Max               types.Float64 `tfsdk:"max"`
+	Min               types.Float64 `tfsdk:"min"`
+	ThresholdBy       types.String  `tfsdk:"threshold_by"`
+	ThresholdType     types.String  `tfsdk:"threshold_type"`
+	Thresholds        types.List    `tfsdk:"thresholds"` //DynamicThresholdModel
+	Unit              types.String  `tfsdk:"unit"`
+	ValueField        types.Object  `tfsdk:"value_field"`  //ObservationFieldModel
+	ValueFields       types.List    `tfsdk:"value_fields"` //ObservationFieldModel
+}
+
+type DynamicThresholdModel struct {
+	From  types.Float64 `tfsdk:"from"`
+	Color types.String  `tfsdk:"color"`
+	Label types.String  `tfsdk:"label"`
 }
 
 type LineChartModel struct {
