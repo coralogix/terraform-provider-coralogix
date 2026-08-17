@@ -65,6 +65,9 @@ jobs:
           SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
           SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
           PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
+          MS_TEAMS_INTEGRATION_ID: ${{ secrets.MS_TEAMS_INTEGRATION_ID }}
+          MS_TEAMS_TEAM_ID: ${{ secrets.MS_TEAMS_TEAM_ID }}
+          MS_TEAMS_CHANNEL_ID: ${{ secrets.MS_TEAMS_CHANNEL_ID }}
         run: |
           make testacc
 
