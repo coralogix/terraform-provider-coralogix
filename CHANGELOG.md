@@ -1,5 +1,11 @@
 # Unreleased
 
+#### resource/coralogix_connector
+- FEAT: Add support for the `microsoft_teams` connector type.
+
+#### resource/coralogix_preset
+- FEAT: Add support for `microsoft_teams` as a `connector_type` value.
+
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to include OpenAPI required fields for dashboard `variables_v2`.
 

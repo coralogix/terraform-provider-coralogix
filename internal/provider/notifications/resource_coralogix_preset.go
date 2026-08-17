@@ -53,6 +53,7 @@ var (
 		"pagerduty_incidents": presets.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY_INCIDENTS,
 		"service_now":         presets.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
 		"email":               presets.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
+		"microsoft_teams":     presets.NOTIFICATIONCENTERCONNECTORTYPE_MICROSOFT_TEAMS,
 	}
 	presetConnectorTypeApiToSchema = utils.ReverseMap(presetConnectorTypeSchemaToApi)
 	validConnectorTypes            = utils.GetKeys(presetConnectorTypeSchemaToApi)

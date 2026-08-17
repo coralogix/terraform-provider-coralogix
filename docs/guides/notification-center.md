@@ -23,6 +23,10 @@ Current supported connector types include:
 - Slack
 - PagerDuty
 - Generic Webhook
+- Email
+- ServiceNow
+- PagerDuty Incidents
+- Microsoft Teams
 
 ### Preset
 Defines the structure and content of the notification message. Coralogix provides system Presets for common use cases,
