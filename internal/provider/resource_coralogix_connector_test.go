@@ -225,11 +225,16 @@ func TestAccCoralogixResourceMicrosoftTeamsConnector(t *testing.T) {
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccRequiredEnvVarsPreCheck(t,
+			testAccPreCheck(t)
+			for _, envVar := range []string{
 				"MS_TEAMS_INTEGRATION_ID",
 				"MS_TEAMS_TEAM_ID",
 				"MS_TEAMS_CHANNEL_ID",
-			)
+			} {
+				if os.Getenv(envVar) == "" {
+					t.Skipf("%s must be set for this acceptance test", envVar)
+				}
+			}
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
