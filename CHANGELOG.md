@@ -4,6 +4,7 @@
 - CHORE: Bump `coralogix-management-sdk` to include OpenAPI required fields for dashboard `variables_v2`.
 
 #### resource/coralogix_dashboard
+- FIX: A dashboard managed with `content_json` no longer plans `auto_refresh = (known after apply)` on every run. The diff appeared when `access_policy` was also set and its stored text differed from the configured text only by formatting or key order: the plan never became empty and every apply sent a redundant update. Dashboards written as HCL can avoid the same diff by setting `auto_refresh` in the configuration.
 - FIX: Adapt `variables_v2` expand/flatten to SDK required value types (`id`, `name`, `display_name`, `display_type`, `source`, `value`, static/query `all_option` / `values_order_direction`, static `values[].value`/`label`, logs `observation_field`, metrics `label_name`).
 
 #### provider

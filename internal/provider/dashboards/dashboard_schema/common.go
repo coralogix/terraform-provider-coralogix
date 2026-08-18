@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -71,6 +72,47 @@ func (m PreserveStateForEquivalentJSON) PlanModifyString(_ context.Context, req 
 	if utils.JSONStringsEqual(req.ConfigValue.ValueString(), req.StateValue.ValueString()) {
 		resp.PlanValue = req.StateValue
 	}
+}
+
+// NullWhenContentJSONManaged plans a null value for an attribute that
+// content_json always leaves null in state.
+//
+// The framework marks every Computed attribute that is null in the
+// configuration as unknown as soon as the proposed new state differs from
+// prior state anywhere, for example when access_policy holds the backend's
+// JSON text and the configuration holds an equivalent text. For a
+// content_json dashboard the read path writes null into these attributes
+// whatever the API returns, so the unknown resolves back to null and the plan
+// is never empty. Planning null states the outcome the apply will produce.
+type NullWhenContentJSONManaged struct{}
+
+func (m NullWhenContentJSONManaged) Description(_ context.Context) string {
+	return "Keeps the attribute null while content_json manages the dashboard."
+}
+
+func (m NullWhenContentJSONManaged) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m NullWhenContentJSONManaged) PlanModifyObject(ctx context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
+	// There is no prior plan to stabilise while the resource is created.
+	if req.State.Raw.IsNull() {
+		return
+	}
+
+	// A configured value is the practitioner's, not the provider's, so leave
+	// it and the diagnostics it produces unchanged.
+	if !req.ConfigValue.IsNull() {
+		return
+	}
+
+	var contentJSON types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("content_json"), &contentJSON)...)
+	if resp.Diagnostics.HasError() || contentJSON.IsNull() || contentJSON.IsUnknown() {
+		return
+	}
+
+	resp.PlanValue = types.ObjectNull(req.PlanValue.AttributeTypes(ctx))
 }
 
 type intervalValidator struct{}
