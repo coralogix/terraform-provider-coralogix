@@ -1037,12 +1037,14 @@ func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
 							"color": "var(--c-severity-log-error)",
 						},
 					),
+					testAccLogDashboardAccessPolicy(t, "before import"),
 				),
 			},
 			{
 				ResourceName:      dashboardResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateCheck:  testAccLogImportedDashboardAccessPolicy(t),
 			},
 		},
 	})
@@ -1157,12 +1159,14 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
 							"operator.selected_values.#": "1",
 						},
 					),
+					testAccLogDashboardAccessPolicy(t, "before import"),
 				),
 			},
 			{
 				ResourceName:      dashboardResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateCheck:  testAccLogImportedDashboardAccessPolicy(t),
 			},
 		},
 	})
@@ -1211,12 +1215,14 @@ func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.display_series_name", "false"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.decimal", "2"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query.metrics.time_frame.relative.duration", "seconds:900"),
+					testAccLogDashboardAccessPolicy(t, "before import"),
 				),
 			},
 			{
 				ResourceName:      dashboardResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateCheck:  testAccLogImportedDashboardAccessPolicy(t),
 			},
 		},
 	})
@@ -1266,15 +1272,47 @@ EOT
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.max", "100"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.unit", "percent100"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.data_mode_type", "archive"),
+					testAccLogDashboardAccessPolicy(t, "before import"),
 				),
 			},
 			{
 				ResourceName:      dashboardResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateCheck:  testAccLogImportedDashboardAccessPolicy(t),
 			},
 		},
 	})
+}
+
+func testAccLogDashboardAccessPolicy(t *testing.T, label string) resource.TestCheckFunc {
+	t.Helper()
+	return func(state *terraform.State) error {
+		resourceState, ok := state.RootModule().Resources[dashboardResourceName]
+		if !ok || resourceState.Primary == nil {
+			return fmt.Errorf("resource %s not found in state", dashboardResourceName)
+		}
+
+		t.Logf("[dashboard-access-policy] %s: %s", label, resourceState.Primary.Attributes["access_policy"])
+		return nil
+	}
+}
+
+func testAccLogImportedDashboardAccessPolicy(t *testing.T) resource.ImportStateCheckFunc {
+	t.Helper()
+	return func(states []*terraform.InstanceState) error {
+		for _, state := range states {
+			if state == nil {
+				continue
+			}
+			if accessPolicy, ok := state.Attributes["access_policy"]; ok {
+				t.Logf("[dashboard-access-policy] after import: %s", accessPolicy)
+				return nil
+			}
+		}
+
+		return fmt.Errorf("imported dashboard access_policy not found in state")
+	}
 }
 
 func TestAccCoralogixResourceDashboardWidgetReference(t *testing.T) {
@@ -1450,12 +1488,14 @@ func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.metrics.promql_query_type", "instant"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.row_style", "one_line"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.results_per_page", "100"),
+					testAccLogDashboardAccessPolicy(t, "before import"),
 				),
 			},
 			{
 				ResourceName:      dashboardResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateCheck:  testAccLogImportedDashboardAccessPolicy(t),
 			},
 		},
 	})
