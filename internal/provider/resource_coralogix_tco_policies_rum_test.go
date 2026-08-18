@@ -22,7 +22,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dataplans"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -106,7 +105,10 @@ func TestAccCoralogixResourceTCOPoliciesRumCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.applications.names.0", "prod"),
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.subsystems.rule_type", "is"),
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.subsystems.names.#", "2"),
-					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.archive_retention_id", "e1c980d0-c910-4c54-8326-67f3cf95645a"),
+					// archive_retention_id is sourced from the archive-retentions data source, so
+					// the fixture is portable across accounts; assert it round-tripped rather than a
+					// hard-coded value.
+					resource.TestCheckResourceAttrSet(tcoPoliciesRumResourceName, "policies.0.archive_retention_id"),
 					// RUM policies have no dataset routing, so targets must never appear in state.
 					resource.TestCheckNoResourceAttr(tcoPoliciesRumResourceName, "policies.0.targets"),
 
@@ -202,7 +204,11 @@ func TestAccCoralogixResourceTCOPoliciesRum_dpxl_replaces_severities(t *testing.
 }
 
 func testAccTCOPoliciesRumCheckDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).TCOPolicies()
+	clients, err := testAccNewClientSet()
+	if err != nil {
+		return fmt.Errorf("failed to build acceptance client: %w", err)
+	}
+	client := clients.TCOPolicies()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "coralogix_tco_policies_rum" {
@@ -220,7 +226,9 @@ func testAccTCOPoliciesRumCheckDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceTCOPoliciesRum() string {
-	return `resource "coralogix_tco_policies_rum" "test" {
+	return `data "coralogix_archive_retentions" "all" {}
+
+resource "coralogix_tco_policies_rum" "test" {
   policies = [
     {
       name                 = "Example rum tco_policy 1"
@@ -234,7 +242,7 @@ func testAccCoralogixResourceTCOPoliciesRum() string {
         rule_type = "is"
         names     = ["mobile", "web"]
       }
-      archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
+      archive_retention_id = data.coralogix_archive_retentions.all.retentions[1].id
     },
     {
       name       = "Example rum tco_policy 2"
