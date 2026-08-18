@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_tco_policies_rum
+- FEAT: Add `coralogix_tco_policies_rum` resource and data source for RUM TCO policies (severities/DPXL matching, quota-based priority override, application/subsystem rules, archive retention). RUM policies have no dataset `targets`.
+
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to include OpenAPI required fields for dashboard `variables_v2`.
 
