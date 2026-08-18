@@ -25,25 +25,27 @@ import (
 
 // TestAccCoralogixResourceDashboardAccessPolicyAddedLater covers adopting an
 // access policy on a dashboard that already exists: the dashboard is created
-// without `access_policy`, so state takes the text the backend returns, and
-// the practitioner adds the same policy to the configuration later, formatted
-// differently.
+// without `access_policy`, so state takes the policy the backend returns, and
+// the practitioner writes that policy into the configuration later.
 //
-// The test asserts only what must hold in every provider version:
+// Step 2 uses jsonencode, the form the documented example uses. The provider
+// stores a computed policy in the same shape, so the configured text and the
+// stored text match and the plan converges. That assertion is the regression
+// guard for the perpetual `auto_refresh = (known after apply)` diff.
 //
-//   - the applied policy is the configured one,
-//   - adopting it updates the dashboard in place, never replaces it,
-//   - `auto_refresh` keeps its value across the applies,
-//   - once `auto_refresh` is written in the configuration, the plan is empty.
+// Step 3 rewrites the same policy as a formatted heredoc. That text cannot
+// match the stored one, so the plan may stay busy; the step tolerates either
+// outcome rather than asserting the gap.
 //
-// Steps 2 and 3 set ExpectNonEmptyPlan on purpose. The stored policy text and
-// the configured policy text can stay different while being the same JSON,
-// which leaves `auto_refresh` planned as unknown. The test tolerates that
-// rather than asserting it, so it stays valid whether or not the provider
-// still behaves that way.
+// Every step asserts what must hold in any version: the applied policy is the
+// configured one, the dashboard is updated in place and never replaced, and
+// `auto_refresh` keeps its value.
 func TestAccCoralogixResourceDashboardAccessPolicyAddedLater(t *testing.T) {
 	name := dashboardOpenAPIFixtureName("TestAccCoralogixResourceDashboardAccessPolicyAddedLater")
-	policyBlock := fmt.Sprintf("  access_policy = <<EOT\n%s\nEOT\n", testAccCoralogixDashboardAccessPolicyPretty())
+	// jsonencode(jsondecode(...)) re-encodes the fixture in the canonical
+	// shape jsonencode produces, which is what the documented example writes.
+	canonicalPolicyBlock := fmt.Sprintf("  access_policy = jsonencode(jsondecode(<<EOT\n%s\nEOT\n  ))\n", testAccCoralogixDashboardAccessPolicyPretty())
+	prettyPolicyBlock := fmt.Sprintf("  access_policy = <<EOT\n%s\nEOT\n", testAccCoralogixDashboardAccessPolicyPretty())
 	autoRefreshBlock := "  auto_refresh = {\n    type = \"off\"\n  }\n"
 	var dashboardID, autoRefreshType string
 
@@ -64,20 +66,24 @@ func TestAccCoralogixResourceDashboardAccessPolicyAddedLater(t *testing.T) {
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},
-			// 2. The same policy is adopted into the configuration.
+			// 2. The policy is adopted into the configuration with jsonencode.
+			//    The plan must converge.
 			{
-				Config: testAccDashboardAccessPolicyDriftConfig(name, policyBlock, ""),
+				Config: testAccDashboardAccessPolicyDriftConfig(name, canonicalPolicyBlock, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckDashboardAccessPolicy(dashboardResourceName, testAccCoralogixDashboardAccessPolicyPretty()),
 					testAccCheckDashboardAttributeUnchanged("id", &dashboardID),
 					testAccCheckDashboardAttributeUnchanged("auto_refresh.type", &autoRefreshType),
 					testAccCaptureDashboardAttribute(t, "access_policy", nil),
 				),
-				ExpectNonEmptyPlan: true,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
 			},
-			// 3. Re-applying the same configuration keeps everything stable.
+			// 3. The same policy written as a formatted heredoc. The stored
+			//    text cannot match, so either outcome is accepted.
 			{
-				Config: testAccDashboardAccessPolicyDriftConfig(name, policyBlock, ""),
+				Config: testAccDashboardAccessPolicyDriftConfig(name, prettyPolicyBlock, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckDashboardAccessPolicy(dashboardResourceName, testAccCoralogixDashboardAccessPolicyPretty()),
 					testAccCheckDashboardAttributeUnchanged("id", &dashboardID),
@@ -87,7 +93,7 @@ func TestAccCoralogixResourceDashboardAccessPolicyAddedLater(t *testing.T) {
 			},
 			// 4. With auto_refresh in the configuration the plan is empty.
 			{
-				Config: testAccDashboardAccessPolicyDriftConfig(name, policyBlock, autoRefreshBlock),
+				Config: testAccDashboardAccessPolicyDriftConfig(name, prettyPolicyBlock, autoRefreshBlock),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckDashboardAccessPolicy(dashboardResourceName, testAccCoralogixDashboardAccessPolicyPretty()),
 					testAccCheckDashboardAttributeUnchanged("id", &dashboardID),

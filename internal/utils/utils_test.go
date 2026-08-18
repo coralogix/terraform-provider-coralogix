@@ -164,3 +164,63 @@ func rpcErrorWithDetails(t *testing.T, code codes.Code, msg, detail string) erro
 	}
 	return cxsdk.NewSdkAPIError(st.Err(), "example-endpoint", "example-feature-group")
 }
+
+func TestCanonicalJSON(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		input   string
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "sorts object keys and compacts, matching terraform jsonencode",
+			// The backend's key order for a dashboard access policy.
+			input: `{"version":"2025-01-01","default":{"permissions":{"team-dashboards:Update":"grant","team-dashboards:UpdateAccessPolicy":"grant","team-dashboards:Read":"grant","team-dashboards:ReadAccessPolicy":"grant"}},"rules":[],"weight":1}`,
+			// Verified against `terraform console`: jsonencode of the same
+			// object, Terraform v1.15.6.
+			want: `{"default":{"permissions":{"team-dashboards:Read":"grant","team-dashboards:ReadAccessPolicy":"grant","team-dashboards:Update":"grant","team-dashboards:UpdateAccessPolicy":"grant"}},"rules":[],"version":"2025-01-01","weight":1}`,
+		},
+		{
+			name:  "already canonical text is unchanged",
+			input: `{"a":1,"b":[1,2]}`,
+			want:  `{"a":1,"b":[1,2]}`,
+		},
+		{
+			name:  "removes insignificant whitespace",
+			input: "{\n  \"b\": 2,\n  \"a\": 1\n}\n",
+			want:  `{"a":1,"b":2}`,
+		},
+		{
+			name:  "keeps numeric literals as written",
+			input: `{"a":1.50,"b":1e3}`,
+			want:  `{"a":1.50,"b":1e3}`,
+		},
+		{
+			name:    "invalid json returns an error",
+			input:   `{"a":`,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := CanonicalJSON(tt.input)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("CanonicalJSON(%q) = %q, want an error", tt.input, got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("CanonicalJSON(%q): %s", tt.input, err)
+			}
+			if got != tt.want {
+				t.Fatalf("CanonicalJSON(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}

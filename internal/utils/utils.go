@@ -632,6 +632,35 @@ func RandStringBytes(n int) string {
 	return string(b)
 }
 
+// CanonicalJSON returns the JSON text in the shape Terraform's jsonencode
+// function produces: compact, with object keys sorted. Store a
+// provider-computed JSON string in this shape, so a configuration written
+// with jsonencode holds the same text and the two never drift apart.
+//
+// Never apply it to a text that came from configuration. Terraform requires
+// the value written after apply to equal the planned value, and rewriting a
+// practitioner's formatting would break that.
+func CanonicalJSON(s string) (string, error) {
+	decoder := json.NewDecoder(strings.NewReader(s))
+	// Keep numeric literals exactly as the source wrote them.
+	decoder.UseNumber()
+
+	var decoded any
+	if err := decoder.Decode(&decoded); err != nil {
+		return "", err
+	}
+
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	// jsonencode does not escape HTML characters.
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(decoded); err != nil {
+		return "", err
+	}
+
+	return strings.TrimSuffix(buffer.String(), "\n"), nil
+}
+
 func JSONStringsEqual(s1, s2 string) bool {
 	b1 := bytes.NewBufferString("")
 	if err := json.Compact(b1, []byte(s1)); err != nil {
