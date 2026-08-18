@@ -4,8 +4,8 @@
 - CHORE: Bump `coralogix-management-sdk` to include OpenAPI required fields for dashboard `variables_v2`.
 
 #### resource/coralogix_dashboard
-- FIX: `access_policy` is now stored in the shape `jsonencode` produces (compact, keys sorted) when the provider computes it: on import, in the data source, and when the dashboard is created without the attribute. A configuration that later adopts the same policy with `jsonencode` then holds the same text, so the plan converges instead of reporting `auto_refresh = (known after apply)` on every run. A policy written in the configuration keeps the practitioner's formatting, and state written by earlier provider versions is not rewritten.
-- FIX: A dashboard managed with `content_json` no longer plans `auto_refresh = (known after apply)` on every run. The diff appeared when `access_policy` was also set and its stored text differed from the configured text only by formatting or key order: the plan never became empty and every apply sent a redundant update. Dashboards written as HCL can avoid the same diff by setting `auto_refresh` in the configuration.
+- FIX: An `access_policy` the provider computes (import, data source, create without the attribute) is now stored in the shape `jsonencode` produces. A configuration that adopts the same policy with `jsonencode` then matches it, so plans stop reporting `auto_refresh = (known after apply)`. Configured text and existing state are unchanged.
+- FIX: A dashboard managed with `content_json` no longer plans `auto_refresh = (known after apply)` on every run. A dashboard written as HCL can avoid the same diff by setting `auto_refresh` in the configuration.
 - FIX: Adapt `variables_v2` expand/flatten to SDK required value types (`id`, `name`, `display_name`, `display_type`, `source`, `value`, static/query `all_option` / `values_order_direction`, static `values[].value`/`label`, logs `observation_field`, metrics `label_name`).
 
 #### provider
