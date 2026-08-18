@@ -88,7 +88,7 @@ func dashboardOpenAPIStructuredLifecycleSteps(
 		})
 		previousConfig = update.Config
 	}
-	return append(steps, importStep)
+	return append(steps, testAccDashboardImportStateStep(importStep))
 }
 
 func TestDashboardOpenAPIStructuredLifecycleContract(t *testing.T) {

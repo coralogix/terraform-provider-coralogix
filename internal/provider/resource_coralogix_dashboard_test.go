@@ -151,11 +151,7 @@ func TestAccCoralogixResourceDashboardVariablesV2Static(t *testing.T) {
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -541,11 +537,7 @@ func TestAccCoralogixResourceDashboardVariablesV2MultiStringAll(t *testing.T) {
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -579,11 +571,7 @@ func TestAccCoralogixResourceDashboardVariablesV2MetricsLabelName(t *testing.T) 
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -660,11 +648,7 @@ func TestAccCoralogixResourceDashboardVariablesV2MetricsLabelValue(t *testing.T)
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -740,11 +724,7 @@ func TestAccCoralogixResourceDashboardVariablesV2TextboxValueTypes(t *testing.T)
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -854,11 +834,7 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.2", "3"),
 				),
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -912,13 +888,7 @@ func TestAccCoralogixResourceDashboardAccessPolicy(t *testing.T) {
 					testAccCheckDashboardAccessPolicy(dashboardDataSourceName, testAccCoralogixDashboardAccessPolicyPretty()),
 				),
 			},
-			{
-				ResourceName:            dashboardResourceName,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"access_policy"},
-				ImportStateCheck:        testAccCheckImportedDashboardAccessPolicy(testAccCoralogixDashboardAccessPolicyPretty()),
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -939,19 +909,62 @@ func testAccCheckDashboardAccessPolicy(resourceName, expected string) resource.T
 	}
 }
 
-func testAccCheckImportedDashboardAccessPolicy(expected string) resource.ImportStateCheckFunc {
-	return func(states []*terraform.InstanceState) error {
-		for _, state := range states {
-			if got, ok := state.Attributes["access_policy"]; ok {
-				if !utils.JSONStringsEqual(got, expected) {
-					return fmt.Errorf("imported access_policy = %q, want JSON equivalent to %q", got, expected)
-				}
-				return nil
-			}
+func testAccDashboardImportStep(otherIgnoredAttributes ...string) resource.TestStep {
+	return testAccDashboardImportStateStep(resource.TestStep{
+		ResourceName:      dashboardResourceName,
+		ImportState:       true,
+		ImportStateVerify: true,
+	}, otherIgnoredAttributes...)
+}
+
+func testAccDashboardImportStateStep(step resource.TestStep, otherIgnoredAttributes ...string) resource.TestStep {
+	var dashboardID string
+	var expectedAccessPolicy string
+	var expectedAccessPolicySet bool
+	originalImportStateIDFunc := step.ImportStateIdFunc
+	originalImportStateCheck := step.ImportStateCheck
+
+	step.ImportStateIdFunc = func(state *terraform.State) (string, error) {
+		dashboardState, ok := state.RootModule().Resources[dashboardResourceName]
+		if !ok {
+			return "", fmt.Errorf("resource %s not found", dashboardResourceName)
+		}
+		if dashboardState.Primary == nil {
+			return "", fmt.Errorf("resource %s has no primary state", dashboardResourceName)
 		}
 
-		return fmt.Errorf("imported access_policy not found in %d state entries", len(states))
+		dashboardID = dashboardState.Primary.ID
+		expectedAccessPolicy, expectedAccessPolicySet = dashboardState.Primary.Attributes["access_policy"]
+		if originalImportStateIDFunc != nil {
+			return originalImportStateIDFunc(state)
+		}
+		return dashboardID, nil
 	}
+	step.ImportStateVerifyIgnore = append([]string{"access_policy"}, step.ImportStateVerifyIgnore...)
+	step.ImportStateVerifyIgnore = append(step.ImportStateVerifyIgnore, otherIgnoredAttributes...)
+	step.ImportStateCheck = func(states []*terraform.InstanceState) error {
+		for _, state := range states {
+			if state.ID != dashboardID {
+				continue
+			}
+
+			importedAccessPolicy, importedAccessPolicySet := state.Attributes["access_policy"]
+			if importedAccessPolicySet != expectedAccessPolicySet {
+				return fmt.Errorf("imported access_policy presence = %t, want %t", importedAccessPolicySet, expectedAccessPolicySet)
+			}
+			if expectedAccessPolicySet && !utils.JSONStringsEqual(importedAccessPolicy, expectedAccessPolicy) {
+				return fmt.Errorf("imported access_policy = %q, want JSON equivalent to %q", importedAccessPolicy, expectedAccessPolicy)
+			}
+
+			if originalImportStateCheck != nil {
+				return originalImportStateCheck(states)
+			}
+			return nil
+		}
+
+		return fmt.Errorf("imported dashboard %q not found in %d state entries", dashboardID, len(states))
+	}
+	return step
 }
 
 func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
@@ -1039,11 +1052,7 @@ func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
 					),
 				),
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -1159,11 +1168,7 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
 					),
 				),
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -1213,11 +1218,7 @@ func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query.metrics.time_frame.relative.duration", "seconds:900"),
 				),
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -1268,11 +1269,7 @@ EOT
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.data_mode_type", "archive"),
 				),
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -1309,11 +1306,7 @@ func TestAccCoralogixResourceDashboardWidgetReference(t *testing.T) {
 					},
 				},
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -1410,11 +1403,7 @@ func TestAccCoralogixResourceDashboardGaugeWidgetThresholdType(t *testing.T) {
 					},
 				},
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -1452,11 +1441,7 @@ func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.results_per_page", "100"),
 				),
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -1535,11 +1520,7 @@ resource "coralogix_dashboard" "test" {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.logs.filters.0.operator.selected_values.0", "pubby-publisher"),
 				),
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -1613,12 +1594,7 @@ func TestAccCoralogixResourceDashboardFolderIDNoDrift(t *testing.T) {
 					},
 				},
 			},
-			{
-				ResourceName:            dashboardResourceName,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"folder"},
-			},
+			testAccDashboardImportStep("folder"),
 		},
 	})
 }
@@ -2168,11 +2144,7 @@ resource "coralogix_dashboard" "test" {
 					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.1", "test-trade"),
 				),
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -2237,11 +2209,7 @@ resource "coralogix_dashboard" "test" {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.description", "Checking color"),
 				),
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -2314,11 +2282,7 @@ resource "coralogix_dashboard" "test" {
 				Config: config("stack", "aggregation"),
 				Check:  checks("stack", "aggregation"),
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -2399,11 +2363,7 @@ resource "coralogix_dashboard" "test" {
 					},
 				},
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -2533,11 +2493,7 @@ resource "coralogix_dashboard" "test" {
 					},
 				},
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -2646,11 +2602,7 @@ resource "coralogix_dashboard" "test" {
 					},
 				},
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
@@ -2786,11 +2738,7 @@ resource "coralogix_dashboard" "test" {
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},
-			{
-				ResourceName:      dashboardResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
+			testAccDashboardImportStep(),
 		},
 	})
 }
