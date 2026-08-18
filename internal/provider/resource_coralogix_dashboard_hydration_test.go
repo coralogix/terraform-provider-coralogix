@@ -19,8 +19,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -33,6 +33,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
 
 const dashboardOpenAPIBackendHydrationTestName = "TestAccCoralogixResourceDashboardRESTCreatedHydration"
@@ -530,10 +532,60 @@ func dashboardOpenAPICompareResourceAndDataSourceState(state *terraform.State) e
 	if !resourceOK || resourceState.Primary == nil || !dataSourceOK || dataSourceState.Primary == nil {
 		return fmt.Errorf("resource/data-source dashboard states are not both present")
 	}
-	if !reflect.DeepEqual(resourceState.Primary.Attributes, dataSourceState.Primary.Attributes) {
-		return fmt.Errorf("imported resource and data-source dashboard states differ")
+	differences := dashboardOpenAPIStateAttributeDifferences(resourceState.Primary.Attributes, dataSourceState.Primary.Attributes)
+	if len(differences) > 0 {
+		return fmt.Errorf("imported resource and data-source dashboard states differ:\n%s", strings.Join(differences, "\n"))
 	}
 	return nil
+}
+
+// dashboardOpenAPIStateAttributeDifferences lists the attributes that differ
+// between two dashboard states, so a failure names them instead of only
+// reporting that the states are not equal.
+//
+// The two states come from two separate reads. The backend serializes the
+// access policy with its own object key order, and that order can differ
+// between reads, so this attribute is compared as JSON rather than as text.
+func dashboardOpenAPIStateAttributeDifferences(resourceAttributes, dataSourceAttributes map[string]string) []string {
+	names := make(map[string]struct{}, len(resourceAttributes)+len(dataSourceAttributes))
+	for name := range resourceAttributes {
+		names[name] = struct{}{}
+	}
+	for name := range dataSourceAttributes {
+		names[name] = struct{}{}
+	}
+
+	var differences []string
+	for name := range names {
+		// A null attribute is absent from the map and an empty one is present
+		// and empty, so compare presence as well. Reading both with a plain
+		// lookup would report "" for either and hide a null-versus-empty
+		// mismatch.
+		resourceValue, inResource := resourceAttributes[name]
+		dataSourceValue, inDataSource := dataSourceAttributes[name]
+		if inResource == inDataSource && resourceValue == dataSourceValue {
+			continue
+		}
+		if name == "access_policy" && inResource && inDataSource && utils.JSONStringsEqual(resourceValue, dataSourceValue) {
+			continue
+		}
+		differences = append(differences, fmt.Sprintf("  %s: resource %s, data source %s",
+			name,
+			dashboardOpenAPIAttributeText(resourceValue, inResource),
+			dashboardOpenAPIAttributeText(dataSourceValue, inDataSource),
+		))
+	}
+	sort.Strings(differences)
+
+	return differences
+}
+
+func dashboardOpenAPIAttributeText(value string, present bool) string {
+	if !present {
+		return "absent"
+	}
+
+	return fmt.Sprintf("%q", value)
 }
 
 func dashboardOpenAPIBackendHydrationConfig(name string) string {

@@ -184,13 +184,13 @@ func TestAccCoralogixResourceDashboardMigrationFromSchemaV3(t *testing.T) {
 					false,
 				),
 			},
-			{
+			testAccDashboardImportStateStep(resource.TestStep{
 				ResourceName:             dashboardResourceName,
 				ImportState:              true,
 				ImportStateVerify:        true,
 				ImportStateCheck:         identity.checkImportedState(1, "", false),
 				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-			},
+			}),
 		},
 	})
 }
