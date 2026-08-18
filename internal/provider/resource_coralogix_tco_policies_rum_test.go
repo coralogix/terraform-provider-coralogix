@@ -36,9 +36,11 @@ var tcoPoliciesRumResourceName = "coralogix_tco_policies_rum.test"
 // skipIfRumPoliciesDisabled skips the test when the RUM TCO policies feature is not
 // enabled for the account. The feature is gated per company; a gated account answers the
 // atomic-overwrite write with a 400 whose body carries a FAILED_PRECONDITION mentioning
-// that RUM quota policies are not enabled. The probe overwrites the RUM collection with an
-// empty list — the same call Delete makes — which is harmless in the acceptance account
-// (every test here overwrites the whole collection anyway).
+// that RUM quota policies are not enabled. The gate is enforced per policy
+// ("policies[0] failed custom validation"), so the probe must submit at least one policy —
+// an empty overwrite passes even when the feature is off. On success the probe clears the
+// collection again, which is harmless in the acceptance account (every test here overwrites
+// the whole collection anyway).
 func skipIfRumPoliciesDisabled(t *testing.T) {
 	t.Helper()
 	// Only probe under acceptance runs; otherwise let resource.Test perform its standard
@@ -50,15 +52,30 @@ func skipIfRumPoliciesDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to build acceptance client: %s", err)
 	}
+	ctx := context.Background()
+	probeName := "tf-acc-rum-feature-probe"
+	probe := tcoPolicys.AtomicOverwriteRumPoliciesRequest{
+		Policies: []tcoPolicys.CreateRumPolicyRequest{
+			{
+				Policy:   tcoPolicys.CreateGenericPolicyRequest{Name: probeName, Priority: tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_LOW},
+				RumRules: tcoPolicys.LogRules{Severities: []tcoPolicys.QuotaV1Severity{tcoPolicys.QUOTAV1SEVERITY_SEVERITY_ERROR}},
+			},
+		},
+	}
 	_, _, err = clients.TCOPolicies().
-		PoliciesServiceAtomicOverwriteRumPolicies(context.Background()).
-		AtomicOverwriteRumPoliciesRequest(*tcoPolicys.NewAtomicOverwriteRumPoliciesRequestWithDefaults()).
+		PoliciesServiceAtomicOverwriteRumPolicies(ctx).
+		AtomicOverwriteRumPoliciesRequest(probe).
 		Execute()
 	if err == nil {
+		// Feature is on — clean up the probe policy before the test runs.
+		_, _, _ = clients.TCOPolicies().
+			PoliciesServiceAtomicOverwriteRumPolicies(ctx).
+			AtomicOverwriteRumPoliciesRequest(*tcoPolicys.NewAtomicOverwriteRumPoliciesRequestWithDefaults()).
+			Execute()
 		return
 	}
 
-	var apiErr tcoPolicys.GenericOpenAPIError
+	var apiErr *tcoPolicys.GenericOpenAPIError
 	if errors.As(err, &apiErr) {
 		body := string(apiErr.Body())
 		if strings.Contains(body, "RUM quota policies are not enabled") || strings.Contains(body, "FAILED_PRECONDITION") {
