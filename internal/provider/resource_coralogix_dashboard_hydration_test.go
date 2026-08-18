@@ -557,18 +557,35 @@ func dashboardOpenAPIStateAttributeDifferences(resourceAttributes, dataSourceAtt
 
 	var differences []string
 	for name := range names {
-		resourceValue, dataSourceValue := resourceAttributes[name], dataSourceAttributes[name]
-		if resourceValue == dataSourceValue {
+		// A null attribute is absent from the map and an empty one is present
+		// and empty, so compare presence as well. Reading both with a plain
+		// lookup would report "" for either and hide a null-versus-empty
+		// mismatch.
+		resourceValue, inResource := resourceAttributes[name]
+		dataSourceValue, inDataSource := dataSourceAttributes[name]
+		if inResource == inDataSource && resourceValue == dataSourceValue {
 			continue
 		}
-		if name == "access_policy" && utils.JSONStringsEqual(resourceValue, dataSourceValue) {
+		if name == "access_policy" && inResource && inDataSource && utils.JSONStringsEqual(resourceValue, dataSourceValue) {
 			continue
 		}
-		differences = append(differences, fmt.Sprintf("  %s: resource %q, data source %q", name, resourceValue, dataSourceValue))
+		differences = append(differences, fmt.Sprintf("  %s: resource %s, data source %s",
+			name,
+			dashboardOpenAPIAttributeText(resourceValue, inResource),
+			dashboardOpenAPIAttributeText(dataSourceValue, inDataSource),
+		))
 	}
 	sort.Strings(differences)
 
 	return differences
+}
+
+func dashboardOpenAPIAttributeText(value string, present bool) string {
+	if !present {
+		return "absent"
+	}
+
+	return fmt.Sprintf("%q", value)
 }
 
 func dashboardOpenAPIBackendHydrationConfig(name string) string {
