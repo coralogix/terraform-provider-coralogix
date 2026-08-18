@@ -733,6 +733,22 @@ func TestDashboardAccessPolicyForConfiguredRequest(t *testing.T) {
 	}
 }
 
+func TestCanonicalizeDashboardAccessPolicy(t *testing.T) {
+	policy := `{"version":"2025-01-01","default":{"permissions":{"team-dashboards:Update":"grant","team-dashboards:ReadAccessPolicy":"grant","team-dashboards:UpdateAccessPolicy":"grant","team-dashboards:Read":"grant"}},"rules":[]}`
+	want := `{"default":{"permissions":{"team-dashboards:Read":"grant","team-dashboards:ReadAccessPolicy":"grant","team-dashboards:Update":"grant","team-dashboards:UpdateAccessPolicy":"grant"}},"rules":[],"version":"2025-01-01"}`
+
+	if got := canonicalizeDashboardAccessPolicy(policy); got != want {
+		t.Fatalf("canonical policy = %q, want %q", got, want)
+	}
+}
+
+func TestCanonicalizeDashboardAccessPolicyPreservesInvalidJSON(t *testing.T) {
+	policy := "not-json"
+	if got := canonicalizeDashboardAccessPolicy(policy); got != policy {
+		t.Fatalf("invalid policy = %q, want %q", got, policy)
+	}
+}
+
 func TestExpandAnnotationID(t *testing.T) {
 	tests := []struct {
 		name   string

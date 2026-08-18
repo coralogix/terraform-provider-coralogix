@@ -3931,14 +3931,28 @@ func flattenContentJSONDashboard(ctx context.Context, plan DashboardResourceMode
 	}, nil
 }
 
-func flattenDashboardAccessPolicy(planAccessPolicy types.String, accessPolicy *string) (types.String, diag.Diagnostics) {
+func flattenDashboardAccessPolicy(_ types.String, accessPolicy *string) (types.String, diag.Diagnostics) {
 	if accessPolicy == nil {
 		return types.StringNull(), nil
 	}
-	if !planAccessPolicy.IsNull() && !planAccessPolicy.IsUnknown() && utils.JSONStringsEqual(planAccessPolicy.ValueString(), *accessPolicy) {
-		return planAccessPolicy, nil
+	return types.StringValue(canonicalizeDashboardAccessPolicy(*accessPolicy)), nil
+}
+
+// canonicalizeDashboardAccessPolicy gives equivalent JSON policies one stable
+// state representation. This prevents backend object-key order from changing
+// Terraform state between refreshes or import.
+func canonicalizeDashboardAccessPolicy(accessPolicy string) string {
+	var value any
+	if err := json.Unmarshal([]byte(accessPolicy), &value); err != nil {
+		return accessPolicy
 	}
-	return types.StringValue(*accessPolicy), nil
+
+	canonical, err := json.Marshal(value)
+	if err != nil {
+		return accessPolicy
+	}
+
+	return string(canonical)
 }
 
 func flattenDashboardLayout(ctx context.Context, layout *dashboardservice.Layout) (types.Object, diag.Diagnostics) {
