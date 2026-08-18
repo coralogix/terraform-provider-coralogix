@@ -168,6 +168,8 @@ func rpcErrorWithDetails(t *testing.T, code codes.Code, msg, detail string) erro
 func TestCanonicalJSON(t *testing.T) {
 	t.Parallel()
 
+	// Every want value below is the exact output of
+	// jsonencode(jsondecode(input)) in Terraform v1.15.6.
 	tests := []struct {
 		name    string
 		input   string
@@ -175,27 +177,24 @@ func TestCanonicalJSON(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "sorts object keys and compacts, matching terraform jsonencode",
-			// The backend's key order for a dashboard access policy.
-			input: `{"version":"2025-01-01","default":{"permissions":{"team-dashboards:Update":"grant","team-dashboards:UpdateAccessPolicy":"grant","team-dashboards:Read":"grant","team-dashboards:ReadAccessPolicy":"grant"}},"rules":[],"weight":1}`,
-			// Verified against `terraform console`: jsonencode of the same
-			// object, Terraform v1.15.6.
-			want: `{"default":{"permissions":{"team-dashboards:Read":"grant","team-dashboards:ReadAccessPolicy":"grant","team-dashboards:Update":"grant","team-dashboards:UpdateAccessPolicy":"grant"}},"rules":[],"version":"2025-01-01","weight":1}`,
+			name:  "sorts object keys and compacts",
+			input: `{"version":"2025-01-01","default":{"permissions":{"team-dashboards:Update":"grant","team-dashboards:Read":"grant"}},"rules":[]}`,
+			want:  `{"default":{"permissions":{"team-dashboards:Read":"grant","team-dashboards:Update":"grant"}},"rules":[],"version":"2025-01-01"}`,
 		},
 		{
-			name:  "already canonical text is unchanged",
-			input: `{"a":1,"b":[1,2]}`,
-			want:  `{"a":1,"b":[1,2]}`,
+			name:  "escapes HTML characters and keeps other text as written",
+			input: `{"a":"<b>&c","b":"quote\"x","c":"é☃"}`,
+			want:  `{"a":"\u003cb\u003e\u0026c","b":"quote\"x","c":"é☃"}`,
+		},
+		{
+			name:  "normalises numbers and keeps long integers exact",
+			input: `{"a":1.50,"b":1e3,"c":12345678901234567890,"d":0.1}`,
+			want:  `{"a":1.5,"b":1000,"c":12345678901234567890,"d":0.1}`,
 		},
 		{
 			name:  "removes insignificant whitespace",
-			input: "{\n  \"b\": 2,\n  \"a\": 1\n}\n",
-			want:  `{"a":1,"b":2}`,
-		},
-		{
-			name:  "keeps numeric literals as written",
-			input: `{"a":1.50,"b":1e3}`,
-			want:  `{"a":1.50,"b":1e3}`,
+			input: "{\n  \"b\": 2,\n  \"a\": [true, null]\n}",
+			want:  `{"a":[true,null],"b":2}`,
 		},
 		{
 			name:    "invalid json returns an error",

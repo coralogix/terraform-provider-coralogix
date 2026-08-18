@@ -26,6 +26,8 @@ func TestFlattenDashboardAccessPolicy(t *testing.T) {
 	backendText := `{"version":"2025-01-01","default":{"permissions":{"team-dashboards:Read":"grant"}},"rules":[]}`
 	canonicalText := `{"default":{"permissions":{"team-dashboards:Read":"grant"}},"rules":[],"version":"2025-01-01"}`
 	unparsableText := "not json"
+	// jsonencode escapes &, so the stored text must escape it too.
+	ampersandText := `{"rules":[{"name":"reads & writes"}]}`
 	prettyText := "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"team-dashboards:Read\": \"grant\"\n    }\n  },\n  \"rules\": []\n}"
 
 	tests := []struct {
@@ -63,6 +65,12 @@ func TestFlattenDashboardAccessPolicy(t *testing.T) {
 			plan:         types.StringValue(`{"version":"2024-01-01","rules":[]}`),
 			accessPolicy: &backendText,
 			want:         types.StringValue(canonicalText),
+		},
+		{
+			name:         "characters jsonencode escapes are stored escaped",
+			plan:         types.StringNull(),
+			accessPolicy: &ampersandText,
+			want:         types.StringValue(`{"rules":[{"name":"reads \u0026 writes"}]}`),
 		},
 		{
 			name:         "text this provider cannot parse is stored unchanged",
