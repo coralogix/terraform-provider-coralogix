@@ -135,12 +135,11 @@ func (r *TCOPoliciesRumResource) Schema(_ context.Context, _ resource.SchemaRequ
 							MarkdownDescription: "Determines weather the policy will be enabled. True by default.",
 						},
 						"priority": schema.StringAttribute{
-							Optional: true,
-							Computed: true,
+							Required: true,
 							Validators: []validator.String{
 								stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 							},
-							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. Either set `priority`, or set a `quota_based_priority_override` (its tiers replace a fixed priority). If both are omitted the API rejects the policy. When `quota_based_priority_override` is set, `priority` is the fallback applied once all `usage_tiers` are exhausted (\"Route the remaining quota to\" in the UI); if you omit it there the backend defaults it to `block`.", tcoPoliciesValidPriorities),
+							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. When `quota_based_priority_override` is set, this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).", tcoPoliciesValidPriorities),
 						},
 						"order": schema.Int64Attribute{
 							Computed:            true,
@@ -438,12 +437,7 @@ func extractOverwriteTcoPoliciesRum(ctx context.Context, plan *TCOPoliciesListMo
 }
 
 func extractTcoPolicyRum(ctx context.Context, plan TCOPolicyRumModel) (*tcoPolicys.CreateRumPolicyRequest, diag.Diagnostics) {
-	var priority tcoPolicys.QuotaV1Priority
-	if plan.Priority.IsNull() || plan.Priority.IsUnknown() {
-		priority = tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_UNSPECIFIED
-	} else {
-		priority = tcoPoliciesPrioritySchemaToApi[plan.Priority.ValueString()]
-	}
+	priority := tcoPoliciesPrioritySchemaToApi[plan.Priority.ValueString()]
 	applicationRule, diags := expandTCOPolicyRule(ctx, plan.Applications)
 	if diags.HasError() {
 		return nil, diags
@@ -545,21 +539,13 @@ func flattenTCORumPolicy(ctx context.Context, policy tcoPolicys.Policy) (*TCOPol
 	if diags.HasError() {
 		return nil, diags
 	}
-	var priority types.String
-	policyPriority := policy.GetPriority()
-	if policyPriority != tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_UNSPECIFIED {
-		priority = types.StringValue(tcoPoliciesPriorityApiToSchema[policyPriority])
-	} else {
-		priority = types.StringNull()
-	}
-
 	return &TCOPolicyRumModel{
 		ID:                         types.StringValue(policy.GetId()),
 		Name:                       types.StringValue(policy.GetName()),
 		Description:                types.StringValue(policy.GetDescription()),
 		Enabled:                    types.BoolValue(policy.GetEnabled()),
 		Order:                      types.Int64Value(int64(policy.GetOrder())),
-		Priority:                   priority,
+		Priority:                   types.StringValue(tcoPoliciesPriorityApiToSchema[policy.GetPriority()]),
 		Applications:               applications,
 		Subsystems:                 subsystems,
 		ArchiveRetentionID:         flattenArchiveRetention(policy.ArchiveRetention),

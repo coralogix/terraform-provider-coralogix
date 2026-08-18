@@ -13,8 +13,9 @@ provider "coralogix" {
 }
 
 # RUM TCO policies behave like coralogix_tco_policies_logs but have no dataset
-# routing (no `targets`). Priority may be set directly, or driven by a
-# quota_based_priority_override; if both are omitted the API rejects the policy.
+# routing (no `targets`). Every policy sets a `priority`; when a
+# quota_based_priority_override is present, `priority` is the fallback applied
+# once all tiers are exhausted.
 resource "coralogix_tco_policies_rum" "tco_policies" {
   policies = [
     {
@@ -51,8 +52,8 @@ resource "coralogix_tco_policies_rum" "tco_policies" {
     },
     # Quota-based priority override: dynamically reassign the policy's priority
     # based on daily quota consumption tiers. `priority` here is the fallback
-    # applied once all tiers are exhausted; if omitted the backend defaults it to
-    # `block`.
+    # applied once all tiers are exhausted, and must be more restrictive than the
+    # last tier (most to least restrictive: block, low, medium, high).
     {
       name        = "Example rum tco_policy with quota-based override"
       description = "Drop priority as daily quota is consumed"

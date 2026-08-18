@@ -145,11 +145,10 @@ func TestAccCoralogixResourceTCOPoliciesRum_dpxl_expression(t *testing.T) {
 	})
 }
 
-// TestAccCoralogixResourceTCOPoliciesRum_quotaOverrideNoPriority is the key regression: a
-// policy that omits `priority` and relies on `quota_based_priority_override`. The backend
-// injects a `block` fallback priority; `priority` being Optional+Computed must absorb it so
-// the follow-up plan is empty rather than perpetually diffing.
-func TestAccCoralogixResourceTCOPoliciesRum_quotaOverrideNoPriority(t *testing.T) {
+// TestAccCoralogixResourceTCOPoliciesRum_quotaOverride covers a policy driven by
+// `quota_based_priority_override`, where `priority` is the fallback applied once all tiers
+// are exhausted. The second step re-applies the same config to assert idempotency.
+func TestAccCoralogixResourceTCOPoliciesRum_quotaOverride(t *testing.T) {
 	skipIfRumPoliciesDisabled(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -157,18 +156,17 @@ func TestAccCoralogixResourceTCOPoliciesRum_quotaOverrideNoPriority(t *testing.T
 		CheckDestroy:             testAccTCOPoliciesRumCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesRumQuotaOverrideNoPriority(),
+				Config: testAccCoralogixResourceTCOPoliciesRumQuotaOverride(),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.priority", "block"),
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.quota_based_priority_override.usage_tiers.#", "2"),
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.quota_based_priority_override.usage_tiers.0.daily_quota_percentage", "50"),
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.quota_based_priority_override.usage_tiers.0.priority", "medium"),
-					// Server injected the fallback priority; Computed absorbed it.
-					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.priority", "block"),
 				),
 			},
 			{
 				// Same config again must produce no diff.
-				Config:   testAccCoralogixResourceTCOPoliciesRumQuotaOverrideNoPriority(),
+				Config:   testAccCoralogixResourceTCOPoliciesRumQuotaOverride(),
 				PlanOnly: true,
 			},
 		},
@@ -272,11 +270,12 @@ func testAccCoralogixResourceTCOPoliciesRumDpxlExpression() string {
 `
 }
 
-func testAccCoralogixResourceTCOPoliciesRumQuotaOverrideNoPriority() string {
+func testAccCoralogixResourceTCOPoliciesRumQuotaOverride() string {
 	return `resource "coralogix_tco_policies_rum" "test" {
   policies = [
     {
       name       = "Example rum tco_policy with quota-based override"
+      priority   = "block"
       severities = ["info", "warning"]
       quota_based_priority_override = {
         usage_tiers = [

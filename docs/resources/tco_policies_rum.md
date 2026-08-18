@@ -28,8 +28,9 @@ provider "coralogix" {
 }
 
 # RUM TCO policies behave like coralogix_tco_policies_logs but have no dataset
-# routing (no `targets`). Priority may be set directly, or driven by a
-# quota_based_priority_override; if both are omitted the API rejects the policy.
+# routing (no `targets`). Every policy sets a `priority`; when a
+# quota_based_priority_override is present, `priority` is the fallback applied
+# once all tiers are exhausted.
 resource "coralogix_tco_policies_rum" "tco_policies" {
   policies = [
     {
@@ -66,8 +67,8 @@ resource "coralogix_tco_policies_rum" "tco_policies" {
     },
     # Quota-based priority override: dynamically reassign the policy's priority
     # based on daily quota consumption tiers. `priority` here is the fallback
-    # applied once all tiers are exhausted; if omitted the backend defaults it to
-    # `block`.
+    # applied once all tiers are exhausted, and must be more restrictive than the
+    # last tier (most to least restrictive: block, low, medium, high).
     {
       name        = "Example rum tco_policy with quota-based override"
       description = "Drop priority as daily quota is consumed"
@@ -101,6 +102,7 @@ resource "coralogix_tco_policies_rum" "tco_policies" {
 Required:
 
 - `name` (String) tco-policy name.
+- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. When `quota_based_priority_override` is set, this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).
 
 Optional:
 
@@ -109,7 +111,6 @@ Optional:
 - `description` (String) The policy description
 - `dpxl_expression` (String) DataPrime expression to match RUM events for this policy. Mutually exclusive with `severities` — set exactly one. The expression must include a version prefix and reference the canonical `$d.*` schema (not `$d.cx_rum.*`), e.g. `<v1> $d.severity == 'Error'`.
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. Either set `priority`, or set a `quota_based_priority_override` (its tiers replace a fixed priority). If both are omitted the API rejects the policy. When `quota_based_priority_override` is set, `priority` is the fallback applied once all `usage_tiers` are exhausted ("Route the remaining quota to" in the UI); if you omit it there the backend defaults it to `block`.
 - `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
 - `severities` (Set of String) The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"]. Mutually exclusive with `dpxl_expression` — set exactly one.
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
