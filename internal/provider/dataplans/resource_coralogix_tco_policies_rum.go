@@ -324,17 +324,18 @@ func (r *TCOPoliciesRumResource) Read(ctx context.Context, _ resource.ReadReques
 
 	result, httpResponse, err := r.client.PoliciesServiceGetCompanyPolicies(ctx).SourceType(RumSource).Execute()
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
+		if cxsdkOpenapi.Code(apiErr) == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				"coralogix_tco_policies_rum is in state, but no longer exists in Coralogix backend",
 				"coralogix_tco_policies_rum will be recreated when you apply",
 			)
 			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_tco_policies_rum",
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-			)
+			return
 		}
+		resp.Diagnostics.AddError("Error reading coralogix_tco_policies_rum",
+			utils.FormatOpenAPIErrors(apiErr, "Read", nil),
+		)
 		return
 	}
 
@@ -369,15 +370,16 @@ func (r *TCOPoliciesRumResource) Update(ctx context.Context, req resource.Update
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
+		if cxsdkOpenapi.Code(apiErr) == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_tco_policies_rum %v is in state, but no longer exists in Coralogix backend", rq),
 				fmt.Sprintf("%v will be recreated when you apply", rq),
 			)
 			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error replacing coralogix_tco_policies_rum", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
+			return
 		}
+		resp.Diagnostics.AddError("Error replacing coralogix_tco_policies_rum", utils.FormatOpenAPIErrors(apiErr, "Replace", rq))
 		return
 	}
 
