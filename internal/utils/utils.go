@@ -47,6 +47,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/nsf/jsondiff"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -630,6 +631,38 @@ func RandStringBytes(n int) string {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(b)
+}
+
+// CanonicalJSON returns the JSON text in the shape Terraform's jsonencode
+// function produces. Store a provider-computed JSON string in this shape, so
+// a configuration written with jsonencode holds the same text and the two
+// never drift apart.
+//
+// It runs the text through the same library Terraform uses, so the result
+// matches jsonencode(jsondecode(text)) exactly: object keys sorted, no
+// insignificant whitespace, HTML characters escaped, and numbers normalised.
+// Reimplementing those rules with encoding/json does not match.
+//
+// Never apply it to a text that came from configuration. Terraform requires
+// the value written after apply to equal the planned value, and rewriting a
+// practitioner's formatting would break that.
+func CanonicalJSON(s string) (string, error) {
+	valueType, err := ctyjson.ImpliedType([]byte(s))
+	if err != nil {
+		return "", err
+	}
+
+	value, err := ctyjson.Unmarshal([]byte(s), valueType)
+	if err != nil {
+		return "", err
+	}
+
+	canonical, err := ctyjson.Marshal(value, valueType)
+	if err != nil {
+		return "", err
+	}
+
+	return string(canonical), nil
 }
 
 func JSONStringsEqual(s1, s2 string) bool {

@@ -3938,7 +3938,22 @@ func flattenDashboardAccessPolicy(planAccessPolicy types.String, accessPolicy *s
 	if !planAccessPolicy.IsNull() && !planAccessPolicy.IsUnknown() && utils.JSONStringsEqual(planAccessPolicy.ValueString(), *accessPolicy) {
 		return planAccessPolicy, nil
 	}
-	return types.StringValue(*accessPolicy), nil
+
+	// There is no configured text to preserve, which happens on create
+	// without the attribute, on import, in the data source, and in the state
+	// upgrader. Store the policy in the shape jsonencode produces, so a
+	// configuration written that way holds the same text. Keeping the
+	// backend's own key order here instead would leave the stored text and
+	// the configured text permanently different, which never resolves and
+	// keeps every plan busy.
+	canonical, err := utils.CanonicalJSON(*accessPolicy)
+	if err != nil {
+		// The API returned something this provider cannot parse. Store it
+		// unchanged rather than failing the read.
+		return types.StringValue(*accessPolicy), nil
+	}
+
+	return types.StringValue(canonical), nil
 }
 
 func flattenDashboardLayout(ctx context.Context, layout *dashboardservice.Layout) (types.Object, diag.Diagnostics) {

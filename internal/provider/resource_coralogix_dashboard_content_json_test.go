@@ -182,8 +182,13 @@ func TestAccCoralogixResourceDashboardContentJSONDynamicQueriesTable(t *testing.
 						return dashboardOpenAPIAssertDynamicQueriesTable(dashboard, fixture)
 					}),
 				),
+				// The action is deliberately not asserted. Configuring an
+				// access policy that the dashboard already carries is a
+				// no-op, and a policy the backend has to change is an update.
+				// What matters is that neither replaces the dashboard, which
+				// identity.AssertUnchanged covers, and that the plan
+				// converges.
 				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionUpdate)},
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},

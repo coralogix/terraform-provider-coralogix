@@ -1306,6 +1306,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 			},
 			Optional: true,
 			Computed: true,
+			PlanModifiers: []planmodifier.Object{
+				NullWhenContentJSONManaged{},
+			},
 		},
 		"content_json": schema.StringAttribute{
 			Optional: true,
