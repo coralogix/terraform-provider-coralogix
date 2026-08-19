@@ -183,7 +183,7 @@ func (r *TCOPoliciesRumResource) Schema(_ context.Context, _ resource.SchemaRequ
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
 										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
-											regexp.MustCompile("^[^A-Z]*$"), "must not contain uppercase letters; the backend lowercases application/subsystem names, so an uppercase value would drift")),
+											regexp.MustCompile("^[^A-Z,]*$"), "must not contain uppercase letters or commas; the backend lowercases these names, and commas are used as the multi-value separator")),
 									},
 								},
 								"rule_type": schema.StringAttribute{
@@ -207,7 +207,7 @@ func (r *TCOPoliciesRumResource) Schema(_ context.Context, _ resource.SchemaRequ
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
 										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
-											regexp.MustCompile("^[^A-Z]*$"), "must not contain uppercase letters; the backend lowercases application/subsystem names, so an uppercase value would drift")),
+											regexp.MustCompile("^[^A-Z,]*$"), "must not contain uppercase letters or commas; the backend lowercases these names, and commas are used as the multi-value separator")),
 									},
 								},
 								"rule_type": schema.StringAttribute{
