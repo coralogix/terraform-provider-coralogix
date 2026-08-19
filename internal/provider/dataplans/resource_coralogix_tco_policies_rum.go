@@ -49,6 +49,18 @@ var (
 	_ resource.ResourceWithImportState    = &TCOPoliciesRumResource{}
 	// RumSource selects RUM policies from the shared company-policies getter.
 	RumSource = tcoPolicys.V1SOURCETYPE_SOURCE_TYPE_RUM
+	// tcoRumTierPriorities are the priorities valid inside a usage tier. "block" is
+	// excluded: the API rejects it as a tier value (a tier reassigns priority, so a
+	// block tier would just drop data and has no effect).
+	tcoRumTierPriorities = func() []string {
+		out := make([]string, 0, len(tcoPoliciesValidPriorities))
+		for _, p := range tcoPoliciesValidPriorities {
+			if p != "block" {
+				out = append(out, p)
+			}
+		}
+		return out
+	}()
 )
 
 func NewTCOPoliciesRumResource() resource.Resource {
@@ -171,7 +183,7 @@ func (r *TCOPoliciesRumResource) Schema(_ context.Context, _ resource.SchemaRequ
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
 										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
-											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
+											regexp.MustCompile("^[^A-Z]*$"), "must not contain uppercase letters; the backend lowercases application/subsystem names, so an uppercase value would drift")),
 									},
 								},
 								"rule_type": schema.StringAttribute{
@@ -195,7 +207,7 @@ func (r *TCOPoliciesRumResource) Schema(_ context.Context, _ resource.SchemaRequ
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
 										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
-											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
+											regexp.MustCompile("^[^A-Z]*$"), "must not contain uppercase letters; the backend lowercases application/subsystem names, so an uppercase value would drift")),
 									},
 								},
 								"rule_type": schema.StringAttribute{
@@ -237,9 +249,9 @@ func (r *TCOPoliciesRumResource) Schema(_ context.Context, _ resource.SchemaRequ
 											"priority": schema.StringAttribute{
 												Required: true,
 												Validators: []validator.String{
-													stringvalidator.OneOf(tcoPoliciesValidPriorities...),
+													stringvalidator.OneOf(tcoRumTierPriorities...),
 												},
-												MarkdownDescription: fmt.Sprintf("The priority to apply when this tier is active. Can be one of %q.", tcoPoliciesValidPriorities),
+												MarkdownDescription: fmt.Sprintf("The priority to apply when this tier is active. Can be one of %q (`block` is not valid for a tier).", tcoRumTierPriorities),
 											},
 										},
 									},

@@ -66,7 +66,7 @@ Read-Only:
 Read-Only:
 
 - `daily_quota_percentage` (Number) Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
-- `priority` (String) The priority to apply when this tier is active. Can be one of ["block" "high" "low" "medium"].
+- `priority` (String) The priority to apply when this tier is active. Can be one of ["high" "low" "medium"] (`block` is not valid for a tier).
 
 
 
