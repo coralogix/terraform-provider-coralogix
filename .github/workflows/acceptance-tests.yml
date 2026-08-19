@@ -257,4 +257,4 @@ jobs:
                 --header 'Content-Type: application/json' \
                 --data @- \
                 --output /dev/null \
-                --write-out 'Slack accepted the notification (HTTP %{http_code})\n'
+                --write-out 'Slack responded with HTTP %{http_code}\n'

@@ -1,0 +1,100 @@
+# TEMPORARY - DELETE BEFORE MERGE.
+#
+# This workflow exists only to prove that the notify-failure job in
+# acceptance-tests.yml never prints the Slack webhook URL into the public
+# Actions log. It fakes a failed test run in seconds instead of waiting for the
+# real acceptance tests, and it uses no Coralogix credentials.
+#
+# The notify-failure job below is a verbatim copy of the one in
+# acceptance-tests.yml, with only its `needs` list repointed at the temp jobs.
+name: TEMP Slack notification test
+
+on:
+  push:
+    branches:
+      - alert_on_failing_nightly
+  workflow_dispatch:
+
+jobs:
+  temp-always-fails:
+    name: Fails on purpose
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail
+        run: |
+          echo "Failing on purpose so the Slack notification triggers."
+          exit 1
+
+  temp-always-succeeds:
+    name: Succeeds on purpose
+    runs-on: ubuntu-latest
+    steps:
+      - name: Succeed
+        run: echo "This job passes, so it must not appear in the Slack message."
+
+  notify-failure:
+    name: Notify Slack on failure
+    # Scheduled (nightly) and master push runs alert. Pull request runs stay quiet.
+    if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'push') }}
+    needs:
+      - temp-always-fails
+      - temp-always-succeeds
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post failure to Slack
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        env:
+          # Slack incoming webhook URL, from the SLACK_CI_WEBHOOK_URL repository secret.
+          # This is a public repo with public Actions logs. Keep the URL out of both the
+          # logs and the process list: it goes into a 0600 curl config file, never into
+          # argv, echo, jq, or `set -x`.
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_CI_WEBHOOK_URL }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::warning::SLACK_CI_WEBHOOK_URL is not set; skipping the Slack notification."
+            exit 0
+          fi
+          # curl reads the URL from this file, so it never appears in the process list.
+          umask 077
+          curl_config="$(mktemp)"
+          trap 'rm -f "$curl_config"' EXIT
+          printf 'url = "%s"\n' "$SLACK_WEBHOOK_URL" > "$curl_config"
+          failed_jobs=$(printf '%s' "$NEEDS_JSON" | jq -r '
+            to_entries
+            | map(select(.value.result != "success"))
+            | map("• \(.key): \(.value.result)")
+            | join("\n")
+          ')
+          jq -n \
+            --arg repo "$REPOSITORY" \
+            --arg ref "$REF_NAME" \
+            --arg event "$EVENT_NAME" \
+            --arg url "$RUN_URL" \
+            --arg jobs "$failed_jobs" \
+            '{
+              text: ":rotating_light: Acceptance tests failed",
+              blocks: [
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: ":rotating_light: *Acceptance tests failed*\n*Repository:* \($repo)\n*Ref:* \($ref)\n*Trigger:* \($event)\n*Failed jobs:*\n\($jobs)\n<\($url)|View the workflow run>"
+                  }
+                }
+              ]
+            }' \
+            | curl --config "$curl_config" \
+                --fail --silent --show-error \
+                --max-time 30 --retry 3 --retry-connrefused \
+                --header 'Content-Type: application/json' \
+                --data @- \
+                --output /dev/null \
+                --write-out 'Slack responded with HTTP %{http_code}\n'
