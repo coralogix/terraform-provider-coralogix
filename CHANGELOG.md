@@ -1,5 +1,11 @@
 # Unreleased
 
+#### resource/coralogix_connector
+- FEAT: Add support for the `microsoft_teams` connector type.
+
+#### resource/coralogix_preset
+- FEAT: Add support for `microsoft_teams` as a `connector_type` value.
+
 #### resource/coralogix_tco_policies_rum
 - FEAT: Add `coralogix_tco_policies_rum` resource and data source for RUM TCO policies (severities/DPXL matching, quota-based priority override, application/subsystem rules, archive retention). RUM policies have no dataset `targets`.
 
