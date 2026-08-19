@@ -207,8 +207,9 @@ jobs:
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         env:
           # Slack incoming webhook URL, from the SLACK_CI_WEBHOOK_URL repository secret.
-          # This is a public repo. Keep the URL out of every log line: pass it only as the
-          # final curl argument, never through echo, jq, or `set -x`.
+          # This is a public repo with public Actions logs. Keep the URL out of both the
+          # logs and the process list: it goes into a 0600 curl config file, never into
+          # argv, echo, jq, or `set -x`.
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_CI_WEBHOOK_URL }}
           NEEDS_JSON: ${{ toJSON(needs) }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -221,6 +222,11 @@ jobs:
             echo "::warning::SLACK_CI_WEBHOOK_URL is not set; skipping the Slack notification."
             exit 0
           fi
+          # curl reads the URL from this file, so it never appears in the process list.
+          umask 077
+          curl_config="$(mktemp)"
+          trap 'rm -f "$curl_config"' EXIT
+          printf 'url = "%s"\n' "$SLACK_WEBHOOK_URL" > "$curl_config"
           failed_jobs=$(printf '%s' "$NEEDS_JSON" | jq -r '
             to_entries
             | map(select(.value.result != "success"))
@@ -245,8 +251,10 @@ jobs:
                 }
               ]
             }' \
-            | curl --fail-with-body --silent --show-error \
+            | curl --config "$curl_config" \
+                --fail --silent --show-error \
                 --max-time 30 --retry 3 --retry-connrefused \
                 --header 'Content-Type: application/json' \
                 --data @- \
-                "$SLACK_WEBHOOK_URL"
+                --output /dev/null \
+                --write-out 'Slack accepted the notification (HTTP %{http_code})\n'
