@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -41,12 +42,32 @@ var (
 	aiEvaluationApplicationsOnce  sync.Once
 	aiEvaluationApplicationsCache []aiEvaluationApplication
 	aiEvaluationApplicationsErr   error
+
+	aiEvaluationApplicationSelectionMu  sync.Mutex
+	aiEvaluationApplicationReservations = map[string]struct{}{}
 )
 
 type aiEvaluationApplication struct {
 	id          string
 	application string
 	subsystem   string
+}
+
+type aiEvaluationTestFatal struct{}
+
+type aiEvaluationTestT struct {
+	*testing.T
+	fatalMessage string
+}
+
+func (t *aiEvaluationTestT) Fatal(args ...interface{}) {
+	t.fatalMessage = fmt.Sprint(args...)
+	panic(aiEvaluationTestFatal{})
+}
+
+func (t *aiEvaluationTestT) Fatalf(format string, args ...interface{}) {
+	t.fatalMessage = fmt.Sprintf(format, args...)
+	panic(aiEvaluationTestFatal{})
 }
 
 func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
@@ -210,49 +231,76 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			application := &aiEvaluationApplication{}
-			target := new(string)
-			configDir := t.TempDir()
-			createConfigFile := filepath.Join(configDir, "create.tf")
-			updateConfigFile := filepath.Join(configDir, "update.tf")
+			t.Parallel()
 
-			resource.ParallelTest(t, resource.TestCase{
-				PreCheck: func() {
-					testAccPreCheck(t)
-					selectedApplication, selectedTarget := testAccFirstAIApplication(t, testCase.evaluationType, testCase.targetCandidates)
-					*application = selectedApplication
-					*target = selectedTarget
-				},
-				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-				CheckDestroy:             testAccCheckAIEvaluationDestroy,
-				Steps: []resource.TestStep{
-					{
-						ConfigFile: testAccAIEvaluationConfigFile(t, createConfigFile, application, target, "0.8", true, testCase.createConfig),
-						Check: testAccAIEvaluationCheck(
-							application,
-							target,
-							"0.8",
-							true,
-							testCase.createChecks...,
-						),
-					},
-					{
-						ResourceName:      aiEvaluationResourceName,
-						ImportState:       true,
-						ImportStateVerify: true,
-					},
-					{
-						ConfigFile: testAccAIEvaluationConfigFile(t, updateConfigFile, application, target, "0.9", false, testCase.updateConfig),
-						Check: testAccAIEvaluationCheck(
-							application,
-							target,
-							"0.9",
-							false,
-							testCase.updateChecks...,
-						),
-					},
-				},
-			})
+			const maxCreateAttempts = 5
+			for attempt := 1; attempt <= maxCreateAttempts; attempt++ {
+				application := &aiEvaluationApplication{}
+				target := new(string)
+				configDir := t.TempDir()
+				createConfigFile := filepath.Join(configDir, "create.tf")
+				updateConfigFile := filepath.Join(configDir, "update.tf")
+				testT := &aiEvaluationTestT{T: t}
+
+				func() {
+					defer func() {
+						if recovered := recover(); recovered != nil {
+							if _, ok := recovered.(aiEvaluationTestFatal); !ok {
+								panic(recovered)
+							}
+						}
+					}()
+
+					resource.Test(testT, resource.TestCase{
+						PreCheck: func() {
+							testAccPreCheck(t)
+							selectedApplication, selectedTarget := testAccFirstAIApplication(t, testCase.evaluationType, testCase.targetCandidates)
+							*application = selectedApplication
+							*target = selectedTarget
+						},
+						ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+						CheckDestroy:             testAccCheckAIEvaluationDestroy,
+						Steps: []resource.TestStep{
+							{
+								ConfigFile: testAccAIEvaluationConfigFile(t, createConfigFile, application, target, "0.8", true, testCase.createConfig),
+								Check: testAccAIEvaluationCheck(
+									application,
+									target,
+									"0.8",
+									true,
+									testCase.createChecks...,
+								),
+							},
+							{
+								ResourceName:      aiEvaluationResourceName,
+								ImportState:       true,
+								ImportStateVerify: true,
+							},
+							{
+								ConfigFile: testAccAIEvaluationConfigFile(t, updateConfigFile, application, target, "0.9", false, testCase.updateConfig),
+								Check: testAccAIEvaluationCheck(
+									application,
+									target,
+									"0.9",
+									false,
+									testCase.updateChecks...,
+								),
+							},
+						},
+					})
+				}()
+
+				if testT.fatalMessage == "" {
+					return
+				}
+				if !strings.Contains(testT.fatalMessage, "Already Exists: An evaluation with these parameters already exists") {
+					t.Fatalf("AI evaluation acceptance test failed: %s", testT.fatalMessage)
+				}
+
+				t.Logf("AI evaluation slot collided on attempt %d; retrying with another application", attempt)
+			}
+
+			t.Fatalf("AI evaluation acceptance test collided %d times; no free application slot remained", maxCreateAttempts)
 		})
 	}
 }
@@ -297,16 +345,35 @@ func testAccFirstAIApplication(t *testing.T, evaluationType aievaluations.Evalua
 		targetCandidates = []string{"response", "prompt"}
 	}
 
-	for _, application := range aiEvaluationApplicationsCache {
-		target, available, err := testAccAIApplicationTargetForEvaluationType(
+	aiEvaluationApplicationSelectionMu.Lock()
+	defer aiEvaluationApplicationSelectionMu.Unlock()
+
+	applications := append([]aiEvaluationApplication(nil), aiEvaluationApplicationsCache...)
+	rand.Shuffle(len(applications), func(i, j int) {
+		applications[i], applications[j] = applications[j], applications[i]
+	})
+
+	for _, application := range applications {
+		target, available, err := testAccAIApplicationTarget(
 			application,
-			evaluationType,
 			targetCandidates,
 		)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if available {
+			reservationKey := fmt.Sprintf("%s\x00%s\x00%s", application.application, application.subsystem, target)
+			if _, reserved := aiEvaluationApplicationReservations[reservationKey]; reserved {
+				continue
+			}
+
+			aiEvaluationApplicationReservations[reservationKey] = struct{}{}
+			t.Cleanup(func() {
+				aiEvaluationApplicationSelectionMu.Lock()
+				delete(aiEvaluationApplicationReservations, reservationKey)
+				aiEvaluationApplicationSelectionMu.Unlock()
+			})
+
 			return application, target
 		}
 	}
@@ -345,14 +412,13 @@ func testAccDiscoverAIApplications() ([]aiEvaluationApplication, error) {
 	return applications, nil
 }
 
-func testAccAIApplicationTargetForEvaluationType(application aiEvaluationApplication, evaluationType aievaluations.EvaluationType, targetCandidates []string) (string, bool, error) {
+func testAccAIApplicationTarget(application aiEvaluationApplication, targetCandidates []string) (string, bool, error) {
 	ctx := context.Background()
 	client := testAccAIEvaluationsClient()
 
 	request := client.
 		AiEvaluationsServiceListAiEvaluations(ctx).
 		Application(application.application).
-		EvaluationType(evaluationType).
 		PageSize(200).
 		PageOffset(0)
 	if application.subsystem != "" {
@@ -362,9 +428,9 @@ func testAccAIApplicationTargetForEvaluationType(application aiEvaluationApplica
 	resp, httpResp, err := request.Execute()
 	if err != nil {
 		return "", false, fmt.Errorf(
-			"failed to list AI evaluations for application %q and type %q: %s",
+			"failed to list AI evaluations for application %q and subsystem %q: %s",
 			application.application,
-			evaluationType,
+			application.subsystem,
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "List", nil),
 		)
 	}
