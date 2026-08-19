@@ -24,7 +24,6 @@ import (
 var tcoPoliciesRumDataSourceName = "data." + tcoPoliciesRumResourceName
 
 func TestAccCoralogixDataSourceTCOPoliciesRum_basic(t *testing.T) {
-	skipIfRumPoliciesDisabled(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

@@ -16,76 +16,19 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dataplans"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 var tcoPoliciesRumResourceName = "coralogix_tco_policies_rum.test"
 
-// skipIfRumPoliciesDisabled skips the test when the RUM TCO policies feature is not
-// enabled for the account. The feature is gated per company; a gated account answers the
-// atomic-overwrite write with a 400 whose body carries a FAILED_PRECONDITION mentioning
-// that RUM quota policies are not enabled. The gate is enforced per policy
-// ("policies[0] failed custom validation"), so the probe must submit at least one policy —
-// an empty overwrite passes even when the feature is off. On success the probe clears the
-// collection again, which is harmless in the acceptance account (every test here overwrites
-// the whole collection anyway).
-func skipIfRumPoliciesDisabled(t *testing.T) {
-	t.Helper()
-	// Only probe under acceptance runs; otherwise let resource.Test perform its standard
-	// TF_ACC skip.
-	if os.Getenv(resource.EnvTfAcc) == "" {
-		return
-	}
-	clients, err := testAccNewClientSet()
-	if err != nil {
-		t.Fatalf("failed to build acceptance client: %s", err)
-	}
-	ctx := context.Background()
-	probeName := "tf-acc-rum-feature-probe"
-	probe := tcoPolicys.AtomicOverwriteRumPoliciesRequest{
-		Policies: []tcoPolicys.CreateRumPolicyRequest{
-			{
-				Policy:   tcoPolicys.CreateGenericPolicyRequest{Name: probeName, Priority: tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_LOW},
-				RumRules: tcoPolicys.LogRules{Severities: []tcoPolicys.QuotaV1Severity{tcoPolicys.QUOTAV1SEVERITY_SEVERITY_ERROR}},
-			},
-		},
-	}
-	_, _, err = clients.TCOPolicies().
-		PoliciesServiceAtomicOverwriteRumPolicies(ctx).
-		AtomicOverwriteRumPoliciesRequest(probe).
-		Execute()
-	if err == nil {
-		// Feature is on — clean up the probe policy before the test runs.
-		_, _, _ = clients.TCOPolicies().
-			PoliciesServiceAtomicOverwriteRumPolicies(ctx).
-			AtomicOverwriteRumPoliciesRequest(*tcoPolicys.NewAtomicOverwriteRumPoliciesRequestWithDefaults()).
-			Execute()
-		return
-	}
-
-	var apiErr *tcoPolicys.GenericOpenAPIError
-	if errors.As(err, &apiErr) {
-		body := string(apiErr.Body())
-		if strings.Contains(body, "RUM quota policies are not enabled") || strings.Contains(body, "FAILED_PRECONDITION") {
-			t.Skipf("RUM TCO policies feature is not enabled for this account; skipping. Backend said: %s", body)
-		}
-	}
-	t.Fatalf("unexpected error probing RUM TCO policies availability: %s", err)
-}
-
 func TestAccCoralogixResourceTCOPoliciesRumCreate(t *testing.T) {
-	skipIfRumPoliciesDisabled(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -126,7 +69,6 @@ func TestAccCoralogixResourceTCOPoliciesRumCreate(t *testing.T) {
 // is a DataPrime expression instead of severities. The two are mutually exclusive at the
 // API, so this fixture omits severities entirely.
 func TestAccCoralogixResourceTCOPoliciesRum_dpxl_expression(t *testing.T) {
-	skipIfRumPoliciesDisabled(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -149,7 +91,6 @@ func TestAccCoralogixResourceTCOPoliciesRum_dpxl_expression(t *testing.T) {
 // `quota_based_priority_override`, where `priority` is the fallback applied once all tiers
 // are exhausted. The second step re-applies the same config to assert idempotency.
 func TestAccCoralogixResourceTCOPoliciesRum_quotaOverride(t *testing.T) {
-	skipIfRumPoliciesDisabled(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -176,7 +117,6 @@ func TestAccCoralogixResourceTCOPoliciesRum_quotaOverride(t *testing.T) {
 // TestAccCoralogixResourceTCOPoliciesRum_dpxl_replaces_severities verifies switching a
 // policy's matcher from severities to a DPXL expression.
 func TestAccCoralogixResourceTCOPoliciesRum_dpxl_replaces_severities(t *testing.T) {
-	skipIfRumPoliciesDisabled(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
