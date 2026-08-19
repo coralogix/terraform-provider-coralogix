@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.10.0
+
 #### resource/coralogix_connector
 - FEAT: Add support for the `microsoft_teams` connector type.
 
