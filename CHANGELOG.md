@@ -1,5 +1,14 @@
 # Unreleased
 
+#### resource/coralogix_group
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
+#### data-source/coralogix_group
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
+#### resource/coralogix_group_attachment
+- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to include OpenAPI required fields for dashboard `variables_v2`.
 

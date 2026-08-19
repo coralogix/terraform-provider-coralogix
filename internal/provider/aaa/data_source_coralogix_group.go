@@ -18,13 +18,13 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 
@@ -41,8 +41,7 @@ func NewGroupDataSource() datasource.DataSource {
 }
 
 type GroupDataSource struct {
-	client          *clientset.GroupsClient
-	teamGroupClient *teamGroups.TeamGroupsManagementServiceAPIService
+	client *teamGroups.TeamGroupsManagementServiceAPIService
 }
 
 func (d *GroupDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -63,8 +62,7 @@ func (d *GroupDataSource) Configure(_ context.Context, req datasource.ConfigureR
 		return
 	}
 
-	d.client = clientSet.Groups()
-	d.teamGroupClient = clientSet.TeamGroups()
+	d.client = clientSet.TeamGroups()
 }
 
 func (d *GroupDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -98,58 +96,82 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	var groupID string
-	//Get refreshed Group value from Coralogix
-	if displayName := data.DisplayName.ValueString(); displayName != "" {
-		log.Printf("[INFO] Listing Groups to find by display name: %s", displayName)
-		getByNameResp, httpResponse, err := d.teamGroupClient.
-			GroupsMgmtServiceGetTeamGroupByName(ctx, displayName).
-			Execute()
-		if err != nil {
-			log.Printf("[ERROR] Received error when listing groups: %s", err.Error())
-			apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
-			if cxsdkOpenapi.IsNotFound(apiErr) {
-				resp.Diagnostics.AddError(fmt.Sprintf("Group with display name %q not found", displayName), "")
-			} else {
-				resp.Diagnostics.AddError(
-					"Error listing Groups",
-					utils.FormatOpenAPIErrors(apiErr, "GetTeamGroupByName", displayName),
-				)
-			}
-			return
-		}
-
-		if getByNameResp != nil && getByNameResp.Group != nil && getByNameResp.Group.GroupId != nil {
-			groupID = strconv.FormatInt(*getByNameResp.Group.GroupId, 10)
-		}
-
-		if groupID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("Group with display name %q not found", displayName), "")
-			return
-		}
-	} else if id := data.ID.ValueString(); id != "" {
-		groupID = id
-	} else {
-		resp.Diagnostics.AddError("Group ID or display name must be set", "")
+	group, diags := d.getTeamGroup(ctx, data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	getGroupResp, err := d.client.GetGroup(ctx, groupID)
+	memberIDs, httpResp, err := listGroupUserIDs(ctx, d.client, *group.GroupId)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get group", err.Error())
-		return
-	}
-	if getGroupResp == nil {
-		resp.Diagnostics.AddError("Group not found", "Group not found")
+		resp.Diagnostics.AddError(
+			"Error reading Group members",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "GetGroupUsers", *group.GroupId),
+		)
 		return
 	}
 
-	data, diags = flattenSCIMGroup(getGroupResp)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+	data, diags = flattenTeamGroupWithPreferredRole(group, memberIDs, data.Role.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+}
+
+func (d *GroupDataSource) getTeamGroup(ctx context.Context, data *GroupResourceModel) (*teamGroups.TeamGroup, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if displayName := data.DisplayName.ValueString(); displayName != "" {
+		log.Printf("[INFO] Getting Group by display name: %s", displayName)
+		getByNameResp, httpResponse, err := d.client.
+			GroupsMgmtServiceGetTeamGroupByName(ctx, displayName).
+			Execute()
+		if err != nil {
+			apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
+			if cxsdkOpenapi.IsNotFound(apiErr) {
+				diags.AddError(fmt.Sprintf("Group with display name %q not found", displayName), "")
+			} else {
+				diags.AddError(
+					"Error listing Groups",
+					utils.FormatOpenAPIErrors(apiErr, "GetTeamGroupByName", displayName),
+				)
+			}
+			return nil, diags
+		}
+		if getByNameResp == nil || getByNameResp.Group == nil || getByNameResp.Group.GroupId == nil {
+			diags.AddError(fmt.Sprintf("Group with display name %q not found", displayName), "")
+			return nil, diags
+		}
+		return getByNameResp.Group, diags
+	}
+
+	if id := data.ID.ValueString(); id != "" {
+		groupID, parseDiags := parseGroupID(id)
+		diags.Append(parseDiags...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		log.Printf("[INFO] Getting Group: %d", groupID)
+		getResp, httpResponse, err := d.client.GroupsMgmtServiceGetTeamGroup(ctx, groupID).Execute()
+		if err != nil {
+			apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
+			if cxsdkOpenapi.IsNotFound(apiErr) {
+				diags.AddError("Group not found", fmt.Sprintf("Group %q not found", id))
+			} else {
+				diags.AddError("Error reading Group", utils.FormatOpenAPIErrors(apiErr, "GetTeamGroup", id))
+			}
+			return nil, diags
+		}
+		if getResp == nil || getResp.Group == nil {
+			diags.AddError("Group not found", fmt.Sprintf("Group %q not found", id))
+			return nil, diags
+		}
+		return getResp.Group, diags
+	}
+
+	diags.AddError("Group ID or display name must be set", "")
+	return nil, diags
 }

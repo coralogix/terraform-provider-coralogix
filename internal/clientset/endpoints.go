@@ -33,7 +33,7 @@ func GrpcTargetFromDomain(domain string) string {
 	return fmt.Sprintf("ng-api-grpc.%s:443", domain)
 }
 
-// ScimRestBaseURL returns the HTTPS base URL for SCIM REST APIs (users, groups) for the
+// ScimRestBaseURL returns the HTTPS base URL for SCIM REST APIs (users) for the
 // given provider env or domain. PrivateLink management hosts use api.private.* directly;
 // public regions use api.* (same host family as the OpenAPI management clients).
 // Note: CoralogixRestEndpointFromRegion still returns ng-api-http.*; SCIM is on api.*.
