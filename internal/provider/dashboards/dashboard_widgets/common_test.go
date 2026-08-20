@@ -253,6 +253,7 @@ func TestExpandLegendOmitsUnsetPlacement(t *testing.T) {
 func TestFilterOperatorEqualsAllRoundTripUsesEmptyList(t *testing.T) {
 	configured := &FilterOperatorModel{
 		Type:           types.StringValue("equals"),
+		SelectionType:  types.StringNull(),
 		SelectedValues: types.ListValueMust(types.StringType, []attr.Value{}),
 	}
 
@@ -271,6 +272,59 @@ func TestFilterOperatorEqualsAllRoundTripUsesEmptyList(t *testing.T) {
 	if flattened.SelectedValues.IsNull() || flattened.SelectedValues.IsUnknown() || len(flattened.SelectedValues.Elements()) != 0 {
 		t.Fatalf("expected a known empty selected_values list, got %s", flattened.SelectedValues)
 	}
+	if flattened.SelectionType.ValueString() != filterSelectionTypeAll {
+		t.Fatalf("selection_type = %q, want %q", flattened.SelectionType.ValueString(), filterSelectionTypeAll)
+	}
+}
+
+func TestFilterOperatorEqualsListEmptyRoundTripStaysList(t *testing.T) {
+	apiOperator := &dashboardservice.FilterOperator{
+		Equals: &dashboardservice.FilterEquals{Selection: &dashboardservice.EqualsSelection{
+			List: &dashboardservice.EqualsSelectionListSelection{Values: []string{}},
+		}},
+	}
+
+	flattened, diagnostic := FlattenFilterOperator(apiOperator)
+	if diagnostic != nil {
+		t.Fatalf("flattening equals-list filter operator: %s", diagnostic.Detail())
+	}
+	if flattened.SelectionType.ValueString() != filterSelectionTypeList {
+		t.Fatalf("selection_type = %q, want %q", flattened.SelectionType.ValueString(), filterSelectionTypeList)
+	}
+	if flattened.SelectedValues.IsNull() || flattened.SelectedValues.IsUnknown() || len(flattened.SelectedValues.Elements()) != 0 {
+		t.Fatalf("expected a known empty selected_values list, got %s", flattened.SelectedValues)
+	}
+
+	expanded, diags := expandFilterOperator(context.Background(), flattened)
+	if diags.HasError() {
+		t.Fatalf("expanding equals-list filter operator: %v", diags)
+	}
+	if expanded == nil || expanded.Equals == nil || expanded.Equals.Selection == nil || expanded.Equals.Selection.List == nil {
+		t.Fatalf("expected equals-list REST selection, got %#v", expanded)
+	}
+	if expanded.Equals.Selection.All != nil {
+		t.Fatalf("empty list selection expanded as all: %#v", expanded.Equals.Selection)
+	}
+}
+
+func TestFilterOperatorLegacyListRoundTripResolvesSelectionType(t *testing.T) {
+	configured := &FilterOperatorModel{
+		Type:           types.StringValue("equals"),
+		SelectionType:  types.StringNull(),
+		SelectedValues: types.ListValueMust(types.StringType, []attr.Value{types.StringValue("api")}),
+	}
+
+	expanded, diags := expandFilterOperator(context.Background(), configured)
+	if diags.HasError() {
+		t.Fatalf("expanding legacy equals-list filter operator: %v", diags)
+	}
+	flattened, diagnostic := FlattenFilterOperator(expanded)
+	if diagnostic != nil {
+		t.Fatalf("flattening legacy equals-list filter operator: %s", diagnostic.Detail())
+	}
+	if flattened.SelectionType.ValueString() != filterSelectionTypeList {
+		t.Fatalf("selection_type = %q, want %q", flattened.SelectionType.ValueString(), filterSelectionTypeList)
+	}
 }
 
 func TestFilterOperatorValidatorRejectsEmptyNotEqualsSelection(t *testing.T) {
@@ -280,6 +334,7 @@ func TestFilterOperatorValidatorRejectsEmptyNotEqualsSelection(t *testing.T) {
 	} {
 		config := types.ObjectValueMust(FilterOperatorModelAttr(), map[string]attr.Value{
 			"type":            types.StringValue("not_equals"),
+			"selection_type":  types.StringNull(),
 			"selected_values": selectedValues,
 		})
 		request := validator.ObjectRequest{ConfigValue: config}
@@ -290,6 +345,43 @@ func TestFilterOperatorValidatorRejectsEmptyNotEqualsSelection(t *testing.T) {
 		if !response.Diagnostics.HasError() {
 			t.Fatalf("expected an error for not_equals with selected_values %s", selectedValues)
 		}
+	}
+}
+
+func TestFilterOperatorValidatorRejectsInvalidAllSelections(t *testing.T) {
+	tests := []struct {
+		name           string
+		operatorType   string
+		selectedValues types.List
+	}{
+		{
+			name:           "not_equals_cannot_select_all",
+			operatorType:   "not_equals",
+			selectedValues: types.ListValueMust(types.StringType, []attr.Value{types.StringValue("api")}),
+		},
+		{
+			name:           "all_cannot_have_selected_values",
+			operatorType:   "equals",
+			selectedValues: types.ListValueMust(types.StringType, []attr.Value{types.StringValue("api")}),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := types.ObjectValueMust(FilterOperatorModelAttr(), map[string]attr.Value{
+				"type":            types.StringValue(tt.operatorType),
+				"selection_type":  types.StringValue(filterSelectionTypeAll),
+				"selected_values": tt.selectedValues,
+			})
+			request := validator.ObjectRequest{ConfigValue: config}
+			response := &validator.ObjectResponse{}
+
+			filterOperatorValidator{}.ValidateObject(context.Background(), request, response)
+
+			if !response.Diagnostics.HasError() {
+				t.Fatal("expected an invalid all selection to be rejected")
+			}
+		})
 	}
 }
 

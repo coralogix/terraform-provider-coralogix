@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+- FIX: Preserve the difference between filter selections that select all values and list selections that contain zero values.
+
 # Release 3.10.0
 
 #### resource/coralogix_connector

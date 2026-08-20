@@ -549,7 +549,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -568,7 +569,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -595,7 +597,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -744,7 +747,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -763,7 +767,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -790,7 +795,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -880,7 +886,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -955,7 +962,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1031,7 +1039,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1195,7 +1204,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1214,7 +1224,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1241,7 +1252,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1307,7 +1319,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1412,7 +1425,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1476,7 +1490,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1641,7 +1656,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1720,7 +1736,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1912,7 +1929,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1931,7 +1949,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1958,7 +1977,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2024,7 +2044,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2100,7 +2121,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2164,7 +2186,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2297,7 +2320,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2316,7 +2340,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2343,7 +2368,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2430,7 +2456,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2496,7 +2523,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2571,7 +2599,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2695,7 +2724,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2714,7 +2744,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2741,7 +2772,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2831,7 +2863,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2906,7 +2939,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -2982,7 +3016,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3132,7 +3167,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3151,7 +3187,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3178,7 +3215,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3265,7 +3303,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3321,7 +3360,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3396,7 +3436,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3548,7 +3589,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3567,7 +3609,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3594,7 +3637,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3684,7 +3728,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3759,7 +3804,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -3835,7 +3881,8 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
+- `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
