@@ -983,6 +983,7 @@ func (s spansFieldValidator) ValidateObject(ctx context.Context, request validat
 
 type FilterOperatorModel struct {
 	Type           types.String `tfsdk:"type"`
+	SelectionType  types.String `tfsdk:"selection_type"`
 	SelectedValues types.List   `tfsdk:"selected_values"` //types.String
 }
 
@@ -1008,10 +1009,33 @@ func (f filterOperatorValidator) ValidateObject(ctx context.Context, req validat
 		return
 	}
 
-	if filter.Type.ValueString() == "not_equals" &&
-		(filter.SelectedValues.IsNull() || (!filter.SelectedValues.IsUnknown() && len(filter.SelectedValues.Elements()) == 0)) {
+	selectionType := knownFilterSelectionType(filter.SelectionType)
+	if filter.Type.ValueString() == "not_equals" && selectionType == filterSelectionTypeAll {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when type is `not_equals`, `selection_type` must be `list`"))
+	}
+
+	if selectionType == filterSelectionTypeAll && filterSelectedValuesAreKnownNonEmpty(filter.SelectedValues) {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when selection_type is `all`, `selected_values` must be empty"))
+	}
+
+	if filter.Type.ValueString() == "not_equals" && filterSelectedValuesAreMissing(filter.SelectedValues) {
 		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when type is `not_equals`, `selected_values` must contain at least one value"))
 	}
+}
+
+func knownFilterSelectionType(value types.String) string {
+	if value.IsNull() || value.IsUnknown() {
+		return ""
+	}
+	return value.ValueString()
+}
+
+func filterSelectedValuesAreKnownNonEmpty(value types.List) bool {
+	return !value.IsNull() && !value.IsUnknown() && len(value.Elements()) != 0
+}
+
+func filterSelectedValuesAreMissing(value types.List) bool {
+	return value.IsNull() || (!value.IsUnknown() && len(value.Elements()) == 0)
 }
 
 type LegendModel struct {
@@ -1525,12 +1549,14 @@ func FlattenFilterOperator(operator *dashboardservice.FilterOperator) (*FilterOp
 		case operator.Equals.Selection != nil && operator.Equals.Selection.All != nil:
 			return &FilterOperatorModel{
 				Type:           types.StringValue("equals"),
+				SelectionType:  types.StringValue(filterSelectionTypeAll),
 				SelectedValues: types.ListValueMust(types.StringType, []attr.Value{}),
 			}, nil
 		case operator.Equals.Selection != nil && operator.Equals.Selection.List != nil:
 			return &FilterOperatorModel{
 				Type:           types.StringValue("equals"),
-				SelectedValues: utils.StringSliceToTypeStringList(operator.Equals.Selection.List.GetValues()),
+				SelectionType:  types.StringValue(filterSelectionTypeList),
+				SelectedValues: flattenFilterSelectedValues(operator.Equals.Selection.List.GetValues()),
 			}, nil
 		default:
 			return nil, diag.NewErrorDiagnostic("Error Flatten Logs Filter Operator Equals", "unknown logs filter operator equals selection type")
@@ -1540,7 +1566,8 @@ func FlattenFilterOperator(operator *dashboardservice.FilterOperator) (*FilterOp
 		case operator.NotEquals.Selection != nil && operator.NotEquals.Selection.List != nil:
 			return &FilterOperatorModel{
 				Type:           types.StringValue("not_equals"),
-				SelectedValues: utils.StringSliceToTypeStringList(operator.NotEquals.Selection.List.GetValues()),
+				SelectionType:  types.StringValue(filterSelectionTypeList),
+				SelectedValues: flattenFilterSelectedValues(operator.NotEquals.Selection.List.GetValues()),
 			}, nil
 		default:
 			return nil, diag.NewErrorDiagnostic("Error Flatten Logs Filter Operator NotEquals", "unknown logs filter operator not_equals selection type")
@@ -1548,6 +1575,13 @@ func FlattenFilterOperator(operator *dashboardservice.FilterOperator) (*FilterOp
 	default:
 		return nil, diag.NewErrorDiagnostic("Error Flatten Logs Filter Operator", "unknown logs filter operator type")
 	}
+}
+
+func flattenFilterSelectedValues(values []string) types.List {
+	if len(values) == 0 {
+		return types.ListValueMust(types.StringType, []attr.Value{})
+	}
+	return utils.StringSliceToTypeStringList(values)
 }
 
 func FlattenMetricsFilters(ctx context.Context, filters []dashboardservice.MetricsFilter) (types.List, diag.Diagnostics) {

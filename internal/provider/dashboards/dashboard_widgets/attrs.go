@@ -120,7 +120,8 @@ func SpansFilterModelAttr() map[string]attr.Type {
 
 func FilterOperatorModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"type": types.StringType,
+		"type":           types.StringType,
+		"selection_type": types.StringType,
 		"selected_values": types.ListType{
 			ElemType: types.StringType,
 		},

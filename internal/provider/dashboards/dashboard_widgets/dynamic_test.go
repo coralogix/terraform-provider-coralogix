@@ -176,6 +176,7 @@ func TestDynamicWidgetSpansAndDataPrimeQueryFullFidelityRoundTrip(t *testing.T) 
 				}),
 				"operator": types.ObjectValueMust(FilterOperatorModelAttr(), map[string]attr.Value{
 					"type":            types.StringValue("equals"),
+					"selection_type":  types.StringValue(filterSelectionTypeList),
 					"selected_values": types.ListValueMust(types.StringType, []attr.Value{types.StringValue("api")}),
 				}),
 			}),
