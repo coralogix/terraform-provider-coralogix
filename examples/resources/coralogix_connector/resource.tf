@@ -230,16 +230,3 @@ resource "coralogix_connector" "microsoft_teams_example" {
   }
 }
 
-resource "coralogix_connector" "eventbridge_example" {
-  type        = "eventbridge"
-  name        = "eventbridge connector"
-  description = "eventbridge connector example"
-  connector_config = {
-    fields = [
-      {
-        field_name = "integrationId"
-        value      = "integrationId-example"
-      }
-    ]
-  }
-}
