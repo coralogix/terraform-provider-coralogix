@@ -243,3 +243,4 @@ resource "coralogix_connector" "eventbridge_example" {
     ]
   }
 }
+
