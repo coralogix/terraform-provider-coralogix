@@ -27,6 +27,7 @@ Current supported connector types include:
 - ServiceNow
 - PagerDuty Incidents
 - Microsoft Teams
+- EventBridge (preview / limited availability: staging and dedicated environments with the EventBridge IAM connector flag)
 
 ### Preset
 Defines the structure and content of the notification message. Coralogix provides system Presets for common use cases,

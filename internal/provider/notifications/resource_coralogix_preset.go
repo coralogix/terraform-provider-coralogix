@@ -54,6 +54,7 @@ var (
 		"service_now":         presets.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
 		"email":               presets.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
 		"microsoft_teams":     presets.NOTIFICATIONCENTERCONNECTORTYPE_MICROSOFT_TEAMS,
+		"eventbridge":         presets.NOTIFICATIONCENTERCONNECTORTYPE_EVENTBRIDGE,
 	}
 	presetConnectorTypeApiToSchema = utils.ReverseMap(presetConnectorTypeSchemaToApi)
 	validConnectorTypes            = utils.GetKeys(presetConnectorTypeSchemaToApi)
@@ -548,13 +549,13 @@ func flattenPreset(ctx context.Context, preset *presets.Preset) (*PresetResource
 	}
 
 	model := &PresetResourceModel{
-		ID:               utils.StringPointerToTypeString(preset.Id),
-		EntityType:       types.StringValue(presetsNotificationCenterEntityTypeApiToSchema[*preset.EntityType]),
-		ConnectorType:    types.StringValue(connectorType),
-		ConfigOverrides:  configOverrides,
-		Name:             types.StringPointerValue(preset.Name),
-		ParentId:         utils.StringPointerToTypeString(preset.ParentId),
-		Description:      types.StringPointerValue(preset.Description),
+		ID:              utils.StringPointerToTypeString(preset.Id),
+		EntityType:      types.StringValue(presetsNotificationCenterEntityTypeApiToSchema[*preset.EntityType]),
+		ConnectorType:   types.StringValue(connectorType),
+		ConfigOverrides: configOverrides,
+		Name:            types.StringPointerValue(preset.Name),
+		ParentId:        utils.StringPointerToTypeString(preset.ParentId),
+		Description:     types.StringPointerValue(preset.Description),
 		// Normalize a missing policy to the schema default (AUTO) to avoid drift.
 		AttachmentConfig: types.StringValue(string(presets.ATTACHMENTCONFIGPOLICY_AUTO)),
 	}

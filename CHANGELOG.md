@@ -1,5 +1,11 @@
 # Unreleased
 
+#### resource/coralogix_connector
+- FEAT: Add preview support for the `eventbridge` connector type (limited availability: staging and dedicated environments with the EventBridge IAM connector flag).
+
+#### resource/coralogix_preset
+- FEAT: Add preview support for `eventbridge` as a `connector_type` value (limited availability: staging and dedicated environments with the EventBridge IAM connector flag).
+
 # Release 3.10.1
 
 #### resource/coralogix_dashboard
