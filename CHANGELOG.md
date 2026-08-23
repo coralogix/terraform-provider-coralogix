@@ -1,5 +1,35 @@
 # Unreleased
 
+#### resource/coralogix_connector
+- FEAT: Add support for the `eventbridge` connector type.
+
+#### resource/coralogix_preset
+- FEAT: Add support for `eventbridge` as a `connector_type` value.
+
+# Release 3.10.1
+
+#### resource/coralogix_dashboard
+- FIX: Preserve the difference between filter selections that select all values and list selections that contain zero values.
+
+# Release 3.10.0
+
+#### resource/coralogix_connector
+- FEAT: Add support for the `microsoft_teams` connector type.
+
+#### resource/coralogix_preset
+- FEAT: Add support for `microsoft_teams` as a `connector_type` value.
+
+#### resource/coralogix_tco_policies_rum
+- FEAT: Add `coralogix_tco_policies_rum` resource and data source for RUM TCO policies (severities/DPXL matching, quota-based priority override, application/subsystem rules, archive retention). RUM policies have no dataset `targets`.
+
+#### provider
+- CHORE: Bump `coralogix-management-sdk` to include OpenAPI required fields for dashboard `variables_v2`.
+
+#### resource/coralogix_dashboard
+- FIX: An `access_policy` the provider computes (import, data source, create without the attribute) is now stored in the shape `jsonencode` produces. A configuration that adopts the same policy with `jsonencode` then matches it, so plans stop reporting `auto_refresh = (known after apply)`. Configured text and existing state are unchanged.
+- FIX: A dashboard managed with `content_json` no longer plans `auto_refresh = (known after apply)` on every run. A dashboard written as HCL can avoid the same diff by setting `auto_refresh` in the configuration.
+- FIX: Adapt `variables_v2` expand/flatten to SDK required value types (`id`, `name`, `display_name`, `display_type`, `source`, `value`, static/query `all_option` / `values_order_direction`, static `values[].value`/`label`, logs `observation_field`, metrics `label_name`).
+
 #### provider
 - FIX: API error diagnostics now classify failures by HTTP status and include the backend's response body, instead of showing only the bare error text.
 - FIX: gRPC error diagnostics now surface the attached `google.rpc` details (for example, per-field validation messages).
@@ -7,11 +37,14 @@
 - FIX: Error diagnostics label the failing call `operation` instead of `url`, matching the value callers pass (`Read`, `Create`, `List`, …).
 #### resource/coralogix_dashboard
 - FIX: Editing `content_json` now updates the dashboard in place instead of destroying and recreating it, so the dashboard keeps its ID and existing links to it keep working. The plan modifier behind the forced replacement always answered "replace" — the branch that would have answered otherwise was dead code — so even reformatting the JSON without changing its meaning recreated the dashboard. Such a reformat is now an ordinary in-place update.
+- FEAT: Add typed HCL support for the `dynamic` widget definition: `query_definitions` with the logs/spans/metrics/data_prime query union, a top-level `time_frame` and `interpretation`, and the `stat` visualization at full fidelity. The remaining visualizations follow in later releases; a dynamic widget using one of them, or using the deprecated top-level `query` instead of `query_definitions`, fails the read with a clear diagnostic instead of writing state that silently drops it. Previously every `dynamic` widget failed import and data-source reads.
+- DEPRECATION: Mark `dynamic.visualization.stat.value_field` as deprecated, matching the API. Use `value_fields`; the singular form is still read and written so existing dashboards import without losing it.
 - FEAT: Add `variables_v2` with static, textbox, and query-backed dashboard variables.
 - DEPRECATION: Mark `variables` as deprecated. Use `variables_v2` for new dashboard variables.
 - FIX: Schema v2/v3→v4 state upgrade no longer fails with `Missing Upgraded Resource State` when the dashboard was deleted outside Terraform. The upgrader no longer removes the resource from state (illegal inside a state upgrader); it returns a valid v4 state carrying the prior `id`, `name`, `description` and `content_json`, so the following refresh detects the missing dashboard and plans a recreate.
 
 #### resource/coralogix_team
+- CHORE: Migrate from the deprecated gRPC Teams client to the OpenAPI Teams REST client. No functional change. Also affects `data.coralogix_team`.
 - FIX: The "no longer exists in Coralogix backend" warning rendered the team ID with `%q`, which formats an integer as a character literal (team `12345` printed as `'〹'`). It now prints the numeric ID. Also affects `data.coralogix_team`.
 
 #### resource/coralogix_enrichment

@@ -2111,6 +2111,8 @@ func expandWidgetDefinition(ctx context.Context, definition *dashboardwidgets.Wi
 		return dashboardwidgets.ExpandHexagon(ctx, definition.Hexagon)
 	case definition.LineChart != nil:
 		return dashboardwidgets.ExpandLineChart(ctx, definition.LineChart)
+	case definition.Dynamic != nil:
+		return dashboardwidgets.ExpandDynamic(ctx, definition.Dynamic)
 	case definition.DataTable != nil:
 		return dashboardwidgets.ExpandDataTable(ctx, definition.DataTable)
 	case definition.BarChart != nil:
@@ -3936,7 +3938,22 @@ func flattenDashboardAccessPolicy(planAccessPolicy types.String, accessPolicy *s
 	if !planAccessPolicy.IsNull() && !planAccessPolicy.IsUnknown() && utils.JSONStringsEqual(planAccessPolicy.ValueString(), *accessPolicy) {
 		return planAccessPolicy, nil
 	}
-	return types.StringValue(*accessPolicy), nil
+
+	// There is no configured text to preserve, which happens on create
+	// without the attribute, on import, in the data source, and in the state
+	// upgrader. Store the policy in the shape jsonencode produces, so a
+	// configuration written that way holds the same text. Keeping the
+	// backend's own key order here instead would leave the stored text and
+	// the configured text permanently different, which never resolves and
+	// keeps every plan busy.
+	canonical, err := utils.CanonicalJSON(*accessPolicy)
+	if err != nil {
+		// The API returned something this provider cannot parse. Store it
+		// unchanged rather than failing the read.
+		return types.StringValue(*accessPolicy), nil
+	}
+
+	return types.StringValue(canonical), nil
 }
 
 func flattenDashboardLayout(ctx context.Context, layout *dashboardservice.Layout) (types.Object, diag.Diagnostics) {
@@ -4013,6 +4030,7 @@ func widgetModelAttr() map[string]attr.Type {
 				"hexagon":    dashboardwidgets.HexagonType(),
 				"line_chart": dashboardwidgets.LineChartType(),
 				"data_table": dashboardwidgets.DataTableType(),
+				"dynamic":    dashboardwidgets.DynamicType(),
 				"gauge": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
 						"query": types.ObjectType{
@@ -4931,10 +4949,7 @@ func flattenDashboardWidgetDefinition(ctx context.Context, definition *dashboard
 	case definition.Markdown != nil:
 		return flattenMarkdown(definition.Markdown), nil
 	case definition.Dynamic != nil:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
-			"Unsupported Dashboard Widget Definition",
-			"The backend returned a dynamic widget. Dynamic widgets are supported only when configuring content_json; import and data-source reads cannot reconstruct content_json as structured Terraform state.",
-		)}
+		return dashboardwidgets.FlattenDynamic(ctx, definition.Dynamic)
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Widget Definition", "unknown widget definition type")}
 	}

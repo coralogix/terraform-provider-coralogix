@@ -207,6 +207,17 @@ func expandFilterOperator(ctx context.Context, operator *FilterOperatorModel) (*
 	if diags.HasError() {
 		return nil, diags
 	}
+	selectionType := operator.SelectionType.ValueString()
+	if operator.SelectionType.IsNull() || operator.SelectionType.IsUnknown() {
+		if operator.SelectedValues.IsUnknown() {
+			diags.Append(diag.NewErrorDiagnostic("Error expand filter operator", "cannot determine the selection type because selected_values is unknown"))
+			return nil, diags
+		}
+		selectionType = filterSelectionTypeList
+		if len(selectedValues) == 0 {
+			selectionType = filterSelectionTypeAll
+		}
+	}
 
 	switch operator.Type.ValueString() {
 	case "equals":
@@ -215,13 +226,33 @@ func expandFilterOperator(ctx context.Context, operator *FilterOperatorModel) (*
 				Selection: &dashboardservice.EqualsSelection{},
 			},
 		}
-		if len(selectedValues) != 0 {
-			filterOperator.Equals.Selection.List = &dashboardservice.EqualsSelectionListSelection{Values: selectedValues}
-		} else {
+		switch selectionType {
+		case filterSelectionTypeAll:
+			if len(selectedValues) != 0 {
+				diags.Append(diag.NewErrorDiagnostic("Error expand filter operator", "selected_values must be empty when selection_type is `all`"))
+				return nil, diags
+			}
 			filterOperator.Equals.Selection.All = map[string]interface{}{}
+		case filterSelectionTypeList:
+			if operator.SelectedValues.IsUnknown() {
+				diags.Append(diag.NewErrorDiagnostic("Error expand filter operator", "cannot expand a list selection because selected_values is unknown"))
+				return nil, diags
+			}
+			filterOperator.Equals.Selection.List = &dashboardservice.EqualsSelectionListSelection{Values: selectedValues}
+		default:
+			diags.Append(diag.NewErrorDiagnostic("Error expand filter operator", fmt.Sprintf("unknown selection type %s", selectionType)))
+			return nil, diags
 		}
 		return filterOperator, nil
 	case "not_equals":
+		if selectionType != filterSelectionTypeList {
+			diags.Append(diag.NewErrorDiagnostic("Error expand filter operator", "when type is `not_equals`, selection_type must be `list`"))
+			return nil, diags
+		}
+		if operator.SelectedValues.IsUnknown() {
+			diags.Append(diag.NewErrorDiagnostic("Error expand filter operator", "cannot expand a list selection because selected_values is unknown"))
+			return nil, diags
+		}
 		return &dashboardservice.FilterOperator{
 			NotEquals: &dashboardservice.FilterNotEquals{
 				Selection: &dashboardservice.NotEqualsSelection{

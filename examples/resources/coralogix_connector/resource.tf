@@ -207,3 +207,40 @@ resource "coralogix_connector" "service_now_example" {
     ]
   }
 }
+
+resource "coralogix_connector" "microsoft_teams_example" {
+  type        = "microsoft_teams"
+  name        = "microsoft teams connector"
+  description = "microsoft teams connector example"
+  connector_config = {
+    fields = [
+      {
+        field_name = "integrationId"
+        value      = "integrationId-example"
+      },
+      {
+        field_name = "teamId"
+        value      = "teamId-example"
+      },
+      {
+        field_name = "channelId"
+        value      = "19:channel-id@thread.tacv2"
+      }
+    ]
+  }
+}
+
+resource "coralogix_connector" "eventbridge_example" {
+  type        = "eventbridge"
+  name        = "eventbridge connector"
+  description = "eventbridge connector example"
+  connector_config = {
+    fields = [
+      {
+        field_name = "integrationId"
+        value      = "integrationId-example"
+      }
+    ]
+  }
+}
+

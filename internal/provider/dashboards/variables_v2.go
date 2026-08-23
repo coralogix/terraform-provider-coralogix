@@ -256,12 +256,12 @@ func expandDashboardVariableV2(ctx context.Context, model DashboardVariableV2Mod
 	}
 
 	result := &dashboardservice.VariableV2{
-		Id:          dashboardwidgets.ExpandDashboardUUID(model.ID),
-		Name:        utils.TypeStringToStringPointer(model.Name),
-		DisplayName: utils.TypeStringToStringPointer(model.DisplayName),
-		DisplayType: dashboardwidgets.OptionalEnumPointer(model.DisplayType, dashboardwidgets.DashboardSchemaToProtoDisplayTypeV2),
-		Source:      source,
-		Value:       value,
+		Id:          *dashboardwidgets.ExpandDashboardUUID(model.ID),
+		Name:        model.Name.ValueString(),
+		DisplayName: model.DisplayName.ValueString(),
+		DisplayType: requiredEnumValue(model.DisplayType, dashboardwidgets.DashboardSchemaToProtoDisplayTypeV2),
+		Source:      derefOrZero(source),
+		Value:       derefOrZero(value),
 	}
 	if !model.Description.IsNull() && !model.Description.IsUnknown() {
 		result.Description = model.Description.ValueStringPointer()
@@ -317,7 +317,7 @@ func expandStaticSourceV2(ctx context.Context, model *staticSourceV2Model) (*das
 		return nil, diags
 	}
 	return &dashboardservice.StaticSource{
-		ValuesOrderDirection: dashboardwidgets.OptionalEnumPointer(model.ValuesOrderDirection, dashboardwidgets.DashboardOrderDirectionSchemaToProtoV2),
+		ValuesOrderDirection: requiredEnumValue(model.ValuesOrderDirection, dashboardwidgets.DashboardOrderDirectionSchemaToProtoV2),
 		AllOption:            expandAllOptionV2(model.AllOption),
 		Values:               values,
 	}, nil
@@ -339,8 +339,8 @@ func expandStaticValuesV2(ctx context.Context, values types.List) ([]dashboardse
 			label = model.Value
 		}
 		entry := dashboardservice.ValueLabel{
-			Value: utils.TypeStringToStringPointer(model.Value),
-			Label: utils.TypeStringToStringPointer(label),
+			Value: model.Value.ValueString(),
+			Label: label.ValueString(),
 		}
 		if !model.IsDefault.IsNull() && !model.IsDefault.IsUnknown() {
 			entry.IsDefault = model.IsDefault.ValueBoolPointer()
@@ -350,13 +350,13 @@ func expandStaticValuesV2(ctx context.Context, values types.List) ([]dashboardse
 	return result, nil
 }
 
-func expandAllOptionV2(model *allOptionV2Model) *dashboardservice.AllOption {
+func expandAllOptionV2(model *allOptionV2Model) dashboardservice.AllOption {
 	if model == nil {
-		return nil
+		return dashboardservice.AllOption{}
 	}
-	result := &dashboardservice.AllOption{}
+	result := dashboardservice.AllOption{}
 	if !model.IncludeAll.IsNull() && !model.IncludeAll.IsUnknown() {
-		result.IncludeAll = model.IncludeAll.ValueBoolPointer()
+		result.IncludeAll = model.IncludeAll.ValueBool()
 	}
 	if !model.Label.IsNull() && !model.Label.IsUnknown() {
 		result.Label = model.Label.ValueStringPointer()
@@ -411,7 +411,7 @@ func expandTextboxDefaultValueV2(model *textboxDefaultValueV2Model) (*dashboards
 
 func expandQuerySourceV2(ctx context.Context, model *querySourceV2Model) (*dashboardservice.VariableSourceV2QuerySource, diag.Diagnostics) {
 	result := &dashboardservice.VariableSourceV2QuerySource{
-		ValuesOrderDirection: dashboardwidgets.OptionalEnumPointer(model.ValuesOrderDirection, dashboardwidgets.DashboardOrderDirectionSchemaToProtoV2),
+		ValuesOrderDirection: requiredEnumValue(model.ValuesOrderDirection, dashboardwidgets.DashboardOrderDirectionSchemaToProtoV2),
 		AllOption:            expandAllOptionV2(model.AllOption),
 		ValueDisplayOptions:  expandValueDisplayOptionsV2(model.ValueDisplayOptions),
 		RefreshStrategy:      dashboardwidgets.OptionalEnumPointer(model.RefreshStrategy, dashboardwidgets.DashboardSchemaToProtoVariableV2RefreshStrategy),
@@ -474,7 +474,7 @@ func expandLogsQueryV2(ctx context.Context, model *logsQueryV2Model) (*dashboard
 	return &dashboardservice.QuerySourceLogsQuery{
 		Type: &dashboardservice.QuerySourceLogsQueryType{
 			FieldValue: &dashboardservice.QuerySourceLogsQueryTypeFieldValue{
-				ObservationField: observationField,
+				ObservationField: derefOrZero(observationField),
 			},
 		},
 	}, diags
@@ -562,7 +562,7 @@ func expandMetricsLabelValueV2(ctx context.Context, model *metricsLabelValueV2Mo
 	}
 	return &dashboardservice.QuerySourceMetricsQueryTypeLabelValue{
 		MetricName:   metricName,
-		LabelName:    labelName,
+		LabelName:    derefOrZero(labelName),
 		LabelFilters: labelFilters,
 	}, diags
 }
@@ -827,11 +827,11 @@ func flattenDashboardVariableV2(ctx context.Context, variable *dashboardservice.
 	sourceType := elementType.AttrTypes["source"].(types.ObjectType)
 	valueType := elementType.AttrTypes["value"].(types.ObjectType)
 
-	source, diags := flattenVariableSourceV2(ctx, variable.Source, sourceType)
+	source, diags := flattenVariableSourceV2(ctx, &variable.Source, sourceType)
 	if diags.HasError() {
 		return types.ObjectNull(elementType.AttrTypes), diags
 	}
-	value, valueDiags := flattenVariableValueV2(ctx, variable.Value, valueType)
+	value, valueDiags := flattenVariableValueV2(ctx, &variable.Value, valueType)
 	diags.Append(valueDiags...)
 	if diags.HasError() {
 		return types.ObjectNull(elementType.AttrTypes), diags
@@ -839,15 +839,15 @@ func flattenDashboardVariableV2(ctx context.Context, variable *dashboardservice.
 
 	attrs := map[string]attr.Value{
 		"id":               flattenVariableID(variable.Id),
-		"name":             types.StringPointerValue(variable.Name),
-		"display_name":     types.StringPointerValue(variable.DisplayName),
+		"name":             types.StringValue(variable.Name),
+		"display_name":     types.StringValue(variable.DisplayName),
 		"description":      types.StringPointerValue(variable.Description),
 		"display_full_row": types.BoolPointerValue(variable.DisplayFullRow),
 		"source":           source,
 		"value":            value,
 	}
-	if variable.DisplayType != nil && *variable.DisplayType != dashboardservice.VARIABLEDISPLAYTYPEV2_VARIABLE_DISPLAY_TYPE_V2_UNSPECIFIED {
-		if mapped, ok := dashboardwidgets.DashboardProtoToSchemaDisplayTypeV2[*variable.DisplayType]; ok {
+	if variable.DisplayType != "" && variable.DisplayType != dashboardservice.VARIABLEDISPLAYTYPEV2_VARIABLE_DISPLAY_TYPE_V2_UNSPECIFIED {
+		if mapped, ok := dashboardwidgets.DashboardProtoToSchemaDisplayTypeV2[variable.DisplayType]; ok {
 			attrs["display_type"] = types.StringValue(mapped)
 		} else {
 			attrs["display_type"] = types.StringNull()
@@ -858,8 +858,8 @@ func flattenDashboardVariableV2(ctx context.Context, variable *dashboardservice.
 	return types.ObjectValueMust(elementType.AttrTypes, attrs), diags
 }
 
-func flattenVariableID(id *dashboardservice.UUID) types.String {
-	if id == nil || id.Value == nil {
+func flattenVariableID(id dashboardservice.UUID) types.String {
+	if id.Value == nil {
 		return types.StringNull()
 	}
 	return types.StringValue(*id.Value)
@@ -907,13 +907,9 @@ func flattenStaticSourceV2(ctx context.Context, source *dashboardservice.StaticS
 		return types.ObjectNull(objectType.AttrTypes), diags
 	}
 	attrs := map[string]attr.Value{
-		"values":     values,
-		"all_option": allOption,
-	}
-	if source.ValuesOrderDirection != nil {
-		attrs["values_order_direction"] = types.StringValue(dashboardwidgets.DashboardOrderDirectionProtoToSchemaV2[*source.ValuesOrderDirection])
-	} else {
-		attrs["values_order_direction"] = types.StringNull()
+		"values":                 values,
+		"all_option":             allOption,
+		"values_order_direction": flattenOrderDirectionV2(source.ValuesOrderDirection),
 	}
 	return types.ObjectValueMust(objectType.AttrTypes, attrs), diags
 }
@@ -929,20 +925,17 @@ func flattenStaticValuesV2(ctx context.Context, values []dashboardservice.ValueL
 		// Optional+Computed label uses StaticValueLabelFromValue so omitted config
 		// plans as value. Always store the API label (including when label==value).
 		elements = append(elements, types.ObjectValueMust(entryType.AttrTypes, map[string]attr.Value{
-			"value":      types.StringPointerValue(value.Value),
-			"label":      types.StringPointerValue(value.Label),
+			"value":      types.StringValue(value.Value),
+			"label":      types.StringValue(value.Label),
 			"is_default": types.BoolPointerValue(value.IsDefault),
 		}))
 	}
 	return types.ListValueMust(entryType, elements), nil
 }
 
-func flattenAllOptionV2(option *dashboardservice.AllOption, objectType types.ObjectType) (types.Object, diag.Diagnostics) {
-	if option == nil {
-		return types.ObjectNull(objectType.AttrTypes), nil
-	}
+func flattenAllOptionV2(option dashboardservice.AllOption, objectType types.ObjectType) (types.Object, diag.Diagnostics) {
 	return types.ObjectValueMust(objectType.AttrTypes, map[string]attr.Value{
-		"include_all": types.BoolPointerValue(option.IncludeAll),
+		"include_all": types.BoolValue(option.IncludeAll),
 		"label":       types.StringPointerValue(option.Label),
 	}), nil
 }
@@ -1024,12 +1017,8 @@ func flattenQuerySourceV2(ctx context.Context, source *dashboardservice.Variable
 	allOption, allDiags := flattenAllOptionV2(source.AllOption, objectType.AttrTypes["all_option"].(types.ObjectType))
 	diags.Append(allDiags...)
 	attrs["all_option"] = allOption
+	attrs["values_order_direction"] = flattenOrderDirectionV2(source.ValuesOrderDirection)
 
-	if source.ValuesOrderDirection != nil {
-		attrs["values_order_direction"] = types.StringValue(dashboardwidgets.DashboardOrderDirectionProtoToSchemaV2[*source.ValuesOrderDirection])
-	} else {
-		attrs["values_order_direction"] = types.StringNull()
-	}
 	if source.RefreshStrategy != nil && *source.RefreshStrategy != dashboardservice.VARIABLESOURCEV2REFRESHSTRATEGY_REFRESH_STRATEGY_UNSPECIFIED {
 		attrs["refresh_strategy"] = types.StringValue(dashboardwidgets.DashboardProtoToSchemaVariableV2RefreshStrategy[*source.RefreshStrategy])
 	} else {
@@ -1076,7 +1065,7 @@ func flattenLogsQueryV2(ctx context.Context, query *dashboardservice.QuerySource
 	}
 	var diags diag.Diagnostics
 	if query.Type != nil && query.Type.FieldValue != nil {
-		observationField, obsDiags := dashboardwidgets.FlattenObservationField(ctx, query.Type.FieldValue.ObservationField)
+		observationField, obsDiags := dashboardwidgets.FlattenObservationField(ctx, &query.Type.FieldValue.ObservationField)
 		diags.Append(obsDiags...)
 		typeAttrs["field_value"] = types.ObjectValueMust(
 			typeType.AttrTypes["field_value"].(types.ObjectType).AttrTypes,
@@ -1186,7 +1175,7 @@ func flattenMetricsLabelValueV2(ctx context.Context, value *dashboardservice.Que
 	if diags.HasError() {
 		return types.ObjectNull(objectType.AttrTypes), diags
 	}
-	labelName, labelDiags := flattenStringOrVariableV2(ctx, value.LabelName, objectType.AttrTypes["label_name"].(types.ObjectType))
+	labelName, labelDiags := flattenStringOrVariableV2(ctx, &value.LabelName, objectType.AttrTypes["label_name"].(types.ObjectType))
 	diags.Append(labelDiags...)
 	if diags.HasError() {
 		return types.ObjectNull(objectType.AttrTypes), diags
@@ -1479,4 +1468,30 @@ func boolPointerIfSet(value types.Bool) *bool {
 		return nil
 	}
 	return value.ValueBoolPointer()
+}
+
+// requiredEnumValue converts a Terraform string to a required OpenAPI enum value.
+// Null/unknown/unmapped values become the zero value (empty string). Schema defaults
+// keep real plans off this path; zero is only for incomplete expand fixtures.
+func requiredEnumValue[T ~string](value types.String, values map[string]T) T {
+	if p := dashboardwidgets.OptionalEnumPointer(value, values); p != nil {
+		return *p
+	}
+	var zero T
+	return zero
+}
+
+func derefOrZero[T any](value *T) T {
+	if value == nil {
+		var zero T
+		return zero
+	}
+	return *value
+}
+
+func flattenOrderDirectionV2(direction dashboardservice.OrderDirection) types.String {
+	if mapped, ok := dashboardwidgets.DashboardOrderDirectionProtoToSchemaV2[direction]; ok {
+		return types.StringValue(mapped)
+	}
+	return types.StringNull()
 }

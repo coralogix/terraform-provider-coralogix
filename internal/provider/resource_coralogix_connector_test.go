@@ -16,6 +16,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/google/uuid"
@@ -23,7 +24,11 @@ import (
 )
 
 var (
-	connectorResourceName = "coralogix_connector.example"
+	connectorResourceName    = "coralogix_connector.example"
+	msTeamsIntegrationId     = os.Getenv("MS_TEAMS_INTEGRATION_ID")
+	msTeamsTeamId            = os.Getenv("MS_TEAMS_TEAM_ID")
+	msTeamsChannelId         = os.Getenv("MS_TEAMS_CHANNEL_ID")
+	eventbridgeIntegrationId = os.Getenv("EVENTBRIDGE_INTEGRATION_ID")
 )
 
 func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
@@ -205,6 +210,86 @@ func TestAccCoralogixResourcePagerdutyIncidentsConnector(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "service",
 						"value":      "PXXXXXX",
+					}),
+				),
+			},
+			{
+				ResourceName:      connectorResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceMicrosoftTeamsConnector(t *testing.T) {
+	name := uuid.NewString()
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			for _, envVar := range []string{
+				"MS_TEAMS_INTEGRATION_ID",
+				"MS_TEAMS_TEAM_ID",
+				"MS_TEAMS_CHANNEL_ID",
+			} {
+				if os.Getenv(envVar) == "" {
+					t.Skipf("%s must be set to run this acceptance test locally", envVar)
+				}
+			}
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceCoralogixMicrosoftTeamsConnector(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "microsoft_teams"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", name),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "test microsoft teams connector"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "integrationId",
+						"value":      msTeamsIntegrationId,
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "teamId",
+						"value":      msTeamsTeamId,
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "channelId",
+						"value":      msTeamsChannelId,
+					}),
+				),
+			},
+			{
+				ResourceName:      connectorResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceEventbridgeConnector(t *testing.T) {
+	name := uuid.NewString()
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if os.Getenv("EVENTBRIDGE_INTEGRATION_ID") == "" {
+				t.Skipf("EVENTBRIDGE_INTEGRATION_ID must be set to run this acceptance test locally")
+			}
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceCoralogixEventbridgeConnector(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "eventbridge"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", name),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "test eventbridge connector"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "integrationId",
+						"value":      eventbridgeIntegrationId,
 					}),
 				),
 			},
@@ -405,6 +490,48 @@ func testAccResourceCoralogixPagerdutyIncidentsConnector(name string) string {
      ]
    }
  }`, name, pagerDutyIntegrationId)
+}
+
+func testAccResourceCoralogixMicrosoftTeamsConnector(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
+   type             = "microsoft_teams"
+   name             = "%[1]v"
+   description      = "test microsoft teams connector"
+   connector_config = {
+     fields = [
+       {
+         field_name = "integrationId"
+         value      = "%[2]v"
+       },
+       {
+         field_name = "teamId"
+         value      = "%[3]v"
+       },
+       {
+         field_name = "channelId"
+         value      = "%[4]v"
+       }
+     ]
+   }
+ }`, name, msTeamsIntegrationId, msTeamsTeamId, msTeamsChannelId)
+}
+
+func testAccResourceCoralogixEventbridgeConnector(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
+   type             = "eventbridge"
+   name             = "%[1]v"
+   description      = "test eventbridge connector"
+   connector_config = {
+     fields = [
+       {
+         field_name = "integrationId"
+         value      = "%[2]v"
+       }
+     ]
+   }
+ }`, name, eventbridgeIntegrationId)
 }
 
 func testAccResourceCoralogixEmailConnector(name string) string {

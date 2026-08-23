@@ -48,6 +48,8 @@ var (
 		"pagerduty_incidents": connectors.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY_INCIDENTS,
 		"email":               connectors.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
 		"service_now":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
+		"microsoft_teams":     connectors.NOTIFICATIONCENTERCONNECTORTYPE_MICROSOFT_TEAMS,
+		"eventbridge":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_EVENTBRIDGE,
 	}
 	connectorTypeApiToSchema       = utils.ReverseMap(connectorTypeSchemaToApi)
 	validConnectorTypesSchemaToApi = utils.GetKeys(connectorTypeSchemaToApi)

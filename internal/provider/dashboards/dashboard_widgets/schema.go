@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -34,8 +35,11 @@ import (
 func ObservationFieldSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"keypath": schema.ListAttribute{
-			ElementType:         types.StringType,
-			Required:            true,
+			ElementType: types.StringType,
+			Required:    true,
+			Validators: []validator.List{
+				listvalidator.SizeAtLeast(1),
+			},
 			MarkdownDescription: "Ordered path segments. Single element for literal-dot identifiers (`[\"log.level\"]`); multiple elements for nested paths (`[\"meta\",\"responseTime\"]`).",
 		},
 		"scope": schema.StringAttribute{
@@ -60,6 +64,9 @@ func SpansFilterSchema() schema.Attribute {
 			},
 		},
 		Optional: true,
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
 	}
 }
 
@@ -380,12 +387,23 @@ func FilterOperatorSchema() schema.SingleNestedAttribute {
 				},
 				MarkdownDescription: "The type of the operator. Can be one of `equals` or `not_equals`.",
 			},
+			"selection_type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(filterSelectionTypeAll, filterSelectionTypeList),
+				},
+				PlanModifiers: []planmodifier.String{
+					filterSelectionTypeFromSelectedValues{},
+				},
+				MarkdownDescription: "How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.",
+			},
 			"selected_values": schema.ListAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
 				Computed:            true,
 				Default:             listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
-				MarkdownDescription: "the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.",
+				MarkdownDescription: "Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.",
 			},
 		},
 		Validators: []validator.Object{

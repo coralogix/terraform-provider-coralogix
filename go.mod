@@ -7,7 +7,7 @@ replace github.com/grpc-ecosystem/grpc-gateway/v2 => github.com/coralogix/grpc-g
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
 	github.com/cenkalti/backoff/v5 v5.0.3
-	github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260729141455-fd0f828d882b
+	github.com/coralogix/coralogix-management-sdk v1.9.4-0.20260812151205-db157a36375c
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
@@ -20,6 +20,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.1
 	github.com/hashicorp/terraform-plugin-testing v1.13.3
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
+	github.com/zclconf/go-cty v1.17.0
 	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b
 	google.golang.org/grpc v1.82.1
 	google.golang.org/protobuf v1.36.11
@@ -81,7 +82,6 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/yuin/goldmark v1.7.7 // indirect
 	github.com/yuin/goldmark-meta v1.1.0 // indirect
-	github.com/zclconf/go-cty v1.17.0 // indirect
 	go.abhg.dev/goldmark/frontmatter v0.2.0 // indirect
 	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/mod v0.35.0 // indirect

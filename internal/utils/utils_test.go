@@ -164,3 +164,62 @@ func rpcErrorWithDetails(t *testing.T, code codes.Code, msg, detail string) erro
 	}
 	return cxsdk.NewSdkAPIError(st.Err(), "example-endpoint", "example-feature-group")
 }
+
+func TestCanonicalJSON(t *testing.T) {
+	t.Parallel()
+
+	// Every want value below is the exact output of
+	// jsonencode(jsondecode(input)) in Terraform v1.15.6.
+	tests := []struct {
+		name    string
+		input   string
+		want    string
+		wantErr bool
+	}{
+		{
+			name:  "sorts object keys and compacts",
+			input: `{"version":"2025-01-01","default":{"permissions":{"team-dashboards:Update":"grant","team-dashboards:Read":"grant"}},"rules":[]}`,
+			want:  `{"default":{"permissions":{"team-dashboards:Read":"grant","team-dashboards:Update":"grant"}},"rules":[],"version":"2025-01-01"}`,
+		},
+		{
+			name:  "escapes HTML characters and keeps other text as written",
+			input: `{"a":"<b>&c","b":"quote\"x","c":"é☃"}`,
+			want:  `{"a":"\u003cb\u003e\u0026c","b":"quote\"x","c":"é☃"}`,
+		},
+		{
+			name:  "normalises numbers and keeps long integers exact",
+			input: `{"a":1.50,"b":1e3,"c":12345678901234567890,"d":0.1}`,
+			want:  `{"a":1.5,"b":1000,"c":12345678901234567890,"d":0.1}`,
+		},
+		{
+			name:  "removes insignificant whitespace",
+			input: "{\n  \"b\": 2,\n  \"a\": [true, null]\n}",
+			want:  `{"a":[true,null],"b":2}`,
+		},
+		{
+			name:    "invalid json returns an error",
+			input:   `{"a":`,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := CanonicalJSON(tt.input)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("CanonicalJSON(%q) = %q, want an error", tt.input, got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("CanonicalJSON(%q): %s", tt.input, err)
+			}
+			if got != tt.want {
+				t.Fatalf("CanonicalJSON(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
