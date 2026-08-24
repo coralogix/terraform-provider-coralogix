@@ -6,7 +6,7 @@
 #### resource/coralogix_preset
 - FEAT: Add support for `eventbridge` as a `connector_type` value.
 
-#### resource/coralogix_connector
+#### resource/coralogix_dashboard
 - FIX: Editing `content_json` now updates the dashboard in place instead of destroying and recreating it, so the dashboard keeps its ID and existing links to it keep working. The plan modifier behind the forced replacement always answered "replace" — the branch that would have answered otherwise was dead code — so even reformatting the JSON without changing its meaning recreated the dashboard. Such a reformat is now an ordinary in-place update.
 
 # Release 3.10.1
