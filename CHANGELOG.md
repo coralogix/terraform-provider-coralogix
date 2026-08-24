@@ -6,6 +6,9 @@
 #### resource/coralogix_preset
 - FEAT: Add support for `eventbridge` as a `connector_type` value.
 
+#### resource/coralogix_connector
+- FIX: Editing `content_json` now updates the dashboard in place instead of destroying and recreating it, so the dashboard keeps its ID and existing links to it keep working. The plan modifier behind the forced replacement always answered "replace" — the branch that would have answered otherwise was dead code — so even reformatting the JSON without changing its meaning recreated the dashboard. Such a reformat is now an ordinary in-place update.
+
 # Release 3.10.1
 
 #### resource/coralogix_dashboard
@@ -36,7 +39,6 @@
 - FIX: Error diagnostics no longer echo the request payload, so credentials carried in a request body cannot leak into CLI or CI logs.
 - FIX: Error diagnostics label the failing call `operation` instead of `url`, matching the value callers pass (`Read`, `Create`, `List`, …).
 #### resource/coralogix_dashboard
-- FIX: Editing `content_json` now updates the dashboard in place instead of destroying and recreating it, so the dashboard keeps its ID and existing links to it keep working. The plan modifier behind the forced replacement always answered "replace" — the branch that would have answered otherwise was dead code — so even reformatting the JSON without changing its meaning recreated the dashboard. Such a reformat is now an ordinary in-place update.
 - FEAT: Add typed HCL support for the `dynamic` widget definition: `query_definitions` with the logs/spans/metrics/data_prime query union, a top-level `time_frame` and `interpretation`, and the `stat` visualization at full fidelity. The remaining visualizations follow in later releases; a dynamic widget using one of them, or using the deprecated top-level `query` instead of `query_definitions`, fails the read with a clear diagnostic instead of writing state that silently drops it. Previously every `dynamic` widget failed import and data-source reads.
 - DEPRECATION: Mark `dynamic.visualization.stat.value_field` as deprecated, matching the API. Use `value_fields`; the singular form is still read and written so existing dashboards import without losing it.
 - FEAT: Add `variables_v2` with static, textbox, and query-backed dashboard variables.
