@@ -465,3 +465,75 @@ func TestDynamicWidgetStatCardMinMaxAutoRoundTrip(t *testing.T) {
 
 	assertDynamicRoundTrip(ctx, t, original)
 }
+
+func TestDynamicWidgetGaugeAndPieFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("max")}),
+		GroupByQuery: types.BoolValue(false),
+		Placement:    types.StringValue("bottom"),
+	}
+
+	for name, visualization := range map[string]*DynamicVisualizationModel{
+		"gauge": {Gauge: &DynamicGaugeModel{
+			AllowAbbreviation: types.BoolValue(true),
+			ArcDisplay: &DynamicArcDisplayModel{
+				ThresholdArc: types.BoolValue(true),
+				ValueArc:     types.BoolValue(false),
+			},
+			CategoryFields:    observationFieldList("applicationname", "label"),
+			CustomUnit:        types.StringValue("rpm"),
+			DecimalPrecision:  types.Int64Value(2),
+			DisplaySeriesName: types.BoolValue(true),
+			Legend:            legend,
+			LegendBy:          types.StringValue("thresholds"),
+			Max:               types.Float64Value(1000),
+			Min:               types.Float64Value(0),
+			ShowInnerArc:      types.BoolValue(true),
+			ShowMinMax:        types.BoolValue(false),
+			ShowOuterArc:      types.BoolValue(true),
+			ThresholdType:     types.StringValue("absolute"),
+			Thresholds:        dynamicThresholdList(),
+			Unit:              types.StringValue("seconds"),
+			ValueField:        observationFieldObject("duration", "metadata"),
+			ValueFields:       observationFieldList("value", "user_data"),
+		}},
+		"pie_chart": {PieChart: &DynamicPieChartModel{
+			AllowAbbreviation: types.BoolValue(false),
+			CategoryFields:    observationFieldList("applicationname", "label"),
+			ColorScheme:       types.StringValue("classic"),
+			CustomUnit:        types.StringValue("rpm"),
+			DecimalPrecision:  types.Int64Value(1),
+			GroupNameTemplate: types.StringValue("group"),
+			HashColors:        types.BoolValue(true),
+			LabelDefinition: &DynamicPieChartLabelDefinitionModel{
+				IsVisible:      types.BoolValue(true),
+				LabelSource:    types.StringValue("inner"),
+				ShowName:       types.BoolValue(true),
+				ShowPercentage: types.BoolValue(false),
+				ShowValue:      types.BoolValue(true),
+			},
+			Legend:             legend,
+			MaxSlicesPerChart:  types.Int64Value(10),
+			MaxSlicesPerStack:  types.Int64Value(5),
+			MinSlicePercentage: types.Int64Value(2),
+			ShowTotal:          types.BoolValue(true),
+			StackNameTemplate:  types.StringValue("stack"),
+			SubCategoryFields:  observationFieldList("severity", "metadata"),
+			Unit:               types.StringValue("bytes"),
+			ValueField:         observationFieldObject("duration", "metadata"),
+		}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assertDynamicRoundTrip(ctx, t, &DynamicModel{
+				QueryDefinitions: logsQueryDefinitionsFixture(ctx, t),
+				TimeFrame: &TimeFrameModel{
+					Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+				},
+				Visualization: visualization,
+			})
+		})
+	}
+}

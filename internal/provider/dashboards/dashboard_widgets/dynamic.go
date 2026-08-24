@@ -145,9 +145,11 @@ func DynamicSchema() schema.Attribute {
 				Attributes: map[string]schema.Attribute{
 					"stat":      dynamicStatSchema(),
 					"stat_card": dynamicStatCardSchema(),
+					"gauge":     dynamicGaugeSchema(),
+					"pie_chart": dynamicPieChartSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card"),
+					ExactlyOneOfChildren("stat", "stat_card", "gauge", "pie_chart"),
 				},
 			},
 		},
@@ -500,6 +502,8 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"stat":      types.ObjectType{AttrTypes: dynamicStatModelAttr()},
 		"stat_card": types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
+		"gauge":     types.ObjectType{AttrTypes: dynamicGaugeModelAttr()},
+		"pie_chart": types.ObjectType{AttrTypes: dynamicPieChartModelAttr()},
 	}
 }
 
@@ -770,6 +774,18 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{StatCard: statCard}, nil
+	case visualization.Gauge != nil:
+		gauge, diags := expandDynamicGauge(ctx, visualization.Gauge)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{Gauge: gauge}, nil
+	case visualization.PieChart != nil:
+		pieChart, diags := expandDynamicPieChart(ctx, visualization.PieChart)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{PieChart: pieChart}, nil
 	default:
 		return nil, nil
 	}
@@ -1095,6 +1111,18 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{StatCard: statCard}, nil
+	case visualization.Gauge != nil:
+		gauge, diags := flattenDynamicGauge(ctx, visualization.Gauge)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{Gauge: gauge}, nil
+	case visualization.PieChart != nil:
+		pieChart, diags := flattenDynamicPieChart(ctx, visualization.PieChart)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{PieChart: pieChart}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Unsupported Dashboard Widget Definition",

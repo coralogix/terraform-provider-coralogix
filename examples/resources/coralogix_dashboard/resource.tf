@@ -1001,6 +1001,46 @@ resource "coralogix_dashboard" "widgets" {
                   }
                 }
               }
+            },
+            {
+              # `gauge` shows one aggregated value on an arc, coloured by
+              # `thresholds`. The query has to aggregate, and the result column
+              # is named after the aggregation and its index.
+              title = "dynamic gauge - error rate"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "errors"
+                    query = {
+                      logs = {
+                        lucene_query = "coralogix.metadata.severity=\"5\""
+                        aggregations = [{
+                          type = "count"
+                        }]
+                      }
+                    }
+                  }]
+                  visualization = {
+                    gauge = {
+                      unit               = "percent"
+                      min                = 0
+                      max                = 1000
+                      show_inner_arc     = true
+                      show_outer_arc     = true
+                      allow_abbreviation = true
+                      threshold_type     = "absolute"
+                      arc_display = {
+                        threshold_arc = true
+                      }
+                      thresholds = [
+                        { from = 0, color = "green", label = "ok" },
+                        { from = 500, color = "red", label = "high" },
+                      ]
+                      value_field = { keypath = ["count_0"], scope = "user_data" }
+                    }
+                  }
+                }
+              }
             }
           ]
         }]
