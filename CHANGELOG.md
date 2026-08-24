@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- FEAT: Add `EQUALS` and `NOT_EQUALS` condition types for logs and metric threshold alerts.
+
 #### resource/coralogix_dashboard
 - FEAT: Add the `stat_card` visualization to the `dynamic` widget: the `title`, `label` and `primary_value` elements (each reading a field, using template text, or showing the color-mapping result), display-name template variables, and `color_label_mapping` with its `range`, `value` and `regex` variants. Note that opening a `dynamic` `stat` widget in the Coralogix UI rewrites it to a `stat_card`. Releases 3.10.0 and 3.10.1 could not read the result, so `plan`, `apply` and `destroy` all failed against such a dashboard.
 - FIX: `unit` now accepts `percent` and `datetime_iso`, which the API supports but the shared unit map omitted; the gauge unit map was also missing `datetime_iso`. A widget saved with either unit — by the Coralogix UI, for example — read back as null, and the next apply overwrote it with `unspecified`. Affects every widget type exposing a `unit`, not only `dynamic`.
