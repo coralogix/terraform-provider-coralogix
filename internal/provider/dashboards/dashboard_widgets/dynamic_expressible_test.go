@@ -25,6 +25,7 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/dashboardjson"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -58,7 +59,7 @@ func TestDynamicWidgetReadsFixturesIntoExpressibleHCL(t *testing.T) {
 		t.Fatalf("expected the dynamic widget schema to be a single nested attribute, got %T", DynamicSchema())
 	}
 
-	checked := 0
+	checked, refused := 0, 0
 	for _, path := range paths {
 		name := strings.TrimSuffix(filepath.Base(path), ".json")
 
@@ -75,8 +76,14 @@ func TestDynamicWidgetReadsFixturesIntoExpressibleHCL(t *testing.T) {
 		for _, widget := range dynamicWidgetsOf(dashboard) {
 			flattened, diags := FlattenDynamic(ctx, widget)
 			if diags.HasError() {
-				// A visualization this version cannot model is refused on
-				// purpose; that is a different guarantee, tested elsewhere.
+				// Refusing a shape this version cannot model is deliberate and
+				// tested elsewhere. Any other diagnostic is a read regression,
+				// and swallowing it here would let this guard pass while the
+				// widget it was meant to check went unexamined.
+				if !refusesOnlyUnsupportedWidgets(diags) {
+					t.Errorf("%s: flattening the dynamic widget: %v", name, diags)
+				}
+				refused++
 				continue
 			}
 
@@ -94,7 +101,19 @@ func TestDynamicWidgetReadsFixturesIntoExpressibleHCL(t *testing.T) {
 	if checked == 0 {
 		t.Fatal("no dynamic widget was checked; the fixtures or the traversal changed")
 	}
-	t.Logf("checked %d dynamic widget(s) across %d fixture(s)", checked, len(paths))
+	t.Logf("checked %d dynamic widget(s) across %d fixture(s), %d deliberately refused", checked, len(paths), refused)
+}
+
+// The two deliberate refusals - a deprecated top-level query, and a
+// visualization variant this version does not model - both report this summary.
+func refusesOnlyUnsupportedWidgets(diags diag.Diagnostics) bool {
+	for _, d := range diags.Errors() {
+		if d.Summary() != "Unsupported Dashboard Widget Definition" {
+			return false
+		}
+	}
+
+	return true
 }
 
 func dynamicWidgetsOf(dashboard *dashboardservice.Dashboard) []*dashboardservice.WidgetsDynamic {
