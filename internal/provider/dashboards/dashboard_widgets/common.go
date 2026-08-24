@@ -530,6 +530,7 @@ type SpanObservationFieldModel struct {
 type DynamicVisualizationModel struct {
 	Stat                 *DynamicStatModel                 `tfsdk:"stat"`
 	StatCard             *DynamicStatCardModel             `tfsdk:"stat_card"`
+	Table                *DynamicTableModel                `tfsdk:"table"`
 	TimeSeriesLines      *DynamicTimeSeriesLinesModel      `tfsdk:"time_series_lines"`
 	TimeSeriesLinesMulti *DynamicTimeSeriesLinesMultiModel `tfsdk:"time_series_lines_multi"`
 	TimeSeriesBars       *DynamicTimeSeriesBarsModel       `tfsdk:"time_series_bars"`
@@ -2594,6 +2595,93 @@ type DynamicMappingSectionModel struct {
 type DynamicMinMaxCustomModel struct {
 	Max types.Float64 `tfsdk:"max"`
 	Min types.Float64 `tfsdk:"min"`
+}
+
+type DynamicTableModel struct {
+	Columns  types.List                 `tfsdk:"columns"` //DynamicTableColumnModel
+	Rules    types.List                 `tfsdk:"rules"`   //DynamicTableRuleModel
+	Settings *DynamicTableSettingsModel `tfsdk:"settings"`
+}
+
+type DynamicTableColumnModel struct {
+	Field types.Object `tfsdk:"field"` //ObservationFieldModel
+}
+
+type DynamicTableRuleModel struct {
+	Description types.String                `tfsdk:"description"`
+	ID          types.String                `tfsdk:"id"`
+	Name        types.String                `tfsdk:"name"`
+	Properties  types.List                  `tfsdk:"properties"` //DynamicTablePropertyModel
+	RuleScope   *DynamicTableRuleScopeModel `tfsdk:"rule_scope"`
+}
+
+type DynamicTablePropertyModel struct {
+	ID         types.String                         `tfsdk:"id"`
+	Definition *DynamicTablePropertyDefinitionModel `tfsdk:"definition"`
+}
+
+type DynamicTablePropertyDefinitionModel struct {
+	Alignment         types.String                            `tfsdk:"alignment"`
+	ColumnDisplayName types.String                            `tfsdk:"column_display_name"`
+	Link              *DynamicTablePropertyLinkModel          `tfsdk:"link"`
+	RegexExtract      types.String                            `tfsdk:"regex_extract"`
+	Thresholds        *DynamicTablePropertyThresholdsModel    `tfsdk:"thresholds"`
+	Units             *DynamicTablePropertyUnitsModel         `tfsdk:"units"`
+	ValuesAlias       types.String                            `tfsdk:"values_alias"`
+	ValuesMapping     *DynamicTablePropertyValuesMappingModel `tfsdk:"values_mapping"`
+}
+
+type DynamicTablePropertyLinkModel struct {
+	Actions types.List `tfsdk:"actions"` //DynamicTableLinkActionModel
+}
+
+type DynamicTableLinkActionModel struct {
+	ID                    types.String `tfsdk:"id"`
+	Name                  types.String `tfsdk:"name"`
+	ShouldOpenInNewWindow types.Bool   `tfsdk:"should_open_in_new_window"`
+	Url                   types.String `tfsdk:"url"`
+}
+
+type DynamicTablePropertyThresholdsModel struct {
+	Max    types.Float64 `tfsdk:"max"`
+	Min    types.Float64 `tfsdk:"min"`
+	Type   types.String  `tfsdk:"type"`
+	Values types.List    `tfsdk:"values"` //DynamicThresholdModel
+}
+
+type DynamicTablePropertyUnitsModel struct {
+	AllowAbbreviation types.Bool    `tfsdk:"allow_abbreviation"`
+	CustomUnit        types.String  `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64   `tfsdk:"decimal_precision"`
+	Max               types.Float64 `tfsdk:"max"`
+	Min               types.Float64 `tfsdk:"min"`
+	Unit              types.String  `tfsdk:"unit"`
+}
+
+type DynamicTablePropertyValuesMappingModel struct {
+	Mappings types.List `tfsdk:"mappings"` //DynamicTableValueMappingModel
+}
+
+type DynamicTableValueMappingModel struct {
+	InputValue   types.String `tfsdk:"input_value"`
+	ReplaceValue types.String `tfsdk:"replace_value"`
+	Type         types.String `tfsdk:"type"`
+}
+
+type DynamicTableRuleScopeModel struct {
+	Field     types.Object `tfsdk:"field"` //ObservationFieldModel
+	FieldType types.String `tfsdk:"field_type"`
+	Regex     types.String `tfsdk:"regex"`
+}
+
+type DynamicTableSettingsModel struct {
+	ColumnWidths types.List   `tfsdk:"column_widths"` //DynamicTableColumnWidthModel
+	RowStyle     types.String `tfsdk:"row_style"`
+}
+
+type DynamicTableColumnWidthModel struct {
+	ColumnName types.String `tfsdk:"column_name"`
+	Width      types.Int64  `tfsdk:"width"`
 }
 
 type DynamicTimeSeriesLinesModel struct {

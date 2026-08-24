@@ -147,12 +147,13 @@ func DynamicSchema() schema.Attribute {
 				Attributes: map[string]schema.Attribute{
 					"stat":                    dynamicStatSchema(),
 					"stat_card":               dynamicStatCardSchema(),
+					"table":                   dynamicTableSchema(),
 					"time_series_lines":       dynamicTimeSeriesLinesSchema(),
 					"time_series_lines_multi": dynamicTimeSeriesLinesMultiSchema(),
 					"time_series_bars":        dynamicTimeSeriesBarsSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card", "time_series_lines", "time_series_lines_multi", "time_series_bars"),
+					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines", "time_series_lines_multi", "time_series_bars"),
 				},
 			},
 		},
@@ -505,6 +506,7 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"stat":                    types.ObjectType{AttrTypes: dynamicStatModelAttr()},
 		"stat_card":               types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
+		"table":                   types.ObjectType{AttrTypes: dynamicTableModelAttr()},
 		"time_series_lines":       types.ObjectType{AttrTypes: dynamicTimeSeriesLinesModelAttr()},
 		"time_series_lines_multi": types.ObjectType{AttrTypes: dynamicTimeSeriesLinesMultiModelAttr()},
 		"time_series_bars":        types.ObjectType{AttrTypes: dynamicTimeSeriesBarsModelAttr()},
@@ -778,6 +780,12 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{StatCard: statCard}, nil
+	case visualization.Table != nil:
+		table, diags := expandDynamicTable(ctx, visualization.Table)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{Table: table}, nil
 	case visualization.TimeSeriesLines != nil:
 		lines, diags := expandDynamicTimeSeriesLines(ctx, visualization.TimeSeriesLines)
 		if diags.HasError() {
@@ -1121,6 +1129,12 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{StatCard: statCard}, nil
+	case visualization.Table != nil:
+		table, diags := flattenDynamicTable(ctx, visualization.Table)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{Table: table}, nil
 	case visualization.TimeSeriesLines != nil:
 		lines, diags := flattenDynamicTimeSeriesLines(ctx, visualization.TimeSeriesLines)
 		if diags.HasError() {
