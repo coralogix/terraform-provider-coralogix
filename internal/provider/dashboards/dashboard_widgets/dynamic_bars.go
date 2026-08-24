@@ -157,7 +157,7 @@ func dynamicVerticalBarsSchema() schema.Attribute {
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.Between(0, 15),
 				},
 			},
 			"group_name_template": schema.StringAttribute{
@@ -269,7 +269,7 @@ func dynamicVerticalBarsMultiSchema() schema.Attribute {
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.Between(0, 15),
 				},
 			},
 			"group_name_template": schema.StringAttribute{
@@ -343,7 +343,7 @@ func dynamicHorizontalBarsSchema() schema.Attribute {
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.Between(0, 15),
 				},
 			},
 			"display_on_bar": schema.BoolAttribute{
@@ -458,7 +458,7 @@ func dynamicHorizontalBarsMultiSchema() schema.Attribute {
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.Between(0, 15),
 				},
 			},
 			"display_on_bar": schema.BoolAttribute{
