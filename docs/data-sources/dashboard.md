@@ -1880,7 +1880,7 @@ Read-Only:
 
 - `allow_abbreviation` (Boolean)
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--category_fields))
-- `color_scheme` (String)
+- `color_scheme` (String) How slices are coloured. The API takes a free-form string and stores whatever it is given, so this is not restricted to a fixed set; the schemes the product ships are: classic, severity, cold, negative, green, red, blue. An unrecognised value applies no scheme.
 - `custom_unit` (String)
 - `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `group_name_template` (String)
