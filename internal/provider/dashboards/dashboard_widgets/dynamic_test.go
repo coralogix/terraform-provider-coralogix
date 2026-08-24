@@ -18,6 +18,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -585,4 +587,86 @@ func TestDynamicWidgetTableFullFidelityRoundTrip(t *testing.T) {
 	}
 
 	assertDynamicRoundTrip(ctx, t, original)
+}
+
+// Shapes the API stores that the typed schema must be able to express. Each was
+// confirmed by applying it through content_json and reading the dashboard back.
+func TestDynamicWidgetTableReadsShapesTheSchemaMustExpress(t *testing.T) {
+	ctx := context.Background()
+	scope := dashboardservice.DATASETSCOPE_DATASET_SCOPE_USER_DATA
+
+	t.Run("column keypath may be empty or absent", func(t *testing.T) {
+		for name, keypath := range map[string][]string{"empty": {}, "absent": nil} {
+			t.Run(name, func(t *testing.T) {
+				table, diags := flattenDynamicTable(ctx, &dashboardservice.Table{
+					Columns: []dashboardservice.TableColumn{{
+						Field: &dashboardservice.ObservationField{Keypath: keypath, Scope: &scope},
+					}},
+				})
+				if diags.HasError() {
+					t.Fatalf("flattening a column with a %s keypath: %v", name, diags)
+				}
+
+				columns := table.Columns.Elements()
+				if len(columns) != 1 {
+					t.Fatalf("expected one column, got %d", len(columns))
+				}
+				field := columns[0].(types.Object).Attributes()["field"].(types.Object)
+				if got := field.Attributes()["keypath"]; !got.IsNull() {
+					t.Fatalf("keypath must read back as null so the config can omit it, got %s", got)
+				}
+			})
+		}
+	})
+
+	// A union with no arm selected must read back absent. Left as a present
+	// object it would flatten into config that ExactlyOneOfChildren rejects,
+	// leaving the dashboard unmanageable in typed HCL.
+	t.Run("rule scope with no arm reads back absent", func(t *testing.T) {
+		table, diags := flattenDynamicTable(ctx, &dashboardservice.Table{
+			Rules: []dashboardservice.TableRule{{RuleScope: &dashboardservice.RuleScope{}}},
+		})
+		if diags.HasError() {
+			t.Fatalf("flattening a rule with an empty scope: %v", diags)
+		}
+		rule := table.Rules.Elements()[0].(types.Object)
+		if got := rule.Attributes()["rule_scope"]; !got.IsNull() {
+			t.Fatalf("rule_scope must read back as null, got %s", got)
+		}
+	})
+
+	t.Run("property definition with no arm reads back absent", func(t *testing.T) {
+		regex := "^a$"
+		table, diags := flattenDynamicTable(ctx, &dashboardservice.Table{
+			Rules: []dashboardservice.TableRule{{
+				RuleScope:  &dashboardservice.RuleScope{Regex: &regex},
+				Properties: []dashboardservice.Property{{Definition: &dashboardservice.PropertyDefinition{}}},
+			}},
+		})
+		if diags.HasError() {
+			t.Fatalf("flattening a property with an empty definition: %v", diags)
+		}
+		rule := table.Rules.Elements()[0].(types.Object)
+		property := rule.Attributes()["properties"].(types.List).Elements()[0].(types.Object)
+		if got := property.Attributes()["definition"]; !got.IsNull() {
+			t.Fatalf("definition must read back as null, got %s", got)
+		}
+	})
+}
+
+// Guards the schema half of the empty-keypath fix: the flatten test above
+// cannot catch a keypath that is Required again, because the read direction
+// returns null either way.
+func TestDynamicTableColumnKeypathIsOptional(t *testing.T) {
+	table := dynamicTableSchema().(schema.SingleNestedAttribute)
+	columns := table.Attributes["columns"].(schema.ListNestedAttribute)
+	field := columns.NestedObject.Attributes["field"].(schema.SingleNestedAttribute)
+	keypath := field.Attributes["keypath"].(schema.ListAttribute)
+
+	if keypath.Required {
+		t.Error("table column keypath must not be Required: the API stores columns with an absent keypath")
+	}
+	if !keypath.Optional {
+		t.Error("table column keypath must be Optional")
+	}
 }

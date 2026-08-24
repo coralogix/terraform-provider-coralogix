@@ -431,3 +431,35 @@ func testAccCoralogixResourceDashboardDynamicTableConfig(name, title string, set
 }
 `, name, title, rowStyle, thresholdType)
 }
+
+// The API stores table columns whose field has no keypath, and this repo
+// applies such a fixture through content_json. Typed HCL must express them too.
+func TestAccCoralogixResourceDashboardDynamicTableColumnWithoutKeypath(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{{
+			Config: fmt.Sprintf(`resource "coralogix_dashboard" "test" {
+  name = %q
+  layout = { sections = [{ rows = [{
+    height = 19
+    widgets = [{
+      title = "no keypath"
+      definition = { dynamic = {
+        query_definitions = [{ query = { logs = { lucene_query = "*" } } }]
+        visualization = { table = {
+          columns = [{ field = { scope = "user_data" } }]
+        } }
+      }}
+    }]
+  }] }] }
+}
+`, name),
+			Check: resource.TestCheckNoResourceAttr(dashboardResourceName,
+				"layout.sections.0.rows.0.widgets.0.definition.dynamic.visualization.table.columns.0.field.keypath"),
+		}},
+	})
+}

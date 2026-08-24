@@ -49,7 +49,7 @@ func dynamicTableSchema() schema.Attribute {
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"field": schema.SingleNestedAttribute{
-							Attributes: ObservationFieldSchema(),
+							Attributes: dynamicTableObservationFieldSchema(),
 							Optional:   true,
 						},
 					},
@@ -239,12 +239,27 @@ func dynamicTablePropertyDefinitionSchema() schema.Attribute {
 	}
 }
 
+// Table columns are stored with an absent or empty keypath - the API accepts
+// both and this repo applies such a fixture - so the table cannot reuse the
+// shared field schema, which requires at least one segment. An explicit empty
+// list stays rejected because the read direction cannot produce one.
+func dynamicTableObservationFieldSchema() map[string]schema.Attribute {
+	attributes := ObservationFieldSchema()
+
+	keypath := attributes["keypath"].(schema.ListAttribute)
+	keypath.Required = false
+	keypath.Optional = true
+	attributes["keypath"] = keypath
+
+	return attributes
+}
+
 func dynamicTableRuleScopeSchema() schema.Attribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Attributes: map[string]schema.Attribute{
 			"field": schema.SingleNestedAttribute{
-				Attributes: ObservationFieldSchema(),
+				Attributes: dynamicTableObservationFieldSchema(),
 				Optional:   true,
 			},
 			"field_type": schema.StringAttribute{
@@ -828,7 +843,7 @@ func flattenDynamicTablePropertyDefinition(ctx context.Context, definition *dash
 		return nil, diags
 	}
 
-	return &DynamicTablePropertyDefinitionModel{
+	flattened := &DynamicTablePropertyDefinitionModel{
 		Alignment:         flattenOptionalEnum(definition.Alignment, dashboardProtoToSchemaTextAlignment),
 		ColumnDisplayName: types.StringPointerValue(definition.ColumnDisplayName),
 		Link:              link,
@@ -837,7 +852,17 @@ func flattenDynamicTablePropertyDefinition(ctx context.Context, definition *dash
 		Units:             flattenDynamicTablePropertyUnits(definition.Units),
 		ValuesAlias:       types.StringPointerValue(definition.ValuesAlias),
 		ValuesMapping:     valuesMapping,
-	}, nil
+	}
+
+	// Same as the rule scope above: a definition with no arm selected must read
+	// back as absent rather than as an object the validator refuses.
+	if flattened.Alignment.IsNull() && flattened.ColumnDisplayName.IsNull() && flattened.Link == nil &&
+		flattened.RegexExtract.IsNull() && flattened.Thresholds == nil && flattened.Units == nil &&
+		flattened.ValuesAlias.IsNull() && flattened.ValuesMapping == nil {
+		return nil, nil
+	}
+
+	return flattened, nil
 }
 
 func flattenDynamicTablePropertyLink(ctx context.Context, link *dashboardservice.PropertyLinks) (*DynamicTablePropertyLinkModel, diag.Diagnostics) {
@@ -960,11 +985,19 @@ func flattenDynamicTableRuleScope(ctx context.Context, ruleScope *dashboardservi
 		return nil, diags
 	}
 
-	return &DynamicTableRuleScopeModel{
+	scope := &DynamicTableRuleScopeModel{
 		Field:     field,
 		FieldType: flattenOptionalEnum(ruleScope.FieldType, dashboardProtoToSchemaFieldDataType),
 		Regex:     types.StringPointerValue(ruleScope.Regex),
-	}, nil
+	}
+
+	// The API stores a scope with no arm selected; keeping it as a present
+	// object would flatten into config the exactly-one-of validator rejects.
+	if scope.Field.IsNull() && scope.FieldType.IsNull() && scope.Regex.IsNull() {
+		return nil, nil
+	}
+
+	return scope, nil
 }
 
 func flattenDynamicTableSettings(ctx context.Context, settings *dashboardservice.TableSettings) (*DynamicTableSettingsModel, diag.Diagnostics) {
