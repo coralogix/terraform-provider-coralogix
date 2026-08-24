@@ -50,7 +50,7 @@ var (
 		"service_now":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
 		"microsoft_teams":     connectors.NOTIFICATIONCENTERCONNECTORTYPE_MICROSOFT_TEAMS,
 		"eventbridge":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_EVENTBRIDGE,
-		"incident_io":         connectors.NotificationCenterConnectorType("INCIDENT_IO"),
+		"incident_io":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_INCIDENT_IO,
 	}
 	connectorTypeApiToSchema       = utils.ReverseMap(connectorTypeSchemaToApi)
 	validConnectorTypesSchemaToApi = utils.GetKeys(connectorTypeSchemaToApi)
