@@ -15,6 +15,7 @@
 package provider
 
 import (
+	"context"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -28,6 +29,9 @@ import (
 	"testing"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
 
 type dashboardOneOfCoverageStatus string
@@ -509,14 +513,14 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"PropertyDefinition": {
 			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.Table.PropertyDefinition.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"thresholds":        covered(table+".properties[*].definition.thresholds", dashboardOpenAPIDynamicTableTestName),
-				"alignment":         covered(table+".properties[*].definition.alignment", dashboardOpenAPIDynamicTableTestName),
-				"units":             covered(table+".properties[*].definition.units", dashboardOpenAPIDynamicTableTestName),
-				"regexExtract":      covered(table+".properties[*].definition.regex_extract", dashboardOpenAPIDynamicTableTestName),
-				"link":              covered(table+".properties[*].definition.link", dashboardOpenAPIDynamicTableTestName),
-				"valuesAlias":       covered(table+".properties[*].definition.values_alias", dashboardOpenAPIDynamicTableTestName),
-				"valuesMapping":     covered(table+".properties[*].definition.values_mapping", dashboardOpenAPIDynamicTableTestName),
-				"columnDisplayName": covered(table+".properties[*].definition.column_display_name", dashboardOpenAPIDynamicTableTestName),
+				"thresholds":        covered(table+".rules[*].properties[*].definition.thresholds", dashboardOpenAPIDynamicTableTestName),
+				"alignment":         covered(table+".rules[*].properties[*].definition.alignment", dashboardOpenAPIDynamicTableTestName),
+				"units":             covered(table+".rules[*].properties[*].definition.units", dashboardOpenAPIDynamicTableTestName),
+				"regexExtract":      covered(table+".rules[*].properties[*].definition.regex_extract", dashboardOpenAPIDynamicTableTestName),
+				"link":              covered(table+".rules[*].properties[*].definition.link", dashboardOpenAPIDynamicTableTestName),
+				"valuesAlias":       covered(table+".rules[*].properties[*].definition.values_alias", dashboardOpenAPIDynamicTableTestName),
+				"valuesMapping":     covered(table+".rules[*].properties[*].definition.values_mapping", dashboardOpenAPIDynamicTableTestName),
+				"columnDisplayName": covered(table+".rules[*].properties[*].definition.column_display_name", dashboardOpenAPIDynamicTableTestName),
 			},
 		},
 		"QueryLogsQueryType": {
@@ -595,9 +599,9 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"RuleScope": {
 			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.Table.RuleScope.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"field":     covered(table+".rules[*].scope.field", dashboardOpenAPIDynamicTableTestName),
-				"regex":     covered(table+".rules[*].scope.regex", dashboardOpenAPIDynamicTableTestName),
-				"fieldType": covered(table+".rules[*].scope.field_type", dashboardOpenAPIDynamicTableTestName),
+				"field":     covered(table+".rules[*].rule_scope.field", dashboardOpenAPIDynamicTableTestName),
+				"regex":     covered(table+".rules[*].rule_scope.regex", dashboardOpenAPIDynamicTableTestName),
+				"fieldType": covered(table+".rules[*].rule_scope.field_type", dashboardOpenAPIDynamicTableTestName),
 			},
 		},
 		"SectionOptions": {
@@ -1439,4 +1443,99 @@ func snakeToLowerCamel(value string) string {
 		}
 	}
 	return strings.Join(parts, "")
+}
+
+// The manifest is only useful for spotting schema-wiring drift if its paths
+// actually name attributes. Nothing else checks them: ProviderPath is free text
+// that doubles as an explanation for branches the schema does not expose, so a
+// covered branch could record a path with a missing or misspelled segment and
+// every other assertion here would still pass.
+//
+// Two notations are deliberately out of scope: a bare * standing for "any
+// sibling", and a trailing =value asserting an enum member rather than a path.
+func TestDashboardOneOfManifestPathsResolveAgainstSchema(t *testing.T) {
+	resp := &resource.SchemaResponse{}
+	dashboards.NewDashboardResource().(resource.ResourceWithConfigure).Schema(context.Background(), resource.SchemaRequest{}, resp)
+	if len(resp.Schema.Attributes) == 0 {
+		t.Fatal("the dashboard resource schema came back empty; this guard would pass without checking anything")
+	}
+
+	resolved := 0
+	for model, coverage := range dashboardOpenAPIOneOfCoverage {
+		for branch, branchCoverage := range coverage.Branches {
+			if branchCoverage.Status != dashboardOneOfAcceptanceCovered {
+				continue
+			}
+
+			path := strings.TrimSpace(regexp.MustCompile(`\s*\(.*\)$`).ReplaceAllString(branchCoverage.ProviderPath, ""))
+			if strings.Contains(strings.ReplaceAll(path, "[*]", ""), "*") || strings.Contains(path, "=") {
+				continue
+			}
+
+			resolved++
+			if reason := dashboardResolveProviderPath(resp.Schema.Attributes, path); reason != "" {
+				t.Errorf("%s.%s records path %q, which does not resolve: %s", model, branch, branchCoverage.ProviderPath, reason)
+			}
+		}
+	}
+
+	if resolved == 0 {
+		t.Fatal("no covered branch path was resolved; the manifest or this guard changed shape")
+	}
+	t.Logf("resolved %d covered branch path(s) against the schema", resolved)
+}
+
+// Walks dotted segments, treating name[*] as a collection to descend into. A
+// {a,b,c} segment means the same branch is reachable through several siblings
+// and resolves if any of them does.
+func dashboardResolveProviderPath(attributes map[string]schema.Attribute, path string) string {
+	current := attributes
+
+	for _, raw := range strings.Split(path, ".") {
+		name := strings.TrimSuffix(raw, "[*]")
+
+		if alternatives, ok := strings.CutPrefix(name, "{"); ok {
+			alternatives, ok = strings.CutSuffix(alternatives, "}")
+			if !ok {
+				return "unterminated alternation in " + name
+			}
+
+			var matched schema.Attribute
+			for _, alternative := range strings.Split(alternatives, ",") {
+				if attribute, ok := current[strings.TrimSpace(alternative)]; ok {
+					matched = attribute
+					break
+				}
+			}
+			if matched == nil {
+				return "no attribute among " + name
+			}
+
+			current = dashboardNestedAttributes(matched)
+			continue
+		}
+
+		attribute, ok := current[name]
+		if !ok {
+			return "no attribute " + name
+		}
+		current = dashboardNestedAttributes(attribute)
+	}
+
+	return ""
+}
+
+func dashboardNestedAttributes(attribute schema.Attribute) map[string]schema.Attribute {
+	switch typed := attribute.(type) {
+	case schema.SingleNestedAttribute:
+		return typed.Attributes
+	case schema.ListNestedAttribute:
+		return typed.NestedObject.Attributes
+	case schema.SetNestedAttribute:
+		return typed.NestedObject.Attributes
+	case schema.MapNestedAttribute:
+		return typed.NestedObject.Attributes
+	default:
+		return nil
+	}
 }
