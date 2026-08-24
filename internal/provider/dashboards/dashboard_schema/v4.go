@@ -1326,9 +1326,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 				),
 				ContentJsonValidator{},
 			},
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.RequiresReplaceIf(utils.JSONStringsEqualPlanModifier, "", ""),
-			},
 			Description: "an option to set the dashboard content from a json file.",
 		},
 		"access_policy": schema.StringAttribute{

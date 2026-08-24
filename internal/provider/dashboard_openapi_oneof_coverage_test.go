@@ -100,6 +100,7 @@ var dashboardStructuredAcceptanceLifecycleTests = []string{
 	dashboardOpenAPIDynamicStatTestName,
 	dashboardOpenAPIDynamicStatCardTestName,
 	dashboardOpenAPIDynamicTableTestName,
+	dashboardOpenAPIDynamicTimeSeriesTestName,
 }
 
 func covered(path, testName string) dashboardOneOfBranchCoverage {
@@ -220,14 +221,18 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 
 	visualization := observedAPIOnlyModel(
 		"ast/widgets/dynamic.proto#Dynamic.Visualization.value",
-		"the structured provider models only the stat visualization of WidgetDefinition.dynamic; the remaining branches stay content_json-only, and import and data-source reads reject them instead of writing partial structured state",
+		"the structured provider does not model these visualizations of WidgetDefinition.dynamic; they stay content_json-only, and import and data-source reads reject them instead of writing partial structured state",
 		dashboardContentJSONDynamicQueriesTableTestName,
 		[]string{"table"},
 		"table", "timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti",
+		"table", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "verticalBarsMulti", "horizontalBarsMulti", "statCard",
 	)
 	visualization.Branches["stat"] = covered(dynamicWidget+".visualization.stat", dashboardOpenAPIDynamicStatTestName)
 	visualization.Branches["statCard"] = covered(statCard, dashboardOpenAPIDynamicStatCardTestName)
 	visualization.Branches["table"] = covered(table, dashboardOpenAPIDynamicTableTestName)
+	visualization.Branches["timeSeriesLines"] = covered(dynamicWidget+".visualization.time_series_lines", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["timeSeriesLinesMulti"] = covered(dynamicWidget+".visualization.time_series_lines_multi", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["timeSeriesBars"] = covered(dynamicWidget+".visualization.time_series_bars", dashboardOpenAPIDynamicTimeSeriesTestName)
 
 	return map[string]dashboardOneOfModelCoverage{
 		"ActionDefinition": apiOnlyModel(
@@ -880,7 +885,7 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 
 func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 	models := map[string][]string{
-		"Visualization": {"timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti"},
+		"Visualization": {"gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "verticalBarsMulti", "horizontalBarsMulti"},
 	}
 	observed := map[string]struct{}{
 		"Visualization.table": {},

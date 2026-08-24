@@ -6,12 +6,19 @@
 - FIX: Stat-card configurations the API rejects are now caught at plan time with the attribute named, rather than failing the apply: a `color_label_mapping` requires exactly one of `range`, `value` and `regex`; an element cannot both read a field and show the mapping result, nor can a display-name template variable; `primary_value` cannot show the mapping result at all; and every list this visualization exposes rejects an explicit empty value.
 - FEAT: Add the `table` visualization to the `dynamic` widget: `columns`, per-column `rules`, and `settings` including row style and column widths. Each rule selects columns with `rule_scope` — by field, by regular expression, or by field type — and applies one `definition`: a display name, text alignment, units, a regular-expression extract, a link, a values alias, a values mapping, or thresholds.
 - FIX: A `rule_scope` or a property `definition` that sets more than one of its alternatives, or none, is now rejected at plan time with the attribute named. Previously the request reached the API and failed with an error naming generated JSON fields rather than any HCL path.
+- FEAT: Add the `time_series_lines_multi` and `time_series_bars` visualizations to the `dynamic` widget, plus the deprecated singular `time_series_lines`. The singular form matters beyond import fidelity: opening such a widget in the Coralogix UI rewrites it to `time_series_lines_multi`, and a release supporting only the replacement could not read the result.
+- FEAT: `dynamic.query_definitions[*].id` is now settable instead of read-only. It is still generated when omitted. Setting it explicitly is what makes `time_series_lines_multi.query_display_settings[*].query_id` usable at all: that attribute requires the id of the query it styles, which previously could be neither chosen nor known when the configuration was written.
+- FIX: `data.coralogix_dashboard` no longer fails to return a dashboard whose widgets use an attribute with a custom value type. Deriving the data-source schema from the resource's dropped `CustomType` for numeric attributes, so the data source declared a plain type while reads produced the custom one. Affects any resource whose data source derives its schema this way.
+- DOC: Note that time-series visualizations need `promql_query_type = "range"`. An instant query returns a single point, so the chart renders empty while the configuration looks correct.
 
 #### resource/coralogix_connector
 - FEAT: Add support for the `eventbridge` connector type.
 
 #### resource/coralogix_preset
 - FEAT: Add support for `eventbridge` as a `connector_type` value.
+
+#### resource/coralogix_dashboard
+- FIX: Editing `content_json` updates the dashboard in place instead of recreating it, so it keeps its ID and existing links to it keep working.
 
 # Release 3.10.1
 
