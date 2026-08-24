@@ -606,7 +606,7 @@ func dashboardJSONContainsKey(encoded []byte, key string) bool {
 }
 
 func TestFlattenDashboardRejectsDynamicWidgetWithoutPartialState(t *testing.T) {
-	content, err := os.ReadFile(filepath.Join("..", "testdata", "dashboards", "content_json_dynamic_queries_table.json"))
+	content, err := os.ReadFile(filepath.Join("..", "testdata", "dashboards", "content_json_dynamic_unsupported_visualization.json"))
 	if err != nil {
 		t.Fatalf("read dynamic content_json fixture: %s", err)
 	}

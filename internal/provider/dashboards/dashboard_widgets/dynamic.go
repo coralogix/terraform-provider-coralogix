@@ -145,9 +145,10 @@ func DynamicSchema() schema.Attribute {
 				Attributes: map[string]schema.Attribute{
 					"stat":      dynamicStatSchema(),
 					"stat_card": dynamicStatCardSchema(),
+					"table":     dynamicTableSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card"),
+					ExactlyOneOfChildren("stat", "stat_card", "table"),
 				},
 			},
 		},
@@ -500,6 +501,7 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"stat":      types.ObjectType{AttrTypes: dynamicStatModelAttr()},
 		"stat_card": types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
+		"table":     types.ObjectType{AttrTypes: dynamicTableModelAttr()},
 	}
 }
 
@@ -770,6 +772,12 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{StatCard: statCard}, nil
+	case visualization.Table != nil:
+		table, diags := expandDynamicTable(ctx, visualization.Table)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{Table: table}, nil
 	default:
 		return nil, nil
 	}
@@ -1095,6 +1103,12 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{StatCard: statCard}, nil
+	case visualization.Table != nil:
+		table, diags := flattenDynamicTable(ctx, visualization.Table)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{Table: table}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Unsupported Dashboard Widget Definition",

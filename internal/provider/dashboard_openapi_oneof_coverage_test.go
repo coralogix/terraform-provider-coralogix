@@ -95,6 +95,7 @@ var dashboardStructuredAcceptanceLifecycleTests = []string{
 	dashboardOpenAPITransitionTestName,
 	dashboardOpenAPIDynamicStatTestName,
 	dashboardOpenAPIDynamicStatCardTestName,
+	dashboardOpenAPIDynamicTableTestName,
 }
 
 func covered(path, testName string) dashboardOneOfBranchCoverage {
@@ -210,6 +211,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		dynamicWidget = widget + ".dynamic"
 		dynamicQuery  = dynamicWidget + ".query_definitions[*].query"
 		statCard      = dynamicWidget + ".visualization.stat_card"
+		table         = dynamicWidget + ".visualization.table"
 	)
 
 	visualization := observedAPIOnlyModel(
@@ -221,6 +223,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 	)
 	visualization.Branches["stat"] = covered(dynamicWidget+".visualization.stat", dashboardOpenAPIDynamicStatTestName)
 	visualization.Branches["statCard"] = covered(statCard, dashboardOpenAPIDynamicStatCardTestName)
+	visualization.Branches["table"] = covered(table, dashboardOpenAPIDynamicTableTestName)
 
 	return map[string]dashboardOneOfModelCoverage{
 		"ActionDefinition": apiOnlyModel(
@@ -503,11 +506,19 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"dataprime": covered(widget+".pie_chart.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
-		"PropertyDefinition": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.Table.PropertyDefinition.value",
-			"dynamic table property definitions are reachable only below WidgetDefinition.dynamic",
-			"thresholds", "alignment", "units", "regexExtract", "link", "valuesAlias", "valuesMapping", "columnDisplayName",
-		),
+		"PropertyDefinition": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.Table.PropertyDefinition.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"thresholds":        covered(table+".properties[*].definition.thresholds", dashboardOpenAPIDynamicTableTestName),
+				"alignment":         covered(table+".properties[*].definition.alignment", dashboardOpenAPIDynamicTableTestName),
+				"units":             covered(table+".properties[*].definition.units", dashboardOpenAPIDynamicTableTestName),
+				"regexExtract":      covered(table+".properties[*].definition.regex_extract", dashboardOpenAPIDynamicTableTestName),
+				"link":              covered(table+".properties[*].definition.link", dashboardOpenAPIDynamicTableTestName),
+				"valuesAlias":       covered(table+".properties[*].definition.values_alias", dashboardOpenAPIDynamicTableTestName),
+				"valuesMapping":     covered(table+".properties[*].definition.values_mapping", dashboardOpenAPIDynamicTableTestName),
+				"columnDisplayName": covered(table+".properties[*].definition.column_display_name", dashboardOpenAPIDynamicTableTestName),
+			},
+		},
 		"QueryLogsQueryType": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.LogsQuery.Type.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -581,11 +592,14 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"fieldValue": covered(variableQuery+".spans.field_value", dashboardOpenAPIVariablesTestName),
 			},
 		},
-		"RuleScope": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.Table.RuleScope.value",
-			"dynamic table rule scope is reachable only below WidgetDefinition.dynamic",
-			"field", "regex", "fieldType",
-		),
+		"RuleScope": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.Table.RuleScope.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"field":     covered(table+".rules[*].scope.field", dashboardOpenAPIDynamicTableTestName),
+				"regex":     covered(table+".rules[*].scope.regex", dashboardOpenAPIDynamicTableTestName),
+				"fieldType": covered(table+".rules[*].scope.field_type", dashboardOpenAPIDynamicTableTestName),
+			},
+		},
 		"SectionOptions": {
 			ProtoSource: "ast/layout.proto#SectionOptions.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -862,7 +876,7 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 
 func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 	models := map[string][]string{
-		"Visualization": {"table", "timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti"},
+		"Visualization": {"timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti"},
 	}
 	observed := map[string]struct{}{
 		"Visualization.table": {},

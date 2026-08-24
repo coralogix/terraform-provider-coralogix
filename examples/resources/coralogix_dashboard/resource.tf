@@ -1001,6 +1001,60 @@ resource "coralogix_dashboard" "widgets" {
                   }
                 }
               }
+            },
+            {
+              # A `table` lists raw rows. `rules` style individual columns:
+              # each rule picks columns with `rule_scope` and applies exactly
+              # one `definition` — rename, align, format, map values, and so on.
+              title = "dynamic table - recent errors"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "rows"
+                    query = {
+                      logs = {
+                        lucene_query = "coralogix.metadata.severity=\"5\""
+                      }
+                    }
+                  }]
+                  visualization = {
+                    table = {
+                      columns = [
+                        { field = { keypath = ["applicationname"], scope = "label" } },
+                        { field = { keypath = ["severity"], scope = "metadata" } },
+                      ]
+                      settings = {
+                        row_style = "one_line"
+                        column_widths = [{
+                          column_name = "applicationname"
+                          width       = 200
+                        }]
+                      }
+                      rules = [
+                        {
+                          name       = "rename the application column"
+                          rule_scope = { field = { keypath = ["applicationname"], scope = "label" } }
+                          properties = [{ definition = { column_display_name = "Application" } }]
+                        },
+                        {
+                          name       = "show severity names instead of numbers"
+                          rule_scope = { field = { keypath = ["severity"], scope = "metadata" } }
+                          properties = [{
+                            definition = {
+                              values_mapping = {
+                                mappings = [
+                                  { input_value = "5", replace_value = "ERROR", type = "value" },
+                                  { input_value = "6", replace_value = "CRITICAL", type = "value" },
+                                ]
+                              }
+                            }
+                          }]
+                        },
+                      ]
+                    }
+                  }
+                }
+              }
             }
           ]
         }]
