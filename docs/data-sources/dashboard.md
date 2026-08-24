@@ -1939,14 +1939,14 @@ Read-Only:
 
 - `category` (Boolean) Sort by the bar category. Set `true` to select this strategy; the API carries no settings for it.
 - `query_value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy--query_value))
-- `strategy_type` (String) Discriminator the API derives from the chosen strategy arm. Leave it unset; the backend populates it.
+- `strategy_type` (String) Discriminator naming the chosen strategy. The backend stores whatever it is given and does not derive it, so leaving it unset reads back as an empty string. Set it only to match the arm above.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy--query_value"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.strategy.query_value`
 
 Read-Only:
 
-- `query_id` (String)
+- `query_id` (String) The `query_definitions` entry whose values order the bars. The API accepts this arm without one and stores it, but the result sorts by nothing, so set it.
 
 
 
@@ -2640,14 +2640,14 @@ Read-Only:
 
 - `category` (Boolean) Sort by the bar category. Set `true` to select this strategy; the API carries no settings for it.
 - `query_value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy--query_value))
-- `strategy_type` (String) Discriminator the API derives from the chosen strategy arm. Leave it unset; the backend populates it.
+- `strategy_type` (String) Discriminator naming the chosen strategy. The backend stores whatever it is given and does not derive it, so leaving it unset reads back as an empty string. Set it only to match the arm above.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy--query_value"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.strategy.query_value`
 
 Read-Only:
 
-- `query_id` (String)
+- `query_id` (String) The `query_definitions` entry whose values order the bars. The API accepts this arm without one and stores it, but the result sorts by nothing, so set it.
 
 
 

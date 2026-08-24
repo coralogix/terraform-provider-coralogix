@@ -101,14 +101,15 @@ func dynamicSortOrderSchema() schema.Attribute {
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"query_id": schema.StringAttribute{
-								Optional: true,
+								Optional:            true,
+								MarkdownDescription: "The `query_definitions` entry whose values order the bars. The API accepts this arm without one and stores it, but the result sorts by nothing, so set it.",
 							},
 						},
 					},
 					"strategy_type": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
-						MarkdownDescription: "Discriminator the API derives from the chosen strategy arm. Leave it unset; the backend populates it.",
+						MarkdownDescription: "Discriminator naming the chosen strategy. The backend stores whatever it is given and does not derive it, so leaving it unset reads back as an empty string. Set it only to match the arm above.",
 					},
 				},
 				Validators: []validator.Object{
