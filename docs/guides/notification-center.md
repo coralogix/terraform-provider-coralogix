@@ -28,6 +28,7 @@ Current supported connector types include:
 - PagerDuty Incidents
 - Microsoft Teams
 - EventBridge
+- incident.io
 
 ### Preset
 Defines the structure and content of the notification message. Coralogix provides system Presets for common use cases,

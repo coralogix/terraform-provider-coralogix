@@ -55,6 +55,7 @@ var (
 		"email":               presets.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
 		"microsoft_teams":     presets.NOTIFICATIONCENTERCONNECTORTYPE_MICROSOFT_TEAMS,
 		"eventbridge":         presets.NOTIFICATIONCENTERCONNECTORTYPE_EVENTBRIDGE,
+		"incident_io":         presets.NotificationCenterConnectorType("INCIDENT_IO"),
 	}
 	presetConnectorTypeApiToSchema = utils.ReverseMap(presetConnectorTypeSchemaToApi)
 	validConnectorTypes            = utils.GetKeys(presetConnectorTypeSchemaToApi)
