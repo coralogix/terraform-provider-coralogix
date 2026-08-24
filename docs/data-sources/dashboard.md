@@ -1786,11 +1786,171 @@ Read-Only:
 
 Read-Only:
 
+- `horizontal_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars))
+- `horizontal_bars_multi` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi))
 - `stat` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat))
 - `stat_card` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card))
 - `time_series_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars))
 - `time_series_lines` (Attributes) Deprecated: use `time_series_lines_multi` instead. Retained at full fidelity for importing dashboards that still use the singular time series lines visualization. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines))
 - `time_series_lines_multi` (Attributes) Plots one line per query. Editing this widget in the Coralogix UI fills in optional settings the configuration may not set, so a later plan may show those being reset. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi))
+- `vertical_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars))
+- `vertical_bars_multi` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--category_fields))
+- `color_scheme` (String)
+- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `display_on_bar` (Boolean)
+- `group_name_template` (String)
+- `hash_colors` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--legend))
+- `max_bars_per_chart` (Number)
+- `max_slices_per_bar` (Number)
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `sort_by` (String) How bars are sorted. Valid values are: name, unspecified, value.
+- `stack_name_template` (String)
+- `sub_category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--sub_category_fields))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--value_field))
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+- `y_axis_view_by` (String) How the y-axis is viewed. Valid values are: category, unspecified, value.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--sub_category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.sub_category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--category_fields))
+- `color_scheme` (String)
+- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `display_on_bar` (Boolean)
+- `group_name_template` (String)
+- `hash_colors` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--legend))
+- `max_bars_per_chart` (Number)
+- `query_field_settings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings))
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `sort_order` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+- `y_axis_view_by` (String) How the y-axis is viewed. Valid values are: category, unspecified, value.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.query_field_settings`
+
+Read-Only:
+
+- `query_id` (String)
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings--value_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.query_field_settings.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order`
+
+Read-Only:
+
+- `order_direction` (String) The sort order direction. Valid values are: asc, desc, unspecified.
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.strategy`
+
+Read-Only:
+
+- `category` (Boolean) Sort by the bar category. Set `true` to select this strategy; the API carries no settings for it.
+- `query_value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy--query_value))
+- `strategy_type` (String) Discriminator the API derives from the chosen strategy arm. Leave it unset; the backend populates it.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--sort_order--strategy--query_value"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.horizontal_bars_multi.sort_order.strategy.query_value`
+
+Read-Only:
+
+- `query_id` (String)
+
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.stat`
@@ -2336,6 +2496,160 @@ Read-Only:
 
 - `show_all_series` (Boolean)
 - `show_labels` (Boolean)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `bar_value_display` (String) Where bar values are displayed. Valid values are: both, inside, top, unspecified.
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--category_fields))
+- `color_scheme` (String)
+- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `group_name_template` (String)
+- `hash_colors` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--legend))
+- `max_bars_per_chart` (Number)
+- `max_slices_per_bar` (Number)
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `sort_by` (String) How bars are sorted. Valid values are: name, unspecified, value.
+- `stack_name_template` (String)
+- `sub_category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--sub_category_fields))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--value_field))
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--sub_category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.sub_category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi`
+
+Read-Only:
+
+- `allow_abbreviation` (Boolean)
+- `bar_value_display` (String) Where bar values are displayed. Valid values are: both, inside, top, unspecified.
+- `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--category_fields))
+- `color_scheme` (String)
+- `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
+- `custom_unit` (String)
+- `decimal_precision` (Number)
+- `group_name_template` (String)
+- `hash_colors` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--legend))
+- `max_bars_per_chart` (Number)
+- `query_field_settings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings))
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `sort_order` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--category_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.category_fields`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.query_field_settings`
+
+Read-Only:
+
+- `query_id` (String)
+- `value_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings--value_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings--value_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.query_field_settings.value_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order`
+
+Read-Only:
+
+- `order_direction` (String) The sort order direction. Valid values are: asc, desc, unspecified.
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.strategy`
+
+Read-Only:
+
+- `category` (Boolean) Sort by the bar category. Set `true` to select this strategy; the API carries no settings for it.
+- `query_value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy--query_value))
+- `strategy_type` (String) Discriminator the API derives from the chosen strategy arm. Leave it unset; the backend populates it.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--sort_order--strategy--query_value"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.vertical_bars_multi.sort_order.strategy.query_value`
+
+Read-Only:
+
+- `query_id` (String)
+
+
 
 
 

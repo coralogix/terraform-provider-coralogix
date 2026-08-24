@@ -96,6 +96,7 @@ var dashboardStructuredAcceptanceLifecycleTests = []string{
 	dashboardOpenAPIDynamicStatTestName,
 	dashboardOpenAPIDynamicStatCardTestName,
 	dashboardOpenAPIDynamicTimeSeriesTestName,
+	dashboardOpenAPIDynamicBarsTestName,
 }
 
 func covered(path, testName string) dashboardOneOfBranchCoverage {
@@ -226,6 +227,10 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 	visualization.Branches["timeSeriesLines"] = covered(dynamicWidget+".visualization.time_series_lines", dashboardOpenAPIDynamicTimeSeriesTestName)
 	visualization.Branches["timeSeriesLinesMulti"] = covered(dynamicWidget+".visualization.time_series_lines_multi", dashboardOpenAPIDynamicTimeSeriesTestName)
 	visualization.Branches["timeSeriesBars"] = covered(dynamicWidget+".visualization.time_series_bars", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["verticalBars"] = covered(dynamicWidget+".visualization.vertical_bars", dashboardOpenAPIDynamicBarsTestName)
+	visualization.Branches["verticalBarsMulti"] = covered(dynamicWidget+".visualization.vertical_bars_multi", dashboardOpenAPIDynamicBarsTestName)
+	visualization.Branches["horizontalBars"] = covered(dynamicWidget+".visualization.horizontal_bars", dashboardOpenAPIDynamicBarsTestName)
+	visualization.Branches["horizontalBarsMulti"] = covered(dynamicWidget+".visualization.horizontal_bars_multi", dashboardOpenAPIDynamicBarsTestName)
 
 	return map[string]dashboardOneOfModelCoverage{
 		"ActionDefinition": apiOnlyModel(
@@ -598,11 +603,13 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"custom":   covered("layout.sections[*].options", "TestAccCoralogixResourceDashboard"),
 			},
 		},
-		"SortStrategy": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.SortOrder.SortStrategy.strategy",
-			"dynamic sort strategy is reachable only below WidgetDefinition.dynamic",
-			"category", "queryValue",
-		),
+		"SortStrategy": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.SortOrder.SortStrategy.strategy",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"category":   covered(dynamicWidget+".visualization.{vertical_bars,vertical_bars_multi,horizontal_bars,horizontal_bars_multi}.sort_order.strategy.category", dashboardOpenAPIDynamicBarsTestName),
+				"queryValue": covered(dynamicWidget+".visualization.{vertical_bars,vertical_bars_multi,horizontal_bars,horizontal_bars_multi}.sort_order.strategy.query_value", dashboardOpenAPIDynamicBarsTestName),
+			},
+		},
 		"SpanField": {
 			ProtoSource: "common/span_field.proto#SpanField.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -867,7 +874,7 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 
 func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 	models := map[string][]string{
-		"Visualization": {"table", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "verticalBarsMulti", "horizontalBarsMulti"},
+		"Visualization": {"table", "gauge", "hexagonBins", "pieChart", "heatmap", "geomap"},
 	}
 	observed := map[string]struct{}{
 		"Visualization.table": {},

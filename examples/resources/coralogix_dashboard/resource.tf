@@ -1041,6 +1041,61 @@ resource "coralogix_dashboard" "widgets" {
                   }
                 }
               }
+            },
+            {
+              # `vertical_bars_multi` plots one bar group per query. `sort_order`
+              # picks the sort key: `category` is a marker with no settings of
+              # its own, or `query_value` names the query to sort by.
+              title = "dynamic bars - errors by application"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    id   = "9d1b7a4e-0000-4000-8000-00000000ba01"
+                    name = "errors"
+                    query = {
+                      logs = {
+                        lucene_query = "coralogix.metadata.severity=\"5\""
+                        group_by = [{
+                          keypath = ["applicationname"]
+                          scope   = "label"
+                        }]
+                        # A bar chart needs a value to plot, so the query has to
+                        # aggregate. The result column is named after the
+                        # aggregation and its index, hence `count_0` below.
+                        aggregations = [{
+                          type = "count"
+                        }]
+                      }
+                    }
+                  }]
+                  visualization = {
+                    vertical_bars_multi = {
+                      unit               = "seconds"
+                      scale_type         = "linear"
+                      colors_by          = "query"
+                      max_bars_per_chart = 20
+                      bar_value_display  = "top"
+                      sort_order = {
+                        order_direction = "desc"
+                        strategy = {
+                          query_value = { query_id = "9d1b7a4e-0000-4000-8000-00000000ba01" }
+                        }
+                      }
+                      query_field_settings = [{
+                        query_id    = "9d1b7a4e-0000-4000-8000-00000000ba01"
+                        value_field = { keypath = ["count_0"], scope = "user_data" }
+                      }]
+                      # The grouped field arrives as a data column, so it is
+                      # read from `user_data` here rather than from `label`.
+                      category_fields = [{ keypath = ["applicationname"], scope = "user_data" }]
+                      legend = {
+                        is_visible = true
+                        placement  = "bottom"
+                      }
+                    }
+                  }
+                }
+              }
             }
           ]
         }]

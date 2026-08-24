@@ -8,6 +8,9 @@
 - FEAT: `dynamic.query_definitions[*].id` is now settable instead of read-only. It is still generated when omitted. Setting it explicitly is what makes `time_series_lines_multi.query_display_settings[*].query_id` usable at all: that attribute requires the id of the query it styles, which previously could be neither chosen nor known when the configuration was written.
 - FIX: `data.coralogix_dashboard` no longer fails to return a dashboard whose widgets use an attribute with a custom value type. Deriving the data-source schema from the resource's dropped `CustomType` for numeric attributes, so the data source declared a plain type while reads produced the custom one. Affects any resource whose data source derives its schema this way.
 - DOC: Note that time-series visualizations need `promql_query_type = "range"`. An instant query returns a single point, so the chart renders empty while the configuration looks correct.
+- FEAT: Add the `vertical_bars`, `vertical_bars_multi`, `horizontal_bars` and `horizontal_bars_multi` visualizations to the `dynamic` widget, including per-query `query_field_settings` and the `sort_order` strategy.
+- FIX: `sort_order.strategy.category` is a `true`/absent switch rather than a JSON object. The API models it as an empty message, so a JSON value was rejected outright and the strategy could not be selected.
+- FIX: Every list the bar visualizations expose rejects an explicit empty value at plan time instead of failing the apply with an inconsistent-result error.
 
 #### resource/coralogix_connector
 - FEAT: Add support for the `eventbridge` connector type.
