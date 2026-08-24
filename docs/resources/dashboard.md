@@ -1058,6 +1058,60 @@ resource "coralogix_dashboard" "widgets" {
               }
             },
             {
+              # A `table` lists raw rows. `rules` style individual columns:
+              # each rule picks columns with `rule_scope` and applies exactly
+              # one `definition` — rename, align, format, map values, and so on.
+              title = "dynamic table - recent errors"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "rows"
+                    query = {
+                      logs = {
+                        lucene_query = "coralogix.metadata.severity=\"5\""
+                      }
+                    }
+                  }]
+                  visualization = {
+                    table = {
+                      columns = [
+                        { field = { keypath = ["applicationname"], scope = "label" } },
+                        { field = { keypath = ["severity"], scope = "metadata" } },
+                      ]
+                      settings = {
+                        row_style = "one_line"
+                        column_widths = [{
+                          column_name = "applicationname"
+                          width       = 200
+                        }]
+                      }
+                      rules = [
+                        {
+                          name       = "rename the application column"
+                          rule_scope = { field = { keypath = ["applicationname"], scope = "label" } }
+                          properties = [{ definition = { column_display_name = "Application" } }]
+                        },
+                        {
+                          name       = "show severity names instead of numbers"
+                          rule_scope = { field = { keypath = ["severity"], scope = "metadata" } }
+                          properties = [{
+                            definition = {
+                              values_mapping = {
+                                mappings = [
+                                  { input_value = "5", replace_value = "ERROR", type = "value" },
+                                  { input_value = "6", replace_value = "CRITICAL", type = "value" },
+                                ]
+                              }
+                            }
+                          }]
+                        },
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            {
               # `vertical_bars_multi` plots one bar group per query. `sort_order`
               # picks the sort key: `category` is a marker with no settings of
               # its own, or `query_value` names the query to sort by.
@@ -3093,6 +3147,7 @@ Optional:
 - `horizontal_bars_multi` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi))
 - `stat` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat))
 - `stat_card` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card))
+- `table` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table))
 - `time_series_bars` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars))
 - `time_series_lines` (Attributes, Deprecated) Deprecated: use `time_series_lines_multi` instead. Retained at full fidelity for importing dashboards that still use the singular time series lines visualization. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines))
 - `time_series_lines_multi` (Attributes) Plots one line per query. Editing this widget in the Coralogix UI fills in optional settings the configuration may not set, so a later plan may show those being reset. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi))
@@ -3572,6 +3627,183 @@ Required:
 
 - `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
 - `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table`
+
+Optional:
+
+- `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns))
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules))
+- `settings` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.columns`
+
+Optional:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns--field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--columns--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.columns.field`
+
+Required:
+
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+Optional:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules`
+
+Optional:
+
+- `description` (String)
+- `id` (String)
+- `name` (String)
+- `properties` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties))
+- `rule_scope` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties`
+
+Optional:
+
+- `definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition))
+- `id` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition`
+
+Optional:
+
+- `alignment` (String) The text alignment. Valid values are: center, left, right, unspecified.
+- `column_display_name` (String)
+- `link` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link))
+- `regex_extract` (String)
+- `thresholds` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds))
+- `units` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--units))
+- `values_alias` (String)
+- `values_mapping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.link`
+
+Optional:
+
+- `actions` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link--actions))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--link--actions"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.link.actions`
+
+Optional:
+
+- `id` (String)
+- `name` (String)
+- `should_open_in_new_window` (Boolean)
+- `url` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.thresholds`
+
+Optional:
+
+- `max` (Number)
+- `min` (Number)
+- `type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
+- `values` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds--values))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--thresholds--values"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.thresholds.values`
+
+Optional:
+
+- `color` (String)
+- `from` (Number)
+- `label` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--units"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.units`
+
+Optional:
+
+- `allow_abbreviation` (Boolean)
+- `custom_unit` (String)
+- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
+- `max` (Number)
+- `min` (Number)
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.values_mapping`
+
+Optional:
+
+- `mappings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping--mappings))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--properties--definition--values_mapping--mappings"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.properties.definition.values_mapping.mappings`
+
+Optional:
+
+- `input_value` (String)
+- `replace_value` (String)
+- `type` (String) The values mapping type. Valid values are: regex, unspecified, value.
+
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.rule_scope`
+
+Optional:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope--field))
+- `field_type` (String) The field data type. Valid values are: array, boolean, enum, number, object, regex, string, timestamp, union, unspecified.
+- `regex` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--rules--rule_scope--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.rules.rule_scope.field`
+
+Required:
+
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+Optional:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.settings`
+
+Optional:
+
+- `column_widths` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings--column_widths))
+- `row_style` (String) The row style. Valid values are: condensed, json, list, one_line, two_line, unspecified.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--table--settings--column_widths"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.table.settings.column_widths`
+
+Optional:
+
+- `column_name` (String)
+- `width` (Number)
+
 
 
 

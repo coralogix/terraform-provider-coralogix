@@ -355,7 +355,7 @@ func dashboardOpenAPIAssertNestedIDsRequired(
 
 func dashboardOpenAPIUnsupportedDynamicRequest(t *testing.T, name string) dashboardservice.CreateDashboardRequestDataStructure {
 	t.Helper()
-	fixture := dashboardContentJSONFixtureFor(t, "content_json_dynamic_queries_table.json")
+	fixture := dashboardContentJSONFixtureFor(t, "content_json_dynamic_unsupported_visualization.json")
 	var dashboard dashboardservice.Dashboard
 	if err := json.Unmarshal([]byte(fixture.content), &dashboard); err != nil {
 		t.Fatalf("unmarshal unsupported dynamic dashboard fixture: %s", err)

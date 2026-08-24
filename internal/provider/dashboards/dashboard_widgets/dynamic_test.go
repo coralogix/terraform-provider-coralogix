@@ -18,6 +18,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -228,9 +230,10 @@ func TestDynamicWidgetSpansAndDataPrimeQueryFullFidelityRoundTrip(t *testing.T) 
 
 // A visualization variant this provider version does not model must fail the
 // read rather than write partial state.
+// Swap gauge for another unmodelled variant when it gains support; do not delete.
 func TestFlattenDynamicRejectsUnmodeledVisualization(t *testing.T) {
 	_, diags := flattenDynamicVisualization(context.Background(), &dashboardservice.Visualization{
-		Table: &dashboardservice.Table{},
+		Gauge: &dashboardservice.VisualizationGauge{},
 	})
 	if !diags.HasError() {
 		t.Fatal("flattening an unmodeled visualization returned no error diagnostic")
@@ -602,5 +605,207 @@ func TestDynamicWidgetBarsFullFidelityRoundTrip(t *testing.T) {
 				Visualization: visualization,
 			})
 		})
+	}
+}
+
+func TestDynamicWidgetTableFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	propertyList := func(properties ...DynamicTablePropertyModel) types.List {
+		list, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dynamicTablePropertyModelAttr()}, properties)
+		if diags.HasError() {
+			t.Fatalf("building table properties: %v", diags)
+		}
+		return list
+	}
+
+	property := func(id string, definition DynamicTablePropertyDefinitionModel) DynamicTablePropertyModel {
+		return DynamicTablePropertyModel{ID: types.StringValue(id), Definition: &definition}
+	}
+
+	linkActions, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dynamicTableLinkActionModelAttr()}, []DynamicTableLinkActionModel{{
+		ID:                    types.StringValue("action-id"),
+		Name:                  types.StringValue("open trace"),
+		ShouldOpenInNewWindow: types.BoolValue(true),
+		Url:                   types.StringValue("https://example.com/trace"),
+	}})
+	if diags.HasError() {
+		t.Fatalf("building link actions: %v", diags)
+	}
+
+	valueMappings, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dynamicTableValueMappingModelAttr()}, []DynamicTableValueMappingModel{{
+		InputValue:   types.StringValue("500"),
+		ReplaceValue: types.StringValue("server error"),
+		Type:         types.StringValue("value"),
+	}})
+	if diags.HasError() {
+		t.Fatalf("building value mappings: %v", diags)
+	}
+
+	columnWidths, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dynamicTableColumnWidthModelAttr()}, []DynamicTableColumnWidthModel{{
+		ColumnName: types.StringValue("severity"),
+		Width:      types.Int64Value(120),
+	}})
+	if diags.HasError() {
+		t.Fatalf("building column widths: %v", diags)
+	}
+
+	columns, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dynamicTableColumnModelAttr()}, []DynamicTableColumnModel{
+		{Field: observationFieldObject("severity", "metadata")},
+		{Field: observationFieldObject("responsetime", "user_data")},
+	})
+	if diags.HasError() {
+		t.Fatalf("building table columns: %v", diags)
+	}
+
+	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dynamicTableRuleModelAttr()}, []DynamicTableRuleModel{
+		{
+			Description: types.StringValue("scoped by field"),
+			ID:          types.StringValue("rule-field"),
+			Name:        types.StringValue("field rule"),
+			RuleScope:   &DynamicTableRuleScopeModel{Field: observationFieldObject("severity", "metadata")},
+			Properties: propertyList(
+				property("prop-display-name", DynamicTablePropertyDefinitionModel{ColumnDisplayName: types.StringValue("Severity")}),
+				property("prop-alignment", DynamicTablePropertyDefinitionModel{Alignment: types.StringValue("center")}),
+				property("prop-units", DynamicTablePropertyDefinitionModel{Units: &DynamicTablePropertyUnitsModel{
+					AllowAbbreviation: types.BoolValue(true),
+					CustomUnit:        types.StringValue("reqs"),
+					DecimalPrecision:  types.Int64Value(3),
+					Max:               types.Float64Value(99),
+					Min:               types.Float64Value(1),
+					Unit:              types.StringValue("milliseconds"),
+				}}),
+			),
+		},
+		{
+			Description: types.StringValue("scoped by regex"),
+			ID:          types.StringValue("rule-regex"),
+			Name:        types.StringValue("regex rule"),
+			RuleScope:   &DynamicTableRuleScopeModel{Field: types.ObjectNull(ObservationFieldAttr()), Regex: types.StringValue("^resp.*")},
+			Properties: propertyList(
+				property("prop-regex-extract", DynamicTablePropertyDefinitionModel{RegexExtract: types.StringValue("([0-9]+)")}),
+				property("prop-link", DynamicTablePropertyDefinitionModel{Link: &DynamicTablePropertyLinkModel{Actions: linkActions}}),
+				property("prop-values-alias", DynamicTablePropertyDefinitionModel{ValuesAlias: types.StringValue("alias")}),
+			),
+		},
+		{
+			Description: types.StringValue("scoped by field type"),
+			ID:          types.StringValue("rule-field-type"),
+			Name:        types.StringValue("field type rule"),
+			RuleScope:   &DynamicTableRuleScopeModel{Field: types.ObjectNull(ObservationFieldAttr()), FieldType: types.StringValue("number")},
+			Properties: propertyList(
+				property("prop-values-mapping", DynamicTablePropertyDefinitionModel{ValuesMapping: &DynamicTablePropertyValuesMappingModel{Mappings: valueMappings}}),
+				property("prop-thresholds", DynamicTablePropertyDefinitionModel{Thresholds: &DynamicTablePropertyThresholdsModel{
+					Max:    types.Float64Value(1000),
+					Min:    types.Float64Value(0),
+					Type:   types.StringValue("absolute"),
+					Values: dynamicThresholdList(),
+				}}),
+			),
+		},
+	})
+	if diags.HasError() {
+		t.Fatalf("building table rules: %v", diags)
+	}
+
+	original := &DynamicModel{
+		QueryDefinitions: logsQueryDefinitionsFixture(ctx, t),
+		TimeFrame: &TimeFrameModel{
+			Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+		},
+		Visualization: &DynamicVisualizationModel{
+			Table: &DynamicTableModel{
+				Columns: columns,
+				Rules:   rules,
+				Settings: &DynamicTableSettingsModel{
+					ColumnWidths: columnWidths,
+					RowStyle:     types.StringValue("two_line"),
+				},
+			},
+		},
+	}
+
+	assertDynamicRoundTrip(ctx, t, original)
+}
+
+// Shapes the API stores that the typed schema must be able to express. Each was
+// confirmed by applying it through content_json and reading the dashboard back.
+func TestDynamicWidgetTableReadsShapesTheSchemaMustExpress(t *testing.T) {
+	ctx := context.Background()
+	scope := dashboardservice.DATASETSCOPE_DATASET_SCOPE_USER_DATA
+
+	t.Run("column keypath may be empty or absent", func(t *testing.T) {
+		for name, keypath := range map[string][]string{"empty": {}, "absent": nil} {
+			t.Run(name, func(t *testing.T) {
+				table, diags := flattenDynamicTable(ctx, &dashboardservice.Table{
+					Columns: []dashboardservice.TableColumn{{
+						Field: &dashboardservice.ObservationField{Keypath: keypath, Scope: &scope},
+					}},
+				})
+				if diags.HasError() {
+					t.Fatalf("flattening a column with a %s keypath: %v", name, diags)
+				}
+
+				columns := table.Columns.Elements()
+				if len(columns) != 1 {
+					t.Fatalf("expected one column, got %d", len(columns))
+				}
+				field := columns[0].(types.Object).Attributes()["field"].(types.Object)
+				if got := field.Attributes()["keypath"]; !got.IsNull() {
+					t.Fatalf("keypath must read back as null so the config can omit it, got %s", got)
+				}
+			})
+		}
+	})
+
+	// A union with no arm selected must read back absent. Left as a present
+	// object it would flatten into config that ExactlyOneOfChildren rejects,
+	// leaving the dashboard unmanageable in typed HCL.
+	t.Run("rule scope with no arm reads back absent", func(t *testing.T) {
+		table, diags := flattenDynamicTable(ctx, &dashboardservice.Table{
+			Rules: []dashboardservice.TableRule{{RuleScope: &dashboardservice.RuleScope{}}},
+		})
+		if diags.HasError() {
+			t.Fatalf("flattening a rule with an empty scope: %v", diags)
+		}
+		rule := table.Rules.Elements()[0].(types.Object)
+		if got := rule.Attributes()["rule_scope"]; !got.IsNull() {
+			t.Fatalf("rule_scope must read back as null, got %s", got)
+		}
+	})
+
+	t.Run("property definition with no arm reads back absent", func(t *testing.T) {
+		regex := "^a$"
+		table, diags := flattenDynamicTable(ctx, &dashboardservice.Table{
+			Rules: []dashboardservice.TableRule{{
+				RuleScope:  &dashboardservice.RuleScope{Regex: &regex},
+				Properties: []dashboardservice.Property{{Definition: &dashboardservice.PropertyDefinition{}}},
+			}},
+		})
+		if diags.HasError() {
+			t.Fatalf("flattening a property with an empty definition: %v", diags)
+		}
+		rule := table.Rules.Elements()[0].(types.Object)
+		property := rule.Attributes()["properties"].(types.List).Elements()[0].(types.Object)
+		if got := property.Attributes()["definition"]; !got.IsNull() {
+			t.Fatalf("definition must read back as null, got %s", got)
+		}
+	})
+}
+
+// Guards the schema half of the empty-keypath fix: the flatten test above
+// cannot catch a keypath that is Required again, because the read direction
+// returns null either way.
+func TestDynamicTableColumnKeypathIsOptional(t *testing.T) {
+	table := dynamicTableSchema().(schema.SingleNestedAttribute)
+	columns := table.Attributes["columns"].(schema.ListNestedAttribute)
+	field := columns.NestedObject.Attributes["field"].(schema.SingleNestedAttribute)
+	keypath := field.Attributes["keypath"].(schema.ListAttribute)
+
+	if keypath.Required {
+		t.Error("table column keypath must not be Required: the API stores columns with an absent keypath")
+	}
+	if !keypath.Optional {
+		t.Error("table column keypath must be Optional")
 	}
 }

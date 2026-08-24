@@ -147,6 +147,7 @@ func DynamicSchema() schema.Attribute {
 				Attributes: map[string]schema.Attribute{
 					"stat":                    dynamicStatSchema(),
 					"stat_card":               dynamicStatCardSchema(),
+					"table":                   dynamicTableSchema(),
 					"time_series_lines":       dynamicTimeSeriesLinesSchema(),
 					"time_series_lines_multi": dynamicTimeSeriesLinesMultiSchema(),
 					"time_series_bars":        dynamicTimeSeriesBarsSchema(),
@@ -156,7 +157,7 @@ func DynamicSchema() schema.Attribute {
 					"horizontal_bars_multi":   dynamicHorizontalBarsMultiSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card", "time_series_lines", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi"),
+					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi"),
 				},
 			},
 		},
@@ -509,6 +510,7 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"stat":                    types.ObjectType{AttrTypes: dynamicStatModelAttr()},
 		"stat_card":               types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
+		"table":                   types.ObjectType{AttrTypes: dynamicTableModelAttr()},
 		"time_series_lines":       types.ObjectType{AttrTypes: dynamicTimeSeriesLinesModelAttr()},
 		"time_series_lines_multi": types.ObjectType{AttrTypes: dynamicTimeSeriesLinesMultiModelAttr()},
 		"time_series_bars":        types.ObjectType{AttrTypes: dynamicTimeSeriesBarsModelAttr()},
@@ -776,14 +778,14 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 	// One helper per visualization family, so adding a family stays a one-line
 	// change here instead of growing a switch past the cyclomatic limit.
 	for _, family := range []func(context.Context, *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics){
-		expandDynamicVisualizationFamilyStat, expandDynamicVisualizationFamilyTimeSeries, expandDynamicVisualizationFamilyBars,
+		expandDynamicVisualizationFamilyStat, expandDynamicVisualizationFamilyTable, expandDynamicVisualizationFamilyTimeSeries, expandDynamicVisualizationFamilyBars,
 	} {
-		expanded, diags := family(ctx, visualization)
+		converted, diags := family(ctx, visualization)
 		if diags.HasError() {
 			return nil, diags
 		}
-		if expanded != nil {
-			return expanded, nil
+		if converted != nil {
+			return converted, nil
 		}
 	}
 
@@ -804,6 +806,19 @@ func expandDynamicVisualizationFamilyStat(ctx context.Context, visualization *Dy
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{StatCard: statCard}, nil
+	}
+
+	return nil, nil
+}
+
+func expandDynamicVisualizationFamilyTable(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics) {
+	switch {
+	case visualization.Table != nil:
+		table, diags := expandDynamicTable(ctx, visualization.Table)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{Table: table}, nil
 	}
 
 	return nil, nil
@@ -1175,14 +1190,14 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 	// One helper per visualization family, so adding a family stays a one-line
 	// change here instead of growing a switch past the cyclomatic limit.
 	for _, family := range []func(context.Context, *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics){
-		flattenDynamicVisualizationFamilyStat, flattenDynamicVisualizationFamilyTimeSeries, flattenDynamicVisualizationFamilyBars,
+		flattenDynamicVisualizationFamilyStat, flattenDynamicVisualizationFamilyTable, flattenDynamicVisualizationFamilyTimeSeries, flattenDynamicVisualizationFamilyBars,
 	} {
-		expanded, diags := family(ctx, visualization)
+		converted, diags := family(ctx, visualization)
 		if diags.HasError() {
 			return nil, diags
 		}
-		if expanded != nil {
-			return expanded, nil
+		if converted != nil {
+			return converted, nil
 		}
 	}
 
@@ -1206,6 +1221,19 @@ func flattenDynamicVisualizationFamilyStat(ctx context.Context, visualization *d
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{StatCard: statCard}, nil
+	}
+
+	return nil, nil
+}
+
+func flattenDynamicVisualizationFamilyTable(ctx context.Context, visualization *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics) {
+	switch {
+	case visualization.Table != nil:
+		table, diags := flattenDynamicTable(ctx, visualization.Table)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{Table: table}, nil
 	}
 
 	return nil, nil
