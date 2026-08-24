@@ -3051,7 +3051,7 @@ Optional:
 - `arc_display` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--arc_display))
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--category_fields))
 - `custom_unit` (String)
-- `decimal_precision` (Number)
+- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `display_series_name` (Boolean)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--legend))
 - `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
@@ -3133,7 +3133,7 @@ Optional:
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--category_fields))
 - `color_scheme` (String)
 - `custom_unit` (String)
-- `decimal_precision` (Number)
+- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `group_name_template` (String)
 - `hash_colors` (Boolean)
 - `label_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--label_definition))

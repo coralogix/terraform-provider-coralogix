@@ -79,8 +79,9 @@ func dynamicGaugeSchema() schema.Attribute {
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.Between(0, 15),
 				},
+				MarkdownDescription: "How many digits to show after the decimal point. Valid values are 0 to 15.",
 			},
 			"display_series_name": schema.BoolAttribute{
 				Optional: true,
@@ -165,8 +166,9 @@ func dynamicPieChartSchema() schema.Attribute {
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.Between(0, 15),
 				},
+				MarkdownDescription: "How many digits to show after the decimal point. Valid values are 0 to 15.",
 			},
 			"group_name_template": schema.StringAttribute{
 				Optional: true,
