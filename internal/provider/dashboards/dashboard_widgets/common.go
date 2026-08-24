@@ -62,8 +62,10 @@ var (
 		"usd_cents":       dashboardservice.COMMONUNIT_UNIT_USD_CENTS,
 		"usd":             dashboardservice.COMMONUNIT_UNIT_USD,
 		"custom":          dashboardservice.COMMONUNIT_UNIT_CUSTOM,
+		"percent":         dashboardservice.COMMONUNIT_UNIT_PERCENT,
 		"percent01":       dashboardservice.COMMONUNIT_UNIT_PERCENT_ZERO_ONE,
 		"percent100":      dashboardservice.COMMONUNIT_UNIT_PERCENT_ZERO_HUNDRED,
+		"datetime_iso":    dashboardservice.COMMONUNIT_UNIT_DATETIME_ISO,
 	}
 	DashboardProtoToSchemaUnit = utils.ReverseMap(DashboardSchemaToProtoUnit)
 	DashboardValidUnits        = utils.GetKeys(DashboardSchemaToProtoUnit)
@@ -182,6 +184,7 @@ var (
 		"custom":          dashboardservice.GAUGEUNIT_UNIT_CUSTOM,
 		"percent01":       dashboardservice.GAUGEUNIT_UNIT_PERCENT_ZERO_ONE,
 		"percent100":      dashboardservice.GAUGEUNIT_UNIT_PERCENT_ZERO_HUNDRED,
+		"datetime_iso":    dashboardservice.GAUGEUNIT_UNIT_DATETIME_ISO,
 	}
 	DashboardProtoToSchemaGaugeUnit           = utils.ReverseMap(DashboardSchemaToProtoGaugeUnit)
 	DashboardValidGaugeUnits                  = utils.GetKeys(DashboardSchemaToProtoGaugeUnit)
@@ -525,7 +528,8 @@ type SpanObservationFieldModel struct {
 }
 
 type DynamicVisualizationModel struct {
-	Stat *DynamicStatModel `tfsdk:"stat"`
+	Stat     *DynamicStatModel     `tfsdk:"stat"`
+	StatCard *DynamicStatCardModel `tfsdk:"stat_card"`
 }
 
 type DynamicStatModel struct {
@@ -2527,4 +2531,64 @@ func ExpandDashboardFiltersSources(ctx context.Context, filters types.List) ([]d
 	}
 
 	return expandedFiltersSources, diags
+}
+
+type DynamicStatCardModel struct {
+	AllowAbbreviation types.Bool                     `tfsdk:"allow_abbreviation"`
+	CategoryFields    types.List                     `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorLabelMapping *DynamicColorLabelMappingModel `tfsdk:"color_label_mapping"`
+	CustomUnit        types.String                   `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64                    `tfsdk:"decimal_precision"`
+	Label             *DynamicStatVisualElementModel `tfsdk:"label"`
+	Legend            *LegendModel                   `tfsdk:"legend"`
+	LegendBy          types.String                   `tfsdk:"legend_by"`
+	PrimaryValue      *DynamicStatVisualElementModel `tfsdk:"primary_value"`
+	Title             *DynamicStatVisualElementModel `tfsdk:"title"`
+	Unit              types.String                   `tfsdk:"unit"`
+	ValueFields       types.List                     `tfsdk:"value_fields"` //ObservationFieldModel
+}
+
+type DynamicStatVisualElementModel struct {
+	MappedValues      types.Bool   `tfsdk:"mapped_values"`
+	ObservationField  types.Object `tfsdk:"observation_field"` //ObservationFieldModel
+	TemplateText      types.String `tfsdk:"template_text"`
+	TemplateVariables types.List   `tfsdk:"template_variables"` //DynamicTemplateVariableModel
+}
+
+type DynamicTemplateVariableModel struct {
+	MappedValues     types.Bool   `tfsdk:"mapped_values"`
+	ObservationField types.Object `tfsdk:"observation_field"` //ObservationFieldModel
+}
+
+type DynamicColorLabelMappingModel struct {
+	ColorBy types.String                 `tfsdk:"color_by"`
+	Range   *DynamicRangeMappingModel    `tfsdk:"range"`
+	Regex   *DynamicSectionsMappingModel `tfsdk:"regex"`
+	Value   *DynamicSectionsMappingModel `tfsdk:"value"`
+}
+
+type DynamicSectionsMappingModel struct {
+	Sections types.List `tfsdk:"sections"` //DynamicMappingSectionModel
+}
+
+type DynamicRangeMappingModel struct {
+	MinMax        *DynamicMinMaxModel `tfsdk:"min_max"`
+	ThresholdType types.String        `tfsdk:"threshold_type"`
+	Thresholds    types.List          `tfsdk:"thresholds"` //DynamicThresholdModel
+}
+
+type DynamicMinMaxModel struct {
+	Auto   types.Bool                `tfsdk:"auto"`
+	Custom *DynamicMinMaxCustomModel `tfsdk:"custom"`
+}
+
+type DynamicMappingSectionModel struct {
+	Color types.String `tfsdk:"color"`
+	MapTo types.String `tfsdk:"map_to"`
+	Value types.String `tfsdk:"value"`
+}
+
+type DynamicMinMaxCustomModel struct {
+	Max types.Float64 `tfsdk:"max"`
+	Min types.Float64 `tfsdk:"min"`
 }
