@@ -148,3 +148,46 @@ func TestCurrentSchemaDecodesNarrowDynamicStatCardState(t *testing.T) {
 // V1, V2 and V3 are wired as PriorSchema values in the resource's UpgradeState
 // map, so widening a schema helper they share with the current version
 // retroactively changes the type historical state is decoded against. Every
+
+// A dynamic time-series widget as written before the visualization gained its
+// remaining fields, and before query definitions could carry an explicit id.
+const narrowDynamicTimeSeriesStateJSON = `{
+  "id": "dashboard-id",
+  "name": "dynamic time series dashboard",
+  "layout": {
+    "sections": [{
+      "id": "section-id",
+      "rows": [{
+        "id": "row-id",
+        "appearance": {"height": 19},
+        "widgets": [{
+          "id": "widget-id",
+          "title": "lines",
+          "definition": {
+            "dynamic": {
+              "query_definitions": [{
+                "id": "query-id",
+                "query": {"metrics": {"promql_query": "vector(1)", "promql_query_type": "unspecified"}}
+              }],
+              "visualization": {
+                "time_series_lines": {
+                  "unit": "custom",
+                  "scale_type": "linear",
+                  "stacked_line": "unspecified",
+                  "x_axis_time_format": "unspecified",
+                  "y_axis_min": 0,
+                  "y_axis_max": 99.5,
+                  "legend": {"is_visible": true, "columns": null, "group_by_query": false, "placement": "bottom"}
+                }
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}`
+
+func TestCurrentSchemaDecodesNarrowDynamicTimeSeriesState(t *testing.T) {
+	decodeAgainstSchema(t, V4(), narrowDynamicTimeSeriesStateJSON)
+}

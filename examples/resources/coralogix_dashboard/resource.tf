@@ -1003,6 +1003,100 @@ resource "coralogix_dashboard" "widgets" {
               }
             },
             {
+              # `time_series_lines_multi` plots one line per query over time.
+              # `query_display_settings` styles an individual query, so that
+              # query needs an explicit `id` to reference.
+              title = "dynamic time series - latency by app"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    id   = "9d1b7a4e-0000-4000-8000-00000000ab01"
+                    name = "p99"
+                    query = {
+                      metrics = {
+                        promql_query = "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))"
+                        # Time-series charts need a range query. An instant query
+                        # returns a single point and the chart renders empty.
+                        promql_query_type = "range"
+                      }
+                    }
+                  }]
+                  visualization = {
+                    time_series_lines_multi = {
+                      connect_nulls      = true
+                      stacked_line       = "absolute"
+                      x_axis_time_format = "hh_mm"
+                      query_display_settings = [{
+                        query_id          = "9d1b7a4e-0000-4000-8000-00000000ab01"
+                        scale_type        = "linear"
+                        unit              = "seconds"
+                        decimal_precision = 2
+                        y_axis_min        = 0
+                      }]
+                      legend = {
+                        is_visible = true
+                        placement  = "bottom"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              # A `table` lists raw rows. `rules` style individual columns:
+              # each rule picks columns with `rule_scope` and applies exactly
+              # one `definition` — rename, align, format, map values, and so on.
+              title = "dynamic table - recent errors"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "rows"
+                    query = {
+                      logs = {
+                        lucene_query = "coralogix.metadata.severity=\"5\""
+                      }
+                    }
+                  }]
+                  visualization = {
+                    table = {
+                      columns = [
+                        { field = { keypath = ["applicationname"], scope = "label" } },
+                        { field = { keypath = ["severity"], scope = "metadata" } },
+                      ]
+                      settings = {
+                        row_style = "one_line"
+                        column_widths = [{
+                          column_name = "applicationname"
+                          width       = 200
+                        }]
+                      }
+                      rules = [
+                        {
+                          name       = "rename the application column"
+                          rule_scope = { field = { keypath = ["applicationname"], scope = "label" } }
+                          properties = [{ definition = { column_display_name = "Application" } }]
+                        },
+                        {
+                          name       = "show severity names instead of numbers"
+                          rule_scope = { field = { keypath = ["severity"], scope = "metadata" } }
+                          properties = [{
+                            definition = {
+                              values_mapping = {
+                                mappings = [
+                                  { input_value = "5", replace_value = "ERROR", type = "value" },
+                                  { input_value = "6", replace_value = "CRITICAL", type = "value" },
+                                ]
+                              }
+                            }
+                          }]
+                        },
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            {
               # `gauge` shows one aggregated value on an arc, coloured by
               # `thresholds`. The query has to aggregate, and the result column
               # is named after the aggregation and its index.
