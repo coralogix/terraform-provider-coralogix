@@ -187,12 +187,14 @@ func TestAccCoralogixResourceDashboardDynamicBarsRejectsEmptyLists(t *testing.T)
 	name := dashboardOpenAPIFixtureName(t.Name())
 
 	for attribute, visualization := range map[string]string{
-		"vertical_category_fields":         `vertical_bars = { category_fields = [] }`,
-		"vertical_sub_category_fields":     `vertical_bars = { sub_category_fields = [] }`,
-		"vertical_multi_category_fields":   `vertical_bars_multi = { category_fields = [] }`,
-		"horizontal_category_fields":       `horizontal_bars = { category_fields = [] }`,
-		"horizontal_sub_category_fields":   `horizontal_bars = { sub_category_fields = [] }`,
-		"horizontal_multi_category_fields": `horizontal_bars_multi = { category_fields = [] }`,
+		"vertical_category_fields":              `vertical_bars = { category_fields = [] }`,
+		"vertical_sub_category_fields":          `vertical_bars = { sub_category_fields = [] }`,
+		"vertical_multi_category_fields":        `vertical_bars_multi = { category_fields = [] }`,
+		"horizontal_category_fields":            `horizontal_bars = { category_fields = [] }`,
+		"horizontal_sub_category_fields":        `horizontal_bars = { sub_category_fields = [] }`,
+		"horizontal_multi_category_fields":      `horizontal_bars_multi = { category_fields = [] }`,
+		"vertical_multi_query_field_settings":   `vertical_bars_multi = { query_field_settings = [] }`,
+		"horizontal_multi_query_field_settings": `horizontal_bars_multi = { query_field_settings = [] }`,
 	} {
 		t.Run(attribute, func(t *testing.T) {
 			resource.ParallelTest(t, resource.TestCase{
@@ -387,4 +389,24 @@ func testAccCoralogixResourceDashboardDynamicBarsConfig(name, title string, setO
   }
 }
 `, name, title, scaleType, yAxisViewBy, dashboardOpenAPIDynamicBarsQueryID)
+}
+
+// `category = false` is not "the other arm" - it selects nothing. The union
+// validator counts any non-null child as chosen while the write direction drops
+// a false marker, so without this the request reaches the API with no arm set.
+func TestAccCoralogixResourceDashboardDynamicBarsRejectsFalseCategoryMarker(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{{
+			Config: testAccCoralogixResourceDashboardDynamicBarsVisualizationConfig(name, `vertical_bars_multi = {
+          sort_order = {
+            strategy = { category = false }
+          }
+        }`),
+			ExpectError: regexp.MustCompile(`(?s)must be true|Invalid Attribute`),
+		}},
+	})
 }

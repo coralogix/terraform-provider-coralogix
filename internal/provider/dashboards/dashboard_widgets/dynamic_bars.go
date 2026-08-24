@@ -59,6 +59,9 @@ var (
 func dynamicBarsQueryFieldSettingsSchema() schema.Attribute {
 	return schema.ListNestedAttribute{
 		Optional: true,
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
 				"query_id": schema.StringAttribute{
@@ -91,6 +94,7 @@ func dynamicSortOrderSchema() schema.Attribute {
 				Attributes: map[string]schema.Attribute{
 					"category": schema.BoolAttribute{
 						Optional:            true,
+						Validators:          []validator.Bool{mustBeTrueValidator{}},
 						MarkdownDescription: "Sort by the bar category. Set `true` to select this strategy; the API carries no settings for it.",
 					},
 					"query_value": schema.SingleNestedAttribute{
