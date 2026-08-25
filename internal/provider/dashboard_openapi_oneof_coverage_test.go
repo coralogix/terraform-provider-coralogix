@@ -99,6 +99,8 @@ var dashboardStructuredAcceptanceLifecycleTests = []string{
 	dashboardOpenAPITransitionTestName,
 	dashboardOpenAPIDynamicStatTestName,
 	dashboardOpenAPIDynamicStatCardTestName,
+	dashboardOpenAPIDynamicTimeSeriesTestName,
+	dashboardOpenAPIDynamicBarsTestName,
 	dashboardOpenAPIDynamicTableTestName,
 	dashboardOpenAPIDynamicTimeSeriesTestName,
 	dashboardOpenAPIDynamicGeoHeatTestName,
@@ -230,6 +232,13 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 	)
 	visualization.Branches["stat"] = covered(dynamicWidget+".visualization.stat", dashboardOpenAPIDynamicStatTestName)
 	visualization.Branches["statCard"] = covered(statCard, dashboardOpenAPIDynamicStatCardTestName)
+	visualization.Branches["timeSeriesLines"] = covered(dynamicWidget+".visualization.time_series_lines", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["timeSeriesLinesMulti"] = covered(dynamicWidget+".visualization.time_series_lines_multi", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["timeSeriesBars"] = covered(dynamicWidget+".visualization.time_series_bars", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["verticalBars"] = covered(dynamicWidget+".visualization.vertical_bars", dashboardOpenAPIDynamicBarsTestName)
+	visualization.Branches["verticalBarsMulti"] = covered(dynamicWidget+".visualization.vertical_bars_multi", dashboardOpenAPIDynamicBarsTestName)
+	visualization.Branches["horizontalBars"] = covered(dynamicWidget+".visualization.horizontal_bars", dashboardOpenAPIDynamicBarsTestName)
+	visualization.Branches["horizontalBarsMulti"] = covered(dynamicWidget+".visualization.horizontal_bars_multi", dashboardOpenAPIDynamicBarsTestName)
 	visualization.Branches["table"] = covered(table, dashboardOpenAPIDynamicTableTestName)
 	visualization.Branches["timeSeriesLines"] = covered(dynamicWidget+".visualization.time_series_lines", dashboardOpenAPIDynamicTimeSeriesTestName)
 	visualization.Branches["timeSeriesLinesMulti"] = covered(dynamicWidget+".visualization.time_series_lines_multi", dashboardOpenAPIDynamicTimeSeriesTestName)
@@ -620,11 +629,13 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"custom":   covered("layout.sections[*].options", "TestAccCoralogixResourceDashboard"),
 			},
 		},
-		"SortStrategy": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.SortOrder.SortStrategy.strategy",
-			"dynamic sort strategy is reachable only below WidgetDefinition.dynamic",
-			"category", "queryValue",
-		),
+		"SortStrategy": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.SortOrder.SortStrategy.strategy",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"category":   covered(dynamicWidget+".visualization.{vertical_bars_multi,horizontal_bars_multi}.sort_order.strategy.category", dashboardOpenAPIDynamicBarsTestName),
+				"queryValue": covered(dynamicWidget+".visualization.{vertical_bars_multi,horizontal_bars_multi}.sort_order.strategy.query_value", dashboardOpenAPIDynamicBarsTestName),
+			},
+		},
 		"SpanField": {
 			ProtoSource: "common/span_field.proto#SpanField.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -889,7 +900,7 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 
 func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 	models := map[string][]string{
-		"Visualization": {"gauge", "pieChart", "horizontalBars", "verticalBars", "verticalBarsMulti", "horizontalBarsMulti"},
+		"Visualization": {"gauge", "pieChart"},
 	}
 	observed := map[string]struct{}{
 		"Visualization.table": {},
