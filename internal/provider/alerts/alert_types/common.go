@@ -131,7 +131,7 @@ var (
 	NoDataPolicyStateSchemaToProtoMap = utils.ReverseMap(NoDataPolicyStateProtoToSchemaMap)
 	// Preferred user-facing values (docs + descriptions). UNSPECIFIED remains accepted
 	// with a deprecation warning for one or more releases.
-	ValidNoDataPolicyStates = []string{"OK", "ALERTING", "KEEP_LAST", "NO_DATA"}
+	ValidNoDataPolicyStates    = []string{"OK", "ALERTING", "KEEP_LAST", "NO_DATA"}
 	AcceptedNoDataPolicyStates = append(append([]string{}, ValidNoDataPolicyStates...), "UNSPECIFIED")
 
 	LogsRatioTimeWindowValueProtoToSchemaMap = map[alerts.LogsRatioTimeWindowValue]string{
@@ -268,6 +268,8 @@ var (
 	LogsThresholdConditionMap = map[alerts.LogsThresholdConditionType]string{
 		alerts.LOGSTHRESHOLDCONDITIONTYPE_LOGS_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: "MORE_THAN",
 		alerts.LOGSTHRESHOLDCONDITIONTYPE_LOGS_THRESHOLD_CONDITION_TYPE_LESS_THAN:                "LESS_THAN",
+		alerts.LOGSTHRESHOLDCONDITIONTYPE_LOGS_THRESHOLD_CONDITION_TYPE_EQUALS:                   "EQUALS",
+		alerts.LOGSTHRESHOLDCONDITIONTYPE_LOGS_THRESHOLD_CONDITION_TYPE_NOT_EQUALS:               "NOT_EQUALS",
 	}
 	LogsThresholdConditionToProtoMap = utils.ReverseMap(LogsThresholdConditionMap)
 	LogsThresholdConditionValues     = utils.GetValues(LogsThresholdConditionMap)
@@ -291,6 +293,8 @@ var (
 		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_LESS_THAN:                "LESS_THAN",
 		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_EQUALS:      "MORE_THAN_OR_EQUALS",
 		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_LESS_THAN_OR_EQUALS:      "LESS_THAN_OR_EQUALS",
+		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_EQUALS:                   "EQUALS",
+		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_NOT_EQUALS:               "NOT_EQUALS",
 	}
 	MetricsThresholdConditionValues     = utils.GetValues(MetricsThresholdConditionMap)
 	MetricsThresholdConditionToProtoMap = utils.ReverseMap(MetricsThresholdConditionMap)
