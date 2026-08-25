@@ -659,6 +659,11 @@ func expandDynamicGeomap(ctx context.Context, m *DynamicGeomapModel) (*dashboard
 		return nil, diags
 	}
 
+	minMax, diags := expandDynamicMinMax(m.MinMax)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.Geomap{
 		Aggregation:       aggregation,
 		AllowAbbreviation: m.AllowAbbreviation.ValueBoolPointer(),
@@ -666,7 +671,7 @@ func expandDynamicGeomap(ctx context.Context, m *DynamicGeomapModel) (*dashboard
 		Config:            config,
 		CustomUnit:        m.CustomUnit.ValueStringPointer(),
 		DecimalPrecision:  expandInt32Pointer(m.DecimalPrecision),
-		MinMax:            expandDynamicMinMax(m.MinMax),
+		MinMax:            minMax,
 		Tooltip:           tooltip,
 		Unit:              OptionalEnumPointer(m.Unit, DashboardSchemaToProtoUnit),
 	}, nil
@@ -790,21 +795,29 @@ func expandDynamicGeomapTooltip(ctx context.Context, m *DynamicGeomapTooltipMode
 	}, nil
 }
 
-func expandDynamicMinMax(m *DynamicMinMaxModel) *dashboardservice.MinMax {
+// The API has no representation for a min/max with neither arm chosen, so
+// sending an empty one comes back as an unset block and fails the apply. The
+// object validator cannot catch this when `auto` is only known after apply, so
+// the conversion has to refuse it.
+func expandDynamicMinMax(m *DynamicMinMaxModel) (*dashboardservice.MinMax, diag.Diagnostics) {
 	if m == nil {
-		return nil
+		return nil, nil
 	}
-	minMax := &dashboardservice.MinMax{}
-	if m.Auto.ValueBool() {
-		minMax.Auto = map[string]interface{}{}
-	}
-	if m.Custom != nil {
-		minMax.Custom = &dashboardservice.MinMaxCustom{
+
+	switch {
+	case m.Custom != nil:
+		return &dashboardservice.MinMax{Custom: &dashboardservice.MinMaxCustom{
 			Max: m.Custom.Max.ValueFloat64Pointer(),
 			Min: m.Custom.Min.ValueFloat64Pointer(),
-		}
+		}}, nil
+	case m.Auto.ValueBool():
+		return &dashboardservice.MinMax{Auto: map[string]interface{}{}}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Invalid Attribute Combination",
+			"min_max requires exactly one of `auto` or `custom`, and `auto` must be true. Remove the min_max block to let the widget scale itself.",
+		)}
 	}
-	return minMax
 }
 
 // Flatten --------------------------------------------------------------------

@@ -997,6 +997,28 @@ func TestDynamicWidgetSpatialFullFidelityRoundTrip(t *testing.T) {
 // The API stores a geomap min/max wrapper with neither arm selected. Read back
 // as a present block it would carry two null children, which the block's own
 // exactly-one-of validator rejects, so the dashboard would diff forever.
+// `auto` can be false only when it came from a value unknown at plan time, so
+// the object validator has already deferred. Sending the resulting empty
+// wrapper would fail the apply, so the conversion refuses it instead.
+func TestExpandDynamicMinMaxRejectsFalseAuto(t *testing.T) {
+	if _, diags := expandDynamicMinMax(&DynamicMinMaxModel{Auto: types.BoolValue(false)}); !diags.HasError() {
+		t.Error("a min/max block whose auto resolved to false must be refused")
+	}
+	if _, diags := expandDynamicMinMax(&DynamicMinMaxModel{Auto: types.BoolNull()}); !diags.HasError() {
+		t.Error("a min/max block with no arm at all must be refused")
+	}
+
+	// The valid shapes must still convert, or the guard above would be masking
+	// a conversion that never works.
+	if got, diags := expandDynamicMinMax(&DynamicMinMaxModel{Auto: types.BoolValue(true)}); diags.HasError() || got == nil || got.Auto == nil {
+		t.Errorf("the auto arm must convert, got %v %v", got, diags)
+	}
+	custom := &DynamicMinMaxModel{Auto: types.BoolNull(), Custom: &DynamicMinMaxCustomModel{Max: types.Float64Value(50)}}
+	if got, diags := expandDynamicMinMax(custom); diags.HasError() || got == nil || got.Custom == nil {
+		t.Errorf("the custom arm must convert, got %v %v", got, diags)
+	}
+}
+
 func TestDynamicWidgetGeomapEmptyMinMaxReadsBackAbsent(t *testing.T) {
 	if got := flattenDynamicMinMax(&dashboardservice.MinMax{}); got != nil {
 		t.Errorf("a min/max wrapper with no arm must read back as absent, got auto=%s custom=%v", got.Auto, got.Custom)

@@ -5,6 +5,7 @@
 - FIX: Every list the spatial visualizations expose rejects an explicit empty value at plan time instead of failing the apply with an inconsistent-result error.
 - FIX: `decimal_precision` on these visualizations is bounded to the documented 0 to 15 rather than the full int32 range.
 - FIX: A geomap whose stored min/max range selects neither the automatic nor the custom option now reads back with `min_max` unset. It previously produced a block with both alternatives empty, which no configuration can express, so an imported dashboard diffed on every plan.
+- FIX: A geomap `min_max` block whose `auto` resolves to `false` after apply is now refused with a diagnostic instead of sending a range the API cannot represent, which failed the apply with an inconsistent-result error.
 - FIX: Bound the `dynamic` widget's numeric attributes to what the API documents. `max_bars_per_chart`, `max_slices_per_bar` and a table column `width` require at least 1, and the bar and time-series `decimal_precision` is limited to 0 to 15. A table column width also no longer accepts a negative value.
 - FEAT: Add the `gauge` and `pie_chart` visualizations to the `dynamic` widget, including the gauge's arc display and thresholds and the pie chart's label definition.
 - FIX: Every list the `gauge` and `pie_chart` visualizations expose rejects an explicit empty value at plan time instead of failing the apply with an inconsistent-result error.
