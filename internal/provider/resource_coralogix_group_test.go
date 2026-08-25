@@ -140,6 +140,37 @@ func TestAccCoralogixResourceGroupMembersRemovedByOmission(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceGroupMembersIgnoreChanges(t *testing.T) {
+	userName := randUserName()
+	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
+	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceGroupWithMembers(userName, displayName, scopeName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupOmittedMembersResourceName, "members.#", "1"),
+					testAccCheckGroupMemberCount(groupOmittedMembersResourceName, 1),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceGroupIgnoringMembers(userName, displayName+"-renamed", scopeName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupOmittedMembersResourceName, "display_name", displayName+"-renamed"),
+					resource.TestCheckResourceAttr(groupOmittedMembersResourceName, "members.#", "1"),
+					testAccCheckGroupMemberCount(groupOmittedMembersResourceName, 1),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
 func testAccGroupsClient() (*clientset.GroupsClient, error) {
 	// Configure the SDK provider so Meta() is set (ProtoV6 tests don't configure testAccProvider).
 	rc := terraform2.ResourceConfig{}
@@ -315,6 +346,35 @@ func testAccCoralogixResourceGroupWithoutMembers(userName, displayName, scopeNam
 		display_name = "%s"
 		role         = "Read Only"
 		scope_id     = coralogix_scope.omitted_members.id
+	}
+`, scopeName, userName, displayName)
+}
+
+func testAccCoralogixResourceGroupIgnoringMembers(userName, displayName, scopeName string) string {
+	return fmt.Sprintf(`
+	resource "coralogix_scope" "omitted_members" {
+		display_name       = "%s"
+		default_expression = "<v1>true"
+		filters            = [
+		{
+			entity_type = "logs"
+			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
+		}
+		]
+	}
+
+	resource "coralogix_user" "omitted_members" {
+		user_name = "%s"
+	}
+
+	resource "coralogix_group" "omitted_members" {
+		display_name = "%s"
+		role         = "Read Only"
+		scope_id     = coralogix_scope.omitted_members.id
+
+		lifecycle {
+			ignore_changes = [members]
+		}
 	}
 `, scopeName, userName, displayName)
 }

@@ -91,7 +91,7 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			"members": schema.SetAttribute{
 				Optional:            true,
 				ElementType:         types.StringType,
-				MarkdownDescription: "IDs of the users that make up the group. Omit the argument to leave membership unmanaged by this resource - for example when it is maintained in the Coralogix UI or by `coralogix_group_attachment`. Set `members = []` to remove every member. A single group's membership must be managed either here or by `coralogix_group_attachment`, never by both.",
+				MarkdownDescription: "IDs of the users that make up the group. Omit the argument to leave membership unmanaged by this resource - for example when it is maintained in the Coralogix UI or by `coralogix_group_attachment`. Set `members = []` to remove every member. A single group's membership must be managed either here or by `coralogix_group_attachment`, never by both. Omission does not mean unmanaged for a group brought in with `terraform import`: the import reads the group's current members into state, so the next plan reports an omitted argument as a removal of them. After importing a group whose membership is maintained elsewhere, either list its members here or keep them out of Terraform's control with `lifecycle { ignore_changes = [members] }`.",
 			},
 			"role": schema.StringAttribute{
 				Required: true,
