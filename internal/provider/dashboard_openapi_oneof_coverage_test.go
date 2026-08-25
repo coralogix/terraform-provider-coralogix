@@ -101,6 +101,7 @@ var dashboardStructuredAcceptanceLifecycleTests = []string{
 	dashboardOpenAPIDynamicStatCardTestName,
 	dashboardOpenAPIDynamicTableTestName,
 	dashboardOpenAPIDynamicTimeSeriesTestName,
+	dashboardOpenAPIDynamicGeoHeatTestName,
 }
 
 func covered(path, testName string) dashboardOneOfBranchCoverage {
@@ -233,6 +234,9 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 	visualization.Branches["timeSeriesLines"] = covered(dynamicWidget+".visualization.time_series_lines", dashboardOpenAPIDynamicTimeSeriesTestName)
 	visualization.Branches["timeSeriesLinesMulti"] = covered(dynamicWidget+".visualization.time_series_lines_multi", dashboardOpenAPIDynamicTimeSeriesTestName)
 	visualization.Branches["timeSeriesBars"] = covered(dynamicWidget+".visualization.time_series_bars", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["hexagonBins"] = covered(dynamicWidget+".visualization.hexagon_bins", dashboardOpenAPIDynamicGeoHeatTestName)
+	visualization.Branches["heatmap"] = covered(dynamicWidget+".visualization.heatmap", dashboardOpenAPIDynamicGeoHeatTestName)
+	visualization.Branches["geomap"] = covered(dynamicWidget+".visualization.geomap", dashboardOpenAPIDynamicGeoHeatTestName)
 
 	return map[string]dashboardOneOfModelCoverage{
 		"ActionDefinition": apiOnlyModel(
@@ -885,7 +889,7 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 
 func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 	models := map[string][]string{
-		"Visualization": {"gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "verticalBarsMulti", "horizontalBarsMulti"},
+		"Visualization": {"gauge", "pieChart", "horizontalBars", "verticalBars", "verticalBarsMulti", "horizontalBarsMulti"},
 	}
 	observed := map[string]struct{}{
 		"Visualization.table": {},
