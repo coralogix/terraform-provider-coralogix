@@ -131,12 +131,12 @@ func TestDynamicWidgetListsAreCappedAtTheDocumentedMaximum(t *testing.T) {
 	t.Logf("checked %d list attribute(s)", checked)
 }
 
+// Deliberately does not consult dynamicListsWhereEmptyRoundTrips: that map
+// exempts a list from needing a *minimum*, because empty round-trips for it.
+// The documented maximum still applies, so those lists carry a maximum-only
+// validator rather than none.
 func assertListCapped[V interface{ Description(context.Context) string }](ctx context.Context, t *testing.T, path string, validators []V) {
 	t.Helper()
-
-	if _, ok := dynamicListsWhereEmptyRoundTrips[path]; ok {
-		return
-	}
 
 	for _, validator := range validators {
 		description := validator.Description(ctx)

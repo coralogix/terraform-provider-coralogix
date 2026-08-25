@@ -560,3 +560,50 @@ func TestAccCoralogixResourceDashboardDynamicRejectsOverDocumentedLimits(t *test
 		})
 	}
 }
+
+// A filter's selected_values deliberately allows an empty list, since that
+// means "all values", so it carries a maximum-only validator. The documented
+// 1000-item cap still applies, and an empty list must still be accepted.
+func TestAccCoralogixResourceDashboardFilterSelectedValuesCap(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+
+	config := func(values string) string {
+		return fmt.Sprintf(`resource "coralogix_dashboard" "test" {
+  name = %q
+  layout = { sections = [{ rows = [{
+    height = 19
+    widgets = [{
+      title = "filtered"
+      definition = { dynamic = {
+        query_definitions = [{
+          query = { logs = {
+            lucene_query = "*"
+            filters = [{
+              field    = "applicationname"
+              operator = {
+                type            = "equals"
+                selection_type  = "list"
+                selected_values = [%s]
+              }
+            }]
+          }}
+        }]
+        visualization = { heatmap = { value_field = { keypath = ["duration"], scope = "metadata" } } }
+      }}
+    }]
+  }] }] }
+}
+`, name, values)
+	}
+
+	over := strings.TrimSuffix(strings.Repeat(`"v",`, 1001), ",")
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{{
+			Config:      config(over),
+			ExpectError: regexp.MustCompile(`(?s)Invalid Attribute Value`),
+		}},
+	})
+}

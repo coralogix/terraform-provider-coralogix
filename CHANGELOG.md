@@ -14,7 +14,7 @@
 - FEAT: Add `EQUALS` and `NOT_EQUALS` condition types for logs and metric threshold alerts.
 
 #### resource/coralogix_dashboard
-- FIX: The `dynamic` widget now enforces the lengths and list sizes the API documents: `custom_unit` is 1 to 128 characters, a tooltip `message_template` is 1 to 4096, and every list is capped at 1000 items. The API accepts larger values and stores them, so these reject a configuration that previously applied — most likely to be noticed on a `custom_unit` longer than 128 characters, which has been settable on the `stat` visualization since 3.10.0.
+- FIX: The `dynamic` widget now enforces the lengths and list sizes the API documents: `custom_unit` is 1 to 128 characters, a tooltip `message_template` is 1 to 4096, and every list is capped at 1000 items, including a filter's `selected_values`, which keeps accepting an empty list because that selects all values. The API accepts larger values and stores them, so these reject a configuration that previously applied — most likely to be noticed on a `custom_unit` longer than 128 characters, which has been settable on the `stat` visualization since 3.10.0.
 - FEAT: Add the `hexagon_bins`, `heatmap` and `geomap` visualizations to the `dynamic` widget, completing the set. The geomap's coordinate source, cluster aggregation and colour mode each take exactly one alternative.
 - FIX: Every list the spatial visualizations expose rejects an explicit empty value at plan time instead of failing the apply with an inconsistent-result error.
 - FIX: `decimal_precision` on these visualizations is bounded to the documented 0 to 15 rather than the full int32 range.
