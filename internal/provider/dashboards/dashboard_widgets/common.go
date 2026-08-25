@@ -531,6 +531,9 @@ type SpanObservationFieldModel struct {
 type DynamicVisualizationModel struct {
 	Stat                 *DynamicStatModel                 `tfsdk:"stat"`
 	StatCard             *DynamicStatCardModel             `tfsdk:"stat_card"`
+	Gauge                *DynamicGaugeModel                `tfsdk:"gauge"`
+	PieChart             *DynamicPieChartModel             `tfsdk:"pie_chart"`
+	Table                *DynamicTableModel                `tfsdk:"table"`
 	TimeSeriesLines      *DynamicTimeSeriesLinesModel      `tfsdk:"time_series_lines"`
 	TimeSeriesLinesMulti *DynamicTimeSeriesLinesMultiModel `tfsdk:"time_series_lines_multi"`
 	TimeSeriesBars       *DynamicTimeSeriesBarsModel       `tfsdk:"time_series_bars"`
@@ -541,7 +544,6 @@ type DynamicVisualizationModel struct {
 	VerticalBarsMulti    *DynamicVerticalBarsMultiModel    `tfsdk:"vertical_bars_multi"`
 	HorizontalBars       *DynamicHorizontalBarsModel       `tfsdk:"horizontal_bars"`
 	HorizontalBarsMulti  *DynamicHorizontalBarsMultiModel  `tfsdk:"horizontal_bars_multi"`
-	Table                *DynamicTableModel                `tfsdk:"table"`
 }
 
 type DynamicStatModel struct {
@@ -2603,6 +2605,60 @@ type DynamicMappingSectionModel struct {
 type DynamicMinMaxCustomModel struct {
 	Max types.Float64 `tfsdk:"max"`
 	Min types.Float64 `tfsdk:"min"`
+}
+
+type DynamicGaugeModel struct {
+	AllowAbbreviation types.Bool              `tfsdk:"allow_abbreviation"`
+	ArcDisplay        *DynamicArcDisplayModel `tfsdk:"arc_display"`
+	CategoryFields    types.List              `tfsdk:"category_fields"` //ObservationFieldModel
+	CustomUnit        types.String            `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64             `tfsdk:"decimal_precision"`
+	DisplaySeriesName types.Bool              `tfsdk:"display_series_name"`
+	Legend            *LegendModel            `tfsdk:"legend"`
+	LegendBy          types.String            `tfsdk:"legend_by"`
+	Max               types.Float64           `tfsdk:"max"`
+	Min               types.Float64           `tfsdk:"min"`
+	ShowInnerArc      types.Bool              `tfsdk:"show_inner_arc"`
+	ShowMinMax        types.Bool              `tfsdk:"show_min_max"`
+	ShowOuterArc      types.Bool              `tfsdk:"show_outer_arc"`
+	ThresholdType     types.String            `tfsdk:"threshold_type"`
+	Thresholds        types.List              `tfsdk:"thresholds"` //DynamicThresholdModel
+	Unit              types.String            `tfsdk:"unit"`
+	ValueField        types.Object            `tfsdk:"value_field"`  //ObservationFieldModel
+	ValueFields       types.List              `tfsdk:"value_fields"` //ObservationFieldModel
+}
+
+type DynamicArcDisplayModel struct {
+	ThresholdArc types.Bool `tfsdk:"threshold_arc"`
+	ValueArc     types.Bool `tfsdk:"value_arc"`
+}
+
+type DynamicPieChartModel struct {
+	AllowAbbreviation  types.Bool                           `tfsdk:"allow_abbreviation"`
+	CategoryFields     types.List                           `tfsdk:"category_fields"` //ObservationFieldModel
+	ColorScheme        types.String                         `tfsdk:"color_scheme"`
+	CustomUnit         types.String                         `tfsdk:"custom_unit"`
+	DecimalPrecision   types.Int64                          `tfsdk:"decimal_precision"`
+	GroupNameTemplate  types.String                         `tfsdk:"group_name_template"`
+	HashColors         types.Bool                           `tfsdk:"hash_colors"`
+	LabelDefinition    *DynamicPieChartLabelDefinitionModel `tfsdk:"label_definition"`
+	Legend             *LegendModel                         `tfsdk:"legend"`
+	MaxSlicesPerChart  types.Int64                          `tfsdk:"max_slices_per_chart"`
+	MaxSlicesPerStack  types.Int64                          `tfsdk:"max_slices_per_stack"`
+	MinSlicePercentage types.Int64                          `tfsdk:"min_slice_percentage"`
+	ShowTotal          types.Bool                           `tfsdk:"show_total"`
+	StackNameTemplate  types.String                         `tfsdk:"stack_name_template"`
+	SubCategoryFields  types.List                           `tfsdk:"sub_category_fields"` //ObservationFieldModel
+	Unit               types.String                         `tfsdk:"unit"`
+	ValueField         types.Object                         `tfsdk:"value_field"` //ObservationFieldModel
+}
+
+type DynamicPieChartLabelDefinitionModel struct {
+	IsVisible      types.Bool   `tfsdk:"is_visible"`
+	LabelSource    types.String `tfsdk:"label_source"`
+	ShowName       types.Bool   `tfsdk:"show_name"`
+	ShowPercentage types.Bool   `tfsdk:"show_percentage"`
+	ShowValue      types.Bool   `tfsdk:"show_value"`
 }
 
 type DynamicTimeSeriesLinesModel struct {

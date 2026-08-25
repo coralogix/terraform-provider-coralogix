@@ -99,6 +99,7 @@ var dashboardStructuredAcceptanceLifecycleTests = []string{
 	dashboardOpenAPITransitionTestName,
 	dashboardOpenAPIDynamicStatTestName,
 	dashboardOpenAPIDynamicStatCardTestName,
+	dashboardOpenAPIDynamicGaugePieTestName,
 	dashboardOpenAPIDynamicTimeSeriesTestName,
 	dashboardOpenAPIDynamicBarsTestName,
 	dashboardOpenAPIDynamicTableTestName,
@@ -234,6 +235,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 	)
 	visualization.Branches["stat"] = covered(dynamicWidget+".visualization.stat", dashboardOpenAPIDynamicStatTestName)
 	visualization.Branches["statCard"] = covered(statCard, dashboardOpenAPIDynamicStatCardTestName)
+	visualization.Branches["gauge"] = covered(dynamicWidget+".visualization.gauge", dashboardOpenAPIDynamicGaugePieTestName)
+	visualization.Branches["pieChart"] = covered(dynamicWidget+".visualization.pie_chart", dashboardOpenAPIDynamicGaugePieTestName)
 	visualization.Branches["timeSeriesLines"] = covered(dynamicWidget+".visualization.time_series_lines", dashboardOpenAPIDynamicTimeSeriesTestName)
 	visualization.Branches["timeSeriesLinesMulti"] = covered(dynamicWidget+".visualization.time_series_lines_multi", dashboardOpenAPIDynamicTimeSeriesTestName)
 	visualization.Branches["timeSeriesBars"] = covered(dynamicWidget+".visualization.time_series_bars", dashboardOpenAPIDynamicTimeSeriesTestName)
@@ -915,7 +918,7 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 
 func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 	models := map[string][]string{
-		"Visualization": {"gauge", "pieChart"},
+		"Visualization": {},
 	}
 	observed := map[string]struct{}{
 		"Visualization.table": {},

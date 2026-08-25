@@ -124,6 +124,7 @@ func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Das
 		{row: 0, widget: 0, branch: "hexagonBins"},
 		{row: 0, widget: 1, branch: "heatmap"},
 		{row: 1, widget: 0, branch: "geomap"},
+		{row: 1, widget: 1, branch: "geomap"},
 	}
 
 	sections := dashboard.Layout.Sections
@@ -174,6 +175,22 @@ func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Das
 	}
 	if geomap.Config.AwsRegionConfig != nil {
 		return fmt.Errorf("dashboard fixture %q (dashboard %q): geomap field config stored two arms", fixture, dashboard.GetId())
+	}
+
+	// The second geomap carries the other arm of each union, so the lifecycle
+	// covers all of them rather than only the ones the first widget sets.
+	fieldBased := rows[1].GetWidgets()[1].Definition.Dynamic.Visualization.Geomap
+	if fieldBased == nil || fieldBased.Aggregation == nil || fieldBased.Aggregation.Sum == nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the field-based geomap aggregation was not stored", fixture, dashboard.GetId())
+	}
+	if fieldBased.Aggregation.Count != nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the field-based geomap stored two aggregation arms", fixture, dashboard.GetId())
+	}
+	if fieldBased.Color == nil || fieldBased.Color.ColorRange == nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the geomap gradient colour was not stored", fixture, dashboard.GetId())
+	}
+	if fieldBased.Config == nil || fieldBased.Config.AwsRegionConfig == nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the geomap AWS region config was not stored", fixture, dashboard.GetId())
 	}
 
 	return nil
@@ -343,7 +360,8 @@ func testAccCoralogixResourceDashboardDynamicSpatialConfig(name, title string, s
         },
         {
           height = 19
-          widgets = [{
+          widgets = [
+            {
             title = "geomap"
             definition = { dynamic = {
               query_definitions = [{ name = "rows", query = { logs = { lucene_query = "*" } } }]
@@ -373,7 +391,29 @@ func testAccCoralogixResourceDashboardDynamicSpatialConfig(name, title string, s
                 }
               }
             }}
-          }]
+            },
+            {
+              # The other arm of each geomap union, so the acceptance lifecycle
+              # covers all three rather than only the defaults.
+              title = "geomap field based"
+              definition = { dynamic = {
+                query_definitions = [{ name = "rows", query = { logs = { lucene_query = "*" } } }]
+                visualization = {
+                  geomap = {
+                    aggregation = {
+                      sum = { field = { keypath = ["duration"], scope = "metadata" } }
+                    }
+                    color = { color_range = "green" }
+                    config = {
+                      aws_region_config = {
+                        aws_region_field = { keypath = ["region"], scope = "user_data" }
+                      }
+                    }
+                  }
+                }
+              }}
+            },
+          ]
         },
       ]
     }]

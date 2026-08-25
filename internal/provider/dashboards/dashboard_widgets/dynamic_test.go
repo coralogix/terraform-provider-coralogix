@@ -230,11 +230,13 @@ func TestDynamicWidgetSpansAndDataPrimeQueryFullFidelityRoundTrip(t *testing.T) 
 
 // A visualization variant this provider version does not model must fail the
 // read rather than write partial state.
-// Swap gauge for another unmodelled variant when it gains support; do not delete.
+//
+// Every variant in the pinned SDK is now modelled, so there is no real one left
+// to point at. An empty visualization stands in: it is what a variant added by a
+// later SDK looks like to this switch - a non-nil visualization whose arm none of
+// the family helpers recognise. Replace it with that variant when one appears.
 func TestFlattenDynamicRejectsUnmodeledVisualization(t *testing.T) {
-	_, diags := flattenDynamicVisualization(context.Background(), &dashboardservice.Visualization{
-		Gauge: &dashboardservice.VisualizationGauge{},
-	})
+	_, diags := flattenDynamicVisualization(context.Background(), &dashboardservice.Visualization{})
 	if !diags.HasError() {
 		t.Fatal("flattening an unmodeled visualization returned no error diagnostic")
 	}
@@ -468,6 +470,78 @@ func TestDynamicWidgetStatCardMinMaxAutoRoundTrip(t *testing.T) {
 	}
 
 	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetGaugeAndPieFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("max")}),
+		GroupByQuery: types.BoolValue(false),
+		Placement:    types.StringValue("bottom"),
+	}
+
+	for name, visualization := range map[string]*DynamicVisualizationModel{
+		"gauge": {Gauge: &DynamicGaugeModel{
+			AllowAbbreviation: types.BoolValue(true),
+			ArcDisplay: &DynamicArcDisplayModel{
+				ThresholdArc: types.BoolValue(true),
+				ValueArc:     types.BoolValue(false),
+			},
+			CategoryFields:    observationFieldList("applicationname", "label"),
+			CustomUnit:        types.StringValue("rpm"),
+			DecimalPrecision:  types.Int64Value(2),
+			DisplaySeriesName: types.BoolValue(true),
+			Legend:            legend,
+			LegendBy:          types.StringValue("thresholds"),
+			Max:               types.Float64Value(1000),
+			Min:               types.Float64Value(0),
+			ShowInnerArc:      types.BoolValue(true),
+			ShowMinMax:        types.BoolValue(false),
+			ShowOuterArc:      types.BoolValue(true),
+			ThresholdType:     types.StringValue("absolute"),
+			Thresholds:        dynamicThresholdList(),
+			Unit:              types.StringValue("seconds"),
+			ValueField:        observationFieldObject("duration", "metadata"),
+			ValueFields:       observationFieldList("value", "user_data"),
+		}},
+		"pie_chart": {PieChart: &DynamicPieChartModel{
+			AllowAbbreviation: types.BoolValue(false),
+			CategoryFields:    observationFieldList("applicationname", "label"),
+			ColorScheme:       types.StringValue("classic"),
+			CustomUnit:        types.StringValue("rpm"),
+			DecimalPrecision:  types.Int64Value(1),
+			GroupNameTemplate: types.StringValue("group"),
+			HashColors:        types.BoolValue(true),
+			LabelDefinition: &DynamicPieChartLabelDefinitionModel{
+				IsVisible:      types.BoolValue(true),
+				LabelSource:    types.StringValue("inner"),
+				ShowName:       types.BoolValue(true),
+				ShowPercentage: types.BoolValue(false),
+				ShowValue:      types.BoolValue(true),
+			},
+			Legend:             legend,
+			MaxSlicesPerChart:  types.Int64Value(10),
+			MaxSlicesPerStack:  types.Int64Value(5),
+			MinSlicePercentage: types.Int64Value(2),
+			ShowTotal:          types.BoolValue(true),
+			StackNameTemplate:  types.StringValue("stack"),
+			SubCategoryFields:  observationFieldList("severity", "metadata"),
+			Unit:               types.StringValue("bytes"),
+			ValueField:         observationFieldObject("duration", "metadata"),
+		}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assertDynamicRoundTrip(ctx, t, &DynamicModel{
+				QueryDefinitions: logsQueryDefinitionsFixture(ctx, t),
+				TimeFrame: &TimeFrameModel{
+					Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+				},
+				Visualization: visualization,
+			})
+		})
+	}
 }
 
 func TestDynamicWidgetBarsFullFidelityRoundTrip(t *testing.T) {
