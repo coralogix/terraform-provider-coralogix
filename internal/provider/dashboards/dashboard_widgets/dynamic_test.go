@@ -16,6 +16,7 @@ package dashboard_widgets
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -1108,6 +1109,45 @@ func TestExpandDynamicSpatialUnionsRejectUnresolvedShapes(t *testing.T) {
 		neither := heatmap(types.StringNull(), types.StringNull())
 		if _, diags := expandDynamicHeatmap(ctx, neither); diags.HasError() {
 			t.Errorf("a heatmap with no colour configuration is valid, got %v", diags)
+		}
+	})
+}
+
+// The exactly-one-of validators defer while any arm is unknown, so a value only
+// known after apply can arrive with two arms set. Taking the first would
+// silently discard the rest and produce state that does not match the config.
+func TestExpandDynamicRejectsTwoResolvedUnionArms(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("two visualizations", func(t *testing.T) {
+		_, diags := expandDynamicVisualization(ctx, &DynamicVisualizationModel{
+			Stat:  &DynamicStatModel{},
+			Gauge: &DynamicGaugeModel{},
+		})
+		if !diags.HasError() {
+			t.Error("two visualizations set must be refused rather than silently dropping one")
+		}
+	})
+
+	// Counted by reflection, so this also asserts the count sees every arm
+	// rather than a stale hand-written list.
+	t.Run("every visualization arm is counted", func(t *testing.T) {
+		total := reflect.TypeOf(DynamicVisualizationModel{}).NumField()
+		if got := len(dynamicSelectedVisualizations(&DynamicVisualizationModel{})); got != 0 {
+			t.Errorf("an empty visualization must select nothing, got %d", got)
+		}
+		if total < 15 {
+			t.Errorf("expected at least 15 visualization arms in the model, found %d", total)
+		}
+	})
+
+	t.Run("geomap min_max with both arms", func(t *testing.T) {
+		_, diags := expandDynamicMinMax(&DynamicMinMaxModel{
+			Auto:   types.BoolValue(true),
+			Custom: &DynamicMinMaxCustomModel{Max: types.Float64Value(50)},
+		})
+		if !diags.HasError() {
+			t.Error("a min/max with both arms must be refused rather than preferring custom")
 		}
 	})
 }

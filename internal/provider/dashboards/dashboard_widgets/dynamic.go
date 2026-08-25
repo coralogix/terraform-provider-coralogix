@@ -17,6 +17,7 @@ package dashboard_widgets
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -785,6 +786,16 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 		return nil, nil
 	}
 
+	// ExactlyOneOfChildren defers while any arm is unknown, so a value only
+	// known after apply can arrive with two visualizations set. The dispatch
+	// below takes the first and would silently discard the rest.
+	if selected := dynamicSelectedVisualizations(visualization); len(selected) > 1 {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Invalid Attribute Combination",
+			fmt.Sprintf("Only one visualization can be configured, but %s are set.", strings.Join(selected, " and ")),
+		)}
+	}
+
 	// One helper per visualization family, so adding a family stays a one-line
 	// change here instead of growing a switch past the cyclomatic limit.
 	for _, family := range []func(context.Context, *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics){
@@ -800,6 +811,27 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 	}
 
 	return nil, nil
+}
+
+// Counted by reflection rather than a hand-written list, so a visualization
+// added to the model cannot drift out of the check above.
+func dynamicSelectedVisualizations(visualization *DynamicVisualizationModel) []string {
+	value := reflect.ValueOf(*visualization)
+	fields := value.Type()
+
+	var selected []string
+	for i := 0; i < value.NumField(); i++ {
+		if value.Field(i).Kind() != reflect.Ptr || value.Field(i).IsNil() {
+			continue
+		}
+		name := fields.Field(i).Tag.Get("tfsdk")
+		if name == "" {
+			name = fields.Field(i).Name
+		}
+		selected = append(selected, name)
+	}
+
+	return selected
 }
 
 func expandDynamicVisualizationFamilyStat(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics) {

@@ -848,6 +848,8 @@ func expandDynamicMinMax(m *DynamicMinMaxModel) (*dashboardservice.MinMax, diag.
 	}
 
 	switch {
+	case m.Custom != nil && m.Auto.ValueBool():
+		return nil, dynamicUnionDiagnostic("min_max", "`auto` set to true or `custom`, not both")
 	case m.Custom != nil:
 		return &dashboardservice.MinMax{Custom: &dashboardservice.MinMaxCustom{
 			Max: m.Custom.Max.ValueFloat64Pointer(),

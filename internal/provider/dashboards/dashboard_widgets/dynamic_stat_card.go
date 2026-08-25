@@ -690,6 +690,11 @@ func expandDynamicRangeMapping(ctx context.Context, rangeMapping *DynamicRangeMa
 	var minMax *dashboardservice.MinMax
 	if rangeMapping.MinMax != nil {
 		switch {
+		case rangeMapping.MinMax.Custom != nil && rangeMapping.MinMax.Auto.ValueBool():
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+				"Invalid Attribute Combination",
+				"min_max requires exactly one of `auto` or `custom`, not both.",
+			)}
 		case rangeMapping.MinMax.Custom != nil:
 			minMax = &dashboardservice.MinMax{Custom: &dashboardservice.MinMaxCustom{
 				Max: rangeMapping.MinMax.Custom.Max.ValueFloat64Pointer(),
