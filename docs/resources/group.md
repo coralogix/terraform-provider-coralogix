@@ -64,7 +64,7 @@ resource "coralogix_group" "example" {
 
 ### Optional
 
-- `members` (Set of String)
+- `members` (Set of String) IDs of the users that make up the group. Omit the argument to leave membership unmanaged by this resource - for example when it is maintained in the Coralogix UI or by `coralogix_group_attachment`. Set `members = []` to remove every member. A single group's membership must be managed either here or by `coralogix_group_attachment`, never by both.
 - `scope_id` (String) Scope attached to the group.
 
 ### Read-Only

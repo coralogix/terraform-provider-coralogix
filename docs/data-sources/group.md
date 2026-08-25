@@ -22,6 +22,6 @@ Coralogix group. Groups bind users to roles and scopes. For more info please rev
 
 ### Read-Only
 
-- `members` (Set of String)
+- `members` (Set of String) IDs of the users that make up the group.
 - `role` (String)
 - `scope_id` (String) Scope attached to the group.

@@ -89,8 +89,9 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				MarkdownDescription: "Group display name.",
 			},
 			"members": schema.SetAttribute{
-				Optional:    true,
-				ElementType: types.StringType,
+				Optional:            true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "IDs of the users that make up the group. Omit the argument to leave membership unmanaged by this resource - for example when it is maintained in the Coralogix UI or by `coralogix_group_attachment`. Set `members = []` to remove every member. A single group's membership must be managed either here or by `coralogix_group_attachment`, never by both.",
 			},
 			"role": schema.StringAttribute{
 				Required: true,
@@ -152,6 +153,7 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	state.Members = membersMatchingPrior(plan.Members, state.Members)
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -219,6 +221,19 @@ func flattenSCIMGroupMembers(members []clientset.SCIMGroupMember) (types.Set, di
 	return types.SetValue(types.StringType, membersIDs)
 }
 
+// membersMatchingPrior keeps the members written to state null-consistent with the prior
+// value it is reconciled against - the plan in Create and Update, the previous state in Read.
+// A null prior means membership is not managed here; an empty one must not collapse to null.
+func membersMatchingPrior(prior, flattened types.Set) types.Set {
+	if prior.IsNull() {
+		return types.SetNull(types.StringType)
+	}
+	if flattened.IsNull() {
+		return types.SetValueMust(types.StringType, []attr.Value{})
+	}
+	return flattened
+}
+
 func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state *GroupResourceModel
 	diags := req.State.Get(ctx, &state)
@@ -250,13 +265,19 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	respStr, _ := json.Marshal(getGroupResp)
 	log.Printf("[INFO] Received Group: %s", string(respStr))
 
-	state, diags = flattenSCIMGroup(getGroupResp)
+	newState, diags := flattenSCIMGroup(getGroupResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	diags = resp.State.Set(ctx, &state)
+	// A state without a display name comes from an import and is hydrated as-is; otherwise membership
+	// absent from state is managed elsewhere and is not adopted on refresh.
+	if !state.DisplayName.IsNull() {
+		newState.Members = membersMatchingPrior(state.Members, newState.Members)
+	}
+
+	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -269,15 +290,37 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
+	var state *GroupResourceModel
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	groupUpdateReq, diags := extractGroup(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
+	groupID := plan.ID.ValueString()
+
+	// Membership absent from both configuration and state is managed elsewhere, and the SCIM update is a full replace.
+	if plan.Members.IsNull() && state.Members.IsNull() {
+		currentGroup, err := r.client.GetGroup(ctx, groupID)
+		if err != nil {
+			log.Printf("[ERROR] Received error: %s", err.Error())
+			resp.Diagnostics.AddError(
+				"Error reading Group",
+				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, groupID), ""),
+			)
+			return
+		}
+		groupUpdateReq.Members = currentGroup.Members
+	}
+
 	groupStr, _ := json.Marshal(groupUpdateReq)
 	log.Printf("[INFO] Updating Group: %s", string(groupStr))
-	groupID := plan.ID.ValueString()
 	groupUpdateResp, err := r.client.UpdateGroup(ctx, groupID, groupUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
@@ -312,13 +355,14 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	groupStr, _ = json.Marshal(getGroupResp)
 	log.Printf("[INFO] Received Group: %s", string(groupStr))
 
-	state, diags := flattenSCIMGroup(getGroupResp)
+	newState, diags := flattenSCIMGroup(getGroupResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	newState.Members = membersMatchingPrior(plan.Members, newState.Members)
 
-	diags = resp.State.Set(ctx, state)
+	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 }
 

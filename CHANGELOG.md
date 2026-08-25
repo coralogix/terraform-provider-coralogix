@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_group
+- FIX: Stop clearing group membership when `members` is not managed in configuration. An update to any other argument no longer sends an empty member list for a group whose `members` is absent from both the configuration and the state, and a refresh no longer adopts membership maintained elsewhere. Removing `members` from a configuration that previously set it still clears the group, and `members = []` now round-trips instead of failing with an inconsistent-result error.
+
 #### resource/coralogix_alert
 - FEAT: Add `EQUALS` and `NOT_EQUALS` condition types for logs and metric threshold alerts.
 

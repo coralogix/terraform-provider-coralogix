@@ -57,7 +57,7 @@ func (r *GroupAttachmentResource) Schema(ctx context.Context, req resource.Schem
 				},
 			},
 			"user_ids": schema.SetAttribute{
-				Description: "The IDs of the users to attach to the group",
+				Description: "The IDs of the users to attach to the group. A single group's membership must be managed either by this resource or by the `members` argument of `coralogix_group`, never by both.",
 				Required:    true,
 				ElementType: types.StringType,
 			},
