@@ -265,3 +265,40 @@ func testAccCoralogixResourceDashboardDynamicGaugePieConfig(name, title string, 
 }
 `, name, title, thresholdType, legendBy)
 }
+
+// The proto documents bounds these attributes did not enforce: at least one
+// slice per chart and per stack, and a percentage between 0 and 100.
+func TestAccCoralogixResourceDashboardDynamicPieRejectsOutOfRangeSliceBounds(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+
+	for scenario, visualization := range map[string]string{
+		"zero slices per chart":        `pie_chart = { max_slices_per_chart = 0 }`,
+		"zero slices per stack":        `pie_chart = { max_slices_per_stack = 0 }`,
+		"percentage above one hundred": `pie_chart = { min_slice_percentage = 101 }`,
+		"negative percentage":          `pie_chart = { min_slice_percentage = -1 }`,
+	} {
+		t.Run(scenario, func(t *testing.T) {
+			resource.ParallelTest(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Steps: []resource.TestStep{{
+					Config: fmt.Sprintf(`resource "coralogix_dashboard" "test" {
+  name = %q
+  layout = { sections = [{ rows = [{
+    height = 19
+    widgets = [{
+      title = "pie"
+      definition = { dynamic = {
+        query_definitions = [{ query = { logs = { lucene_query = "*" } } }]
+        visualization     = { %s }
+      }}
+    }]
+  }] }] }
+}
+`, name, visualization),
+					ExpectError: regexp.MustCompile(`(?s)Invalid Attribute Value`),
+				}},
+			})
+		})
+	}
+}

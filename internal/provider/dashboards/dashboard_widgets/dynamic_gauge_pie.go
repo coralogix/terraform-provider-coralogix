@@ -17,7 +17,6 @@ package dashboard_widgets
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
@@ -104,6 +103,7 @@ func dynamicGaugeSchema() schema.Attribute {
 			},
 			"show_inner_arc": schema.BoolAttribute{
 				Optional:            true,
+				DeprecationMessage:  "Use `arc_display.value_arc` instead.",
 				MarkdownDescription: "Deprecated: use `arc_display.value_arc` instead.",
 			},
 			"show_min_max": schema.BoolAttribute{
@@ -111,6 +111,7 @@ func dynamicGaugeSchema() schema.Attribute {
 			},
 			"show_outer_arc": schema.BoolAttribute{
 				Optional:            true,
+				DeprecationMessage:  "Use `arc_display.threshold_arc` instead.",
 				MarkdownDescription: "Deprecated: use `arc_display.threshold_arc` instead.",
 			},
 			"threshold_type": schema.StringAttribute{
@@ -159,7 +160,7 @@ func dynamicPieChartSchema() schema.Attribute {
 			},
 			"color_scheme": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: fmt.Sprintf("How slices are coloured. The API takes a free-form string and stores whatever it is given, so this is not restricted to a fixed set; the schemes the product ships are: %s. An unrecognised value applies no scheme.", strings.Join(DashboardValidColorSchemes, ", ")),
+				MarkdownDescription: fmt.Sprintf("How slices are coloured. The API takes a free-form string and stores whatever it is given, so this is deliberately not restricted; the schemes this provider knows about are: %s. A value the product does not recognise is stored but applies no scheme.", strings.Join(DashboardValidColorSchemes, ", ")),
 			},
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
@@ -207,20 +208,23 @@ func dynamicPieChartSchema() schema.Attribute {
 			"max_slices_per_chart": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.AtLeast(1),
 				},
+				MarkdownDescription: "The most slices to draw on the chart. Must be at least 1.",
 			},
 			"max_slices_per_stack": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.AtLeast(1),
 				},
+				MarkdownDescription: "The most slices to fit in one stack. Must be at least 1.",
 			},
 			"min_slice_percentage": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.Between(0, 100),
 				},
+				MarkdownDescription: "The smallest share, as a percentage, a slice must reach to be drawn. Valid values are 0 to 100.",
 			},
 			"show_total": schema.BoolAttribute{
 				Optional: true,

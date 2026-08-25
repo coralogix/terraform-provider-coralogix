@@ -3152,9 +3152,9 @@ Optional:
 - `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
 - `max` (Number)
 - `min` (Number)
-- `show_inner_arc` (Boolean) Deprecated: use `arc_display.value_arc` instead.
+- `show_inner_arc` (Boolean, Deprecated) Deprecated: use `arc_display.value_arc` instead.
 - `show_min_max` (Boolean)
-- `show_outer_arc` (Boolean) Deprecated: use `arc_display.threshold_arc` instead.
+- `show_outer_arc` (Boolean, Deprecated) Deprecated: use `arc_display.threshold_arc` instead.
 - `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--thresholds))
 - `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
@@ -3226,16 +3226,16 @@ Optional:
 
 - `allow_abbreviation` (Boolean)
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--category_fields))
-- `color_scheme` (String) How slices are coloured. The API takes a free-form string and stores whatever it is given, so this is not restricted to a fixed set; the schemes the product ships are: classic, severity, cold, negative, green, red, blue. An unrecognised value applies no scheme.
+- `color_scheme` (String) How slices are coloured. The API takes a free-form string and stores whatever it is given, so this is deliberately not restricted; the schemes this provider knows about are: classic, severity, cold, negative, green, red, blue. A value the product does not recognise is stored but applies no scheme.
 - `custom_unit` (String)
 - `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `group_name_template` (String)
 - `hash_colors` (Boolean)
 - `label_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--label_definition))
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--legend))
-- `max_slices_per_chart` (Number)
-- `max_slices_per_stack` (Number)
-- `min_slice_percentage` (Number)
+- `max_slices_per_chart` (Number) The most slices to draw on the chart. Must be at least 1.
+- `max_slices_per_stack` (Number) The most slices to fit in one stack. Must be at least 1.
+- `min_slice_percentage` (Number) The smallest share, as a percentage, a slice must reach to be drawn. Valid values are 0 to 100.
 - `show_total` (Boolean)
 - `stack_name_template` (String)
 - `sub_category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--sub_category_fields))
