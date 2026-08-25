@@ -170,13 +170,13 @@ func dynamicVerticalBarsSchema() schema.Attribute {
 			"max_bars_per_chart": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.AtLeast(1),
 				},
 			},
 			"max_slices_per_bar": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.AtLeast(1),
 				},
 			},
 			"scale_type": schema.StringAttribute{
@@ -282,7 +282,7 @@ func dynamicVerticalBarsMultiSchema() schema.Attribute {
 			"max_bars_per_chart": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.AtLeast(1),
 				},
 			},
 			"query_field_settings": dynamicBarsQueryFieldSettingsSchema(),
@@ -359,13 +359,13 @@ func dynamicHorizontalBarsSchema() schema.Attribute {
 			"max_bars_per_chart": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.AtLeast(1),
 				},
 			},
 			"max_slices_per_bar": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.AtLeast(1),
 				},
 			},
 			"scale_type": schema.StringAttribute{
@@ -474,7 +474,7 @@ func dynamicHorizontalBarsMultiSchema() schema.Attribute {
 			"max_bars_per_chart": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.AtLeast(1),
 				},
 			},
 			"query_field_settings": dynamicBarsQueryFieldSettingsSchema(),

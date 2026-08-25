@@ -17,7 +17,6 @@ package dashboard_widgets
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -296,8 +295,9 @@ func dynamicTableSettingsSchema() schema.Attribute {
 						"width": schema.Int64Attribute{
 							Optional: true,
 							Validators: []validator.Int64{
-								int64validator.Between(math.MinInt32, math.MaxInt32),
+								int64validator.AtLeast(1),
 							},
+							MarkdownDescription: "The column width in pixels. Must be at least 1.",
 						},
 					},
 				},

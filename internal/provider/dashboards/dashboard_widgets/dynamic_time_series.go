@@ -67,7 +67,7 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.Between(0, 15),
 				},
 			},
 			"hash_colors": schema.BoolAttribute{
@@ -215,7 +215,7 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.Between(0, 15),
 				},
 			},
 			"hash_colors": schema.BoolAttribute{
@@ -225,7 +225,7 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 			"max_slices_per_bar": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.Between(0, math.MaxInt32),
+					int64validator.AtLeast(1),
 				},
 			},
 			"scale_type": schema.StringAttribute{
@@ -672,7 +672,7 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 				"decimal_precision": schema.Int64Attribute{
 					Optional: true,
 					Validators: []validator.Int64{
-						int64validator.Between(0, math.MaxInt32),
+						int64validator.Between(0, 15),
 					},
 				},
 				"hash_colors": schema.BoolAttribute{
