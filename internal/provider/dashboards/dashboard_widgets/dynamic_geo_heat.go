@@ -690,17 +690,6 @@ func expandDynamicGeomap(ctx context.Context, m *DynamicGeomapModel) (*dashboard
 	}, nil
 }
 
-// The object and conflict validators defer while any child is unknown, so a
-// value only known after apply can reach these conversions having selected no
-// arm or two. Neither shape has an API representation, so each union re-checks
-// here rather than letting the apply fail on the backend's answer.
-func dynamicUnionDiagnostic(attribute, requirement string) diag.Diagnostics {
-	return diag.Diagnostics{diag.NewErrorDiagnostic(
-		"Invalid Attribute Combination",
-		fmt.Sprintf("%s requires exactly one of %s.", attribute, requirement),
-	)}
-}
-
 func expandDynamicGeomapAggregation(ctx context.Context, m *DynamicGeomapAggregationModel) (*dashboardservice.GeomapAggregation, diag.Diagnostics) {
 	if m == nil {
 		return nil, nil

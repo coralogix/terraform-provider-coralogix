@@ -383,14 +383,6 @@ func TestDynamicWidgetStatCardFullFidelityRoundTrip(t *testing.T) {
 		}
 	}
 
-	sections := types.ListValueMust(types.ObjectType{AttrTypes: dynamicMappingSectionAttr()}, []attr.Value{
-		types.ObjectValueMust(dynamicMappingSectionAttr(), map[string]attr.Value{
-			"color":  types.StringValue("green"),
-			"map_to": types.StringValue("OK"),
-			"value":  types.StringValue("200"),
-		}),
-	})
-
 	original := &DynamicModel{
 		QueryDefinitions: logsQueryDefinitionsFixture(ctx, t),
 		TimeFrame: &TimeFrameModel{
@@ -413,8 +405,6 @@ func TestDynamicWidgetStatCardFullFidelityRoundTrip(t *testing.T) {
 						ThresholdType: types.StringValue("relative"),
 						Thresholds:    dynamicThresholdList(),
 					},
-					Regex: &DynamicSectionsMappingModel{Sections: sections},
-					Value: &DynamicSectionsMappingModel{Sections: sections},
 				},
 				CustomUnit:       types.StringValue("cards"),
 				DecimalPrecision: types.Int64Value(2),
@@ -430,6 +420,40 @@ func TestDynamicWidgetStatCardFullFidelityRoundTrip(t *testing.T) {
 	}
 
 	assertDynamicRoundTrip(ctx, t, original)
+}
+
+// The colour mapping takes exactly one of range, value and regex, so each arm
+// needs its own case. The full-fidelity fixture above covers range; these two
+// cover the others, which it used to set at the same time.
+func TestDynamicWidgetStatCardColourMappingArmsRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	sections := types.ListValueMust(types.ObjectType{AttrTypes: dynamicMappingSectionAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicMappingSectionAttr(), map[string]attr.Value{
+			"color":  types.StringValue("green"),
+			"map_to": types.StringValue("OK"),
+			"value":  types.StringValue("200"),
+		}),
+	})
+
+	for name, mapping := range map[string]*DynamicColorLabelMappingModel{
+		"value": {ColorBy: types.StringValue("value"), Value: &DynamicSectionsMappingModel{Sections: sections}},
+		"regex": {ColorBy: types.StringValue("value"), Regex: &DynamicSectionsMappingModel{Sections: sections}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assertDynamicRoundTrip(ctx, t, &DynamicModel{
+				QueryDefinitions: logsQueryDefinitionsFixture(ctx, t),
+				TimeFrame: &TimeFrameModel{
+					Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+				},
+				Visualization: &DynamicVisualizationModel{StatCard: &DynamicStatCardModel{
+					ColorLabelMapping: mapping,
+					CategoryFields:    observationFieldList("category", "user_data"),
+					ValueFields:       observationFieldList("value", "metadata"),
+				}},
+			})
+		})
+	}
 }
 
 func TestDynamicWidgetStatCardMinMaxAutoRoundTrip(t *testing.T) {
@@ -1181,6 +1205,65 @@ func TestExpandDynamicRejectsTwoResolvedUnionArms(t *testing.T) {
 		})
 		if !diags.HasError() {
 			t.Error("a min/max with both arms must be refused rather than preferring custom")
+		}
+	})
+}
+
+// The remaining unions in the widget, same reasoning as the spatial ones: the
+// schema validator defers while any arm is unknown, so a value only known after
+// apply can arrive with none selected or several.
+func TestExpandDynamicRemainingUnionsRejectUnresolvedShapes(t *testing.T) {
+	ctx := context.Background()
+	field := observationFieldObject("duration", "metadata")
+
+	t.Run("sort strategy", func(t *testing.T) {
+		none := &DynamicSortStrategyModel{Category: types.BoolValue(false)}
+		if _, diags := expandDynamicSortStrategy(none); !diags.HasError() {
+			t.Error("a sort strategy with no arm must be refused")
+		}
+		both := &DynamicSortStrategyModel{
+			Category:   types.BoolValue(true),
+			QueryValue: &DynamicSortByQueryValueModel{QueryID: types.StringValue("q")},
+		}
+		if _, diags := expandDynamicSortStrategy(both); !diags.HasError() {
+			t.Error("a sort strategy with both arms must be refused")
+		}
+	})
+
+	t.Run("colour label mapping", func(t *testing.T) {
+		if _, diags := expandDynamicColorLabelMapping(ctx, &DynamicColorLabelMappingModel{}); !diags.HasError() {
+			t.Error("a colour mapping with no arm must be refused")
+		}
+		both := &DynamicColorLabelMappingModel{
+			Range: &DynamicRangeMappingModel{Thresholds: dynamicThresholdList()},
+			Value: &DynamicSectionsMappingModel{Sections: types.ListNull(types.ObjectType{AttrTypes: dynamicMappingSectionAttr()})},
+		}
+		if _, diags := expandDynamicColorLabelMapping(ctx, both); !diags.HasError() {
+			t.Error("a colour mapping with two arms must be refused")
+		}
+	})
+
+	t.Run("table rule scope", func(t *testing.T) {
+		none := &DynamicTableRuleScopeModel{Field: types.ObjectNull(ObservationFieldAttr())}
+		if _, diags := expandDynamicTableRuleScope(ctx, none); !diags.HasError() {
+			t.Error("a rule scope with no arm must be refused")
+		}
+		both := &DynamicTableRuleScopeModel{Field: field, Regex: types.StringValue("^a$")}
+		if _, diags := expandDynamicTableRuleScope(ctx, both); !diags.HasError() {
+			t.Error("a rule scope with two arms must be refused")
+		}
+	})
+
+	t.Run("table property definition", func(t *testing.T) {
+		if _, diags := expandDynamicTablePropertyDefinition(ctx, &DynamicTablePropertyDefinitionModel{}); !diags.HasError() {
+			t.Error("a property definition with no arm must be refused")
+		}
+		both := &DynamicTablePropertyDefinitionModel{
+			Alignment:         types.StringValue("center"),
+			ColumnDisplayName: types.StringValue("Application"),
+		}
+		if _, diags := expandDynamicTablePropertyDefinition(ctx, both); !diags.HasError() {
+			t.Error("a property definition with two arms must be refused")
 		}
 	})
 }

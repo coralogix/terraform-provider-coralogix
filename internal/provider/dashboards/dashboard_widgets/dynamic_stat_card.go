@@ -413,6 +413,16 @@ func expandDynamicColorLabelMapping(ctx context.Context, mapping *DynamicColorLa
 		return nil, diags
 	}
 
+	set := 0
+	for _, selected := range []bool{rangeMapping != nil, regex != nil, value != nil} {
+		if selected {
+			set++
+		}
+	}
+	if set != 1 {
+		return nil, dynamicUnionDiagnostic("color_label_mapping", "`range`, `value` or `regex`")
+	}
+
 	return &dashboardservice.ColorLabelMapping{
 		ColorBy: OptionalEnumPointer(mapping.ColorBy, dashboardSchemaToProtoColorApplyTarget),
 		Range:   rangeMapping,
