@@ -147,15 +147,19 @@ func DynamicSchema() schema.Attribute {
 				Attributes: map[string]schema.Attribute{
 					"stat":                    dynamicStatSchema(),
 					"stat_card":               dynamicStatCardSchema(),
-					"gauge":                   dynamicGaugeSchema(),
-					"pie_chart":               dynamicPieChartSchema(),
 					"table":                   dynamicTableSchema(),
 					"time_series_lines":       dynamicTimeSeriesLinesSchema(),
 					"time_series_lines_multi": dynamicTimeSeriesLinesMultiSchema(),
 					"time_series_bars":        dynamicTimeSeriesBarsSchema(),
+					"vertical_bars":           dynamicVerticalBarsSchema(),
+					"vertical_bars_multi":     dynamicVerticalBarsMultiSchema(),
+					"horizontal_bars":         dynamicHorizontalBarsSchema(),
+					"horizontal_bars_multi":   dynamicHorizontalBarsMultiSchema(),
+					"gauge":                   dynamicGaugeSchema(),
+					"pie_chart":               dynamicPieChartSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines", "time_series_lines_multi", "time_series_bars", "gauge", "pie_chart"),
+					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi", "gauge", "pie_chart"),
 				},
 			},
 		},
@@ -508,12 +512,16 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"stat":                    types.ObjectType{AttrTypes: dynamicStatModelAttr()},
 		"stat_card":               types.ObjectType{AttrTypes: dynamicStatCardModelAttr()},
-		"gauge":                   types.ObjectType{AttrTypes: dynamicGaugeModelAttr()},
-		"pie_chart":               types.ObjectType{AttrTypes: dynamicPieChartModelAttr()},
 		"table":                   types.ObjectType{AttrTypes: dynamicTableModelAttr()},
 		"time_series_lines":       types.ObjectType{AttrTypes: dynamicTimeSeriesLinesModelAttr()},
 		"time_series_lines_multi": types.ObjectType{AttrTypes: dynamicTimeSeriesLinesMultiModelAttr()},
 		"time_series_bars":        types.ObjectType{AttrTypes: dynamicTimeSeriesBarsModelAttr()},
+		"vertical_bars":           types.ObjectType{AttrTypes: dynamicVerticalBarsModelAttr()},
+		"vertical_bars_multi":     types.ObjectType{AttrTypes: dynamicVerticalBarsMultiModelAttr()},
+		"horizontal_bars":         types.ObjectType{AttrTypes: dynamicHorizontalBarsModelAttr()},
+		"horizontal_bars_multi":   types.ObjectType{AttrTypes: dynamicHorizontalBarsMultiModelAttr()},
+		"gauge":                   types.ObjectType{AttrTypes: dynamicGaugeModelAttr()},
+		"pie_chart":               types.ObjectType{AttrTypes: dynamicPieChartModelAttr()},
 	}
 }
 
@@ -774,7 +782,7 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 	// One helper per visualization family, so adding a family stays a one-line
 	// change here instead of growing a switch past the cyclomatic limit.
 	for _, family := range []func(context.Context, *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics){
-		expandDynamicVisualizationFamilyStat, expandDynamicVisualizationFamilyTable, expandDynamicVisualizationFamilyTimeSeries, expandDynamicVisualizationFamilyGaugePie,
+		expandDynamicVisualizationFamilyStat, expandDynamicVisualizationFamilyTable, expandDynamicVisualizationFamilyTimeSeries, expandDynamicVisualizationFamilyBars, expandDynamicVisualizationFamilyGaugePie,
 	} {
 		converted, diags := family(ctx, visualization)
 		if diags.HasError() {
@@ -840,6 +848,37 @@ func expandDynamicVisualizationFamilyTimeSeries(ctx context.Context, visualizati
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{TimeSeriesBars: bars}, nil
+	}
+
+	return nil, nil
+}
+
+func expandDynamicVisualizationFamilyBars(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics) {
+	switch {
+	case visualization.VerticalBars != nil:
+		bars, diags := expandDynamicVerticalBars(ctx, visualization.VerticalBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{VerticalBars: bars}, nil
+	case visualization.VerticalBarsMulti != nil:
+		bars, diags := expandDynamicVerticalBarsMulti(ctx, visualization.VerticalBarsMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{VerticalBarsMulti: bars}, nil
+	case visualization.HorizontalBars != nil:
+		bars, diags := expandDynamicHorizontalBars(ctx, visualization.HorizontalBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{HorizontalBars: bars}, nil
+	case visualization.HorizontalBarsMulti != nil:
+		bars, diags := expandDynamicHorizontalBarsMulti(ctx, visualization.HorizontalBarsMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{HorizontalBarsMulti: bars}, nil
 	}
 
 	return nil, nil
@@ -1174,7 +1213,7 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 	// One helper per visualization family, so adding a family stays a one-line
 	// change here instead of growing a switch past the cyclomatic limit.
 	for _, family := range []func(context.Context, *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics){
-		flattenDynamicVisualizationFamilyStat, flattenDynamicVisualizationFamilyTable, flattenDynamicVisualizationFamilyTimeSeries, flattenDynamicVisualizationFamilyGaugePie,
+		flattenDynamicVisualizationFamilyStat, flattenDynamicVisualizationFamilyTable, flattenDynamicVisualizationFamilyTimeSeries, flattenDynamicVisualizationFamilyBars, flattenDynamicVisualizationFamilyGaugePie,
 	} {
 		converted, diags := family(ctx, visualization)
 		if diags.HasError() {
@@ -1243,6 +1282,37 @@ func flattenDynamicVisualizationFamilyTimeSeries(ctx context.Context, visualizat
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{TimeSeriesBars: bars}, nil
+	}
+
+	return nil, nil
+}
+
+func flattenDynamicVisualizationFamilyBars(ctx context.Context, visualization *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics) {
+	switch {
+	case visualization.VerticalBars != nil:
+		bars, diags := flattenDynamicVerticalBars(ctx, visualization.VerticalBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{VerticalBars: bars}, nil
+	case visualization.VerticalBarsMulti != nil:
+		bars, diags := flattenDynamicVerticalBarsMulti(ctx, visualization.VerticalBarsMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{VerticalBarsMulti: bars}, nil
+	case visualization.HorizontalBars != nil:
+		bars, diags := flattenDynamicHorizontalBars(ctx, visualization.HorizontalBars)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{HorizontalBars: bars}, nil
+	case visualization.HorizontalBarsMulti != nil:
+		bars, diags := flattenDynamicHorizontalBarsMulti(ctx, visualization.HorizontalBarsMulti)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{HorizontalBarsMulti: bars}, nil
 	}
 
 	return nil, nil
