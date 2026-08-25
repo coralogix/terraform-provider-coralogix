@@ -103,7 +103,10 @@ type configuredOrder struct {
 }
 
 func validateRuleGroupOrders(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
-	rawConfig := diff.GetRawConfig()
+	return validateRuleGroupOrdersInConfig(diff.GetRawConfig())
+}
+
+func validateRuleGroupOrdersInConfig(rawConfig cty.Value) error {
 	if rawConfig.IsNull() || !rawConfig.IsKnown() || !rawConfig.Type().IsObjectType() ||
 		!rawConfig.Type().HasAttribute("rule_subgroups") {
 		return nil
@@ -710,6 +713,10 @@ func resourceCoralogixRulesGroupDelete(ctx context.Context, d *schema.ResourceDa
 }
 
 func extractCreateRuleGroupRequest(d *schema.ResourceData) (*cxsdk.CreateRuleGroupRequest, error) {
+	if err := validateRuleGroupOrdersInConfig(d.GetRawConfig()); err != nil {
+		return nil, err
+	}
+
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
 	creator := wrapperspb.String(d.Get("creator").(string))

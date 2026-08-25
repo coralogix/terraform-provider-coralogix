@@ -284,6 +284,35 @@ func TestRuleGroupOrderValidation(t *testing.T) {
 	}
 }
 
+// TestRuleGroupOrderValidationCatchesResolvedUnknown covers the apply-time
+// backstop: an unknown order is accepted while it is unknown, and the same
+// check rejects it once the value resolves, which is what extract runs against
+// the resolved config before building the request.
+func TestRuleGroupOrderValidationCatchesResolvedUnknown(t *testing.T) {
+	types := newRuleGroupTypes(t)
+
+	planTime := types.newConfig(types.newSubgroup(unsetOrder,
+		types.newRule("first", orderVal(1)),
+		types.newRule("second", cty.UnknownVal(cty.Number))))
+	if err := validateRuleGroupOrdersInConfig(planTime); err != nil {
+		t.Fatalf("an unknown order must not be rejected while it is unknown, got %s", err)
+	}
+
+	resolvedToDuplicate := types.newConfig(types.newSubgroup(unsetOrder,
+		types.newRule("first", orderVal(1)),
+		types.newRule("second", orderVal(1))))
+	if err := validateRuleGroupOrdersInConfig(resolvedToDuplicate); err == nil {
+		t.Fatal("an order that resolves to a duplicate must be rejected")
+	}
+
+	resolvedToNull := types.newConfig(types.newSubgroup(unsetOrder,
+		types.newRule("first", orderVal(1)),
+		types.newRule("second", unsetOrder)))
+	if err := validateRuleGroupOrdersInConfig(resolvedToNull); err == nil {
+		t.Fatal("an order that resolves to null alongside an explicit sibling must be rejected")
+	}
+}
+
 // TestRuleGroupOrderValidationIgnoresComputedState guards against reading the
 // merged plan instead of the raw config: on a second plan the orders the API
 // assigned are carried into the proposed new state, and an all-unset config
