@@ -615,6 +615,10 @@ func flattenDynamicColorLabelMapping(ctx context.Context, mapping *dashboardserv
 		value = &DynamicSectionsMappingModel{Sections: sections}
 	}
 
+	if rangeMapping == nil && regex == nil && value == nil {
+		return nil, nil
+	}
+
 	return &DynamicColorLabelMappingModel{
 		ColorBy: flattenOptionalEnum(mapping.ColorBy, dashboardProtoToSchemaColorApplyTarget),
 		Range:   rangeMapping,

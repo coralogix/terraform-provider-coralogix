@@ -717,8 +717,13 @@ func flattenDynamicSortStrategy(strategy *dashboardservice.SortStrategy) *Dynami
 			QueryID: types.StringPointerValue(strategy.QueryValue.QueryId),
 		}
 	}
+	category := flattenDynamicMappedValuesMarker(strategy.Category)
+	if category.IsNull() && queryValue == nil {
+		return nil
+	}
+
 	return &DynamicSortStrategyModel{
-		Category:     flattenDynamicMappedValuesMarker(strategy.Category),
+		Category:     category,
 		QueryValue:   queryValue,
 		StrategyType: types.StringPointerValue(strategy.StrategyType),
 	}

@@ -1011,6 +1011,13 @@ func flattenDynamicGeomapAggregation(ctx context.Context, m *dashboardservice.Ge
 		count = types.BoolValue(true)
 	}
 
+	// The API stores a wrapper with no arm selected. Read back as a present
+	// block it would carry all-null children, which the block's own
+	// exactly-one-of validator rejects, so the dashboard would diff forever.
+	if count.IsNull() && avg == nil && maxAgg == nil && minAgg == nil && sum == nil {
+		return nil, nil
+	}
+
 	return &DynamicGeomapAggregationModel{
 		Avg:   avg,
 		Count: count,
@@ -1035,10 +1042,13 @@ func flattenDynamicGeomapColor(m *dashboardservice.GeomapColor) *DynamicGeomapCo
 	if m == nil {
 		return nil
 	}
-	return &DynamicGeomapColorModel{
-		ColorRange: flattenOptionalEnum(m.ColorRange, dashboardProtoToSchemaColorGradientType),
-		Size:       flattenOptionalEnum(m.Size, dashboardProtoToSchemaColorSolidType),
+	colorRange := flattenOptionalEnum(m.ColorRange, dashboardProtoToSchemaColorGradientType)
+	size := flattenOptionalEnum(m.Size, dashboardProtoToSchemaColorSolidType)
+	if colorRange.IsNull() && size.IsNull() {
+		return nil
 	}
+
+	return &DynamicGeomapColorModel{ColorRange: colorRange, Size: size}
 }
 
 func flattenDynamicGeomapFieldConfig(ctx context.Context, m *dashboardservice.GeomapFieldConfig) (*DynamicGeomapFieldConfigModel, diag.Diagnostics) {
@@ -1053,6 +1063,10 @@ func flattenDynamicGeomapFieldConfig(ctx context.Context, m *dashboardservice.Ge
 	coordinateConfig, diags := flattenDynamicGeomapCoordinateConfig(ctx, m.CoordinateConfig)
 	if diags.HasError() {
 		return nil, diags
+	}
+
+	if awsRegionConfig == nil && coordinateConfig == nil {
+		return nil, nil
 	}
 
 	return &DynamicGeomapFieldConfigModel{

@@ -1319,3 +1319,57 @@ func TestExpandDynamicRejectsExplicitFalseMarker(t *testing.T) {
 		}
 	})
 }
+
+// The API stores a union wrapper with no arm selected. Read back as a present
+// block it carries all-null children, which the block's own exactly-one-of
+// validator rejects, so the dashboard would diff on every plan and could not be
+// applied. Every union wrapper must therefore read back as absent.
+func TestFlattenDynamicNormalisesEmptyUnionWrappers(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("geomap aggregation", func(t *testing.T) {
+		got, diags := flattenDynamicGeomapAggregation(ctx, &dashboardservice.GeomapAggregation{})
+		if diags.HasError() || got != nil {
+			t.Errorf("an arm-less aggregation must read back as absent, got %v %v", got, diags)
+		}
+	})
+
+	t.Run("geomap colour", func(t *testing.T) {
+		if got := flattenDynamicGeomapColor(&dashboardservice.GeomapColor{}); got != nil {
+			t.Errorf("an arm-less colour must read back as absent, got %v", got)
+		}
+	})
+
+	t.Run("geomap field config", func(t *testing.T) {
+		got, diags := flattenDynamicGeomapFieldConfig(ctx, &dashboardservice.GeomapFieldConfig{})
+		if diags.HasError() || got != nil {
+			t.Errorf("an arm-less field config must read back as absent, got %v %v", got, diags)
+		}
+	})
+
+	t.Run("bars sort strategy", func(t *testing.T) {
+		if got := flattenDynamicSortStrategy(&dashboardservice.SortStrategy{}); got != nil {
+			t.Errorf("an arm-less sort strategy must read back as absent, got %v", got)
+		}
+	})
+
+	t.Run("stat card colour label mapping", func(t *testing.T) {
+		got, diags := flattenDynamicColorLabelMapping(ctx, &dashboardservice.ColorLabelMapping{})
+		if diags.HasError() || got != nil {
+			t.Errorf("an arm-less colour mapping must read back as absent, got %v %v", got, diags)
+		}
+	})
+
+	// A populated wrapper must still survive, or the guards above would be
+	// hiding a dropped field rather than preventing an unexpressible one.
+	t.Run("populated wrappers survive", func(t *testing.T) {
+		agg, diags := flattenDynamicGeomapAggregation(ctx, &dashboardservice.GeomapAggregation{Count: map[string]interface{}{}})
+		if diags.HasError() || agg == nil || !agg.Count.ValueBool() {
+			t.Errorf("a count aggregation must read back set, got %v %v", agg, diags)
+		}
+		size := dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_BLUE
+		if got := flattenDynamicGeomapColor(&dashboardservice.GeomapColor{Size: &size}); got == nil || got.Size.IsNull() {
+			t.Errorf("a colour size must read back set, got %v", got)
+		}
+	})
+}
