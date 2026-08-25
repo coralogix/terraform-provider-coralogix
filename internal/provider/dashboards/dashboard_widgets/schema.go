@@ -38,7 +38,7 @@ func ObservationFieldSchema() map[string]schema.Attribute {
 			ElementType: types.StringType,
 			Required:    true,
 			Validators: []validator.List{
-				listvalidator.SizeAtLeast(1),
+				listvalidator.SizeBetween(1, 1000),
 			},
 			MarkdownDescription: "Ordered path segments. Single element for literal-dot identifiers (`[\"log.level\"]`); multiple elements for nested paths (`[\"meta\",\"responseTime\"]`).",
 		},
@@ -65,7 +65,7 @@ func SpansFilterSchema() schema.Attribute {
 		},
 		Optional: true,
 		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
+			listvalidator.SizeBetween(1, 1000),
 		},
 	}
 }
@@ -165,7 +165,7 @@ func MetricFiltersSchema() schema.ListNestedAttribute {
 			},
 		},
 		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
+			listvalidator.SizeBetween(1, 1000),
 		},
 		Optional: true,
 	}
@@ -224,7 +224,7 @@ func LogsAggregationsSchema() schema.Attribute {
 			},
 		},
 		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
+			listvalidator.SizeBetween(1, 1000),
 		},
 	}
 }
@@ -270,7 +270,7 @@ func LegendSchema() schema.SingleNestedAttribute {
 				Optional:    true,
 				Validators: []validator.List{
 					listvalidator.ValueStringsAre(stringvalidator.OneOf(DashboardValidLegendColumns...)),
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				MarkdownDescription: fmt.Sprintf("The columns to display in the legend. Valid values are: %s.", strings.Join(DashboardValidLegendColumns, ", ")),
 			},
@@ -312,7 +312,7 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 			},
 		},
 		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
+			listvalidator.SizeBetween(1, 1000),
 		},
 	}
 }
@@ -326,6 +326,30 @@ func UnitSchema() schema.StringAttribute {
 			stringvalidator.OneOf(DashboardValidUnits...),
 		},
 		MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
+	}
+}
+
+// The dynamic widget documents custom_unit as 1-128 characters. The legacy
+// widget protos allow 255 for the same field, so this helper is deliberately
+// dynamic-only rather than shared with them.
+func DynamicCustomUnitSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Validators: []validator.String{
+			stringvalidator.LengthBetween(1, 128),
+		},
+		MarkdownDescription: "A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.",
+	}
+}
+
+// Tooltip templates are documented as 1-4096 characters.
+func DynamicMessageTemplateSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Validators: []validator.String{
+			stringvalidator.LengthBetween(1, 4096),
+		},
+		MarkdownDescription: "A template for the tooltip text, 1 to 4096 characters.",
 	}
 }
 

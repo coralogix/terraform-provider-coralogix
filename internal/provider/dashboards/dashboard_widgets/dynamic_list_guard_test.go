@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
 // A list whose read direction returns null for zero elements cannot accept an
@@ -92,5 +93,108 @@ func assertListGuarded[V interface{ Description(context.Context) string }](ctx c
 	}
 
 	t.Errorf("%s has no minimum-size validator: an explicit empty list would pass the plan and fail the apply. "+
-		"Add listvalidator.SizeAtLeast(1), or record it in dynamicListsWhereEmptyRoundTrips with the reason its flatten returns a known empty list.", path)
+		"Add listvalidator.SizeBetween(1, 1000), or record it in dynamicListsWhereEmptyRoundTrips with the reason its flatten returns a known empty list.", path)
+}
+
+// Every repeated field in the dashboard protos is documented as at most 1000
+// items, so each list needs an upper bound as well as a lower one. Walked from
+// the schema because a list declared by a shared helper carries no attribute
+// name to grep for.
+func TestDynamicWidgetListsAreCappedAtTheDocumentedMaximum(t *testing.T) {
+	ctx := context.Background()
+
+	var checked int
+	var walk func(path string, attributes map[string]schema.Attribute)
+	walk = func(path string, attributes map[string]schema.Attribute) {
+		for name, attribute := range attributes {
+			current := path + "." + name
+			switch typed := attribute.(type) {
+			case schema.ListNestedAttribute:
+				checked++
+				assertListCapped(ctx, t, current, typed.Validators)
+				walk(current+"[*]", typed.NestedObject.Attributes)
+			case schema.ListAttribute:
+				checked++
+				assertListCapped(ctx, t, current, typed.Validators)
+			case schema.SingleNestedAttribute:
+				walk(current, typed.Attributes)
+			case schema.SetNestedAttribute:
+				walk(current+"[*]", typed.NestedObject.Attributes)
+			}
+		}
+	}
+	walk("dynamic", DynamicSchema().(schema.SingleNestedAttribute).Attributes)
+
+	if checked == 0 {
+		t.Fatal("no list attribute was checked; the schema or this walk changed shape")
+	}
+	t.Logf("checked %d list attribute(s)", checked)
+}
+
+func assertListCapped[V interface{ Description(context.Context) string }](ctx context.Context, t *testing.T, path string, validators []V) {
+	t.Helper()
+
+	if _, ok := dynamicListsWhereEmptyRoundTrips[path]; ok {
+		return
+	}
+
+	for _, validator := range validators {
+		description := validator.Description(ctx)
+		if strings.Contains(description, "at most") || strings.Contains(description, "between") {
+			return
+		}
+	}
+
+	t.Errorf("%s has no maximum-size validator: the API documents every repeated field as at most 1000 items. "+
+		"Use listvalidator.SizeBetween(1, 1000).", path)
+}
+
+// The dynamic widget documents custom_unit as 1-128 characters and a tooltip
+// message_template as 1-4096, and the schema declares them through helpers so
+// the limit lives in one place. This catches an inline declaration slipping
+// back in without one, which is how they were missed originally.
+func TestDynamicWidgetStringLimitsAreEnforced(t *testing.T) {
+	ctx := context.Background()
+
+	bounded := map[string]bool{"custom_unit": true, "message_template": true}
+
+	var checked int
+	var walk func(path string, attributes map[string]schema.Attribute)
+	walk = func(path string, attributes map[string]schema.Attribute) {
+		for name, attribute := range attributes {
+			current := path + "." + name
+			switch typed := attribute.(type) {
+			case schema.StringAttribute:
+				if !bounded[name] {
+					continue
+				}
+				checked++
+				if !hasLengthBound(ctx, typed.Validators) {
+					t.Errorf("%s has no length validator: the API documents a maximum for it, "+
+						"and the schema should use DynamicCustomUnitSchema or DynamicMessageTemplateSchema.", current)
+				}
+			case schema.SingleNestedAttribute:
+				walk(current, typed.Attributes)
+			case schema.ListNestedAttribute:
+				walk(current+"[*]", typed.NestedObject.Attributes)
+			case schema.SetNestedAttribute:
+				walk(current+"[*]", typed.NestedObject.Attributes)
+			}
+		}
+	}
+	walk("dynamic", DynamicSchema().(schema.SingleNestedAttribute).Attributes)
+
+	if checked == 0 {
+		t.Fatal("no length-limited attribute was checked; the schema or this walk changed shape")
+	}
+	t.Logf("checked %d length-limited attribute(s)", checked)
+}
+
+func hasLengthBound(ctx context.Context, validators []validator.String) bool {
+	for _, v := range validators {
+		if strings.Contains(v.Description(ctx), "length") {
+			return true
+		}
+	}
+	return false
 }

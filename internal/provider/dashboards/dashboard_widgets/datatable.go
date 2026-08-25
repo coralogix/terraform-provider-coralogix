@@ -193,7 +193,7 @@ func DataTableSchema() schema.Attribute {
 					},
 				},
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				Optional: true,
 			},
