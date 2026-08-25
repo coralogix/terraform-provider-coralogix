@@ -607,15 +607,23 @@ func expandDynamicHeatmap(ctx context.Context, m *DynamicHeatmapModel) (*dashboa
 		return nil, diags
 	}
 
+	// Unlike the other unions here, neither arm set is legitimate: a heatmap
+	// with no colour configuration is valid. Only both at once is impossible.
+	colorRange := OptionalEnumPointer(m.ColorRange, dashboardSchemaToProtoColorGradientType)
+	preset := OptionalEnumPointer(m.Preset, dashboardSchemaToProtoHeatmapColorPreset)
+	if colorRange != nil && preset != nil {
+		return nil, dynamicUnionDiagnostic("the heatmap colour", "`preset` or `color_range`, or neither")
+	}
+
 	return &dashboardservice.Heatmap{
 		AllowAbbreviation:   m.AllowAbbreviation.ValueBoolPointer(),
 		ColorAxisMax:        expandFloat32Pointer(m.ColorAxisMax),
 		ColorAxisMin:        expandFloat32Pointer(m.ColorAxisMin),
-		ColorRange:          OptionalEnumPointer(m.ColorRange, dashboardSchemaToProtoColorGradientType),
+		ColorRange:          colorRange,
 		CustomUnit:          m.CustomUnit.ValueStringPointer(),
 		DecimalPrecision:    expandInt32Pointer(m.DecimalPrecision),
 		HistogramBucketUnit: OptionalEnumPointer(m.HistogramBucketUnit, dashboardSchemaToProtoHeatmapHistogramBucketUnit),
-		Preset:              OptionalEnumPointer(m.Preset, dashboardSchemaToProtoHeatmapColorPreset),
+		Preset:              preset,
 		ScaleType:           OptionalEnumPointer(m.ScaleType, DashboardSchemaToProtoScaleType),
 		ShowNumbers:         m.ShowNumbers.ValueBoolPointer(),
 		Tooltip:             tooltip,
@@ -664,10 +672,15 @@ func expandDynamicGeomap(ctx context.Context, m *DynamicGeomapModel) (*dashboard
 		return nil, diags
 	}
 
+	color, diags := expandDynamicGeomapColor(m.Color)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.Geomap{
 		Aggregation:       aggregation,
 		AllowAbbreviation: m.AllowAbbreviation.ValueBoolPointer(),
-		Color:             expandDynamicGeomapColor(m.Color),
+		Color:             color,
 		Config:            config,
 		CustomUnit:        m.CustomUnit.ValueStringPointer(),
 		DecimalPrecision:  expandInt32Pointer(m.DecimalPrecision),
@@ -675,6 +688,17 @@ func expandDynamicGeomap(ctx context.Context, m *DynamicGeomapModel) (*dashboard
 		Tooltip:           tooltip,
 		Unit:              OptionalEnumPointer(m.Unit, DashboardSchemaToProtoUnit),
 	}, nil
+}
+
+// The object and conflict validators defer while any child is unknown, so a
+// value only known after apply can reach these conversions having selected no
+// arm or two. Neither shape has an API representation, so each union re-checks
+// here rather than letting the apply fail on the backend's answer.
+func dynamicUnionDiagnostic(attribute, requirement string) diag.Diagnostics {
+	return diag.Diagnostics{diag.NewErrorDiagnostic(
+		"Invalid Attribute Combination",
+		fmt.Sprintf("%s requires exactly one of %s.", attribute, requirement),
+	)}
 }
 
 func expandDynamicGeomapAggregation(ctx context.Context, m *DynamicGeomapAggregationModel) (*dashboardservice.GeomapAggregation, diag.Diagnostics) {
@@ -708,6 +732,17 @@ func expandDynamicGeomapAggregation(ctx context.Context, m *DynamicGeomapAggrega
 	if m.Count.ValueBool() {
 		aggregation.Count = map[string]interface{}{}
 	}
+
+	set := 0
+	for _, selected := range []bool{aggregation.Count != nil, avg != nil, maxAgg != nil, minAgg != nil, sum != nil} {
+		if selected {
+			set++
+		}
+	}
+	if set != 1 {
+		return nil, dynamicUnionDiagnostic("aggregation", "`count` set to true, `sum`, `min`, `max` or `avg`")
+	}
+
 	return aggregation, nil
 }
 
@@ -722,14 +757,18 @@ func expandDynamicGeomapAggregationFieldBased(ctx context.Context, m *DynamicGeo
 	return &dashboardservice.GeomapAggregationFieldBased{Field: field}, nil
 }
 
-func expandDynamicGeomapColor(m *DynamicGeomapColorModel) *dashboardservice.GeomapColor {
+func expandDynamicGeomapColor(m *DynamicGeomapColorModel) (*dashboardservice.GeomapColor, diag.Diagnostics) {
 	if m == nil {
-		return nil
+		return nil, nil
 	}
-	return &dashboardservice.GeomapColor{
-		ColorRange: OptionalEnumPointer(m.ColorRange, dashboardSchemaToProtoColorGradientType),
-		Size:       OptionalEnumPointer(m.Size, dashboardSchemaToProtoColorSolidType),
+
+	colorRange := OptionalEnumPointer(m.ColorRange, dashboardSchemaToProtoColorGradientType)
+	size := OptionalEnumPointer(m.Size, dashboardSchemaToProtoColorSolidType)
+	if (colorRange == nil) == (size == nil) {
+		return nil, dynamicUnionDiagnostic("color", "`size` or `color_range`")
 	}
+
+	return &dashboardservice.GeomapColor{ColorRange: colorRange, Size: size}, nil
 }
 
 func expandDynamicGeomapFieldConfig(ctx context.Context, m *DynamicGeomapFieldConfigModel) (*dashboardservice.GeomapFieldConfig, diag.Diagnostics) {
@@ -744,6 +783,10 @@ func expandDynamicGeomapFieldConfig(ctx context.Context, m *DynamicGeomapFieldCo
 	coordinateConfig, diags := expandDynamicGeomapCoordinateConfig(ctx, m.CoordinateConfig)
 	if diags.HasError() {
 		return nil, diags
+	}
+
+	if (awsRegionConfig == nil) == (coordinateConfig == nil) {
+		return nil, dynamicUnionDiagnostic("config", "`coordinate_config` or `aws_region_config`")
 	}
 
 	return &dashboardservice.GeomapFieldConfig{

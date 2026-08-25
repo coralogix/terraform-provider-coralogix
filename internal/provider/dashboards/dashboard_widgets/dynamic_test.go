@@ -1034,3 +1034,80 @@ func TestDynamicWidgetGeomapEmptyMinMaxReadsBackAbsent(t *testing.T) {
 		t.Errorf("the custom arm must read back set, got %v", got)
 	}
 }
+
+// Each union's validator defers while any child is unknown, so a value only
+// known after apply can arrive having selected no arm or two. Neither shape has
+// an API representation, so the conversion refuses it.
+func TestExpandDynamicSpatialUnionsRejectUnresolvedShapes(t *testing.T) {
+	ctx := context.Background()
+	field := observationFieldObject("duration", "metadata")
+
+	t.Run("aggregation with no arm", func(t *testing.T) {
+		_, diags := expandDynamicGeomapAggregation(ctx, &DynamicGeomapAggregationModel{Count: types.BoolValue(false)})
+		if !diags.HasError() {
+			t.Error("an aggregation whose count resolved to false must be refused")
+		}
+	})
+
+	t.Run("aggregation with two arms", func(t *testing.T) {
+		_, diags := expandDynamicGeomapAggregation(ctx, &DynamicGeomapAggregationModel{
+			Count: types.BoolValue(true),
+			Sum:   &DynamicGeomapAggregationFieldBasedModel{Field: field},
+		})
+		if !diags.HasError() {
+			t.Error("an aggregation with two arms must be refused")
+		}
+	})
+
+	t.Run("colour with no arm", func(t *testing.T) {
+		if _, diags := expandDynamicGeomapColor(&DynamicGeomapColorModel{}); !diags.HasError() {
+			t.Error("a colour block with neither arm must be refused")
+		}
+	})
+
+	t.Run("colour with two arms", func(t *testing.T) {
+		_, diags := expandDynamicGeomapColor(&DynamicGeomapColorModel{
+			Size:       types.StringValue("blue"),
+			ColorRange: types.StringValue("green"),
+		})
+		if !diags.HasError() {
+			t.Error("a colour block with both arms must be refused")
+		}
+	})
+
+	t.Run("field config with two arms", func(t *testing.T) {
+		_, diags := expandDynamicGeomapFieldConfig(ctx, &DynamicGeomapFieldConfigModel{
+			CoordinateConfig: &DynamicGeomapCoordinateConfigModel{LatitudeField: field, LongitudeField: field},
+			AwsRegionConfig:  &DynamicGeomapAwsRegionConfigModel{AwsRegionField: field},
+		})
+		if !diags.HasError() {
+			t.Error("a field config with both arms must be refused")
+		}
+	})
+
+	// The heatmap colour differs: neither arm is legitimate, only both at once
+	// is impossible, so this asserts the empty case still converts.
+	t.Run("heatmap colour", func(t *testing.T) {
+		// A zero-value types.List/types.Object carries no element type, so the
+		// unset collections are built explicitly.
+		heatmap := func(preset, colorRange types.String) *DynamicHeatmapModel {
+			return &DynamicHeatmapModel{
+				ColorRange:  colorRange,
+				Preset:      preset,
+				ValueField:  types.ObjectNull(ObservationFieldAttr()),
+				XAxisFields: types.ListNull(ObservationFieldsObject()),
+				YAxisFields: types.ListNull(ObservationFieldsObject()),
+			}
+		}
+
+		both := heatmap(types.StringValue("blue"), types.StringValue("green"))
+		if _, diags := expandDynamicHeatmap(ctx, both); !diags.HasError() {
+			t.Error("a heatmap setting both colour arms must be refused")
+		}
+
+		neither := heatmap(types.StringNull(), types.StringNull())
+		if _, diags := expandDynamicHeatmap(ctx, neither); diags.HasError() {
+			t.Errorf("a heatmap with no colour configuration is valid, got %v", diags)
+		}
+	})
+}
