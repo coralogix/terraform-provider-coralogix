@@ -362,8 +362,13 @@ func expandDynamicStatVisualElement(ctx context.Context, element *DynamicStatVis
 		return nil, diags
 	}
 
+	mappedValues, diags := expandDynamicMappedValuesMarker("mapped_values", element.MappedValues)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.StatVisualElement{
-		MappedValues:      expandDynamicMappedValuesMarker(element.MappedValues),
+		MappedValues:      mappedValues,
 		ObservationField:  observationField,
 		TemplateText:      element.TemplateText.ValueStringPointer(),
 		TemplateVariables: templateVariables,
@@ -384,8 +389,13 @@ func expandDynamicTemplateVariables(ctx context.Context, variables types.List) (
 			diags.Append(dg...)
 			continue
 		}
+		mappedValues, dg := expandDynamicMappedValuesMarker("mapped_values", models[i].MappedValues)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
 		expanded = append(expanded, dashboardservice.DisplayNameTemplateVariable{
-			MappedValues:     expandDynamicMappedValuesMarker(models[i].MappedValues),
+			MappedValues:     mappedValues,
 			ObservationField: observationField,
 		})
 	}
@@ -818,11 +828,22 @@ func (v mustBeTrueValidator) ValidateBool(ctx context.Context, req validator.Boo
 // The API models mapped values as an empty message, so the only information
 // carried is whether the branch is selected. Any non-nil object therefore
 // flattens to true; if the message ever gains fields, this needs a real object.
-func expandDynamicMappedValuesMarker(value types.Bool) map[string]interface{} {
-	if value.IsNull() || value.IsUnknown() || !value.ValueBool() {
-		return nil
+// An explicitly false marker is not the same as an absent one: the configuration
+// carries a known false while the read flattens it to null, so the apply reports
+// an inconsistent result. The plan validator refuses a known false, but defers
+// while the value is unknown, so the conversion has to refuse it too - including
+// when another arm of the same union is selected.
+func expandDynamicMappedValuesMarker(attribute string, value types.Bool) (map[string]interface{}, diag.Diagnostics) {
+	switch {
+	case value.IsNull() || value.IsUnknown():
+		return nil, nil
+	case !value.ValueBool():
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Invalid Attribute Combination",
+			fmt.Sprintf("%s must be true or left unset. Set to false it selects nothing, yet stays present in the configuration, which the API cannot represent.", attribute),
+		)}
 	}
-	return map[string]interface{}{}
+	return map[string]interface{}{}, nil
 }
 
 func flattenDynamicMappedValuesMarker(value map[string]interface{}) types.Bool {

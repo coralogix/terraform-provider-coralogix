@@ -718,9 +718,11 @@ func expandDynamicGeomapAggregation(ctx context.Context, m *DynamicGeomapAggrega
 		Min: minAgg,
 		Sum: sum,
 	}
-	if m.Count.ValueBool() {
-		aggregation.Count = map[string]interface{}{}
+	count, diags := expandDynamicMappedValuesMarker("aggregation.count", m.Count)
+	if diags.HasError() {
+		return nil, diags
 	}
+	aggregation.Count = count
 
 	set := 0
 	for _, selected := range []bool{aggregation.Count != nil, avg != nil, maxAgg != nil, minAgg != nil, sum != nil} {
@@ -836,16 +838,21 @@ func expandDynamicMinMax(m *DynamicMinMaxModel) (*dashboardservice.MinMax, diag.
 		return nil, nil
 	}
 
+	auto, diags := expandDynamicMappedValuesMarker("min_max.auto", m.Auto)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	switch {
-	case m.Custom != nil && m.Auto.ValueBool():
+	case m.Custom != nil && auto != nil:
 		return nil, dynamicUnionDiagnostic("min_max", "`auto` set to true or `custom`, not both")
 	case m.Custom != nil:
 		return &dashboardservice.MinMax{Custom: &dashboardservice.MinMaxCustom{
 			Max: m.Custom.Max.ValueFloat64Pointer(),
 			Min: m.Custom.Min.ValueFloat64Pointer(),
 		}}, nil
-	case m.Auto.ValueBool():
-		return &dashboardservice.MinMax{Auto: map[string]interface{}{}}, nil
+	case auto != nil:
+		return &dashboardservice.MinMax{Auto: auto}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Invalid Attribute Combination",

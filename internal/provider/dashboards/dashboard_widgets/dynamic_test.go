@@ -1267,3 +1267,55 @@ func TestExpandDynamicRemainingUnionsRejectUnresolvedShapes(t *testing.T) {
 		}
 	})
 }
+
+// A marker bool set to false is present in the configuration but selects
+// nothing, and the read flattens it to null - so the apply reports an
+// inconsistent result. The plan validator refuses a known false and defers while
+// it is unknown, so the conversion refuses it, including when another arm of the
+// same union is already selected.
+func TestExpandDynamicRejectsExplicitFalseMarker(t *testing.T) {
+	ctx := context.Background()
+	field := observationFieldObject("duration", "metadata")
+
+	t.Run("helper", func(t *testing.T) {
+		if _, diags := expandDynamicMappedValuesMarker("m", types.BoolValue(false)); !diags.HasError() {
+			t.Error("an explicit false marker must be refused")
+		}
+		if got, diags := expandDynamicMappedValuesMarker("m", types.BoolNull()); diags.HasError() || got != nil {
+			t.Errorf("an absent marker must convert to nothing, got %v %v", got, diags)
+		}
+		if got, diags := expandDynamicMappedValuesMarker("m", types.BoolValue(true)); diags.HasError() || got == nil {
+			t.Errorf("a true marker must convert, got %v %v", got, diags)
+		}
+	})
+
+	t.Run("false count beside a field aggregation", func(t *testing.T) {
+		_, diags := expandDynamicGeomapAggregation(ctx, &DynamicGeomapAggregationModel{
+			Count: types.BoolValue(false),
+			Sum:   &DynamicGeomapAggregationFieldBasedModel{Field: field},
+		})
+		if !diags.HasError() {
+			t.Error("a false count alongside a field arm must be refused")
+		}
+	})
+
+	t.Run("false auto beside custom min max", func(t *testing.T) {
+		_, diags := expandDynamicMinMax(&DynamicMinMaxModel{
+			Auto:   types.BoolValue(false),
+			Custom: &DynamicMinMaxCustomModel{Max: types.Float64Value(50)},
+		})
+		if !diags.HasError() {
+			t.Error("a false auto alongside custom must be refused")
+		}
+	})
+
+	t.Run("false category beside a query value sort", func(t *testing.T) {
+		_, diags := expandDynamicSortStrategy(&DynamicSortStrategyModel{
+			Category:   types.BoolValue(false),
+			QueryValue: &DynamicSortByQueryValueModel{QueryID: types.StringValue("q")},
+		})
+		if !diags.HasError() {
+			t.Error("a false category alongside a query value must be refused")
+		}
+	})
+}

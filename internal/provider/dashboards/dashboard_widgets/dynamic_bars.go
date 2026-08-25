@@ -682,7 +682,10 @@ func expandDynamicSortStrategy(strategy *DynamicSortStrategyModel) (*dashboardse
 		}
 	}
 
-	category := expandDynamicMappedValuesMarker(strategy.Category)
+	category, diags := expandDynamicMappedValuesMarker("sort_order.strategy.category", strategy.Category)
+	if diags.HasError() {
+		return nil, diags
+	}
 	if (category == nil) == (queryValue == nil) {
 		return nil, dynamicUnionDiagnostic("sort_order.strategy", "`category` set to true or `query_value`")
 	}
