@@ -131,12 +131,27 @@ func TestDynamicWidgetListsAreCappedAtTheDocumentedMaximum(t *testing.T) {
 	t.Logf("checked %d list attribute(s)", checked)
 }
 
+// Lists declared by a helper that the legacy widgets also use. Their protos
+// document the same 1000-item cap, but those resources have shipped for years
+// and the API does not enforce it, so capping them is a deliberate decision
+// with its own changelog warning rather than a side effect of this change.
+var dynamicListsDeclaredBySharedHelpers = map[string]string{
+	"keypath":         "ObservationFieldSchema, also used by the data table and hexagon widgets",
+	"columns":         "LegendSchema, also used by the line chart and hexagon widgets",
+	"filters":         "LogsFiltersSchema and SpansFilterSchema, also used by the data table, line chart and hexagon widgets",
+	"selected_values": "FilterOperatorSchema, reached from the legacy widgets through LogsFiltersSchema",
+}
+
 // Deliberately does not consult dynamicListsWhereEmptyRoundTrips: that map
 // exempts a list from needing a *minimum*, because empty round-trips for it.
-// The documented maximum still applies, so those lists carry a maximum-only
-// validator rather than none.
+// The documented maximum is a separate question.
 func assertListCapped[V interface{ Description(context.Context) string }](ctx context.Context, t *testing.T, path string, validators []V) {
 	t.Helper()
+
+	leaf := path[strings.LastIndex(path, ".")+1:]
+	if _, ok := dynamicListsDeclaredBySharedHelpers[strings.TrimSuffix(leaf, "[*]")]; ok {
+		return
+	}
 
 	for _, validator := range validators {
 		description := validator.Description(ctx)

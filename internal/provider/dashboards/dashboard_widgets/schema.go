@@ -38,7 +38,7 @@ func ObservationFieldSchema() map[string]schema.Attribute {
 			ElementType: types.StringType,
 			Required:    true,
 			Validators: []validator.List{
-				listvalidator.SizeBetween(1, 1000),
+				listvalidator.SizeAtLeast(1),
 			},
 			MarkdownDescription: "Ordered path segments. Single element for literal-dot identifiers (`[\"log.level\"]`); multiple elements for nested paths (`[\"meta\",\"responseTime\"]`).",
 		},
@@ -65,7 +65,7 @@ func SpansFilterSchema() schema.Attribute {
 		},
 		Optional: true,
 		Validators: []validator.List{
-			listvalidator.SizeBetween(1, 1000),
+			listvalidator.SizeAtLeast(1),
 		},
 	}
 }
@@ -165,7 +165,7 @@ func MetricFiltersSchema() schema.ListNestedAttribute {
 			},
 		},
 		Validators: []validator.List{
-			listvalidator.SizeBetween(1, 1000),
+			listvalidator.SizeAtLeast(1),
 		},
 		Optional: true,
 	}
@@ -224,7 +224,7 @@ func LogsAggregationsSchema() schema.Attribute {
 			},
 		},
 		Validators: []validator.List{
-			listvalidator.SizeBetween(1, 1000),
+			listvalidator.SizeAtLeast(1),
 		},
 	}
 }
@@ -270,7 +270,7 @@ func LegendSchema() schema.SingleNestedAttribute {
 				Optional:    true,
 				Validators: []validator.List{
 					listvalidator.ValueStringsAre(stringvalidator.OneOf(DashboardValidLegendColumns...)),
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				MarkdownDescription: fmt.Sprintf("The columns to display in the legend. Valid values are: %s.", strings.Join(DashboardValidLegendColumns, ", ")),
 			},
@@ -312,7 +312,7 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 			},
 		},
 		Validators: []validator.List{
-			listvalidator.SizeBetween(1, 1000),
+			listvalidator.SizeAtLeast(1),
 		},
 	}
 }
@@ -423,16 +423,10 @@ func FilterOperatorSchema() schema.SingleNestedAttribute {
 				MarkdownDescription: "How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.",
 			},
 			"selected_values": schema.ListAttribute{
-				ElementType: types.StringType,
-				Optional:    true,
-				Computed:    true,
-				Default:     listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
-				Validators: []validator.List{
-					// An empty selection means "all values", so this list must
-					// not carry a minimum - but the documented 1000-item cap
-					// still applies.
-					listvalidator.SizeAtMost(1000),
-				},
+				ElementType:         types.StringType,
+				Optional:            true,
+				Computed:            true,
+				Default:             listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
 				MarkdownDescription: "Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.",
 			},
 		},
