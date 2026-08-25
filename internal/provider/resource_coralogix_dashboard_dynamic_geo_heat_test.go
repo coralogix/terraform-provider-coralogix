@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -157,40 +159,35 @@ func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Das
 		}
 	}
 
-	// The geomap unions carry an empty marker in one arm and a field in the
-	// others, so assert the backend stored exactly one arm of each rather than
-	// trusting Terraform state.
-	geomap := rows[1].GetWidgets()[0].Definition.Dynamic.Visualization.Geomap
-	if geomap == nil || geomap.Aggregation == nil {
-		return fmt.Errorf("dashboard fixture %q (dashboard %q): geomap has no aggregation", fixture, dashboard.GetId())
+	// Each geomap union must store exactly one arm. Asserted over every arm
+	// rather than spot-checking a couple, so an extra arm appearing through a
+	// converter or backend change cannot slip past the exactly-one contract
+	// this test is what makes the coverage manifest claim.
+	first := rows[1].GetWidgets()[0].Definition.Dynamic.Visualization.Geomap
+	if first == nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the first geomap was not stored", fixture, dashboard.GetId())
 	}
-	if geomap.Aggregation.Count == nil {
-		return fmt.Errorf("dashboard fixture %q (dashboard %q): geomap aggregation count marker was not stored", fixture, dashboard.GetId())
-	}
-	if geomap.Aggregation.Sum != nil || geomap.Aggregation.Avg != nil {
-		return fmt.Errorf("dashboard fixture %q (dashboard %q): geomap aggregation stored more than one arm", fixture, dashboard.GetId())
-	}
-	if geomap.Config == nil || geomap.Config.CoordinateConfig == nil {
-		return fmt.Errorf("dashboard fixture %q (dashboard %q): geomap coordinate config was not stored", fixture, dashboard.GetId())
-	}
-	if geomap.Config.AwsRegionConfig != nil {
-		return fmt.Errorf("dashboard fixture %q (dashboard %q): geomap field config stored two arms", fixture, dashboard.GetId())
+	second := rows[1].GetWidgets()[1].Definition.Dynamic.Visualization.Geomap
+	if second == nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the second geomap was not stored", fixture, dashboard.GetId())
 	}
 
-	// The second geomap carries the other arm of each union, so the lifecycle
-	// covers all of them rather than only the ones the first widget sets.
-	fieldBased := rows[1].GetWidgets()[1].Definition.Dynamic.Visualization.Geomap
-	if fieldBased == nil || fieldBased.Aggregation == nil || fieldBased.Aggregation.Sum == nil {
-		return fmt.Errorf("dashboard fixture %q (dashboard %q): the field-based geomap aggregation was not stored", fixture, dashboard.GetId())
-	}
-	if fieldBased.Aggregation.Count != nil {
-		return fmt.Errorf("dashboard fixture %q (dashboard %q): the field-based geomap stored two aggregation arms", fixture, dashboard.GetId())
-	}
-	if fieldBased.Color == nil || fieldBased.Color.ColorRange == nil {
-		return fmt.Errorf("dashboard fixture %q (dashboard %q): the geomap gradient colour was not stored", fixture, dashboard.GetId())
-	}
-	if fieldBased.Config == nil || fieldBased.Config.AwsRegionConfig == nil {
-		return fmt.Errorf("dashboard fixture %q (dashboard %q): the geomap AWS region config was not stored", fixture, dashboard.GetId())
+	for _, want := range []struct {
+		widget string
+		union  string
+		arm    string
+		arms   map[string]bool
+	}{
+		{"first", "aggregation", "count", geomapAggregationArms(first.Aggregation)},
+		{"first", "config", "coordinateConfig", geomapConfigArms(first.Config)},
+		{"first", "color", "size", geomapColorArms(first.Color)},
+		{"second", "aggregation", "sum", geomapAggregationArms(second.Aggregation)},
+		{"second", "config", "awsRegionConfig", geomapConfigArms(second.Config)},
+		{"second", "color", "colorRange", geomapColorArms(second.Color)},
+	} {
+		if err := dashboardOpenAPIAssertExactlyOneArm(want.widget, want.union, want.arm, want.arms, dashboard.GetId(), fixture); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -420,4 +417,113 @@ func testAccCoralogixResourceDashboardDynamicSpatialConfig(name, title string, s
   }
 }
 `, name, title, thresholdType, scaleType)
+}
+
+// The arms of each geomap union, keyed by their wire names, so the assertion
+// below can require exactly one without a caller having to list them.
+func geomapAggregationArms(aggregation *dashboardservice.GeomapAggregation) map[string]bool {
+	if aggregation == nil {
+		return nil
+	}
+	return map[string]bool{
+		"count": aggregation.Count != nil,
+		"sum":   aggregation.Sum != nil,
+		"min":   aggregation.Min != nil,
+		"max":   aggregation.Max != nil,
+		"avg":   aggregation.Avg != nil,
+	}
+}
+
+func geomapConfigArms(config *dashboardservice.GeomapFieldConfig) map[string]bool {
+	if config == nil {
+		return nil
+	}
+	return map[string]bool{
+		"coordinateConfig": config.CoordinateConfig != nil,
+		"awsRegionConfig":  config.AwsRegionConfig != nil,
+	}
+}
+
+func geomapColorArms(color *dashboardservice.GeomapColor) map[string]bool {
+	if color == nil {
+		return nil
+	}
+	return map[string]bool{
+		"size":       color.Size != nil,
+		"colorRange": color.ColorRange != nil,
+	}
+}
+
+func dashboardOpenAPIAssertExactlyOneArm(widget, union, want string, arms map[string]bool, id, fixture string) error {
+	if arms == nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the %s geomap has no %s", fixture, id, widget, union)
+	}
+
+	var set []string
+	for arm, selected := range arms {
+		if selected {
+			set = append(set, arm)
+		}
+	}
+	sort.Strings(set)
+
+	switch {
+	case len(set) != 1:
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the %s geomap %s stored %d arms (%s), want exactly 1",
+			fixture, id, widget, union, len(set), strings.Join(set, ", "))
+	case set[0] != want:
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the %s geomap %s stored %q, want %q",
+			fixture, id, widget, union, set[0], want)
+	}
+
+	return nil
+}
+
+// The converter cannot reach the assertion above: the SDK's MarshalJSON refuses
+// two arms of a oneof before the request is sent. It guards the read path
+// instead - a backend that returns two arms, or none - so the assertion is
+// exercised here directly.
+func TestDashboardOpenAPIAssertExactlyOneArm(t *testing.T) {
+	for name, tc := range map[string]struct {
+		arms      map[string]bool
+		want      string
+		wantError string
+	}{
+		"exactly the expected arm": {
+			arms: map[string]bool{"count": true, "sum": false, "min": false},
+			want: "count",
+		},
+		"two arms": {
+			arms:      map[string]bool{"count": true, "min": true, "sum": false},
+			want:      "count",
+			wantError: "stored 2 arms (count, min), want exactly 1",
+		},
+		"no arm": {
+			arms:      map[string]bool{"count": false, "sum": false},
+			want:      "count",
+			wantError: "stored 0 arms (), want exactly 1",
+		},
+		"the wrong arm": {
+			arms:      map[string]bool{"count": false, "sum": true},
+			want:      "count",
+			wantError: `stored "sum", want "count"`,
+		},
+		"union absent entirely": {
+			arms:      nil,
+			want:      "count",
+			wantError: "has no aggregation",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			err := dashboardOpenAPIAssertExactlyOneArm("first", "aggregation", tc.want, tc.arms, "id", "fixture")
+			switch {
+			case tc.wantError == "" && err != nil:
+				t.Errorf("expected no error, got %v", err)
+			case tc.wantError != "" && err == nil:
+				t.Errorf("expected an error containing %q, got none", tc.wantError)
+			case tc.wantError != "" && !strings.Contains(err.Error(), tc.wantError):
+				t.Errorf("expected an error containing %q, got %v", tc.wantError, err)
+			}
+		})
+	}
 }
