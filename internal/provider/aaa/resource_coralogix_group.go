@@ -41,6 +41,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+var _ resource.ResourceWithUpgradeState = &GroupResource{}
+
 func NewGroupResource() resource.Resource {
 	return &GroupResource{}
 }
@@ -72,7 +74,7 @@ func (r *GroupResource) Configure(_ context.Context, req resource.ConfigureReque
 
 func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Version: 0,
+		Version: 1,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -103,6 +105,67 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 		},
 		MarkdownDescription: "Coralogix group. Groups bind users to roles and scopes. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/assign-user-roles-and-scopes-via-groups/.",
+	}
+}
+
+func groupResourceSchemaV0() schema.Schema {
+	return schema.Schema{
+		Version: 0,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "Group ID.",
+			},
+			"display_name": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
+				MarkdownDescription: "Group display name.",
+			},
+			"members": schema.SetAttribute{
+				Optional:    true,
+				ElementType: types.StringType,
+			},
+			"role": schema.StringAttribute{
+				Required: true,
+			},
+			"scope_id": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Scope attached to the group.",
+				Computed:            true,
+			},
+		},
+		MarkdownDescription: "Coralogix group. Groups bind users to roles and scopes. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/assign-user-roles-and-scopes-via-groups/.",
+	}
+}
+
+// UpgradeState clears members from version 0 state. Version 0 adopted the backend's
+// members on every refresh, so a stored value is not evidence that the configuration
+// manages membership; ownership is re-established from the configuration on the next apply.
+func (r *GroupResource) UpgradeState(context.Context) map[int64]resource.StateUpgrader {
+	schemaV0 := groupResourceSchemaV0()
+
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &schemaV0,
+
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var dataV0 GroupResourceModel
+
+				resp.Diagnostics.Append(req.State.Get(ctx, &dataV0)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				dataV0.Members = types.SetNull(types.StringType)
+
+				resp.Diagnostics.Append(resp.State.Set(ctx, dataV0)...)
+			},
+		},
 	}
 }
 
