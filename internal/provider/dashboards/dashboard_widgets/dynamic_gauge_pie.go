@@ -17,6 +17,7 @@ package dashboard_widgets
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
@@ -208,14 +209,14 @@ func dynamicPieChartSchema() schema.Attribute {
 			"max_slices_per_chart": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.AtLeast(1),
+					int64validator.Between(1, math.MaxInt32),
 				},
 				MarkdownDescription: "The most slices to draw on the chart. Must be at least 1.",
 			},
 			"max_slices_per_stack": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.AtLeast(1),
+					int64validator.Between(1, math.MaxInt32),
 				},
 				MarkdownDescription: "The most slices to fit in one stack. Must be at least 1.",
 			},
