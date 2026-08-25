@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_group
+- FIX: `members = []` no longer fails with "Provider produced inconsistent result after apply". An empty member list from the API was always flattened to null, so an explicitly empty set could never round-trip; the members were removed but every apply reported a failure, on the first attempt and on every retry. Emptiness is now reported as whichever the configuration asked for, so `members = []` and omitting the attribute both work.
+
 #### resource/coralogix_dashboard
 - FIX: Bound the `dynamic` widget's numeric attributes to what the API documents. `max_bars_per_chart`, `max_slices_per_bar` and a table column `width` require at least 1, and the bar and time-series `decimal_precision` is limited to 0 to 15. A table column width also no longer accepts a negative value.
 - FEAT: Add the `gauge` and `pie_chart` visualizations to the `dynamic` widget, including the gauge's arc display and thresholds and the pie chart's label definition.
