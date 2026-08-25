@@ -17,7 +17,6 @@ package logs
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -262,6 +261,26 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 }
 
 func (r *ArchiveLogsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// This API doesn't support deletion :(
-	log.Printf("[INFO] coralogix_archive_logs cannot be deleted")
+	var state *ArchiveLogsResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	deleteRequest := extractArchiveLogs(ArchiveLogsResourceModel{
+		Active: types.BoolValue(false),
+		Bucket: state.Bucket,
+		Region: state.Region,
+	})
+	_, httpResponse, err := r.client.
+		S3TargetServiceSetTarget(ctx).
+		SetTargetResponse(deleteRequest).
+		Execute()
+	if err != nil && !cxsdkOpenapi.IsNotFound(cxsdkOpenapi.NewAPIError(httpResponse, err)) {
+		resp.Diagnostics.AddError(
+			"Error deactivating coralogix_archive_logs",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", deleteRequest),
+		)
+	}
 }

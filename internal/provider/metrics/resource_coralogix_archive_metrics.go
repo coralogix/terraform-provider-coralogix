@@ -314,7 +314,15 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 }
 
 func (r *ArchiveMetricsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-
+	_, httpResponse, err := r.client.
+		MetricsConfiguratorPublicServiceDisableArchive(ctx).
+		Execute()
+	if err != nil && !cxsdkOpenapi.IsNotFound(cxsdkOpenapi.NewAPIError(httpResponse, err)) {
+		resp.Diagnostics.AddError(
+			"Error deactivating coralogix_archive_metrics",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
+		)
+	}
 }
 
 func flattenArchiveMetrics(ctx context.Context, metricConfig *ams.TenantConfigV2, id string) (*ArchiveMetricsResourceModel, diag.Diagnostics) {

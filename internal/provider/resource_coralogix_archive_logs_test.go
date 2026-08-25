@@ -15,9 +15,13 @@
 package provider
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 var (
@@ -28,6 +32,7 @@ func TestAccCoralogixResourceResourceArchiveLogs(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckArchiveLogsDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceArchiveLogs(),
@@ -50,6 +55,31 @@ func TestAccCoralogixResourceResourceArchiveLogs(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccCheckArchiveLogsDestroy(_ *terraform.State) error {
+	clientSet, err := testAccNewClientSet()
+	if err != nil {
+		return err
+	}
+
+	result, httpResponse, err := clientSet.
+		ArchiveLogs().
+		S3TargetServiceGetTarget(context.Background()).
+		Execute()
+	if err != nil {
+		apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
+		if cxsdkOpenapi.IsNotFound(apiErr) {
+			return nil
+		}
+		return fmt.Errorf("error reading archive logs target after destroy: %w", apiErr)
+	}
+
+	archiveSpec := result.Target.GetArchiveSpec()
+	if archiveSpec.GetIsActive() {
+		return fmt.Errorf("archive logs target is still active after destroy")
+	}
+	return nil
 }
 
 func testAccCoralogixResourceArchiveLogs() string {

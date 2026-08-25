@@ -15,11 +15,14 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 var (
@@ -34,6 +37,7 @@ func TestAccCoralogixResourceResourceArchiveMetrics(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckArchiveMetricsDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceArchiveMetrics(),
@@ -49,6 +53,30 @@ func TestAccCoralogixResourceResourceArchiveMetrics(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccCheckArchiveMetricsDestroy(_ *terraform.State) error {
+	clientSet, err := testAccNewClientSet()
+	if err != nil {
+		return err
+	}
+
+	result, httpResponse, err := clientSet.
+		ArchiveMetrics().
+		MetricsConfiguratorPublicServiceGetTenantConfig(context.Background()).
+		Execute()
+	if err != nil {
+		apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
+		if cxsdkOpenapi.IsNotFound(apiErr) {
+			return nil
+		}
+		return fmt.Errorf("error reading archive metrics configuration after destroy: %w", apiErr)
+	}
+
+	if result.TenantConfig != nil && !result.TenantConfig.GetDisabled() {
+		return fmt.Errorf("archive metrics target is still active after destroy")
+	}
+	return nil
 }
 
 func testAccCoralogixResourceArchiveMetrics() string {
