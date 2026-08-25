@@ -1,5 +1,12 @@
 # Unreleased
 
+#### resource/coralogix_rules_group
+- FIX: An ambiguous `order` inside a rule-group is now rejected at plan time instead of silently producing duplicate sort indices. Within a rule-subgroup, `order` must be set on every rule or on none of them, and the values must be unique; the same rule applies to `rule_subgroups[*].order` within a rule-group. Previously a list where some rules set `order` and others left it out was sent to the API with two rules sharing one index, because the rules without an `order` were numbered by position over indices a sibling had already claimed. The resulting order was then whatever the API returned, so every subsequent plan could report changes nobody made. Note this rejects a configuration that used to plan: an existing rule-group whose `order` values are partially set or duplicated now fails at plan time until the configuration is corrected, which is also the point at which the ordering it actually gets becomes predictable.
+- DOC: The rule-group level `order` documents that it must be unique across every rule-group in the account, and that Terraform cannot enforce it because rule-groups are separate resources planned in isolation.
+
+#### resource/coralogix_parsing_rules
+- DOC: Same rule-group level `order` uniqueness note as `coralogix_rules_group`. The subgroup and rule level `order` are read-only here, so they cannot collide.
+
 #### resource/coralogix_alert
 - FEAT: Add `EQUALS` and `NOT_EQUALS` condition types for logs and metric threshold alerts.
 

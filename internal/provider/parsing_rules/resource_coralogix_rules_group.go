@@ -29,6 +29,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -87,10 +88,155 @@ func ResourceCoralogixRulesGroup() *schema.Resource {
 			Delete: schema.DefaultTimeout(30 * time.Second),
 		},
 
+		CustomizeDiff:      validateRuleGroupOrders,
 		Schema:             RulesGroupSchema(),
 		DeprecationMessage: "This resource will be removed in 5.0.0. Please use coralogix_parsing_rules instead.",
 		Description:        "**DEPRECATED** Rule-group is list of rule-subgroups with 'and' (&&) operation between. For more info please review - https://coralogix.com/docs/log-parsing-rules/ .",
 	}
+}
+
+type configuredOrder struct {
+	index   int
+	value   int64
+	present bool
+	unknown bool
+}
+
+func validateRuleGroupOrders(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
+	rawConfig := diff.GetRawConfig()
+	if rawConfig.IsNull() || !rawConfig.IsKnown() || !rawConfig.Type().IsObjectType() ||
+		!rawConfig.Type().HasAttribute("rule_subgroups") {
+		return nil
+	}
+
+	subgroups := rawConfig.GetAttr("rule_subgroups")
+	if !isPopulatedList(subgroups) {
+		return nil
+	}
+	subgroupValues := subgroups.AsValueSlice()
+
+	subgroupOrders := make([]configuredOrder, 0, len(subgroupValues))
+	for i, subgroup := range subgroupValues {
+		if subgroup.IsNull() || !subgroup.IsKnown() || !subgroup.Type().HasAttribute("order") {
+			subgroupOrders = append(subgroupOrders, configuredOrder{index: i, unknown: true})
+			continue
+		}
+		subgroupOrders = append(subgroupOrders, readConfiguredOrder(i, subgroup.GetAttr("order")))
+	}
+	if err := checkOrders("rule_subgroups", subgroupOrders); err != nil {
+		return err
+	}
+
+	for i, subgroup := range subgroupValues {
+		if subgroup.IsNull() || !subgroup.IsKnown() || !subgroup.Type().HasAttribute("rules") {
+			continue
+		}
+		rules := subgroup.GetAttr("rules")
+		if !isPopulatedList(rules) {
+			continue
+		}
+		if err := checkOrders(fmt.Sprintf("rule_subgroups[%d].rules", i), readRuleOrders(rules.AsValueSlice())); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func readRuleOrders(ruleValues []cty.Value) []configuredOrder {
+	ruleOrders := make([]configuredOrder, 0, len(ruleValues))
+	for j, rule := range ruleValues {
+		if rule.IsNull() || !rule.IsKnown() {
+			ruleOrders = append(ruleOrders, configuredOrder{index: j, unknown: true})
+			continue
+		}
+		order, ok := ruleOrderAttr(rule)
+		if !ok {
+			ruleOrders = append(ruleOrders, configuredOrder{index: j, unknown: true})
+			continue
+		}
+		ruleOrders = append(ruleOrders, readConfiguredOrder(j, order))
+	}
+	return ruleOrders
+}
+
+func ruleOrderAttr(rule cty.Value) (cty.Value, bool) {
+	var order cty.Value
+	found := false
+	for name, ruleType := range rule.Type().AttributeTypes() {
+		if !ruleType.IsListType() || !ruleType.ElementType().IsObjectType() ||
+			!ruleType.ElementType().HasAttribute("order") {
+			continue
+		}
+		block := rule.GetAttr(name)
+		if !block.IsKnown() {
+			return cty.NilVal, false
+		}
+		if block.IsNull() || block.LengthInt() == 0 {
+			continue
+		}
+		element := block.Index(cty.NumberIntVal(0))
+		if !element.IsKnown() || element.IsNull() || found {
+			return cty.NilVal, false
+		}
+		order = element.GetAttr("order")
+		found = true
+	}
+	return order, found
+}
+
+func readConfiguredOrder(index int, order cty.Value) configuredOrder {
+	if !order.IsKnown() {
+		return configuredOrder{index: index, unknown: true}
+	}
+	if order.IsNull() {
+		return configuredOrder{index: index}
+	}
+	value, _ := order.AsBigFloat().Int64()
+	return configuredOrder{index: index, value: value, present: true}
+}
+
+func checkOrders(label string, orders []configuredOrder) error {
+	set := make([]configuredOrder, 0, len(orders))
+	unset := make([]configuredOrder, 0, len(orders))
+	for _, order := range orders {
+		if order.unknown {
+			continue
+		}
+		if order.present {
+			set = append(set, order)
+		} else {
+			unset = append(unset, order)
+		}
+	}
+
+	if len(set) > 0 && len(unset) > 0 {
+		return fmt.Errorf("%[1]s[%[2]d] sets order = %[3]d while %[1]s[%[4]d] leaves order unset. "+
+			"Set order on every element of %[1]s or on none of them, otherwise the elements without an order "+
+			"are numbered by position and can be given a value that a sibling already claims",
+			label, set[0].index, set[0].value, unset[0].index)
+	}
+
+	seen := make(map[int64]int, len(set))
+	for _, order := range set {
+		if first, duplicate := seen[order.value]; duplicate {
+			return fmt.Errorf("%[1]s[%[2]d] and %[1]s[%[3]d] both set order = %[4]d. order must be unique within %[1]s",
+				label, first, order.index, order.value)
+		}
+		seen[order.value] = order.index
+	}
+
+	return nil
+}
+
+func isPopulatedList(value cty.Value) bool {
+	if value.IsNull() || !value.IsKnown() {
+		return false
+	}
+	if !value.Type().IsListType() && !value.Type().IsTupleType() && !value.Type().IsSetType() {
+		return false
+	}
+	return value.LengthInt() > 0
 }
 
 func RulesGroupSchema() map[string]*schema.Schema {
@@ -152,10 +298,12 @@ func RulesGroupSchema() map[string]*schema.Schema {
 			Description: "Rule-group creator.",
 		},
 		"order": {
-			Type:         schema.TypeInt,
-			Optional:     true,
-			Computed:     true,
-			Description:  "Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).",
+			Type:     schema.TypeInt,
+			Optional: true,
+			Computed: true,
+			Description: "Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). " +
+				"The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources " +
+				"that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API.",
 			ValidateFunc: validation.IntAtLeast(1),
 		},
 		"rule_subgroups": {
@@ -179,7 +327,8 @@ func RulesGroupSchema() map[string]*schema.Schema {
 						Optional: true,
 						Computed: true,
 						Description: "Determines the index of the rule-subgroup inside the rule-group." +
-							"When not set, will be computed by the order it was declared. (1 based indexing).",
+							"When not set, will be computed by the order it was declared. (1 based indexing). " +
+							"Set it on every rule-subgroup of the rule-group or on none of them, and keep the values unique.",
 						ValidateFunc: validation.IntAtLeast(1),
 					},
 					"rules": {
@@ -440,7 +589,8 @@ func commonRulesSchema() map[string]*schema.Schema {
 			Computed: true,
 			Optional: true,
 			Description: "Determines the index of the rule inside the rule-subgroup." +
-				"If not set, will be computed by the order it was declared. (1 based indexing).",
+				"If not set, will be computed by the order it was declared. (1 based indexing). " +
+				"Set it on every rule of the rule-subgroup or on none of them, and keep the values unique.",
 			ValidateFunc: validation.IntAtLeast(1),
 		},
 	}
