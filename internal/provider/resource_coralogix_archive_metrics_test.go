@@ -32,8 +32,9 @@ func TestAccCoralogixResourceResourceArchiveMetrics(t *testing.T) {
 		t.Skip("ARCHIVE_BUCKET must be set for this acceptance test")
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { testAccArchivePreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckArchiveMetricsDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceArchiveMetrics(),
