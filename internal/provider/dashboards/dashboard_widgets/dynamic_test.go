@@ -1076,6 +1076,25 @@ func TestExpandDynamicSpatialUnionsRejectUnresolvedShapes(t *testing.T) {
 		}
 	})
 
+	t.Run("field config with no arm", func(t *testing.T) {
+		if _, diags := expandDynamicGeomapFieldConfig(ctx, &DynamicGeomapFieldConfigModel{}); !diags.HasError() {
+			t.Error("a field config with neither arm must be refused")
+		}
+	})
+
+	t.Run("stat card range mapping with both arms", func(t *testing.T) {
+		_, diags := expandDynamicRangeMapping(ctx, &DynamicRangeMappingModel{
+			Thresholds: dynamicThresholdList(),
+			MinMax: &DynamicMinMaxModel{
+				Auto:   types.BoolValue(true),
+				Custom: &DynamicMinMaxCustomModel{Max: types.Float64Value(50)},
+			},
+		})
+		if !diags.HasError() {
+			t.Error("a range mapping min/max with both arms must be refused")
+		}
+	})
+
 	t.Run("field config with two arms", func(t *testing.T) {
 		_, diags := expandDynamicGeomapFieldConfig(ctx, &DynamicGeomapFieldConfigModel{
 			CoordinateConfig: &DynamicGeomapCoordinateConfigModel{LatitudeField: field, LongitudeField: field},
@@ -1138,6 +1157,20 @@ func TestExpandDynamicRejectsTwoResolvedUnionArms(t *testing.T) {
 		}
 		if total < 15 {
 			t.Errorf("expected at least 15 visualization arms in the model, found %d", total)
+		}
+	})
+
+	t.Run("no visualization at all", func(t *testing.T) {
+		// A present block with no arm: the dispatch would return no
+		// visualization and the read would flatten the parent to null.
+		_, diags := expandDynamicVisualization(ctx, &DynamicVisualizationModel{})
+		if !diags.HasError() {
+			t.Error("a visualization block with no arm must be refused")
+		}
+
+		// An absent block stays legitimate.
+		if _, diags := expandDynamicVisualization(ctx, nil); diags.HasError() {
+			t.Errorf("no visualization block at all is valid, got %v", diags)
 		}
 	})
 

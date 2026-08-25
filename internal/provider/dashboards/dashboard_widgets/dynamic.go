@@ -787,12 +787,19 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 	}
 
 	// ExactlyOneOfChildren defers while any arm is unknown, so a value only
-	// known after apply can arrive with two visualizations set. The dispatch
-	// below takes the first and would silently discard the rest.
-	if selected := dynamicSelectedVisualizations(visualization); len(selected) > 1 {
+	// known after apply can arrive with two visualizations set, or with none.
+	// The dispatch below would take the first of two and discard the rest, or
+	// return no visualization at all, which the read then flattens to null.
+	switch selected := dynamicSelectedVisualizations(visualization); {
+	case len(selected) > 1:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Invalid Attribute Combination",
 			fmt.Sprintf("Only one visualization can be configured, but %s are set.", strings.Join(selected, " and ")),
+		)}
+	case len(selected) == 0:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Invalid Attribute Combination",
+			"A visualization block must configure exactly one visualization. Remove the block to leave the widget without one.",
 		)}
 	}
 
