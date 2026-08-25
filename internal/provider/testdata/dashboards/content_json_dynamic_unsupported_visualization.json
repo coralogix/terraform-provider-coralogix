@@ -1,66 +1,64 @@
 {
-  "name": "dynamic widget with an unsupported visualization",
-  "layout": {
-    "sections": [
-      {
+ "name": "dynamic widget with an unsupported visualization",
+ "layout": {
+  "sections": [
+   {
+    "id": {
+     "value": "10000000-0000-4000-8000-000000000000"
+    },
+    "rows": [
+     {
+      "id": {
+       "value": "20000000-0000-4000-8000-000000000001"
+      },
+      "appearance": {
+       "height": 19
+      },
+      "widgets": [
+       {
         "id": {
-          "value": "10000000-0000-4000-8000-000000000000"
+         "value": "30000000-0000-4000-8000-000000000001"
         },
-        "rows": [
-          {
-            "id": {
-              "value": "20000000-0000-4000-8000-000000000001"
+        "title": "Dynamic logs table",
+        "definition": {
+         "dynamic": {
+          "interpretation": "INTERPRETATION_UNSPECIFIED",
+          "visualization": {
+           "heatmap": {
+            "scaleType": "SCALE_TYPE_LINEAR"
+           }
+          },
+          "queryDefinitions": [
+           {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "query": {
+             "logs": {
+              "luceneQuery": {
+               "value": ""
+              },
+              "dataModeType": "DATA_MODE_TYPE_HIGH_UNSPECIFIED",
+              "filters": [],
+              "groupBy": [],
+              "aggregation": []
+             }
             },
-            "appearance": {
-              "height": 19
-            },
-            "widgets": [
-              {
-                "id": {
-                  "value": "30000000-0000-4000-8000-000000000001"
-                },
-                "title": "Dynamic logs table",
-                "definition": {
-                  "dynamic": {
-                    "interpretation": "INTERPRETATION_UNSPECIFIED",
-                    "visualization": {
-                      "gauge": {
-                        "unit": "UNIT_UNSPECIFIED",
-                        "showInnerArc": true,
-                        "showOuterArc": true
-                      }
-                    },
-                    "queryDefinitions": [
-                      {
-                        "id": "00000000-0000-4000-8000-000000000001",
-                        "query": {
-                          "logs": {
-                            "luceneQuery": {
-                              "value": ""
-                            },
-                            "dataModeType": "DATA_MODE_TYPE_HIGH_UNSPECIFIED",
-                            "filters": [],
-                            "groupBy": [],
-                            "aggregation": []
-                          }
-                        },
-                        "name": "Query 1"
-                      }
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      }
+            "name": "Query 1"
+           }
+          ]
+         }
+        }
+       }
+      ]
+     }
     ]
-  },
-  "variables": [],
-  "variablesV2": [],
-  "filters": [],
-  "relativeTimeFrame": "900s",
-  "annotations": [],
-  "off": {},
-  "actions": []
+   }
+  ]
+ },
+ "variables": [],
+ "variablesV2": [],
+ "filters": [],
+ "relativeTimeFrame": "900s",
+ "annotations": [],
+ "off": {},
+ "actions": []
 }
