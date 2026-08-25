@@ -592,6 +592,7 @@ type LineChartQueryDefinitionModel struct {
 	Name               types.String         `tfsdk:"name"`
 	IsVisible          types.Bool           `tfsdk:"is_visible"`
 	ColorScheme        types.String         `tfsdk:"color_scheme"`
+	HashColors         types.Bool           `tfsdk:"hash_colors"`
 	Resolution         types.Object         `tfsdk:"resolution"` //LineChartResolutionModel
 	DataModeType       types.String         `tfsdk:"data_mode_type"`
 }
@@ -763,6 +764,7 @@ type PieChartModel struct {
 	GroupNameTemplate  types.String                  `tfsdk:"group_name_template"`
 	Unit               types.String                  `tfsdk:"unit"`
 	ColorScheme        types.String                  `tfsdk:"color_scheme"`
+	HashColors         types.Bool                    `tfsdk:"hash_colors"`
 	DataModeType       types.String                  `tfsdk:"data_mode_type"`
 }
 
@@ -833,6 +835,7 @@ type BarChartModel struct {
 	Unit              types.String                  `tfsdk:"unit"`
 	SortBy            types.String                  `tfsdk:"sort_by"`
 	ColorScheme       types.String                  `tfsdk:"color_scheme"`
+	HashColors        types.Bool                    `tfsdk:"hash_colors"`
 	DataModeType      types.String                  `tfsdk:"data_mode_type"`
 }
 
@@ -921,6 +924,7 @@ type HorizontalBarChartModel struct {
 	YAxisViewBy       types.String                  `tfsdk:"y_axis_view_by"`
 	SortBy            types.String                  `tfsdk:"sort_by"`
 	ColorScheme       types.String                  `tfsdk:"color_scheme"`
+	HashColors        types.Bool                    `tfsdk:"hash_colors"`
 	DataModeType      types.String                  `tfsdk:"data_mode_type"`
 }
 

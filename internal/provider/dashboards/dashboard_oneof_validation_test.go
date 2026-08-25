@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
@@ -155,7 +156,15 @@ func dashboardObjectConfigNull(ctx context.Context, t *testing.T, objectType att
 
 func dashboardValidateObject(t *testing.T, ctx context.Context, cfg types.Object, at path.Path, validators []validator.Object) []diagDetail {
 	t.Helper()
-	req := validator.ObjectRequest{ConfigValue: cfg, Path: at}
+	return dashboardValidateObjectRequest(t, ctx, validator.ObjectRequest{ConfigValue: cfg, Path: at}, validators)
+}
+
+// dashboardValidateObjectRequest runs validators against a fully-formed
+// request. Cross-attribute validators (ConflictsWith, AlsoRequires) read
+// req.Config and req.PathExpression, so they need more than the ConfigValue
+// that dashboardValidateObject fills in.
+func dashboardValidateObjectRequest(t *testing.T, ctx context.Context, req validator.ObjectRequest, validators []validator.Object) []diagDetail {
+	t.Helper()
 	resp := &validator.ObjectResponse{}
 	for _, v := range validators {
 		v.ValidateObject(ctx, req, resp)
@@ -195,15 +204,39 @@ func dashboardMustType[T any](t *testing.T, v any, what string) T {
 // source.manual.strategy.range) without repeating the same
 // build-a-map/range/if-else shape at each level.
 func dashboardChildValue(objType tftypes.Object, setName string, value tftypes.Value) tftypes.Value {
+	return dashboardRawObject(objType, map[string]tftypes.Value{setName: value})
+}
+
+// dashboardRawObject builds a tftypes.Value for objType with every name in
+// set populated to its given value and every other attribute null. It is the
+// multi-attribute generalization of dashboardChildValue, needed when one
+// object carries two populated attributes (a widget with both "title" and
+// "definition", say).
+func dashboardRawObject(objType tftypes.Object, set map[string]tftypes.Value) tftypes.Value {
 	raw := make(map[string]tftypes.Value, len(objType.AttributeTypes))
 	for name, childType := range objType.AttributeTypes {
-		if name == setName {
+		if value, ok := set[name]; ok {
 			raw[name] = value
 		} else {
 			raw[name] = tftypes.NewValue(childType, nil)
 		}
 	}
 	return tftypes.NewValue(objType, raw)
+}
+
+// dashboardSingleElementList wraps elem in a one-element list, the shape every
+// ListNestedAttribute level of the layout tree takes.
+func dashboardSingleElementList(elem tftypes.Value) tftypes.Value {
+	return tftypes.NewValue(tftypes.List{ElementType: elem.Type()}, []tftypes.Value{elem})
+}
+
+// dashboardListElementObject returns the object type of a
+// ListNestedAttribute's element, failing the test if attrType is not a list
+// of objects.
+func dashboardListElementObject(t *testing.T, attrType tftypes.Type, what string) tftypes.Object {
+	t.Helper()
+	list := dashboardMustType[tftypes.List](t, attrType, what)
+	return dashboardMustType[tftypes.Object](t, list.ElementType, what+" element")
 }
 
 // dashboardRequireDetailNames fails the test unless detail names every one
@@ -507,4 +540,82 @@ func attrTypesOf(t *testing.T, attrs map[string]schema.Attribute) map[string]att
 		out[name] = attribute.GetType()
 	}
 	return out
+}
+
+// TestDashboardMarkdownWidgetAllowsTitle guards a widget's right to carry both
+// a "title" and a "markdown" definition. The markdown branch used
+// to hold objectvalidator.ConflictsWith(title), which made every
+// UI-authored markdown widget (the UI always sets a title) impossible to
+// express in Terraform. Unlike the oneof tests above, a cross-attribute
+// validator reads the whole config, so this builds a real tfsdk.Config down
+// the layout tree and runs the markdown attribute's own validators against it.
+func TestDashboardMarkdownWidgetAllowsTitle(t *testing.T) {
+	ctx := context.Background()
+	root := dashboardschema.V4()
+
+	markdown := dashboardMustType[schema.SingleNestedAttribute](t,
+		dashboardResolveAttribute(t, root.Attributes, "layout", "sections", "rows", "widgets", "definition", "markdown"),
+		"widget definition.markdown")
+
+	rootType := dashboardMustType[tftypes.Object](t, root.Type().TerraformType(ctx), "dashboard schema type")
+	layoutType := dashboardMustType[tftypes.Object](t, rootType.AttributeTypes["layout"], "layout type")
+	sectionType := dashboardListElementObject(t, layoutType.AttributeTypes["sections"], "sections type")
+	rowType := dashboardListElementObject(t, sectionType.AttributeTypes["rows"], "rows type")
+	widgetType := dashboardListElementObject(t, rowType.AttributeTypes["widgets"], "widgets type")
+	definitionType := dashboardMustType[tftypes.Object](t, widgetType.AttributeTypes["definition"], "definition type")
+	markdownType := dashboardMustType[tftypes.Object](t, definitionType.AttributeTypes["markdown"], "markdown type")
+
+	markdownValue := dashboardRawObject(markdownType, map[string]tftypes.Value{
+		"markdown_text": tftypes.NewValue(tftypes.String, "## release notes"),
+	})
+	markdownPath := path.Root("layout").AtName("sections").AtListIndex(0).
+		AtName("rows").AtListIndex(0).
+		AtName("widgets").AtListIndex(0).
+		AtName("definition").AtName("markdown")
+	markdownExpression := path.MatchRoot("layout").AtName("sections").AtListIndex(0).
+		AtName("rows").AtListIndex(0).
+		AtName("widgets").AtListIndex(0).
+		AtName("definition").AtName("markdown")
+
+	// configWithTitle builds a whole-dashboard config holding a single
+	// markdown widget whose title is the given raw value.
+	configWithTitle := func(title tftypes.Value) tfsdk.Config {
+		widget := dashboardRawObject(widgetType, map[string]tftypes.Value{
+			"title":      title,
+			"definition": dashboardRawObject(definitionType, map[string]tftypes.Value{"markdown": markdownValue}),
+		})
+		row := dashboardRawObject(rowType, map[string]tftypes.Value{"widgets": dashboardSingleElementList(widget)})
+		section := dashboardRawObject(sectionType, map[string]tftypes.Value{"rows": dashboardSingleElementList(row)})
+		layout := dashboardRawObject(layoutType, map[string]tftypes.Value{"sections": dashboardSingleElementList(section)})
+		return tfsdk.Config{
+			Schema: root,
+			Raw:    dashboardRawObject(rootType, map[string]tftypes.Value{"layout": layout}),
+		}
+	}
+
+	configValue, err := markdown.GetType().ValueFromTerraform(ctx, markdownValue)
+	if err != nil {
+		t.Fatalf("build markdown config value: %s", err)
+	}
+	markdownObject := dashboardMustType[types.Object](t, configValue, "markdown config value")
+
+	for _, testCase := range []struct {
+		name  string
+		title tftypes.Value
+	}{
+		{name: "title_set", title: tftypes.NewValue(tftypes.String, "Release notes")},
+		{name: "title_omitted", title: tftypes.NewValue(tftypes.String, nil)},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			diagnostics := dashboardValidateObjectRequest(t, ctx, validator.ObjectRequest{
+				Config:         configWithTitle(testCase.title),
+				ConfigValue:    markdownObject,
+				Path:           markdownPath,
+				PathExpression: markdownExpression,
+			}, markdown.Validators)
+			if len(diagnostics) != 0 {
+				t.Fatalf("expected no diagnostics for a markdown widget with title %v, got: %v", testCase.title, diagnostics)
+			}
+		})
+	}
 }

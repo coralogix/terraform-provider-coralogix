@@ -70,10 +70,8 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 					int64validator.Between(0, 15),
 				},
 			},
-			"hash_colors": schema.BoolAttribute{
-				Optional: true,
-			},
-			"legend": LegendSchema(),
+			"hash_colors": HashColorsSchema(),
+			"legend":      LegendSchema(),
 			"scale_type": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
@@ -218,10 +216,8 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 					int64validator.Between(0, 15),
 				},
 			},
-			"hash_colors": schema.BoolAttribute{
-				Optional: true,
-			},
-			"legend": LegendSchema(),
+			"hash_colors": HashColorsSchema(),
+			"legend":      LegendSchema(),
 			"max_slices_per_bar": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -675,9 +671,7 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 						int64validator.Between(0, 15),
 					},
 				},
-				"hash_colors": schema.BoolAttribute{
-					Optional: true,
-				},
+				"hash_colors": HashColorsSchema(),
 				"query_id": schema.StringAttribute{
 					Required:            true,
 					MarkdownDescription: "The `id` of the query in `query_definitions` these settings style. Set that `id` explicitly, since a generated one is not known when the configuration is written.",

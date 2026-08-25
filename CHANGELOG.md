@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- FEAT: Add `EQUALS` and `NOT_EQUALS` condition types for logs and metric threshold alerts.
+
 #### resource/coralogix_dashboard
 - FEAT: Add the `hexagon_bins`, `heatmap` and `geomap` visualizations to the `dynamic` widget, completing the set. The geomap's coordinate source, cluster aggregation and colour mode each take exactly one alternative.
 - FIX: Every list the spatial visualizations expose rejects an explicit empty value at plan time instead of failing the apply with an inconsistent-result error.
@@ -7,6 +10,7 @@
 - FIX: A geomap whose stored min/max range selects neither the automatic nor the custom option now reads back with `min_max` unset. It previously produced a block with both alternatives empty, which no configuration can express, so an imported dashboard diffed on every plan.
 - FIX: Every union the spatial visualizations expose is re-checked when the configuration is converted, not only during planning. A value that is unknown at plan time makes the schema validators defer, so a geomap aggregation, colour or coordinate source that resolves to no alternative or to two, or a heatmap that resolves to both colour options, now reports the problem instead of sending a request the API cannot represent.
 - FIX: Every union the `dynamic` widget exposes is re-checked when the configuration is converted, not only while planning. A value that is unknown at plan time makes the schema validators defer, so a `visualization`, a bar chart's `sort_order.strategy`, a stat card's `color_label_mapping`, a table `rule_scope` or property `definition`, a geomap aggregation, colour or coordinate source, or a `min_max` that resolves to no alternative or to several is now reported instead of silently keeping one and discarding the rest.
+- FEAT: Add `hash_colors` to `line_chart` query definitions, `bar_chart`, `horizontal_bar_chart` and `pie_chart`. Each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`. The `dynamic` widget visualizations already had the attribute; they now share one description.
 - FIX: Bound the `dynamic` widget's numeric attributes to what the API documents. `max_bars_per_chart`, `max_slices_per_bar` and a table column `width` require at least 1, and the bar and time-series `decimal_precision` is limited to 0 to 15. A table column width also no longer accepts a negative value.
 - FEAT: Add the `gauge` and `pie_chart` visualizations to the `dynamic` widget, including the gauge's arc display and thresholds and the pie chart's label definition.
 - FIX: Every list the `gauge` and `pie_chart` visualizations expose rejects an explicit empty value at plan time instead of failing the apply with an inconsistent-result error.
@@ -28,6 +32,7 @@
 - FEAT: `dynamic.query_definitions[*].id` is now settable instead of read-only. It is still generated when omitted. Setting it explicitly is what makes `time_series_lines_multi.query_display_settings[*].query_id` usable at all: that attribute requires the id of the query it styles, which previously could be neither chosen nor known when the configuration was written.
 - FIX: `data.coralogix_dashboard` no longer fails to return a dashboard whose widgets use an attribute with a custom value type. Deriving the data-source schema from the resource's dropped `CustomType` for numeric attributes, so the data source declared a plain type while reads produced the custom one. Affects any resource whose data source derives its schema this way.
 - DOC: Note that time-series visualizations need `promql_query_type = "range"`. An instant query returns a single point, so the chart renders empty while the configuration looks correct.
+- FIX: A widget can now set a `title` together with a `markdown` definition. The Coralogix UI always gives a markdown widget a title, so a dashboard exported from the UI failed to validate.
 
 #### resource/coralogix_connector
 - FEAT: Add support for the `eventbridge` connector type.

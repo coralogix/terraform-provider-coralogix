@@ -34,6 +34,15 @@ const (
 	dashboardMigrationProviderSource  = "registry.terraform.io/coralogix/coralogix"
 	dashboardMigrationGRPCVersion     = "= 3.6.0"
 	dashboardMigrationSchemaV3Version = "= 2.1.2"
+
+	// The external providers below reject a widget "title" next to a
+	// "markdown" definition, so the shared config generator must leave the
+	// title out. Step 1 is planned and applied by the external provider, and
+	// every later step reuses the same config to assert a no-op upgrade, so
+	// the title cannot appear in any of them. A titled markdown widget is
+	// covered against the local provider by
+	// TestAccCoralogixResourceDashboardOpenAPIWidgetLogsQueries instead.
+	dashboardMigrationMarkdownTitleUnsupported = ""
 )
 
 type dashboardMigrationIdentity struct {
@@ -218,7 +227,7 @@ func dashboardMigrationExternalProvider(version string) map[string]resource.Exte
 }
 
 func dashboardMigrationV360Config(name, folderName, description, accessPolicy string, includeMarkdown bool, widgets []dashboardStructuredWidgetSpec) string {
-	dashboard := strings.TrimSuffix(dashboardOpenAPIStructuredDashboardConfigForWidgets(name, "logs", includeMarkdown, false, widgets), "}\n")
+	dashboard := strings.TrimSuffix(dashboardOpenAPIStructuredDashboardConfigForWidgets(name, "logs", includeMarkdown, false, dashboardMigrationMarkdownTitleUnsupported, widgets), "}\n")
 	dashboard = strings.Replace(
 		dashboard,
 		`  description = "Exercises every structured dashboard widget query carrier."`,
