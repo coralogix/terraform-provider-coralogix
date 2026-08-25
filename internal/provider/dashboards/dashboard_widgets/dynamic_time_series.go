@@ -225,7 +225,7 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 			"max_slices_per_bar": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
-					int64validator.AtLeast(1),
+					int64validator.Between(1, math.MaxInt32),
 				},
 			},
 			"scale_type": schema.StringAttribute{
