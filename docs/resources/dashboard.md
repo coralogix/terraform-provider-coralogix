@@ -4000,7 +4000,7 @@ Optional:
 Optional:
 
 - `column_name` (String)
-- `width` (Number)
+- `width` (Number) The column width in pixels. Must be at least 1.
 
 
 
