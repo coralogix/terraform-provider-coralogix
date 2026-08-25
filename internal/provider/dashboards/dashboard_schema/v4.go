@@ -109,7 +109,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 													},
 													"title": schema.StringAttribute{
 														Optional:            true,
-														MarkdownDescription: "Widget title. Required for all inline widgets except markdown.",
+														MarkdownDescription: "Widget title. Required for all inline widgets except markdown, where it is optional.",
 													},
 													"description": schema.StringAttribute{
 														Optional:            true,
@@ -829,11 +829,6 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	"tooltip_text": schema.StringAttribute{
 																		Optional: true,
 																	},
-																},
-																Validators: []validator.Object{
-																	objectvalidator.ConflictsWith(
-																		path.MatchRelative().AtParent().AtParent().AtName("title"),
-																	),
 																},
 																Optional: true,
 															},

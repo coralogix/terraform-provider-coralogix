@@ -317,8 +317,11 @@ func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkd
 	}
 
 	if includeMarkdown {
-		markdownPath := fmt.Sprintf("layout.sections.0.rows.0.widgets.%d.definition.markdown.markdown_text", len(widgets))
-		checks = append(checks, resource.TestCheckResourceAttr(dashboardResourceName, markdownPath, dashboardOpenAPIMarkdownText(updated)))
+		markdownWidgetPath := fmt.Sprintf("layout.sections.0.rows.0.widgets.%d", len(widgets))
+		checks = append(checks,
+			resource.TestCheckResourceAttr(dashboardResourceName, markdownWidgetPath+".definition.markdown.markdown_text", dashboardOpenAPIMarkdownText(updated)),
+			resource.TestCheckResourceAttr(dashboardResourceName, markdownWidgetPath+".title", dashboardOpenAPIMarkdownTitle(updated)),
+		)
 	}
 
 	return checks
@@ -422,15 +425,27 @@ func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Da
 	}
 
 	if includeMarkdown {
-		definition := widgets[len(widgetSpecs)].GetDefinition()
-		if err := dashboardOpenAPIAssertOneOfBranch(&definition, "WidgetDefinition", "markdown", dashboardID, fixture); err != nil {
-			return err
-		}
-		if definition.Markdown == nil || definition.Markdown.GetMarkdownText() != dashboardOpenAPIMarkdownText(updated) {
-			return fmt.Errorf("dashboard fixture %q (dashboard %q): markdown typed field did not round-trip", fixture, dashboardID)
-		}
+		return dashboardOpenAPIAssertMarkdownWidget(&widgets[len(widgetSpecs)], dashboardID, fixture, updated)
 	}
 
+	return nil
+}
+
+// dashboardOpenAPIAssertMarkdownWidget checks that a markdown widget
+// round-trips both its text and its title. The title matters on its own: the
+// provider used to reject a title next to a markdown definition, so a
+// UI-authored markdown widget could not be expressed in Terraform.
+func dashboardOpenAPIAssertMarkdownWidget(widget *dashboardservice.Widget, dashboardID, fixture string, updated bool) error {
+	definition := widget.GetDefinition()
+	if err := dashboardOpenAPIAssertOneOfBranch(&definition, "WidgetDefinition", "markdown", dashboardID, fixture); err != nil {
+		return err
+	}
+	if definition.Markdown == nil || definition.Markdown.GetMarkdownText() != dashboardOpenAPIMarkdownText(updated) {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): markdown typed field did not round-trip", fixture, dashboardID)
+	}
+	if wantTitle := dashboardOpenAPIMarkdownTitle(updated); widget.GetTitle() != wantTitle {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): markdown widget title = %q, want %q", fixture, dashboardID, widget.GetTitle(), wantTitle)
+	}
 	return nil
 }
 
@@ -631,12 +646,13 @@ func dashboardOpenAPIStructuredDashboardConfigForWidgets(name, queryBranch strin
 	if includeMarkdown {
 		widgets += fmt.Sprintf(`,
         {
+          title = %q
           definition = {
             markdown = {
               markdown_text = %q
             }
           }
-        }`, dashboardOpenAPIMarkdownText(updated))
+        }`, dashboardOpenAPIMarkdownTitle(updated), dashboardOpenAPIMarkdownText(updated))
 	}
 
 	return fmt.Sprintf(`
@@ -986,6 +1002,16 @@ func dashboardOpenAPIPromQLQuery(updated bool) string {
 		return "vector(2)"
 	}
 	return "vector(1)"
+}
+
+// dashboardOpenAPIMarkdownTitle pairs a widget title with the markdown
+// definition. A titled markdown widget is what the Coralogix UI produces, and
+// the provider used to reject that combination at validate time.
+func dashboardOpenAPIMarkdownTitle(updated bool) string {
+	if updated {
+		return "updated markdown title"
+	}
+	return "markdown title"
 }
 
 func dashboardOpenAPIMarkdownText(updated bool) string {
