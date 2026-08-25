@@ -78,6 +78,7 @@ resource "coralogix_dashboard" "dashboard" {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
+                        hash_colors        = true
                         resolution = {
                           interval = "seconds:900"
                         }
@@ -506,6 +507,7 @@ resource "coralogix_dashboard" "dashboard" {
                         }
                       }
                     }
+                    hash_colors = true
                     xaxis = {
                       time = {
                         interval          = "1h0m5s"
@@ -1963,6 +1965,7 @@ Optional:
 - `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
 - `data_mode_type` (String)
 - `group_name_template` (String)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query))
 - `scale_type` (String)
@@ -3291,7 +3294,7 @@ Optional:
 - `decimal_precision` (Number)
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
-- `hash_colors` (Boolean)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--legend))
 - `max_bars_per_chart` (Number)
 - `max_slices_per_bar` (Number)
@@ -3357,7 +3360,7 @@ Optional:
 - `decimal_precision` (Number)
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
-- `hash_colors` (Boolean)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--legend))
 - `max_bars_per_chart` (Number)
 - `query_field_settings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings))
@@ -3448,7 +3451,7 @@ Optional:
 - `custom_unit` (String)
 - `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `group_name_template` (String)
-- `hash_colors` (Boolean)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `label_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--label_definition))
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--legend))
 - `max_slices_per_chart` (Number) The most slices to draw on the chart. Must be at least 1.
@@ -4016,7 +4019,7 @@ Optional:
 - `color_scheme` (String)
 - `custom_unit` (String)
 - `decimal_precision` (Number)
-- `hash_colors` (Boolean)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--legend))
 - `max_slices_per_bar` (Number)
 - `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
@@ -4089,7 +4092,7 @@ Optional:
 - `connect_nulls` (Boolean)
 - `custom_unit` (String)
 - `decimal_precision` (Number)
-- `hash_colors` (Boolean)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--legend))
 - `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
 - `series_count_limit` (Number)
@@ -4190,7 +4193,7 @@ Optional:
 - `color_scheme` (String)
 - `custom_unit` (String)
 - `decimal_precision` (Number)
-- `hash_colors` (Boolean)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
@@ -4251,7 +4254,7 @@ Optional:
 - `custom_unit` (String)
 - `decimal_precision` (Number)
 - `group_name_template` (String)
-- `hash_colors` (Boolean)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--legend))
 - `max_bars_per_chart` (Number)
 - `max_slices_per_bar` (Number)
@@ -4316,7 +4319,7 @@ Optional:
 - `custom_unit` (String)
 - `decimal_precision` (Number)
 - `group_name_template` (String)
-- `hash_colors` (Boolean)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--legend))
 - `max_bars_per_chart` (Number)
 - `query_field_settings` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings))
@@ -5287,6 +5290,7 @@ Optional:
 - `data_mode_type` (String)
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query))
 - `scale_type` (String)
@@ -5768,6 +5772,7 @@ Optional:
 
 - `color_scheme` (String)
 - `data_mode_type` (String)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `is_visible` (Boolean)
 - `name` (String)
 - `resolution` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--resolution))
@@ -6235,6 +6240,7 @@ Optional:
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
 - `data_mode_type` (String)
 - `group_name_template` (String)
+- `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `max_slices_per_chart` (Number)
 - `min_slice_percentage` (Number)
 - `show_legend` (Boolean)
