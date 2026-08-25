@@ -659,7 +659,7 @@ Read-Only:
 - `description` (String) Widget description.
 - `id` (String)
 - `reference` (Attributes) Reference to a widget on another dashboard. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--reference))
-- `title` (String) Widget title. Required for all inline widgets except markdown.
+- `title` (String) Widget title. Required for all inline widgets except markdown, where it is optional.
 - `width` (Number) Deprecated: the widget appearance.width field is ignored by the API and has no effect.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition"></a>
