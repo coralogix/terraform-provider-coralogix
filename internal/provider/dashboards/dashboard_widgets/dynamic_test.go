@@ -24,6 +24,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 func TestDynamicWidgetLogsStatRoundTrip(t *testing.T) {
@@ -467,6 +468,144 @@ func TestDynamicWidgetStatCardMinMaxAutoRoundTrip(t *testing.T) {
 	}
 
 	assertDynamicRoundTrip(ctx, t, original)
+}
+
+func TestDynamicWidgetBarsFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	f32 := func(v float64) Float32Value {
+		return Float32Value{Float64Value: basetypes.NewFloat64Value(v)}
+	}
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("max")}),
+		GroupByQuery: types.BoolValue(false),
+		Placement:    types.StringValue("bottom"),
+	}
+	queryFieldSettings, diags := types.ListValueFrom(ctx,
+		types.ObjectType{AttrTypes: dynamicBarsQueryFieldSettingsModelAttr()},
+		[]DynamicBarsQueryFieldSettingsModel{{
+			QueryID:    types.StringValue("9d1b7a4e-0000-4000-8000-00000000ab01"),
+			ValueField: observationFieldObject("duration", "metadata"),
+		}})
+	if diags.HasError() {
+		t.Fatalf("building query field settings: %v", diags)
+	}
+
+	// One arm per chart, since the API accepts exactly one and the schema
+	// enforces it: category on the vertical multi, query_value on the horizontal.
+	categorySort := &DynamicSortOrderModel{
+		OrderDirection: types.StringValue("asc"),
+		Strategy: &DynamicSortStrategyModel{
+			Category:     types.BoolValue(true),
+			StrategyType: types.StringNull(),
+		},
+	}
+	queryValueSort := &DynamicSortOrderModel{
+		OrderDirection: types.StringValue("desc"),
+		Strategy: &DynamicSortStrategyModel{
+			Category:     types.BoolNull(),
+			QueryValue:   &DynamicSortByQueryValueModel{QueryID: types.StringValue("9d1b7a4e-0000-4000-8000-00000000ab01")},
+			StrategyType: types.StringNull(),
+		},
+	}
+
+	for name, visualization := range map[string]*DynamicVisualizationModel{
+		"vertical_bars": {VerticalBars: &DynamicVerticalBarsModel{
+			AllowAbbreviation: types.BoolValue(true),
+			BarValueDisplay:   types.StringValue("top"),
+			CategoryFields:    observationFieldList("applicationname", "label"),
+			ColorScheme:       types.StringValue("classic"),
+			ColorsBy:          types.StringValue("stack"),
+			CustomUnit:        types.StringValue("rpm"),
+			DecimalPrecision:  types.Int64Value(2),
+			GroupNameTemplate: types.StringValue("group"),
+			HashColors:        types.BoolValue(true),
+			Legend:            legend,
+			MaxBarsPerChart:   types.Int64Value(20),
+			MaxSlicesPerBar:   types.Int64Value(5),
+			ScaleType:         types.StringValue("linear"),
+			SortBy:            types.StringValue("value"),
+			StackNameTemplate: types.StringValue("stack"),
+			SubCategoryFields: observationFieldList("severity", "metadata"),
+			Unit:              types.StringValue("seconds"),
+			ValueField:        observationFieldObject("duration", "metadata"),
+			YAxisMax:          f32(99.5),
+			YAxisMin:          f32(0),
+		}},
+		"vertical_bars_multi": {VerticalBarsMulti: &DynamicVerticalBarsMultiModel{
+			AllowAbbreviation:  types.BoolValue(false),
+			BarValueDisplay:    types.StringValue("inside"),
+			CategoryFields:     observationFieldList("applicationname", "label"),
+			ColorScheme:        types.StringValue("cold"),
+			ColorsBy:           types.StringValue("query"),
+			CustomUnit:         types.StringValue("rpm"),
+			DecimalPrecision:   types.Int64Value(1),
+			GroupNameTemplate:  types.StringValue("group"),
+			HashColors:         types.BoolValue(false),
+			Legend:             legend,
+			MaxBarsPerChart:    types.Int64Value(10),
+			QueryFieldSettings: queryFieldSettings,
+			ScaleType:          types.StringValue("logarithmic"),
+			SortOrder:          categorySort,
+			Unit:               types.StringValue("bytes"),
+			YAxisMax:           f32(1000),
+			YAxisMin:           f32(-10.25),
+		}},
+		"horizontal_bars": {HorizontalBars: &DynamicHorizontalBarsModel{
+			AllowAbbreviation: types.BoolValue(true),
+			CategoryFields:    observationFieldList("applicationname", "label"),
+			ColorScheme:       types.StringValue("red"),
+			ColorsBy:          types.StringValue("group_by"),
+			CustomUnit:        types.StringValue("rpm"),
+			DecimalPrecision:  types.Int64Value(3),
+			DisplayOnBar:      types.BoolValue(true),
+			GroupNameTemplate: types.StringValue("group"),
+			HashColors:        types.BoolValue(true),
+			Legend:            legend,
+			MaxBarsPerChart:   types.Int64Value(15),
+			MaxSlicesPerBar:   types.Int64Value(4),
+			ScaleType:         types.StringValue("linear"),
+			SortBy:            types.StringValue("name"),
+			StackNameTemplate: types.StringValue("stack"),
+			SubCategoryFields: observationFieldList("severity", "metadata"),
+			Unit:              types.StringValue("milliseconds"),
+			ValueField:        observationFieldObject("duration", "metadata"),
+			YAxisMax:          f32(50),
+			YAxisMin:          f32(5),
+			YAxisViewBy:       types.StringValue("category"),
+		}},
+		"horizontal_bars_multi": {HorizontalBarsMulti: &DynamicHorizontalBarsMultiModel{
+			AllowAbbreviation:  types.BoolValue(false),
+			CategoryFields:     observationFieldList("applicationname", "label"),
+			ColorScheme:        types.StringValue("blue"),
+			ColorsBy:           types.StringValue("aggregation"),
+			CustomUnit:         types.StringValue("rpm"),
+			DecimalPrecision:   types.Int64Value(0),
+			DisplayOnBar:       types.BoolValue(false),
+			GroupNameTemplate:  types.StringValue("group"),
+			HashColors:         types.BoolValue(false),
+			Legend:             legend,
+			MaxBarsPerChart:    types.Int64Value(25),
+			QueryFieldSettings: queryFieldSettings,
+			ScaleType:          types.StringValue("linear"),
+			SortOrder:          queryValueSort,
+			Unit:               types.StringValue("usd"),
+			YAxisMax:           f32(12.5),
+			YAxisMin:           f32(0),
+			YAxisViewBy:        types.StringValue("value"),
+		}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assertDynamicRoundTrip(ctx, t, &DynamicModel{
+				QueryDefinitions: logsQueryDefinitionsFixture(ctx, t),
+				TimeFrame: &TimeFrameModel{
+					Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+				},
+				Visualization: visualization,
+			})
+		})
+	}
 }
 
 func TestDynamicWidgetTableFullFidelityRoundTrip(t *testing.T) {
