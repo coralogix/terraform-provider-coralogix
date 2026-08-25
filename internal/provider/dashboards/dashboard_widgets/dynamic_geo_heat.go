@@ -1050,19 +1050,22 @@ func flattenDynamicGeomapTooltip(ctx context.Context, m *dashboardservice.Geomap
 	}, nil
 }
 
+// The API stores a min/max wrapper with neither arm selected - confirmed by
+// applying `"minMax": {}` and reading it back. Returning a present block for
+// that shape would produce state with both children null, which the block's
+// exactly-one-of validator rejects, so it would diff forever after an import.
 func flattenDynamicMinMax(m *dashboardservice.MinMax) *DynamicMinMaxModel {
-	if m == nil {
+	switch {
+	case m == nil:
 		return nil
-	}
-	minMax := &DynamicMinMaxModel{Auto: types.BoolNull()}
-	if m.Auto != nil {
-		minMax.Auto = types.BoolValue(true)
-	}
-	if m.Custom != nil {
-		minMax.Custom = &DynamicMinMaxCustomModel{
+	case m.Custom != nil:
+		return &DynamicMinMaxModel{Auto: types.BoolNull(), Custom: &DynamicMinMaxCustomModel{
 			Max: types.Float64PointerValue(m.Custom.Max),
 			Min: types.Float64PointerValue(m.Custom.Min),
-		}
+		}}
+	case m.Auto != nil:
+		return &DynamicMinMaxModel{Auto: types.BoolValue(true)}
+	default:
+		return nil
 	}
-	return minMax
 }

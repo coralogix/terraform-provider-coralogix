@@ -993,3 +993,22 @@ func TestDynamicWidgetSpatialFullFidelityRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+// The API stores a geomap min/max wrapper with neither arm selected. Read back
+// as a present block it would carry two null children, which the block's own
+// exactly-one-of validator rejects, so the dashboard would diff forever.
+func TestDynamicWidgetGeomapEmptyMinMaxReadsBackAbsent(t *testing.T) {
+	if got := flattenDynamicMinMax(&dashboardservice.MinMax{}); got != nil {
+		t.Errorf("a min/max wrapper with no arm must read back as absent, got auto=%s custom=%v", got.Auto, got.Custom)
+	}
+
+	// The populated arms must still survive, or the guard above would be
+	// hiding a dropped field rather than preventing an unexpressible one.
+	if got := flattenDynamicMinMax(&dashboardservice.MinMax{Auto: map[string]interface{}{}}); got == nil || !got.Auto.ValueBool() {
+		t.Errorf("the auto arm must read back set, got %v", got)
+	}
+	max := 50.0
+	if got := flattenDynamicMinMax(&dashboardservice.MinMax{Custom: &dashboardservice.MinMaxCustom{Max: &max}}); got == nil || got.Custom == nil {
+		t.Errorf("the custom arm must read back set, got %v", got)
+	}
+}
