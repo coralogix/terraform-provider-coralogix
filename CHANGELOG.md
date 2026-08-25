@@ -4,6 +4,7 @@
 - FEAT: Add the `hexagon_bins`, `heatmap` and `geomap` visualizations to the `dynamic` widget, completing the set. The geomap's coordinate source, cluster aggregation and colour mode each take exactly one alternative.
 - FIX: Every list the spatial visualizations expose rejects an explicit empty value at plan time instead of failing the apply with an inconsistent-result error.
 - FIX: `decimal_precision` on these visualizations is bounded to the documented 0 to 15 rather than the full int32 range.
+- FIX: Bound the `dynamic` widget's numeric attributes to what the API documents. `max_bars_per_chart`, `max_slices_per_bar` and a table column `width` require at least 1, and the bar and time-series `decimal_precision` is limited to 0 to 15. A table column width also no longer accepts a negative value.
 - FEAT: Add the `gauge` and `pie_chart` visualizations to the `dynamic` widget, including the gauge's arc display and thresholds and the pie chart's label definition.
 - FIX: Every list the `gauge` and `pie_chart` visualizations expose rejects an explicit empty value at plan time instead of failing the apply with an inconsistent-result error.
 - FIX: The pie chart's `max_slices_per_chart` and `max_slices_per_stack` require at least one slice, and `min_slice_percentage` is bounded to 0 to 100, matching the proto.
