@@ -4,6 +4,7 @@
 - FEAT: Add `EQUALS` and `NOT_EQUALS` condition types for logs and metric threshold alerts.
 
 #### resource/coralogix_dashboard
+- FEAT: Add `hash_colors` to `line_chart` query definitions, `bar_chart`, `horizontal_bar_chart` and `pie_chart`. Each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`. The `dynamic` widget visualizations already had the attribute; they now share one description.
 - FIX: Bound the `dynamic` widget's numeric attributes to what the API documents. `max_bars_per_chart`, `max_slices_per_bar` and a table column `width` require at least 1, and the bar and time-series `decimal_precision` is limited to 0 to 15. A table column width also no longer accepts a negative value.
 - FEAT: Add the `gauge` and `pie_chart` visualizations to the `dynamic` widget, including the gauge's arc display and thresholds and the pie chart's label definition.
 - FIX: Every list the `gauge` and `pie_chart` visualizations expose rejects an explicit empty value at plan time instead of failing the apply with an inconsistent-result error.

@@ -176,9 +176,7 @@ func dynamicPieChartSchema() schema.Attribute {
 			"group_name_template": schema.StringAttribute{
 				Optional: true,
 			},
-			"hash_colors": schema.BoolAttribute{
-				Optional: true,
-			},
+			"hash_colors": HashColorsSchema(),
 			"label_definition": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{

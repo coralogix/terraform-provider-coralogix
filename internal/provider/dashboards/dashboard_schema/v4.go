@@ -444,6 +444,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		},
 																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidColorSchemes, ", ")),
 																	},
+																	"hash_colors": dashboardwidgets.HashColorsSchema(),
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
@@ -629,6 +630,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		},
 																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidColorSchemes, ", ")),
 																	},
+																	"hash_colors": dashboardwidgets.HashColorsSchema(),
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
@@ -805,6 +807,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		},
 																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidColorSchemes, ", ")),
 																	},
+																	"hash_colors": dashboardwidgets.HashColorsSchema(),
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,

@@ -423,3 +423,10 @@ func ColorsBySchema() schema.StringAttribute {
 		MarkdownDescription: fmt.Sprintf("What colors are derived from. Valid values are: %s.", strings.Join(DashboardValidColorsBy, ", ")),
 	}
 }
+
+func HashColorsSchema() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		Optional:            true,
+		MarkdownDescription: "When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.",
+	}
+}
