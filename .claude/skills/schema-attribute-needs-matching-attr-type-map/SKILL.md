@@ -1,6 +1,6 @@
 ---
 name: schema-attribute-needs-matching-attr-type-map
-description: "Use when adding an attribute to a coralogix_dashboard widget and every apply, read or state upgrade then fails with 'Value Conversion Error' at 'Path: layout'. Points at the hand-maintained attr.Type map that must be widened too."
+description: "Use when a coralogix_dashboard apply or state upgrade fails with 'Value Conversion Error' at 'Path: layout' after adding a widget attribute. Widen the hand-written attr.Type map too."
 ---
 
 # A new schema attribute needs a matching attr.Type map entry

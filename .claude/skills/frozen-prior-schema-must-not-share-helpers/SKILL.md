@@ -1,6 +1,6 @@
 ---
 name: frozen-prior-schema-must-not-share-helpers
-description: "Use when adding an attribute to a coralogix_dashboard widget schema, to check no prior schema version (dashboard_schema/v1..v3) shares the helper you are editing. Prior schemas decode old state and must stay frozen."
+description: "Use when widening a shared coralogix_dashboard widget schema helper like LineChartSchema(). Checks whether dashboard_schema/v1..v3 also use it; prior schemas must stay frozen."
 ---
 
 # A frozen prior schema must not share a schema helper
