@@ -4850,7 +4850,7 @@ Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters))
 - `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_by))
-- `group_bys` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. Cannot be combined with `group_by`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_bys))
+- `group_bys` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_bys))
 - `lucene_query` (String)
 - `spans_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--spans_aggregation))
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame))
@@ -6145,7 +6145,7 @@ Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters))
 - `group_by` (List of String)
-- `group_bys` (Attributes List) Observation fields to group the results by. Use these when a field name contains a literal dot, or exists in more than one scope. Cannot be combined with `group_by`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--group_bys))
+- `group_bys` (Attributes List) Observation fields to group the results by. Use these when a field name contains a literal dot, or exists in more than one scope. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--group_bys))
 - `lucene_query` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame))
 
@@ -6319,7 +6319,7 @@ Optional:
 - `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--aggregations))
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters))
 - `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_by))
-- `group_bys` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. Cannot be combined with `group_by`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_bys))
+- `group_bys` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_bys))
 - `lucene_query` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame))
 

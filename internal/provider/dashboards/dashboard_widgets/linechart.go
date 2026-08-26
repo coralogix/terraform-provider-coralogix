@@ -109,7 +109,7 @@ func LineChartSchema() schema.Attribute {
 											ElementType: types.StringType,
 											Optional:    true,
 										},
-										"group_bys":    ObservationFieldsSchema("group_by"),
+										"group_bys":    ObservationFieldsSchema(),
 										"filters":      LogsFiltersSchema(),
 										"aggregations": LogsAggregationsSchema(),
 										"time_frame":   TimeFrameSchema(),
@@ -139,7 +139,7 @@ func LineChartSchema() schema.Attribute {
 											Optional: true,
 										},
 										"group_by":     SpansFieldsSchema(),
-										"group_bys":    SpanObservationFieldsSchema("group_by"),
+										"group_bys":    SpanObservationFieldsSchema(),
 										"aggregations": SpansAggregationsSchema(),
 										"filters":      SpansFilterSchema(),
 										"time_frame":   TimeFrameSchema(),
@@ -394,7 +394,7 @@ func FlattenLineChart(ctx context.Context, lineChart *dashboardservice.LineChart
 			StackedLine:      types.StringValue(lineChartStackedLineProtoToSchemaMap[lineChart.GetStackedLine()]),
 			ConnectNulls:     types.BoolPointerValue(lineChart.ConnectNulls),
 			UseDataTimeRange: types.BoolPointerValue(lineChart.UseDataTimeRange),
-			XAxisTimeFormat:  types.StringValue(DashboardProtoToSchemaXAxisTimeFormat[lineChart.GetXAxisTimeFormat()]),
+			XAxisTimeFormat:  FlattenEnum(lineChart.GetXAxisTimeFormat(), DashboardProtoToSchemaXAxisTimeFormat),
 		},
 	}, nil
 }
@@ -628,8 +628,8 @@ func flattenLineChartQueryMetrics(ctx context.Context, metrics *dashboardservice
 			PromqlQuery:     flattenPromqlQuery(metrics.PromqlQuery),
 			Filters:         filters,
 			PromqlQueryType: types.StringValue(utils.UNSPECIFIED),
-			EditorMode:      types.StringValue(DashboardProtoToSchemaMetricsEditorMode[metrics.GetEditorMode()]),
-			SeriesLimitType: types.StringValue(dashboardProtoToSchemaMetricsSeriesLimitType[metrics.GetSeriesLimitType()]),
+			EditorMode:      FlattenEnum(metrics.GetEditorMode(), DashboardProtoToSchemaMetricsEditorMode),
+			SeriesLimitType: FlattenEnum(metrics.GetSeriesLimitType(), dashboardProtoToSchemaMetricsSeriesLimitType),
 			TimeFrame:       timeFrame,
 		},
 	}, nil

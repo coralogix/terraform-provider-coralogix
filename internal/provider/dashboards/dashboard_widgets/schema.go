@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
@@ -551,49 +550,18 @@ func PromQLQueryTypeSchema() schema.StringAttribute {
 }
 
 // SpanObservationFieldsSchema is the list-of-span-observation-fields shape used
-// by `group_bys` and `group_names_fields` on a spans query. conflictsWith names
-// sibling attributes that must not be set at the same time, such as `group_by`.
-func SpanObservationFieldsSchema(conflictsWith ...string) schema.ListNestedAttribute {
+// by `group_bys` and `group_names_fields` on a spans query.
+func SpanObservationFieldsSchema() schema.ListNestedAttribute {
 	return schema.ListNestedAttribute{
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: spanObservationFieldSchema(),
 		},
-		Optional:   true,
-		Validators: listSizeAndConflictValidators(conflictsWith),
-		MarkdownDescription: describeConflicts(
-			"Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type.",
-			conflictsWith,
-		),
+		Optional: true,
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
+		MarkdownDescription: "Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type.",
 	}
-}
-
-// describeConflicts appends the "cannot be combined with" sentence to a
-// description, so the generated docs name the sibling the validator rejects.
-func describeConflicts(description string, siblings []string) string {
-	if len(siblings) == 0 {
-		return description
-	}
-
-	quoted := make([]string, 0, len(siblings))
-	for _, sibling := range siblings {
-		quoted = append(quoted, "`"+sibling+"`")
-	}
-	return fmt.Sprintf("%s Cannot be combined with %s.", description, strings.Join(quoted, ", "))
-}
-
-// listSizeAndConflictValidators rejects an explicit empty list and, when
-// siblings are named, rejects setting this attribute together with any of them.
-func listSizeAndConflictValidators(siblings []string) []validator.List {
-	validators := []validator.List{listvalidator.SizeAtLeast(1)}
-	if len(siblings) == 0 {
-		return validators
-	}
-
-	expressions := make([]path.Expression, 0, len(siblings))
-	for _, sibling := range siblings {
-		expressions = append(expressions, path.MatchRelative().AtParent().AtName(sibling))
-	}
-	return append(validators, listvalidator.ConflictsWith(expressions...))
 }
 
 // SpanObservationFieldSchema is the single-span-observation-field shape used by
@@ -607,19 +575,17 @@ func SpanObservationFieldSchema() schema.SingleNestedAttribute {
 }
 
 // ObservationFieldsSchema is the list-of-observation-fields shape used by
-// `group_by` and `group_bys` on a logs query. conflictsWith names sibling
-// attributes that must not be set at the same time, such as `group_by`.
-func ObservationFieldsSchema(conflictsWith ...string) schema.ListNestedAttribute {
+// `group_by` and `group_bys` on a logs query.
+func ObservationFieldsSchema() schema.ListNestedAttribute {
 	return schema.ListNestedAttribute{
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: ObservationFieldSchema(),
 		},
-		Optional:   true,
-		Validators: listSizeAndConflictValidators(conflictsWith),
-		MarkdownDescription: describeConflicts(
-			"Observation fields to group the results by. Use these when a field name contains a literal dot, or exists in more than one scope.",
-			conflictsWith,
-		),
+		Optional: true,
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
+		MarkdownDescription: "Observation fields to group the results by. Use these when a field name contains a literal dot, or exists in more than one scope.",
 	}
 }
 

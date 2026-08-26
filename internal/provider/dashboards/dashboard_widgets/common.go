@@ -394,6 +394,20 @@ func OptionalEnumPointer[T ~string](value types.String, values map[string]T) *T 
 	return &converted
 }
 
+// FlattenEnum converts an API enum to the name the schema uses. A field the API
+// did not set arrives as the enum's zero value, which is the empty string and is
+// in no mapping; it becomes "unspecified", the schema's own name for that state.
+// Writing the empty string instead puts a value in state that the schema does not
+// allow, and an attribute that is Optional+Computed then plans as unknown for
+// ever, because Terraform cannot reconcile it with an omitted configuration.
+func FlattenEnum[T ~string](value T, mapping map[T]string) types.String {
+	if name, ok := mapping[value]; ok {
+		return types.StringValue(name)
+	}
+
+	return types.StringValue(utils.UNSPECIFIED)
+}
+
 func legacyDurationToOpenAPI(value, fieldName string) (*string, diag.Diagnostic) {
 	duration, diagnostic := utils.ParseDuration(value, fieldName)
 	if diagnostic != nil {

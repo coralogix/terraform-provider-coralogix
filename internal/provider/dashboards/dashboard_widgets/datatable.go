@@ -498,7 +498,7 @@ func flattenDataTableMetricsQuery(ctx context.Context, metrics *dashboardservice
 			PromqlQueryType: types.StringValue(DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
 			PromqlQuery:     flattenPromqlQuery(metrics.PromqlQuery),
 			Filters:         filters,
-			EditorMode:      types.StringValue(DashboardProtoToSchemaMetricsEditorMode[metrics.GetEditorMode()]),
+			EditorMode:      FlattenEnum(metrics.GetEditorMode(), DashboardProtoToSchemaMetricsEditorMode),
 			TimeFrame:       timeFrame,
 		},
 	}, nil

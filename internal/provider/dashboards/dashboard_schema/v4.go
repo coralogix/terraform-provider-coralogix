@@ -168,7 +168,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																					"filters":           dashboardwidgets.SpansFilterSchema(),
 																					"time_frame":        dashboardwidgets.TimeFrameSchema(),
 																					"group_by":          dashboardwidgets.NonEmptySpansFieldsSchema(),
-																					"group_bys":         dashboardwidgets.SpanObservationFieldsSchema("group_by"),
+																					"group_bys":         dashboardwidgets.SpanObservationFieldsSchema(),
 																				},
 																				Optional: true,
 																			},

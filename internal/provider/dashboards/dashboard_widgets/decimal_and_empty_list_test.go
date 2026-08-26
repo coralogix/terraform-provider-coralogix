@@ -19,6 +19,8 @@ import (
 	"math/big"
 	"testing"
 
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -96,5 +98,23 @@ func TestNonEmptySpansFieldsRejectsAnEmptyList(t *testing.T) {
 	}
 	if !flattened.IsNull() {
 		t.Fatalf("FlattenSpansFields(nil) = %v, want a null list; the validator above depends on that", flattened)
+	}
+}
+
+// An enum the API did not set arrives as the enum's zero value, the empty string.
+// Flattening it to the empty string puts a value in state the schema does not
+// allow, and an Optional+Computed attribute then plans as unknown for ever
+// because Terraform cannot reconcile it with an omitted configuration.
+func TestFlattenEnumMapsAnAbsentValueToUnspecified(t *testing.T) {
+	flattened, diags := FlattenLineChart(t.Context(), &dashboardservice.LineChart{})
+	if diags.HasError() {
+		t.Fatalf("FlattenLineChart() diagnostics = %v", diags)
+	}
+	if got := flattened.LineChart.XAxisTimeFormat; got.ValueString() != utils.UNSPECIFIED {
+		t.Fatalf("flattened x_axis_time_format = %q, want %q", got.ValueString(), utils.UNSPECIFIED)
+	}
+
+	if got := FlattenEnum(dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_HH_MM, DashboardProtoToSchemaXAxisTimeFormat); got.ValueString() != "hh_mm" {
+		t.Fatalf("FlattenEnum(HH_MM) = %q, want \"hh_mm\"", got.ValueString())
 	}
 }
