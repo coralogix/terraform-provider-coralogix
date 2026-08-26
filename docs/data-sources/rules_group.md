@@ -30,7 +30,7 @@ data "coralogix_rules_group" "imported_rules_group_example" {
 - `hidden` (Boolean)
 - `id` (String) The ID of this resource.
 - `name` (String) Rule-group name
-- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).
+- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API.
 - `rule_subgroups` (List of Object) List of rule-subgroups. Every rule-subgroup is a list of rules linked with a logical 'OR' (||) operation. (see [below for nested schema](#nestedatt--rule_subgroups))
 - `severities` (Set of String) Rules will execute on logs that match the these severities. Can be one of ["Critical" "Debug" "Error" "Info" "Verbose" "Warning"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
