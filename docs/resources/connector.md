@@ -260,7 +260,7 @@ resource "coralogix_connector" "eventbridge_example" {
 }
 
 resource "coralogix_connector" "incident_io_example" {
-  type        = "incident_io"
+  type        = "incident_io" # Preview connector type.
   name        = "incident.io connector"
   description = "incident.io connector example"
   connector_config = {
@@ -288,7 +288,7 @@ resource "coralogix_connector" "incident_io_example" {
 ### Required
 
 - `name` (String) Connector name.
-- `type` (String) Connector type. Valid values are: [email eventbridge generic_https incident_io microsoft_teams pagerduty pagerduty_incidents service_now slack unspecified]
+- `type` (String) Connector type. Valid values are: [email eventbridge generic_https incident_io microsoft_teams pagerduty pagerduty_incidents service_now slack unspecified]. `incident_io` is a preview type.
 
 ### Optional
 

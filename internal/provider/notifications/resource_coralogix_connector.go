@@ -154,7 +154,7 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Validators: []validator.String{
 					stringvalidator.OneOf(validConnectorTypesSchemaToApi...),
 				},
-				MarkdownDescription: fmt.Sprintf("Connector type. Valid values are: %s", validConnectorTypesSchemaToApi),
+				MarkdownDescription: fmt.Sprintf("Connector type. Valid values are: %s. `incident_io` is a preview type.", validConnectorTypesSchemaToApi),
 			},
 			"connector_config": schema.SingleNestedAttribute{
 				Optional: true,

@@ -245,7 +245,7 @@ resource "coralogix_connector" "eventbridge_example" {
 }
 
 resource "coralogix_connector" "incident_io_example" {
-  type        = "incident_io"
+  type        = "incident_io" # Preview connector type.
   name        = "incident.io connector"
   description = "incident.io connector example"
   connector_config = {
