@@ -78,7 +78,7 @@ func TestAccCoralogixResourceTCOPoliciesRum_dpxl_expression(t *testing.T) {
 				Config: testAccCoralogixResourceTCOPoliciesRumDpxlExpression(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.name", "Example rum tco_policy with DPXL expression"),
-					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.priority", "high"),
+					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.priority", "medium"),
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.dpxl_expression", "<v1> $d.severity == 'Error'"),
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.severities.#", "0"),
 				),
@@ -202,7 +202,7 @@ func testAccCoralogixResourceTCOPoliciesRumDpxlExpression() string {
     {
       name            = "Example rum tco_policy with DPXL expression"
       description     = "DPXL-based matcher for the RUM policy"
-      priority        = "high"
+      priority        = "medium"
       dpxl_expression = "<v1> $d.severity == 'Error'"
     },
   ]
@@ -234,7 +234,7 @@ func testAccCoralogixResourceTCOPoliciesRumSeveritiesOnly() string {
   policies = [
     {
       name       = "Example rum tco_policy migration"
-      priority   = "high"
+      priority   = "medium"
       severities = ["info"]
     },
   ]
@@ -247,7 +247,7 @@ func testAccCoralogixResourceTCOPoliciesRumDpxlOnly() string {
   policies = [
     {
       name            = "Example rum tco_policy migration"
-      priority        = "high"
+      priority        = "medium"
       dpxl_expression = "<v1> $d.severity == 'Error'"
     },
   ]

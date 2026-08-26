@@ -63,6 +63,7 @@ resource "coralogix_dashboard" "dashboard" {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
+                        hash_colors        = true
                         resolution = {
                           interval = "seconds:900"
                         }
@@ -491,6 +492,7 @@ resource "coralogix_dashboard" "dashboard" {
                         }
                       }
                     }
+                    hash_colors = true
                     xaxis = {
                       time = {
                         interval          = "1h0m5s"

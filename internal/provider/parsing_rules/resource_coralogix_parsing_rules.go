@@ -325,9 +325,11 @@ func (r *ParsingRulesResource) Schema(_ context.Context, _ resource.SchemaReques
 				Description: "Rule-group creator.",
 			},
 			"order": schema.Int64Attribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).",
+				Optional: true,
+				Computed: true,
+				Description: "Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). " +
+					"The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources " +
+					"that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API.",
 			},
 			"rule_subgroups": schema.ListNestedAttribute{
 				Optional: true,

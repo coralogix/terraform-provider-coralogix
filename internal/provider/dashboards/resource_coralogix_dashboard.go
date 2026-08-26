@@ -2161,6 +2161,7 @@ func expandHorizontalBarChart(ctx context.Context, chart *dashboardwidgets.Horiz
 			YAxisViewBy:       expandYAxisViewBy(chart.YAxisViewBy),
 			SortBy:            dashboardwidgets.OptionalEnumPointer(chart.SortBy, dashboardwidgets.DashboardSchemaToProtoSortBy),
 			ColorScheme:       utils.TypeStringToStringPointer(chart.ColorScheme),
+			HashColors:        chart.HashColors.ValueBoolPointer(),
 			DataModeType:      dashboardwidgets.OptionalEnumPointer(chart.DataModeType, dashboardwidgets.DashboardSchemaToProtoDataModeType),
 		},
 	}, nil
@@ -2200,6 +2201,7 @@ func expandPieChart(ctx context.Context, pieChart *dashboardwidgets.PieChartMode
 			GroupNameTemplate:  utils.TypeStringToStringPointer(pieChart.GroupNameTemplate),
 			Unit:               dashboardwidgets.OptionalEnumPointer(pieChart.Unit, dashboardwidgets.DashboardSchemaToProtoUnit),
 			ColorScheme:        utils.TypeStringToStringPointer(pieChart.ColorScheme),
+			HashColors:         pieChart.HashColors.ValueBoolPointer(),
 			DataModeType:       dashboardwidgets.OptionalEnumPointer(pieChart.DataModeType, dashboardwidgets.DashboardSchemaToProtoDataModeType),
 		},
 	}, nil
@@ -2912,6 +2914,7 @@ func expandBarChart(ctx context.Context, chart *dashboardwidgets.BarChartModel) 
 			Unit:              dashboardwidgets.OptionalEnumPointer(chart.Unit, dashboardwidgets.DashboardSchemaToProtoUnit),
 			SortBy:            dashboardwidgets.OptionalEnumPointer(chart.SortBy, dashboardwidgets.DashboardSchemaToProtoSortBy),
 			ColorScheme:       utils.TypeStringToStringPointer(chart.ColorScheme),
+			HashColors:        chart.HashColors.ValueBoolPointer(),
 			DataModeType:      dashboardwidgets.OptionalEnumPointer(chart.DataModeType, dashboardwidgets.DashboardSchemaToProtoDataModeType),
 		},
 	}, nil
@@ -4222,6 +4225,7 @@ func widgetModelAttr() map[string]attr.Type {
 						"group_name_template": types.StringType,
 						"unit":                types.StringType,
 						"color_scheme":        types.StringType,
+						"hash_colors":         types.BoolType,
 						"data_mode_type":      types.StringType,
 					},
 				},
@@ -4269,6 +4273,7 @@ func widgetModelAttr() map[string]attr.Type {
 						"unit":           types.StringType,
 						"sort_by":        types.StringType,
 						"color_scheme":   types.StringType,
+						"hash_colors":    types.BoolType,
 						"data_mode_type": types.StringType,
 					},
 				},
@@ -4359,6 +4364,7 @@ func widgetModelAttr() map[string]attr.Type {
 						"unit":           types.StringType,
 						"sort_by":        types.StringType,
 						"color_scheme":   types.StringType,
+						"hash_colors":    types.BoolType,
 						"display_on_bar": types.BoolType,
 						"y_axis_view_by": types.StringType,
 						"data_mode_type": types.StringType,
@@ -4992,6 +4998,7 @@ func flattenHorizontalBarChart(ctx context.Context, chart *dashboardservice.Hori
 			YAxisViewBy:       flattenYAxisViewBy(chart.YAxisViewBy),
 			SortBy:            types.StringValue(dashboardwidgets.DashboardProtoToSchemaSortBy[chart.GetSortBy()]),
 			ColorScheme:       utils.StringPointerToTypeString(chart.ColorScheme),
+			HashColors:        types.BoolPointerValue(chart.HashColors),
 			DataModeType:      types.StringValue(dashboardwidgets.DashboardProtoToSchemaDataModeType[chart.GetDataModeType()]),
 		},
 	}, nil
@@ -5414,6 +5421,7 @@ func flattenPieChart(ctx context.Context, pieChart *dashboardservice.WidgetsPieC
 			GroupNameTemplate:  utils.StringPointerToTypeString(pieChart.GroupNameTemplate),
 			Unit:               types.StringValue(dashboardwidgets.DashboardProtoToSchemaUnit[pieChart.GetUnit()]),
 			ColorScheme:        utils.StringPointerToTypeString(pieChart.ColorScheme),
+			HashColors:         types.BoolPointerValue(pieChart.HashColors),
 			DataModeType:       types.StringValue(dashboardwidgets.DashboardProtoToSchemaDataModeType[pieChart.GetDataModeType()]),
 		},
 	}, nil
@@ -5631,6 +5639,7 @@ func flattenBarChart(ctx context.Context, barChart *dashboardservice.BarChart) (
 			Unit:              types.StringValue(dashboardwidgets.DashboardProtoToSchemaUnit[barChart.GetUnit()]),
 			SortBy:            types.StringValue(dashboardwidgets.DashboardProtoToSchemaSortBy[barChart.GetSortBy()]),
 			ColorScheme:       utils.StringPointerToTypeString(barChart.ColorScheme),
+			HashColors:        types.BoolPointerValue(barChart.HashColors),
 			DataModeType:      types.StringValue(dashboardwidgets.DashboardProtoToSchemaDataModeType[barChart.GetDataModeType()]),
 		},
 	}, nil
