@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
 	clientset "github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -52,12 +53,12 @@ func main() {
 	cs := clientset.NewClientSet(region, apiKey, cxsdk.CoralogixGrpcEndpointFromRegion(region))
 	// Dashboards
 	dashboardClient := cs.Dashboards()
-	dashboards, err := dashboardClient.List(ctx)
+	dashboards, _, err := dashboardClient.DashboardCatalogServiceGetDashboardCatalog(ctx).Execute()
 
 	if err == nil {
 		log.Println("Deleting all dashboards")
 		for _, d := range dashboards.GetItems() {
-			dashboardClient.Delete(ctx, &cxsdk.DeleteDashboardRequest{DashboardId: d.GetId()})
+			_, _, _ = dashboardClient.DashboardsServiceDeleteDashboard(ctx, d.GetId()).Execute()
 		}
 	} else {
 		log.Print("Error listing Dashboards:", err)
@@ -157,11 +158,11 @@ func main() {
 
 	// Events2Metrics
 	events2metricsClient := cs.Events2Metrics()
-	events2metrics, err := events2metricsClient.List(ctx)
+	events2metrics, _, err := events2metricsClient.Events2MetricServiceListE2M(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all events2metrics")
-		for _, events2metric := range events2metrics.GetE2M() {
-			events2metricsClient.Delete(ctx, &cxsdk.DeleteE2MRequest{Id: events2metric.GetId()})
+		for _, events2metric := range events2metrics.GetE2m() {
+			_, _, _ = events2metricsClient.Events2MetricServiceDeleteE2M(ctx, events2metric.GetId()).Execute()
 		}
 	} else {
 		log.Print("Error listing events2metrics:", err)
@@ -179,38 +180,22 @@ func main() {
 		log.Print("Error listing dashboard folders:", err)
 	}
 
-	// TCO
-	tcoPoliciesTracesClient := cs.TCOPolicies()
-	tcoPolicies, _, err := tcoPoliciesTracesClient.PoliciesServiceGetCompanyPolicies(ctx).Execute()
-	if err == nil {
-		log.Println("Deleting all TCO Traces policies")
-
-		for _, tcoPolicy := range tcoPolicies.GetPolicies() {
-			if tcoPolicy.PolicyLogRules != nil {
-				tcoPoliciesTracesClient.PoliciesServiceDeletePolicy(ctx, tcoPolicy.PolicyLogRules.GetId()).Execute()
+	// TCO (logs, spans/traces, and RUM are separate company-wide lists)
+	tcoPoliciesClient := cs.TCOPolicies()
+	for _, sourceType := range []tcoPolicys.V1SourceType{
+		tcoPolicys.V1SOURCETYPE_SOURCE_TYPE_LOGS,
+		tcoPolicys.V1SOURCETYPE_SOURCE_TYPE_SPANS,
+		tcoPolicys.V1SOURCETYPE_SOURCE_TYPE_RUM,
+	} {
+		tcoPolicies, _, err := tcoPoliciesClient.PoliciesServiceGetCompanyPolicies(ctx).SourceType(sourceType).Execute()
+		if err == nil {
+			log.Println("Deleting TCO policies for", sourceType)
+			for _, tcoPolicy := range tcoPolicies.GetPolicies() {
+				_, _, _ = tcoPoliciesClient.PoliciesServiceDeletePolicy(ctx, tcoPolicy.GetId()).Execute()
 			}
-			if tcoPolicy.PolicySpanRules != nil {
-				tcoPoliciesTracesClient.PoliciesServiceDeletePolicy(ctx, tcoPolicy.PolicySpanRules.GetId()).Execute()
-			}
+		} else {
+			log.Print("Error listing TCO policies for ", sourceType, ": ", err)
 		}
-	} else {
-		log.Print("Error listing TCO policies:", err)
-	}
-
-	tcoPoliciesLogsClient := cs.TCOPolicies()
-	tcoPolicies, _, err = tcoPoliciesLogsClient.PoliciesServiceGetCompanyPolicies(ctx).Execute()
-	if err == nil {
-		log.Println("Deleting all TCO Logs policies")
-		for _, tcoPolicy := range tcoPolicies.GetPolicies() {
-			if tcoPolicy.PolicyLogRules != nil {
-				tcoPoliciesLogsClient.PoliciesServiceDeletePolicy(ctx, tcoPolicy.PolicyLogRules.GetId()).Execute()
-			}
-			if tcoPolicy.PolicySpanRules != nil {
-				tcoPoliciesLogsClient.PoliciesServiceDeletePolicy(ctx, tcoPolicy.PolicySpanRules.GetId()).Execute()
-			}
-		}
-	} else {
-		log.Print("Error listing TCO Logs policies:", err)
 	}
 	// Groups
 	groupClient := cxsdk.NewGroupsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
@@ -327,15 +312,9 @@ func main() {
 	if err == nil {
 		log.Println("Deleting all SLOs")
 		for _, f := range slos.Slos {
-			var id string
-			if f.SloRequestBasedMetricSli != nil {
-				id = *f.SloRequestBasedMetricSli.Id
-			} else if f.SloWindowBasedMetricSli != nil {
-				id = *f.SloWindowBasedMetricSli.Id
-			} else {
-				continue
+			if id := f.GetId(); id != "" {
+				sloClient.SlosServiceDeleteSlo(ctx, id).Execute()
 			}
-			sloClient.SlosServiceDeleteSlo(ctx, id).Execute()
 		}
 	} else {
 		log.Print("Error listing SLOs:", err)
