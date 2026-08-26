@@ -1811,7 +1811,7 @@ Read-Only:
 - `allow_abbreviation` (Boolean)
 - `arc_display` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--arc_display))
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--category_fields))
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `display_series_name` (Boolean)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--legend))
@@ -1894,7 +1894,7 @@ Read-Only:
 - `allow_abbreviation` (Boolean)
 - `color` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--color))
 - `config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config))
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `min_max` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--min_max))
 - `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip))
@@ -2066,7 +2066,7 @@ Read-Only:
 Read-Only:
 
 - `labels` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip--labels))
-- `message_template` (String)
+- `message_template` (String) A template for the tooltip text, 1 to 4096 characters.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip--labels"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.tooltip.labels`
@@ -2088,7 +2088,7 @@ Read-Only:
 - `color_axis_max` (Number) The maximum value for the gradient color axis. Stored at float32 precision by the API.
 - `color_axis_min` (Number) The minimum value for the gradient color axis. Stored at float32 precision by the API.
 - `color_range` (String) The gradient color range. Mutually exclusive with `preset`. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `histogram_bucket_unit` (String) The histogram bucket unit. Valid values are: bytes, bytes_iec, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, seconds, unspecified.
 - `preset` (String) The color preset. Mutually exclusive with `color_range`. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
@@ -2107,7 +2107,7 @@ Read-Only:
 Read-Only:
 
 - `labels` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip--labels))
-- `message_template` (String)
+- `message_template` (String) A template for the tooltip text, 1 to 4096 characters.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--heatmap--tooltip--labels"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.heatmap.tooltip.labels`
@@ -2154,7 +2154,7 @@ Read-Only:
 
 - `allow_abbreviation` (Boolean)
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--category_fields))
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--legend))
 - `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
@@ -2214,7 +2214,7 @@ Read-Only:
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--category_fields))
 - `color_scheme` (String)
 - `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number)
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
@@ -2280,7 +2280,7 @@ Read-Only:
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--category_fields))
 - `color_scheme` (String)
 - `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number)
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
@@ -2369,7 +2369,7 @@ Read-Only:
 - `allow_abbreviation` (Boolean)
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--category_fields))
 - `color_scheme` (String) How slices are coloured. The API takes a free-form string and stores whatever it is given, so this is deliberately not restricted; the schemes this provider knows about are: classic, severity, cold, negative, green, red, blue. A value the product does not recognise is stored but applies no scheme.
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
@@ -2442,7 +2442,7 @@ Read-Only:
 
 - `allow_abbreviation` (Boolean)
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--category_fields))
-- `custom_unit` (String) Custom unit label. Takes effect only when `unit` is `custom`.
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `display_series_name` (Boolean)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--legend))
@@ -2513,7 +2513,7 @@ Read-Only:
 - `allow_abbreviation` (Boolean) Shorten large numbers, for example `1.2K` instead of `1200`.
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--category_fields))
 - `color_label_mapping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping))
-- `custom_unit` (String) A free-text unit label. Documented as taking effect only when `unit` is `custom`.
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `label` (Attributes) Text element: read a field with `observation_field`, or write it with `template_text`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label))
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--legend))
@@ -2857,7 +2857,7 @@ Read-Only:
 Read-Only:
 
 - `allow_abbreviation` (Boolean)
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
 - `max` (Number)
 - `min` (Number)
@@ -2932,7 +2932,7 @@ Read-Only:
 - `bar_value_display` (String) Where bar values are displayed. Valid values are: both, inside, top, unspecified.
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--category_fields))
 - `color_scheme` (String)
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--legend))
@@ -3005,7 +3005,7 @@ Read-Only:
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--category_fields))
 - `color_scheme` (String)
 - `connect_nulls` (Boolean)
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--legend))
@@ -3102,7 +3102,7 @@ Read-Only:
 - `allow_abbreviation` (Boolean)
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--category_fields))
 - `color_scheme` (String)
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `query_id` (String) The `id` of the query in `query_definitions` these settings style. Set that `id` explicitly, since a generated one is not known when the configuration is written.
@@ -3163,7 +3163,7 @@ Read-Only:
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--category_fields))
 - `color_scheme` (String)
 - `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number)
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
@@ -3228,7 +3228,7 @@ Read-Only:
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--category_fields))
 - `color_scheme` (String)
 - `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
-- `custom_unit` (String)
+- `custom_unit` (String) A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.
 - `decimal_precision` (Number)
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.

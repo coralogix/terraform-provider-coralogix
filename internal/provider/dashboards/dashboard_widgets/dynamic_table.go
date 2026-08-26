@@ -44,7 +44,7 @@ func dynamicTableSchema() schema.Attribute {
 			"columns": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -58,7 +58,7 @@ func dynamicTableSchema() schema.Attribute {
 			"rules": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -78,7 +78,7 @@ func dynamicTableSchema() schema.Attribute {
 						"properties": schema.ListNestedAttribute{
 							Optional: true,
 							Validators: []validator.List{
-								listvalidator.SizeAtLeast(1),
+								listvalidator.SizeBetween(1, 1000),
 							},
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
@@ -122,7 +122,7 @@ func dynamicTablePropertyDefinitionSchema() schema.Attribute {
 					"actions": schema.ListNestedAttribute{
 						Optional: true,
 						Validators: []validator.List{
-							listvalidator.SizeAtLeast(1),
+							listvalidator.SizeBetween(1, 1000),
 						},
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
@@ -177,9 +177,7 @@ func dynamicTablePropertyDefinitionSchema() schema.Attribute {
 					"allow_abbreviation": schema.BoolAttribute{
 						Optional: true,
 					},
-					"custom_unit": schema.StringAttribute{
-						Optional: true,
-					},
+					"custom_unit": DynamicCustomUnitSchema(),
 					"decimal_precision": schema.Int64Attribute{
 						Optional: true,
 						Validators: []validator.Int64{
@@ -205,7 +203,7 @@ func dynamicTablePropertyDefinitionSchema() schema.Attribute {
 					"mappings": schema.ListNestedAttribute{
 						Optional: true,
 						Validators: []validator.List{
-							listvalidator.SizeAtLeast(1),
+							listvalidator.SizeBetween(1, 1000),
 						},
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
@@ -286,7 +284,7 @@ func dynamicTableSettingsSchema() schema.Attribute {
 			"column_widths": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{

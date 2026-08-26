@@ -60,7 +60,7 @@ func dynamicBarsQueryFieldSettingsSchema() schema.Attribute {
 	return schema.ListNestedAttribute{
 		Optional: true,
 		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
+			listvalidator.SizeBetween(1, 1000),
 		},
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
@@ -141,7 +141,7 @@ func dynamicVerticalBarsSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -150,10 +150,8 @@ func dynamicVerticalBarsSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": ColorsBySchema(),
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"colors_by":   ColorsBySchema(),
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -201,7 +199,7 @@ func dynamicVerticalBarsSchema() schema.Attribute {
 			"sub_category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -251,7 +249,7 @@ func dynamicVerticalBarsMultiSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -260,10 +258,8 @@ func dynamicVerticalBarsMultiSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": ColorsBySchema(),
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"colors_by":   ColorsBySchema(),
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -323,7 +319,7 @@ func dynamicHorizontalBarsSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -332,10 +328,8 @@ func dynamicHorizontalBarsSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": ColorsBySchema(),
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"colors_by":   ColorsBySchema(),
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -386,7 +380,7 @@ func dynamicHorizontalBarsSchema() schema.Attribute {
 			"sub_category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -436,7 +430,7 @@ func dynamicHorizontalBarsMultiSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -445,10 +439,8 @@ func dynamicHorizontalBarsMultiSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": ColorsBySchema(),
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"colors_by":   ColorsBySchema(),
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{

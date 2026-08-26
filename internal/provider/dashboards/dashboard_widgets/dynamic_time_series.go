@@ -49,7 +49,7 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -61,9 +61,7 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 			"connect_nulls": schema.BoolAttribute{
 				Optional: true,
 			},
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -108,7 +106,7 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 			"value_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -198,7 +196,7 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -207,9 +205,7 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -254,7 +250,7 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 			"value_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -643,7 +639,7 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 		Optional:            true,
 		MarkdownDescription: "Per-query display settings. Each entry styles one query, named by `query_id`.",
 		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
+			listvalidator.SizeBetween(1, 1000),
 		},
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
@@ -653,7 +649,7 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 				"category_fields": schema.ListNestedAttribute{
 					Optional: true,
 					Validators: []validator.List{
-						listvalidator.SizeAtLeast(1),
+						listvalidator.SizeBetween(1, 1000),
 					},
 					NestedObject: schema.NestedAttributeObject{
 						Attributes: ObservationFieldSchema(),
@@ -662,9 +658,7 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 				"color_scheme": schema.StringAttribute{
 					Optional: true,
 				},
-				"custom_unit": schema.StringAttribute{
-					Optional: true,
-				},
+				"custom_unit": DynamicCustomUnitSchema(),
 				"decimal_precision": schema.Int64Attribute{
 					Optional: true,
 					Validators: []validator.Int64{
@@ -699,7 +693,7 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 				"value_fields": schema.ListNestedAttribute{
 					Optional: true,
 					Validators: []validator.List{
-						listvalidator.SizeAtLeast(1),
+						listvalidator.SizeBetween(1, 1000),
 					},
 					NestedObject: schema.NestedAttributeObject{
 						Attributes: ObservationFieldSchema(),
