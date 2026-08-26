@@ -1273,6 +1273,67 @@ func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
 	)
 }
 
+func TestAccCoralogixResourceAlert_logs_equals(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertLogsEquals(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-equals alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.0.condition.threshold", "100"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.0.condition.time_window", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.0.condition.condition_type", "EQUALS"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertLogsEqualsUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-equals alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.0.condition.condition_type", "NOT_EQUALS"),
+				),
+			},
+		},
+	},
+	)
+}
+
+func TestAccCoralogixResourceAlert_metric_equals(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertMetricEquals(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "metric-equals alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.threshold", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.condition_type", "EQUALS"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertMetricEqualsUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "metric-equals alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.condition_type", "NOT_EQUALS"),
+				),
+			},
+		},
+	},
+	)
+}
+
 func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -3515,6 +3576,126 @@ func testAccCoralogixResourceAlertMetricMoreThanOrEqualsUpdated() string {
         missing_values = {
             replace_with_zero = true
         }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsEquals() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-equals alert example"
+  description = "Example of logs-equals alert from terraform"
+  priority    = "P2"
+
+  type_definition = {
+    logs_threshold = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "level:ERROR"
+        }
+      }
+      rules = [{
+        condition = {
+          threshold      = 100
+          time_window    = "10_MINUTES"
+          condition_type = "EQUALS"
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsEqualsUpdated() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-equals alert example updated"
+  description = "Example of logs-equals alert from terraform updated"
+  priority    = "P2"
+
+  type_definition = {
+    logs_threshold = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "level:ERROR"
+        }
+      }
+      rules = [{
+        condition = {
+          threshold      = 100
+          time_window    = "10_MINUTES"
+          condition_type = "NOT_EQUALS"
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertMetricEquals() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "metric-equals alert example"
+  description = "Example of metric-equals alert from terraform"
+  priority    = "P3"
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(rate(http_requests_total[5m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 0
+          for_over_pct   = 100
+          of_the_last    = "5_MINUTES"
+          condition_type = "EQUALS"
+        }
+        override = {
+          priority = "P3"
+        }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertMetricEqualsUpdated() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "metric-equals alert example updated"
+  description = "Example of metric-equals alert from terraform updated"
+  priority    = "P3"
+
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(rate(http_requests_total[5m]))"
+      }
+      rules = [{
+        condition = {
+          threshold      = 0
+          for_over_pct   = 100
+          of_the_last    = "5_MINUTES"
+          condition_type = "NOT_EQUALS"
+        }
+        override = {
+          priority = "P3"
+        }
+      }]
+      missing_values = {
+        replace_with_zero = true
+      }
     }
   }
 }

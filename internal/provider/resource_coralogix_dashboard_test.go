@@ -2287,6 +2287,117 @@ resource "coralogix_dashboard" "test" {
 	})
 }
 
+// hash_colors is a plain Optional bool on all four widgets. The last step removes it from the
+// config entirely: if the API echoed hashColors: false for an omitted field, that step would
+// leave a permanent diff and the attribute would need Optional+Computed with a false default.
+func TestAccCoralogixResourceDashboardHashColors(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	config := func(hashColors string) string {
+		return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing hash_colors on the classic widgets"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [
+          {
+            title = "line chart"
+            definition = {
+              line_chart = {
+                query_definitions = [{
+                  query = { logs = { aggregations = [{ type = "count" }] } }
+                  %[2]s
+                }]
+              }
+            }
+          },
+          {
+            title = "bar chart"
+            definition = {
+              bar_chart = {
+                query = { logs = { aggregation = { type = "count" } } }
+                %[2]s
+              }
+            }
+          },
+          {
+            title = "horizontal bar chart"
+            definition = {
+              horizontal_bar_chart = {
+                query = { logs = { aggregation = { type = "count" } } }
+                %[2]s
+              }
+            }
+          },
+          {
+            title = "pie chart"
+            definition = {
+              pie_chart = {
+                query            = { logs = { aggregation = { type = "count" } } }
+                label_definition = {}
+                %[2]s
+              }
+            }
+          },
+        ]
+      }]
+    }]
+  }
+}
+`, name, hashColors)
+	}
+
+	widgetPaths := []string{
+		"layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.hash_colors",
+		"layout.sections.0.rows.0.widgets.1.definition.bar_chart.hash_colors",
+		"layout.sections.0.rows.0.widgets.2.definition.horizontal_bar_chart.hash_colors",
+		"layout.sections.0.rows.0.widgets.3.definition.pie_chart.hash_colors",
+	}
+	checks := func(value string) resource.TestCheckFunc {
+		funcs := []resource.TestCheckFunc{resource.TestCheckResourceAttrSet(dashboardResourceName, "id")}
+		for _, path := range widgetPaths {
+			funcs = append(funcs, resource.TestCheckResourceAttr(dashboardResourceName, path, value))
+		}
+		return resource.ComposeAggregateTestCheckFunc(funcs...)
+	}
+	checksUnset := func() resource.TestCheckFunc {
+		funcs := []resource.TestCheckFunc{resource.TestCheckResourceAttrSet(dashboardResourceName, "id")}
+		for _, path := range widgetPaths {
+			funcs = append(funcs, resource.TestCheckNoResourceAttr(dashboardResourceName, path))
+		}
+		return resource.ComposeAggregateTestCheckFunc(funcs...)
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: config("hash_colors = true"),
+				Check:  checks("true"),
+			},
+			{
+				Config: config("hash_colors = false"),
+				Check:  checks("false"),
+			},
+			{
+				Config: config(""),
+				Check:  checksUnset(),
+			},
+			testAccDashboardImportStep(),
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardManualAnnotation(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 	resource.ParallelTest(t, resource.TestCase{

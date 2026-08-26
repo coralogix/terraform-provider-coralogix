@@ -15,6 +15,7 @@
 package provider
 
 import (
+	"context"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -28,6 +29,9 @@ import (
 	"testing"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
 
 type dashboardOneOfCoverageStatus string
@@ -95,6 +99,11 @@ var dashboardStructuredAcceptanceLifecycleTests = []string{
 	dashboardOpenAPITransitionTestName,
 	dashboardOpenAPIDynamicStatTestName,
 	dashboardOpenAPIDynamicStatCardTestName,
+	dashboardOpenAPIDynamicGaugePieTestName,
+	dashboardOpenAPIDynamicTimeSeriesTestName,
+	dashboardOpenAPIDynamicBarsTestName,
+	dashboardOpenAPIDynamicTableTestName,
+	dashboardOpenAPIDynamicTimeSeriesTestName,
 }
 
 func covered(path, testName string) dashboardOneOfBranchCoverage {
@@ -210,17 +219,32 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		dynamicWidget = widget + ".dynamic"
 		dynamicQuery  = dynamicWidget + ".query_definitions[*].query"
 		statCard      = dynamicWidget + ".visualization.stat_card"
+		table         = dynamicWidget + ".visualization.table"
 	)
 
 	visualization := observedAPIOnlyModel(
 		"ast/widgets/dynamic.proto#Dynamic.Visualization.value",
-		"the structured provider models only the stat visualization of WidgetDefinition.dynamic; the remaining branches stay content_json-only, and import and data-source reads reject them instead of writing partial structured state",
+		"the structured provider does not model these visualizations of WidgetDefinition.dynamic; they stay content_json-only, and import and data-source reads reject them instead of writing partial structured state",
 		dashboardContentJSONDynamicQueriesTableTestName,
 		[]string{"table"},
 		"table", "timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti",
+		"table", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "verticalBarsMulti", "horizontalBarsMulti", "statCard",
 	)
 	visualization.Branches["stat"] = covered(dynamicWidget+".visualization.stat", dashboardOpenAPIDynamicStatTestName)
 	visualization.Branches["statCard"] = covered(statCard, dashboardOpenAPIDynamicStatCardTestName)
+	visualization.Branches["gauge"] = covered(dynamicWidget+".visualization.gauge", dashboardOpenAPIDynamicGaugePieTestName)
+	visualization.Branches["pieChart"] = covered(dynamicWidget+".visualization.pie_chart", dashboardOpenAPIDynamicGaugePieTestName)
+	visualization.Branches["timeSeriesLines"] = covered(dynamicWidget+".visualization.time_series_lines", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["timeSeriesLinesMulti"] = covered(dynamicWidget+".visualization.time_series_lines_multi", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["timeSeriesBars"] = covered(dynamicWidget+".visualization.time_series_bars", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["verticalBars"] = covered(dynamicWidget+".visualization.vertical_bars", dashboardOpenAPIDynamicBarsTestName)
+	visualization.Branches["verticalBarsMulti"] = covered(dynamicWidget+".visualization.vertical_bars_multi", dashboardOpenAPIDynamicBarsTestName)
+	visualization.Branches["horizontalBars"] = covered(dynamicWidget+".visualization.horizontal_bars", dashboardOpenAPIDynamicBarsTestName)
+	visualization.Branches["horizontalBarsMulti"] = covered(dynamicWidget+".visualization.horizontal_bars_multi", dashboardOpenAPIDynamicBarsTestName)
+	visualization.Branches["table"] = covered(table, dashboardOpenAPIDynamicTableTestName)
+	visualization.Branches["timeSeriesLines"] = covered(dynamicWidget+".visualization.time_series_lines", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["timeSeriesLinesMulti"] = covered(dynamicWidget+".visualization.time_series_lines_multi", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["timeSeriesBars"] = covered(dynamicWidget+".visualization.time_series_bars", dashboardOpenAPIDynamicTimeSeriesTestName)
 
 	return map[string]dashboardOneOfModelCoverage{
 		"ActionDefinition": apiOnlyModel(
@@ -503,11 +527,19 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"dataprime": covered(widget+".pie_chart.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
-		"PropertyDefinition": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.Table.PropertyDefinition.value",
-			"dynamic table property definitions are reachable only below WidgetDefinition.dynamic",
-			"thresholds", "alignment", "units", "regexExtract", "link", "valuesAlias", "valuesMapping", "columnDisplayName",
-		),
+		"PropertyDefinition": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.Table.PropertyDefinition.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"thresholds":        covered(table+".rules[*].properties[*].definition.thresholds", dashboardOpenAPIDynamicTableTestName),
+				"alignment":         covered(table+".rules[*].properties[*].definition.alignment", dashboardOpenAPIDynamicTableTestName),
+				"units":             covered(table+".rules[*].properties[*].definition.units", dashboardOpenAPIDynamicTableTestName),
+				"regexExtract":      covered(table+".rules[*].properties[*].definition.regex_extract", dashboardOpenAPIDynamicTableTestName),
+				"link":              covered(table+".rules[*].properties[*].definition.link", dashboardOpenAPIDynamicTableTestName),
+				"valuesAlias":       covered(table+".rules[*].properties[*].definition.values_alias", dashboardOpenAPIDynamicTableTestName),
+				"valuesMapping":     covered(table+".rules[*].properties[*].definition.values_mapping", dashboardOpenAPIDynamicTableTestName),
+				"columnDisplayName": covered(table+".rules[*].properties[*].definition.column_display_name", dashboardOpenAPIDynamicTableTestName),
+			},
+		},
 		"QueryLogsQueryType": {
 			ProtoSource: "ast/variables/variable.proto#MultiSelect.Query.LogsQuery.Type.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -581,11 +613,14 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"fieldValue": covered(variableQuery+".spans.field_value", dashboardOpenAPIVariablesTestName),
 			},
 		},
-		"RuleScope": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.Table.RuleScope.value",
-			"dynamic table rule scope is reachable only below WidgetDefinition.dynamic",
-			"field", "regex", "fieldType",
-		),
+		"RuleScope": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.Table.RuleScope.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"field":     covered(table+".rules[*].rule_scope.field", dashboardOpenAPIDynamicTableTestName),
+				"regex":     covered(table+".rules[*].rule_scope.regex", dashboardOpenAPIDynamicTableTestName),
+				"fieldType": covered(table+".rules[*].rule_scope.field_type", dashboardOpenAPIDynamicTableTestName),
+			},
+		},
 		"SectionOptions": {
 			ProtoSource: "ast/layout.proto#SectionOptions.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -593,11 +628,13 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"custom":   covered("layout.sections[*].options", "TestAccCoralogixResourceDashboard"),
 			},
 		},
-		"SortStrategy": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.SortOrder.SortStrategy.strategy",
-			"dynamic sort strategy is reachable only below WidgetDefinition.dynamic",
-			"category", "queryValue",
-		),
+		"SortStrategy": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.SortOrder.SortStrategy.strategy",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"category":   covered(dynamicWidget+".visualization.{vertical_bars_multi,horizontal_bars_multi}.sort_order.strategy.category", dashboardOpenAPIDynamicBarsTestName),
+				"queryValue": covered(dynamicWidget+".visualization.{vertical_bars_multi,horizontal_bars_multi}.sort_order.strategy.query_value", dashboardOpenAPIDynamicBarsTestName),
+			},
+		},
 		"SpanField": {
 			ProtoSource: "common/span_field.proto#SpanField.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -862,7 +899,7 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 
 func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 	models := map[string][]string{
-		"Visualization": {"table", "timeSeriesLines", "timeSeriesBars", "gauge", "hexagonBins", "pieChart", "horizontalBars", "verticalBars", "heatmap", "geomap", "timeSeriesLinesMulti", "verticalBarsMulti", "horizontalBarsMulti"},
+		"Visualization": {"hexagonBins", "heatmap", "geomap"},
 	}
 	observed := map[string]struct{}{
 		"Visualization.table": {},
@@ -1425,4 +1462,99 @@ func snakeToLowerCamel(value string) string {
 		}
 	}
 	return strings.Join(parts, "")
+}
+
+// The manifest is only useful for spotting schema-wiring drift if its paths
+// actually name attributes. Nothing else checks them: ProviderPath is free text
+// that doubles as an explanation for branches the schema does not expose, so a
+// covered branch could record a path with a missing or misspelled segment and
+// every other assertion here would still pass.
+//
+// Two notations are deliberately out of scope: a bare * standing for "any
+// sibling", and a trailing =value asserting an enum member rather than a path.
+func TestDashboardOneOfManifestPathsResolveAgainstSchema(t *testing.T) {
+	resp := &resource.SchemaResponse{}
+	dashboards.NewDashboardResource().(resource.ResourceWithConfigure).Schema(context.Background(), resource.SchemaRequest{}, resp)
+	if len(resp.Schema.Attributes) == 0 {
+		t.Fatal("the dashboard resource schema came back empty; this guard would pass without checking anything")
+	}
+
+	resolved := 0
+	for model, coverage := range dashboardOpenAPIOneOfCoverage {
+		for branch, branchCoverage := range coverage.Branches {
+			if branchCoverage.Status != dashboardOneOfAcceptanceCovered {
+				continue
+			}
+
+			path := strings.TrimSpace(regexp.MustCompile(`\s*\(.*\)$`).ReplaceAllString(branchCoverage.ProviderPath, ""))
+			if strings.Contains(strings.ReplaceAll(path, "[*]", ""), "*") || strings.Contains(path, "=") {
+				continue
+			}
+
+			resolved++
+			if reason := dashboardResolveProviderPath(resp.Schema.Attributes, path); reason != "" {
+				t.Errorf("%s.%s records path %q, which does not resolve: %s", model, branch, branchCoverage.ProviderPath, reason)
+			}
+		}
+	}
+
+	if resolved == 0 {
+		t.Fatal("no covered branch path was resolved; the manifest or this guard changed shape")
+	}
+	t.Logf("resolved %d covered branch path(s) against the schema", resolved)
+}
+
+// Walks dotted segments, treating name[*] as a collection to descend into. A
+// {a,b,c} segment means the same branch is reachable through several siblings
+// and resolves if any of them does.
+func dashboardResolveProviderPath(attributes map[string]schema.Attribute, path string) string {
+	current := attributes
+
+	for _, raw := range strings.Split(path, ".") {
+		name := strings.TrimSuffix(raw, "[*]")
+
+		if alternatives, ok := strings.CutPrefix(name, "{"); ok {
+			alternatives, ok = strings.CutSuffix(alternatives, "}")
+			if !ok {
+				return "unterminated alternation in " + name
+			}
+
+			var matched schema.Attribute
+			for _, alternative := range strings.Split(alternatives, ",") {
+				if attribute, ok := current[strings.TrimSpace(alternative)]; ok {
+					matched = attribute
+					break
+				}
+			}
+			if matched == nil {
+				return "no attribute among " + name
+			}
+
+			current = dashboardNestedAttributes(matched)
+			continue
+		}
+
+		attribute, ok := current[name]
+		if !ok {
+			return "no attribute " + name
+		}
+		current = dashboardNestedAttributes(attribute)
+	}
+
+	return ""
+}
+
+func dashboardNestedAttributes(attribute schema.Attribute) map[string]schema.Attribute {
+	switch typed := attribute.(type) {
+	case schema.SingleNestedAttribute:
+		return typed.Attributes
+	case schema.ListNestedAttribute:
+		return typed.NestedObject.Attributes
+	case schema.SetNestedAttribute:
+		return typed.NestedObject.Attributes
+	case schema.MapNestedAttribute:
+		return typed.NestedObject.Attributes
+	default:
+		return nil
+	}
 }

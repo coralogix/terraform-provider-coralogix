@@ -187,6 +187,7 @@ func LineChartSchema() schema.Attribute {
 								stringvalidator.OneOf(DashboardValidColorSchemes...),
 							},
 						},
+						"hash_colors": HashColorsSchema(),
 						"resolution": schema.SingleNestedAttribute{
 							Attributes: map[string]schema.Attribute{
 								"interval": schema.StringAttribute{
@@ -328,6 +329,7 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 		"name":                 types.StringType,
 		"is_visible":           types.BoolType,
 		"color_scheme":         types.StringType,
+		"hash_colors":          types.BoolType,
 		"resolution": types.ObjectType{
 			AttrTypes: map[string]attr.Type{
 				"interval":          types.StringType,
@@ -420,6 +422,7 @@ func flattenLineChartQueryDefinition(ctx context.Context, definition *dashboards
 		Name:               utils.StringPointerToTypeString(definition.Name),
 		IsVisible:          types.BoolPointerValue(definition.IsVisible),
 		ColorScheme:        utils.StringPointerToTypeString(definition.ColorScheme),
+		HashColors:         types.BoolPointerValue(definition.HashColors),
 		Resolution:         resolution,
 		DataModeType:       types.StringValue(DashboardProtoToSchemaDataModeType[definition.GetDataModeType()]),
 	}, nil
@@ -731,6 +734,7 @@ func expandLineChartQueryDefinition(ctx context.Context, queryDefinition *LineCh
 		Name:               utils.TypeStringToStringPointer(queryDefinition.Name),
 		IsVisible:          queryDefinition.IsVisible.ValueBoolPointer(),
 		ColorScheme:        utils.TypeStringToStringPointer(queryDefinition.ColorScheme),
+		HashColors:         queryDefinition.HashColors.ValueBoolPointer(),
 		Resolution:         resolution,
 		DataModeType:       OptionalEnumPointer(queryDefinition.DataModeType, DashboardSchemaToProtoDataModeType),
 	}, nil

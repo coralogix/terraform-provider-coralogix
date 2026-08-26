@@ -113,7 +113,7 @@ func dashboardSchemaAttributesV3() map[string]schema.Attribute {
 													"definition": schema.SingleNestedAttribute{
 														Required: true,
 														Attributes: map[string]schema.Attribute{
-															"line_chart": dashboardwidgets.LineChartSchema(),
+															"line_chart": dashboardwidgets.LineChartSchemaV3(),
 															"hexagon":    dashboardwidgets.HexagonSchema(),
 															"data_table": schema.SingleNestedAttribute{
 																Attributes: map[string]schema.Attribute{

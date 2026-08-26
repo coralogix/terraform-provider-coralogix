@@ -17,10 +17,13 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -230,11 +233,11 @@ func dashboardOpenAPIRunStructuredQueryScenario(t *testing.T, queryBranch string
 
 	steps := dashboardOpenAPIStructuredLifecycleSteps(
 		dashboardOpenAPILifecyclePhase{
-			Config: dashboardOpenAPIStructuredDashboardConfigForWidgets(dashboardName, queryBranch, includeMarkdown, false, widgets),
+			Config: dashboardOpenAPIStructuredDashboardConfigForWidgets(dashboardName, queryBranch, includeMarkdown, false, dashboardOpenAPIMarkdownTitle(false), widgets),
 			Check:  checks(false, dashboardIdentity.Capture()),
 		},
 		[]dashboardOpenAPILifecyclePhase{{
-			Config: dashboardOpenAPIStructuredDashboardConfigForWidgets(dashboardName, queryBranch, includeMarkdown, true, widgets),
+			Config: dashboardOpenAPIStructuredDashboardConfigForWidgets(dashboardName, queryBranch, includeMarkdown, true, dashboardOpenAPIMarkdownTitle(true), widgets),
 			Check:  checks(true, dashboardIdentity.AssertUnchanged()),
 		}},
 		resource.TestStep{
@@ -317,8 +320,11 @@ func dashboardOpenAPIStructuredQueryStateChecks(queryBranch string, includeMarkd
 	}
 
 	if includeMarkdown {
-		markdownPath := fmt.Sprintf("layout.sections.0.rows.0.widgets.%d.definition.markdown.markdown_text", len(widgets))
-		checks = append(checks, resource.TestCheckResourceAttr(dashboardResourceName, markdownPath, dashboardOpenAPIMarkdownText(updated)))
+		markdownWidgetPath := fmt.Sprintf("layout.sections.0.rows.0.widgets.%d", len(widgets))
+		checks = append(checks,
+			resource.TestCheckResourceAttr(dashboardResourceName, markdownWidgetPath+".definition.markdown.markdown_text", dashboardOpenAPIMarkdownText(updated)),
+			resource.TestCheckResourceAttr(dashboardResourceName, markdownWidgetPath+".title", dashboardOpenAPIMarkdownTitle(updated)),
+		)
 	}
 
 	return checks
@@ -422,15 +428,27 @@ func dashboardOpenAPIAssertStructuredQueryWidgets(dashboard *dashboardservice.Da
 	}
 
 	if includeMarkdown {
-		definition := widgets[len(widgetSpecs)].GetDefinition()
-		if err := dashboardOpenAPIAssertOneOfBranch(&definition, "WidgetDefinition", "markdown", dashboardID, fixture); err != nil {
-			return err
-		}
-		if definition.Markdown == nil || definition.Markdown.GetMarkdownText() != dashboardOpenAPIMarkdownText(updated) {
-			return fmt.Errorf("dashboard fixture %q (dashboard %q): markdown typed field did not round-trip", fixture, dashboardID)
-		}
+		return dashboardOpenAPIAssertMarkdownWidget(&widgets[len(widgetSpecs)], dashboardID, fixture, updated)
 	}
 
+	return nil
+}
+
+// dashboardOpenAPIAssertMarkdownWidget checks that a markdown widget
+// round-trips both its text and its title. The title matters on its own: the
+// provider used to reject a title next to a markdown definition, so a
+// UI-authored markdown widget could not be expressed in Terraform.
+func dashboardOpenAPIAssertMarkdownWidget(widget *dashboardservice.Widget, dashboardID, fixture string, updated bool) error {
+	definition := widget.GetDefinition()
+	if err := dashboardOpenAPIAssertOneOfBranch(&definition, "WidgetDefinition", "markdown", dashboardID, fixture); err != nil {
+		return err
+	}
+	if definition.Markdown == nil || definition.Markdown.GetMarkdownText() != dashboardOpenAPIMarkdownText(updated) {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): markdown typed field did not round-trip", fixture, dashboardID)
+	}
+	if wantTitle := dashboardOpenAPIMarkdownTitle(updated); widget.GetTitle() != wantTitle {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): markdown widget title = %q, want %q", fixture, dashboardID, widget.GetTitle(), wantTitle)
+	}
 	return nil
 }
 
@@ -616,11 +634,18 @@ func dashboardOpenAPIStructuredDashboardConfigVariant(name, queryBranch string, 
 		queryBranch,
 		includeMarkdown,
 		updated,
+		dashboardOpenAPIMarkdownTitle(updated),
 		dashboardOpenAPIStructuredWidgetsForBranch(queryBranch),
 	)
 }
 
-func dashboardOpenAPIStructuredDashboardConfigForWidgets(name, queryBranch string, includeMarkdown, updated bool, widgetSpecs []dashboardStructuredWidgetSpec) string {
+// dashboardOpenAPIStructuredDashboardConfigForWidgets builds a dashboard
+// config covering widgetSpecs, optionally followed by a markdown widget titled
+// markdownTitle. An empty markdownTitle omits the title attribute entirely,
+// which configs applied by an older external provider need: a markdown widget
+// could not carry a title before this provider version, so such a provider
+// rejects the pair at plan time. See dashboardMigrationV360Config.
+func dashboardOpenAPIStructuredDashboardConfigForWidgets(name, queryBranch string, includeMarkdown, updated bool, markdownTitle string, widgetSpecs []dashboardStructuredWidgetSpec) string {
 	widgets := ""
 	for index, widget := range widgetSpecs {
 		if index > 0 {
@@ -629,14 +654,18 @@ func dashboardOpenAPIStructuredDashboardConfigForWidgets(name, queryBranch strin
 		widgets += dashboardOpenAPIStructuredWidgetConfig(widget.name, queryBranch, updated)
 	}
 	if includeMarkdown {
+		titleAttribute := ""
+		if markdownTitle != "" {
+			titleAttribute = fmt.Sprintf("\n          title = %q", markdownTitle)
+		}
 		widgets += fmt.Sprintf(`,
-        {
+        {%s
           definition = {
             markdown = {
               markdown_text = %q
             }
           }
-        }`, dashboardOpenAPIMarkdownText(updated))
+        }`, titleAttribute, dashboardOpenAPIMarkdownText(updated))
 	}
 
 	return fmt.Sprintf(`
@@ -988,6 +1017,16 @@ func dashboardOpenAPIPromQLQuery(updated bool) string {
 	return "vector(1)"
 }
 
+// dashboardOpenAPIMarkdownTitle pairs a widget title with the markdown
+// definition. A titled markdown widget is what the Coralogix UI produces, and
+// the provider used to reject that combination at validate time.
+func dashboardOpenAPIMarkdownTitle(updated bool) string {
+	if updated {
+		return "updated markdown title"
+	}
+	return "markdown title"
+}
+
 func dashboardOpenAPIMarkdownText(updated bool) string {
 	if updated {
 		return "## Updated structured dashboard coverage"
@@ -1072,4 +1111,47 @@ func boolToInt(value bool) int {
 		return 1
 	}
 	return 0
+}
+
+// TestDashboardOpenAPIStructuredConfigMarkdownTitle pins both markdown widget
+// shapes the generator has to produce. The titled shape is what the local
+// provider is tested against; the untitled shape is what
+// dashboardMigrationV360Config needs, because the external providers it pins
+// reject a title next to a markdown definition. Emitting a title there fails
+// TestAccCoralogixResourceDashboardMigrationFromV360 at step 1, in the
+// external provider's plan, which is a slow and confusing way to learn it.
+func TestDashboardOpenAPIStructuredConfigMarkdownTitle(t *testing.T) {
+	widgets := dashboardOpenAPIStructuredWidgetsForBranch("logs")
+
+	for _, testCase := range []struct {
+		name          string
+		markdownTitle string
+		wantMarkdown  string
+	}{
+		{
+			name:          "titled",
+			markdownTitle: dashboardOpenAPIMarkdownTitle(false),
+			wantMarkdown: `        {
+          title = "markdown title"
+          definition = {
+            markdown = {`,
+		},
+		{
+			name:          "untitled_for_external_provider",
+			markdownTitle: dashboardMigrationMarkdownTitleUnsupported,
+			wantMarkdown: `        {
+          definition = {
+            markdown = {`,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			config := dashboardOpenAPIStructuredDashboardConfigForWidgets("dashboard", "logs", true, false, testCase.markdownTitle, widgets)
+			if !strings.Contains(config, testCase.wantMarkdown) {
+				t.Fatalf("markdown widget block not found in config:\nwant:\n%s\ngot:\n%s", testCase.wantMarkdown, config)
+			}
+			if _, diagnostics := hclsyntax.ParseConfig([]byte(config), testCase.name+".tf", hcl.InitialPos); diagnostics.HasErrors() {
+				t.Fatalf("generated config is invalid HCL:\n%s", diagnostics.Error())
+			}
+		})
+	}
 }
