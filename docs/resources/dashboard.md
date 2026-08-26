@@ -2004,7 +2004,7 @@ Optional:
 
 Optional:
 
-- `bar_value_display` (String) Where the bar value is displayed. Valid values are: both, inside, top, unspecified.
+- `bar_value_display` (String) Where the bar value is displayed. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: both, inside, top, unspecified.
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
 - `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
 - `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
@@ -2020,7 +2020,7 @@ Optional:
 - `sort_by` (String) The field to sort by. Can be one of name, unspecified, value.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--stack_definition))
 - `unit` (String) The unit of the chart. Can be one of bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
-- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
+- `x_axis_time_format` (String) The x-axis time format. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis))
 - `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
 - `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
@@ -2318,11 +2318,11 @@ Required:
 
 Optional:
 
-- `aggregation` (String) How the metric series is reduced to one value per group. Valid values are: avg, last, max, min, sum, unspecified.
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
+- `aggregation` (String) How the metric series is reduced to one value per group. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: avg, last, max, min, sum, unspecified.
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters))
 - `group_names` (List of String)
-- `promql_query_type` (String) The PromQL query type. Valid values are: instant, range, unspecified.
+- `promql_query_type` (String) The PromQL query type. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: instant, range, unspecified.
 - `stacked_group_name` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame))
 
@@ -2840,7 +2840,7 @@ Required:
 
 Optional:
 
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters))
 - `promql_query_type` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame))
@@ -4509,7 +4509,7 @@ Optional:
 - `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number; the API accepts 0 to 15.
 - `display_series_name` (Boolean)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--legend))
-- `legend_by` (String) What the legend lists. Valid values are: groups, thresholds, unspecified.
+- `legend_by` (String) What the legend lists. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: groups, thresholds, unspecified.
 - `max` (Number)
 - `min` (Number)
 - `show_inner_arc` (Boolean)
@@ -4785,9 +4785,9 @@ Required:
 Optional:
 
 - `aggregation` (String) The type of aggregation. Can be one of ["avg" "last" "max" "min" "sum" "unspecified"].
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters))
-- `promql_query_type` (String) The PromQL query type. Valid values are: instant, range, unspecified.
+- `promql_query_type` (String) The PromQL query type. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: instant, range, unspecified.
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters"></a>
@@ -5743,11 +5743,11 @@ Required:
 
 Optional:
 
-- `aggregation` (String) How the metric series is reduced to one value per group. Valid values are: avg, last, max, min, sum, unspecified.
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
+- `aggregation` (String) How the metric series is reduced to one value per group. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: avg, last, max, min, sum, unspecified.
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters))
 - `group_names` (List of String)
-- `promql_query_type` (String) The PromQL query type. Valid values are: instant, range, unspecified.
+- `promql_query_type` (String) The PromQL query type. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: instant, range, unspecified.
 - `stacked_group_name` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame))
 
@@ -5955,7 +5955,7 @@ Optional:
 - `stacked_line` (String) Option to show lines as stacked. Possible values: absolute, relative, unspecified
 - `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--tooltip))
 - `use_data_time_range` (Boolean) When true, the dashboard and widget time frames are ignored and the x-axis covers only the dates present in the returned data.
-- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
+- `x_axis_time_format` (String) The x-axis time format. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions`
@@ -6252,10 +6252,10 @@ Required:
 
 Optional:
 
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters))
 - `promql_query_type` (String)
-- `series_limit_type` (String) How the series limit is counted. Valid values are: by_point_count, by_series_count, unspecified.
+- `series_limit_type` (String) How the series limit is counted. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: by_point_count, by_series_count, unspecified.
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters"></a>
@@ -6772,11 +6772,11 @@ Required:
 
 Optional:
 
-- `aggregation` (String) How the metric series is reduced to one value per group. Valid values are: avg, last, max, min, sum, unspecified.
-- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
+- `aggregation` (String) How the metric series is reduced to one value per group. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: avg, last, max, min, sum, unspecified.
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters))
 - `group_names` (List of String)
-- `promql_query_type` (String) The PromQL query type. Valid values are: instant, range, unspecified.
+- `promql_query_type` (String) The PromQL query type. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: instant, range, unspecified.
 - `stacked_group_name` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame))
 

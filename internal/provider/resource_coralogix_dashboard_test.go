@@ -2504,14 +2504,17 @@ resource "coralogix_dashboard" "test" {
 		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, chart+".connect_nulls"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, chart+".use_data_time_range"),
-		resource.TestCheckResourceAttr(dashboardResourceName, chart+".x_axis_time_format", utils.UNSPECIFIED),
+		// The new enums are Optional+Computed with no static default, because the
+		// API supplies a value when the attribute is omitted. Terraform keeps the
+		// prior value rather than reverting it, which is what makes the plan empty.
+		resource.TestCheckResourceAttr(dashboardResourceName, chart+".x_axis_time_format", "dd_mm_hh_mm"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, definition+".custom_unit"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, definition+".decimal"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, definition+".decimal_precision"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, definition+".y_axis_max"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, definition+".y_axis_min"),
-		resource.TestCheckResourceAttr(dashboardResourceName, metrics+".editor_mode", utils.UNSPECIFIED),
-		resource.TestCheckResourceAttr(dashboardResourceName, metrics+".series_limit_type", utils.UNSPECIFIED),
+		resource.TestCheckResourceAttr(dashboardResourceName, metrics+".editor_mode", "builder"),
+		resource.TestCheckResourceAttr(dashboardResourceName, metrics+".series_limit_type", "by_point_count"),
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -2636,16 +2639,19 @@ resource "coralogix_dashboard" "test" {
 	)
 	unsetChecks := resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
-		resource.TestCheckResourceAttr(dashboardResourceName, bar+".bar_value_display", utils.UNSPECIFIED),
+		// The new enums are Optional+Computed with no static default, because the
+		// API supplies a value when the attribute is omitted. Terraform keeps the
+		// prior value rather than reverting it, which is what makes the plan empty.
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".bar_value_display", "top"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, bar+".custom_unit"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, bar+".decimal"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, bar+".decimal_precision"),
-		resource.TestCheckResourceAttr(dashboardResourceName, bar+".x_axis_time_format", utils.UNSPECIFIED),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".x_axis_time_format", "hh_mm"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, bar+".y_axis_max"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, bar+".y_axis_min"),
-		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.aggregation", utils.UNSPECIFIED),
-		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.editor_mode", utils.UNSPECIFIED),
-		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.promql_query_type", utils.UNSPECIFIED),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.aggregation", "avg"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.editor_mode", "text"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.promql_query_type", "instant"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, horizontal+".custom_unit"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, horizontal+".decimal"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, horizontal+".decimal_precision"),
@@ -2754,9 +2760,12 @@ resource "coralogix_dashboard" "test" {
 		resource.TestCheckNoResourceAttr(dashboardResourceName, pie+".decimal"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, pie+".decimal_precision"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, pie+".show_total"),
-		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.aggregation", utils.UNSPECIFIED),
-		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.editor_mode", utils.UNSPECIFIED),
-		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.promql_query_type", utils.UNSPECIFIED),
+		// The new enums are Optional+Computed with no static default, because the
+		// API supplies a value when the attribute is omitted. Terraform keeps the
+		// prior value rather than reverting it, which is what makes the plan empty.
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.aggregation", "sum"),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.editor_mode", "builder"),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.promql_query_type", "range"),
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -2861,9 +2870,12 @@ resource "coralogix_dashboard" "test" {
 		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, gauge+".custom_unit"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, gauge+".show_min_max"),
-		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".legend_by", utils.UNSPECIFIED),
-		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".query.metrics.editor_mode", utils.UNSPECIFIED),
-		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".query.metrics.promql_query_type", utils.UNSPECIFIED),
+		// The new enums are Optional+Computed with no static default, because the
+		// API supplies a value when the attribute is omitted. Terraform keeps the
+		// prior value rather than reverting it, which is what makes the plan empty.
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".legend_by", "thresholds"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".query.metrics.editor_mode", "text"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".query.metrics.promql_query_type", "instant"),
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -2946,8 +2958,11 @@ resource "coralogix_dashboard" "test" {
 			},
 			testAccDashboardImportStep(),
 			{
+				// editor_mode is Optional+Computed with no static default, so removing
+				// it keeps the prior value instead of reverting it. That is what
+				// makes the plan empty against a dashboard the API defaulted itself.
 				Config: config(""),
-				Check:  resource.TestCheckResourceAttr(dashboardResourceName, editorMode, utils.UNSPECIFIED),
+				Check:  resource.TestCheckResourceAttr(dashboardResourceName, editorMode, "builder"),
 			},
 		},
 	})

@@ -510,11 +510,10 @@ func XAxisTimeFormatSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
-		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidXAxisTimeFormats...),
 		},
-		MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(DashboardValidXAxisTimeFormats, ", ")),
+		MarkdownDescription: fmt.Sprintf("The x-axis time format. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidXAxisTimeFormats, ", ")),
 	}
 }
 
@@ -522,11 +521,10 @@ func MetricsEditorModeSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
-		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidMetricsEditorModes...),
 		},
-		MarkdownDescription: fmt.Sprintf("Which query editor the Coralogix UI opens for this query. Valid values are: %s.", strings.Join(DashboardValidMetricsEditorModes, ", ")),
+		MarkdownDescription: fmt.Sprintf("Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidMetricsEditorModes, ", ")),
 	}
 }
 
@@ -534,11 +532,10 @@ func MetricsSeriesLimitTypeSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
-		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 		Validators: []validator.String{
 			stringvalidator.OneOf(dashboardValidMetricsSeriesLimitTypes...),
 		},
-		MarkdownDescription: fmt.Sprintf("How the series limit is counted. Valid values are: %s.", strings.Join(dashboardValidMetricsSeriesLimitTypes, ", ")),
+		MarkdownDescription: fmt.Sprintf("How the series limit is counted. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(dashboardValidMetricsSeriesLimitTypes, ", ")),
 	}
 }
 
@@ -546,11 +543,10 @@ func PromQLQueryTypeSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
-		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidPromQLQueryType...),
 		},
-		MarkdownDescription: fmt.Sprintf("The PromQL query type. Valid values are: %s.", strings.Join(DashboardValidPromQLQueryType, ", ")),
+		MarkdownDescription: fmt.Sprintf("The PromQL query type. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidPromQLQueryType, ", ")),
 	}
 }
 
@@ -631,11 +627,10 @@ func CommonAggregationSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
-		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidCommonAggregations...),
 		},
-		MarkdownDescription: fmt.Sprintf("How the metric series is reduced to one value per group. Valid values are: %s.", strings.Join(DashboardValidCommonAggregations, ", ")),
+		MarkdownDescription: fmt.Sprintf("How the metric series is reduced to one value per group. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidCommonAggregations, ", ")),
 	}
 }
 
@@ -643,11 +638,10 @@ func BarValueDisplaySchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
-		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidBarValueDisplays...),
 		},
-		MarkdownDescription: fmt.Sprintf("Where the bar value is displayed. Valid values are: %s.", strings.Join(DashboardValidBarValueDisplays, ", ")),
+		MarkdownDescription: fmt.Sprintf("Where the bar value is displayed. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidBarValueDisplays, ", ")),
 	}
 }
 
@@ -655,10 +649,9 @@ func LegendBySchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
-		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidLegendBys...),
 		},
-		MarkdownDescription: fmt.Sprintf("What the legend lists. Valid values are: %s.", strings.Join(DashboardValidLegendBys, ", ")),
+		MarkdownDescription: fmt.Sprintf("What the legend lists. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidLegendBys, ", ")),
 	}
 }
