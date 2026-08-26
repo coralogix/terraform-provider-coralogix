@@ -1282,7 +1282,7 @@ func FlattenLegend(legend *dashboardservice.Legend) *LegendModel {
 		IsVisible:    types.BoolPointerValue(legend.IsVisible),
 		GroupByQuery: types.BoolPointerValue(legend.GroupByQuery),
 		Columns:      flattenLegendColumns(legend.GetColumns()),
-		Placement:    types.StringValue(DashboardLegendPlacementProtoToSchema[legend.GetPlacement()]),
+		Placement:    FlattenEnum(legend.GetPlacement(), DashboardLegendPlacementProtoToSchema),
 	}
 }
 

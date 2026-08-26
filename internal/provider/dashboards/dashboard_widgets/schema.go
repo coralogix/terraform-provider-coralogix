@@ -284,10 +284,15 @@ func LegendSchema() schema.SingleNestedAttribute {
 			"placement": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					// The API owns the value when the attribute is omitted, so keep what
+					// it chose instead of planning unknown on every run.
+					stringplanmodifier.UseNonNullStateForUnknown(),
+				},
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidLegendPlacements...),
 				},
-				MarkdownDescription: fmt.Sprintf("The placement of the legend. Valid values are: %s.", strings.Join(DashboardValidLegendPlacements, ", ")),
+				MarkdownDescription: fmt.Sprintf("The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidLegendPlacements, ", ")),
 			},
 		},
 		Optional: true,

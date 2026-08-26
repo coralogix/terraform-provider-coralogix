@@ -2033,7 +2033,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query"></a>
@@ -3343,7 +3343,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--thresholds"></a>
@@ -3419,7 +3419,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars--sub_category_fields"></a>
@@ -3482,7 +3482,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--horizontal_bars_multi--query_field_settings"></a>
@@ -3586,7 +3586,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--sub_category_fields"></a>
@@ -3646,7 +3646,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--thresholds"></a>
@@ -3836,7 +3836,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--primary_value"></a>
@@ -4144,7 +4144,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--temporal_field"></a>
@@ -4218,7 +4218,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--temporal_field"></a>
@@ -4270,7 +4270,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings"></a>
@@ -4378,7 +4378,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--sub_category_fields"></a>
@@ -4440,7 +4440,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--query_field_settings"></a>
@@ -4954,7 +4954,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds"></a>
@@ -5408,7 +5408,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--thresholds"></a>
@@ -5458,7 +5458,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query"></a>
@@ -6432,7 +6432,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. True by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--tooltip"></a>

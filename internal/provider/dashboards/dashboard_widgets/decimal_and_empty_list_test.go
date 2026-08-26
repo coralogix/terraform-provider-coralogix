@@ -23,6 +23,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -116,5 +117,27 @@ func TestFlattenEnumMapsAnAbsentValueToUnspecified(t *testing.T) {
 
 	if got := FlattenEnum(dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_HH_MM, DashboardProtoToSchemaXAxisTimeFormat); got.ValueString() != "hh_mm" {
 		t.Fatalf("FlattenEnum(HH_MM) = %q, want \"hh_mm\"", got.ValueString())
+	}
+}
+
+// The legend's placement is Optional+Computed with no default, so it has the same
+// shape as the enums above: an absent value must flatten to a known name, or the
+// attribute plans as unknown for ever. The pre-existing fixtures never caught it
+// because they set placement explicitly.
+func TestLegendPlacementFlattensAnAbsentValueToUnspecified(t *testing.T) {
+	flattened := FlattenLegend(&dashboardservice.Legend{})
+	if flattened == nil {
+		t.Fatal("FlattenLegend() = nil for a present legend")
+	}
+	if got := flattened.Placement.ValueString(); got != utils.UNSPECIFIED {
+		t.Fatalf("flattened placement = %q, want %q", got, utils.UNSPECIFIED)
+	}
+
+	placement, ok := LegendSchema().Attributes["placement"].(schema.StringAttribute)
+	if !ok {
+		t.Fatalf("legend placement is %T, want schema.StringAttribute", LegendSchema().Attributes["placement"])
+	}
+	if len(placement.PlanModifiers) == 0 {
+		t.Fatal("legend placement has no plan modifier, so an omitted value plans as unknown on every update")
 	}
 }
