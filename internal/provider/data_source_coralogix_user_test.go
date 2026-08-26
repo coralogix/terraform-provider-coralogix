@@ -85,6 +85,47 @@ func TestAccCoralogixDataSourceUser_byUserNameNotFound(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixDataSourceUser_bothLookupKeysSet(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixDataSourceUser_readByBothKeys(),
+				ExpectError: regexp.MustCompile("Invalid Attribute Combination"),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixDataSourceUser_noLookupKeySet(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      `data "coralogix_user" "no_key" {}`,
+				ExpectError: regexp.MustCompile("Missing Attribute Configuration"),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixDataSourceUser_emptyUserNameRejected(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `data "coralogix_user" "empty_user_name" {
+				  user_name = ""
+				}`,
+				ExpectError: regexp.MustCompile("Invalid Attribute Value Length"),
+			},
+		},
+	})
+}
+
 func testAccCoralogixDataSourceUser_read() string {
 	return `data "coralogix_user" "test" {
 	id = coralogix_user.test.id
@@ -104,6 +145,14 @@ func testAccCoralogixDataSourceUser_readByUserName(userName string) string {
 	  depends_on = [coralogix_user.test]
 	}
 `, userName, strings.ToUpper(userName))
+}
+
+func testAccCoralogixDataSourceUser_readByBothKeys() string {
+	return `data "coralogix_user" "both_keys" {
+	  id        = "00000000-0000-0000-0000-000000000000"
+	  user_name = "both-keys@example.com"
+	}
+`
 }
 
 func testAccCoralogixDataSourceUser_readByUserNameOnly(userName string) string {

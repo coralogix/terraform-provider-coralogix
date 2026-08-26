@@ -25,6 +25,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	"github.com/hashicorp/terraform-plugin-framework-validators/datasourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -37,7 +38,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var _ datasource.DataSourceWithConfigure = &UserDataSource{}
+var (
+	_ datasource.DataSourceWithConfigure        = &UserDataSource{}
+	_ datasource.DataSourceWithConfigValidators = &UserDataSource{}
+)
 
 func NewUserDataSource() datasource.DataSource {
 	return &UserDataSource{}
@@ -75,23 +79,33 @@ func (d *UserDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest,
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 
-	if idAttr, ok := resp.Schema.Attributes["id"].(schema.StringAttribute); ok {
-		idAttr.Required = false
-		idAttr.Optional = true
-		idAttr.Computed = true
-		idAttr.Validators = []validator.String{
-			stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("user_name")),
-		}
-		idAttr.MarkdownDescription = "User ID. Exactly one of `id` or `user_name` must be set."
-		resp.Schema.Attributes["id"] = idAttr
+	resp.Schema.Attributes["id"] = schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Validators: []validator.String{
+			stringvalidator.LengthAtLeast(1),
+		},
+		MarkdownDescription: "User ID. Exactly one of `id` or `user_name` must be set.",
 	}
 
-	if userNameAttr, ok := resp.Schema.Attributes["user_name"].(schema.StringAttribute); ok {
-		userNameAttr.Optional = true
-		userNameAttr.MarkdownDescription = "User name (email). Exactly one of `id` or `user_name` " +
+	resp.Schema.Attributes["user_name"] = schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Validators: []validator.String{
+			stringvalidator.LengthAtLeast(1),
+		},
+		MarkdownDescription: "User name (email). Exactly one of `id` or `user_name` " +
 			"must be set. The lookup is case-insensitive, since SSO login can normalize letter " +
-			"case in the backend."
-		resp.Schema.Attributes["user_name"] = userNameAttr
+			"case in the backend.",
+	}
+}
+
+func (d *UserDataSource) ConfigValidators(_ context.Context) []datasource.ConfigValidator {
+	return []datasource.ConfigValidator{
+		datasourcevalidator.ExactlyOneOf(
+			path.MatchRoot("id"),
+			path.MatchRoot("user_name"),
+		),
 	}
 }
 
@@ -105,10 +119,18 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	var user *cxsdk.SCIMUser
 	configuredUserName := data.UserName
+	idSet, userNameSet := isKnownString(data.ID), isKnownString(data.UserName)
 	switch {
-	case isKnownString(data.ID):
+	case idSet && userNameSet:
+		resp.Diagnostics.AddError(
+			"Exactly one of id or user_name must be set",
+			"Both were set by the time the User data source was read. Remove one of them — "+
+				"the two are alternative lookup keys, not filters to combine.",
+		)
+		return
+	case idSet:
 		user, diags = d.userByID(ctx, data.ID.ValueString())
-	case isKnownString(data.UserName):
+	case userNameSet:
 		user, diags = d.userByUserName(ctx, data.UserName.ValueString())
 	default:
 		resp.Diagnostics.AddError("User id or user_name must be set", "")
