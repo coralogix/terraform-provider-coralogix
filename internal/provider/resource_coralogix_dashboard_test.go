@@ -2726,7 +2726,10 @@ resource "coralogix_dashboard" "test" {
             pie_chart = {
               query = {
                 metrics = {
+                  # The API rejects a pie chart metrics query without group_names,
+                  # unlike the bar chart, which accepts one.
                   promql_query = "up"
+                  group_names  = ["coralogix.metadata.applicationName"]
                   %[3]s
                 }
               }
@@ -2926,6 +2929,8 @@ resource "coralogix_dashboard" "test" {
           title = "data table"
           definition = {
             data_table = {
+              results_per_page = 10
+              row_style        = "one_line"
               query = {
                 metrics = {
                   promql_query = "up"
