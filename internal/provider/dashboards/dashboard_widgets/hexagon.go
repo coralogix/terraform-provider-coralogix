@@ -35,18 +35,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
+// The hexagon names predate the bar, horizontal bar and pie charts using the
+// same CommonAggregation enum. They stay as aliases so existing references keep
+// working; new code should use the DashboardSchemaToProtoCommonAggregation set.
 var (
-	DashboardSchemaToProtoHexagonAggregation = map[string]dashboardservice.CommonAggregation{
-		utils.UNSPECIFIED: dashboardservice.COMMONAGGREGATION_AGGREGATION_UNSPECIFIED,
-		"last":            dashboardservice.COMMONAGGREGATION_AGGREGATION_LAST,
-		"min":             dashboardservice.COMMONAGGREGATION_AGGREGATION_MIN,
-		"max":             dashboardservice.COMMONAGGREGATION_AGGREGATION_MAX,
-		"avg":             dashboardservice.COMMONAGGREGATION_AGGREGATION_AVG,
-		"sum":             dashboardservice.COMMONAGGREGATION_AGGREGATION_SUM,
-	}
-
-	DashboardProtoToSchemaHexagonMetricAggregation = utils.ReverseMap(DashboardSchemaToProtoHexagonAggregation)
-	DashboardValidHexagonMetricAggregations        = utils.GetKeys(DashboardSchemaToProtoHexagonAggregation)
+	DashboardSchemaToProtoHexagonAggregation       = DashboardSchemaToProtoCommonAggregation
+	DashboardProtoToSchemaHexagonMetricAggregation = DashboardProtoToSchemaCommonAggregation
+	DashboardValidHexagonMetricAggregations        = DashboardValidCommonAggregations
 )
 
 type HexagonModel struct {

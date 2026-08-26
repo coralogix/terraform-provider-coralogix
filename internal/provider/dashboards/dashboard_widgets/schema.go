@@ -16,6 +16,7 @@ package dashboard_widgets
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -23,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
@@ -428,5 +430,212 @@ func HashColorsSchema() schema.BoolAttribute {
 	return schema.BoolAttribute{
 		Optional:            true,
 		MarkdownDescription: "When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.",
+	}
+}
+
+func CustomUnitSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional:            true,
+		MarkdownDescription: "A custom unit label. Takes effect only when `unit` is `custom`.",
+	}
+}
+
+// DecimalSchema is the number of decimal places shown for numeric values. The
+// API documents the range as 0-15 but the generated type is a plain integer, so
+// the bound is left to the API instead of a validator that could reject values
+// the API accepts.
+func DecimalSchema() schema.NumberAttribute {
+	return schema.NumberAttribute{
+		Optional:            true,
+		MarkdownDescription: "The number of decimal places shown for numeric values. The API accepts 0 to 15.",
+	}
+}
+
+// DecimalPrecisionSchema keeps the API field name. It is a boolean on the
+// classic widgets: it turns value abbreviation off. The dynamic widgets use the
+// same JSON name for an integer precision count, so do not read one as the other.
+func DecimalPrecisionSchema() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		Optional:            true,
+		MarkdownDescription: "When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).",
+	}
+}
+
+func YAxisMaxSchema() schema.Float64Attribute {
+	return schema.Float64Attribute{
+		Optional:   true,
+		CustomType: Float32Type{},
+		Validators: []validator.Float64{
+			float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+		},
+		MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
+	}
+}
+
+func YAxisMinSchema() schema.Float64Attribute {
+	return schema.Float64Attribute{
+		Optional:   true,
+		CustomType: Float32Type{},
+		Validators: []validator.Float64{
+			float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+		},
+		MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
+	}
+}
+
+func XAxisTimeFormatSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidXAxisTimeFormats...),
+		},
+		MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(DashboardValidXAxisTimeFormats, ", ")),
+	}
+}
+
+func MetricsEditorModeSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidMetricsEditorModes...),
+		},
+		MarkdownDescription: fmt.Sprintf("Which query editor the Coralogix UI opens for this query. Valid values are: %s.", strings.Join(DashboardValidMetricsEditorModes, ", ")),
+	}
+}
+
+func MetricsSeriesLimitTypeSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+		Validators: []validator.String{
+			stringvalidator.OneOf(dashboardValidMetricsSeriesLimitTypes...),
+		},
+		MarkdownDescription: fmt.Sprintf("How the series limit is counted. Valid values are: %s.", strings.Join(dashboardValidMetricsSeriesLimitTypes, ", ")),
+	}
+}
+
+func PromQLQueryTypeSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidPromQLQueryType...),
+		},
+		MarkdownDescription: fmt.Sprintf("The PromQL query type. Valid values are: %s.", strings.Join(DashboardValidPromQLQueryType, ", ")),
+	}
+}
+
+// SpanObservationFieldsSchema is the list-of-span-observation-fields shape used
+// by `group_bys` and `group_names_fields` on a spans query. conflictsWith names
+// sibling attributes that must not be set at the same time, such as `group_by`.
+func SpanObservationFieldsSchema(conflictsWith ...string) schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: spanObservationFieldSchema(),
+		},
+		Optional:   true,
+		Validators: listSizeAndConflictValidators(conflictsWith),
+		MarkdownDescription: describeConflicts(
+			"Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type.",
+			conflictsWith,
+		),
+	}
+}
+
+// describeConflicts appends the "cannot be combined with" sentence to a
+// description, so the generated docs name the sibling the validator rejects.
+func describeConflicts(description string, siblings []string) string {
+	if len(siblings) == 0 {
+		return description
+	}
+
+	quoted := make([]string, 0, len(siblings))
+	for _, sibling := range siblings {
+		quoted = append(quoted, "`"+sibling+"`")
+	}
+	return fmt.Sprintf("%s Cannot be combined with %s.", description, strings.Join(quoted, ", "))
+}
+
+// listSizeAndConflictValidators rejects an explicit empty list and, when
+// siblings are named, rejects setting this attribute together with any of them.
+func listSizeAndConflictValidators(siblings []string) []validator.List {
+	validators := []validator.List{listvalidator.SizeAtLeast(1)}
+	if len(siblings) == 0 {
+		return validators
+	}
+
+	expressions := make([]path.Expression, 0, len(siblings))
+	for _, sibling := range siblings {
+		expressions = append(expressions, path.MatchRelative().AtParent().AtName(sibling))
+	}
+	return append(validators, listvalidator.ConflictsWith(expressions...))
+}
+
+// SpanObservationFieldSchema is the single-span-observation-field shape used by
+// `stacked_group_name_field` on a spans query.
+func SpanObservationFieldSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes:          spanObservationFieldSchema(),
+		Optional:            true,
+		MarkdownDescription: "Span observation field that divides each group into subgroups. Use this when the field needs an explicit scope or relation type.",
+	}
+}
+
+// ObservationFieldsSchema is the list-of-observation-fields shape used by
+// `group_by` and `group_bys` on a logs query. conflictsWith names sibling
+// attributes that must not be set at the same time, such as `group_by`.
+func ObservationFieldsSchema(conflictsWith ...string) schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: ObservationFieldSchema(),
+		},
+		Optional:   true,
+		Validators: listSizeAndConflictValidators(conflictsWith),
+		MarkdownDescription: describeConflicts(
+			"Observation fields to group the results by. Use these when a field name contains a literal dot, or exists in more than one scope.",
+			conflictsWith,
+		),
+	}
+}
+
+func CommonAggregationSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidCommonAggregations...),
+		},
+		MarkdownDescription: fmt.Sprintf("How the metric series is reduced to one value per group. Valid values are: %s.", strings.Join(DashboardValidCommonAggregations, ", ")),
+	}
+}
+
+func BarValueDisplaySchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidBarValueDisplays...),
+		},
+		MarkdownDescription: fmt.Sprintf("Where the bar value is displayed. Valid values are: %s.", strings.Join(DashboardValidBarValueDisplays, ", ")),
+	}
+}
+
+func LegendBySchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidLegendBys...),
+		},
+		MarkdownDescription: fmt.Sprintf("What the legend lists. Valid values are: %s.", strings.Join(DashboardValidLegendBys, ", ")),
 	}
 }

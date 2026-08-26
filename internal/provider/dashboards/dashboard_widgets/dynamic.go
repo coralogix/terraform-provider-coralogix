@@ -40,14 +40,6 @@ import (
 )
 
 var (
-	dashboardSchemaToProtoMetricsEditorMode = map[string]dashboardservice.MetricsQueryEditorMode{
-		utils.UNSPECIFIED: dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_UNSPECIFIED,
-		"builder":         dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_BUILDER,
-		"text":            dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_TEXT,
-	}
-	dashboardProtoToSchemaMetricsEditorMode = utils.ReverseMap(dashboardSchemaToProtoMetricsEditorMode)
-	dashboardValidMetricsEditorModes        = utils.GetKeys(dashboardSchemaToProtoMetricsEditorMode)
-
 	dashboardSchemaToProtoMetricsSeriesLimitType = map[string]dashboardservice.MetricsSeriesLimitType{
 		utils.UNSPECIFIED: dashboardservice.METRICSSERIESLIMITTYPE_METRICS_SERIES_LIMIT_TYPE_UNSPECIFIED,
 		"by_point_count":  dashboardservice.METRICSSERIESLIMITTYPE_METRICS_SERIES_LIMIT_TYPE_BY_POINT_COUNT,
@@ -238,9 +230,9 @@ func dynamicMetricsQuerySchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidMetricsEditorModes...),
+					stringvalidator.OneOf(DashboardValidMetricsEditorModes...),
 				},
-				MarkdownDescription: fmt.Sprintf("The metrics query editor mode. Valid values are: %s.", strings.Join(dashboardValidMetricsEditorModes, ", ")),
+				MarkdownDescription: fmt.Sprintf("The metrics query editor mode. Valid values are: %s.", strings.Join(DashboardValidMetricsEditorModes, ", ")),
 			},
 			"series_limit_type": schema.StringAttribute{
 				Optional: true,
@@ -470,7 +462,7 @@ func dynamicSpansQueryAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"lucene_query": types.StringType,
 		"group_by": types.ListType{
-			ElemType: types.ObjectType{AttrTypes: spanObservationFieldAttr()},
+			ElemType: types.ObjectType{AttrTypes: SpanObservationFieldAttr()},
 		},
 		"aggregations": types.ListType{
 			ElemType: types.ObjectType{AttrTypes: AggregationModelAttr()},
@@ -498,7 +490,7 @@ func dynamicDataPrimeQueryAttr() map[string]attr.Type {
 	}
 }
 
-func spanObservationFieldAttr() map[string]attr.Type {
+func SpanObservationFieldAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"keypath": types.ListType{
 			ElemType: types.StringType,
@@ -695,7 +687,7 @@ func expandDynamicSpansQuery(ctx context.Context, spans *DynamicQuerySpansModel)
 		return nil, nil
 	}
 
-	groupBy, diags := expandSpanObservationFields(ctx, spans.GroupBy)
+	groupBy, diags := ExpandSpanObservationFields(ctx, spans.GroupBy)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -727,7 +719,7 @@ func expandDynamicMetricsQuery(metrics *DynamicQueryMetricsModel) *dashboardserv
 	return &dashboardservice.Metrics{
 		PromqlQuery:     ExpandPromqlQuery(metrics.PromqlQuery),
 		PromqlQueryType: OptionalEnumPointer(metrics.PromqlQueryType, DashboardSchemaToProtoPromQLQueryType),
-		EditorMode:      OptionalEnumPointer(metrics.EditorMode, dashboardSchemaToProtoMetricsEditorMode),
+		EditorMode:      OptionalEnumPointer(metrics.EditorMode, DashboardSchemaToProtoMetricsEditorMode),
 		SeriesLimitType: OptionalEnumPointer(metrics.SeriesLimitType, dashboardSchemaToProtoMetricsSeriesLimitType),
 	}
 }
@@ -745,7 +737,7 @@ func expandDynamicDataPrimeQuery(dataPrime *DynamicQueryDataPrimeModel) *dashboa
 	}
 }
 
-func expandSpanObservationFields(ctx context.Context, groupBy types.List) ([]dashboardservice.SpanObservationField, diag.Diagnostics) {
+func ExpandSpanObservationFields(ctx context.Context, groupBy types.List) ([]dashboardservice.SpanObservationField, diag.Diagnostics) {
 	var objects []types.Object
 	diags := groupBy.ElementsAs(ctx, &objects, true)
 	if diags.HasError() {
@@ -1119,7 +1111,7 @@ func flattenDynamicSpansQuery(ctx context.Context, spans *dashboardservice.Spans
 		return nil, nil
 	}
 
-	groupBy, diags := flattenSpanObservationFields(ctx, spans.GetGroupBy())
+	groupBy, diags := FlattenSpanObservationFields(ctx, spans.GetGroupBy())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1154,7 +1146,7 @@ func flattenDynamicMetricsQuery(metrics *dashboardservice.Metrics) *DynamicQuery
 		Metrics: &DynamicQueryMetricsModel{
 			PromqlQuery:     flattenPromqlQuery(metrics.PromqlQuery),
 			PromqlQueryType: flattenOptionalEnum(metrics.PromqlQueryType, DashboardProtoToSchemaPromQLQueryType),
-			EditorMode:      flattenOptionalEnum(metrics.EditorMode, dashboardProtoToSchemaMetricsEditorMode),
+			EditorMode:      flattenOptionalEnum(metrics.EditorMode, DashboardProtoToSchemaMetricsEditorMode),
 			SeriesLimitType: flattenOptionalEnum(metrics.SeriesLimitType, dashboardProtoToSchemaMetricsSeriesLimitType),
 		},
 	}
@@ -1178,9 +1170,9 @@ func flattenDynamicDataPrimeQuery(dataPrime *dashboardservice.Dataprime) *Dynami
 	}
 }
 
-func flattenSpanObservationFields(ctx context.Context, fields []dashboardservice.SpanObservationField) (types.List, diag.Diagnostics) {
+func FlattenSpanObservationFields(ctx context.Context, fields []dashboardservice.SpanObservationField) (types.List, diag.Diagnostics) {
 	if len(fields) == 0 {
-		return types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttr()}), nil
+		return types.ListNull(types.ObjectType{AttrTypes: SpanObservationFieldAttr()}), nil
 	}
 
 	var diagnostics diag.Diagnostics
@@ -1191,7 +1183,7 @@ func flattenSpanObservationFields(ctx context.Context, fields []dashboardservice
 			Scope:        flattenOptionalEnum(fields[i].Scope, DashboardProtoToSchemaObservationFieldScope),
 			RelationType: flattenOptionalEnum(fields[i].RelationType, dashboardProtoToSchemaSpanRelationType),
 		}
-		fieldElement, diags := types.ObjectValueFrom(ctx, spanObservationFieldAttr(), model)
+		fieldElement, diags := types.ObjectValueFrom(ctx, SpanObservationFieldAttr(), model)
 		if diags.HasError() {
 			diagnostics.Append(diags...)
 			continue
@@ -1200,9 +1192,9 @@ func flattenSpanObservationFields(ctx context.Context, fields []dashboardservice
 	}
 
 	if diagnostics.HasError() {
-		return types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttr()}), diagnostics
+		return types.ListNull(types.ObjectType{AttrTypes: SpanObservationFieldAttr()}), diagnostics
 	}
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: spanObservationFieldAttr()}, fieldElements)
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: SpanObservationFieldAttr()}, fieldElements)
 }
 
 func flattenDynamicVisualization(ctx context.Context, visualization *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics) {
@@ -1423,4 +1415,47 @@ func flattenOptionalEnum[T ~string](value *T, mapping map[T]string) types.String
 		return types.StringValue(mapped)
 	}
 	return types.StringNull()
+}
+
+// ExpandSpanObservationFieldObject converts a single span observation field, as
+// used by a `stacked_group_name_field` attribute.
+func ExpandSpanObservationFieldObject(ctx context.Context, field types.Object) (*dashboardservice.SpanObservationField, diag.Diagnostics) {
+	if field.IsNull() || field.IsUnknown() {
+		return nil, nil
+	}
+
+	list, diags := types.ListValue(types.ObjectType{AttrTypes: SpanObservationFieldAttr()}, []attr.Value{field})
+	if diags.HasError() {
+		return nil, diags
+	}
+	fields, diags := ExpandSpanObservationFields(ctx, list)
+	if diags.HasError() || len(fields) == 0 {
+		return nil, diags
+	}
+	return &fields[0], diags
+}
+
+// FlattenSpanObservationFieldObject is the inverse of
+// ExpandSpanObservationFieldObject.
+func FlattenSpanObservationFieldObject(ctx context.Context, field *dashboardservice.SpanObservationField) (types.Object, diag.Diagnostics) {
+	if field == nil {
+		return types.ObjectNull(SpanObservationFieldAttr()), nil
+	}
+
+	list, diags := FlattenSpanObservationFields(ctx, []dashboardservice.SpanObservationField{*field})
+	if diags.HasError() {
+		return types.ObjectNull(SpanObservationFieldAttr()), diags
+	}
+	elements := list.Elements()
+	if len(elements) == 0 {
+		return types.ObjectNull(SpanObservationFieldAttr()), diags
+	}
+	object, ok := elements[0].(types.Object)
+	if !ok {
+		return types.ObjectNull(SpanObservationFieldAttr()), diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Error Flatten Span Observation Field",
+			fmt.Sprintf("flattened element is %T, expected an object", elements[0]),
+		)}
+	}
+	return object, diags
 }

@@ -156,8 +156,8 @@ func TestDynamicWidgetSpansAndDataPrimeQueryFullFidelityRoundTrip(t *testing.T) 
 
 	spansQuery := &DynamicQuerySpansModel{
 		LuceneQuery: types.StringValue("*"),
-		GroupBy: types.ListValueMust(types.ObjectType{AttrTypes: spanObservationFieldAttr()}, []attr.Value{
-			types.ObjectValueMust(spanObservationFieldAttr(), map[string]attr.Value{
+		GroupBy: types.ListValueMust(types.ObjectType{AttrTypes: SpanObservationFieldAttr()}, []attr.Value{
+			types.ObjectValueMust(SpanObservationFieldAttr(), map[string]attr.Value{
 				"keypath":       types.ListValueMust(types.StringType, []attr.Value{types.StringValue("service"), types.StringValue("name")}),
 				"scope":         types.StringValue("user_data"),
 				"relation_type": types.StringValue("parent"),

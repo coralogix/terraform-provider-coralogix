@@ -77,13 +77,21 @@ resource "coralogix_dashboard" "dashboard" {
                         }
                         scale_type         = "linear"
                         series_count_limit = 100
-                        unit               = "milliseconds"
+                        unit               = "custom"
+                        custom_unit        = "ms"
                         hash_colors        = true
+                        decimal            = 2
+                        decimal_precision  = true
+                        y_axis_min         = 0
+                        y_axis_max         = 2500
                         resolution = {
                           interval = "seconds:900"
                         }
                       },
                     ]
+                    connect_nulls       = true
+                    use_data_time_range = false
+                    x_axis_time_format  = "hh_mm"
                     legend = {
                       is_visible = true
                       columns    = ["avg", "max"]
@@ -216,11 +224,19 @@ resource "coralogix_dashboard" "dashboard" {
                 title = "gauge"
                 definition = {
                   gauge = {
-                    unit = "milliseconds"
+                    unit         = "custom"
+                    custom_unit  = "ms"
+                    show_min_max = true
+                    legend_by    = "thresholds"
+                    legend = {
+                      is_visible = true
+                    }
                     query = {
                       metrics = {
-                        promql_query = "vector(1)"
-                        aggregation  = "unspecified"
+                        promql_query      = "vector(1)"
+                        aggregation       = "unspecified"
+                        editor_mode       = "text"
+                        promql_query_type = "instant"
                       }
                     }
                   }
@@ -482,6 +498,11 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                     label_definition = {
                     }
+                    unit              = "custom"
+                    custom_unit       = "runs"
+                    decimal           = 1
+                    decimal_precision = true
+                    show_total        = true
                   }
                 }
               },
@@ -507,7 +528,19 @@ resource "coralogix_dashboard" "dashboard" {
                         }
                       }
                     }
-                    hash_colors = true
+                    hash_colors        = true
+                    bar_value_display  = "top"
+                    unit               = "custom"
+                    custom_unit        = "runs"
+                    decimal            = 0
+                    decimal_precision  = true
+                    x_axis_time_format = "hh_mm"
+                    y_axis_min         = 0
+                    y_axis_max         = 100
+                    legend = {
+                      is_visible = true
+                      columns    = ["sum"]
+                    }
                     xaxis = {
                       time = {
                         interval          = "1h0m5s"
@@ -534,7 +567,17 @@ resource "coralogix_dashboard" "dashboard" {
                         stacked_group_name = "coralogix.metadata.severity"
                       }
                     }
-                    y_axis_view_by = "value"
+                    y_axis_view_by    = "value"
+                    unit              = "custom"
+                    custom_unit       = "runs"
+                    decimal           = 1
+                    decimal_precision = true
+                    y_axis_min        = 0
+                    y_axis_max        = 100
+                    legend = {
+                      is_visible = true
+                      columns    = ["max"]
+                    }
                   }
                 }
               },
@@ -1961,18 +2004,37 @@ Optional:
 
 Optional:
 
+- `bar_value_display` (String) Where the bar value is displayed. Valid values are: both, inside, top, unspecified.
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
 - `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
+- `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
 - `data_mode_type` (String)
+- `decimal` (Number) The number of decimal places shown for numeric values. The API accepts 0 to 15.
+- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--legend))
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query))
 - `scale_type` (String)
 - `sort_by` (String) The field to sort by. Can be one of name, unspecified, value.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--stack_definition))
 - `unit` (String) The unit of the chart. Can be one of bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis))
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.legend`
+
+Optional:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query`
@@ -2256,8 +2318,11 @@ Required:
 
 Optional:
 
+- `aggregation` (String) How the metric series is reduced to one value per group. Valid values are: avg, last, max, min, sum, unspecified.
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters))
 - `group_names` (List of String)
+- `promql_query_type` (String) The PromQL query type. Valid values are: instant, range, unspecified.
 - `stacked_group_name` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame))
 
@@ -2322,8 +2387,10 @@ Optional:
 - `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--aggregation))
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters))
 - `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--group_names))
+- `group_names_fields` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--group_names_fields))
 - `lucene_query` (String)
 - `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name))
+- `stacked_group_name_field` (Attributes) Span observation field that divides each group into subgroups. Use this when the field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name_field))
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--aggregation"></a>
@@ -2376,6 +2443,19 @@ Required:
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--group_names_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.group_names_fields`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
+
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.stacked_group_name`
 
@@ -2383,6 +2463,19 @@ Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.stacked_group_name_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame"></a>
@@ -2747,6 +2840,7 @@ Required:
 
 Optional:
 
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters))
 - `promql_query_type` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame))
@@ -4410,12 +4504,16 @@ Required:
 
 Optional:
 
+- `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
 - `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
 - `decimal` (Number)
 - `display_series_name` (Boolean)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--legend))
+- `legend_by` (String) What the legend lists. Valid values are: groups, thresholds, unspecified.
 - `max` (Number)
 - `min` (Number)
 - `show_inner_arc` (Boolean)
+- `show_min_max` (Boolean) Whether to display the min and max range values on the gauge.
 - `show_outer_arc` (Boolean)
 - `threshold_by` (String) The threshold by. Can be one of ["background" "unspecified" "value"].
 - `threshold_type` (String) The threshold type. Can be one of ["absolute" "relative" "unspecified"].
@@ -4579,6 +4677,7 @@ Required:
 Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters))
+- `group_by` (Attributes List) Observation fields to group the results by. Use these when a field name contains a literal dot, or exists in more than one scope. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--group_by))
 - `lucene_query` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame))
 
@@ -4640,6 +4739,15 @@ Required:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--group_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.group_by`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.time_frame`
 
@@ -4677,7 +4785,9 @@ Required:
 Optional:
 
 - `aggregation` (String) The type of aggregation. Can be one of ["avg" "last" "max" "min" "sum" "unspecified"].
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters))
+- `promql_query_type` (String) The PromQL query type. Valid values are: instant, range, unspecified.
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters"></a>
@@ -4739,6 +4849,8 @@ Required:
 Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters))
+- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_by))
+- `group_bys` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. Cannot be combined with `group_by`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_bys))
 - `lucene_query` (String)
 - `spans_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--spans_aggregation))
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame))
@@ -4772,6 +4884,28 @@ Optional:
 - `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
 - `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.group_by`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--group_bys"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.group_bys`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--spans_aggregation"></a>
@@ -4810,6 +4944,17 @@ Required:
 
 
 
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.legend`
+
+Optional:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds"></a>
@@ -5287,17 +5432,34 @@ Optional:
 
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
 - `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
+- `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
 - `data_mode_type` (String)
+- `decimal` (Number) The number of decimal places shown for numeric values. The API accepts 0 to 15.
+- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--legend))
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query))
 - `scale_type` (String)
 - `sort_by` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--stack_definition))
 - `unit` (String) The unit of the chart. Can be one of bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
 - `y_axis_view_by` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.legend`
+
+Optional:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query`
@@ -5581,8 +5743,11 @@ Required:
 
 Optional:
 
+- `aggregation` (String) How the metric series is reduced to one value per group. Valid values are: avg, last, max, min, sum, unspecified.
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters))
 - `group_names` (List of String)
+- `promql_query_type` (String) The PromQL query type. Valid values are: instant, range, unspecified.
 - `stacked_group_name` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame))
 
@@ -5647,8 +5812,10 @@ Optional:
 - `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--aggregation))
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters))
 - `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--group_names))
+- `group_names_fields` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--group_names_fields))
 - `lucene_query` (String)
 - `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name))
+- `stacked_group_name_field` (Attributes) Span observation field that divides each group into subgroups. Use this when the field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name_field))
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--aggregation"></a>
@@ -5701,6 +5868,19 @@ Required:
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--group_names_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.group_names_fields`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
+
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.stacked_group_name`
 
@@ -5708,6 +5888,19 @@ Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.stacked_group_name_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame"></a>
@@ -5757,9 +5950,12 @@ Required:
 
 Optional:
 
+- `connect_nulls` (Boolean) When true, a line stays connected across null values instead of breaking into scattered points.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--legend))
 - `stacked_line` (String) Option to show lines as stacked. Possible values: absolute, relative, unspecified
 - `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--tooltip))
+- `use_data_time_range` (Boolean) When true, the dashboard and widget time frames are ignored and the x-axis covers only the dates present in the returned data.
+- `x_axis_time_format` (String) The x-axis time format. Valid values are: auto, dd_mm, dd_mm_hh_mm, hh_mm, hh_mm_dd_mm, hh_mm_mm_dd, mm_dd, mm_dd_hh_mm, unspecified.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions`
@@ -5771,7 +5967,10 @@ Required:
 Optional:
 
 - `color_scheme` (String)
+- `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
 - `data_mode_type` (String)
+- `decimal` (Number) The number of decimal places shown for numeric values. The API accepts 0 to 15.
+- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `is_visible` (Boolean)
 - `name` (String)
@@ -5780,6 +5979,8 @@ Optional:
 - `series_count_limit` (Number)
 - `series_name_template` (String)
 - `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
+- `y_axis_max` (Number) The y-axis maximum. Stored at float32 precision by the API.
+- `y_axis_min` (Number) The y-axis minimum. Stored at float32 precision by the API.
 
 Read-Only:
 
@@ -5944,6 +6145,7 @@ Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters))
 - `group_by` (List of String)
+- `group_bys` (Attributes List) Observation fields to group the results by. Use these when a field name contains a literal dot, or exists in more than one scope. Cannot be combined with `group_by`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--group_bys))
 - `lucene_query` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame))
 
@@ -6005,6 +6207,15 @@ Required:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--group_bys"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.group_bys`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.time_frame`
 
@@ -6041,8 +6252,10 @@ Required:
 
 Optional:
 
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters))
 - `promql_query_type` (String)
+- `series_limit_type` (String) How the series limit is counted. Valid values are: by_point_count, by_series_count, unspecified.
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters"></a>
@@ -6106,6 +6319,7 @@ Optional:
 - `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--aggregations))
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters))
 - `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_by))
+- `group_bys` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. Cannot be combined with `group_by`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_bys))
 - `lucene_query` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame))
 
@@ -6157,6 +6371,19 @@ Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_bys"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.group_bys`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame"></a>
@@ -6238,12 +6465,16 @@ Required:
 Optional:
 
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
+- `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
 - `data_mode_type` (String)
+- `decimal` (Number) The number of decimal places shown for numeric values. The API accepts 0 to 15.
+- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `max_slices_per_chart` (Number)
 - `min_slice_percentage` (Number)
 - `show_legend` (Boolean)
+- `show_total` (Boolean) When true, the total of all slices is shown as the chart title.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
 - `unit` (String)
 
@@ -6541,8 +6772,11 @@ Required:
 
 Optional:
 
+- `aggregation` (String) How the metric series is reduced to one value per group. Valid values are: avg, last, max, min, sum, unspecified.
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters))
 - `group_names` (List of String)
+- `promql_query_type` (String) The PromQL query type. Valid values are: instant, range, unspecified.
 - `stacked_group_name` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame))
 
@@ -6607,8 +6841,10 @@ Optional:
 - `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--aggregation))
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters))
 - `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--group_names))
+- `group_names_fields` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--group_names_fields))
 - `lucene_query` (String)
 - `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name))
+- `stacked_group_name_field` (Attributes) Span observation field that divides each group into subgroups. Use this when the field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name_field))
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--aggregation"></a>
@@ -6661,6 +6897,19 @@ Required:
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--group_names_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.group_names_fields`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
+
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.stacked_group_name`
 
@@ -6668,6 +6917,19 @@ Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.stacked_group_name_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame"></a>

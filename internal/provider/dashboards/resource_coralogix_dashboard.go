@@ -2148,6 +2148,11 @@ func expandHorizontalBarChart(ctx context.Context, chart *dashboardwidgets.Horiz
 		return nil, diags
 	}
 
+	legend, diags := dashboardwidgets.ExpandLegend(ctx, chart.Legend)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.WidgetDefinition{
 		HorizontalBarChart: &dashboardservice.HorizontalBarChart{
 			Query:             query,
@@ -2163,6 +2168,12 @@ func expandHorizontalBarChart(ctx context.Context, chart *dashboardwidgets.Horiz
 			ColorScheme:       utils.TypeStringToStringPointer(chart.ColorScheme),
 			HashColors:        chart.HashColors.ValueBoolPointer(),
 			DataModeType:      dashboardwidgets.OptionalEnumPointer(chart.DataModeType, dashboardwidgets.DashboardSchemaToProtoDataModeType),
+			CustomUnit:        utils.TypeStringToStringPointer(chart.CustomUnit),
+			Decimal:           typeNumberToInt32Pointer(chart.Decimal),
+			DecimalPrecision:  chart.DecimalPrecision.ValueBoolPointer(),
+			Legend:            legend,
+			YAxisMax:          dashboardwidgets.ExpandFloat32Pointer(chart.YAxisMax),
+			YAxisMin:          dashboardwidgets.ExpandFloat32Pointer(chart.YAxisMin),
 		},
 	}, nil
 }
@@ -2203,6 +2214,10 @@ func expandPieChart(ctx context.Context, pieChart *dashboardwidgets.PieChartMode
 			ColorScheme:        utils.TypeStringToStringPointer(pieChart.ColorScheme),
 			HashColors:         pieChart.HashColors.ValueBoolPointer(),
 			DataModeType:       dashboardwidgets.OptionalEnumPointer(pieChart.DataModeType, dashboardwidgets.DashboardSchemaToProtoDataModeType),
+			CustomUnit:         utils.TypeStringToStringPointer(pieChart.CustomUnit),
+			Decimal:            typeNumberToInt32Pointer(pieChart.Decimal),
+			DecimalPrecision:   pieChart.DecimalPrecision.ValueBoolPointer(),
+			ShowTotal:          pieChart.ShowTotal.ValueBoolPointer(),
 		},
 	}, nil
 }
@@ -2267,6 +2282,11 @@ func expandGauge(ctx context.Context, gauge *dashboardwidgets.GaugeModel) (*dash
 		return nil, diags
 	}
 
+	legend, diags := dashboardwidgets.ExpandLegend(ctx, gauge.Legend)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.WidgetDefinition{
 		Gauge: &dashboardservice.WidgetsGauge{
 			Query:             query,
@@ -2281,6 +2301,10 @@ func expandGauge(ctx context.Context, gauge *dashboardwidgets.GaugeModel) (*dash
 			ThresholdType:     dashboardwidgets.OptionalEnumPointer(gauge.ThresholdType, dashboardwidgets.DashboardSchemaToProtoThresholdType),
 			DisplaySeriesName: typeBoolToBoolPointer(gauge.DisplaySeriesName),
 			Decimal:           typeNumberToInt32Pointer(gauge.Decimal),
+			CustomUnit:        utils.TypeStringToStringPointer(gauge.CustomUnit),
+			Legend:            legend,
+			LegendBy:          dashboardwidgets.OptionalEnumPointer(gauge.LegendBy, dashboardwidgets.DashboardSchemaToProtoLegendBy),
+			ShowMinMax:        gauge.ShowMinMax.ValueBoolPointer(),
 		},
 	}, nil
 }
@@ -2376,10 +2400,22 @@ func expandGaugeQuerySpans(ctx context.Context, gaugeQuerySpans *dashboardwidget
 		return nil, diags
 	}
 
+	groupBy, diags := dashboardwidgets.ExpandSpansFields(ctx, gaugeQuerySpans.GroupBy)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	groupBys, diags := dashboardwidgets.ExpandSpanObservationFields(ctx, gaugeQuerySpans.GroupBys)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.GaugeSpansQuery{
 		LuceneQuery:      dashboardwidgets.ExpandLuceneQuery(gaugeQuerySpans.LuceneQuery),
 		SpansAggregation: spansAggregation,
 		Filters:          filters,
+		GroupBy:          groupBy,
+		GroupBys:         groupBys,
 		TimeFrame:        timeFrame,
 	}, nil
 }
@@ -2858,10 +2894,12 @@ func expandGaugeQueryMetrics(ctx context.Context, gaugeQueryMetrics *dashboardwi
 	}
 
 	return &dashboardservice.GaugeMetricsQuery{
-		PromqlQuery: dashboardwidgets.ExpandPromqlQuery(gaugeQueryMetrics.PromqlQuery),
-		Aggregation: dashboardwidgets.OptionalEnumPointer(gaugeQueryMetrics.Aggregation, dashboardwidgets.DashboardSchemaToProtoGaugeAggregation),
-		Filters:     filters,
-		TimeFrame:   timeFrame,
+		PromqlQuery:     dashboardwidgets.ExpandPromqlQuery(gaugeQueryMetrics.PromqlQuery),
+		Aggregation:     dashboardwidgets.OptionalEnumPointer(gaugeQueryMetrics.Aggregation, dashboardwidgets.DashboardSchemaToProtoGaugeAggregation),
+		Filters:         filters,
+		EditorMode:      dashboardwidgets.OptionalEnumPointer(gaugeQueryMetrics.EditorMode, dashboardwidgets.DashboardSchemaToProtoMetricsEditorMode),
+		PromqlQueryType: dashboardwidgets.OptionalEnumPointer(gaugeQueryMetrics.PromqlQueryType, dashboardwidgets.DashboardSchemaToProtoPromQLQueryType),
+		TimeFrame:       timeFrame,
 	}, nil
 }
 
@@ -2881,10 +2919,16 @@ func expandGaugeQueryLogs(ctx context.Context, gaugeQueryLogs *dashboardwidgets.
 		return nil, diags
 	}
 
+	groupBy, diags := dashboardwidgets.ExpandObservationFields(ctx, gaugeQueryLogs.GroupBy)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.GaugeLogsQuery{
 		LuceneQuery:     dashboardwidgets.ExpandLuceneQuery(gaugeQueryLogs.LuceneQuery),
 		LogsAggregation: logsAggregation,
 		Filters:         filters,
+		GroupBy:         groupBy,
 		TimeFrame:       timeFrame,
 	}, nil
 }
@@ -2902,6 +2946,11 @@ func expandBarChart(ctx context.Context, chart *dashboardwidgets.BarChartModel) 
 		return nil, diag.Diagnostics{dg}
 	}
 
+	legend, diags := dashboardwidgets.ExpandLegend(ctx, chart.Legend)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.WidgetDefinition{
 		BarChart: &dashboardservice.BarChart{
 			Query:             query,
@@ -2916,6 +2965,14 @@ func expandBarChart(ctx context.Context, chart *dashboardwidgets.BarChartModel) 
 			ColorScheme:       utils.TypeStringToStringPointer(chart.ColorScheme),
 			HashColors:        chart.HashColors.ValueBoolPointer(),
 			DataModeType:      dashboardwidgets.OptionalEnumPointer(chart.DataModeType, dashboardwidgets.DashboardSchemaToProtoDataModeType),
+			BarValueDisplay:   dashboardwidgets.OptionalEnumPointer(chart.BarValueDisplay, dashboardwidgets.DashboardSchemaToProtoBarValueDisplay),
+			CustomUnit:        utils.TypeStringToStringPointer(chart.CustomUnit),
+			Decimal:           typeNumberToInt32Pointer(chart.Decimal),
+			DecimalPrecision:  chart.DecimalPrecision.ValueBoolPointer(),
+			Legend:            legend,
+			XAxisTimeFormat:   dashboardwidgets.OptionalEnumPointer(chart.XAxisTimeFormat, dashboardwidgets.DashboardSchemaToProtoXAxisTimeFormat),
+			YAxisMax:          dashboardwidgets.ExpandFloat32Pointer(chart.YAxisMax),
+			YAxisMin:          dashboardwidgets.ExpandFloat32Pointer(chart.YAxisMin),
 		},
 	}, nil
 }
@@ -3164,6 +3221,9 @@ func expandHorizontalBarChartMetricsQuery(ctx context.Context, metrics types.Obj
 		Filters:          filters,
 		GroupNames:       groupNames,
 		StackedGroupName: utils.TypeStringToStringPointer(metricsObject.StackedGroupName),
+		Aggregation:      dashboardwidgets.OptionalEnumPointer(metricsObject.Aggregation, dashboardwidgets.DashboardSchemaToProtoCommonAggregation),
+		EditorMode:       dashboardwidgets.OptionalEnumPointer(metricsObject.EditorMode, dashboardwidgets.DashboardSchemaToProtoMetricsEditorMode),
+		PromqlQueryType:  dashboardwidgets.OptionalEnumPointer(metricsObject.PromqlQueryType, dashboardwidgets.DashboardSchemaToProtoPromQLQueryType),
 		TimeFrame:        timeFrame,
 	}, nil
 }
@@ -3204,13 +3264,25 @@ func expandHorizontalBarChartSpansQuery(ctx context.Context, spans types.Object)
 		return nil, diags
 	}
 
+	groupNamesFields, diags := dashboardwidgets.ExpandSpanObservationFields(ctx, spansObject.GroupNamesFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	stackedGroupNameField, diags := dashboardwidgets.ExpandSpanObservationFieldObject(ctx, spansObject.StackedGroupNameField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.HorizontalBarChartSpansQuery{
-		LuceneQuery:      dashboardwidgets.ExpandLuceneQuery(spansObject.LuceneQuery),
-		Aggregation:      aggregation,
-		Filters:          filters,
-		GroupNames:       groupNames,
-		StackedGroupName: expandedFilter,
-		TimeFrame:        timeFrame,
+		LuceneQuery:           dashboardwidgets.ExpandLuceneQuery(spansObject.LuceneQuery),
+		Aggregation:           aggregation,
+		Filters:               filters,
+		GroupNames:            groupNames,
+		StackedGroupName:      expandedFilter,
+		GroupNamesFields:      groupNamesFields,
+		StackedGroupNameField: stackedGroupNameField,
+		TimeFrame:             timeFrame,
 	}, nil
 }
 
@@ -3298,6 +3370,9 @@ func expandBarChartMetricsQuery(ctx context.Context, barChartQueryMetrics types.
 		Filters:          filters,
 		GroupNames:       groupNames,
 		StackedGroupName: utils.TypeStringToStringPointer(barChartQueryMetricsObject.StackedGroupName),
+		Aggregation:      dashboardwidgets.OptionalEnumPointer(barChartQueryMetricsObject.Aggregation, dashboardwidgets.DashboardSchemaToProtoCommonAggregation),
+		EditorMode:       dashboardwidgets.OptionalEnumPointer(barChartQueryMetricsObject.EditorMode, dashboardwidgets.DashboardSchemaToProtoMetricsEditorMode),
+		PromqlQueryType:  dashboardwidgets.OptionalEnumPointer(barChartQueryMetricsObject.PromqlQueryType, dashboardwidgets.DashboardSchemaToProtoPromQLQueryType),
 		TimeFrame:        timeFrame,
 	}, nil
 }
@@ -3338,13 +3413,25 @@ func expandBarChartSpansQuery(ctx context.Context, barChartQuerySpans types.Obje
 		return nil, diags
 	}
 
+	groupNamesFields, diags := dashboardwidgets.ExpandSpanObservationFields(ctx, barChartQuerySpansObject.GroupNamesFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	stackedGroupNameField, diags := dashboardwidgets.ExpandSpanObservationFieldObject(ctx, barChartQuerySpansObject.StackedGroupNameField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.BarChartSpansQuery{
-		LuceneQuery:      dashboardwidgets.ExpandLuceneQuery(barChartQuerySpansObject.LuceneQuery),
-		Aggregation:      aggregation,
-		Filters:          filters,
-		GroupNames:       groupNames,
-		StackedGroupName: expandedFilter,
-		TimeFrame:        timeFrame,
+		LuceneQuery:           dashboardwidgets.ExpandLuceneQuery(barChartQuerySpansObject.LuceneQuery),
+		Aggregation:           aggregation,
+		Filters:               filters,
+		GroupNames:            groupNames,
+		StackedGroupName:      expandedFilter,
+		GroupNamesFields:      groupNamesFields,
+		StackedGroupNameField: stackedGroupNameField,
+		TimeFrame:             timeFrame,
 	}, nil
 }
 
@@ -3501,6 +3588,9 @@ func expandPieChartMetricsQuery(ctx context.Context, pieChartQueryMetrics *dashb
 		GroupNames:       groupNames,
 		Filters:          filters,
 		StackedGroupName: utils.TypeStringToStringPointer(pieChartQueryMetrics.StackedGroupName),
+		Aggregation:      dashboardwidgets.OptionalEnumPointer(pieChartQueryMetrics.Aggregation, dashboardwidgets.DashboardSchemaToProtoCommonAggregation),
+		EditorMode:       dashboardwidgets.OptionalEnumPointer(pieChartQueryMetrics.EditorMode, dashboardwidgets.DashboardSchemaToProtoMetricsEditorMode),
+		PromqlQueryType:  dashboardwidgets.OptionalEnumPointer(pieChartQueryMetrics.PromqlQueryType, dashboardwidgets.DashboardSchemaToProtoPromQLQueryType),
 		TimeFrame:        timeFrame,
 	}, nil
 }
@@ -3535,13 +3625,25 @@ func expandPieChartSpansQuery(ctx context.Context, pieChartQuerySpans *dashboard
 		return nil, diags
 	}
 
+	groupNamesFields, diags := dashboardwidgets.ExpandSpanObservationFields(ctx, pieChartQuerySpans.GroupNamesFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	stackedGroupNameField, diags := dashboardwidgets.ExpandSpanObservationFieldObject(ctx, pieChartQuerySpans.StackedGroupNameField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.PieChartSpansQuery{
-		LuceneQuery:      dashboardwidgets.ExpandLuceneQuery(pieChartQuerySpans.LuceneQuery),
-		Aggregation:      aggregation,
-		Filters:          filters,
-		GroupNames:       groupNames,
-		StackedGroupName: stackedGroupName,
-		TimeFrame:        timeFrame,
+		LuceneQuery:           dashboardwidgets.ExpandLuceneQuery(pieChartQuerySpans.LuceneQuery),
+		Aggregation:           aggregation,
+		Filters:               filters,
+		GroupNames:            groupNames,
+		StackedGroupName:      stackedGroupName,
+		GroupNamesFields:      groupNamesFields,
+		StackedGroupNameField: stackedGroupNameField,
+		TimeFrame:             timeFrame,
 	}, nil
 }
 
@@ -4049,6 +4151,9 @@ func widgetModelAttr() map[string]attr.Type {
 												AttrTypes: dashboardwidgets.LogsFilterModelAttr(),
 											},
 										},
+										"group_by": types.ListType{
+											ElemType: dashboardwidgets.ObservationFieldsObject(),
+										},
 										"time_frame": types.ObjectType{
 											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
 										},
@@ -4063,6 +4168,8 @@ func widgetModelAttr() map[string]attr.Type {
 												AttrTypes: dashboardwidgets.MetricsFilterModelAttr(),
 											},
 										},
+										"editor_mode":       types.StringType,
+										"promql_query_type": types.StringType,
 										"time_frame": types.ObjectType{
 											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
 										},
@@ -4077,6 +4184,16 @@ func widgetModelAttr() map[string]attr.Type {
 										"filters": types.ListType{
 											ElemType: types.ObjectType{
 												AttrTypes: dashboardwidgets.SpansFilterModelAttr(),
+											},
+										},
+										"group_by": types.ListType{
+											ElemType: types.ObjectType{
+												AttrTypes: dashboardwidgets.SpansFieldModelAttr(),
+											},
+										},
+										"group_bys": types.ListType{
+											ElemType: types.ObjectType{
+												AttrTypes: dashboardwidgets.SpanObservationFieldAttr(),
 											},
 										},
 										"time_frame": types.ObjectType{
@@ -4114,6 +4231,10 @@ func widgetModelAttr() map[string]attr.Type {
 						"threshold_type":      types.StringType,
 						"display_series_name": types.BoolType,
 						"decimal":             types.NumberType,
+						"custom_unit":         types.StringType,
+						"legend":              types.ObjectType{AttrTypes: dashboardwidgets.LegendAttr()},
+						"legend_by":           types.StringType,
+						"show_min_max":        types.BoolType,
 					},
 				},
 				"pie_chart": types.ObjectType{
@@ -4156,6 +4277,9 @@ func widgetModelAttr() map[string]attr.Type {
 											ElemType: types.StringType,
 										},
 										"stacked_group_name": types.StringType,
+										"aggregation":        types.StringType,
+										"editor_mode":        types.StringType,
+										"promql_query_type":  types.StringType,
 										"time_frame": types.ObjectType{
 											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
 										},
@@ -4179,6 +4303,14 @@ func widgetModelAttr() map[string]attr.Type {
 										},
 										"stacked_group_name": types.ObjectType{
 											AttrTypes: dashboardwidgets.SpansFieldModelAttr(),
+										},
+										"group_names_fields": types.ListType{
+											ElemType: types.ObjectType{
+												AttrTypes: dashboardwidgets.SpanObservationFieldAttr(),
+											},
+										},
+										"stacked_group_name_field": types.ObjectType{
+											AttrTypes: dashboardwidgets.SpanObservationFieldAttr(),
 										},
 										"time_frame": types.ObjectType{
 											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
@@ -4227,6 +4359,10 @@ func widgetModelAttr() map[string]attr.Type {
 						"color_scheme":        types.StringType,
 						"hash_colors":         types.BoolType,
 						"data_mode_type":      types.StringType,
+						"custom_unit":         types.StringType,
+						"decimal":             types.NumberType,
+						"decimal_precision":   types.BoolType,
+						"show_total":          types.BoolType,
 					},
 				},
 				"bar_chart": types.ObjectType{
@@ -4270,81 +4406,35 @@ func widgetModelAttr() map[string]attr.Type {
 								},
 							},
 						},
-						"unit":           types.StringType,
-						"sort_by":        types.StringType,
-						"color_scheme":   types.StringType,
-						"hash_colors":    types.BoolType,
-						"data_mode_type": types.StringType,
+						"unit":               types.StringType,
+						"sort_by":            types.StringType,
+						"color_scheme":       types.StringType,
+						"hash_colors":        types.BoolType,
+						"data_mode_type":     types.StringType,
+						"bar_value_display":  types.StringType,
+						"custom_unit":        types.StringType,
+						"decimal":            types.NumberType,
+						"decimal_precision":  types.BoolType,
+						"legend":             types.ObjectType{AttrTypes: dashboardwidgets.LegendAttr()},
+						"x_axis_time_format": types.StringType,
+						"y_axis_max":         dashboardwidgets.Float32Type{},
+						"y_axis_min":         dashboardwidgets.Float32Type{},
 					},
 				},
+				// The horizontal bar chart shares the bar chart's query models, so it
+				// shares the bar chart's query attr.Type maps too.
 				"horizontal_bar_chart": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
 						"query": types.ObjectType{
 							AttrTypes: map[string]attr.Type{
 								"logs": types.ObjectType{
-									AttrTypes: map[string]attr.Type{
-										"lucene_query": types.StringType,
-										"aggregation": types.ObjectType{
-											AttrTypes: dashboardwidgets.AggregationModelAttr(),
-										},
-										"filters": types.ListType{
-											ElemType: types.ObjectType{
-												AttrTypes: dashboardwidgets.LogsFilterModelAttr(),
-											},
-										},
-										"group_names": types.ListType{
-											ElemType: types.StringType,
-										},
-										"stacked_group_name": types.StringType,
-										"group_names_fields": types.ListType{
-											ElemType: dashboardwidgets.ObservationFieldsObject(),
-										},
-										"stacked_group_name_field": dashboardwidgets.ObservationFieldsObject(),
-										"time_frame": types.ObjectType{
-											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
-										},
-									},
+									AttrTypes: barChartLogsQueryAttr(),
 								},
 								"metrics": types.ObjectType{
-									AttrTypes: map[string]attr.Type{
-										"promql_query": types.StringType,
-										"filters": types.ListType{
-											ElemType: types.ObjectType{
-												AttrTypes: dashboardwidgets.MetricsFilterModelAttr(),
-											},
-										},
-										"group_names": types.ListType{
-											ElemType: types.StringType,
-										},
-										"stacked_group_name": types.StringType,
-										"time_frame": types.ObjectType{
-											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
-										},
-									},
+									AttrTypes: barChartMetricsQueryAttr(),
 								},
 								"spans": types.ObjectType{
-									AttrTypes: map[string]attr.Type{
-										"lucene_query": types.StringType,
-										"aggregation": types.ObjectType{
-											AttrTypes: dashboardwidgets.SpansAggregationModelAttr(),
-										},
-										"filters": types.ListType{
-											ElemType: types.ObjectType{
-												AttrTypes: dashboardwidgets.SpansFilterModelAttr(),
-											},
-										},
-										"group_names": types.ListType{
-											ElemType: types.ObjectType{
-												AttrTypes: dashboardwidgets.SpansFieldModelAttr(),
-											},
-										},
-										"stacked_group_name": types.ObjectType{
-											AttrTypes: dashboardwidgets.SpansFieldModelAttr(),
-										},
-										"time_frame": types.ObjectType{
-											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
-										},
-									},
+									AttrTypes: barChartSpansQueryAttr(),
 								},
 								"data_prime": types.ObjectType{
 									AttrTypes: barChartDataPrimeQueryAttr(),
@@ -4359,15 +4449,21 @@ func widgetModelAttr() map[string]attr.Type {
 								"max_slices_per_bar":  types.Int64Type,
 							},
 						},
-						"scale_type":     types.StringType,
-						"colors_by":      types.StringType,
-						"unit":           types.StringType,
-						"sort_by":        types.StringType,
-						"color_scheme":   types.StringType,
-						"hash_colors":    types.BoolType,
-						"display_on_bar": types.BoolType,
-						"y_axis_view_by": types.StringType,
-						"data_mode_type": types.StringType,
+						"scale_type":        types.StringType,
+						"colors_by":         types.StringType,
+						"unit":              types.StringType,
+						"sort_by":           types.StringType,
+						"color_scheme":      types.StringType,
+						"hash_colors":       types.BoolType,
+						"display_on_bar":    types.BoolType,
+						"y_axis_view_by":    types.StringType,
+						"data_mode_type":    types.StringType,
+						"custom_unit":       types.StringType,
+						"decimal":           types.NumberType,
+						"decimal_precision": types.BoolType,
+						"legend":            types.ObjectType{AttrTypes: dashboardwidgets.LegendAttr()},
+						"y_axis_max":        dashboardwidgets.Float32Type{},
+						"y_axis_min":        dashboardwidgets.Float32Type{},
 					},
 				},
 				"markdown": types.ObjectType{
@@ -4425,6 +4521,9 @@ func barChartMetricsQueryAttr() map[string]attr.Type {
 			ElemType: types.StringType,
 		},
 		"stacked_group_name": types.StringType,
+		"aggregation":        types.StringType,
+		"editor_mode":        types.StringType,
+		"promql_query_type":  types.StringType,
 		"time_frame": types.ObjectType{
 			AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
 		},
@@ -4449,6 +4548,14 @@ func barChartSpansQueryAttr() map[string]attr.Type {
 		},
 		"stacked_group_name": types.ObjectType{
 			AttrTypes: dashboardwidgets.SpansFieldModelAttr(),
+		},
+		"group_names_fields": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: dashboardwidgets.SpanObservationFieldAttr(),
+			},
+		},
+		"stacked_group_name_field": types.ObjectType{
+			AttrTypes: dashboardwidgets.SpanObservationFieldAttr(),
 		},
 		"time_frame": types.ObjectType{
 			AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
@@ -5000,6 +5107,12 @@ func flattenHorizontalBarChart(ctx context.Context, chart *dashboardservice.Hori
 			ColorScheme:       utils.StringPointerToTypeString(chart.ColorScheme),
 			HashColors:        types.BoolPointerValue(chart.HashColors),
 			DataModeType:      types.StringValue(dashboardwidgets.DashboardProtoToSchemaDataModeType[chart.GetDataModeType()]),
+			CustomUnit:        utils.StringPointerToTypeString(chart.CustomUnit),
+			Decimal:           int32PointerToNumberType(chart.Decimal),
+			DecimalPrecision:  types.BoolPointerValue(chart.DecimalPrecision),
+			Legend:            dashboardwidgets.FlattenLegend(chart.Legend),
+			YAxisMax:          dashboardwidgets.FlattenFloat32Pointer(chart.YAxisMax),
+			YAxisMin:          dashboardwidgets.FlattenFloat32Pointer(chart.YAxisMin),
 		},
 	}, nil
 }
@@ -5143,6 +5256,9 @@ func flattenHorizontalBarChartQueryMetrics(ctx context.Context, metrics *dashboa
 		Filters:          filters,
 		GroupNames:       utils.StringSliceToTypeStringList(metrics.GetGroupNames()),
 		StackedGroupName: utils.StringPointerToTypeString(metrics.StackedGroupName),
+		Aggregation:      types.StringValue(dashboardwidgets.DashboardProtoToSchemaCommonAggregation[metrics.GetAggregation()]),
+		EditorMode:       types.StringValue(dashboardwidgets.DashboardProtoToSchemaMetricsEditorMode[metrics.GetEditorMode()]),
+		PromqlQueryType:  types.StringValue(dashboardwidgets.DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
 		TimeFrame:        timeFrame,
 	}
 
@@ -5189,13 +5305,25 @@ func flattenHorizontalBarChartQuerySpans(ctx context.Context, spans *dashboardse
 		return nil, diags
 	}
 
+	groupNamesFields, diags := dashboardwidgets.FlattenSpanObservationFields(ctx, spans.GetGroupNamesFields())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	stackedGroupNameField, diags := dashboardwidgets.FlattenSpanObservationFieldObject(ctx, spans.StackedGroupNameField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	flattenedSpans := &dashboardwidgets.BarChartQuerySpansModel{
-		LuceneQuery:      utils.StringPointerToTypeString(spans.GetLuceneQuery().Value),
-		Aggregation:      aggregation,
-		Filters:          filters,
-		GroupNames:       groupNames,
-		StackedGroupName: stackedGroupName,
-		TimeFrame:        timeFrame,
+		LuceneQuery:           utils.StringPointerToTypeString(spans.GetLuceneQuery().Value),
+		Aggregation:           aggregation,
+		Filters:               filters,
+		GroupNames:            groupNames,
+		StackedGroupName:      stackedGroupName,
+		GroupNamesFields:      groupNamesFields,
+		StackedGroupNameField: stackedGroupNameField,
+		TimeFrame:             timeFrame,
 	}
 
 	spansObject, diags := types.ObjectValueFrom(ctx, barChartSpansQueryAttr(), flattenedSpans)
@@ -5240,6 +5368,10 @@ func flattenGauge(ctx context.Context, gauge *dashboardservice.WidgetsGauge) (*d
 			ThresholdType:     types.StringValue(dashboardwidgets.DashboardProtoToSchemaThresholdType[gauge.GetThresholdType()]),
 			DisplaySeriesName: types.BoolPointerValue(gauge.DisplaySeriesName),
 			Decimal:           int32PointerToNumberType(gauge.Decimal),
+			CustomUnit:        utils.StringPointerToTypeString(gauge.CustomUnit),
+			Legend:            dashboardwidgets.FlattenLegend(gauge.Legend),
+			LegendBy:          types.StringValue(dashboardwidgets.DashboardProtoToSchemaLegendBy[gauge.GetLegendBy()]),
+			ShowMinMax:        types.BoolPointerValue(gauge.ShowMinMax),
 		},
 	}, nil
 }
@@ -5309,10 +5441,12 @@ func flattenGaugeQueryMetrics(ctx context.Context, metrics *dashboardservice.Gau
 
 	return &dashboardwidgets.GaugeQueryModel{
 		Metrics: &dashboardwidgets.GaugeQueryMetricsModel{
-			PromqlQuery: utils.StringPointerToTypeString(metrics.GetPromqlQuery().Value),
-			Aggregation: types.StringValue(dashboardwidgets.DashboardProtoToSchemaGaugeAggregation[metrics.GetAggregation()]),
-			Filters:     filters,
-			TimeFrame:   timeFrame,
+			PromqlQuery:     utils.StringPointerToTypeString(metrics.GetPromqlQuery().Value),
+			Aggregation:     types.StringValue(dashboardwidgets.DashboardProtoToSchemaGaugeAggregation[metrics.GetAggregation()]),
+			Filters:         filters,
+			EditorMode:      types.StringValue(dashboardwidgets.DashboardProtoToSchemaMetricsEditorMode[metrics.GetEditorMode()]),
+			PromqlQueryType: types.StringValue(dashboardwidgets.DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
+			TimeFrame:       timeFrame,
 		},
 	}, nil
 }
@@ -5331,6 +5465,10 @@ func flattenGaugeQueryLogs(ctx context.Context, logs *dashboardservice.GaugeLogs
 	if diags.HasError() {
 		return nil, diags
 	}
+	groupBy, diags := dashboardwidgets.FlattenObservationFields(ctx, logs.GetGroupBy())
+	if diags.HasError() {
+		return nil, diags
+	}
 	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, logs.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
@@ -5341,6 +5479,7 @@ func flattenGaugeQueryLogs(ctx context.Context, logs *dashboardservice.GaugeLogs
 			LuceneQuery:     utils.StringPointerToTypeString(logs.GetLuceneQuery().Value),
 			LogsAggregation: logsAggregation,
 			Filters:         filters,
+			GroupBy:         groupBy,
 			TimeFrame:       timeFrame,
 		},
 	}, nil
@@ -5360,6 +5499,14 @@ func flattenGaugeQuerySpans(ctx context.Context, spans *dashboardservice.GaugeSp
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
+	groupBy, diags := dashboardwidgets.FlattenSpansFields(ctx, spans.GetGroupBy())
+	if diags.HasError() {
+		return nil, diags
+	}
+	groupBys, diags := dashboardwidgets.FlattenSpanObservationFields(ctx, spans.GetGroupBys())
+	if diags.HasError() {
+		return nil, diags
+	}
 	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, spans.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
@@ -5370,6 +5517,8 @@ func flattenGaugeQuerySpans(ctx context.Context, spans *dashboardservice.GaugeSp
 			LuceneQuery:      utils.StringPointerToTypeString(spans.GetLuceneQuery().Value),
 			Filters:          filters,
 			SpansAggregation: spansAggregation,
+			GroupBy:          groupBy,
+			GroupBys:         groupBys,
 			TimeFrame:        timeFrame,
 		},
 	}, nil
@@ -5423,6 +5572,10 @@ func flattenPieChart(ctx context.Context, pieChart *dashboardservice.WidgetsPieC
 			ColorScheme:        utils.StringPointerToTypeString(pieChart.ColorScheme),
 			HashColors:         types.BoolPointerValue(pieChart.HashColors),
 			DataModeType:       types.StringValue(dashboardwidgets.DashboardProtoToSchemaDataModeType[pieChart.GetDataModeType()]),
+			CustomUnit:         utils.StringPointerToTypeString(pieChart.CustomUnit),
+			Decimal:            int32PointerToNumberType(pieChart.Decimal),
+			DecimalPrecision:   types.BoolPointerValue(pieChart.DecimalPrecision),
+			ShowTotal:          types.BoolPointerValue(pieChart.ShowTotal),
 		},
 	}, nil
 }
@@ -5490,6 +5643,9 @@ func flattenPieChartQueryMetrics(ctx context.Context, metrics *dashboardservice.
 			Filters:          filters,
 			GroupNames:       utils.StringSliceToTypeStringList(metrics.GetGroupNames()),
 			StackedGroupName: utils.StringPointerToTypeString(metrics.StackedGroupName),
+			Aggregation:      types.StringValue(dashboardwidgets.DashboardProtoToSchemaCommonAggregation[metrics.GetAggregation()]),
+			EditorMode:       types.StringValue(dashboardwidgets.DashboardProtoToSchemaMetricsEditorMode[metrics.GetEditorMode()]),
+			PromqlQueryType:  types.StringValue(dashboardwidgets.DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
 			TimeFrame:        timeFrame,
 		},
 	}, nil
@@ -5569,14 +5725,26 @@ func flattenPieChartQuerySpans(ctx context.Context, spans *dashboardservice.PieC
 		return nil, diags
 	}
 
+	groupNamesFields, diags := dashboardwidgets.FlattenSpanObservationFields(ctx, spans.GetGroupNamesFields())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	stackedGroupNameField, diags := dashboardwidgets.FlattenSpanObservationFieldObject(ctx, spans.StackedGroupNameField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardwidgets.PieChartQueryModel{
 		Spans: &dashboardwidgets.PieChartQuerySpansModel{
-			LuceneQuery:      utils.StringPointerToTypeString(spans.GetLuceneQuery().Value),
-			Filters:          filters,
-			Aggregation:      aggregation,
-			GroupNames:       groupNames,
-			StackedGroupName: stackedGroupName,
-			TimeFrame:        timeFrame,
+			LuceneQuery:           utils.StringPointerToTypeString(spans.GetLuceneQuery().Value),
+			Filters:               filters,
+			Aggregation:           aggregation,
+			GroupNames:            groupNames,
+			StackedGroupName:      stackedGroupName,
+			GroupNamesFields:      groupNamesFields,
+			StackedGroupNameField: stackedGroupNameField,
+			TimeFrame:             timeFrame,
 		},
 	}, nil
 }
@@ -5641,6 +5809,14 @@ func flattenBarChart(ctx context.Context, barChart *dashboardservice.BarChart) (
 			ColorScheme:       utils.StringPointerToTypeString(barChart.ColorScheme),
 			HashColors:        types.BoolPointerValue(barChart.HashColors),
 			DataModeType:      types.StringValue(dashboardwidgets.DashboardProtoToSchemaDataModeType[barChart.GetDataModeType()]),
+			BarValueDisplay:   types.StringValue(dashboardwidgets.DashboardProtoToSchemaBarValueDisplay[barChart.GetBarValueDisplay()]),
+			CustomUnit:        utils.StringPointerToTypeString(barChart.CustomUnit),
+			Decimal:           int32PointerToNumberType(barChart.Decimal),
+			DecimalPrecision:  types.BoolPointerValue(barChart.DecimalPrecision),
+			Legend:            dashboardwidgets.FlattenLegend(barChart.Legend),
+			XAxisTimeFormat:   types.StringValue(dashboardwidgets.DashboardProtoToSchemaXAxisTimeFormat[barChart.GetXAxisTimeFormat()]),
+			YAxisMax:          dashboardwidgets.FlattenFloat32Pointer(barChart.YAxisMax),
+			YAxisMin:          dashboardwidgets.FlattenFloat32Pointer(barChart.YAxisMin),
 		},
 	}, nil
 }
@@ -5770,13 +5946,25 @@ func flattenBarChartQuerySpans(ctx context.Context, spans *dashboardservice.BarC
 		return nil, diags
 	}
 
+	groupNamesFields, diags := dashboardwidgets.FlattenSpanObservationFields(ctx, spans.GetGroupNamesFields())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	stackedGroupNameField, diags := dashboardwidgets.FlattenSpanObservationFieldObject(ctx, spans.StackedGroupNameField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	flattenedSpans := &dashboardwidgets.BarChartQuerySpansModel{
-		LuceneQuery:      utils.StringPointerToTypeString(spans.GetLuceneQuery().Value),
-		Aggregation:      aggregation,
-		Filters:          filters,
-		GroupNames:       groupNames,
-		StackedGroupName: stackedGroupName,
-		TimeFrame:        timeFrame,
+		LuceneQuery:           utils.StringPointerToTypeString(spans.GetLuceneQuery().Value),
+		Aggregation:           aggregation,
+		Filters:               filters,
+		GroupNames:            groupNames,
+		StackedGroupName:      stackedGroupName,
+		GroupNamesFields:      groupNamesFields,
+		StackedGroupNameField: stackedGroupNameField,
+		TimeFrame:             timeFrame,
 	}
 	spansObject, diags := types.ObjectValueFrom(ctx, barChartSpansQueryAttr(), flattenedSpans)
 	if diags.HasError() {
@@ -5811,6 +5999,9 @@ func flattenBarChartQueryMetrics(ctx context.Context, metrics *dashboardservice.
 		Filters:          filters,
 		GroupNames:       utils.StringSliceToTypeStringList(metrics.GetGroupNames()),
 		StackedGroupName: utils.StringPointerToTypeString(metrics.StackedGroupName),
+		Aggregation:      types.StringValue(dashboardwidgets.DashboardProtoToSchemaCommonAggregation[metrics.GetAggregation()]),
+		EditorMode:       types.StringValue(dashboardwidgets.DashboardProtoToSchemaMetricsEditorMode[metrics.GetEditorMode()]),
+		PromqlQueryType:  types.StringValue(dashboardwidgets.DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
 		TimeFrame:        timeFrame,
 	}
 

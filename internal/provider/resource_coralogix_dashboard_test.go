@@ -2398,6 +2398,561 @@ resource "coralogix_dashboard" "test" {
 	})
 }
 
+// The line chart display and query fields are plain Optional scalars, except the
+// three enums, which are Optional+Computed with an "unspecified" default. The
+// last step removes every optional field: if the API echoed a value for an
+// omitted field, that step would leave a permanent diff.
+func TestAccCoralogixResourceDashboardLineChartParityFields(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	config := func(chartFields, definitionFields, metricsFields string) string {
+		return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing the line chart display and query fields"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [
+          {
+            title = "metrics line chart"
+            definition = {
+              line_chart = {
+                %[2]s
+                query_definitions = [{
+                  query = {
+                    metrics = {
+                      promql_query = "up"
+                      %[4]s
+                    }
+                  }
+                  %[3]s
+                }]
+              }
+            }
+          },
+          {
+            title = "logs line chart"
+            definition = {
+              line_chart = {
+                query_definitions = [{
+                  query = {
+                    logs = {
+                      aggregations = [{ type = "count" }]
+                      group_bys = [{
+                        keypath = ["log.level"]
+                        scope   = "user_data"
+                      }]
+                    }
+                  }
+                }]
+              }
+            }
+          },
+          {
+            title = "spans line chart"
+            definition = {
+              line_chart = {
+                query_definitions = [{
+                  query = {
+                    spans = {
+                      aggregations = [{ type = "metric", aggregation_type = "avg", field = "duration" }]
+                      group_bys = [{
+                        keypath = ["service", "name"]
+                        scope   = "metadata"
+                      }]
+                    }
+                  }
+                }]
+              }
+            }
+          },
+        ]
+      }]
+    }]
+  }
+}
+`, name, chartFields, definitionFields, metricsFields)
+	}
+
+	const chart = "layout.sections.0.rows.0.widgets.0.definition.line_chart"
+	const definition = chart + ".query_definitions.0"
+	const metrics = definition + ".query.metrics"
+
+	setChecks := resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+		resource.TestCheckResourceAttr(dashboardResourceName, chart+".connect_nulls", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, chart+".use_data_time_range", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, chart+".x_axis_time_format", "dd_mm_hh_mm"),
+		resource.TestCheckResourceAttr(dashboardResourceName, definition+".custom_unit", "requests/s"),
+		resource.TestCheckResourceAttr(dashboardResourceName, definition+".decimal", "3"),
+		resource.TestCheckResourceAttr(dashboardResourceName, definition+".decimal_precision", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, definition+".y_axis_max", "120"),
+		resource.TestCheckResourceAttr(dashboardResourceName, definition+".y_axis_min", "-5"),
+		resource.TestCheckResourceAttr(dashboardResourceName, metrics+".editor_mode", "builder"),
+		resource.TestCheckResourceAttr(dashboardResourceName, metrics+".series_limit_type", "by_point_count"),
+		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.query_definitions.0.query.logs.group_bys.0.keypath.0", "log.level"),
+		resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.definition.line_chart.query_definitions.0.query.spans.group_bys.0.scope", "metadata"),
+	)
+	unsetChecks := resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, chart+".connect_nulls"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, chart+".use_data_time_range"),
+		resource.TestCheckResourceAttr(dashboardResourceName, chart+".x_axis_time_format", utils.UNSPECIFIED),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, definition+".custom_unit"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, definition+".decimal"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, definition+".decimal_precision"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, definition+".y_axis_max"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, definition+".y_axis_min"),
+		resource.TestCheckResourceAttr(dashboardResourceName, metrics+".editor_mode", utils.UNSPECIFIED),
+		resource.TestCheckResourceAttr(dashboardResourceName, metrics+".series_limit_type", utils.UNSPECIFIED),
+	)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: config(`
+                connect_nulls       = true
+                use_data_time_range = true
+                x_axis_time_format  = "dd_mm_hh_mm"`,
+					`
+                  custom_unit       = "requests/s"
+                  decimal           = 3
+                  decimal_precision = true
+                  y_axis_max        = 120
+                  y_axis_min        = -5`,
+					`
+                      editor_mode       = "builder"
+                      series_limit_type = "by_point_count"`),
+				Check: setChecks,
+			},
+			testAccDashboardImportStep(),
+			{
+				Config: config("", "", ""),
+				Check:  unsetChecks,
+			},
+		},
+	})
+}
+
+// The bar chart and horizontal bar chart share their query models, so the metrics
+// and spans query fields are checked on the bar chart alone. The last step removes
+// every optional field: an API that echoed a value for an omitted one would leave a
+// permanent diff.
+func TestAccCoralogixResourceDashboardBarChartParityFields(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	config := func(barFields, horizontalFields, metricsFields string) string {
+		return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing the bar chart display and query fields"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [
+          {
+            title = "bar chart"
+            definition = {
+              bar_chart = {
+                query = {
+                  metrics = {
+                    promql_query = "up"
+                    %[4]s
+                  }
+                }
+                %[2]s
+              }
+            }
+          },
+          {
+            title = "horizontal bar chart"
+            definition = {
+              horizontal_bar_chart = {
+                query = {
+                  spans = {
+                    aggregation = { type = "metric", aggregation_type = "avg", field = "duration" }
+                    group_names_fields = [{
+                      keypath = ["service", "name"]
+                      scope   = "metadata"
+                    }]
+                    stacked_group_name_field = {
+                      keypath = ["operation", "name"]
+                      scope   = "metadata"
+                    }
+                  }
+                }
+                %[3]s
+              }
+            }
+          },
+        ]
+      }]
+    }]
+  }
+}
+`, name, barFields, horizontalFields, metricsFields)
+	}
+
+	const bar = "layout.sections.0.rows.0.widgets.0.definition.bar_chart"
+	const horizontal = "layout.sections.0.rows.0.widgets.1.definition.horizontal_bar_chart"
+
+	setChecks := resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".bar_value_display", "top"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".custom_unit", "runs"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".decimal", "2"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".decimal_precision", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".x_axis_time_format", "hh_mm"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".y_axis_max", "100"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".y_axis_min", "0"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".legend.is_visible", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.aggregation", "avg"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.editor_mode", "text"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.promql_query_type", "instant"),
+		resource.TestCheckResourceAttr(dashboardResourceName, horizontal+".custom_unit", "errors"),
+		resource.TestCheckResourceAttr(dashboardResourceName, horizontal+".decimal", "1"),
+		resource.TestCheckResourceAttr(dashboardResourceName, horizontal+".decimal_precision", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, horizontal+".y_axis_max", "50"),
+		resource.TestCheckResourceAttr(dashboardResourceName, horizontal+".y_axis_min", "0"),
+		resource.TestCheckResourceAttr(dashboardResourceName, horizontal+".legend.is_visible", "false"),
+		resource.TestCheckResourceAttr(dashboardResourceName, horizontal+".query.spans.group_names_fields.0.scope", "metadata"),
+		resource.TestCheckResourceAttr(dashboardResourceName, horizontal+".query.spans.stacked_group_name_field.scope", "metadata"),
+	)
+	unsetChecks := resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".bar_value_display", utils.UNSPECIFIED),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, bar+".custom_unit"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, bar+".decimal"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, bar+".decimal_precision"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".x_axis_time_format", utils.UNSPECIFIED),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, bar+".y_axis_max"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, bar+".y_axis_min"),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.aggregation", utils.UNSPECIFIED),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.editor_mode", utils.UNSPECIFIED),
+		resource.TestCheckResourceAttr(dashboardResourceName, bar+".query.metrics.promql_query_type", utils.UNSPECIFIED),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, horizontal+".custom_unit"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, horizontal+".decimal"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, horizontal+".decimal_precision"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, horizontal+".y_axis_max"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, horizontal+".y_axis_min"),
+	)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: config(`
+                bar_value_display  = "top"
+                unit               = "custom"
+                custom_unit        = "runs"
+                decimal            = 2
+                decimal_precision  = true
+                x_axis_time_format = "hh_mm"
+                y_axis_max         = 100
+                y_axis_min         = 0
+                legend = {
+                  is_visible = true
+                  columns    = ["sum"]
+                }`,
+					`
+                unit              = "custom"
+                custom_unit       = "errors"
+                decimal           = 1
+                decimal_precision = true
+                y_axis_max        = 50
+                y_axis_min        = 0
+                legend = {
+                  is_visible = false
+                }`,
+					`
+                    aggregation       = "avg"
+                    editor_mode       = "text"
+                    promql_query_type = "instant"`),
+				Check: setChecks,
+			},
+			testAccDashboardImportStep(),
+			{
+				Config: config("", "", ""),
+				Check:  unsetChecks,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardPieChartParityFields(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	config := func(pieFields, metricsFields string) string {
+		return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing the pie chart display and query fields"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          title = "pie chart"
+          definition = {
+            pie_chart = {
+              query = {
+                metrics = {
+                  promql_query = "up"
+                  %[3]s
+                }
+              }
+              label_definition = {}
+              %[2]s
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name, pieFields, metricsFields)
+	}
+
+	const pie = "layout.sections.0.rows.0.widgets.0.definition.pie_chart"
+
+	setChecks := resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".custom_unit", "runs"),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".decimal", "1"),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".decimal_precision", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".show_total", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.aggregation", "sum"),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.editor_mode", "builder"),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.promql_query_type", "range"),
+	)
+	unsetChecks := resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, pie+".custom_unit"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, pie+".decimal"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, pie+".decimal_precision"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, pie+".show_total"),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.aggregation", utils.UNSPECIFIED),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.editor_mode", utils.UNSPECIFIED),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.promql_query_type", utils.UNSPECIFIED),
+	)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: config(`
+              unit              = "custom"
+              custom_unit       = "runs"
+              decimal           = 1
+              decimal_precision = true
+              show_total        = true`,
+					`
+                  aggregation       = "sum"
+                  editor_mode       = "builder"
+                  promql_query_type = "range"`),
+				Check: setChecks,
+			},
+			testAccDashboardImportStep(),
+			{
+				Config: config("", ""),
+				Check:  unsetChecks,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardGaugeParityFields(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	config := func(gaugeFields, metricsFields string) string {
+		return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing the gauge display and query fields"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [
+          {
+            title = "metrics gauge"
+            definition = {
+              gauge = {
+                unit = "custom"
+                query = {
+                  metrics = {
+                    promql_query = "vector(1)"
+                    %[3]s
+                  }
+                }
+                %[2]s
+              }
+            }
+          },
+          {
+            title = "spans gauge"
+            definition = {
+              gauge = {
+                unit = "none"
+                query = {
+                  spans = {
+                    spans_aggregation = { type = "metric", aggregation_type = "avg", field = "duration" }
+                    group_bys = [{
+                      keypath = ["service", "name"]
+                      scope   = "metadata"
+                    }]
+                  }
+                }
+              }
+            }
+          },
+        ]
+      }]
+    }]
+  }
+}
+`, name, gaugeFields, metricsFields)
+	}
+
+	const gauge = "layout.sections.0.rows.0.widgets.0.definition.gauge"
+	const spansGauge = "layout.sections.0.rows.0.widgets.1.definition.gauge"
+
+	setChecks := resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".custom_unit", "ms"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".show_min_max", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".legend_by", "thresholds"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".legend.is_visible", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".query.metrics.editor_mode", "text"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".query.metrics.promql_query_type", "instant"),
+		resource.TestCheckResourceAttr(dashboardResourceName, spansGauge+".query.spans.group_bys.0.scope", "metadata"),
+	)
+	unsetChecks := resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, gauge+".custom_unit"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, gauge+".show_min_max"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".legend_by", utils.UNSPECIFIED),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".query.metrics.editor_mode", utils.UNSPECIFIED),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".query.metrics.promql_query_type", utils.UNSPECIFIED),
+	)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: config(`
+                custom_unit  = "ms"
+                show_min_max = true
+                legend_by    = "thresholds"
+                legend = {
+                  is_visible = true
+                }`,
+					`
+                    editor_mode       = "text"
+                    promql_query_type = "instant"`),
+				Check: setChecks,
+			},
+			testAccDashboardImportStep(),
+			{
+				Config: config("", ""),
+				Check:  unsetChecks,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardDataTableMetricsEditorMode(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	config := func(editorMode string) string {
+		return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing the data table metrics editor mode"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          title = "data table"
+          definition = {
+            data_table = {
+              query = {
+                metrics = {
+                  promql_query = "up"
+                  %[2]s
+                }
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name, editorMode)
+	}
+
+	const editorMode = "layout.sections.0.rows.0.widgets.0.definition.data_table.query.metrics.editor_mode"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: config(`editor_mode = "builder"`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, editorMode, "builder"),
+				),
+			},
+			testAccDashboardImportStep(),
+			{
+				Config: config(""),
+				Check:  resource.TestCheckResourceAttr(dashboardResourceName, editorMode, utils.UNSPECIFIED),
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardManualAnnotation(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 	resource.ParallelTest(t, resource.TestCase{
