@@ -446,17 +446,18 @@ func CustomUnitSchema() schema.StringAttribute {
 }
 
 // DecimalSchema is the number of decimal places shown for numeric values. The
-// API documents the range as 0-15 but the generated type is a plain int32, so
-// that bound is left to the API instead of a validator that could reject values
-// the API accepts. What the int32 itself cannot hold is rejected, because the
-// conversion would otherwise truncate or wrap the value silently.
+// SDK documents the range as 0-15, but the API does not enforce it: 16, 400 and
+// -1 were all accepted and read back unchanged against a live environment. So
+// only what the int32 field cannot hold is rejected, because that conversion
+// would truncate or wrap the value silently. A 0-15 validator would reject
+// values the API accepts.
 func DecimalSchema() schema.NumberAttribute {
 	return schema.NumberAttribute{
 		Optional: true,
 		Validators: []validator.Number{
 			int32NumberValidator{},
 		},
-		MarkdownDescription: "The number of decimal places shown for numeric values. Must be a whole number; the API accepts 0 to 15.",
+		MarkdownDescription: "The number of decimal places shown for numeric values. Must be a whole number. Values outside the documented 0 to 15 range are passed through, because the API accepts them.",
 	}
 }
 
