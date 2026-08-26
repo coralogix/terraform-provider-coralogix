@@ -15,12 +15,18 @@
 package aaa
 
 import (
+	"context"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestMembersForState(t *testing.T) {
@@ -58,6 +64,87 @@ func TestMembersForState(t *testing.T) {
 				t.Errorf("membersForState(%s, %s) = %s, want %s", tc.planned, tc.flattened, got, tc.expected)
 			}
 		})
+	}
+}
+
+// The members plan modifier must retain prior state only when the argument is omitted.
+// A configured value that Terraform has still to resolve has to keep its diff, or the
+// member list is never applied.
+func TestGroupMembersPlanModifierRetainsStateOnlyWhenOmitted(t *testing.T) {
+	ctx := context.Background()
+
+	var schemaResp resource.SchemaResponse
+	(&GroupResource{}).Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	groupSchema := schemaResp.Schema
+
+	membersAttr, ok := groupSchema.Attributes["members"].(schema.SetAttribute)
+	if !ok {
+		t.Fatalf("members attribute is %T, want schema.SetAttribute", groupSchema.Attributes["members"])
+	}
+	if len(membersAttr.PlanModifiers) != 1 {
+		t.Fatalf("members has %d plan modifiers, want 1", len(membersAttr.PlanModifiers))
+	}
+	modifier := membersAttr.PlanModifiers[0]
+
+	stateMembers := types.SetValueMust(types.StringType, []attr.Value{types.StringValue("existing-user")})
+	unresolvedElement := types.SetValueMust(types.StringType, []attr.Value{types.StringUnknown()})
+
+	for name, tc := range map[string]struct {
+		config   types.Set
+		plan     types.Set
+		expected types.Set
+	}{
+		"an omitted argument retains the stored members": {
+			config:   types.SetNull(types.StringType),
+			plan:     types.SetUnknown(types.StringType),
+			expected: stateMembers,
+		},
+		"a wholly unresolved configured value keeps its diff": {
+			config:   types.SetUnknown(types.StringType),
+			plan:     types.SetUnknown(types.StringType),
+			expected: types.SetUnknown(types.StringType),
+		},
+		"a configured value holding an unresolved id keeps its diff": {
+			config:   unresolvedElement,
+			plan:     unresolvedElement,
+			expected: unresolvedElement,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			resp := planmodifier.SetResponse{PlanValue: tc.plan}
+			modifier.PlanModifySet(ctx, planmodifier.SetRequest{
+				State:       groupStateForPlanModifier(ctx, t, groupSchema),
+				StateValue:  stateMembers,
+				ConfigValue: tc.config,
+				PlanValue:   tc.plan,
+			}, &resp)
+
+			if !resp.PlanValue.Equal(tc.expected) {
+				t.Errorf("planned members = %s, want %s", resp.PlanValue, tc.expected)
+			}
+		})
+	}
+}
+
+func groupStateForPlanModifier(ctx context.Context, t *testing.T, groupSchema schema.Schema) tfsdk.State {
+	t.Helper()
+
+	objectType, ok := groupSchema.Type().TerraformType(ctx).(tftypes.Object)
+	if !ok {
+		t.Fatalf("group schema Terraform type is %T, want tftypes.Object", groupSchema.Type().TerraformType(ctx))
+	}
+
+	return tfsdk.State{
+		Schema: groupSchema,
+		Raw: tftypes.NewValue(objectType, map[string]tftypes.Value{
+			"id":           tftypes.NewValue(tftypes.String, "4242"),
+			"display_name": tftypes.NewValue(tftypes.String, "existing-group"),
+			"members": tftypes.NewValue(objectType.AttributeTypes["members"], []tftypes.Value{
+				tftypes.NewValue(tftypes.String, "existing-user"),
+			}),
+			"role":     tftypes.NewValue(tftypes.String, "Read Only"),
+			"scope_id": tftypes.NewValue(tftypes.String, nil),
+		}),
 	}
 }
 
