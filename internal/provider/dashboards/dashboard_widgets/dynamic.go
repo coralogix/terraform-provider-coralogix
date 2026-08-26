@@ -568,75 +568,100 @@ func dynamicThresholdAttr() map[string]attr.Type {
 	}
 }
 
-// Two lists in the widget mean "everything" when left empty, so an empty value
-// is a real selection there and round-trips as a known empty list.
-var dynamicListsWhereEmptyIsMeaningful = map[string]bool{
-	"dynamic.query_definitions[*].query.logs.filters[*].operator.selected_values":  true,
-	"dynamic.query_definitions[*].query.spans.filters[*].operator.selected_values": true,
+// A validator returns early when its value is unknown, and validators do not
+// run again at apply time, so anything written from a variable, a data source
+// or another resource reaches conversion with nothing having checked it. An
+// invalid value is then silently dropped or truncated and the apply fails with
+// an inconsistent-result error naming nothing in particular. Re-running the
+// schema's own validators against the resolved values covers every attribute at
+// once, including ones added later, and keeps a single definition of each rule.
+func dynamicRevalidateResolved(ctx context.Context, dynamic *DynamicModel) (int, diag.Diagnostics) {
+	if dynamic == nil {
+		return 0, nil
+	}
+	visited := 0
+	diagnostics := dynamicRevalidateModel(ctx, reflect.ValueOf(*dynamic), DynamicSchema(), path.Root("dynamic"), &visited)
+	return visited, diagnostics
 }
 
-// Every other list carries a minimum-size validator, but a validator defers on
-// an unknown value and validators do not run again at apply time. A list that
-// planned as unknown and resolved to empty therefore reaches conversion
-// unchecked, and because an empty list reads back as null the apply would fail
-// with an inconsistent-result error - the very thing the validator exists to
-// prevent. Walking the model covers every list at once, so a list added later
-// cannot reintroduce the hole.
-func dynamicRejectKnownEmptyLists(value reflect.Value, attributePath string) diag.Diagnostics {
-	if value.CanInterface() {
-		if attribute, ok := value.Interface().(attr.Value); ok {
-			return dynamicRejectKnownEmptyAttributeLists(attribute, attributePath)
-		}
-	}
-
-	switch value.Kind() {
-	case reflect.Ptr:
+func dynamicRevalidateModel(ctx context.Context, value reflect.Value, attribute schema.Attribute, at path.Path, visited *int) diag.Diagnostics {
+	if value.Kind() == reflect.Ptr {
 		if value.IsNil() {
 			return nil
 		}
-		return dynamicRejectKnownEmptyLists(value.Elem(), attributePath)
-	case reflect.Struct:
-		var diagnostics diag.Diagnostics
-		for i := 0; i < value.NumField(); i++ {
-			name := value.Type().Field(i).Tag.Get("tfsdk")
-			if name == "" {
-				continue
-			}
-			diagnostics.Append(dynamicRejectKnownEmptyLists(value.Field(i), attributePath+"."+name)...)
+		return dynamicRevalidateModel(ctx, value.Elem(), attribute, at, visited)
+	}
+
+	if value.CanInterface() {
+		if resolved, ok := value.Interface().(attr.Value); ok {
+			return dynamicRevalidateAttribute(ctx, resolved, attribute, at, visited)
 		}
+	}
+
+	if value.Kind() != reflect.Struct {
+		return nil
+	}
+
+	nested := dynamicNestedAttributes(attribute)
+	var diagnostics diag.Diagnostics
+	for i := 0; i < value.NumField(); i++ {
+		child, ok := nested[value.Type().Field(i).Tag.Get("tfsdk")]
+		if !ok {
+			continue
+		}
+		diagnostics.Append(dynamicRevalidateModel(ctx, value.Field(i), child, at.AtName(value.Type().Field(i).Tag.Get("tfsdk")), visited)...)
+	}
+	return diagnostics
+}
+
+func dynamicRevalidateAttribute(ctx context.Context, value attr.Value, attribute schema.Attribute, at path.Path, visited *int) diag.Diagnostics {
+	if value.IsUnknown() {
+		return nil
+	}
+
+	*visited++
+	diagnostics := dynamicRunValidators(ctx, value, attribute, at)
+	if value.IsNull() || diagnostics.HasError() {
 		return diagnostics
 	}
 
-	return nil
+	nested := dynamicNestedAttributes(attribute)
+	switch typed := value.(type) {
+	case types.List:
+		for i, element := range typed.Elements() {
+			diagnostics.Append(dynamicRevalidateObject(ctx, element, nested, at.AtListIndex(i), visited)...)
+		}
+	case types.Object:
+		diagnostics.Append(dynamicRevalidateObject(ctx, typed, nested, at, visited)...)
+	}
+	return diagnostics
 }
 
-func dynamicRejectKnownEmptyAttributeLists(attribute attr.Value, attributePath string) diag.Diagnostics {
-	if attribute.IsNull() || attribute.IsUnknown() {
+func dynamicRevalidateObject(ctx context.Context, value attr.Value, nested map[string]schema.Attribute, at path.Path, visited *int) diag.Diagnostics {
+	object, ok := value.(types.Object)
+	if !ok || object.IsNull() || object.IsUnknown() {
 		return nil
 	}
 
 	var diagnostics diag.Diagnostics
-	switch typed := attribute.(type) {
-	case types.List:
-		if len(typed.Elements()) == 0 {
-			if !dynamicListsWhereEmptyIsMeaningful[attributePath] {
-				diagnostics.AddError(
-					"Invalid Attribute Value",
-					fmt.Sprintf("%s cannot be an empty list. Remove the attribute to leave it unset.", attributePath),
-				)
-			}
-			return diagnostics
+	for name, child := range object.Attributes() {
+		attribute, ok := nested[name]
+		if !ok {
+			continue
 		}
-		for _, element := range typed.Elements() {
-			diagnostics.Append(dynamicRejectKnownEmptyAttributeLists(element, attributePath+"[*]")...)
-		}
-	case types.Object:
-		for name, nested := range typed.Attributes() {
-			diagnostics.Append(dynamicRejectKnownEmptyAttributeLists(nested, attributePath+"."+name)...)
-		}
+		diagnostics.Append(dynamicRevalidateAttribute(ctx, child, attribute, at.AtName(name), visited)...)
 	}
-
 	return diagnostics
+}
+
+func dynamicNestedAttributes(attribute schema.Attribute) map[string]schema.Attribute {
+	switch typed := attribute.(type) {
+	case schema.SingleNestedAttribute:
+		return typed.Attributes
+	case schema.ListNestedAttribute:
+		return typed.NestedObject.Attributes
+	}
+	return nil
 }
 
 func ExpandDynamic(ctx context.Context, dynamic *DynamicModel) (*dashboardservice.WidgetDefinition, diag.Diagnostics) {
@@ -644,7 +669,7 @@ func ExpandDynamic(ctx context.Context, dynamic *DynamicModel) (*dashboardservic
 		return nil, nil
 	}
 
-	if diags := dynamicRejectKnownEmptyLists(reflect.ValueOf(*dynamic), "dynamic"); diags.HasError() {
+	if _, diags := dynamicRevalidateResolved(ctx, dynamic); diags.HasError() {
 		return nil, diags
 	}
 
@@ -1604,4 +1629,111 @@ func flattenOptionalEnum[T ~string](value *T, mapping map[T]string) types.String
 		return types.StringValue(mapped)
 	}
 	return types.StringNull()
+}
+
+// Re-running a validator outside the framework only works when it judges its
+// own value. One that inspects sibling attributes needs the configuration to do
+// it, which conversion does not have, and reports a bogus path error rather
+// than a real finding. Those rules - the union arms, the markers and the
+// heatmap colour conflict - are re-checked by hand where the arm is chosen, so
+// only the value-only validators are replayed here.
+var dynamicValueOnlyValidators = map[string]bool{
+	"stringvalidator.oneOfValidator":         true,
+	"int64validator.betweenValidator":        true,
+	"float64validator.betweenValidator":      true,
+	"listvalidator.sizeAtLeastValidator":     true,
+	"listvalidator.valueStringsAreValidator": true,
+}
+
+var dynamicValidatorsCheckedByHand = map[string]bool{
+	"dashboard_widgets.ExactlyOneOfChildrenValidator":    true,
+	"dashboard_widgets.mustBeTrueValidator":              true,
+	"dashboard_widgets.filterOperatorValidator":          true,
+	"dashboard_widgets.unsupportedMappedValuesValidator": true,
+	"schemavalidator.ConflictsWithValidator":             true,
+}
+
+func dynamicValueOnly[V any](validators []V) []V {
+	filtered := make([]V, 0, len(validators))
+	for _, candidate := range validators {
+		if dynamicValueOnlyValidators[fmt.Sprintf("%T", candidate)] {
+			filtered = append(filtered, candidate)
+		}
+	}
+	return filtered
+}
+
+func dynamicRunValidators(ctx context.Context, value attr.Value, attribute schema.Attribute, at path.Path) diag.Diagnostics {
+	var diagnostics diag.Diagnostics
+	switch typed := attribute.(type) {
+	case schema.StringAttribute:
+		if converted, ok := dynamicStringValue(ctx, value, &diagnostics); ok {
+			for _, v := range dynamicValueOnly(typed.Validators) {
+				response := validator.StringResponse{}
+				v.ValidateString(ctx, validator.StringRequest{Path: at, ConfigValue: converted}, &response)
+				diagnostics.Append(response.Diagnostics...)
+			}
+		}
+	case schema.Int64Attribute:
+		if converted, ok := value.(types.Int64); ok {
+			for _, v := range dynamicValueOnly(typed.Validators) {
+				response := validator.Int64Response{}
+				v.ValidateInt64(ctx, validator.Int64Request{Path: at, ConfigValue: converted}, &response)
+				diagnostics.Append(response.Diagnostics...)
+			}
+		}
+	case schema.Float64Attribute:
+		if converted, ok := dynamicFloat64Value(ctx, value, &diagnostics); ok {
+			for _, v := range dynamicValueOnly(typed.Validators) {
+				response := validator.Float64Response{}
+				v.ValidateFloat64(ctx, validator.Float64Request{Path: at, ConfigValue: converted}, &response)
+				diagnostics.Append(response.Diagnostics...)
+			}
+		}
+	case schema.ListAttribute:
+		diagnostics.Append(dynamicRunListValidators(ctx, value, typed.Validators, at)...)
+	case schema.ListNestedAttribute:
+		diagnostics.Append(dynamicRunListValidators(ctx, value, typed.Validators, at)...)
+	}
+	return diagnostics
+}
+
+func dynamicRunListValidators(ctx context.Context, value attr.Value, validators []validator.List, at path.Path) diag.Diagnostics {
+	converted, ok := value.(types.List)
+	if !ok {
+		return nil
+	}
+	var diagnostics diag.Diagnostics
+	for _, v := range dynamicValueOnly(validators) {
+		response := validator.ListResponse{}
+		v.ValidateList(ctx, validator.ListRequest{Path: at, ConfigValue: converted}, &response)
+		diagnostics.Append(response.Diagnostics...)
+	}
+	return diagnostics
+}
+
+// A few attributes use a custom type for semantic equality, so the underlying
+// primitive has to be recovered before the schema's own validators can run.
+func dynamicStringValue(ctx context.Context, value attr.Value, diagnostics *diag.Diagnostics) (types.String, bool) {
+	switch typed := value.(type) {
+	case types.String:
+		return typed, true
+	case basetypes.StringValuable:
+		converted, diags := typed.ToStringValue(ctx)
+		diagnostics.Append(diags...)
+		return converted, !diags.HasError()
+	}
+	return types.StringNull(), false
+}
+
+func dynamicFloat64Value(ctx context.Context, value attr.Value, diagnostics *diag.Diagnostics) (types.Float64, bool) {
+	switch typed := value.(type) {
+	case types.Float64:
+		return typed, true
+	case basetypes.Float64Valuable:
+		converted, diags := typed.ToFloat64Value(ctx)
+		diagnostics.Append(diags...)
+		return converted, !diags.HasError()
+	}
+	return types.Float64Null(), false
 }

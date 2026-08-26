@@ -16,6 +16,7 @@ package dashboard_widgets
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -1375,76 +1376,6 @@ func TestFlattenDynamicNormalisesEmptyUnionWrappers(t *testing.T) {
 	})
 }
 
-// listvalidator.SizeAtLeast defers when a value is unknown at plan time and
-// validators do not run again at apply time, so a list that resolves to empty
-// during apply reaches conversion with nothing having checked it. Conversion has
-// to reject it, or the apply fails with an inconsistent-result error instead of
-// a message naming the attribute.
-func TestExpandDynamicRejectsKnownEmptyLists(t *testing.T) {
-	ctx := context.Background()
-	observationFields := types.ListType{ElemType: types.ObjectType{AttrTypes: ObservationFieldAttr()}}
-
-	t.Run("empty list reached through the model", func(t *testing.T) {
-		_, diags := ExpandDynamic(ctx, &DynamicModel{
-			Visualization: &DynamicVisualizationModel{
-				HexagonBins: &DynamicHexagonBinsModel{
-					CategoryFields: types.ListValueMust(observationFields.ElemType, []attr.Value{}),
-				},
-			},
-		})
-		if !diags.HasError() {
-			t.Fatal("an empty category_fields must be rejected")
-		}
-		if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "dynamic.visualization.hexagon_bins.category_fields") {
-			t.Errorf("the error must name the attribute, got %q", detail)
-		}
-	})
-
-	t.Run("unknown and null lists pass through", func(t *testing.T) {
-		for name, list := range map[string]types.List{
-			"unknown": types.ListUnknown(observationFields.ElemType),
-			"null":    types.ListNull(observationFields.ElemType),
-		} {
-			diags := dynamicRejectKnownEmptyLists(reflect.ValueOf(DynamicHexagonBinsModel{CategoryFields: list}), "dynamic")
-			if diags.HasError() {
-				t.Errorf("a %s list is not a known-empty one and must pass, got %v", name, diags)
-			}
-		}
-	})
-
-	t.Run("empty is a real selection where it means everything", func(t *testing.T) {
-		empty := types.ListValueMust(types.StringType, []attr.Value{})
-		for path, exempt := range map[string]bool{
-			"dynamic.query_definitions[*].query.logs.filters[*].operator.selected_values":  true,
-			"dynamic.query_definitions[*].query.spans.filters[*].operator.selected_values": true,
-			"dynamic.query_definitions[*].query.logs.filters[*].operator.something_else":   false,
-		} {
-			diags := dynamicRejectKnownEmptyAttributeLists(empty, path)
-			if diags.HasError() == exempt {
-				t.Errorf("%s: expected rejected=%v, got %v", path, !exempt, diags)
-			}
-		}
-	})
-
-	// The walk has to descend through list elements and object attributes, not
-	// just look at the lists hanging directly off the model.
-	t.Run("empty list nested inside a list element", func(t *testing.T) {
-		inner := types.ObjectType{AttrTypes: map[string]attr.Type{"names": types.ListType{ElemType: types.StringType}}}
-		outer := types.ListValueMust(inner, []attr.Value{
-			types.ObjectValueMust(inner.AttrTypes, map[string]attr.Value{
-				"names": types.ListValueMust(types.StringType, []attr.Value{}),
-			}),
-		})
-		diags := dynamicRejectKnownEmptyAttributeLists(outer, "dynamic.outer")
-		if !diags.HasError() {
-			t.Fatal("an empty list nested inside a list element must be rejected")
-		}
-		if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "dynamic.outer[*].names") {
-			t.Errorf("the error must name the nested path, got %q", detail)
-		}
-	})
-}
-
 // The stat card carried its own copy of the min/max conversion, so the marker
 // rules added for the spatial visualizations did not apply to it. Both
 // directions now go through the shared helper; these cases fail if either one
@@ -1487,4 +1418,141 @@ func TestExpandDynamicRangeMappingUsesTheSharedMinMaxRules(t *testing.T) {
 			t.Errorf("an arm-less min_max must read back as absent, got %v %v", got.MinMax, diags)
 		}
 	})
+}
+
+// A validator defers when its value is unknown at plan time and validators do
+// not run again at apply time, so a value written from a variable reaches
+// conversion unchecked. Conversion re-runs the schema's own validators against
+// the resolved values; these cases are the ones that used to get through.
+func TestExpandDynamicRevalidatesResolvedValues(t *testing.T) {
+	ctx := context.Background()
+	observationField := types.ObjectType{AttrTypes: ObservationFieldAttr()}
+	emptyThresholds := types.ListNull(types.ObjectType{AttrTypes: dynamicThresholdAttr()})
+
+	for name, tc := range map[string]struct {
+		bins      *DynamicHexagonBinsModel
+		wantError string
+	}{
+		"enum outside its mapping": {
+			&DynamicHexagonBinsModel{Unit: types.StringValue("not-a-real-unit"), Thresholds: emptyThresholds},
+			"unit",
+		},
+		"integer above its bound": {
+			&DynamicHexagonBinsModel{DecimalPrecision: types.Int64Value(1 << 40), Thresholds: emptyThresholds},
+			"decimal_precision",
+		},
+		"list resolved to empty": {
+			&DynamicHexagonBinsModel{CategoryFields: types.ListValueMust(observationField, []attr.Value{}), Thresholds: emptyThresholds},
+			"category_fields",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, diags := dynamicRevalidateResolved(ctx, dynamicModelWith(&DynamicVisualizationModel{HexagonBins: tc.bins}))
+			if !diags.HasError() {
+				t.Fatalf("a resolved %s must be rejected", name)
+			}
+			if summary := diags.Errors()[0].Summary() + diags.Errors()[0].Detail(); !strings.Contains(summary, tc.wantError) {
+				t.Errorf("the error must name %q, got %q", tc.wantError, summary)
+			}
+		})
+	}
+
+	// A value that is still unknown has not resolved to anything yet, so
+	// re-running the validator on it would reject a perfectly good plan.
+	t.Run("unknown values still defer", func(t *testing.T) {
+		_, diags := ExpandDynamic(ctx, dynamicModelWith(&DynamicVisualizationModel{HexagonBins: &DynamicHexagonBinsModel{
+			Unit:             types.StringUnknown(),
+			DecimalPrecision: types.Int64Unknown(),
+			CategoryFields:   types.ListUnknown(observationField),
+			CustomUnit:       types.StringUnknown(),
+			Thresholds:       emptyThresholds,
+		}}))
+		if diags.HasError() {
+			t.Errorf("unknown values must pass through untouched, got %v", diags)
+		}
+	})
+
+	// color_range carries a ConflictsWith, which needs the configuration to look
+	// up its sibling and reports a bogus path error without one. Replaying it
+	// here would reject this perfectly valid heatmap, so it must stay classified
+	// as checked by hand.
+	t.Run("a config-dependent validator is not replayed", func(t *testing.T) {
+		_, diags := dynamicRevalidateResolved(ctx, dynamicModelWith(&DynamicVisualizationModel{
+			Heatmap: &DynamicHeatmapModel{
+				ColorRange:  types.StringValue("blue"),
+				Preset:      types.StringNull(),
+				XAxisFields: types.ListNull(observationField),
+				YAxisFields: types.ListNull(observationField),
+			},
+		}))
+		if diags.HasError() {
+			t.Errorf("a heatmap setting only color_range is valid; got %v", diags)
+		}
+	})
+
+	t.Run("a valid configuration is untouched", func(t *testing.T) {
+		visited, diags := dynamicRevalidateResolved(ctx, &DynamicModel{
+			Visualization: &DynamicVisualizationModel{HexagonBins: &DynamicHexagonBinsModel{
+				Unit:             types.StringValue("bytes"),
+				DecimalPrecision: types.Int64Value(2),
+				CustomUnit:       types.StringValue("req/s"),
+			}},
+		})
+		if diags.HasError() {
+			t.Errorf("a valid configuration must produce no diagnostics, got %v", diags)
+		}
+		if visited == 0 {
+			t.Fatal("no attribute was visited; the walk is not reaching the model")
+		}
+	})
+}
+
+// A validator is either replayed at conversion time or checked by hand where
+// the arm is chosen. Anything unclassified would be skipped in silence, and a
+// config-dependent one replayed by mistake reports a bogus path error on a
+// valid configuration, so every validator in the schema has to be named.
+func TestEveryDynamicValidatorIsClassified(t *testing.T) {
+	var found int
+	var walk func(map[string]schema.Attribute)
+	walk = func(attributes map[string]schema.Attribute) {
+		for name, attribute := range attributes {
+			validators := reflect.ValueOf(attribute).FieldByName("Validators")
+			if validators.IsValid() {
+				for i := 0; i < validators.Len(); i++ {
+					found++
+					kind := fmt.Sprintf("%T", validators.Index(i).Interface())
+					if !dynamicValueOnlyValidators[kind] && !dynamicValidatorsCheckedByHand[kind] {
+						t.Errorf("%s on %q is in neither dynamicValueOnlyValidators nor dynamicValidatorsCheckedByHand; "+
+							"decide whether conversion can replay it and add it to one of them", kind, name)
+					}
+				}
+			}
+			if nested := dynamicNestedAttributes(attribute); nested != nil {
+				walk(nested)
+			}
+		}
+	}
+
+	dynamic, ok := DynamicSchema().(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("expected a single nested attribute, got %T", DynamicSchema())
+	}
+	walk(dynamic.Attributes)
+
+	if found == 0 {
+		t.Fatal("no validator was found; the walk is not running")
+	}
+	for kind := range dynamicValueOnlyValidators {
+		if dynamicValidatorsCheckedByHand[kind] {
+			t.Errorf("%s is classified both ways", kind)
+		}
+	}
+	t.Logf("classified %d validator instance(s)", found)
+}
+
+func dynamicModelWith(visualization *DynamicVisualizationModel) *DynamicModel {
+	return &DynamicModel{
+		QueryDefinitions: types.ListNull(types.ObjectType{AttrTypes: dynamicQueryDefinitionModelAttr()}),
+		Visualization:    visualization,
+	}
 }
