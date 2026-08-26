@@ -2543,6 +2543,20 @@ resource "coralogix_dashboard" "test" {
 				Config: config("", "", ""),
 				Check:  unsetChecks,
 			},
+			// Removing an Optional+Computed attribute cannot clear it: Terraform
+			// keeps the last applied value, and the provider cannot tell "the user
+			// deleted this line" from "the API chose this value". Writing
+			// `unspecified` is the supported reset, so it has to round-trip.
+			{
+				Config: config(`x_axis_time_format = "unspecified"`, "", `
+                      editor_mode       = "unspecified"
+                      series_limit_type = "unspecified"`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, chart+".x_axis_time_format", utils.UNSPECIFIED),
+					resource.TestCheckResourceAttr(dashboardResourceName, metrics+".editor_mode", utils.UNSPECIFIED),
+					resource.TestCheckResourceAttr(dashboardResourceName, metrics+".series_limit_type", utils.UNSPECIFIED),
+				),
+			},
 		},
 	})
 }
