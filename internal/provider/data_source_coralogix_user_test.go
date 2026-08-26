@@ -53,7 +53,6 @@ func TestAccCoralogixDataSourceUser_byUserName(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckUserDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceUser(userName) +
