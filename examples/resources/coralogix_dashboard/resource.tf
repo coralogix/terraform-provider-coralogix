@@ -1192,6 +1192,45 @@ resource "coralogix_dashboard" "widgets" {
                   }
                 }
               }
+            },
+            {
+              # `geomap` plots clusters on a map. `config` says where the
+              # coordinates come from, `aggregation` what each cluster shows,
+              # and `color` how clusters are coloured - each picks exactly one
+              # alternative.
+              title = "dynamic geomap - requests by location"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "requests"
+                    query = {
+                      logs = {
+                        lucene_query = "*"
+                        aggregations = [{
+                          type = "count"
+                        }]
+                      }
+                    }
+                  }]
+                  visualization = {
+                    geomap = {
+                      unit              = "percent"
+                      decimal_precision = 1
+                      aggregation       = { count = true }
+                      color             = { size = "blue" }
+                      config = {
+                        coordinate_config = {
+                          latitude_field  = { keypath = ["latitude"], scope = "user_data" }
+                          longitude_field = { keypath = ["longitude"], scope = "user_data" }
+                        }
+                      }
+                      tooltip = {
+                        message_template = "requests = {{_count}}"
+                      }
+                    }
+                  }
+                }
+              }
             }
           ]
         }]

@@ -682,8 +682,16 @@ func expandDynamicSortStrategy(strategy *DynamicSortStrategyModel) (*dashboardse
 		}
 	}
 
+	category, diags := expandDynamicMappedValuesMarker("sort_order.strategy.category", strategy.Category)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if (category == nil) == (queryValue == nil) {
+		return nil, dynamicUnionDiagnostic("sort_order.strategy", "`category` set to true or `query_value`")
+	}
+
 	return &dashboardservice.SortStrategy{
-		Category:     expandDynamicMappedValuesMarker(strategy.Category),
+		Category:     category,
 		QueryValue:   queryValue,
 		StrategyType: strategy.StrategyType.ValueStringPointer(),
 	}, nil
@@ -709,8 +717,13 @@ func flattenDynamicSortStrategy(strategy *dashboardservice.SortStrategy) *Dynami
 			QueryID: types.StringPointerValue(strategy.QueryValue.QueryId),
 		}
 	}
+	category := flattenDynamicMappedValuesMarker(strategy.Category)
+	if category.IsNull() && queryValue == nil {
+		return nil
+	}
+
 	return &DynamicSortStrategyModel{
-		Category:     flattenDynamicMappedValuesMarker(strategy.Category),
+		Category:     category,
 		QueryValue:   queryValue,
 		StrategyType: types.StringPointerValue(strategy.StrategyType),
 	}

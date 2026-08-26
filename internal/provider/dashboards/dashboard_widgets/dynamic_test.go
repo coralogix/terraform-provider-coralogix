@@ -16,6 +16,7 @@ package dashboard_widgets
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -230,11 +231,13 @@ func TestDynamicWidgetSpansAndDataPrimeQueryFullFidelityRoundTrip(t *testing.T) 
 
 // A visualization variant this provider version does not model must fail the
 // read rather than write partial state.
-// Swap heatmap for another unmodelled variant when it gains support; do not delete.
+//
+// Every variant in the pinned SDK is now modelled, so there is no real one left
+// to point at. An empty visualization stands in: it is what a variant added by a
+// later SDK looks like to this switch - a non-nil visualization whose arm none of
+// the family helpers recognise. Replace it with that variant when one appears.
 func TestFlattenDynamicRejectsUnmodeledVisualization(t *testing.T) {
-	_, diags := flattenDynamicVisualization(context.Background(), &dashboardservice.Visualization{
-		Heatmap: &dashboardservice.Heatmap{},
-	})
+	_, diags := flattenDynamicVisualization(context.Background(), &dashboardservice.Visualization{})
 	if !diags.HasError() {
 		t.Fatal("flattening an unmodeled visualization returned no error diagnostic")
 	}
@@ -380,14 +383,6 @@ func TestDynamicWidgetStatCardFullFidelityRoundTrip(t *testing.T) {
 		}
 	}
 
-	sections := types.ListValueMust(types.ObjectType{AttrTypes: dynamicMappingSectionAttr()}, []attr.Value{
-		types.ObjectValueMust(dynamicMappingSectionAttr(), map[string]attr.Value{
-			"color":  types.StringValue("green"),
-			"map_to": types.StringValue("OK"),
-			"value":  types.StringValue("200"),
-		}),
-	})
-
 	original := &DynamicModel{
 		QueryDefinitions: logsQueryDefinitionsFixture(ctx, t),
 		TimeFrame: &TimeFrameModel{
@@ -410,8 +405,6 @@ func TestDynamicWidgetStatCardFullFidelityRoundTrip(t *testing.T) {
 						ThresholdType: types.StringValue("relative"),
 						Thresholds:    dynamicThresholdList(),
 					},
-					Regex: &DynamicSectionsMappingModel{Sections: sections},
-					Value: &DynamicSectionsMappingModel{Sections: sections},
 				},
 				CustomUnit:       types.StringValue("cards"),
 				DecimalPrecision: types.Int64Value(2),
@@ -427,6 +420,40 @@ func TestDynamicWidgetStatCardFullFidelityRoundTrip(t *testing.T) {
 	}
 
 	assertDynamicRoundTrip(ctx, t, original)
+}
+
+// The colour mapping takes exactly one of range, value and regex, so each arm
+// needs its own case. The full-fidelity fixture above covers range; these two
+// cover the others, which it used to set at the same time.
+func TestDynamicWidgetStatCardColourMappingArmsRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	sections := types.ListValueMust(types.ObjectType{AttrTypes: dynamicMappingSectionAttr()}, []attr.Value{
+		types.ObjectValueMust(dynamicMappingSectionAttr(), map[string]attr.Value{
+			"color":  types.StringValue("green"),
+			"map_to": types.StringValue("OK"),
+			"value":  types.StringValue("200"),
+		}),
+	})
+
+	for name, mapping := range map[string]*DynamicColorLabelMappingModel{
+		"value": {ColorBy: types.StringValue("value"), Value: &DynamicSectionsMappingModel{Sections: sections}},
+		"regex": {ColorBy: types.StringValue("value"), Regex: &DynamicSectionsMappingModel{Sections: sections}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assertDynamicRoundTrip(ctx, t, &DynamicModel{
+				QueryDefinitions: logsQueryDefinitionsFixture(ctx, t),
+				TimeFrame: &TimeFrameModel{
+					Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+				},
+				Visualization: &DynamicVisualizationModel{StatCard: &DynamicStatCardModel{
+					ColorLabelMapping: mapping,
+					CategoryFields:    observationFieldList("category", "user_data"),
+					ValueFields:       observationFieldList("value", "metadata"),
+				}},
+			})
+		})
+	}
 }
 
 func TestDynamicWidgetStatCardMinMaxAutoRoundTrip(t *testing.T) {
@@ -880,4 +907,578 @@ func TestDynamicTableColumnKeypathIsOptional(t *testing.T) {
 	if !keypath.Optional {
 		t.Error("table column keypath must be Optional")
 	}
+}
+
+func TestDynamicWidgetSpatialFullFidelityRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	f32 := func(v float64) Float32Value {
+		return Float32Value{Float64Value: basetypes.NewFloat64Value(v)}
+	}
+	legend := &LegendModel{
+		IsVisible:    types.BoolValue(true),
+		Columns:      types.ListValueMust(types.StringType, []attr.Value{types.StringValue("max")}),
+		GroupByQuery: types.BoolValue(false),
+		Placement:    types.StringValue("bottom"),
+	}
+	tooltipLabels := observationFieldList("applicationname", "label")
+
+	for name, visualization := range map[string]*DynamicVisualizationModel{
+		"hexagon_bins": {HexagonBins: &DynamicHexagonBinsModel{
+			AllowAbbreviation: types.BoolValue(true),
+			CategoryFields:    observationFieldList("applicationname", "label"),
+			CustomUnit:        types.StringValue("rpm"),
+			DecimalPrecision:  types.Int64Value(2),
+			Legend:            legend,
+			LegendBy:          types.StringValue("thresholds"),
+			Max:               types.Float64Value(1000),
+			Min:               types.Float64Value(0),
+			ThresholdType:     types.StringValue("absolute"),
+			Thresholds:        dynamicThresholdList(),
+			Unit:              types.StringValue("seconds"),
+			ValueField:        observationFieldObject("duration", "metadata"),
+		}},
+		// preset and color_range are the two arms of the same proto oneof, so
+		// only one may be set; this covers the gradient arm.
+		"heatmap": {Heatmap: &DynamicHeatmapModel{
+			AllowAbbreviation:   types.BoolValue(false),
+			ColorAxisMax:        f32(99.5),
+			ColorAxisMin:        f32(-10.25),
+			ColorRange:          types.StringValue("blue"),
+			CustomUnit:          types.StringValue("rpm"),
+			DecimalPrecision:    types.Int64Value(3),
+			HistogramBucketUnit: types.StringValue("seconds"),
+			Preset:              types.StringNull(),
+			ScaleType:           types.StringValue("linear"),
+			ShowNumbers:         types.BoolValue(true),
+			Tooltip: &DynamicHeatmapTooltipModel{
+				Labels:          tooltipLabels,
+				MessageTemplate: types.StringValue("value = {{_count}}"),
+			},
+			Unit:            types.StringValue("bytes"),
+			ValueField:      observationFieldObject("duration", "metadata"),
+			XAxisFields:     observationFieldList("timestamp", "metadata"),
+			XAxisTimeFormat: types.StringValue("hh_mm"),
+			YAxisFields:     observationFieldList("severity", "metadata"),
+		}},
+		"geomap": {Geomap: &DynamicGeomapModel{
+			AllowAbbreviation: types.BoolValue(true),
+			Aggregation: &DynamicGeomapAggregationModel{
+				Count: types.BoolValue(true),
+			},
+			Color: &DynamicGeomapColorModel{
+				Size: types.StringValue("blue"),
+			},
+			Config: &DynamicGeomapFieldConfigModel{
+				CoordinateConfig: &DynamicGeomapCoordinateConfigModel{
+					LatitudeField:  observationFieldObject("lat", "user_data"),
+					LongitudeField: observationFieldObject("lon", "user_data"),
+				},
+			},
+			CustomUnit:       types.StringValue("rpm"),
+			DecimalPrecision: types.Int64Value(1),
+			MinMax: &DynamicMinMaxModel{
+				Custom: &DynamicMinMaxCustomModel{
+					Max: types.Float64Value(50),
+					Min: types.Float64Value(5),
+				},
+			},
+			Tooltip: &DynamicGeomapTooltipModel{
+				Labels:          tooltipLabels,
+				MessageTemplate: types.StringValue("value = {{_count}}"),
+			},
+			Unit: types.StringValue("usd"),
+		}},
+		// The field-based aggregation arms carry an observation field, unlike
+		// count which is an empty marker.
+		"geomap_field_based_aggregation": {Geomap: &DynamicGeomapModel{
+			Aggregation: &DynamicGeomapAggregationModel{
+				Sum: &DynamicGeomapAggregationFieldBasedModel{
+					Field: observationFieldObject("duration", "metadata"),
+				},
+			},
+			Color: &DynamicGeomapColorModel{
+				ColorRange: types.StringValue("green"),
+			},
+			Config: &DynamicGeomapFieldConfigModel{
+				AwsRegionConfig: &DynamicGeomapAwsRegionConfigModel{
+					AwsRegionField: observationFieldObject("region", "user_data"),
+				},
+			},
+		}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assertDynamicRoundTrip(ctx, t, &DynamicModel{
+				QueryDefinitions: logsQueryDefinitionsFixture(ctx, t),
+				TimeFrame: &TimeFrameModel{
+					Relative: &TimeFrameRelativeModel{Duration: types.StringValue("seconds:900")},
+				},
+				Visualization: visualization,
+			})
+		})
+	}
+}
+
+// The API stores a geomap min/max wrapper with neither arm selected. Read back
+// as a present block it would carry two null children, which the block's own
+// exactly-one-of validator rejects, so the dashboard would diff forever.
+// `auto` can be false only when it came from a value unknown at plan time, so
+// the object validator has already deferred. Sending the resulting empty
+// wrapper would fail the apply, so the conversion refuses it instead.
+func TestExpandDynamicMinMaxRejectsFalseAuto(t *testing.T) {
+	if _, diags := expandDynamicMinMax(&DynamicMinMaxModel{Auto: types.BoolValue(false)}); !diags.HasError() {
+		t.Error("a min/max block whose auto resolved to false must be refused")
+	}
+	if _, diags := expandDynamicMinMax(&DynamicMinMaxModel{Auto: types.BoolNull()}); !diags.HasError() {
+		t.Error("a min/max block with no arm at all must be refused")
+	}
+
+	// The valid shapes must still convert, or the guard above would be masking
+	// a conversion that never works.
+	if got, diags := expandDynamicMinMax(&DynamicMinMaxModel{Auto: types.BoolValue(true)}); diags.HasError() || got == nil || got.Auto == nil {
+		t.Errorf("the auto arm must convert, got %v %v", got, diags)
+	}
+	custom := &DynamicMinMaxModel{Auto: types.BoolNull(), Custom: &DynamicMinMaxCustomModel{Max: types.Float64Value(50)}}
+	if got, diags := expandDynamicMinMax(custom); diags.HasError() || got == nil || got.Custom == nil {
+		t.Errorf("the custom arm must convert, got %v %v", got, diags)
+	}
+}
+
+func TestDynamicWidgetGeomapEmptyMinMaxReadsBackAbsent(t *testing.T) {
+	if got := flattenDynamicMinMax(&dashboardservice.MinMax{}); got != nil {
+		t.Errorf("a min/max wrapper with no arm must read back as absent, got auto=%s custom=%v", got.Auto, got.Custom)
+	}
+
+	// The populated arms must still survive, or the guard above would be
+	// hiding a dropped field rather than preventing an unexpressible one.
+	if got := flattenDynamicMinMax(&dashboardservice.MinMax{Auto: map[string]interface{}{}}); got == nil || !got.Auto.ValueBool() {
+		t.Errorf("the auto arm must read back set, got %v", got)
+	}
+	max := 50.0
+	if got := flattenDynamicMinMax(&dashboardservice.MinMax{Custom: &dashboardservice.MinMaxCustom{Max: &max}}); got == nil || got.Custom == nil {
+		t.Errorf("the custom arm must read back set, got %v", got)
+	}
+}
+
+// Each union's validator defers while any child is unknown, so a value only
+// known after apply can arrive having selected no arm or two. Neither shape has
+// an API representation, so the conversion refuses it.
+func TestExpandDynamicSpatialUnionsRejectUnresolvedShapes(t *testing.T) {
+	ctx := context.Background()
+	field := observationFieldObject("duration", "metadata")
+
+	t.Run("aggregation with no arm", func(t *testing.T) {
+		_, diags := expandDynamicGeomapAggregation(ctx, &DynamicGeomapAggregationModel{Count: types.BoolValue(false)})
+		if !diags.HasError() {
+			t.Error("an aggregation whose count resolved to false must be refused")
+		}
+	})
+
+	t.Run("aggregation with two arms", func(t *testing.T) {
+		_, diags := expandDynamicGeomapAggregation(ctx, &DynamicGeomapAggregationModel{
+			Count: types.BoolValue(true),
+			Sum:   &DynamicGeomapAggregationFieldBasedModel{Field: field},
+		})
+		if !diags.HasError() {
+			t.Error("an aggregation with two arms must be refused")
+		}
+	})
+
+	t.Run("colour with no arm", func(t *testing.T) {
+		if _, diags := expandDynamicGeomapColor(&DynamicGeomapColorModel{}); !diags.HasError() {
+			t.Error("a colour block with neither arm must be refused")
+		}
+	})
+
+	t.Run("colour with two arms", func(t *testing.T) {
+		_, diags := expandDynamicGeomapColor(&DynamicGeomapColorModel{
+			Size:       types.StringValue("blue"),
+			ColorRange: types.StringValue("green"),
+		})
+		if !diags.HasError() {
+			t.Error("a colour block with both arms must be refused")
+		}
+	})
+
+	t.Run("field config with no arm", func(t *testing.T) {
+		if _, diags := expandDynamicGeomapFieldConfig(ctx, &DynamicGeomapFieldConfigModel{}); !diags.HasError() {
+			t.Error("a field config with neither arm must be refused")
+		}
+	})
+
+	t.Run("stat card range mapping with both arms", func(t *testing.T) {
+		_, diags := expandDynamicRangeMapping(ctx, &DynamicRangeMappingModel{
+			Thresholds: dynamicThresholdList(),
+			MinMax: &DynamicMinMaxModel{
+				Auto:   types.BoolValue(true),
+				Custom: &DynamicMinMaxCustomModel{Max: types.Float64Value(50)},
+			},
+		})
+		if !diags.HasError() {
+			t.Error("a range mapping min/max with both arms must be refused")
+		}
+	})
+
+	t.Run("field config with two arms", func(t *testing.T) {
+		_, diags := expandDynamicGeomapFieldConfig(ctx, &DynamicGeomapFieldConfigModel{
+			CoordinateConfig: &DynamicGeomapCoordinateConfigModel{LatitudeField: field, LongitudeField: field},
+			AwsRegionConfig:  &DynamicGeomapAwsRegionConfigModel{AwsRegionField: field},
+		})
+		if !diags.HasError() {
+			t.Error("a field config with both arms must be refused")
+		}
+	})
+
+	// The heatmap colour differs: neither arm is legitimate, only both at once
+	// is impossible, so this asserts the empty case still converts.
+	t.Run("heatmap colour", func(t *testing.T) {
+		// A zero-value types.List/types.Object carries no element type, so the
+		// unset collections are built explicitly.
+		heatmap := func(preset, colorRange types.String) *DynamicHeatmapModel {
+			return &DynamicHeatmapModel{
+				ColorRange:  colorRange,
+				Preset:      preset,
+				ValueField:  types.ObjectNull(ObservationFieldAttr()),
+				XAxisFields: types.ListNull(ObservationFieldsObject()),
+				YAxisFields: types.ListNull(ObservationFieldsObject()),
+			}
+		}
+
+		both := heatmap(types.StringValue("blue"), types.StringValue("green"))
+		if _, diags := expandDynamicHeatmap(ctx, both); !diags.HasError() {
+			t.Error("a heatmap setting both colour arms must be refused")
+		}
+
+		neither := heatmap(types.StringNull(), types.StringNull())
+		if _, diags := expandDynamicHeatmap(ctx, neither); diags.HasError() {
+			t.Errorf("a heatmap with no colour configuration is valid, got %v", diags)
+		}
+	})
+}
+
+// The exactly-one-of validators defer while any arm is unknown, so a value only
+// known after apply can arrive with two arms set. Taking the first would
+// silently discard the rest and produce state that does not match the config.
+func TestExpandDynamicRejectsTwoResolvedUnionArms(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("two visualizations", func(t *testing.T) {
+		_, diags := expandDynamicVisualization(ctx, &DynamicVisualizationModel{
+			Stat:  &DynamicStatModel{},
+			Gauge: &DynamicGaugeModel{},
+		})
+		if !diags.HasError() {
+			t.Error("two visualizations set must be refused rather than silently dropping one")
+		}
+	})
+
+	// Counted by reflection, so this also asserts the count sees every arm
+	// rather than a stale hand-written list.
+	t.Run("every visualization arm is counted", func(t *testing.T) {
+		total := reflect.TypeOf(DynamicVisualizationModel{}).NumField()
+		if got := len(dynamicSelectedVisualizations(&DynamicVisualizationModel{})); got != 0 {
+			t.Errorf("an empty visualization must select nothing, got %d", got)
+		}
+		if total < 15 {
+			t.Errorf("expected at least 15 visualization arms in the model, found %d", total)
+		}
+	})
+
+	t.Run("no visualization at all", func(t *testing.T) {
+		// A present block with no arm: the dispatch would return no
+		// visualization and the read would flatten the parent to null.
+		_, diags := expandDynamicVisualization(ctx, &DynamicVisualizationModel{})
+		if !diags.HasError() {
+			t.Error("a visualization block with no arm must be refused")
+		}
+
+		// An absent block stays legitimate.
+		if _, diags := expandDynamicVisualization(ctx, nil); diags.HasError() {
+			t.Errorf("no visualization block at all is valid, got %v", diags)
+		}
+	})
+
+	t.Run("geomap min_max with both arms", func(t *testing.T) {
+		_, diags := expandDynamicMinMax(&DynamicMinMaxModel{
+			Auto:   types.BoolValue(true),
+			Custom: &DynamicMinMaxCustomModel{Max: types.Float64Value(50)},
+		})
+		if !diags.HasError() {
+			t.Error("a min/max with both arms must be refused rather than preferring custom")
+		}
+	})
+}
+
+// The remaining unions in the widget, same reasoning as the spatial ones: the
+// schema validator defers while any arm is unknown, so a value only known after
+// apply can arrive with none selected or several.
+func TestExpandDynamicRemainingUnionsRejectUnresolvedShapes(t *testing.T) {
+	ctx := context.Background()
+	field := observationFieldObject("duration", "metadata")
+
+	t.Run("sort strategy", func(t *testing.T) {
+		none := &DynamicSortStrategyModel{Category: types.BoolValue(false)}
+		if _, diags := expandDynamicSortStrategy(none); !diags.HasError() {
+			t.Error("a sort strategy with no arm must be refused")
+		}
+		both := &DynamicSortStrategyModel{
+			Category:   types.BoolValue(true),
+			QueryValue: &DynamicSortByQueryValueModel{QueryID: types.StringValue("q")},
+		}
+		if _, diags := expandDynamicSortStrategy(both); !diags.HasError() {
+			t.Error("a sort strategy with both arms must be refused")
+		}
+	})
+
+	t.Run("colour label mapping", func(t *testing.T) {
+		if _, diags := expandDynamicColorLabelMapping(ctx, &DynamicColorLabelMappingModel{}); !diags.HasError() {
+			t.Error("a colour mapping with no arm must be refused")
+		}
+		both := &DynamicColorLabelMappingModel{
+			Range: &DynamicRangeMappingModel{Thresholds: dynamicThresholdList()},
+			Value: &DynamicSectionsMappingModel{Sections: types.ListNull(types.ObjectType{AttrTypes: dynamicMappingSectionAttr()})},
+		}
+		if _, diags := expandDynamicColorLabelMapping(ctx, both); !diags.HasError() {
+			t.Error("a colour mapping with two arms must be refused")
+		}
+	})
+
+	t.Run("table rule scope", func(t *testing.T) {
+		none := &DynamicTableRuleScopeModel{Field: types.ObjectNull(ObservationFieldAttr())}
+		if _, diags := expandDynamicTableRuleScope(ctx, none); !diags.HasError() {
+			t.Error("a rule scope with no arm must be refused")
+		}
+		both := &DynamicTableRuleScopeModel{Field: field, Regex: types.StringValue("^a$")}
+		if _, diags := expandDynamicTableRuleScope(ctx, both); !diags.HasError() {
+			t.Error("a rule scope with two arms must be refused")
+		}
+	})
+
+	t.Run("table property definition", func(t *testing.T) {
+		if _, diags := expandDynamicTablePropertyDefinition(ctx, &DynamicTablePropertyDefinitionModel{}); !diags.HasError() {
+			t.Error("a property definition with no arm must be refused")
+		}
+		both := &DynamicTablePropertyDefinitionModel{
+			Alignment:         types.StringValue("center"),
+			ColumnDisplayName: types.StringValue("Application"),
+		}
+		if _, diags := expandDynamicTablePropertyDefinition(ctx, both); !diags.HasError() {
+			t.Error("a property definition with two arms must be refused")
+		}
+	})
+}
+
+// A marker bool set to false is present in the configuration but selects
+// nothing, and the read flattens it to null - so the apply reports an
+// inconsistent result. The plan validator refuses a known false and defers while
+// it is unknown, so the conversion refuses it, including when another arm of the
+// same union is already selected.
+func TestExpandDynamicRejectsExplicitFalseMarker(t *testing.T) {
+	ctx := context.Background()
+	field := observationFieldObject("duration", "metadata")
+
+	t.Run("helper", func(t *testing.T) {
+		if _, diags := expandDynamicMappedValuesMarker("m", types.BoolValue(false)); !diags.HasError() {
+			t.Error("an explicit false marker must be refused")
+		}
+		if got, diags := expandDynamicMappedValuesMarker("m", types.BoolNull()); diags.HasError() || got != nil {
+			t.Errorf("an absent marker must convert to nothing, got %v %v", got, diags)
+		}
+		if got, diags := expandDynamicMappedValuesMarker("m", types.BoolValue(true)); diags.HasError() || got == nil {
+			t.Errorf("a true marker must convert, got %v %v", got, diags)
+		}
+	})
+
+	t.Run("false count beside a field aggregation", func(t *testing.T) {
+		_, diags := expandDynamicGeomapAggregation(ctx, &DynamicGeomapAggregationModel{
+			Count: types.BoolValue(false),
+			Sum:   &DynamicGeomapAggregationFieldBasedModel{Field: field},
+		})
+		if !diags.HasError() {
+			t.Error("a false count alongside a field arm must be refused")
+		}
+	})
+
+	t.Run("false auto beside custom min max", func(t *testing.T) {
+		_, diags := expandDynamicMinMax(&DynamicMinMaxModel{
+			Auto:   types.BoolValue(false),
+			Custom: &DynamicMinMaxCustomModel{Max: types.Float64Value(50)},
+		})
+		if !diags.HasError() {
+			t.Error("a false auto alongside custom must be refused")
+		}
+	})
+
+	t.Run("false category beside a query value sort", func(t *testing.T) {
+		_, diags := expandDynamicSortStrategy(&DynamicSortStrategyModel{
+			Category:   types.BoolValue(false),
+			QueryValue: &DynamicSortByQueryValueModel{QueryID: types.StringValue("q")},
+		})
+		if !diags.HasError() {
+			t.Error("a false category alongside a query value must be refused")
+		}
+	})
+}
+
+// The API stores a union wrapper with no arm selected. Read back as a present
+// block it carries all-null children, which the block's own exactly-one-of
+// validator rejects, so the dashboard would diff on every plan and could not be
+// applied. Every union wrapper must therefore read back as absent.
+func TestFlattenDynamicNormalisesEmptyUnionWrappers(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("geomap aggregation", func(t *testing.T) {
+		got, diags := flattenDynamicGeomapAggregation(ctx, &dashboardservice.GeomapAggregation{})
+		if diags.HasError() || got != nil {
+			t.Errorf("an arm-less aggregation must read back as absent, got %v %v", got, diags)
+		}
+	})
+
+	t.Run("geomap colour", func(t *testing.T) {
+		if got := flattenDynamicGeomapColor(&dashboardservice.GeomapColor{}); got != nil {
+			t.Errorf("an arm-less colour must read back as absent, got %v", got)
+		}
+	})
+
+	t.Run("geomap field config", func(t *testing.T) {
+		got, diags := flattenDynamicGeomapFieldConfig(ctx, &dashboardservice.GeomapFieldConfig{})
+		if diags.HasError() || got != nil {
+			t.Errorf("an arm-less field config must read back as absent, got %v %v", got, diags)
+		}
+	})
+
+	t.Run("bars sort strategy", func(t *testing.T) {
+		if got := flattenDynamicSortStrategy(&dashboardservice.SortStrategy{}); got != nil {
+			t.Errorf("an arm-less sort strategy must read back as absent, got %v", got)
+		}
+	})
+
+	t.Run("stat card colour label mapping", func(t *testing.T) {
+		got, diags := flattenDynamicColorLabelMapping(ctx, &dashboardservice.ColorLabelMapping{})
+		if diags.HasError() || got != nil {
+			t.Errorf("an arm-less colour mapping must read back as absent, got %v %v", got, diags)
+		}
+	})
+
+	// A populated wrapper must still survive, or the guards above would be
+	// hiding a dropped field rather than preventing an unexpressible one.
+	t.Run("populated wrappers survive", func(t *testing.T) {
+		agg, diags := flattenDynamicGeomapAggregation(ctx, &dashboardservice.GeomapAggregation{Count: map[string]interface{}{}})
+		if diags.HasError() || agg == nil || !agg.Count.ValueBool() {
+			t.Errorf("a count aggregation must read back set, got %v %v", agg, diags)
+		}
+		size := dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_BLUE
+		if got := flattenDynamicGeomapColor(&dashboardservice.GeomapColor{Size: &size}); got == nil || got.Size.IsNull() {
+			t.Errorf("a colour size must read back set, got %v", got)
+		}
+	})
+}
+
+// The stat card carried its own copy of the min/max conversion, so the marker
+// rules added for the spatial visualizations did not apply to it. Both
+// directions now go through the shared helper; these cases fail if either one
+// grows a second copy again.
+func TestExpandDynamicRangeMappingUsesTheSharedMinMaxRules(t *testing.T) {
+	ctx := context.Background()
+	custom := &DynamicMinMaxCustomModel{Max: types.Float64Value(10), Min: types.Float64Value(1)}
+
+	for name, tc := range map[string]struct {
+		minMax    *DynamicMinMaxModel
+		wantError bool
+	}{
+		// An explicit false is present in the configuration yet selects nothing,
+		// and the read cannot write it back, so it has to be rejected rather
+		// than quietly treated as "the other arm".
+		"false auto beside custom": {&DynamicMinMaxModel{Auto: types.BoolValue(false), Custom: custom}, true},
+		"false auto on its own":    {&DynamicMinMaxModel{Auto: types.BoolValue(false)}, true},
+		"true auto beside custom":  {&DynamicMinMaxModel{Auto: types.BoolValue(true), Custom: custom}, true},
+		"neither arm":              {&DynamicMinMaxModel{Auto: types.BoolNull()}, true},
+		"custom alone":             {&DynamicMinMaxModel{Auto: types.BoolNull(), Custom: custom}, false},
+		"true auto alone":          {&DynamicMinMaxModel{Auto: types.BoolValue(true)}, false},
+		"no min_max at all":        {nil, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, diags := expandDynamicRangeMapping(ctx, &DynamicRangeMappingModel{
+				MinMax:     tc.minMax,
+				Thresholds: types.ListNull(types.ObjectType{AttrTypes: dynamicThresholdAttr()}),
+			})
+			if diags.HasError() != tc.wantError {
+				t.Errorf("expected error=%v, got %v", tc.wantError, diags)
+			}
+		})
+	}
+
+	t.Run("a backend min_max with neither arm reads back unset", func(t *testing.T) {
+		got, diags := flattenDynamicRangeMapping(ctx, &dashboardservice.RangeMapping{
+			MinMax: &dashboardservice.MinMax{},
+		})
+		if diags.HasError() || got.MinMax != nil {
+			t.Errorf("an arm-less min_max must read back as absent, got %v %v", got.MinMax, diags)
+		}
+	})
+}
+
+// The arm list, the schema attributes and the exactly-one-of validator all
+// enumerate the same visualizations. A visualization added to one and missed in
+// another fails silently: absent from the arm list it never counts towards the
+// union check, so two visualizations reach conversion and the dispatch keeps the
+// first and discards the rest.
+func TestDynamicVisualizationArmsMatchTheSchema(t *testing.T) {
+	dynamic, ok := DynamicSchema().(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("expected the dynamic widget schema to be a single nested attribute, got %T", DynamicSchema())
+	}
+	visualization, ok := dynamic.Attributes["visualization"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("expected visualization to be a single nested attribute, got %T", dynamic.Attributes["visualization"])
+	}
+
+	arms := make(map[string]bool)
+	for _, arm := range dynamicVisualizationArms(&DynamicVisualizationModel{}) {
+		if arms[arm.name] {
+			t.Errorf("%q is listed twice in dynamicVisualizationArms", arm.name)
+		}
+		arms[arm.name] = true
+	}
+
+	for name := range visualization.Attributes {
+		if !arms[name] {
+			t.Errorf("the schema declares %q but dynamicVisualizationArms does not; it would never count "+
+				"towards the exactly-one check", name)
+		}
+	}
+	for name := range arms {
+		if _, ok := visualization.Attributes[name]; !ok {
+			t.Errorf("dynamicVisualizationArms lists %q but the schema has no such attribute", name)
+		}
+	}
+
+	// The validator carries its own copy of the same names.
+	var validated []string
+	for _, candidate := range visualization.Validators {
+		if oneOf, ok := candidate.(ExactlyOneOfChildrenValidator); ok {
+			validated = oneOf.ChildNames
+		}
+	}
+	if len(validated) == 0 {
+		t.Fatal("visualization has no ExactlyOneOfChildren validator; the union is unguarded at plan time")
+	}
+	for _, name := range validated {
+		if !arms[name] {
+			t.Errorf("ExactlyOneOfChildren guards %q but dynamicVisualizationArms does not list it", name)
+		}
+	}
+	if len(validated) != len(arms) {
+		t.Errorf("ExactlyOneOfChildren guards %d names but there are %d arms", len(validated), len(arms))
+	}
+
+	// Every arm must report itself selected when, and only when, its field is
+	// set — otherwise the list compiles and still counts nothing.
+	for _, arm := range dynamicVisualizationArms(&DynamicVisualizationModel{Geomap: &DynamicGeomapModel{}}) {
+		if want := arm.name == "geomap"; arm.selected != want {
+			t.Errorf("with only geomap set, %q reported selected=%v", arm.name, arm.selected)
+		}
+	}
+
+	t.Logf("%d visualization arm(s) agree across the model, the schema and the validator", len(arms))
 }

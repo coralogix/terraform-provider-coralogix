@@ -157,9 +157,12 @@ func DynamicSchema() schema.Attribute {
 					"horizontal_bars_multi":   dynamicHorizontalBarsMultiSchema(),
 					"gauge":                   dynamicGaugeSchema(),
 					"pie_chart":               dynamicPieChartSchema(),
+					"hexagon_bins":            dynamicHexagonBinsSchema(),
+					"heatmap":                 dynamicHeatmapSchema(),
+					"geomap":                  dynamicGeomapSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi", "gauge", "pie_chart"),
+					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi", "gauge", "pie_chart", "hexagon_bins", "heatmap", "geomap"),
 				},
 			},
 		},
@@ -522,6 +525,9 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 		"horizontal_bars_multi":   types.ObjectType{AttrTypes: dynamicHorizontalBarsMultiModelAttr()},
 		"gauge":                   types.ObjectType{AttrTypes: dynamicGaugeModelAttr()},
 		"pie_chart":               types.ObjectType{AttrTypes: dynamicPieChartModelAttr()},
+		"hexagon_bins":            types.ObjectType{AttrTypes: dynamicHexagonBinsModelAttr()},
+		"heatmap":                 types.ObjectType{AttrTypes: dynamicHeatmapModelAttr()},
+		"geomap":                  types.ObjectType{AttrTypes: dynamicGeomapModelAttr()},
 	}
 }
 
@@ -779,10 +785,27 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 		return nil, nil
 	}
 
+	// ExactlyOneOfChildren defers while any arm is unknown, so a value only
+	// known after apply can arrive with two visualizations set, or with none.
+	// The dispatch below would take the first of two and discard the rest, or
+	// return no visualization at all, which the read then flattens to null.
+	switch selected := dynamicSelectedVisualizations(visualization); {
+	case len(selected) > 1:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Invalid Attribute Combination",
+			fmt.Sprintf("Only one visualization can be configured, but %s are set.", strings.Join(selected, " and ")),
+		)}
+	case len(selected) == 0:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Invalid Attribute Combination",
+			"A visualization block must configure exactly one visualization. Remove the block to leave the widget without one.",
+		)}
+	}
+
 	// One helper per visualization family, so adding a family stays a one-line
 	// change here instead of growing a switch past the cyclomatic limit.
 	for _, family := range []func(context.Context, *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics){
-		expandDynamicVisualizationFamilyStat, expandDynamicVisualizationFamilyTable, expandDynamicVisualizationFamilyTimeSeries, expandDynamicVisualizationFamilyBars, expandDynamicVisualizationFamilyGaugePie,
+		expandDynamicVisualizationFamilyStat, expandDynamicVisualizationFamilyTable, expandDynamicVisualizationFamilyTimeSeries, expandDynamicVisualizationFamilyBars, expandDynamicVisualizationFamilyGaugePie, expandDynamicVisualizationFamilySpatial,
 	} {
 		converted, diags := family(ctx, visualization)
 		if diags.HasError() {
@@ -794,6 +817,57 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 	}
 
 	return nil, nil
+}
+
+type dynamicVisualizationArm struct {
+	name     string
+	selected bool
+}
+
+// Listed explicitly rather than discovered by reflection, so every field is
+// referenced at compile time and a pointer added to the model for anything
+// other than a visualization cannot be mistaken for one.
+// TestDynamicVisualizationArmsMatchTheSchema keeps this list and the schema
+// from drifting apart.
+func dynamicVisualizationArms(visualization *DynamicVisualizationModel) []dynamicVisualizationArm {
+	return []dynamicVisualizationArm{
+		{"stat", visualization.Stat != nil},
+		{"stat_card", visualization.StatCard != nil},
+		{"table", visualization.Table != nil},
+		{"time_series_lines", visualization.TimeSeriesLines != nil},
+		{"time_series_lines_multi", visualization.TimeSeriesLinesMulti != nil},
+		{"time_series_bars", visualization.TimeSeriesBars != nil},
+		{"vertical_bars", visualization.VerticalBars != nil},
+		{"vertical_bars_multi", visualization.VerticalBarsMulti != nil},
+		{"horizontal_bars", visualization.HorizontalBars != nil},
+		{"horizontal_bars_multi", visualization.HorizontalBarsMulti != nil},
+		{"gauge", visualization.Gauge != nil},
+		{"pie_chart", visualization.PieChart != nil},
+		{"hexagon_bins", visualization.HexagonBins != nil},
+		{"heatmap", visualization.Heatmap != nil},
+		{"geomap", visualization.Geomap != nil},
+	}
+}
+
+func dynamicSelectedVisualizations(visualization *DynamicVisualizationModel) []string {
+	var selected []string
+	for _, arm := range dynamicVisualizationArms(visualization) {
+		if arm.selected {
+			selected = append(selected, arm.name)
+		}
+	}
+	return selected
+}
+
+// The object and conflict validators defer while any child is unknown, so a
+// value only known after apply can reach these conversions having selected no
+// arm or two. Neither shape has an API representation, so each union re-checks
+// here rather than letting the apply fail on the backend's answer.
+func dynamicUnionDiagnostic(attribute, requirement string) diag.Diagnostics {
+	return diag.Diagnostics{diag.NewErrorDiagnostic(
+		"Invalid Attribute Combination",
+		fmt.Sprintf("%s requires exactly one of %s.", attribute, requirement),
+	)}
 }
 
 func expandDynamicVisualizationFamilyStat(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics) {
@@ -898,6 +972,31 @@ func expandDynamicVisualizationFamilyGaugePie(ctx context.Context, visualization
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{PieChart: pieChart}, nil
+	}
+
+	return nil, nil
+}
+
+func expandDynamicVisualizationFamilySpatial(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics) {
+	switch {
+	case visualization.HexagonBins != nil:
+		hexagonBins, diags := expandDynamicHexagonBins(ctx, visualization.HexagonBins)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{HexagonBins: hexagonBins}, nil
+	case visualization.Heatmap != nil:
+		heatmap, diags := expandDynamicHeatmap(ctx, visualization.Heatmap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{Heatmap: heatmap}, nil
+	case visualization.Geomap != nil:
+		geomap, diags := expandDynamicGeomap(ctx, visualization.Geomap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{Geomap: geomap}, nil
 	}
 
 	return nil, nil
@@ -1213,7 +1312,7 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 	// One helper per visualization family, so adding a family stays a one-line
 	// change here instead of growing a switch past the cyclomatic limit.
 	for _, family := range []func(context.Context, *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics){
-		flattenDynamicVisualizationFamilyStat, flattenDynamicVisualizationFamilyTable, flattenDynamicVisualizationFamilyTimeSeries, flattenDynamicVisualizationFamilyBars, flattenDynamicVisualizationFamilyGaugePie,
+		flattenDynamicVisualizationFamilyStat, flattenDynamicVisualizationFamilyTable, flattenDynamicVisualizationFamilyTimeSeries, flattenDynamicVisualizationFamilyBars, flattenDynamicVisualizationFamilyGaugePie, flattenDynamicVisualizationFamilySpatial,
 	} {
 		converted, diags := family(ctx, visualization)
 		if diags.HasError() {
@@ -1332,6 +1431,31 @@ func flattenDynamicVisualizationFamilyGaugePie(ctx context.Context, visualizatio
 			return nil, diags
 		}
 		return &DynamicVisualizationModel{PieChart: pieChart}, nil
+	}
+
+	return nil, nil
+}
+
+func flattenDynamicVisualizationFamilySpatial(ctx context.Context, visualization *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics) {
+	switch {
+	case visualization.HexagonBins != nil:
+		hexagonBins, diags := flattenDynamicHexagonBins(ctx, visualization.HexagonBins)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{HexagonBins: hexagonBins}, nil
+	case visualization.Heatmap != nil:
+		heatmap, diags := flattenDynamicHeatmap(ctx, visualization.Heatmap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{Heatmap: heatmap}, nil
+	case visualization.Geomap != nil:
+		geomap, diags := flattenDynamicGeomap(ctx, visualization.Geomap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{Geomap: geomap}, nil
 	}
 
 	return nil, nil
