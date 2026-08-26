@@ -211,8 +211,13 @@ resource "coralogix_dashboard" "dashboard" {
                   gauge = {
                     unit         = "custom"
                     custom_unit  = "ms"
-                    show_min_max = true
-                    legend_by    = "thresholds"
+                    show_min_max      = true
+                    legend_by         = "thresholds"
+                    decimal_precision = true
+                    arc_display = {
+                      value_arc     = true
+                      threshold_arc = true
+                    }
                     legend = {
                       is_visible = true
                     }
@@ -488,6 +493,10 @@ resource "coralogix_dashboard" "dashboard" {
                     decimal           = 1
                     decimal_precision = true
                     show_total        = true
+                    legend = {
+                      is_visible = true
+                      columns    = ["sum"]
+                    }
                   }
                 }
               },

@@ -32,6 +32,7 @@ func TestPieChartDisplayFieldsRoundTrip(t *testing.T) {
 		Decimal:          types.NumberValue(big.NewFloat(1)),
 		DecimalPrecision: types.BoolValue(true),
 		ShowTotal:        types.BoolValue(true),
+		Legend:           &dashboardwidgets.LegendModel{IsVisible: types.BoolValue(false), Columns: types.ListNull(types.StringType)},
 	}
 
 	expanded, diags := expandPieChart(ctx, model)
@@ -49,6 +50,11 @@ func TestPieChartDisplayFieldsRoundTrip(t *testing.T) {
 		"decimal_precision": {flattened.PieChart.DecimalPrecision, model.DecimalPrecision},
 		"show_total":        {flattened.PieChart.ShowTotal, model.ShowTotal},
 	})
+	// legend and show_legend are stored independently by the API, verified against
+	// a live environment, so the legend block needs no conflict handling.
+	if flattened.PieChart.Legend == nil || flattened.PieChart.Legend.IsVisible.ValueBool() {
+		t.Fatalf("round-tripped legend = %v, want is_visible false", flattened.PieChart.Legend)
+	}
 }
 
 func TestPieChartDisplayFieldsStayNullWhenUnset(t *testing.T) {
@@ -59,7 +65,8 @@ func TestPieChartDisplayFieldsStayNullWhenUnset(t *testing.T) {
 		t.Fatalf("expandPieChart() diagnostics = %v", diags)
 	}
 	if expanded.PieChart.CustomUnit != nil || expanded.PieChart.Decimal != nil ||
-		expanded.PieChart.DecimalPrecision != nil || expanded.PieChart.ShowTotal != nil {
+		expanded.PieChart.DecimalPrecision != nil || expanded.PieChart.ShowTotal != nil ||
+		expanded.PieChart.Legend != nil {
 		t.Fatalf("expanded pie chart carries unset display fields: %+v", expanded.PieChart)
 	}
 

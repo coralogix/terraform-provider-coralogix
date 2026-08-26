@@ -2201,6 +2201,11 @@ func expandPieChart(ctx context.Context, pieChart *dashboardwidgets.PieChartMode
 		return nil, diags
 	}
 
+	pieLegend, diags := dashboardwidgets.ExpandLegend(ctx, pieChart.Legend)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.WidgetDefinition{
 		PieChart: &dashboardservice.WidgetsPieChart{
 			Query:              query,
@@ -2217,6 +2222,7 @@ func expandPieChart(ctx context.Context, pieChart *dashboardwidgets.PieChartMode
 			CustomUnit:         utils.TypeStringToStringPointer(pieChart.CustomUnit),
 			Decimal:            typeNumberToInt32Pointer(pieChart.Decimal),
 			DecimalPrecision:   pieChart.DecimalPrecision.ValueBoolPointer(),
+			Legend:             pieLegend,
 			ShowTotal:          pieChart.ShowTotal.ValueBoolPointer(),
 		},
 	}, nil
@@ -2301,12 +2307,28 @@ func expandGauge(ctx context.Context, gauge *dashboardwidgets.GaugeModel) (*dash
 			ThresholdType:     dashboardwidgets.OptionalEnumPointer(gauge.ThresholdType, dashboardwidgets.DashboardSchemaToProtoThresholdType),
 			DisplaySeriesName: typeBoolToBoolPointer(gauge.DisplaySeriesName),
 			Decimal:           typeNumberToInt32Pointer(gauge.Decimal),
+			ArcDisplay:        expandArcDisplay(gauge.ArcDisplay),
+			DecimalPrecision:  gauge.DecimalPrecision.ValueBoolPointer(),
 			CustomUnit:        utils.TypeStringToStringPointer(gauge.CustomUnit),
 			Legend:            legend,
 			LegendBy:          dashboardwidgets.OptionalEnumPointer(gauge.LegendBy, dashboardwidgets.DashboardSchemaToProtoLegendBy),
 			ShowMinMax:        gauge.ShowMinMax.ValueBoolPointer(),
 		},
 	}, nil
+}
+
+func expandArcDisplay(a *dashboardwidgets.ArcDisplayModel) *dashboardservice.ArcDisplay {
+	if a == nil {
+		return nil
+	}
+	return &dashboardservice.ArcDisplay{ThresholdArc: a.ThresholdArc.ValueBoolPointer(), ValueArc: a.ValueArc.ValueBoolPointer()}
+}
+
+func flattenArcDisplay(a *dashboardservice.ArcDisplay) *dashboardwidgets.ArcDisplayModel {
+	if a == nil {
+		return nil
+	}
+	return &dashboardwidgets.ArcDisplayModel{ThresholdArc: types.BoolPointerValue(a.ThresholdArc), ValueArc: types.BoolPointerValue(a.ValueArc)}
 }
 
 func expandGaugeThresholds(ctx context.Context, gaugeThresholds types.List) ([]dashboardservice.GaugeThreshold, diag.Diagnostics) {
@@ -4231,6 +4253,8 @@ func widgetModelAttr() map[string]attr.Type {
 						"threshold_type":      types.StringType,
 						"display_series_name": types.BoolType,
 						"decimal":             types.NumberType,
+						"arc_display":         types.ObjectType{AttrTypes: arcDisplayModelAttr()},
+						"decimal_precision":   types.BoolType,
 						"custom_unit":         types.StringType,
 						"legend":              types.ObjectType{AttrTypes: dashboardwidgets.LegendAttr()},
 						"legend_by":           types.StringType,
@@ -4362,6 +4386,7 @@ func widgetModelAttr() map[string]attr.Type {
 						"custom_unit":         types.StringType,
 						"decimal":             types.NumberType,
 						"decimal_precision":   types.BoolType,
+						"legend":              types.ObjectType{AttrTypes: dashboardwidgets.LegendAttr()},
 						"show_total":          types.BoolType,
 					},
 				},
@@ -4800,6 +4825,10 @@ func eventRecurrenceDurationStrategyModelAttr() map[string]attr.Type {
 		"start_time_hour": types.Int64Type,
 		"duration":        types.StringType,
 	}
+}
+
+func arcDisplayModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{"threshold_arc": types.BoolType, "value_arc": types.BoolType}
 }
 
 func gaugeThresholdModelAttr() map[string]attr.Type {
@@ -5368,6 +5397,8 @@ func flattenGauge(ctx context.Context, gauge *dashboardservice.WidgetsGauge) (*d
 			ThresholdType:     types.StringValue(dashboardwidgets.DashboardProtoToSchemaThresholdType[gauge.GetThresholdType()]),
 			DisplaySeriesName: types.BoolPointerValue(gauge.DisplaySeriesName),
 			Decimal:           int32PointerToNumberType(gauge.Decimal),
+			ArcDisplay:        flattenArcDisplay(gauge.ArcDisplay),
+			DecimalPrecision:  types.BoolPointerValue(gauge.DecimalPrecision),
 			CustomUnit:        utils.StringPointerToTypeString(gauge.CustomUnit),
 			Legend:            dashboardwidgets.FlattenLegend(gauge.Legend),
 			LegendBy:          dashboardwidgets.FlattenEnum(gauge.GetLegendBy(), dashboardwidgets.DashboardProtoToSchemaLegendBy),
@@ -5575,6 +5606,7 @@ func flattenPieChart(ctx context.Context, pieChart *dashboardservice.WidgetsPieC
 			CustomUnit:         utils.StringPointerToTypeString(pieChart.CustomUnit),
 			Decimal:            int32PointerToNumberType(pieChart.Decimal),
 			DecimalPrecision:   types.BoolPointerValue(pieChart.DecimalPrecision),
+			Legend:             dashboardwidgets.FlattenLegend(pieChart.Legend),
 			ShowTotal:          types.BoolPointerValue(pieChart.ShowTotal),
 		},
 	}, nil

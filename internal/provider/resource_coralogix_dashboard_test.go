@@ -2767,6 +2767,7 @@ resource "coralogix_dashboard" "test" {
 		resource.TestCheckResourceAttr(dashboardResourceName, pie+".decimal", "1"),
 		resource.TestCheckResourceAttr(dashboardResourceName, pie+".decimal_precision", "true"),
 		resource.TestCheckResourceAttr(dashboardResourceName, pie+".show_total", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, pie+".legend.is_visible", "false"),
 		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.aggregation", "sum"),
 		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.editor_mode", "builder"),
 		resource.TestCheckResourceAttr(dashboardResourceName, pie+".query.metrics.promql_query_type", "range"),
@@ -2796,7 +2797,11 @@ resource "coralogix_dashboard" "test" {
               custom_unit       = "runs"
               decimal           = 1
               decimal_precision = true
-              show_total        = true`,
+              show_total        = true
+              legend = {
+                is_visible = false
+                columns    = ["sum"]
+              }`,
 					`
                   aggregation       = "sum"
                   editor_mode       = "builder"
@@ -2879,6 +2884,9 @@ resource "coralogix_dashboard" "test" {
 		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".show_min_max", "true"),
 		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".legend_by", "thresholds"),
 		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".legend.is_visible", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".decimal_precision", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".arc_display.value_arc", "true"),
+		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".arc_display.threshold_arc", "false"),
 		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".query.metrics.editor_mode", "text"),
 		resource.TestCheckResourceAttr(dashboardResourceName, gauge+".query.metrics.promql_query_type", "instant"),
 		resource.TestCheckResourceAttr(dashboardResourceName, spansGauge+".query.spans.group_bys.0.scope", "metadata"),
@@ -2887,6 +2895,8 @@ resource "coralogix_dashboard" "test" {
 		resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, gauge+".custom_unit"),
 		resource.TestCheckNoResourceAttr(dashboardResourceName, gauge+".show_min_max"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, gauge+".decimal_precision"),
+		resource.TestCheckNoResourceAttr(dashboardResourceName, gauge+".arc_display"),
 		// The new enums are Optional+Computed with no static default, because the
 		// API supplies a value when the attribute is omitted. Terraform keeps the
 		// prior value rather than reverting it, which is what makes the plan empty.
@@ -2905,8 +2915,13 @@ resource "coralogix_dashboard" "test" {
                 custom_unit  = "ms"
                 show_min_max = true
                 legend_by    = "thresholds"
+                decimal_precision = true
                 legend = {
                   is_visible = true
+                }
+                arc_display = {
+                  value_arc     = true
+                  threshold_arc = false
                 }`,
 					`
                     editor_mode       = "text"

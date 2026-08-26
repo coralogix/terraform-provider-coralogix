@@ -29,10 +29,15 @@ func TestGaugeDisplayFieldsRoundTrip(t *testing.T) {
 	model := &dashboardwidgets.GaugeModel{
 		Query:      &dashboardwidgets.GaugeQueryModel{Metrics: gaugeMetricsQueryForTest()},
 		Thresholds: types.ListNull(types.ObjectType{AttrTypes: gaugeThresholdModelAttr()}),
-		CustomUnit: types.StringValue("errors"),
-		Legend:     &dashboardwidgets.LegendModel{IsVisible: types.BoolValue(true), Columns: types.ListNull(types.StringType)},
-		LegendBy:   types.StringValue("thresholds"),
-		ShowMinMax: types.BoolValue(true),
+		ArcDisplay: &dashboardwidgets.ArcDisplayModel{
+			ThresholdArc: types.BoolValue(false),
+			ValueArc:     types.BoolValue(true),
+		},
+		DecimalPrecision: types.BoolValue(true),
+		CustomUnit:       types.StringValue("errors"),
+		Legend:           &dashboardwidgets.LegendModel{IsVisible: types.BoolValue(true), Columns: types.ListNull(types.StringType)},
+		LegendBy:         types.StringValue("thresholds"),
+		ShowMinMax:       types.BoolValue(true),
 	}
 
 	expanded, diags := expandGauge(ctx, model)
@@ -47,10 +52,16 @@ func TestGaugeDisplayFieldsRoundTrip(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("flattenGauge() diagnostics = %v", diags)
 	}
+	if flattened.Gauge.ArcDisplay == nil ||
+		!flattened.Gauge.ArcDisplay.ValueArc.Equal(model.ArcDisplay.ValueArc) ||
+		!flattened.Gauge.ArcDisplay.ThresholdArc.Equal(model.ArcDisplay.ThresholdArc) {
+		t.Fatalf("round-tripped arc_display = %+v, want %+v", flattened.Gauge.ArcDisplay, model.ArcDisplay)
+	}
 	assertEqualValues(t, map[string][2]attr.Value{
-		"custom_unit":  {flattened.Gauge.CustomUnit, model.CustomUnit},
-		"legend_by":    {flattened.Gauge.LegendBy, model.LegendBy},
-		"show_min_max": {flattened.Gauge.ShowMinMax, model.ShowMinMax},
+		"decimal_precision": {flattened.Gauge.DecimalPrecision, model.DecimalPrecision},
+		"custom_unit":       {flattened.Gauge.CustomUnit, model.CustomUnit},
+		"legend_by":         {flattened.Gauge.LegendBy, model.LegendBy},
+		"show_min_max":      {flattened.Gauge.ShowMinMax, model.ShowMinMax},
 	})
 	if flattened.Gauge.Legend == nil || !flattened.Gauge.Legend.IsVisible.ValueBool() {
 		t.Fatalf("round-tripped legend = %v, want is_visible true", flattened.Gauge.Legend)
@@ -67,13 +78,17 @@ func TestGaugeDisplayFieldsStayNullWhenUnset(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("expandGauge() diagnostics = %v", diags)
 	}
-	if expanded.Gauge.CustomUnit != nil || expanded.Gauge.Legend != nil || expanded.Gauge.ShowMinMax != nil {
+	if expanded.Gauge.ArcDisplay != nil || expanded.Gauge.DecimalPrecision != nil ||
+		expanded.Gauge.CustomUnit != nil || expanded.Gauge.Legend != nil || expanded.Gauge.ShowMinMax != nil {
 		t.Fatalf("expanded gauge carries unset display fields: %+v", expanded.Gauge)
 	}
 
 	flattened, diags := flattenGauge(ctx, &dashboardservice.WidgetsGauge{})
 	if diags.HasError() {
 		t.Fatalf("flattenGauge() diagnostics = %v", diags)
+	}
+	if flattened.Gauge.ArcDisplay != nil {
+		t.Fatalf("flattened arc_display = %+v, want nil when the API omits the field", flattened.Gauge.ArcDisplay)
 	}
 	if !flattened.Gauge.CustomUnit.IsNull() || !flattened.Gauge.ShowMinMax.IsNull() {
 		t.Fatalf("flattened gauge sets custom_unit or show_min_max, want both null: %+v", flattened.Gauge)

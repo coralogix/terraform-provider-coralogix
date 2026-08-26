@@ -271,10 +271,18 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		Computed: true,
 																		Default:  booldefault.StaticBool(true),
 																	},
-																	"decimal":     dashboardwidgets.DecimalSchema(),
-																	"custom_unit": dashboardwidgets.CustomUnitSchema(),
-																	"legend":      dashboardwidgets.LegendSchema(),
-																	"legend_by":   dashboardwidgets.LegendBySchema(),
+																	"decimal": dashboardwidgets.DecimalSchema(),
+																	"arc_display": schema.SingleNestedAttribute{
+																		Optional: true,
+																		Attributes: map[string]schema.Attribute{
+																			"threshold_arc": schema.BoolAttribute{Optional: true},
+																			"value_arc":     schema.BoolAttribute{Optional: true},
+																		},
+																	},
+																	"decimal_precision": dashboardwidgets.DecimalPrecisionSchema(),
+																	"custom_unit":       dashboardwidgets.CustomUnitSchema(),
+																	"legend":            dashboardwidgets.LegendSchema(),
+																	"legend_by":         dashboardwidgets.LegendBySchema(),
 																	"show_min_max": schema.BoolAttribute{
 																		Optional:            true,
 																		MarkdownDescription: "Whether to display the min and max range values on the gauge.",
@@ -463,6 +471,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	"custom_unit":       dashboardwidgets.CustomUnitSchema(),
 																	"decimal":           dashboardwidgets.DecimalSchema(),
 																	"decimal_precision": dashboardwidgets.DecimalPrecisionSchema(),
+																	"legend":            dashboardwidgets.LegendSchema(),
 																	"show_total": schema.BoolAttribute{
 																		Optional:            true,
 																		MarkdownDescription: "When true, the total of all slices is shown as the chart title.",

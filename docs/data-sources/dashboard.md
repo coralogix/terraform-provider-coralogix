@@ -3036,9 +3036,11 @@ Read-Only:
 
 Read-Only:
 
+- `arc_display` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--arc_display))
 - `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
 - `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
 - `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
+- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
 - `display_series_name` (Boolean)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--legend))
 - `legend_by` (String) What the legend lists. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: groups, thresholds, unspecified.
@@ -3052,6 +3054,15 @@ Read-Only:
 - `threshold_type` (String) The threshold type. Can be one of ["absolute" "relative" "unspecified"].
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds))
 - `unit` (String) The unit of the gauge. Can be one of ["bytes" "bytes_iec" "custom" "datetime_iso" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "none" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--arc_display"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.arc_display`
+
+Read-Only:
+
+- `threshold_arc` (Boolean)
+- `value_arc` (Boolean)
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--legend"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.legend`
@@ -4815,6 +4826,7 @@ Read-Only:
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `label_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--label_definition))
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--legend))
 - `max_slices_per_chart` (Number)
 - `min_slice_percentage` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
@@ -4833,6 +4845,17 @@ Read-Only:
 - `show_name` (Boolean)
 - `show_percentage` (Boolean)
 - `show_value` (Boolean)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>

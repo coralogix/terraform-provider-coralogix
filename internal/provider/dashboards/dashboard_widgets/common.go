@@ -796,10 +796,19 @@ type GaugeModel struct {
 	ThresholdType     types.String     `tfsdk:"threshold_type"`
 	DisplaySeriesName types.Bool       `tfsdk:"display_series_name"`
 	Decimal           types.Number     `tfsdk:"decimal"`
+	ArcDisplay        *ArcDisplayModel `tfsdk:"arc_display"`
+	DecimalPrecision  types.Bool       `tfsdk:"decimal_precision"`
 	CustomUnit        types.String     `tfsdk:"custom_unit"`
 	Legend            *LegendModel     `tfsdk:"legend"`
 	LegendBy          types.String     `tfsdk:"legend_by"`
 	ShowMinMax        types.Bool       `tfsdk:"show_min_max"`
+}
+
+// ArcDisplayModel replaces the gauge's deprecated show_inner_arc and
+// show_outer_arc booleans.
+type ArcDisplayModel struct {
+	ThresholdArc types.Bool `tfsdk:"threshold_arc"`
+	ValueArc     types.Bool `tfsdk:"value_arc"`
 }
 
 type GaugeQueryModel struct {
@@ -856,6 +865,7 @@ type PieChartModel struct {
 	CustomUnit         types.String                  `tfsdk:"custom_unit"`
 	Decimal            types.Number                  `tfsdk:"decimal"`
 	DecimalPrecision   types.Bool                    `tfsdk:"decimal_precision"`
+	Legend             *LegendModel                  `tfsdk:"legend"`
 	ShowTotal          types.Bool                    `tfsdk:"show_total"`
 }
 
