@@ -17,6 +17,7 @@ package dashboard_widgets
 import (
 	"context"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -1370,6 +1371,76 @@ func TestFlattenDynamicNormalisesEmptyUnionWrappers(t *testing.T) {
 		size := dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_BLUE
 		if got := flattenDynamicGeomapColor(&dashboardservice.GeomapColor{Size: &size}); got == nil || got.Size.IsNull() {
 			t.Errorf("a colour size must read back set, got %v", got)
+		}
+	})
+}
+
+// listvalidator.SizeAtLeast defers when a value is unknown at plan time and
+// validators do not run again at apply time, so a list that resolves to empty
+// during apply reaches conversion with nothing having checked it. Conversion has
+// to reject it, or the apply fails with an inconsistent-result error instead of
+// a message naming the attribute.
+func TestExpandDynamicRejectsKnownEmptyLists(t *testing.T) {
+	ctx := context.Background()
+	observationFields := types.ListType{ElemType: types.ObjectType{AttrTypes: ObservationFieldAttr()}}
+
+	t.Run("empty list reached through the model", func(t *testing.T) {
+		_, diags := ExpandDynamic(ctx, &DynamicModel{
+			Visualization: &DynamicVisualizationModel{
+				HexagonBins: &DynamicHexagonBinsModel{
+					CategoryFields: types.ListValueMust(observationFields.ElemType, []attr.Value{}),
+				},
+			},
+		})
+		if !diags.HasError() {
+			t.Fatal("an empty category_fields must be rejected")
+		}
+		if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "dynamic.visualization.hexagon_bins.category_fields") {
+			t.Errorf("the error must name the attribute, got %q", detail)
+		}
+	})
+
+	t.Run("unknown and null lists pass through", func(t *testing.T) {
+		for name, list := range map[string]types.List{
+			"unknown": types.ListUnknown(observationFields.ElemType),
+			"null":    types.ListNull(observationFields.ElemType),
+		} {
+			diags := dynamicRejectKnownEmptyLists(reflect.ValueOf(DynamicHexagonBinsModel{CategoryFields: list}), "dynamic")
+			if diags.HasError() {
+				t.Errorf("a %s list is not a known-empty one and must pass, got %v", name, diags)
+			}
+		}
+	})
+
+	t.Run("empty is a real selection where it means everything", func(t *testing.T) {
+		empty := types.ListValueMust(types.StringType, []attr.Value{})
+		for path, exempt := range map[string]bool{
+			"dynamic.query_definitions[*].query.logs.filters[*].operator.selected_values":  true,
+			"dynamic.query_definitions[*].query.spans.filters[*].operator.selected_values": true,
+			"dynamic.query_definitions[*].query.logs.filters[*].operator.something_else":   false,
+		} {
+			diags := dynamicRejectKnownEmptyAttributeLists(empty, path)
+			if diags.HasError() == exempt {
+				t.Errorf("%s: expected rejected=%v, got %v", path, !exempt, diags)
+			}
+		}
+	})
+
+	// The walk has to descend through list elements and object attributes, not
+	// just look at the lists hanging directly off the model.
+	t.Run("empty list nested inside a list element", func(t *testing.T) {
+		inner := types.ObjectType{AttrTypes: map[string]attr.Type{"names": types.ListType{ElemType: types.StringType}}}
+		outer := types.ListValueMust(inner, []attr.Value{
+			types.ObjectValueMust(inner.AttrTypes, map[string]attr.Value{
+				"names": types.ListValueMust(types.StringType, []attr.Value{}),
+			}),
+		})
+		diags := dynamicRejectKnownEmptyAttributeLists(outer, "dynamic.outer")
+		if !diags.HasError() {
+			t.Fatal("an empty list nested inside a list element must be rejected")
+		}
+		if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "dynamic.outer[*].names") {
+			t.Errorf("the error must name the nested path, got %q", detail)
 		}
 	})
 }

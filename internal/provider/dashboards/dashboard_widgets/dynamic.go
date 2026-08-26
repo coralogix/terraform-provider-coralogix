@@ -568,9 +568,84 @@ func dynamicThresholdAttr() map[string]attr.Type {
 	}
 }
 
+// Two lists in the widget mean "everything" when left empty, so an empty value
+// is a real selection there and round-trips as a known empty list.
+var dynamicListsWhereEmptyIsMeaningful = map[string]bool{
+	"dynamic.query_definitions[*].query.logs.filters[*].operator.selected_values":  true,
+	"dynamic.query_definitions[*].query.spans.filters[*].operator.selected_values": true,
+}
+
+// Every other list carries a minimum-size validator, but a validator defers on
+// an unknown value and validators do not run again at apply time. A list that
+// planned as unknown and resolved to empty therefore reaches conversion
+// unchecked, and because an empty list reads back as null the apply would fail
+// with an inconsistent-result error - the very thing the validator exists to
+// prevent. Walking the model covers every list at once, so a list added later
+// cannot reintroduce the hole.
+func dynamicRejectKnownEmptyLists(value reflect.Value, attributePath string) diag.Diagnostics {
+	if value.CanInterface() {
+		if attribute, ok := value.Interface().(attr.Value); ok {
+			return dynamicRejectKnownEmptyAttributeLists(attribute, attributePath)
+		}
+	}
+
+	switch value.Kind() {
+	case reflect.Ptr:
+		if value.IsNil() {
+			return nil
+		}
+		return dynamicRejectKnownEmptyLists(value.Elem(), attributePath)
+	case reflect.Struct:
+		var diagnostics diag.Diagnostics
+		for i := 0; i < value.NumField(); i++ {
+			name := value.Type().Field(i).Tag.Get("tfsdk")
+			if name == "" {
+				continue
+			}
+			diagnostics.Append(dynamicRejectKnownEmptyLists(value.Field(i), attributePath+"."+name)...)
+		}
+		return diagnostics
+	}
+
+	return nil
+}
+
+func dynamicRejectKnownEmptyAttributeLists(attribute attr.Value, attributePath string) diag.Diagnostics {
+	if attribute.IsNull() || attribute.IsUnknown() {
+		return nil
+	}
+
+	var diagnostics diag.Diagnostics
+	switch typed := attribute.(type) {
+	case types.List:
+		if len(typed.Elements()) == 0 {
+			if !dynamicListsWhereEmptyIsMeaningful[attributePath] {
+				diagnostics.AddError(
+					"Invalid Attribute Value",
+					fmt.Sprintf("%s cannot be an empty list. Remove the attribute to leave it unset.", attributePath),
+				)
+			}
+			return diagnostics
+		}
+		for _, element := range typed.Elements() {
+			diagnostics.Append(dynamicRejectKnownEmptyAttributeLists(element, attributePath+"[*]")...)
+		}
+	case types.Object:
+		for name, nested := range typed.Attributes() {
+			diagnostics.Append(dynamicRejectKnownEmptyAttributeLists(nested, attributePath+"."+name)...)
+		}
+	}
+
+	return diagnostics
+}
+
 func ExpandDynamic(ctx context.Context, dynamic *DynamicModel) (*dashboardservice.WidgetDefinition, diag.Diagnostics) {
 	if dynamic == nil {
 		return nil, nil
+	}
+
+	if diags := dynamicRejectKnownEmptyLists(reflect.ValueOf(*dynamic), "dynamic"); diags.HasError() {
+		return nil, diags
 	}
 
 	queryDefinitions, diags := expandDynamicQueryDefinitions(ctx, dynamic.QueryDefinitions)
