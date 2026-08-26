@@ -1,0 +1,57 @@
+name: Create IAC CI Teams (CX-55418 one-shot)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  create-teams:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Create four Teams
+        env:
+          CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
+          ORG_KEY: ${{ secrets.CORALOGIX_ORG_KEY }}
+          TEAM_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${ORG_KEY:-}" ]; then
+            export CORALOGIX_API_KEY="$ORG_KEY"
+            echo "Using CORALOGIX_ORG_KEY"
+          else
+            export CORALOGIX_API_KEY="$TEAM_KEY"
+            echo "CORALOGIX_ORG_KEY empty; falling back to CORALOGIX_API_KEY"
+          fi
+          mkdir tf && cd tf
+          cat > main.tf <<'EOF'
+          terraform {
+            required_providers {
+              coralogix = {
+                source  = "coralogix/coralogix"
+                version = "~> 3.0"
+              }
+            }
+          }
+          provider "coralogix" {}
+          resource "coralogix_team" "iac_tf_acc"       { name = "iac-tf-acc";       daily_quota = 0.01 }
+          resource "coralogix_team" "iac_operator_e2e" { name = "iac-operator-e2e"; daily_quota = 0.01 }
+          resource "coralogix_team" "iac_mcp_e2e"      { name = "iac-mcp-e2e";      daily_quota = 0.01 }
+          resource "coralogix_team" "iac_vac_e2e"      { name = "iac-vac-e2e";      daily_quota = 0.01 }
+          output "team_ids" {
+            value = {
+              iac-tf-acc       = coralogix_team.iac_tf_acc.id
+              iac-operator-e2e = coralogix_team.iac_operator_e2e.id
+              iac-mcp-e2e      = coralogix_team.iac_mcp_e2e.id
+              iac-vac-e2e      = coralogix_team.iac_vac_e2e.id
+            }
+          }
+          EOF
+          terraform init -backend=false -input=false
+          terraform apply -auto-approve -input=false
+          terraform output -json team_ids > "$GITHUB_STEP_SUMMARY"
+          terraform output -json team_ids
