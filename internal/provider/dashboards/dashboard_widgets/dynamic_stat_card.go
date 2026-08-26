@@ -708,30 +708,9 @@ func expandDynamicRangeMapping(ctx context.Context, rangeMapping *DynamicRangeMa
 		return nil, diags
 	}
 
-	// The API has no representation for a min/max with neither arm chosen, so
-	// sending an empty one would come back null and fail the apply. Validators
-	// cannot catch this when `auto` is only known after apply.
-	var minMax *dashboardservice.MinMax
-	if rangeMapping.MinMax != nil {
-		switch {
-		case rangeMapping.MinMax.Custom != nil && rangeMapping.MinMax.Auto.ValueBool():
-			return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
-				"Invalid Attribute Combination",
-				"min_max requires exactly one of `auto` or `custom`, not both.",
-			)}
-		case rangeMapping.MinMax.Custom != nil:
-			minMax = &dashboardservice.MinMax{Custom: &dashboardservice.MinMaxCustom{
-				Max: rangeMapping.MinMax.Custom.Max.ValueFloat64Pointer(),
-				Min: rangeMapping.MinMax.Custom.Min.ValueFloat64Pointer(),
-			}}
-		case rangeMapping.MinMax.Auto.ValueBool():
-			minMax = &dashboardservice.MinMax{Auto: map[string]interface{}{}}
-		default:
-			return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
-				"Invalid Attribute Combination",
-				"min_max requires exactly one of `auto` or `custom`, and `auto` must be true. Remove the min_max block to let the widget scale itself.",
-			)}
-		}
+	minMax, diags := expandDynamicMinMax(rangeMapping.MinMax)
+	if diags.HasError() {
+		return nil, diags
 	}
 
 	return &dashboardservice.RangeMapping{
@@ -770,23 +749,8 @@ func flattenDynamicRangeMapping(ctx context.Context, rangeMapping *dashboardserv
 		return nil, diags
 	}
 
-	// Leave min_max unset when the backend chose neither arm: a block with both
-	// children null is state no configuration can produce, so it would diff
-	// forever after an import.
-	var minMax *DynamicMinMaxModel
-	switch {
-	case rangeMapping.MinMax == nil:
-	case rangeMapping.MinMax.Custom != nil:
-		minMax = &DynamicMinMaxModel{Auto: types.BoolNull(), Custom: &DynamicMinMaxCustomModel{
-			Max: types.Float64PointerValue(rangeMapping.MinMax.Custom.Max),
-			Min: types.Float64PointerValue(rangeMapping.MinMax.Custom.Min),
-		}}
-	case rangeMapping.MinMax.Auto != nil:
-		minMax = &DynamicMinMaxModel{Auto: types.BoolValue(true)}
-	}
-
 	return &DynamicRangeMappingModel{
-		MinMax:        minMax,
+		MinMax:        flattenDynamicMinMax(rangeMapping.MinMax),
 		ThresholdType: flattenOptionalEnum(rangeMapping.ThresholdType, DashboardProtoToSchemaThresholdType),
 		Thresholds:    thresholds,
 	}, nil

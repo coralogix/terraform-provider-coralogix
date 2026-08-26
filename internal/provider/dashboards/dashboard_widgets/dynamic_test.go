@@ -1444,3 +1444,47 @@ func TestExpandDynamicRejectsKnownEmptyLists(t *testing.T) {
 		}
 	})
 }
+
+// The stat card carried its own copy of the min/max conversion, so the marker
+// rules added for the spatial visualizations did not apply to it. Both
+// directions now go through the shared helper; these cases fail if either one
+// grows a second copy again.
+func TestExpandDynamicRangeMappingUsesTheSharedMinMaxRules(t *testing.T) {
+	ctx := context.Background()
+	custom := &DynamicMinMaxCustomModel{Max: types.Float64Value(10), Min: types.Float64Value(1)}
+
+	for name, tc := range map[string]struct {
+		minMax    *DynamicMinMaxModel
+		wantError bool
+	}{
+		// An explicit false is present in the configuration yet selects nothing,
+		// and the read cannot write it back, so it has to be rejected rather
+		// than quietly treated as "the other arm".
+		"false auto beside custom": {&DynamicMinMaxModel{Auto: types.BoolValue(false), Custom: custom}, true},
+		"false auto on its own":    {&DynamicMinMaxModel{Auto: types.BoolValue(false)}, true},
+		"true auto beside custom":  {&DynamicMinMaxModel{Auto: types.BoolValue(true), Custom: custom}, true},
+		"neither arm":              {&DynamicMinMaxModel{Auto: types.BoolNull()}, true},
+		"custom alone":             {&DynamicMinMaxModel{Auto: types.BoolNull(), Custom: custom}, false},
+		"true auto alone":          {&DynamicMinMaxModel{Auto: types.BoolValue(true)}, false},
+		"no min_max at all":        {nil, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, diags := expandDynamicRangeMapping(ctx, &DynamicRangeMappingModel{
+				MinMax:     tc.minMax,
+				Thresholds: types.ListNull(types.ObjectType{AttrTypes: dynamicThresholdAttr()}),
+			})
+			if diags.HasError() != tc.wantError {
+				t.Errorf("expected error=%v, got %v", tc.wantError, diags)
+			}
+		})
+	}
+
+	t.Run("a backend min_max with neither arm reads back unset", func(t *testing.T) {
+		got, diags := flattenDynamicRangeMapping(ctx, &dashboardservice.RangeMapping{
+			MinMax: &dashboardservice.MinMax{},
+		})
+		if diags.HasError() || got.MinMax != nil {
+			t.Errorf("an arm-less min_max must read back as absent, got %v %v", got.MinMax, diags)
+		}
+	})
+}
