@@ -80,6 +80,15 @@ func LineChartSchema() schema.Attribute {
 				Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 				MarkdownDescription: fmt.Sprintf("Option to show lines as stacked. Possible values: %v", strings.Join(DashboardValidLineChartStackedLineOptions, ", ")),
 			},
+			"connect_nulls": schema.BoolAttribute{
+				Optional:            true,
+				MarkdownDescription: "When true, a line stays connected across null values instead of breaking into scattered points.",
+			},
+			"use_data_time_range": schema.BoolAttribute{
+				Optional:            true,
+				MarkdownDescription: "When true, the dashboard and widget time frames are ignored and the x-axis covers only the dates present in the returned data.",
+			},
+			"x_axis_time_format": XAxisTimeFormatSchema(),
 			"query_definitions": schema.ListNestedAttribute{
 				Required: true,
 				NestedObject: schema.NestedAttributeObject{
@@ -100,6 +109,7 @@ func LineChartSchema() schema.Attribute {
 											ElementType: types.StringType,
 											Optional:    true,
 										},
+										"group_bys":    ObservationFieldsSchema(),
 										"filters":      LogsFiltersSchema(),
 										"aggregations": LogsAggregationsSchema(),
 										"time_frame":   TimeFrameSchema(),
@@ -117,7 +127,9 @@ func LineChartSchema() schema.Attribute {
 											Computed: true,
 											Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 										},
-										"time_frame": TimeFrameSchema(),
+										"editor_mode":       MetricsEditorModeSchema(),
+										"series_limit_type": MetricsSeriesLimitTypeSchema(),
+										"time_frame":        TimeFrameSchema(),
 									},
 									Optional: true,
 								},
@@ -127,6 +139,7 @@ func LineChartSchema() schema.Attribute {
 											Optional: true,
 										},
 										"group_by":     SpansFieldsSchema(),
+										"group_bys":    SpanObservationFieldsSchema(),
 										"aggregations": SpansAggregationsSchema(),
 										"filters":      SpansFilterSchema(),
 										"time_frame":   TimeFrameSchema(),
@@ -187,7 +200,12 @@ func LineChartSchema() schema.Attribute {
 								stringvalidator.OneOf(DashboardValidColorSchemes...),
 							},
 						},
-						"hash_colors": HashColorsSchema(),
+						"hash_colors":       HashColorsSchema(),
+						"custom_unit":       CustomUnitSchema(),
+						"decimal":           DecimalSchema(),
+						"decimal_precision": DecimalPrecisionSchema(),
+						"y_axis_max":        YAxisMaxSchema(),
+						"y_axis_min":        YAxisMinSchema(),
 						"resolution": schema.SingleNestedAttribute{
 							Attributes: map[string]schema.Attribute{
 								"interval": schema.StringAttribute{
@@ -234,7 +252,10 @@ func LineChartType() types.ObjectType {
 					"type":        types.StringType,
 				},
 			},
-			"stacked_line": types.StringType,
+			"stacked_line":        types.StringType,
+			"connect_nulls":       types.BoolType,
+			"use_data_time_range": types.BoolType,
+			"x_axis_time_format":  types.StringType,
 			"query_definitions": types.ListType{
 				ElemType: types.ObjectType{
 					AttrTypes: lineChartQueryDefinitionModelAttr(),
@@ -255,6 +276,9 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 						"group_by": types.ListType{
 							ElemType: types.StringType,
 						},
+						"group_bys": types.ListType{
+							ElemType: ObservationFieldsObject(),
+						},
 						"aggregations": types.ListType{
 							ElemType: types.ObjectType{
 								AttrTypes: AggregationModelAttr(),
@@ -274,6 +298,8 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 					AttrTypes: map[string]attr.Type{
 						"promql_query":      types.StringType,
 						"promql_query_type": types.StringType,
+						"editor_mode":       types.StringType,
+						"series_limit_type": types.StringType,
 						"filters": types.ListType{
 							ElemType: types.ObjectType{
 								AttrTypes: MetricsFilterModelAttr(),
@@ -290,6 +316,11 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 						"group_by": types.ListType{
 							ElemType: types.ObjectType{
 								AttrTypes: SpansFieldModelAttr(),
+							},
+						},
+						"group_bys": types.ListType{
+							ElemType: types.ObjectType{
+								AttrTypes: SpanObservationFieldAttr(),
 							},
 						},
 						"aggregations": types.ListType{
@@ -330,6 +361,11 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 		"is_visible":           types.BoolType,
 		"color_scheme":         types.StringType,
 		"hash_colors":          types.BoolType,
+		"custom_unit":          types.StringType,
+		"decimal":              types.NumberType,
+		"decimal_precision":    types.BoolType,
+		"y_axis_max":           Float32Type{},
+		"y_axis_min":           Float32Type{},
 		"resolution": types.ObjectType{
 			AttrTypes: map[string]attr.Type{
 				"interval":          types.StringType,
@@ -356,6 +392,9 @@ func FlattenLineChart(ctx context.Context, lineChart *dashboardservice.LineChart
 			Tooltip:          flattenTooltip(lineChart.Tooltip),
 			QueryDefinitions: queryDefinitions,
 			StackedLine:      types.StringValue(lineChartStackedLineProtoToSchemaMap[lineChart.GetStackedLine()]),
+			ConnectNulls:     types.BoolPointerValue(lineChart.ConnectNulls),
+			UseDataTimeRange: types.BoolPointerValue(lineChart.UseDataTimeRange),
+			XAxisTimeFormat:  FlattenEnum(lineChart.GetXAxisTimeFormat(), DashboardProtoToSchemaXAxisTimeFormat),
 		},
 	}, nil
 }
@@ -423,6 +462,11 @@ func flattenLineChartQueryDefinition(ctx context.Context, definition *dashboards
 		IsVisible:          types.BoolPointerValue(definition.IsVisible),
 		ColorScheme:        utils.StringPointerToTypeString(definition.ColorScheme),
 		HashColors:         types.BoolPointerValue(definition.HashColors),
+		CustomUnit:         utils.StringPointerToTypeString(definition.CustomUnit),
+		Decimal:            int32PointerToNumberType(definition.Decimal),
+		DecimalPrecision:   types.BoolPointerValue(definition.DecimalPrecision),
+		YAxisMax:           FlattenFloat32Pointer(definition.YAxisMax),
+		YAxisMin:           FlattenFloat32Pointer(definition.YAxisMin),
 		Resolution:         resolution,
 		DataModeType:       types.StringValue(DashboardProtoToSchemaDataModeType[definition.GetDataModeType()]),
 	}, nil
@@ -521,10 +565,16 @@ func flattenLineChartQueryLogs(ctx context.Context, logs *dashboardservice.LineC
 		return nil, diags
 	}
 
+	groupBys, diags := FlattenObservationFields(ctx, logs.GetGroupBys())
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &LineChartQueryModel{
 		Logs: &LineChartQueryLogsModel{
 			LuceneQuery:  flattenLuceneQuery(logs.LuceneQuery),
 			GroupBy:      utils.StringSliceToTypeStringList(logs.GetGroupBy()),
+			GroupBys:     groupBys,
 			Aggregations: aggregations,
 			Filters:      filters,
 			TimeFrame:    timeFrame,
@@ -574,10 +624,12 @@ func flattenLineChartQueryMetrics(ctx context.Context, metrics *dashboardservice
 	}
 
 	return &LineChartQueryModel{
-		Metrics: &QueryMetricsModel{
+		Metrics: &LineChartQueryMetricsModel{
 			PromqlQuery:     flattenPromqlQuery(metrics.PromqlQuery),
 			Filters:         filters,
 			PromqlQueryType: types.StringValue(utils.UNSPECIFIED),
+			EditorMode:      FlattenEnum(metrics.GetEditorMode(), DashboardProtoToSchemaMetricsEditorMode),
+			SeriesLimitType: FlattenEnum(metrics.GetSeriesLimitType(), dashboardProtoToSchemaMetricsSeriesLimitType),
 			TimeFrame:       timeFrame,
 		},
 	}, nil
@@ -608,10 +660,16 @@ func flattenLineChartQuerySpans(ctx context.Context, spans *dashboardservice.Lin
 		return nil, diags
 	}
 
+	groupBys, diags := FlattenSpanObservationFields(ctx, spans.GetGroupBys())
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &LineChartQueryModel{
 		Spans: &LineChartQuerySpansModel{
 			LuceneQuery:  flattenLuceneQuery(spans.LuceneQuery),
 			GroupBy:      groupBy,
+			GroupBys:     groupBys,
 			Filters:      filters,
 			Aggregations: aggregations,
 			TimeFrame:    timeFrame,
@@ -671,6 +729,9 @@ func ExpandLineChart(ctx context.Context, lineChart *LineChartModel) (*dashboard
 			Tooltip:          expandLineChartTooltip(lineChart.Tooltip),
 			QueryDefinitions: queryDefinitions,
 			StackedLine:      stackedLine.Ptr(),
+			ConnectNulls:     lineChart.ConnectNulls.ValueBoolPointer(),
+			UseDataTimeRange: lineChart.UseDataTimeRange.ValueBoolPointer(),
+			XAxisTimeFormat:  OptionalEnumPointer(lineChart.XAxisTimeFormat, DashboardSchemaToProtoXAxisTimeFormat),
 		},
 	}, nil
 }
@@ -735,6 +796,11 @@ func expandLineChartQueryDefinition(ctx context.Context, queryDefinition *LineCh
 		IsVisible:          queryDefinition.IsVisible.ValueBoolPointer(),
 		ColorScheme:        utils.TypeStringToStringPointer(queryDefinition.ColorScheme),
 		HashColors:         queryDefinition.HashColors.ValueBoolPointer(),
+		CustomUnit:         utils.TypeStringToStringPointer(queryDefinition.CustomUnit),
+		Decimal:            numberTypeToInt32Pointer(queryDefinition.Decimal),
+		DecimalPrecision:   queryDefinition.DecimalPrecision.ValueBoolPointer(),
+		YAxisMax:           ExpandFloat32Pointer(queryDefinition.YAxisMax),
+		YAxisMin:           ExpandFloat32Pointer(queryDefinition.YAxisMin),
 		Resolution:         resolution,
 		DataModeType:       OptionalEnumPointer(queryDefinition.DataModeType, DashboardSchemaToProtoDataModeType),
 	}, nil
@@ -833,16 +899,22 @@ func expandLineChartLogsQuery(ctx context.Context, logs *LineChartQueryLogsModel
 		return nil, diags
 	}
 
+	groupBys, diags := ExpandObservationFields(ctx, logs.GroupBys)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.LineChartLogsQuery{
 		LuceneQuery:  ExpandLuceneQuery(logs.LuceneQuery),
 		GroupBy:      groupBy,
+		GroupBys:     groupBys,
 		Aggregations: aggregations,
 		Filters:      filters,
 		TimeFrame:    timeFrame,
 	}, nil
 }
 
-func expandLineChartMetricsQuery(ctx context.Context, metrics *QueryMetricsModel) (*dashboardservice.LineChartMetricsQuery, diag.Diagnostics) {
+func expandLineChartMetricsQuery(ctx context.Context, metrics *LineChartQueryMetricsModel) (*dashboardservice.LineChartMetricsQuery, diag.Diagnostics) {
 	if metrics == nil {
 		return nil, nil
 	}
@@ -858,9 +930,11 @@ func expandLineChartMetricsQuery(ctx context.Context, metrics *QueryMetricsModel
 	}
 
 	return &dashboardservice.LineChartMetricsQuery{
-		PromqlQuery: ExpandPromqlQuery(metrics.PromqlQuery),
-		Filters:     filters,
-		TimeFrame:   timeFrame,
+		PromqlQuery:     ExpandPromqlQuery(metrics.PromqlQuery),
+		Filters:         filters,
+		EditorMode:      OptionalEnumPointer(metrics.EditorMode, DashboardSchemaToProtoMetricsEditorMode),
+		SeriesLimitType: OptionalEnumPointer(metrics.SeriesLimitType, dashboardSchemaToProtoMetricsSeriesLimitType),
+		TimeFrame:       timeFrame,
 	}, nil
 }
 
@@ -889,9 +963,15 @@ func expandLineChartSpansQuery(ctx context.Context, spans *LineChartQuerySpansMo
 		return nil, diags
 	}
 
+	groupBys, diags := ExpandSpanObservationFields(ctx, spans.GroupBys)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.LineChartSpansQuery{
 		LuceneQuery:  ExpandLuceneQuery(spans.LuceneQuery),
 		GroupBy:      groupBy,
+		GroupBys:     groupBys,
 		Aggregations: aggregations,
 		Filters:      filters,
 		TimeFrame:    timeFrame,

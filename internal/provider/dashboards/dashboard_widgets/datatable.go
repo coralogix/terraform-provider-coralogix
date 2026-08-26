@@ -140,7 +140,8 @@ func DataTableSchema() schema.Attribute {
 									stringvalidator.OneOf(DashboardValidPromQLQueryType...),
 								},
 							},
-							"time_frame": TimeFrameSchema(),
+							"editor_mode": MetricsEditorModeSchema(),
+							"time_frame":  TimeFrameSchema(),
 						},
 						Optional: true,
 					},
@@ -301,6 +302,7 @@ func DataTableType() types.ObjectType {
 						AttrTypes: map[string]attr.Type{
 							"promql_query":      types.StringType,
 							"promql_query_type": types.StringType,
+							"editor_mode":       types.StringType,
 							"filters": types.ListType{
 								ElemType: types.ObjectType{
 									AttrTypes: MetricsFilterModelAttr(),
@@ -496,6 +498,7 @@ func flattenDataTableMetricsQuery(ctx context.Context, metrics *dashboardservice
 			PromqlQueryType: types.StringValue(DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
 			PromqlQuery:     flattenPromqlQuery(metrics.PromqlQuery),
 			Filters:         filters,
+			EditorMode:      FlattenEnum(metrics.GetEditorMode(), DashboardProtoToSchemaMetricsEditorMode),
 			TimeFrame:       timeFrame,
 		},
 	}, nil
@@ -744,6 +747,7 @@ func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *Quer
 		PromqlQuery:     ExpandPromqlQuery(dataTableQueryMetric.PromqlQuery),
 		Filters:         filters,
 		PromqlQueryType: expandPromqlQueryType(dataTableQueryMetric.PromqlQueryType).Ptr(),
+		EditorMode:      OptionalEnumPointer(dataTableQueryMetric.EditorMode, DashboardSchemaToProtoMetricsEditorMode),
 		TimeFrame:       timeFrame,
 	}, nil
 }

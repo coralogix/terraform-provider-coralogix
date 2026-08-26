@@ -232,9 +232,9 @@ func dynamicHeatmapSchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidXAxisTimeFormat...),
+					stringvalidator.OneOf(DashboardValidXAxisTimeFormats...),
 				},
-				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(dashboardValidXAxisTimeFormat, ", ")),
+				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(DashboardValidXAxisTimeFormats, ", ")),
 			},
 			"y_axis_fields": schema.ListNestedAttribute{
 				Optional: true,
@@ -607,8 +607,8 @@ func expandDynamicHeatmap(ctx context.Context, m *DynamicHeatmapModel) (*dashboa
 
 	return &dashboardservice.Heatmap{
 		AllowAbbreviation:   m.AllowAbbreviation.ValueBoolPointer(),
-		ColorAxisMax:        expandFloat32Pointer(m.ColorAxisMax),
-		ColorAxisMin:        expandFloat32Pointer(m.ColorAxisMin),
+		ColorAxisMax:        ExpandFloat32Pointer(m.ColorAxisMax),
+		ColorAxisMin:        ExpandFloat32Pointer(m.ColorAxisMin),
 		ColorRange:          colorRange,
 		CustomUnit:          m.CustomUnit.ValueStringPointer(),
 		DecimalPrecision:    expandInt32Pointer(m.DecimalPrecision),
@@ -620,7 +620,7 @@ func expandDynamicHeatmap(ctx context.Context, m *DynamicHeatmapModel) (*dashboa
 		Unit:                OptionalEnumPointer(m.Unit, DashboardSchemaToProtoUnit),
 		ValueField:          valueField,
 		XAxisFields:         xAxisFields,
-		XAxisTimeFormat:     OptionalEnumPointer(m.XAxisTimeFormat, dashboardSchemaToProtoXAxisTimeFormat),
+		XAxisTimeFormat:     OptionalEnumPointer(m.XAxisTimeFormat, DashboardSchemaToProtoXAxisTimeFormat),
 		YAxisFields:         yAxisFields,
 	}, nil
 }
@@ -911,8 +911,8 @@ func flattenDynamicHeatmap(ctx context.Context, m *dashboardservice.Heatmap) (*D
 
 	return &DynamicHeatmapModel{
 		AllowAbbreviation:   types.BoolPointerValue(m.AllowAbbreviation),
-		ColorAxisMax:        flattenFloat32Pointer(m.ColorAxisMax),
-		ColorAxisMin:        flattenFloat32Pointer(m.ColorAxisMin),
+		ColorAxisMax:        FlattenFloat32Pointer(m.ColorAxisMax),
+		ColorAxisMin:        FlattenFloat32Pointer(m.ColorAxisMin),
 		ColorRange:          flattenOptionalEnum(m.ColorRange, dashboardProtoToSchemaColorGradientType),
 		CustomUnit:          types.StringPointerValue(m.CustomUnit),
 		DecimalPrecision:    flattenInt32Pointer(m.DecimalPrecision),
@@ -924,7 +924,7 @@ func flattenDynamicHeatmap(ctx context.Context, m *dashboardservice.Heatmap) (*D
 		Unit:                flattenOptionalEnum(m.Unit, DashboardProtoToSchemaUnit),
 		ValueField:          valueField,
 		XAxisFields:         xAxisFields,
-		XAxisTimeFormat:     flattenOptionalEnum(m.XAxisTimeFormat, dashboardProtoToSchemaXAxisTimeFormat),
+		XAxisTimeFormat:     flattenOptionalEnum(m.XAxisTimeFormat, DashboardProtoToSchemaXAxisTimeFormat),
 		YAxisFields:         yAxisFields,
 	}, nil
 }

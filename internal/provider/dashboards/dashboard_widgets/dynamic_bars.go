@@ -873,8 +873,8 @@ func expandDynamicVerticalBars(ctx context.Context, bars *DynamicVerticalBarsMod
 		SubCategoryFields: subCategoryFields,
 		Unit:              OptionalEnumPointer(bars.Unit, DashboardSchemaToProtoUnit),
 		ValueField:        valueField,
-		YAxisMax:          expandFloat32Pointer(bars.YAxisMax),
-		YAxisMin:          expandFloat32Pointer(bars.YAxisMin),
+		YAxisMax:          ExpandFloat32Pointer(bars.YAxisMax),
+		YAxisMin:          ExpandFloat32Pointer(bars.YAxisMin),
 	}, nil
 }
 
@@ -916,8 +916,8 @@ func expandDynamicVerticalBarsMulti(ctx context.Context, bars *DynamicVerticalBa
 		ScaleType:          OptionalEnumPointer(bars.ScaleType, DashboardSchemaToProtoScaleType),
 		SortOrder:          sortOrder,
 		Unit:               OptionalEnumPointer(bars.Unit, DashboardSchemaToProtoUnit),
-		YAxisMax:           expandFloat32Pointer(bars.YAxisMax),
-		YAxisMin:           expandFloat32Pointer(bars.YAxisMin),
+		YAxisMax:           ExpandFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           ExpandFloat32Pointer(bars.YAxisMin),
 	}, nil
 }
 
@@ -961,8 +961,8 @@ func expandDynamicHorizontalBars(ctx context.Context, bars *DynamicHorizontalBar
 		SubCategoryFields: subCategoryFields,
 		Unit:              OptionalEnumPointer(bars.Unit, DashboardSchemaToProtoUnit),
 		ValueField:        valueField,
-		YAxisMax:          expandFloat32Pointer(bars.YAxisMax),
-		YAxisMin:          expandFloat32Pointer(bars.YAxisMin),
+		YAxisMax:          ExpandFloat32Pointer(bars.YAxisMax),
+		YAxisMin:          ExpandFloat32Pointer(bars.YAxisMin),
 		YAxisViewBy:       OptionalEnumPointer(bars.YAxisViewBy, dashboardSchemaToProtoHorizontalBarsYAxisViewBy),
 	}, nil
 }
@@ -1005,8 +1005,8 @@ func expandDynamicHorizontalBarsMulti(ctx context.Context, bars *DynamicHorizont
 		ScaleType:          OptionalEnumPointer(bars.ScaleType, DashboardSchemaToProtoScaleType),
 		SortOrder:          sortOrder,
 		Unit:               OptionalEnumPointer(bars.Unit, DashboardSchemaToProtoUnit),
-		YAxisMax:           expandFloat32Pointer(bars.YAxisMax),
-		YAxisMin:           expandFloat32Pointer(bars.YAxisMin),
+		YAxisMax:           ExpandFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           ExpandFloat32Pointer(bars.YAxisMin),
 		YAxisViewBy:        OptionalEnumPointer(bars.YAxisViewBy, dashboardSchemaToProtoHorizontalBarsMultiYAxisViewBy),
 	}, nil
 }
@@ -1055,8 +1055,8 @@ func flattenDynamicVerticalBars(ctx context.Context, bars *dashboardservice.Vert
 		SubCategoryFields: subCategoryFields,
 		Unit:              flattenOptionalEnum(bars.Unit, DashboardProtoToSchemaUnit),
 		ValueField:        valueField,
-		YAxisMax:          flattenFloat32Pointer(bars.YAxisMax),
-		YAxisMin:          flattenFloat32Pointer(bars.YAxisMin),
+		YAxisMax:          FlattenFloat32Pointer(bars.YAxisMax),
+		YAxisMin:          FlattenFloat32Pointer(bars.YAxisMin),
 	}, nil
 }
 
@@ -1095,8 +1095,8 @@ func flattenDynamicVerticalBarsMulti(ctx context.Context, bars *dashboardservice
 		ScaleType:          flattenOptionalEnum(bars.ScaleType, DashboardProtoToSchemaScaleType),
 		SortOrder:          flattenDynamicSortOrder(bars.SortOrder),
 		Unit:               flattenOptionalEnum(bars.Unit, DashboardProtoToSchemaUnit),
-		YAxisMax:           flattenFloat32Pointer(bars.YAxisMax),
-		YAxisMin:           flattenFloat32Pointer(bars.YAxisMin),
+		YAxisMax:           FlattenFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           FlattenFloat32Pointer(bars.YAxisMin),
 	}, nil
 }
 
@@ -1142,8 +1142,8 @@ func flattenDynamicHorizontalBars(ctx context.Context, bars *dashboardservice.Ho
 		SubCategoryFields: subCategoryFields,
 		Unit:              flattenOptionalEnum(bars.Unit, DashboardProtoToSchemaUnit),
 		ValueField:        valueField,
-		YAxisMax:          flattenFloat32Pointer(bars.YAxisMax),
-		YAxisMin:          flattenFloat32Pointer(bars.YAxisMin),
+		YAxisMax:          FlattenFloat32Pointer(bars.YAxisMax),
+		YAxisMin:          FlattenFloat32Pointer(bars.YAxisMin),
 		YAxisViewBy:       flattenOptionalEnum(bars.YAxisViewBy, dashboardProtoToSchemaHorizontalBarsYAxisViewBy),
 	}, nil
 }
@@ -1183,8 +1183,8 @@ func flattenDynamicHorizontalBarsMulti(ctx context.Context, bars *dashboardservi
 		ScaleType:          flattenOptionalEnum(bars.ScaleType, DashboardProtoToSchemaScaleType),
 		SortOrder:          flattenDynamicSortOrder(bars.SortOrder),
 		Unit:               flattenOptionalEnum(bars.Unit, DashboardProtoToSchemaUnit),
-		YAxisMax:           flattenFloat32Pointer(bars.YAxisMax),
-		YAxisMin:           flattenFloat32Pointer(bars.YAxisMin),
+		YAxisMax:           FlattenFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           FlattenFloat32Pointer(bars.YAxisMin),
 		YAxisViewBy:        flattenOptionalEnum(bars.YAxisViewBy, dashboardProtoToSchemaHorizontalBarsMultiYAxisViewBy),
 	}, nil
 }

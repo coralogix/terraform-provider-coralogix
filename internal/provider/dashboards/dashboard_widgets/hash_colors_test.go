@@ -38,7 +38,7 @@ func TestLineChartQueryDefinitionHashColorsRoundTrip(t *testing.T) {
 			model := &LineChartQueryDefinitionModel{
 				ID: types.StringValue("11111111-1111-1111-1111-111111111111"),
 				Query: &LineChartQueryModel{
-					Metrics: &QueryMetricsModel{
+					Metrics: &LineChartQueryMetricsModel{
 						PromqlQuery: types.StringValue("http_requests_total"),
 						Filters:     types.ListNull(types.ObjectType{AttrTypes: MetricsFilterModelAttr()}),
 					},
