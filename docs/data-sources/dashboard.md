@@ -687,7 +687,7 @@ Read-Only:
 - `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
 - `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
 - `data_mode_type` (String)
-- `decimal` (Number) The number of decimal places shown for numeric values. The API accepts 0 to 15.
+- `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number; the API accepts 0 to 15.
 - `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
@@ -3038,7 +3038,7 @@ Read-Only:
 
 - `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
 - `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
-- `decimal` (Number)
+- `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number; the API accepts 0 to 15.
 - `display_series_name` (Boolean)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--legend))
 - `legend_by` (String) What the legend lists. Valid values are: groups, thresholds, unspecified.
@@ -3881,7 +3881,7 @@ Read-Only:
 - `colors_by` (String) Which dimension the bar colors follow. Can be one of stack, group_by, aggregation, query, category.
 - `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
 - `data_mode_type` (String)
-- `decimal` (Number) The number of decimal places shown for numeric values. The API accepts 0 to 15.
+- `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number; the API accepts 0 to 15.
 - `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
@@ -4372,7 +4372,7 @@ Read-Only:
 - `color_scheme` (String)
 - `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
 - `data_mode_type` (String)
-- `decimal` (Number) The number of decimal places shown for numeric values. The API accepts 0 to 15.
+- `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number; the API accepts 0 to 15.
 - `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `id` (String)
@@ -4810,7 +4810,7 @@ Read-Only:
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
 - `custom_unit` (String) A custom unit label. Takes effect only when `unit` is `custom`.
 - `data_mode_type` (String)
-- `decimal` (Number) The number of decimal places shown for numeric values. The API accepts 0 to 15.
+- `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number; the API accepts 0 to 15.
 - `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.

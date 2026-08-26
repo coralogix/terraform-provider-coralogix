@@ -4,6 +4,7 @@
 - FEAT: Add `EQUALS` and `NOT_EQUALS` condition types for logs and metric threshold alerts.
 
 #### resource/coralogix_dashboard
+- FIX: A `decimal` on the `gauge`, `line_chart`, `bar_chart`, `horizontal_bar_chart` or `pie_chart` widget now rejects a value the API's 32-bit integer field cannot hold. A fractional value such as `1.5` was truncated to `1`, and a large value wrapped, so the request carried a number the user never wrote and the apply then failed with an inconsistent result.
 - FEAT: Add `editor_mode` to the `data_table` metrics query, so a data table saved from the PromQL builder in the Coralogix UI keeps that setting.
 - FEAT: Add the remaining `gauge` display and query fields: `custom_unit`, `legend`, `legend_by` and `show_min_max` on the widget; `group_by` on the logs query and `group_by` plus `group_bys` on the spans query, for grouping the gauge value; and `editor_mode` and `promql_query_type` on the metrics query.
 - FEAT: Add the remaining `pie_chart` display and query fields: `custom_unit`, `decimal`, `decimal_precision` and `show_total` on the widget; `aggregation`, `editor_mode` and `promql_query_type` on the metrics query; and `group_names_fields` and `stacked_group_name_field` on the spans query.

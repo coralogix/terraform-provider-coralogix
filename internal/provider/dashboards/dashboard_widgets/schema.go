@@ -441,13 +441,36 @@ func CustomUnitSchema() schema.StringAttribute {
 }
 
 // DecimalSchema is the number of decimal places shown for numeric values. The
-// API documents the range as 0-15 but the generated type is a plain integer, so
-// the bound is left to the API instead of a validator that could reject values
-// the API accepts.
+// API documents the range as 0-15 but the generated type is a plain int32, so
+// that bound is left to the API instead of a validator that could reject values
+// the API accepts. What the int32 itself cannot hold is rejected, because the
+// conversion would otherwise truncate or wrap the value silently.
 func DecimalSchema() schema.NumberAttribute {
 	return schema.NumberAttribute{
-		Optional:            true,
-		MarkdownDescription: "The number of decimal places shown for numeric values. The API accepts 0 to 15.",
+		Optional: true,
+		Validators: []validator.Number{
+			int32NumberValidator{},
+		},
+		MarkdownDescription: "The number of decimal places shown for numeric values. Must be a whole number; the API accepts 0 to 15.",
+	}
+}
+
+// NonEmptySpansFieldsSchema is SpansFieldsSchema with an explicit empty list
+// rejected. A zero-length list flattens back as null, so accepting one leaves a
+// permanent diff. SpansFieldsSchema itself is shared with the frozen prior
+// schemas and cannot gain the validator.
+func NonEmptySpansFieldsSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: SpansFieldAttributes(),
+			Validators: []validator.Object{
+				spansFieldValidator{},
+			},
+		},
+		Optional: true,
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
 	}
 }
 
