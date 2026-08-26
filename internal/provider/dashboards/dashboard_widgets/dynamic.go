@@ -17,7 +17,6 @@ package dashboard_widgets
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -820,24 +819,43 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 	return nil, nil
 }
 
-// Counted by reflection rather than a hand-written list, so a visualization
-// added to the model cannot drift out of the check above.
-func dynamicSelectedVisualizations(visualization *DynamicVisualizationModel) []string {
-	value := reflect.ValueOf(*visualization)
-	fields := value.Type()
+type dynamicVisualizationArm struct {
+	name     string
+	selected bool
+}
 
-	var selected []string
-	for i := 0; i < value.NumField(); i++ {
-		if value.Field(i).Kind() != reflect.Ptr || value.Field(i).IsNil() {
-			continue
-		}
-		name := fields.Field(i).Tag.Get("tfsdk")
-		if name == "" {
-			name = fields.Field(i).Name
-		}
-		selected = append(selected, name)
+// Listed explicitly rather than discovered by reflection, so every field is
+// referenced at compile time and a pointer added to the model for anything
+// other than a visualization cannot be mistaken for one.
+// TestDynamicVisualizationArmsMatchTheSchema keeps this list and the schema
+// from drifting apart.
+func dynamicVisualizationArms(visualization *DynamicVisualizationModel) []dynamicVisualizationArm {
+	return []dynamicVisualizationArm{
+		{"stat", visualization.Stat != nil},
+		{"stat_card", visualization.StatCard != nil},
+		{"table", visualization.Table != nil},
+		{"time_series_lines", visualization.TimeSeriesLines != nil},
+		{"time_series_lines_multi", visualization.TimeSeriesLinesMulti != nil},
+		{"time_series_bars", visualization.TimeSeriesBars != nil},
+		{"vertical_bars", visualization.VerticalBars != nil},
+		{"vertical_bars_multi", visualization.VerticalBarsMulti != nil},
+		{"horizontal_bars", visualization.HorizontalBars != nil},
+		{"horizontal_bars_multi", visualization.HorizontalBarsMulti != nil},
+		{"gauge", visualization.Gauge != nil},
+		{"pie_chart", visualization.PieChart != nil},
+		{"hexagon_bins", visualization.HexagonBins != nil},
+		{"heatmap", visualization.Heatmap != nil},
+		{"geomap", visualization.Geomap != nil},
 	}
+}
 
+func dynamicSelectedVisualizations(visualization *DynamicVisualizationModel) []string {
+	var selected []string
+	for _, arm := range dynamicVisualizationArms(visualization) {
+		if arm.selected {
+			selected = append(selected, arm.name)
+		}
+	}
 	return selected
 }
 

@@ -1417,3 +1417,68 @@ func TestExpandDynamicRangeMappingUsesTheSharedMinMaxRules(t *testing.T) {
 		}
 	})
 }
+
+// The arm list, the schema attributes and the exactly-one-of validator all
+// enumerate the same visualizations. A visualization added to one and missed in
+// another fails silently: absent from the arm list it never counts towards the
+// union check, so two visualizations reach conversion and the dispatch keeps the
+// first and discards the rest.
+func TestDynamicVisualizationArmsMatchTheSchema(t *testing.T) {
+	dynamic, ok := DynamicSchema().(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("expected the dynamic widget schema to be a single nested attribute, got %T", DynamicSchema())
+	}
+	visualization, ok := dynamic.Attributes["visualization"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("expected visualization to be a single nested attribute, got %T", dynamic.Attributes["visualization"])
+	}
+
+	arms := make(map[string]bool)
+	for _, arm := range dynamicVisualizationArms(&DynamicVisualizationModel{}) {
+		if arms[arm.name] {
+			t.Errorf("%q is listed twice in dynamicVisualizationArms", arm.name)
+		}
+		arms[arm.name] = true
+	}
+
+	for name := range visualization.Attributes {
+		if !arms[name] {
+			t.Errorf("the schema declares %q but dynamicVisualizationArms does not; it would never count "+
+				"towards the exactly-one check", name)
+		}
+	}
+	for name := range arms {
+		if _, ok := visualization.Attributes[name]; !ok {
+			t.Errorf("dynamicVisualizationArms lists %q but the schema has no such attribute", name)
+		}
+	}
+
+	// The validator carries its own copy of the same names.
+	var validated []string
+	for _, candidate := range visualization.Validators {
+		if oneOf, ok := candidate.(ExactlyOneOfChildrenValidator); ok {
+			validated = oneOf.ChildNames
+		}
+	}
+	if len(validated) == 0 {
+		t.Fatal("visualization has no ExactlyOneOfChildren validator; the union is unguarded at plan time")
+	}
+	for _, name := range validated {
+		if !arms[name] {
+			t.Errorf("ExactlyOneOfChildren guards %q but dynamicVisualizationArms does not list it", name)
+		}
+	}
+	if len(validated) != len(arms) {
+		t.Errorf("ExactlyOneOfChildren guards %d names but there are %d arms", len(validated), len(arms))
+	}
+
+	// Every arm must report itself selected when, and only when, its field is
+	// set — otherwise the list compiles and still counts nothing.
+	for _, arm := range dynamicVisualizationArms(&DynamicVisualizationModel{Geomap: &DynamicGeomapModel{}}) {
+		if want := arm.name == "geomap"; arm.selected != want {
+			t.Errorf("with only geomap set, %q reported selected=%v", arm.name, arm.selected)
+		}
+	}
+
+	t.Logf("%d visualization arm(s) agree across the model, the schema and the validator", len(arms))
+}
