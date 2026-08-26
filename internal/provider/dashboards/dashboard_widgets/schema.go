@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -509,6 +510,12 @@ func XAxisTimeFormatSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidXAxisTimeFormats...),
 		},
@@ -520,6 +527,12 @@ func MetricsEditorModeSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidMetricsEditorModes...),
 		},
@@ -531,6 +544,12 @@ func MetricsSeriesLimitTypeSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
 		Validators: []validator.String{
 			stringvalidator.OneOf(dashboardValidMetricsSeriesLimitTypes...),
 		},
@@ -542,6 +561,12 @@ func PromQLQueryTypeSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidPromQLQueryType...),
 		},
@@ -593,6 +618,12 @@ func CommonAggregationSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidCommonAggregations...),
 		},
@@ -604,6 +635,12 @@ func BarValueDisplaySchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidBarValueDisplays...),
 		},
@@ -615,6 +652,12 @@ func LegendBySchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidLegendBys...),
 		},

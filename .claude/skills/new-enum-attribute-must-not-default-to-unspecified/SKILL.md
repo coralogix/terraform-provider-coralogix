@@ -16,20 +16,32 @@ Default:  stringdefault.StaticString(utils.UNSPECIFIED),   // asserts what the A
 Or a `Provider migration (...)` job fails with `expected NoOp, got action(s): [update]` while
 every create-and-apply acceptance test passes.
 
-**Fix:** drop the `Default`. Keep `Optional + Computed`.
+**Fix:** three parts, and all three are needed.
 
 ```go
-Optional: true, Computed: true,
+Optional: true, Computed: true,                       // 1. no Default
+PlanModifiers: []planmodifier.String{
+    stringplanmodifier.UseNonNullStateForUnknown(),   // 2. keep what the API chose
+},
 Validators: []validator.String{stringvalidator.OneOf(valid...)},
-MarkdownDescription: "... The API chooses a value when this is omitted, so set " +
-    "`unspecified` explicitly to go back to that. ...",
 ```
 
-Terraform then proposes the prior state value when the configuration omits the attribute, so
-the API's own choice survives and the plan is empty. The request omits the field instead of
-sending `UNSPECIFIED`, which is what lets the API choose. State the escape hatch in the
-description: removing an explicitly set value keeps the old one, as for any Optional+Computed
-attribute, and setting `unspecified` hands the choice back.
+```go
+// 3. an absent field arrives as the enum's zero value, "", which is in no map
+func FlattenEnum[T ~string](value T, mapping map[T]string) types.String {
+    if name, ok := mapping[value]; ok {
+        return types.StringValue(name)
+    }
+    return types.StringValue(utils.UNSPECIFIED)
+}
+```
+
+Miss part 3 and flatten writes `""`, a value the schema does not allow. Miss part 2 and the
+attribute plans unknown on every update, because the framework plans an omitted nested
+Optional+Computed attribute as unknown whatever the prior state holds — `UseNonNullStateForUnknown`
+rather than `UseStateForUnknown`, so an element added to a list on update keeps its unknown plan
+instead of copying null. Say in the description that setting `unspecified` explicitly hands the
+choice back, because removing the attribute now keeps the previous value.
 
 **Why:** a dashboard created by an earlier release has no value for the new field, so the API
 returns whatever *it* defaults to — often not `UNSPECIFIED`. A static default claims otherwise,
@@ -37,7 +49,9 @@ so the first plan after upgrading wants to change a field the user never wrote. 
 tests cannot see this: they send `UNSPECIFIED` themselves and the API echoes it back.
 
 A default is only safe once you have confirmed the API stores `UNSPECIFIED` for an absent field.
-The migration jobs are what prove it, so run them before trusting a default:
+Sending a value hides parts 2 and 3 completely: the API echoes what you sent, so the map never
+misses and the plan value is never unknown. Only omitting the field exposes them, and only the
+migration and `PlanOnly` acceptance steps run that path:
 
 ```bash
 CORALOGIX_DASHBOARD_MIGRATION_ACC=1 TF_ACC=1 go test ./internal/provider \
