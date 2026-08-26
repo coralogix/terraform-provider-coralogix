@@ -36,6 +36,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -90,7 +91,12 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 			"members": schema.SetAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "IDs of the users that make up the group, as the complete member list. Omit the argument to leave membership unmanaged by this resource - Terraform then reads and stores the group's current members without changing them, which is what to do when membership is maintained in the Coralogix UI or by `coralogix_group_attachment`. Set `members = []` to remove every member. A single group's membership must be managed either here or by `coralogix_group_attachment`, never by both.",
 			},
 			"role": schema.StringAttribute{
 				Required: true,
@@ -152,6 +158,7 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	state.Members = membersForState(plan.Members, state.Members)
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -204,19 +211,31 @@ func flattenSCIMGroup(group *clientset.SCIMGroup) (*GroupResourceModel, diag.Dia
 }
 
 func flattenSCIMGroupMembers(members []clientset.SCIMGroupMember) (types.Set, diag.Diagnostics) {
-	if len(members) == 0 {
-		return types.SetNull(types.StringType), nil
-	}
-	var diags diag.Diagnostics
 	membersIDs := make([]attr.Value, 0, len(members))
 	for _, member := range members {
 		membersIDs = append(membersIDs, types.StringValue(member.Value))
 	}
-	if diags.HasError() {
-		return types.SetNull(types.StringType), diags
-	}
 
 	return types.SetValue(types.StringType, membersIDs)
+}
+
+// membersForState keeps the members written to state consistent with the plan, which the
+// framework requires whenever the planned value is known. An unknown plan accepts the
+// group's actual membership, which is what a create or an unmanaged member list produces.
+func membersForState(planned, flattened types.Set) types.Set {
+	if planned.IsUnknown() {
+		return flattened
+	}
+	return planned
+}
+
+// membersUnmanaged reports whether the configuration leaves membership to be maintained
+// elsewhere. Ownership is decided by the configuration alone - prior state carries members
+// this resource merely read, so it cannot say whether the configuration manages them.
+// Only a null value means the argument was omitted: an unknown one was configured from a
+// value Terraform has still to resolve, and it resolves before the member list is applied.
+func membersUnmanaged(configuredMembers types.Set) bool {
+	return configuredMembers.IsNull()
 }
 
 func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -250,13 +269,13 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	respStr, _ := json.Marshal(getGroupResp)
 	log.Printf("[INFO] Received Group: %s", string(respStr))
 
-	state, diags = flattenSCIMGroup(getGroupResp)
+	newState, diags := flattenSCIMGroup(getGroupResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	diags = resp.State.Set(ctx, &state)
+	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -269,15 +288,37 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
+	var config *GroupResourceModel
+	diags = req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	groupUpdateReq, diags := extractGroup(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
+	groupID := plan.ID.ValueString()
+
+	// The SCIM update is a full replace, so an unmanaged member list has to be sent back as it stands.
+	if membersUnmanaged(config.Members) {
+		currentGroup, err := r.client.GetGroup(ctx, groupID)
+		if err != nil {
+			log.Printf("[ERROR] Received error: %s", err.Error())
+			resp.Diagnostics.AddError(
+				"Error reading Group",
+				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, groupID), ""),
+			)
+			return
+		}
+		groupUpdateReq.Members = currentGroup.Members
+	}
+
 	groupStr, _ := json.Marshal(groupUpdateReq)
 	log.Printf("[INFO] Updating Group: %s", string(groupStr))
-	groupID := plan.ID.ValueString()
 	groupUpdateResp, err := r.client.UpdateGroup(ctx, groupID, groupUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
@@ -312,13 +353,14 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	groupStr, _ = json.Marshal(getGroupResp)
 	log.Printf("[INFO] Received Group: %s", string(groupStr))
 
-	state, diags := flattenSCIMGroup(getGroupResp)
+	newState, diags := flattenSCIMGroup(getGroupResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	newState.Members = membersForState(plan.Members, newState.Members)
 
-	diags = resp.State.Set(ctx, state)
+	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 }
 

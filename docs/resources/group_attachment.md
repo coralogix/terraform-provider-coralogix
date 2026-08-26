@@ -59,4 +59,4 @@ resource "coralogix_group_attachment" "example" {
 ### Required
 
 - `group_id` (String) The ID of the group to attach the users to
-- `user_ids` (Set of String) The IDs of the users to attach to the group
+- `user_ids` (Set of String) The IDs of the users to attach to the group. A single group's membership must be managed either by this resource or by the `members` argument of `coralogix_group`, never by both.

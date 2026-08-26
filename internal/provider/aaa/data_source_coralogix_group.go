@@ -88,6 +88,11 @@ func (d *GroupDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest
 		nameAttr.Optional = true
 		resp.Schema.Attributes["display_name"] = nameAttr
 	}
+
+	if membersAttr, ok := resp.Schema.Attributes["members"].(schema.SetAttribute); ok {
+		membersAttr.MarkdownDescription = "IDs of the users that make up the group."
+		resp.Schema.Attributes["members"] = membersAttr
+	}
 }
 
 func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
