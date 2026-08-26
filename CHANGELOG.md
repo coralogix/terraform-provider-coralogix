@@ -1,5 +1,8 @@
 # Unreleased
 
+#### data-source/coralogix_user
+- FEAT: A user can now be looked up by `user_name` — the email address — instead of only by `id`. Exactly one of the two must be set, and the match is case-insensitive, so a config does not have to track the letter case SSO login stored.
+
 #### resource/coralogix_alert
 - FEAT: Add `EQUALS` and `NOT_EQUALS` condition types for logs and metric threshold alerts.
 

@@ -15,12 +15,21 @@
 package provider
 
 import (
+	"fmt"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 var userDataSourceName = "data." + userResourceName
+
+var (
+	userByUserNameDataSourceName          = "data.coralogix_user.by_user_name"
+	userByMixedCaseUserNameDataSourceName = "data.coralogix_user.by_mixed_case_user_name"
+)
 
 func TestAccCoralogixDataSourceUser_basic(t *testing.T) {
 	userName := randUserName()
@@ -39,9 +48,69 @@ func TestAccCoralogixDataSourceUser_basic(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixDataSourceUser_byUserName(t *testing.T) {
+	userName := randUserName()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckUserDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceUser(userName) +
+					testAccCoralogixDataSourceUser_readByUserName(userName),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPair(userByUserNameDataSourceName, "id", userResourceName, "id"),
+					resource.TestCheckResourceAttr(userByUserNameDataSourceName, "user_name", userName),
+					resource.TestCheckResourceAttrPair(userByMixedCaseUserNameDataSourceName, "id", userResourceName, "id"),
+					resource.TestCheckResourceAttr(userByMixedCaseUserNameDataSourceName, "user_name", strings.ToUpper(userName)),
+					resource.TestCheckResourceAttrPair(userByUserNameDataSourceName, "name.given_name", userResourceName, "name.given_name"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixDataSourceUser_byUserNameNotFound(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixDataSourceUser_readByUserNameOnly(randUserName()),
+				ExpectError: regexp.MustCompile("User with user_name .* not found"),
+			},
+		},
+	})
+}
+
 func testAccCoralogixDataSourceUser_read() string {
 	return `data "coralogix_user" "test" {
 	id = coralogix_user.test.id
 	}
 `
+}
+
+func testAccCoralogixDataSourceUser_readByUserName(userName string) string {
+	return fmt.Sprintf(`
+	data "coralogix_user" "by_user_name" {
+	  user_name  = "%s"
+	  depends_on = [coralogix_user.test]
+	}
+
+	data "coralogix_user" "by_mixed_case_user_name" {
+	  user_name  = "%s"
+	  depends_on = [coralogix_user.test]
+	}
+`, userName, strings.ToUpper(userName))
+}
+
+func testAccCoralogixDataSourceUser_readByUserNameOnly(userName string) string {
+	return fmt.Sprintf(`
+	data "coralogix_user" "by_user_name" {
+	  user_name = "%s"
+	}
+`, userName)
 }
