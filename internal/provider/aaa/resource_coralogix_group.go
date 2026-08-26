@@ -36,12 +36,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
-
-var _ resource.ResourceWithUpgradeState = &GroupResource{}
 
 func NewGroupResource() resource.Resource {
 	return &GroupResource{}
@@ -74,42 +73,6 @@ func (r *GroupResource) Configure(_ context.Context, req resource.ConfigureReque
 
 func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Version: 1,
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				MarkdownDescription: "Group ID.",
-			},
-			"display_name": schema.StringAttribute{
-				Required: true,
-				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
-				},
-				MarkdownDescription: "Group display name.",
-			},
-			"members": schema.SetAttribute{
-				Optional:            true,
-				ElementType:         types.StringType,
-				MarkdownDescription: "IDs of the users that make up the group. Omit the argument to leave membership unmanaged by this resource - for example when it is maintained in the Coralogix UI or by `coralogix_group_attachment`. Set `members = []` to remove every member. A single group's membership must be managed either here or by `coralogix_group_attachment`, never by both. Omission does not mean unmanaged for a group brought in with `terraform import`: the import reads the group's current members into state, so the next plan reports an omitted argument as a removal of them. After importing a group whose membership is maintained elsewhere, either list its members here or keep them out of Terraform's control with `lifecycle { ignore_changes = [members] }`.",
-			},
-			"role": schema.StringAttribute{
-				Required: true,
-			},
-			"scope_id": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "Scope attached to the group.",
-				Computed:            true,
-			},
-		},
-		MarkdownDescription: "Coralogix group. Groups bind users to roles and scopes. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/assign-user-roles-and-scopes-via-groups/.",
-	}
-}
-
-func groupResourceSchemaV0() schema.Schema {
-	return schema.Schema{
 		Version: 0,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -128,7 +91,12 @@ func groupResourceSchemaV0() schema.Schema {
 			},
 			"members": schema.SetAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "IDs of the users that make up the group, as the complete member list. Omit the argument to leave membership unmanaged by this resource - Terraform then reads and stores the group's current members without changing them, which is what to do when membership is maintained in the Coralogix UI or by `coralogix_group_attachment`. Set `members = []` to remove every member. A single group's membership must be managed either here or by `coralogix_group_attachment`, never by both.",
 			},
 			"role": schema.StringAttribute{
 				Required: true,
@@ -140,32 +108,6 @@ func groupResourceSchemaV0() schema.Schema {
 			},
 		},
 		MarkdownDescription: "Coralogix group. Groups bind users to roles and scopes. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/assign-user-roles-and-scopes-via-groups/.",
-	}
-}
-
-// UpgradeState clears members from version 0 state. Version 0 adopted the backend's
-// members on every refresh, so a stored value is not evidence that the configuration
-// manages membership; ownership is re-established from the configuration on the next apply.
-func (r *GroupResource) UpgradeState(context.Context) map[int64]resource.StateUpgrader {
-	schemaV0 := groupResourceSchemaV0()
-
-	return map[int64]resource.StateUpgrader{
-		0: {
-			PriorSchema: &schemaV0,
-
-			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				var dataV0 GroupResourceModel
-
-				resp.Diagnostics.Append(req.State.Get(ctx, &dataV0)...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-
-				dataV0.Members = types.SetNull(types.StringType)
-
-				resp.Diagnostics.Append(resp.State.Set(ctx, dataV0)...)
-			},
-		},
 	}
 }
 
@@ -216,7 +158,7 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	state.Members = membersMatchingPrior(plan.Members, state.Members)
+	state.Members = membersForState(plan.Members, state.Members)
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -269,32 +211,29 @@ func flattenSCIMGroup(group *clientset.SCIMGroup) (*GroupResourceModel, diag.Dia
 }
 
 func flattenSCIMGroupMembers(members []clientset.SCIMGroupMember) (types.Set, diag.Diagnostics) {
-	if len(members) == 0 {
-		return types.SetNull(types.StringType), nil
-	}
-	var diags diag.Diagnostics
 	membersIDs := make([]attr.Value, 0, len(members))
 	for _, member := range members {
 		membersIDs = append(membersIDs, types.StringValue(member.Value))
-	}
-	if diags.HasError() {
-		return types.SetNull(types.StringType), diags
 	}
 
 	return types.SetValue(types.StringType, membersIDs)
 }
 
-// membersMatchingPrior keeps the members written to state null-consistent with the prior
-// value it is reconciled against - the plan in Create and Update, the previous state in Read.
-// A null prior means membership is not managed here; an empty one must not collapse to null.
-func membersMatchingPrior(prior, flattened types.Set) types.Set {
-	if prior.IsNull() {
-		return types.SetNull(types.StringType)
+// membersForState keeps the members written to state consistent with the plan, which the
+// framework requires whenever the planned value is known. An unknown plan accepts the
+// group's actual membership, which is what a create or an unmanaged member list produces.
+func membersForState(planned, flattened types.Set) types.Set {
+	if planned.IsUnknown() {
+		return flattened
 	}
-	if flattened.IsNull() {
-		return types.SetValueMust(types.StringType, []attr.Value{})
-	}
-	return flattened
+	return planned
+}
+
+// membersUnmanaged reports whether the configuration leaves membership to be maintained
+// elsewhere. Ownership is decided by the configuration alone - prior state carries members
+// this resource merely read, so it cannot say whether the configuration manages them.
+func membersUnmanaged(configuredMembers types.Set) bool {
+	return configuredMembers.IsNull() || configuredMembers.IsUnknown()
 }
 
 func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -334,12 +273,6 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	// A state without a display name comes from an import and is hydrated as-is; otherwise membership
-	// absent from state is managed elsewhere and is not adopted on refresh.
-	if !state.DisplayName.IsNull() {
-		newState.Members = membersMatchingPrior(state.Members, newState.Members)
-	}
-
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)
 }
@@ -353,8 +286,8 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	var state *GroupResourceModel
-	diags = req.State.Get(ctx, &state)
+	var config *GroupResourceModel
+	diags = req.Config.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -368,8 +301,8 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	groupID := plan.ID.ValueString()
 
-	// Membership absent from both configuration and state is managed elsewhere, and the SCIM update is a full replace.
-	if plan.Members.IsNull() && state.Members.IsNull() {
+	// The SCIM update is a full replace, so an unmanaged member list has to be sent back as it stands.
+	if membersUnmanaged(config.Members) {
 		currentGroup, err := r.client.GetGroup(ctx, groupID)
 		if err != nil {
 			log.Printf("[ERROR] Received error: %s", err.Error())
@@ -423,7 +356,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	newState.Members = membersMatchingPrior(plan.Members, newState.Members)
+	newState.Members = membersForState(plan.Members, newState.Members)
 
 	diags = resp.State.Set(ctx, newState)
 	resp.Diagnostics.Append(diags...)

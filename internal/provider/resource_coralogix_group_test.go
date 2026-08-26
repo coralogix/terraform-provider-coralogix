@@ -75,7 +75,6 @@ func TestAccCoralogixResourceGroupMembersManagedByAttachment(t *testing.T) {
 				Config: testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, displayName, scopeName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "display_name", displayName),
-					resource.TestCheckNoResourceAttr(groupUnmanagedMembersResourceName, "members.#"),
 					testAccCheckGroupMemberCount(groupUnmanagedMembersResourceName, 2),
 				),
 			},
@@ -83,7 +82,7 @@ func TestAccCoralogixResourceGroupMembersManagedByAttachment(t *testing.T) {
 				Config: testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, displayName+"-renamed", scopeName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "display_name", displayName+"-renamed"),
-					resource.TestCheckNoResourceAttr(groupUnmanagedMembersResourceName, "members.#"),
+					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "members.#", "2"),
 					testAccCheckGroupMemberCount(groupUnmanagedMembersResourceName, 2),
 				),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -94,7 +93,7 @@ func TestAccCoralogixResourceGroupMembersManagedByAttachment(t *testing.T) {
 	})
 }
 
-func TestAccCoralogixResourceGroupMembersRemovedByOmission(t *testing.T) {
+func TestAccCoralogixResourceGroupMembersOmissionAndExplicitClear(t *testing.T) {
 	userName := randUserName()
 	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
 	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
@@ -112,10 +111,12 @@ func TestAccCoralogixResourceGroupMembersRemovedByOmission(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCoralogixResourceGroupWithoutMembers(userName, displayName, scopeName),
+				// Dropping the argument stops managing membership; it must not remove anyone.
+				Config: testAccCoralogixResourceGroupWithoutMembers(userName, displayName+"-renamed", scopeName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckNoResourceAttr(groupOmittedMembersResourceName, "members.#"),
-					testAccCheckGroupMemberCount(groupOmittedMembersResourceName, 0),
+					resource.TestCheckResourceAttr(groupOmittedMembersResourceName, "display_name", displayName+"-renamed"),
+					resource.TestCheckResourceAttr(groupOmittedMembersResourceName, "members.#", "1"),
+					testAccCheckGroupMemberCount(groupOmittedMembersResourceName, 1),
 				),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
@@ -127,41 +128,11 @@ func TestAccCoralogixResourceGroupMembersRemovedByOmission(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccCoralogixResourceGroupWithEmptyMembers(userName, displayName, scopeName),
+				// Removing everyone is only possible through an explicit empty list.
+				Config: testAccCoralogixResourceGroupWithEmptyMembers(userName, displayName+"-renamed", scopeName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(groupOmittedMembersResourceName, "members.#", "0"),
 					testAccCheckGroupMemberCount(groupOmittedMembersResourceName, 0),
-				),
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
-				},
-			},
-		},
-	})
-}
-
-func TestAccCoralogixResourceGroupMembersIgnoreChanges(t *testing.T) {
-	userName := randUserName()
-	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
-	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckGroupDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCoralogixResourceGroupWithMembers(userName, displayName, scopeName),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(groupOmittedMembersResourceName, "members.#", "1"),
-					testAccCheckGroupMemberCount(groupOmittedMembersResourceName, 1),
-				),
-			},
-			{
-				Config: testAccCoralogixResourceGroupIgnoringMembers(userName, displayName+"-renamed", scopeName),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(groupOmittedMembersResourceName, "display_name", displayName+"-renamed"),
-					resource.TestCheckResourceAttr(groupOmittedMembersResourceName, "members.#", "1"),
-					testAccCheckGroupMemberCount(groupOmittedMembersResourceName, 1),
 				),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
@@ -346,35 +317,6 @@ func testAccCoralogixResourceGroupWithoutMembers(userName, displayName, scopeNam
 		display_name = "%s"
 		role         = "Read Only"
 		scope_id     = coralogix_scope.omitted_members.id
-	}
-`, scopeName, userName, displayName)
-}
-
-func testAccCoralogixResourceGroupIgnoringMembers(userName, displayName, scopeName string) string {
-	return fmt.Sprintf(`
-	resource "coralogix_scope" "omitted_members" {
-		display_name       = "%s"
-		default_expression = "<v1>true"
-		filters            = [
-		{
-			entity_type = "logs"
-			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
-		}
-		]
-	}
-
-	resource "coralogix_user" "omitted_members" {
-		user_name = "%s"
-	}
-
-	resource "coralogix_group" "omitted_members" {
-		display_name = "%s"
-		role         = "Read Only"
-		scope_id     = coralogix_scope.omitted_members.id
-
-		lifecycle {
-			ignore_changes = [members]
-		}
 	}
 `, scopeName, userName, displayName)
 }
