@@ -232,8 +232,10 @@ func membersForState(planned, flattened types.Set) types.Set {
 // membersUnmanaged reports whether the configuration leaves membership to be maintained
 // elsewhere. Ownership is decided by the configuration alone - prior state carries members
 // this resource merely read, so it cannot say whether the configuration manages them.
+// Only a null value means the argument was omitted: an unknown one was configured from a
+// value Terraform has still to resolve, and it resolves before the member list is applied.
 func membersUnmanaged(configuredMembers types.Set) bool {
-	return configuredMembers.IsNull() || configuredMembers.IsUnknown()
+	return configuredMembers.IsNull()
 }
 
 func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {

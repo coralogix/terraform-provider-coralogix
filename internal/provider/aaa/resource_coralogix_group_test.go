@@ -61,6 +61,36 @@ func TestMembersForState(t *testing.T) {
 	}
 }
 
+func TestMembersUnmanaged(t *testing.T) {
+	for name, tc := range map[string]struct {
+		configured types.Set
+		expected   bool
+	}{
+		"an omitted argument leaves membership unmanaged": {
+			configured: types.SetNull(types.StringType),
+			expected:   true,
+		},
+		"an unresolved value was still configured": {
+			configured: types.SetUnknown(types.StringType),
+			expected:   false,
+		},
+		"an explicit empty list manages membership as empty": {
+			configured: types.SetValueMust(types.StringType, []attr.Value{}),
+			expected:   false,
+		},
+		"an explicit list manages membership": {
+			configured: types.SetValueMust(types.StringType, []attr.Value{types.StringValue("user-1")}),
+			expected:   false,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got := membersUnmanaged(tc.configured); got != tc.expected {
+				t.Errorf("membersUnmanaged(%s) = %t, want %t", tc.configured, got, tc.expected)
+			}
+		})
+	}
+}
+
 func TestFlattenSCIMGroupMembers(t *testing.T) {
 	members, diags := flattenSCIMGroupMembers([]clientset.SCIMGroupMember{{Value: "user-1"}})
 	if diags.HasError() {
