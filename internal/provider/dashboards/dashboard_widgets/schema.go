@@ -336,6 +336,30 @@ func UnitSchema() schema.StringAttribute {
 	}
 }
 
+// The dynamic widget documents custom_unit as 1-128 characters. The legacy
+// widget protos allow 255 for the same field, so this helper is deliberately
+// dynamic-only rather than shared with them.
+func DynamicCustomUnitSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Validators: []validator.String{
+			stringvalidator.LengthBetween(1, 128),
+		},
+		MarkdownDescription: "A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.",
+	}
+}
+
+// Tooltip templates are documented as 1-4096 characters.
+func DynamicMessageTemplateSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Validators: []validator.String{
+			stringvalidator.LengthBetween(1, 4096),
+		},
+		MarkdownDescription: "A template for the tooltip text, 1 to 4096 characters.",
+	}
+}
+
 func FiltersSourceSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"logs": schema.SingleNestedAttribute{

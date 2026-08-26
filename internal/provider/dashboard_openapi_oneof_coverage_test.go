@@ -104,6 +104,7 @@ var dashboardStructuredAcceptanceLifecycleTests = []string{
 	dashboardOpenAPIDynamicBarsTestName,
 	dashboardOpenAPIDynamicTableTestName,
 	dashboardOpenAPIDynamicTimeSeriesTestName,
+	dashboardOpenAPIDynamicGeoHeatTestName,
 }
 
 func covered(path, testName string) dashboardOneOfBranchCoverage {
@@ -219,6 +220,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		dynamicWidget = widget + ".dynamic"
 		dynamicQuery  = dynamicWidget + ".query_definitions[*].query"
 		statCard      = dynamicWidget + ".visualization.stat_card"
+		geomap        = dynamicWidget + ".visualization.geomap"
+		heatmap       = dynamicWidget + ".visualization.heatmap"
 		table         = dynamicWidget + ".visualization.table"
 	)
 
@@ -245,6 +248,9 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 	visualization.Branches["timeSeriesLines"] = covered(dynamicWidget+".visualization.time_series_lines", dashboardOpenAPIDynamicTimeSeriesTestName)
 	visualization.Branches["timeSeriesLinesMulti"] = covered(dynamicWidget+".visualization.time_series_lines_multi", dashboardOpenAPIDynamicTimeSeriesTestName)
 	visualization.Branches["timeSeriesBars"] = covered(dynamicWidget+".visualization.time_series_bars", dashboardOpenAPIDynamicTimeSeriesTestName)
+	visualization.Branches["hexagonBins"] = covered(dynamicWidget+".visualization.hexagon_bins", dashboardOpenAPIDynamicGeoHeatTestName)
+	visualization.Branches["heatmap"] = covered(dynamicWidget+".visualization.heatmap", dashboardOpenAPIDynamicGeoHeatTestName)
+	visualization.Branches["geomap"] = covered(dynamicWidget+".visualization.geomap", dashboardOpenAPIDynamicGeoHeatTestName)
 
 	return map[string]dashboardOneOfModelCoverage{
 		"ActionDefinition": apiOnlyModel(
@@ -392,26 +398,39 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"dataprime": covered(widget+".gauge.query.data_prime", dashboardOpenAPIDataPrimeQueryTestName),
 			},
 		},
-		"GeomapAggregation": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.Geomap.GeomapAggregation.value",
-			"geomap aggregation is reachable only below WidgetDefinition.dynamic",
-			"count", "sum", "min", "max", "avg",
-		),
-		"GeomapColor": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.Geomap.GeomapColor.value",
-			"geomap color is reachable only below WidgetDefinition.dynamic",
-			"size", "colorRange",
-		),
-		"GeomapFieldConfig": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.Geomap.GeomapFieldConfig.value",
-			"geomap field configuration is reachable only below WidgetDefinition.dynamic",
-			"coordinateConfig", "awsRegionConfig",
-		),
-		"Heatmap": apiOnlyModel(
-			"ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.Heatmap.color_config",
-			"heatmap color configuration is reachable only below WidgetDefinition.dynamic",
-			"preset", "colorRange",
-		),
+		"GeomapAggregation": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.Geomap.GeomapAggregation.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"count": covered(geomap+".aggregation.count", dashboardOpenAPIDynamicGeoHeatTestName),
+				"sum":   covered(geomap+".aggregation.sum", dashboardOpenAPIDynamicGeoHeatTestName),
+				// min, max and avg share the field-based conversion that sum
+				// exercises, but no test sets them.
+				"min": gap(geomap + ".aggregation.min"),
+				"max": gap(geomap + ".aggregation.max"),
+				"avg": gap(geomap + ".aggregation.avg"),
+			},
+		},
+		"GeomapColor": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.Geomap.GeomapColor.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"size":       covered(geomap+".color.size", dashboardOpenAPIDynamicGeoHeatTestName),
+				"colorRange": covered(geomap+".color.color_range", dashboardOpenAPIDynamicGeoHeatTestName),
+			},
+		},
+		"GeomapFieldConfig": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.Geomap.GeomapFieldConfig.value",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"coordinateConfig": covered(geomap+".config.coordinate_config", dashboardOpenAPIDynamicGeoHeatTestName),
+				"awsRegionConfig":  covered(geomap+".config.aws_region_config", dashboardOpenAPIDynamicGeoHeatTestName),
+			},
+		},
+		"Heatmap": {
+			ProtoSource: "ast/widgets/dynamic.proto#Dynamic.Visualization.PropertyLinks.Heatmap.color_config",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"preset":     gap(heatmap + ".preset"),
+				"colorRange": covered(heatmap+".color_range", dashboardOpenAPIDynamicGeoHeatTestName),
+			},
+		},
 		"HexagonQuery": {
 			ProtoSource: "ast/widgets/hexagon.proto#Hexagon.Query.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
@@ -899,7 +918,7 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 
 func TestDashboardDynamicContentJSONImportAndDataSourceWaiver(t *testing.T) {
 	models := map[string][]string{
-		"Visualization": {"hexagonBins", "heatmap", "geomap"},
+		"Visualization": {},
 	}
 	observed := map[string]struct{}{
 		"Visualization.table": {},
