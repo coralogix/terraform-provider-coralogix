@@ -536,9 +536,13 @@ resource "coralogix_dashboard" "dashboard" {
                       columns    = ["sum"]
                     }
                     xaxis = {
-                      time = {
-                        interval          = "1h0m5s"
-                        buckets_presented = 10
+                      # time_buckets is what the Coralogix UI writes; the older
+                      # `time` block still works.
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 96
+                          minimum_interval    = "15s"
+                        }
                       }
                     }
                   }

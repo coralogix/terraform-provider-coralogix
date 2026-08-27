@@ -551,9 +551,13 @@ resource "coralogix_dashboard" "dashboard" {
                       columns    = ["sum"]
                     }
                     xaxis = {
-                      time = {
-                        interval          = "1h0m5s"
-                        buckets_presented = 10
+                      # time_buckets is what the Coralogix UI writes; the older
+                      # `time` block still works.
+                      time_buckets = {
+                        auto = {
+                          maximum_data_points = 96
+                          minimum_interval    = "15s"
+                        }
                       }
                     }
                   }
@@ -2569,6 +2573,7 @@ Optional:
 Optional:
 
 - `time` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time))
+- `time_buckets` (Attributes) How time is grouped into buckets. Set at most one of `auto` and `manual`; omit both to leave the choice to the backend. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets))
 - `value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--value))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time"></a>
@@ -2581,6 +2586,38 @@ Required:
 Optional:
 
 - `buckets_presented` (Number)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.xaxis.time_buckets`
+
+Optional:
+
+- `auto` (Attributes) Let the backend choose the interval, within the constraints below. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets--auto))
+- `manual` (Attributes) Set the interval yourself. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets--manual))
+- `use_advanced_limit` (Boolean) Whether the maximum data points and minimum interval fields are editable in the Coralogix UI. It does not change how the interval is calculated.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets--auto"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.xaxis.time_buckets.auto`
+
+Optional:
+
+- `maximum_data_points` (Number) The most data points to display. The calculated interval keeps within this limit.
+- `minimum_interval` (String) The smallest interval the calculation may choose. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets--manual"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.xaxis.time_buckets.manual`
+
+Required:
+
+- `interval` (String) The fixed interval for time buckets. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
+
+Optional:
+
+- `maximum_data_points` (Number)
+- `minimum_interval` (String) The smallest interval the selected one may be. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
+
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--value"></a>
