@@ -314,9 +314,11 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 					MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 				},
 			},
-			Validators: []validator.Object{
-				ExactlyOneOfChildren("field", "observation_field"),
-			},
+			// No exclusivity between field and observation_field. The proto
+			// declares field, operator and observation_field as three plain
+			// fields of LogsFilter, with no oneof and no required entry, and
+			// the Coralogix UI writes field and observation_field together,
+			// where field is the dot-joined form of the observation field.
 		},
 		Validators: []validator.List{
 			listvalidator.SizeAtLeast(1),
@@ -351,9 +353,8 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 					MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 				},
 			},
-			Validators: []validator.Object{
-				ExactlyOneOfChildren("field", "observation_field"),
-			},
+			// See LogsFiltersSchema: field and observation_field are not
+			// exclusive, and neither is required.
 			Optional: true,
 		},
 		"spans": schema.SingleNestedAttribute{

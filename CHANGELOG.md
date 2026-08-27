@@ -16,6 +16,7 @@
 - FEAT: Add `EQUALS` and `NOT_EQUALS` condition types for logs and metric threshold alerts.
 
 #### resource/coralogix_dashboard
+- FIX: A logs filter now accepts `field` together with `observation_field`. The API models the two as independent fields, not as alternatives, and the Coralogix UI writes both, where `field` is the dot-joined form of the observation field: `coralogix.metadata.severity` for scope `metadata` and keypath `["severity"]`. A schema validator rejected the pair with "Only one of these attributes can be configured", so a dashboard built in the UI could not be applied and an imported one could not be planned. The proto marks neither field as exclusive and neither as required, so no validator remains. This covers the logs `filters` list on every widget query and the dashboard-level filter source.
 - FEAT: Add the `hexagon_bins`, `heatmap` and `geomap` visualizations to the `dynamic` widget, completing the set. The geomap's coordinate source, cluster aggregation and colour mode each take exactly one alternative.
 - FIX: Every list the spatial visualizations expose rejects an explicit empty value at plan time instead of failing the apply with an inconsistent-result error.
 - FIX: `decimal_precision` on these visualizations is bounded to the documented 0 to 15 rather than the full int32 range.

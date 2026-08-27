@@ -619,3 +619,68 @@ func TestDashboardMarkdownWidgetAllowsTitle(t *testing.T) {
 		})
 	}
 }
+
+// TestDashboardLogsFilterAcceptsFieldWithObservationField pins the shape the
+// Coralogix UI writes: a logs filter that sets the bare `field` together with
+// `observation_field`, where `field` is the dot-joined form of the observation
+// field (`coralogix.metadata.severity` for scope `metadata` and keypath
+// `["severity"]`).
+//
+// The proto backs this. Filter.LogsFilter declares `field`, `operator` and
+// `observation_field` as three plain fields, with no oneof and no required
+// entry, and the generated OpenAPI schema repeats that. The same proto file
+// marks its real exclusive groups explicitly: Filter.Source is a oneof, and
+// Filter.WidgetScope documents "exactly one must be set". So no exclusivity
+// belongs here, and none is required either.
+//
+// An ExactlyOneOf validator here used to reject every dashboard imported from
+// the UI with "Only one of these attributes can be configured". The test
+// asserts on the two schemas that carry a logs filter, so re-adding
+// exclusivity to either one fails.
+func TestDashboardLogsFilterAcceptsFieldWithObservationField(t *testing.T) {
+	ctx := context.Background()
+	root := dashboardschema.V4()
+
+	dynamicFilter := dashboardMustType[schema.ListNestedAttribute](t,
+		dashboardResolveAttribute(t, root.Attributes,
+			"layout", "sections", "rows", "widgets", "definition", "dynamic",
+			"query_definitions", "query", "logs", "filters"),
+		"dynamic logs query filters")
+	globalFilterLogs := dashboardMustType[schema.SingleNestedAttribute](t,
+		dashboardResolveAttribute(t, root.Attributes, "filters", "source", "logs"),
+		"global filter source logs")
+
+	for _, testCase := range []struct {
+		name       string
+		objectType attr.Type
+		validators []validator.Object
+		at         path.Path
+	}{
+		{
+			name:       "dynamic_widget_logs_query_filter",
+			objectType: dynamicFilter.NestedObject.Type(),
+			validators: dynamicFilter.NestedObject.Validators,
+			at:         path.Root("filters").AtListIndex(0),
+		},
+		{
+			name:       "global_filter_source_logs",
+			objectType: globalFilterLogs.GetType(),
+			validators: globalFilterLogs.Validators,
+			at:         path.Root("source").AtName("logs"),
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			for _, set := range [][]string{
+				{"field", "observation_field", "operator"},
+				{"field", "operator"},
+				{"observation_field", "operator"},
+			} {
+				cfg := dashboardObjectConfig(ctx, t, testCase.objectType, set...)
+				diagnostics := dashboardValidateObject(t, ctx, cfg, testCase.at, testCase.validators)
+				if len(diagnostics) != 0 {
+					t.Fatalf("expected a logs filter with %v to be valid, got: %v", set, diagnostics)
+				}
+			}
+		})
+	}
+}
