@@ -94,6 +94,38 @@ func TestAccCoralogixResourceDashboardBarChartTimeBuckets(t *testing.T) {
 	})
 }
 
+// Every shape a user can write must apply and then plan clean. Reading a shape
+// the API returned proves it is readable; only applying it from configuration
+// proves it round-trips, and that is where an empty time_buckets failed: the
+// read dropped it, so the x-axis vanished and the apply reported an
+// inconsistent result.
+func TestAccCoralogixResourceDashboardBarChartTimeBucketsRoundTripEveryShape(t *testing.T) {
+	for scenario, xaxis := range map[string]string{
+		"no mode, backend chooses":  `time_buckets = {}`,
+		"only the advanced limit":   `time_buckets = { use_advanced_limit = true }`,
+		"auto with no constraints":  `time_buckets = { auto = {} }`,
+		"auto with both":            `time_buckets = { auto = { maximum_data_points = 96, minimum_interval = "15s" } }`,
+		"manual with just interval": `time_buckets = { manual = { interval = "900s" } }`,
+		"manual with everything":    `time_buckets = { manual = { interval = "900s", maximum_data_points = 1000, minimum_interval = "15s" } }`,
+	} {
+		t.Run(scenario, func(t *testing.T) {
+			name := dashboardOpenAPIFixtureName(t.Name())
+			resource.ParallelTest(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Steps: []resource.TestStep{
+					{Config: barChartTimeBucketsConfig(name, xaxis)},
+					{
+						ResourceName:      dashboardResourceName,
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
+				},
+			})
+		})
+	}
+}
+
 // The API stores these and the provider used to reject them at plan time.
 func TestAccCoralogixResourceDashboardBarChartTimeBucketsRejectsInvalidCombinations(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
@@ -126,6 +158,14 @@ func TestAccCoralogixResourceDashboardBarChartTimeBucketsRejectsInvalidCombinati
 			`time_buckets = { auto = { minimum_interval = "15m" } }`,
 			`must be a duration in seconds`,
 		},
+		"maximum data points beyond int32": {
+			`time_buckets = { auto = { maximum_data_points = 2147483648 } }`,
+			`must be between -2147483648 and 2147483647`,
+		},
+		"manual maximum data points beyond int32": {
+			`time_buckets = { manual = { interval = "900s", maximum_data_points = 2147483648 } }`,
+			`must be between -2147483648 and 2147483647`,
+		},
 	} {
 		t.Run(scenario, func(t *testing.T) {
 			xaxis := testCase.xaxis
@@ -152,7 +192,6 @@ func TestAccCoralogixResourceDashboardBarChartTimeBucketsRejectsInvalidCombinati
 // stopped working. An x-axis or a timeBuckets with no kind selected is stored
 // too, and hit the same failure.
 func TestAccCoralogixResourceDashboardBarChartReadsEveryStoredXAxis(t *testing.T) {
-	client := dashboardOpenAPIAcceptanceClient(t)
 	interval, minimum := "900s", "15s"
 	maximum := int32(1000)
 	advanced := true
@@ -175,15 +214,30 @@ func TestAccCoralogixResourceDashboardBarChartReadsEveryStoredXAxis(t *testing.T
 		"the deprecated time bucket": {Time: &dashboardservice.XAxisByTime{Interval: &interval}},
 	} {
 		t.Run(scenario, func(t *testing.T) {
-			fixture := dashboardOpenAPIFixtureName(t.Name())
-			response, err := dashboardOpenAPICreateDirectFixture(t, client, fixture,
-				barChartXAxisRequest(fixture, axis))
-			if err != nil {
-				t.Fatalf("the API rejected the fixture, so it cannot be a read regression: %v", err)
-			}
+			// The same map instance is handed to ConfigVariables, which the test
+			// framework reads after PreCheck has filled it in.
+			variables := config.Variables{}
+			var dashboardID string
 
 			resource.Test(t, resource.TestCase{
-				PreCheck:                 func() { testAccPreCheck(t) },
+				// The fixture is created here rather than in the test body so
+				// the API client is only built once TF_ACC is set: the unit test
+				// job has no credentials.
+				PreCheck: func() {
+					testAccPreCheck(t)
+					if dashboardID != "" {
+						return
+					}
+					client := dashboardOpenAPIAcceptanceClient(t)
+					fixture := dashboardOpenAPIFixtureName(t.Name())
+					response, err := dashboardOpenAPICreateDirectFixture(t, client, fixture,
+						barChartXAxisRequest(fixture, axis))
+					if err != nil {
+						t.Fatalf("the API rejected the fixture, so it cannot be a read regression: %s", err)
+					}
+					dashboardID = response.GetDashboardId()
+					variables["dashboard_id"] = config.StringVariable(dashboardID)
+				},
 				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{{
 					Config: `
@@ -193,9 +247,7 @@ data "coralogix_dashboard" "stored" {
   id = var.dashboard_id
 }
 `,
-					ConfigVariables: config.Variables{
-						"dashboard_id": config.StringVariable(response.GetDashboardId()),
-					},
+					ConfigVariables: variables,
 				}},
 			})
 		})

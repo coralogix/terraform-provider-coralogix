@@ -2615,7 +2615,7 @@ Required:
 
 Optional:
 
-- `maximum_data_points` (Number)
+- `maximum_data_points` (Number) The most data points the selected interval may produce.
 - `minimum_interval` (String) The smallest interval the selected one may be. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
 
 

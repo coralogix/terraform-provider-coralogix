@@ -116,22 +116,29 @@ func TestAtMostOneOfChildrenAllowsNoneButNotTwo(t *testing.T) {
 	}
 }
 
-// The API stores a resolution with no mode and no advanced limit. Read back as a
-// present block it carries all-null children, which the block's own validator
-// rejects, so the dashboard would diff on every plan.
-func TestFlattenIntervalResolutionNormalisesTheEmptyWrapper(t *testing.T) {
+// Omitting both modes is a documented way to leave the choice to the backend, so
+// `time_buckets = {}` is a configuration a user can write and the API stores it.
+// Dropping it on read made the x-axis vanish, and the apply then failed with an
+// inconsistent result. Only an absent resolution reads back as absent.
+func TestFlattenIntervalResolutionKeepsAResolutionWithNoMode(t *testing.T) {
 	if got := FlattenIntervalResolution(nil); got != nil {
 		t.Errorf("an absent resolution must stay absent, got %v", got)
 	}
-	if got := FlattenIntervalResolution(&dashboardservice.IntervalResolution{}); got != nil {
-		t.Errorf("a resolution with no mode must read back as absent, got %v", got)
+
+	got := FlattenIntervalResolution(&dashboardservice.IntervalResolution{})
+	switch {
+	case got == nil:
+		t.Fatal("a resolution with no mode must be kept, or `time_buckets = {}` cannot round-trip")
+	case got.Auto != nil || got.Manual != nil:
+		t.Errorf("no mode was stored, so none may be set, got %v", got)
+	case !got.UseAdvancedLimit.IsNull():
+		t.Errorf("no advanced limit was stored, so it must stay null, got %v", got.UseAdvancedLimit)
 	}
 
 	// A resolution carrying only the advanced limit is a real stored shape and
-	// must survive, or the guard above would be dropping a field.
+	// must survive, or the check above would be passing on a dropped field.
 	advanced := true
-	got := FlattenIntervalResolution(&dashboardservice.IntervalResolution{UseAdvancedLimit: &advanced})
-	if got == nil || !got.UseAdvancedLimit.ValueBool() {
+	if got := FlattenIntervalResolution(&dashboardservice.IntervalResolution{UseAdvancedLimit: &advanced}); got == nil || !got.UseAdvancedLimit.ValueBool() {
 		t.Errorf("use_advanced_limit alone must read back, got %v", got)
 	}
 }

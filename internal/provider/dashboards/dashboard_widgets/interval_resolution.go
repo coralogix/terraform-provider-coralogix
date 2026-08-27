@@ -17,9 +17,11 @@ package dashboard_widgets
 import (
 	"context"
 	"fmt"
+	"math"
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -88,11 +90,8 @@ func IntervalResolutionSchema() schema.SingleNestedAttribute {
 			"auto": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"maximum_data_points": schema.Int64Attribute{
-						Optional:            true,
-						MarkdownDescription: "The most data points to display. The calculated interval keeps within this limit.",
-					},
-					"minimum_interval": IntervalResolutionDurationSchema("The smallest interval the calculation may choose."),
+					"maximum_data_points": IntervalResolutionMaximumDataPointsSchema("The most data points to display. The calculated interval keeps within this limit."),
+					"minimum_interval":    IntervalResolutionDurationSchema("The smallest interval the calculation may choose."),
 				},
 				MarkdownDescription: "Let the backend choose the interval, within the constraints below.",
 			},
@@ -100,7 +99,7 @@ func IntervalResolutionSchema() schema.SingleNestedAttribute {
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"interval":            IntervalResolutionRequiredDurationSchema("The fixed interval for time buckets."),
-					"maximum_data_points": schema.Int64Attribute{Optional: true},
+					"maximum_data_points": IntervalResolutionMaximumDataPointsSchema("The most data points the selected interval may produce."),
 					"minimum_interval":    IntervalResolutionDurationSchema("The smallest interval the selected one may be."),
 				},
 				MarkdownDescription: "Set the interval yourself.",
@@ -192,10 +191,12 @@ func ExpandIntervalResolution(m *IntervalResolutionModel) (*dashboardservice.Int
 	return resolution, nil
 }
 
-// FlattenIntervalResolution reads the interval resolution back. The API stores a
-// resolution with neither arm and no advanced limit - an empty object - and
-// returning that as a present block gives every child a null value, which is
-// state no configuration can produce, so the dashboard would diff on every plan.
+// FlattenIntervalResolution reads the interval resolution back. A resolution
+// with neither mode is kept, not dropped: omitting both is a documented way to
+// leave the choice to the backend, so `time_buckets = {}` is a configuration a
+// user can write and it has to survive the read. Only an x-axis with no kind at
+// all reads back as absent, because the x-axis requires exactly one kind and a
+// block with every child null is state no configuration can produce.
 func FlattenIntervalResolution(resolution *dashboardservice.IntervalResolution) *IntervalResolutionModel {
 	if resolution == nil {
 		return nil
@@ -216,9 +217,21 @@ func FlattenIntervalResolution(resolution *dashboardservice.IntervalResolution) 
 			MaximumDataPoints: int32PointerToInt64Type(resolution.Manual.MaximumDataPoints),
 			MinimumInterval:   types.StringPointerValue(resolution.Manual.MinimumInterval),
 		}
-	case model.UseAdvancedLimit.IsNull():
-		return nil
 	}
 
 	return model
+}
+
+// IntervalResolutionMaximumDataPointsSchema bounds the value to what the API's
+// int32 field can hold. The conversion is an unchecked cast, so a larger number
+// wraps - 2147483648 arrives as -2147483648 - and the request carries a value
+// the user never wrote.
+func IntervalResolutionMaximumDataPointsSchema(description string) schema.Int64Attribute {
+	return schema.Int64Attribute{
+		Optional: true,
+		Validators: []validator.Int64{
+			int64validator.Between(math.MinInt32, math.MaxInt32),
+		},
+		MarkdownDescription: description,
+	}
 }
