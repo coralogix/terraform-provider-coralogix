@@ -3043,12 +3043,19 @@ func expandXAis(xaxis *dashboardwidgets.BarChartXAxisModel) (*dashboardservice.X
 				BucketsPresented: typeInt64ToInt32Pointer(xaxis.Time.BucketsPresented),
 			},
 		}, nil
+	case xaxis.TimeBuckets != nil:
+		buckets, diags := dashboardwidgets.ExpandIntervalResolution(xaxis.TimeBuckets)
+		if diags.HasError() {
+			return nil, diags.Errors()[0]
+		}
+		return &dashboardservice.XAxis{TimeBuckets: buckets}, nil
 	case xaxis.Value != nil:
 		return &dashboardservice.XAxis{
 			Value: map[string]interface{}{},
 		}, nil
 	default:
-		return nil, diag.NewErrorDiagnostic("Error expand bar chart x axis", "unknown x axis type")
+		return nil, diag.NewErrorDiagnostic("Error expand bar chart x axis",
+			"An x axis must configure exactly one of `time`, `time_buckets` and `value`. Remove the block to leave it unset.")
 	}
 }
 func expandBarChartQuery(ctx context.Context, query *dashboardwidgets.BarChartQueryModel) (*dashboardservice.BarChartQuery, diag.Diagnostics) {
@@ -4428,6 +4435,9 @@ func widgetModelAttr() map[string]attr.Type {
 								},
 								"value": types.ObjectType{
 									AttrTypes: map[string]attr.Type{},
+								},
+								"time_buckets": types.ObjectType{
+									AttrTypes: dashboardwidgets.IntervalResolutionAttr(),
 								},
 							},
 						},
@@ -5866,14 +5876,24 @@ func flattenBarChartXAxis(axis *dashboardservice.XAxis) (*dashboardwidgets.BarCh
 				BucketsPresented: int32PointerToTypeInt64(axis.Time.BucketsPresented),
 			},
 		}, nil
+	case axis.TimeBuckets != nil:
+		if buckets := dashboardwidgets.FlattenIntervalResolution(axis.TimeBuckets); buckets != nil {
+			return &dashboardwidgets.BarChartXAxisModel{TimeBuckets: buckets}, nil
+		}
+		// The API stores timeBuckets with neither arm selected. Reading it back
+		// as a present block would give every child a null value, which the
+		// x-axis one-of validator then rejects.
+		return nil, nil
 	case axis.Value != nil:
 		return &dashboardwidgets.BarChartXAxisModel{
 			Value: &dashboardwidgets.BarChartXAxisValueModel{},
 		}, nil
-	default:
-		return nil, diag.NewErrorDiagnostic("Error Flatten BarChart XAxis", fmt.Sprintf("unknown bar chart x axis type: %T", axis))
 	}
 
+	// An x-axis with no kind selected is stored by the API and is not an error.
+	// Erroring here made the whole dashboard unreadable, so plan, apply, refresh
+	// and import all failed against it.
+	return nil, nil
 }
 
 func flattenBarChartQuery(ctx context.Context, query *dashboardservice.BarChartQuery) (*dashboardwidgets.BarChartQueryModel, diag.Diagnostics) {

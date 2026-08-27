@@ -636,9 +636,10 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																				Attributes: map[string]schema.Attribute{},
 																				Optional:   true,
 																			},
+																			"time_buckets": dashboardwidgets.IntervalResolutionSchema(),
 																		},
 																		Validators: []validator.Object{
-																			dashboardwidgets.ExactlyOneOfChildren("time", "value"),
+																			dashboardwidgets.ExactlyOneOfChildren("time", "value", "time_buckets"),
 																		},
 																	},
 																	"unit": schema.StringAttribute{
