@@ -96,13 +96,15 @@ func dynamicHexagonBinsSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
 				},
 			},
-			"custom_unit": DynamicCustomUnitSchema(),
+			"custom_unit": schema.StringAttribute{
+				Optional: true,
+			},
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -176,7 +178,9 @@ func dynamicHeatmapSchema() schema.Attribute {
 				},
 				MarkdownDescription: fmt.Sprintf("The gradient color range. Mutually exclusive with `preset`. Valid values are: %s.", strings.Join(dashboardValidColorGradientType, ", ")),
 			},
-			"custom_unit": DynamicCustomUnitSchema(),
+			"custom_unit": schema.StringAttribute{
+				Optional: true,
+			},
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -221,7 +225,7 @@ func dynamicHeatmapSchema() schema.Attribute {
 			"x_axis_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -239,7 +243,7 @@ func dynamicHeatmapSchema() schema.Attribute {
 			"y_axis_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -256,13 +260,15 @@ func dynamicHeatmapTooltipSchema() schema.Attribute {
 			"labels": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
 				},
 			},
-			"message_template": DynamicMessageTemplateSchema(),
+			"message_template": schema.StringAttribute{
+				Optional: true,
+			},
 		},
 	}
 }
@@ -327,7 +333,9 @@ func dynamicGeomapSchema() schema.Attribute {
 					ExactlyOneOfChildren("aws_region_config", "coordinate_config"),
 				},
 			},
-			"custom_unit": DynamicCustomUnitSchema(),
+			"custom_unit": schema.StringAttribute{
+				Optional: true,
+			},
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -366,13 +374,15 @@ func dynamicGeomapSchema() schema.Attribute {
 					"labels": schema.ListNestedAttribute{
 						Optional: true,
 						Validators: []validator.List{
-							listvalidator.SizeBetween(1, 1000),
+							listvalidator.SizeAtLeast(1),
 						},
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: ObservationFieldSchema(),
 						},
 					},
-					"message_template": DynamicMessageTemplateSchema(),
+					"message_template": schema.StringAttribute{
+						Optional: true,
+					},
 				},
 			},
 			"unit": UnitSchema(),

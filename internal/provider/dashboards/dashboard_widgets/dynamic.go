@@ -120,7 +120,7 @@ func DynamicSchema() schema.Attribute {
 					},
 				},
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 			},
 			"interpretation": schema.StringAttribute{
@@ -179,7 +179,7 @@ func dynamicLogsQuerySchema() schema.Attribute {
 					Attributes: ObservationFieldSchema(),
 				},
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 			},
 			"aggregations":   dynamicAggregationsSchema(),
@@ -202,7 +202,7 @@ func dynamicSpansQuerySchema() schema.Attribute {
 					Attributes: spanObservationFieldSchema(),
 				},
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 			},
 			"aggregations":   dynamicAggregationsSchema(),
@@ -266,7 +266,7 @@ func dynamicAggregationsSchema() schema.Attribute {
 	return schema.ListNestedAttribute{
 		Optional: true,
 		Validators: []validator.List{
-			listvalidator.SizeBetween(1, 1000),
+			listvalidator.SizeAtLeast(1),
 		},
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: LogsAggregationAttributes(),
@@ -295,7 +295,7 @@ func spanObservationFieldSchema() map[string]schema.Attribute {
 			ElementType: types.StringType,
 			Required:    true,
 			Validators: []validator.List{
-				listvalidator.SizeBetween(1, 1000),
+				listvalidator.SizeAtLeast(1),
 			},
 			MarkdownDescription: "Ordered path segments identifying the span field.",
 		},
@@ -331,10 +331,13 @@ func dynamicStatSchema() schema.Attribute {
 					Attributes: ObservationFieldSchema(),
 				},
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 			},
-			"custom_unit": DynamicCustomUnitSchema(),
+			"custom_unit": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Custom unit label. Takes effect only when `unit` is `custom`.",
+			},
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -393,7 +396,7 @@ func dynamicStatSchema() schema.Attribute {
 					Attributes: ObservationFieldSchema(),
 				},
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 			},
 		},
