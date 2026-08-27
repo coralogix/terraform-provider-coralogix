@@ -23,7 +23,6 @@ import (
 
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -366,13 +365,7 @@ func dynamicStatSchema() schema.Attribute {
 				Optional:            true,
 				MarkdownDescription: "Custom unit label. Takes effect only when `unit` is `custom`.",
 			},
-			"decimal_precision": schema.Int64Attribute{
-				Optional: true,
-				Validators: []validator.Int64{
-					int64validator.Between(0, 15),
-				},
-				MarkdownDescription: "How many digits to show after the decimal point. Valid values are 0 to 15.",
-			},
+			"decimal_precision": DynamicDecimalPrecisionSchema(),
 			"display_series_name": schema.BoolAttribute{
 				Optional: true,
 			},

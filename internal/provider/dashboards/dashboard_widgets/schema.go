@@ -21,6 +21,7 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -459,6 +460,24 @@ func DecimalSchema() schema.NumberAttribute {
 			int32NumberValidator{},
 		},
 		MarkdownDescription: "The number of decimal places shown for numeric values. Must be a whole number. Values outside the documented 0 to 15 range are passed through, because the API accepts them.",
+	}
+}
+
+// DynamicDecimalPrecisionSchema is decimal_precision on a dynamic widget
+// visualization. It is the int64 counterpart of DecimalSchema and follows the
+// same reading: the SDK documents 0 to 15, the API does not enforce it. 0, 15,
+// 16, 400, -1 and both int32 extremes were all accepted and read back verbatim
+// against a live environment, and the API stores -1, so negatives are allowed
+// too. Only what the API's int32 field cannot hold is rejected, because
+// expandInt32Pointer casts without checking and a larger value would wrap
+// silently.
+func DynamicDecimalPrecisionSchema() schema.Int64Attribute {
+	return schema.Int64Attribute{
+		Optional: true,
+		Validators: []validator.Int64{
+			int64validator.Between(math.MinInt32, math.MaxInt32),
+		},
+		MarkdownDescription: "How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.",
 	}
 }
 
