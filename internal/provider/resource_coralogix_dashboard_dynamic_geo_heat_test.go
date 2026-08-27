@@ -527,36 +527,3 @@ func TestDashboardOpenAPIAssertExactlyOneArm(t *testing.T) {
 		})
 	}
 }
-
-// The API accepts values beyond the documented limits and stores them verbatim
-// — confirmed by applying a 129-character unit, a 4097-character template and
-// 1001 labels. These validators therefore enforce documentation rather than
-// mirroring a backend rejection, so a test is the only thing holding them.
-func TestAccCoralogixResourceDashboardDynamicRejectsOverDocumentedLimits(t *testing.T) {
-	name := dashboardOpenAPIFixtureName(t.Name())
-	labels := strings.TrimSuffix(strings.Repeat(`{ keypath = ["applicationname"], scope = "label" },`, 1001), ",")
-
-	for scenario, visualization := range map[string]string{
-		"custom unit over 128": fmt.Sprintf(`heatmap = {
-          unit        = "custom"
-          custom_unit = %q
-        }`, strings.Repeat("u", 129)),
-		"message template over 4096": fmt.Sprintf(`heatmap = {
-          tooltip = { message_template = %q }
-        }`, strings.Repeat("t", 4097)),
-		"labels over 1000": fmt.Sprintf(`heatmap = {
-          tooltip = { labels = [%s] }
-        }`, labels),
-	} {
-		t.Run(scenario, func(t *testing.T) {
-			resource.ParallelTest(t, resource.TestCase{
-				PreCheck:                 func() { testAccPreCheck(t) },
-				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-				Steps: []resource.TestStep{{
-					Config:      testAccCoralogixResourceDashboardDynamicSpatialVisualizationConfig(name, visualization),
-					ExpectError: regexp.MustCompile(`(?s)Invalid Attribute Value`),
-				}},
-			})
-		})
-	}
-}

@@ -67,13 +67,15 @@ func dynamicGaugeSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
 				},
 			},
-			"custom_unit": DynamicCustomUnitSchema(),
+			"custom_unit": schema.StringAttribute{
+				Optional: true,
+			},
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -131,7 +133,7 @@ func dynamicGaugeSchema() schema.Attribute {
 			"value_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -151,7 +153,7 @@ func dynamicPieChartSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -161,7 +163,9 @@ func dynamicPieChartSchema() schema.Attribute {
 				Optional:            true,
 				MarkdownDescription: fmt.Sprintf("How slices are coloured. The API takes a free-form string and stores whatever it is given, so this is deliberately not restricted; the schemes this provider knows about are: %s. A value the product does not recognise is stored but applies no scheme.", strings.Join(DashboardValidColorSchemes, ", ")),
 			},
-			"custom_unit": DynamicCustomUnitSchema(),
+			"custom_unit": schema.StringAttribute{
+				Optional: true,
+			},
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -230,7 +234,7 @@ func dynamicPieChartSchema() schema.Attribute {
 			"sub_category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),

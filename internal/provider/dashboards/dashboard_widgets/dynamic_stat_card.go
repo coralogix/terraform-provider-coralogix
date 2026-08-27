@@ -47,14 +47,17 @@ func dynamicStatCardSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
 				},
 			},
 			"color_label_mapping": dynamicColorLabelMappingSchema(),
-			"custom_unit":         DynamicCustomUnitSchema(),
+			"custom_unit": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "A free-text unit label. Documented as taking effect only when `unit` is `custom`.",
+			},
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -79,7 +82,7 @@ func dynamicStatCardSchema() schema.Attribute {
 			"value_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -111,7 +114,7 @@ func dynamicStatVisualElementSchema(allowMappedValues bool) schema.Attribute {
 				Optional:            true,
 				MarkdownDescription: "Variables that `template_text` can reference.",
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -205,7 +208,7 @@ func dynamicMappingSectionsSchema(description string) schema.Attribute {
 				Optional:            true,
 				MarkdownDescription: "One entry per value to match.",
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1000),
+					listvalidator.SizeAtLeast(1),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -657,7 +660,7 @@ func dynamicThresholdsSchema() schema.Attribute {
 	return schema.ListNestedAttribute{
 		Optional: true,
 		Validators: []validator.List{
-			listvalidator.SizeBetween(1, 1000),
+			listvalidator.SizeAtLeast(1),
 		},
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
