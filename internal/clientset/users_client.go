@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset/rest"
@@ -80,7 +81,18 @@ func (c *UsersClient) Get(ctx context.Context, userID string) (*cxsdk.SCIMUser, 
 
 // List retrieves all SCIM users.
 func (c *UsersClient) List(ctx context.Context) ([]cxsdk.SCIMUser, error) {
-	bodyResp, err := c.client.Get(ctx, "")
+	return c.list(ctx, "")
+}
+
+// ListByUserName retrieves the SCIM users whose userName equals the given value,
+// using the SCIM filter query parameter.
+func (c *UsersClient) ListByUserName(ctx context.Context, userName string) ([]cxsdk.SCIMUser, error) {
+	filter := url.QueryEscape(fmt.Sprintf("userName eq %q", userName))
+	return c.list(ctx, "?filter="+filter)
+}
+
+func (c *UsersClient) list(ctx context.Context, query string) ([]cxsdk.SCIMUser, error) {
+	bodyResp, err := c.client.Get(ctx, query)
 	if err != nil {
 		return nil, err
 	}

@@ -1,5 +1,7 @@
 # Unreleased
 
+#### data-source/coralogix_user
+- FEAT: A user can now be looked up by `user_name` — the email address — instead of only by `id`. Exactly one of the two must be set, and the match is case-insensitive, so a config does not have to track the letter case SSO login stored.
 #### resource/coralogix_group
 - FIX: Stop clearing group membership when `members` is not managed in configuration. Omitting the argument no longer empties the group on the next update: `members` is now `Optional` and `Computed`, so Terraform reads and stores the group's current members and leaves them alone. Whether membership is managed is decided by the configuration alone, never by what an earlier refresh happened to store, so the same configuration always means the same thing.
 - BREAKING: Omitting `members` leaves group membership unmanaged. To enforce an empty group, set `members = []`. Previously, removing the `members` line cleared the group; that is now the job of an explicit empty list, and a removal is always visible in the plan. Upgrading needs no configuration change - a configuration that lists `members` keeps managing exactly that list, and one that omits `members` keeps its existing members and stops managing them. `lifecycle { ignore_changes = [members] }` is no longer needed for a group whose membership is maintained in the Coralogix UI or by `coralogix_group_attachment`.
