@@ -489,24 +489,49 @@ func TestAccCoralogixResourceDashboardDynamicRejectsEmptyLists(t *testing.T) {
 	}
 }
 
-// The proto documents decimal_precision as 0-15 (minimum: 0, maximum: 15). The
-// API does not enforce it — 16 is accepted and applied — so this is a plan-time
-// guard against a documented limit rather than a reflection of backend rejection.
-func TestAccCoralogixResourceDashboardDynamicRejectsOutOfRangeDecimalPrecision(t *testing.T) {
-	name := dashboardOpenAPIFixtureName(t.Name())
-
+// decimal_precision is documented as 0-15 and the API does not enforce it: 16,
+// -1, 400 and both int32 extremes are all accepted and read back verbatim
+// against a live environment, and the API stores -1. So a value outside the
+// documented range applies, exactly as it does for the classic widgets'
+// decimal. What stays rejected is a value the API's int32 field cannot hold,
+// because the conversion is an unchecked cast that would wrap it silently.
+func TestAccCoralogixResourceDashboardDynamicDecimalPrecisionOutsideDocumentedRange(t *testing.T) {
 	for _, precision := range []string{"16", "-1"} {
 		t.Run(precision, func(t *testing.T) {
+			name := dashboardOpenAPIFixtureName(t.Name())
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t) },
 				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{{
-					Config: fmt.Sprintf(`resource "coralogix_dashboard" "test" {
+					Config: testAccCoralogixResourceDashboardDynamicDecimalPrecisionConfig(name, precision),
+					Check: resource.TestCheckResourceAttr(dashboardResourceName,
+						"layout.sections.0.rows.0.widgets.0.definition.dynamic.visualization.stat.decimal_precision", precision),
+				}},
+			})
+		})
+	}
+}
+
+func TestAccCoralogixResourceDashboardDynamicRejectsDecimalPrecisionBeyondInt32(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{{
+			Config:      testAccCoralogixResourceDashboardDynamicDecimalPrecisionConfig(name, "2147483648"),
+			ExpectError: regexp.MustCompile(`(?s)must be between -2147483648 and 2147483647`),
+		}},
+	})
+}
+
+func testAccCoralogixResourceDashboardDynamicDecimalPrecisionConfig(name, precision string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" "test" {
   name = %q
   layout = { sections = [{ rows = [{
     height = 19
     widgets = [{
-      title = "out of range decimal precision"
+      title = "decimal precision"
       definition = { dynamic = {
         query_definitions = [{ query = { logs = { lucene_query = "*" } } }]
         visualization     = { stat = { decimal_precision = %s } }
@@ -514,10 +539,5 @@ func TestAccCoralogixResourceDashboardDynamicRejectsOutOfRangeDecimalPrecision(t
     }]
   }] }] }
 }
-`, name, precision),
-					ExpectError: regexp.MustCompile(`(?s)must be between 0 and 15`),
-				}},
-			})
-		})
-	}
+`, name, precision)
 }
