@@ -1022,8 +1022,26 @@ type BarChartStackDefinitionModel struct {
 }
 
 type BarChartXAxisModel struct {
-	Time  *BarChartXAxisTimeModel  `tfsdk:"time"`
-	Value *BarChartXAxisValueModel `tfsdk:"value"`
+	Time        *BarChartXAxisTimeModel  `tfsdk:"time"`
+	Value       *BarChartXAxisValueModel `tfsdk:"value"`
+	TimeBuckets *IntervalResolutionModel `tfsdk:"time_buckets"`
+}
+
+type IntervalResolutionModel struct {
+	Auto             *AutoIntervalResolutionModel   `tfsdk:"auto"`
+	Manual           *ManualIntervalResolutionModel `tfsdk:"manual"`
+	UseAdvancedLimit types.Bool                     `tfsdk:"use_advanced_limit"`
+}
+
+type AutoIntervalResolutionModel struct {
+	MaximumDataPoints types.Int64  `tfsdk:"maximum_data_points"`
+	MinimumInterval   types.String `tfsdk:"minimum_interval"`
+}
+
+type ManualIntervalResolutionModel struct {
+	Interval          types.String `tfsdk:"interval"`
+	MaximumDataPoints types.Int64  `tfsdk:"maximum_data_points"`
+	MinimumInterval   types.String `tfsdk:"minimum_interval"`
 }
 
 type BarChartXAxisTimeModel struct {
@@ -2295,6 +2313,46 @@ func (v ExactlyOneOfChildrenValidator) ValidateObject(_ context.Context, req val
 
 // AtLeastOneOfChildren validates that at least one named direct child attribute
 // is set when the parent object is configured.
+// AtMostOneOfChildren rejects two children set together while allowing none.
+// Use it where the API treats the children as alternatives but does not require
+// one, so requiring exactly one would reject a shape the API stores.
+func AtMostOneOfChildren(childNames ...string) validator.Object {
+	return AtMostOneOfChildrenValidator{ChildNames: childNames}
+}
+
+type AtMostOneOfChildrenValidator struct {
+	ChildNames []string
+}
+
+func (v AtMostOneOfChildrenValidator) Description(_ context.Context) string {
+	return fmt.Sprintf("at most one of these attributes may be configured: %s", strings.Join(v.ChildNames, ", "))
+}
+
+func (v AtMostOneOfChildrenValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v AtMostOneOfChildrenValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	attrs := req.ConfigValue.Attributes()
+	var set []string
+	for _, name := range v.ChildNames {
+		value, ok := attrs[name]
+		if !ok || value.IsUnknown() || value.IsNull() {
+			continue
+		}
+		set = append(set, name)
+	}
+
+	if len(set) > 1 {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Attribute Combination",
+			fmt.Sprintf("Only one of these attributes can be configured: `%s`. Omit both to leave the choice to the backend.", strings.Join(set, "`, `")))
+	}
+}
+
 func AtLeastOneOfChildren(childNames ...string) validator.Object {
 	return AtLeastOneOfChildrenValidator{ChildNames: childNames}
 }

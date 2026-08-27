@@ -630,15 +630,18 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																						Optional: true,
 																					},
 																				},
-																				Optional: true,
+																				Optional:            true,
+																				DeprecationMessage:  "The Coralogix UI writes `time_buckets` and rewrites this block to it when the dashboard is saved, so a configuration using `time` can stop matching the dashboard it manages. Use `time_buckets` instead.",
+																				MarkdownDescription: "Deprecated: use `time_buckets` instead. The Coralogix UI no longer writes this block and rewrites it to `time_buckets` when the dashboard is saved. Retained at full fidelity for dashboards that still set it.",
 																			},
 																			"value": schema.SingleNestedAttribute{
 																				Attributes: map[string]schema.Attribute{},
 																				Optional:   true,
 																			},
+																			"time_buckets": dashboardwidgets.IntervalResolutionSchema(),
 																		},
 																		Validators: []validator.Object{
-																			dashboardwidgets.ExactlyOneOfChildren("time", "value"),
+																			dashboardwidgets.ExactlyOneOfChildren("time", "value", "time_buckets"),
 																		},
 																	},
 																	"unit": schema.StringAttribute{
