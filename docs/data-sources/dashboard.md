@@ -1766,6 +1766,7 @@ Read-Only:
 Read-Only:
 
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--observation_field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--field"></a>
@@ -1775,6 +1776,16 @@ Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.query_definitions.query.spans.filters.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--query_definitions--query--spans--filters--operator"></a>
@@ -1857,7 +1868,7 @@ Read-Only:
 - `arc_display` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--arc_display))
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--category_fields))
 - `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `display_series_name` (Boolean)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--gauge--legend))
 - `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
@@ -1940,7 +1951,7 @@ Read-Only:
 - `color` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--color))
 - `config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config))
 - `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `min_max` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--min_max))
 - `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--tooltip))
 - `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
@@ -2134,7 +2145,7 @@ Read-Only:
 - `color_axis_min` (Number) The minimum value for the gradient color axis. Stored at float32 precision by the API.
 - `color_range` (String) The gradient color range. Mutually exclusive with `preset`. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
 - `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `histogram_bucket_unit` (String) The histogram bucket unit. Valid values are: bytes, bytes_iec, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, seconds, unspecified.
 - `preset` (String) The color preset. Mutually exclusive with `color_range`. Valid values are: blue, blue_reversed, green, green_reversed, red, red_reversed, threshold, threshold_reversed, unspecified.
 - `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
@@ -2200,7 +2211,7 @@ Read-Only:
 - `allow_abbreviation` (Boolean)
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--category_fields))
 - `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--hexagon_bins--legend))
 - `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
 - `max` (Number)
@@ -2260,7 +2271,7 @@ Read-Only:
 - `color_scheme` (String)
 - `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
 - `custom_unit` (String)
-- `decimal_precision` (Number)
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
@@ -2326,7 +2337,7 @@ Read-Only:
 - `color_scheme` (String)
 - `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
 - `custom_unit` (String)
-- `decimal_precision` (Number)
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
@@ -2415,7 +2426,7 @@ Read-Only:
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--category_fields))
 - `color_scheme` (String) How slices are coloured. The API takes a free-form string and stores whatever it is given, so this is deliberately not restricted; the schemes this provider knows about are: classic, severity, cold, negative, green, red, blue. A value the product does not recognise is stored but applies no scheme.
 - `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `label_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--pie_chart--label_definition))
@@ -2488,7 +2499,7 @@ Read-Only:
 - `allow_abbreviation` (Boolean)
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--category_fields))
 - `custom_unit` (String) Custom unit label. Takes effect only when `unit` is `custom`.
-- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `display_series_name` (Boolean)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat--legend))
 - `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
@@ -2559,7 +2570,7 @@ Read-Only:
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--category_fields))
 - `color_label_mapping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--color_label_mapping))
 - `custom_unit` (String) A free-text unit label. Documented as taking effect only when `unit` is `custom`.
-- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `label` (Attributes) Text element: read a field with `observation_field`, or write it with `template_text`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--label))
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--stat_card--legend))
 - `legend_by` (String) How the legend is grouped. Valid values are: groups, thresholds, unspecified.
@@ -2903,7 +2914,7 @@ Read-Only:
 
 - `allow_abbreviation` (Boolean)
 - `custom_unit` (String)
-- `decimal_precision` (Number) How many digits to show after the decimal point. Valid values are 0 to 15.
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `max` (Number)
 - `min` (Number)
 - `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, datetime_iso, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent, percent01, percent100, seconds, unspecified, usd, usd_cents.
@@ -2978,7 +2989,7 @@ Read-Only:
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--category_fields))
 - `color_scheme` (String)
 - `custom_unit` (String)
-- `decimal_precision` (Number)
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_bars--legend))
 - `max_slices_per_bar` (Number)
@@ -3051,7 +3062,7 @@ Read-Only:
 - `color_scheme` (String)
 - `connect_nulls` (Boolean)
 - `custom_unit` (String)
-- `decimal_precision` (Number)
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines--legend))
 - `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
@@ -3148,7 +3159,7 @@ Read-Only:
 - `category_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--time_series_lines_multi--query_display_settings--category_fields))
 - `color_scheme` (String)
 - `custom_unit` (String)
-- `decimal_precision` (Number)
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `query_id` (String) The `id` of the query in `query_definitions` these settings style. Set that `id` explicitly, since a generated one is not known when the configuration is written.
 - `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
@@ -3209,7 +3220,7 @@ Read-Only:
 - `color_scheme` (String)
 - `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
 - `custom_unit` (String)
-- `decimal_precision` (Number)
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars--legend))
@@ -3274,7 +3285,7 @@ Read-Only:
 - `color_scheme` (String)
 - `colors_by` (String) What colors are derived from. Valid values are: stack, group_by, aggregation, query, category.
 - `custom_unit` (String)
-- `decimal_precision` (Number)
+- `decimal_precision` (Number) How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `group_name_template` (String)
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--vertical_bars_multi--legend))

@@ -21,6 +21,7 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -314,9 +315,11 @@ func LogsFiltersSchema() schema.ListNestedAttribute {
 					MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 				},
 			},
-			Validators: []validator.Object{
-				ExactlyOneOfChildren("field", "observation_field"),
-			},
+			// No exclusivity between field and observation_field. The proto
+			// declares field, operator and observation_field as three plain
+			// fields of LogsFilter, with no oneof and no required entry, and
+			// the Coralogix UI writes field and observation_field together,
+			// where field is the dot-joined form of the observation field.
 		},
 		Validators: []validator.List{
 			listvalidator.SizeAtLeast(1),
@@ -351,9 +354,8 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 					MarkdownDescription: "Explicit field reference with scope. Use when the field name contains a literal dot (e.g. `log.level`) or exists in multiple scopes — the bare `field` is resolved by the backend via dot-split, which silently fails to match flat fields whose identifier contains dots.",
 				},
 			},
-			Validators: []validator.Object{
-				ExactlyOneOfChildren("field", "observation_field"),
-			},
+			// See LogsFiltersSchema: field and observation_field are not
+			// exclusive, and neither is required.
 			Optional: true,
 		},
 		"spans": schema.SingleNestedAttribute{
@@ -458,6 +460,24 @@ func DecimalSchema() schema.NumberAttribute {
 			int32NumberValidator{},
 		},
 		MarkdownDescription: "The number of decimal places shown for numeric values. Must be a whole number. Values outside the documented 0 to 15 range are passed through, because the API accepts them.",
+	}
+}
+
+// DynamicDecimalPrecisionSchema is decimal_precision on a dynamic widget
+// visualization. It is the int64 counterpart of DecimalSchema and follows the
+// same reading: the SDK documents 0 to 15, the API does not enforce it. 0, 15,
+// 16, 400, -1 and both int32 extremes were all accepted and read back verbatim
+// against a live environment, and the API stores -1, so negatives are allowed
+// too. Only what the API's int32 field cannot hold is rejected, because
+// expandInt32Pointer casts without checking and a larger value would wrap
+// silently.
+func DynamicDecimalPrecisionSchema() schema.Int64Attribute {
+	return schema.Int64Attribute{
+		Optional: true,
+		Validators: []validator.Int64{
+			int64validator.Between(math.MinInt32, math.MaxInt32),
+		},
+		MarkdownDescription: "How many digits to show after the decimal point. Values outside the documented 0 to 15 range are passed through, because the API accepts them.",
 	}
 }
 
@@ -602,6 +622,18 @@ func SpanObservationFieldSchema() schema.SingleNestedAttribute {
 		Attributes:          spanObservationFieldSchema(),
 		Optional:            true,
 		MarkdownDescription: "Span observation field that divides each group into subgroups. Use this when the field needs an explicit scope or relation type.",
+	}
+}
+
+// spanObservationFilterFieldSchema is the span observation field of a widget
+// filter. It shares the attributes of the grouping shapes, including
+// `relation_type`, which the API documents as honoured in a widget filter but
+// not in a dashboard-level filter.
+func spanObservationFilterFieldSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes:          spanObservationFieldSchema(),
+		Optional:            true,
+		MarkdownDescription: "Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter.",
 	}
 }
 

@@ -180,13 +180,7 @@ func dynamicTablePropertyDefinitionSchema() schema.Attribute {
 					"custom_unit": schema.StringAttribute{
 						Optional: true,
 					},
-					"decimal_precision": schema.Int64Attribute{
-						Optional: true,
-						Validators: []validator.Int64{
-							int64validator.Between(0, 15),
-						},
-						MarkdownDescription: "How many digits to show after the decimal point. Valid values are 0 to 15.",
-					},
+					"decimal_precision": DynamicDecimalPrecisionSchema(),
 					"max": schema.Float64Attribute{
 						Optional: true,
 					},
