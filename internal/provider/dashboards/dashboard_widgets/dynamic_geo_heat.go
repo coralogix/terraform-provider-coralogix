@@ -24,7 +24,6 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -105,14 +104,8 @@ func dynamicHexagonBinsSchema() schema.Attribute {
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
 			},
-			"decimal_precision": schema.Int64Attribute{
-				Optional: true,
-				Validators: []validator.Int64{
-					int64validator.Between(0, 15),
-				},
-				MarkdownDescription: "How many digits to show after the decimal point. Valid values are 0 to 15.",
-			},
-			"legend": LegendSchema(),
+			"decimal_precision": DynamicDecimalPrecisionSchema(),
+			"legend":            LegendSchema(),
 			"legend_by": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
@@ -181,13 +174,7 @@ func dynamicHeatmapSchema() schema.Attribute {
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
 			},
-			"decimal_precision": schema.Int64Attribute{
-				Optional: true,
-				Validators: []validator.Int64{
-					int64validator.Between(0, 15),
-				},
-				MarkdownDescription: "How many digits to show after the decimal point. Valid values are 0 to 15.",
-			},
+			"decimal_precision": DynamicDecimalPrecisionSchema(),
 			"histogram_bucket_unit": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
@@ -336,13 +323,7 @@ func dynamicGeomapSchema() schema.Attribute {
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
 			},
-			"decimal_precision": schema.Int64Attribute{
-				Optional: true,
-				Validators: []validator.Int64{
-					int64validator.Between(0, 15),
-				},
-				MarkdownDescription: "How many digits to show after the decimal point. Valid values are 0 to 15.",
-			},
+			"decimal_precision": DynamicDecimalPrecisionSchema(),
 			"min_max": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{

@@ -24,7 +24,6 @@ import (
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -58,15 +57,9 @@ func dynamicStatCardSchema() schema.Attribute {
 				Optional:            true,
 				MarkdownDescription: "A free-text unit label. Documented as taking effect only when `unit` is `custom`.",
 			},
-			"decimal_precision": schema.Int64Attribute{
-				Optional: true,
-				Validators: []validator.Int64{
-					int64validator.Between(0, 15),
-				},
-				MarkdownDescription: "How many digits to show after the decimal point. Valid values are 0 to 15.",
-			},
-			"label":  dynamicStatVisualElementSchema(true),
-			"legend": LegendSchema(),
+			"decimal_precision": DynamicDecimalPrecisionSchema(),
+			"label":             dynamicStatVisualElementSchema(true),
+			"legend":            LegendSchema(),
 			"legend_by": schema.StringAttribute{
 				Optional: true,
 				Computed: true,

@@ -64,14 +64,9 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
 			},
-			"decimal_precision": schema.Int64Attribute{
-				Optional: true,
-				Validators: []validator.Int64{
-					int64validator.Between(0, 15),
-				},
-			},
-			"hash_colors": HashColorsSchema(),
-			"legend":      LegendSchema(),
+			"decimal_precision": DynamicDecimalPrecisionSchema(),
+			"hash_colors":       HashColorsSchema(),
+			"legend":            LegendSchema(),
 			"scale_type": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
@@ -210,14 +205,9 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 			"custom_unit": schema.StringAttribute{
 				Optional: true,
 			},
-			"decimal_precision": schema.Int64Attribute{
-				Optional: true,
-				Validators: []validator.Int64{
-					int64validator.Between(0, 15),
-				},
-			},
-			"hash_colors": HashColorsSchema(),
-			"legend":      LegendSchema(),
+			"decimal_precision": DynamicDecimalPrecisionSchema(),
+			"hash_colors":       HashColorsSchema(),
+			"legend":            LegendSchema(),
 			"max_slices_per_bar": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -663,13 +653,8 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 				"custom_unit": schema.StringAttribute{
 					Optional: true,
 				},
-				"decimal_precision": schema.Int64Attribute{
-					Optional: true,
-					Validators: []validator.Int64{
-						int64validator.Between(0, 15),
-					},
-				},
-				"hash_colors": HashColorsSchema(),
+				"decimal_precision": DynamicDecimalPrecisionSchema(),
+				"hash_colors":       HashColorsSchema(),
 				"query_id": schema.StringAttribute{
 					Required:            true,
 					MarkdownDescription: "The `id` of the query in `query_definitions` these settings style. Set that `id` explicitly, since a generated one is not known when the configuration is written.",
