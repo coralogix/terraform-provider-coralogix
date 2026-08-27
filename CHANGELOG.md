@@ -60,9 +60,11 @@
 
 #### resource/coralogix_connector
 - FEAT: Add support for the `eventbridge` connector type.
+- FEAT: Add support for the `incident_io` connector type (preview).
 
 #### resource/coralogix_preset
 - FEAT: Add support for `eventbridge` as a `connector_type` value.
+- FEAT: Add support for `incident_io` as a `connector_type` value (preview).
 
 #### resource/coralogix_dashboard
 - FIX: Editing `content_json` updates the dashboard in place instead of recreating it, so it keeps its ID and existing links to it keep working.

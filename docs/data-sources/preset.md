@@ -34,7 +34,7 @@ data "coralogix_preset" "generic_https_example_data_by_name" {
 
 - `attachment_config` (String) Controls whether notification payloads include attachments. Valid values are: AUTO, ENABLED, DISABLED. Defaults to AUTO. Removing the attribute resets it to AUTO.
 - `config_overrides` (Attributes List) (see [below for nested schema](#nestedatt--config_overrides))
-- `connector_type` (String) The type of connector for the preset. Valid values are: email, eventbridge, generic_https, microsoft_teams, pagerduty, pagerduty_incidents, service_now, slack, unspecified
+- `connector_type` (String) The type of connector for the preset. Valid values are: email, eventbridge, generic_https, incident_io, microsoft_teams, pagerduty, pagerduty_incidents, service_now, slack, unspecified. `incident_io` is a preview type.
 - `description` (String)
 - `entity_type` (String) The type of entity for the preset. Valid values are: alerts, cases, test_notifications, unspecified
 - `parent_id` (String)

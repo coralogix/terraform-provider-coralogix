@@ -55,6 +55,7 @@ var (
 		"email":               presets.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
 		"microsoft_teams":     presets.NOTIFICATIONCENTERCONNECTORTYPE_MICROSOFT_TEAMS,
 		"eventbridge":         presets.NOTIFICATIONCENTERCONNECTORTYPE_EVENTBRIDGE,
+		"incident_io":         presets.NOTIFICATIONCENTERCONNECTORTYPE_INCIDENT_IO,
 	}
 	presetConnectorTypeApiToSchema = utils.ReverseMap(presetConnectorTypeSchemaToApi)
 	validConnectorTypes            = utils.GetKeys(presetConnectorTypeSchemaToApi)
@@ -171,7 +172,7 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Validators: []validator.String{
 					stringvalidator.OneOf(validConnectorTypes...),
 				},
-				MarkdownDescription: fmt.Sprintf("The type of connector for the preset. Valid values are: %s", strings.Join(validConnectorTypes, ", ")),
+				MarkdownDescription: fmt.Sprintf("The type of connector for the preset. Valid values are: %s. `incident_io` is a preview type.", strings.Join(validConnectorTypes, ", ")),
 			},
 			"config_overrides": schema.ListNestedAttribute{
 				Optional: true,

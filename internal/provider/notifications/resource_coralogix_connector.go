@@ -50,6 +50,7 @@ var (
 		"service_now":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
 		"microsoft_teams":     connectors.NOTIFICATIONCENTERCONNECTORTYPE_MICROSOFT_TEAMS,
 		"eventbridge":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_EVENTBRIDGE,
+		"incident_io":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_INCIDENT_IO,
 	}
 	connectorTypeApiToSchema       = utils.ReverseMap(connectorTypeSchemaToApi)
 	validConnectorTypesSchemaToApi = utils.GetKeys(connectorTypeSchemaToApi)
@@ -153,7 +154,7 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Validators: []validator.String{
 					stringvalidator.OneOf(validConnectorTypesSchemaToApi...),
 				},
-				MarkdownDescription: fmt.Sprintf("Connector type. Valid values are: %s", validConnectorTypesSchemaToApi),
+				MarkdownDescription: fmt.Sprintf("Connector type. Valid values are: %s. `incident_io` is a preview type.", validConnectorTypesSchemaToApi),
 			},
 			"connector_config": schema.SingleNestedAttribute{
 				Optional: true,

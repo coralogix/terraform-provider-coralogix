@@ -244,3 +244,25 @@ resource "coralogix_connector" "eventbridge_example" {
   }
 }
 
+resource "coralogix_connector" "incident_io_example" {
+  type        = "incident_io" # Preview connector type.
+  name        = "incident.io connector"
+  description = "incident.io connector example"
+  connector_config = {
+    fields = [
+      {
+        field_name = "apiKey"
+        value      = "apiKey-example"
+      },
+      {
+        field_name = "alertEventsUrl"
+        value      = "https://api.incident.io/v2/alert_events/http/source-id"
+      },
+      {
+        field_name = "alertSourceToken"
+        value      = "alertSourceToken-example"
+      }
+    ]
+  }
+}
+

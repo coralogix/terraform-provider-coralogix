@@ -29,6 +29,9 @@ var (
 	msTeamsTeamId            = os.Getenv("MS_TEAMS_TEAM_ID")
 	msTeamsChannelId         = os.Getenv("MS_TEAMS_CHANNEL_ID")
 	eventbridgeIntegrationId = os.Getenv("EVENTBRIDGE_INTEGRATION_ID")
+	incidentIOAPIKey         = os.Getenv("INCIDENT_IO_API_KEY")
+	incidentIOAlertEventsURL = os.Getenv("INCIDENT_IO_ALERT_EVENTS_URL")
+	incidentIOAlertSourceTok = os.Getenv("INCIDENT_IO_ALERT_SOURCE_TOKEN")
 )
 
 func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
@@ -517,6 +520,47 @@ func testAccResourceCoralogixMicrosoftTeamsConnector(name string) string {
  }`, name, msTeamsIntegrationId, msTeamsTeamId, msTeamsChannelId)
 }
 
+func TestAccCoralogixResourceIncidentIOConnector(t *testing.T) {
+	name := uuid.NewString()
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if incidentIOAPIKey == "" || incidentIOAlertEventsURL == "" || incidentIOAlertSourceTok == "" {
+				t.Skipf("INCIDENT_IO_API_KEY, INCIDENT_IO_ALERT_EVENTS_URL, and INCIDENT_IO_ALERT_SOURCE_TOKEN must be set to run this acceptance test locally")
+			}
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceCoralogixIncidentIOConnector(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "incident_io"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", name),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "test incident.io connector"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "apiKey",
+						"value":      incidentIOAPIKey,
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "alertEventsUrl",
+						"value":      incidentIOAlertEventsURL,
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "alertSourceToken",
+						"value":      incidentIOAlertSourceTok,
+					}),
+				),
+			},
+			{
+				ResourceName:      connectorResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccResourceCoralogixEventbridgeConnector(name string) string {
 	return fmt.Sprintf(`resource "coralogix_connector" "example" {
    id               = "%[1]v"
@@ -532,6 +576,31 @@ func testAccResourceCoralogixEventbridgeConnector(name string) string {
      ]
    }
  }`, name, eventbridgeIntegrationId)
+}
+
+func testAccResourceCoralogixIncidentIOConnector(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
+   type             = "incident_io"
+   name             = "%[1]v"
+   description      = "test incident.io connector"
+   connector_config = {
+     fields = [
+       {
+         field_name = "apiKey"
+         value      = "%[2]v"
+       },
+       {
+         field_name = "alertEventsUrl"
+         value      = "%[3]v"
+       },
+       {
+         field_name = "alertSourceToken"
+         value      = "%[4]v"
+       }
+     ]
+   }
+ }`, name, incidentIOAPIKey, incidentIOAlertEventsURL, incidentIOAlertSourceTok)
 }
 
 func testAccResourceCoralogixEmailConnector(name string) string {
