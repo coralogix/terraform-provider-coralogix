@@ -40,14 +40,6 @@ import (
 )
 
 var (
-	dashboardSchemaToProtoMetricsEditorMode = map[string]dashboardservice.MetricsQueryEditorMode{
-		utils.UNSPECIFIED: dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_UNSPECIFIED,
-		"builder":         dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_BUILDER,
-		"text":            dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_TEXT,
-	}
-	dashboardProtoToSchemaMetricsEditorMode = utils.ReverseMap(dashboardSchemaToProtoMetricsEditorMode)
-	dashboardValidMetricsEditorModes        = utils.GetKeys(dashboardSchemaToProtoMetricsEditorMode)
-
 	dashboardSchemaToProtoMetricsSeriesLimitType = map[string]dashboardservice.MetricsSeriesLimitType{
 		utils.UNSPECIFIED: dashboardservice.METRICSSERIESLIMITTYPE_METRICS_SERIES_LIMIT_TYPE_UNSPECIFIED,
 		"by_point_count":  dashboardservice.METRICSSERIESLIMITTYPE_METRICS_SERIES_LIMIT_TYPE_BY_POINT_COUNT,
@@ -128,7 +120,7 @@ func DynamicSchema() schema.Attribute {
 					},
 				},
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 			},
 			"interpretation": schema.StringAttribute{
@@ -157,9 +149,12 @@ func DynamicSchema() schema.Attribute {
 					"horizontal_bars_multi":   dynamicHorizontalBarsMultiSchema(),
 					"gauge":                   dynamicGaugeSchema(),
 					"pie_chart":               dynamicPieChartSchema(),
+					"hexagon_bins":            dynamicHexagonBinsSchema(),
+					"heatmap":                 dynamicHeatmapSchema(),
+					"geomap":                  dynamicGeomapSchema(),
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi", "gauge", "pie_chart"),
+					ExactlyOneOfChildren("stat", "stat_card", "table", "time_series_lines", "time_series_lines_multi", "time_series_bars", "vertical_bars", "vertical_bars_multi", "horizontal_bars", "horizontal_bars_multi", "gauge", "pie_chart", "hexagon_bins", "heatmap", "geomap"),
 				},
 			},
 		},
@@ -184,7 +179,7 @@ func dynamicLogsQuerySchema() schema.Attribute {
 					Attributes: ObservationFieldSchema(),
 				},
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 			},
 			"aggregations":   dynamicAggregationsSchema(),
@@ -207,7 +202,7 @@ func dynamicSpansQuerySchema() schema.Attribute {
 					Attributes: spanObservationFieldSchema(),
 				},
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 			},
 			"aggregations":   dynamicAggregationsSchema(),
@@ -238,9 +233,9 @@ func dynamicMetricsQuerySchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidMetricsEditorModes...),
+					stringvalidator.OneOf(DashboardValidMetricsEditorModes...),
 				},
-				MarkdownDescription: fmt.Sprintf("The metrics query editor mode. Valid values are: %s.", strings.Join(dashboardValidMetricsEditorModes, ", ")),
+				MarkdownDescription: fmt.Sprintf("The metrics query editor mode. Valid values are: %s.", strings.Join(DashboardValidMetricsEditorModes, ", ")),
 			},
 			"series_limit_type": schema.StringAttribute{
 				Optional: true,
@@ -271,7 +266,7 @@ func dynamicAggregationsSchema() schema.Attribute {
 	return schema.ListNestedAttribute{
 		Optional: true,
 		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
+			listvalidator.SizeBetween(1, 1000),
 		},
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: LogsAggregationAttributes(),
@@ -300,7 +295,7 @@ func spanObservationFieldSchema() map[string]schema.Attribute {
 			ElementType: types.StringType,
 			Required:    true,
 			Validators: []validator.List{
-				listvalidator.SizeAtLeast(1),
+				listvalidator.SizeBetween(1, 1000),
 			},
 			MarkdownDescription: "Ordered path segments identifying the span field.",
 		},
@@ -336,13 +331,10 @@ func dynamicStatSchema() schema.Attribute {
 					Attributes: ObservationFieldSchema(),
 				},
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 			},
-			"custom_unit": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "Custom unit label. Takes effect only when `unit` is `custom`.",
-			},
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -401,7 +393,7 @@ func dynamicStatSchema() schema.Attribute {
 					Attributes: ObservationFieldSchema(),
 				},
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 			},
 		},
@@ -470,7 +462,7 @@ func dynamicSpansQueryAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"lucene_query": types.StringType,
 		"group_by": types.ListType{
-			ElemType: types.ObjectType{AttrTypes: spanObservationFieldAttr()},
+			ElemType: types.ObjectType{AttrTypes: SpanObservationFieldAttr()},
 		},
 		"aggregations": types.ListType{
 			ElemType: types.ObjectType{AttrTypes: AggregationModelAttr()},
@@ -498,7 +490,7 @@ func dynamicDataPrimeQueryAttr() map[string]attr.Type {
 	}
 }
 
-func spanObservationFieldAttr() map[string]attr.Type {
+func SpanObservationFieldAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"keypath": types.ListType{
 			ElemType: types.StringType,
@@ -522,6 +514,9 @@ func dynamicVisualizationModelAttr() map[string]attr.Type {
 		"horizontal_bars_multi":   types.ObjectType{AttrTypes: dynamicHorizontalBarsMultiModelAttr()},
 		"gauge":                   types.ObjectType{AttrTypes: dynamicGaugeModelAttr()},
 		"pie_chart":               types.ObjectType{AttrTypes: dynamicPieChartModelAttr()},
+		"hexagon_bins":            types.ObjectType{AttrTypes: dynamicHexagonBinsModelAttr()},
+		"heatmap":                 types.ObjectType{AttrTypes: dynamicHeatmapModelAttr()},
+		"geomap":                  types.ObjectType{AttrTypes: dynamicGeomapModelAttr()},
 	}
 }
 
@@ -695,7 +690,7 @@ func expandDynamicSpansQuery(ctx context.Context, spans *DynamicQuerySpansModel)
 		return nil, nil
 	}
 
-	groupBy, diags := expandSpanObservationFields(ctx, spans.GroupBy)
+	groupBy, diags := ExpandSpanObservationFields(ctx, spans.GroupBy)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -727,7 +722,7 @@ func expandDynamicMetricsQuery(metrics *DynamicQueryMetricsModel) *dashboardserv
 	return &dashboardservice.Metrics{
 		PromqlQuery:     ExpandPromqlQuery(metrics.PromqlQuery),
 		PromqlQueryType: OptionalEnumPointer(metrics.PromqlQueryType, DashboardSchemaToProtoPromQLQueryType),
-		EditorMode:      OptionalEnumPointer(metrics.EditorMode, dashboardSchemaToProtoMetricsEditorMode),
+		EditorMode:      OptionalEnumPointer(metrics.EditorMode, DashboardSchemaToProtoMetricsEditorMode),
 		SeriesLimitType: OptionalEnumPointer(metrics.SeriesLimitType, dashboardSchemaToProtoMetricsSeriesLimitType),
 	}
 }
@@ -745,7 +740,7 @@ func expandDynamicDataPrimeQuery(dataPrime *DynamicQueryDataPrimeModel) *dashboa
 	}
 }
 
-func expandSpanObservationFields(ctx context.Context, groupBy types.List) ([]dashboardservice.SpanObservationField, diag.Diagnostics) {
+func ExpandSpanObservationFields(ctx context.Context, groupBy types.List) ([]dashboardservice.SpanObservationField, diag.Diagnostics) {
 	var objects []types.Object
 	diags := groupBy.ElementsAs(ctx, &objects, true)
 	if diags.HasError() {
@@ -779,10 +774,27 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 		return nil, nil
 	}
 
+	// ExactlyOneOfChildren defers while any arm is unknown, so a value only
+	// known after apply can arrive with two visualizations set, or with none.
+	// The dispatch below would take the first of two and discard the rest, or
+	// return no visualization at all, which the read then flattens to null.
+	switch selected := dynamicSelectedVisualizations(visualization); {
+	case len(selected) > 1:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Invalid Attribute Combination",
+			fmt.Sprintf("Only one visualization can be configured, but %s are set.", strings.Join(selected, " and ")),
+		)}
+	case len(selected) == 0:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Invalid Attribute Combination",
+			"A visualization block must configure exactly one visualization. Remove the block to leave the widget without one.",
+		)}
+	}
+
 	// One helper per visualization family, so adding a family stays a one-line
 	// change here instead of growing a switch past the cyclomatic limit.
 	for _, family := range []func(context.Context, *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics){
-		expandDynamicVisualizationFamilyStat, expandDynamicVisualizationFamilyTable, expandDynamicVisualizationFamilyTimeSeries, expandDynamicVisualizationFamilyBars, expandDynamicVisualizationFamilyGaugePie,
+		expandDynamicVisualizationFamilyStat, expandDynamicVisualizationFamilyTable, expandDynamicVisualizationFamilyTimeSeries, expandDynamicVisualizationFamilyBars, expandDynamicVisualizationFamilyGaugePie, expandDynamicVisualizationFamilySpatial,
 	} {
 		converted, diags := family(ctx, visualization)
 		if diags.HasError() {
@@ -794,6 +806,57 @@ func expandDynamicVisualization(ctx context.Context, visualization *DynamicVisua
 	}
 
 	return nil, nil
+}
+
+type dynamicVisualizationArm struct {
+	name     string
+	selected bool
+}
+
+// Listed explicitly rather than discovered by reflection, so every field is
+// referenced at compile time and a pointer added to the model for anything
+// other than a visualization cannot be mistaken for one.
+// TestDynamicVisualizationArmsMatchTheSchema keeps this list and the schema
+// from drifting apart.
+func dynamicVisualizationArms(visualization *DynamicVisualizationModel) []dynamicVisualizationArm {
+	return []dynamicVisualizationArm{
+		{"stat", visualization.Stat != nil},
+		{"stat_card", visualization.StatCard != nil},
+		{"table", visualization.Table != nil},
+		{"time_series_lines", visualization.TimeSeriesLines != nil},
+		{"time_series_lines_multi", visualization.TimeSeriesLinesMulti != nil},
+		{"time_series_bars", visualization.TimeSeriesBars != nil},
+		{"vertical_bars", visualization.VerticalBars != nil},
+		{"vertical_bars_multi", visualization.VerticalBarsMulti != nil},
+		{"horizontal_bars", visualization.HorizontalBars != nil},
+		{"horizontal_bars_multi", visualization.HorizontalBarsMulti != nil},
+		{"gauge", visualization.Gauge != nil},
+		{"pie_chart", visualization.PieChart != nil},
+		{"hexagon_bins", visualization.HexagonBins != nil},
+		{"heatmap", visualization.Heatmap != nil},
+		{"geomap", visualization.Geomap != nil},
+	}
+}
+
+func dynamicSelectedVisualizations(visualization *DynamicVisualizationModel) []string {
+	var selected []string
+	for _, arm := range dynamicVisualizationArms(visualization) {
+		if arm.selected {
+			selected = append(selected, arm.name)
+		}
+	}
+	return selected
+}
+
+// The object and conflict validators defer while any child is unknown, so a
+// value only known after apply can reach these conversions having selected no
+// arm or two. Neither shape has an API representation, so each union re-checks
+// here rather than letting the apply fail on the backend's answer.
+func dynamicUnionDiagnostic(attribute, requirement string) diag.Diagnostics {
+	return diag.Diagnostics{diag.NewErrorDiagnostic(
+		"Invalid Attribute Combination",
+		fmt.Sprintf("%s requires exactly one of %s.", attribute, requirement),
+	)}
 }
 
 func expandDynamicVisualizationFamilyStat(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics) {
@@ -898,6 +961,31 @@ func expandDynamicVisualizationFamilyGaugePie(ctx context.Context, visualization
 			return nil, diags
 		}
 		return &dashboardservice.Visualization{PieChart: pieChart}, nil
+	}
+
+	return nil, nil
+}
+
+func expandDynamicVisualizationFamilySpatial(ctx context.Context, visualization *DynamicVisualizationModel) (*dashboardservice.Visualization, diag.Diagnostics) {
+	switch {
+	case visualization.HexagonBins != nil:
+		hexagonBins, diags := expandDynamicHexagonBins(ctx, visualization.HexagonBins)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{HexagonBins: hexagonBins}, nil
+	case visualization.Heatmap != nil:
+		heatmap, diags := expandDynamicHeatmap(ctx, visualization.Heatmap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{Heatmap: heatmap}, nil
+	case visualization.Geomap != nil:
+		geomap, diags := expandDynamicGeomap(ctx, visualization.Geomap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboardservice.Visualization{Geomap: geomap}, nil
 	}
 
 	return nil, nil
@@ -1119,7 +1207,7 @@ func flattenDynamicSpansQuery(ctx context.Context, spans *dashboardservice.Spans
 		return nil, nil
 	}
 
-	groupBy, diags := flattenSpanObservationFields(ctx, spans.GetGroupBy())
+	groupBy, diags := FlattenSpanObservationFields(ctx, spans.GetGroupBy())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1154,7 +1242,7 @@ func flattenDynamicMetricsQuery(metrics *dashboardservice.Metrics) *DynamicQuery
 		Metrics: &DynamicQueryMetricsModel{
 			PromqlQuery:     flattenPromqlQuery(metrics.PromqlQuery),
 			PromqlQueryType: flattenOptionalEnum(metrics.PromqlQueryType, DashboardProtoToSchemaPromQLQueryType),
-			EditorMode:      flattenOptionalEnum(metrics.EditorMode, dashboardProtoToSchemaMetricsEditorMode),
+			EditorMode:      flattenOptionalEnum(metrics.EditorMode, DashboardProtoToSchemaMetricsEditorMode),
 			SeriesLimitType: flattenOptionalEnum(metrics.SeriesLimitType, dashboardProtoToSchemaMetricsSeriesLimitType),
 		},
 	}
@@ -1178,9 +1266,9 @@ func flattenDynamicDataPrimeQuery(dataPrime *dashboardservice.Dataprime) *Dynami
 	}
 }
 
-func flattenSpanObservationFields(ctx context.Context, fields []dashboardservice.SpanObservationField) (types.List, diag.Diagnostics) {
+func FlattenSpanObservationFields(ctx context.Context, fields []dashboardservice.SpanObservationField) (types.List, diag.Diagnostics) {
 	if len(fields) == 0 {
-		return types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttr()}), nil
+		return types.ListNull(types.ObjectType{AttrTypes: SpanObservationFieldAttr()}), nil
 	}
 
 	var diagnostics diag.Diagnostics
@@ -1191,7 +1279,7 @@ func flattenSpanObservationFields(ctx context.Context, fields []dashboardservice
 			Scope:        flattenOptionalEnum(fields[i].Scope, DashboardProtoToSchemaObservationFieldScope),
 			RelationType: flattenOptionalEnum(fields[i].RelationType, dashboardProtoToSchemaSpanRelationType),
 		}
-		fieldElement, diags := types.ObjectValueFrom(ctx, spanObservationFieldAttr(), model)
+		fieldElement, diags := types.ObjectValueFrom(ctx, SpanObservationFieldAttr(), model)
 		if diags.HasError() {
 			diagnostics.Append(diags...)
 			continue
@@ -1200,9 +1288,9 @@ func flattenSpanObservationFields(ctx context.Context, fields []dashboardservice
 	}
 
 	if diagnostics.HasError() {
-		return types.ListNull(types.ObjectType{AttrTypes: spanObservationFieldAttr()}), diagnostics
+		return types.ListNull(types.ObjectType{AttrTypes: SpanObservationFieldAttr()}), diagnostics
 	}
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: spanObservationFieldAttr()}, fieldElements)
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: SpanObservationFieldAttr()}, fieldElements)
 }
 
 func flattenDynamicVisualization(ctx context.Context, visualization *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics) {
@@ -1213,7 +1301,7 @@ func flattenDynamicVisualization(ctx context.Context, visualization *dashboardse
 	// One helper per visualization family, so adding a family stays a one-line
 	// change here instead of growing a switch past the cyclomatic limit.
 	for _, family := range []func(context.Context, *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics){
-		flattenDynamicVisualizationFamilyStat, flattenDynamicVisualizationFamilyTable, flattenDynamicVisualizationFamilyTimeSeries, flattenDynamicVisualizationFamilyBars, flattenDynamicVisualizationFamilyGaugePie,
+		flattenDynamicVisualizationFamilyStat, flattenDynamicVisualizationFamilyTable, flattenDynamicVisualizationFamilyTimeSeries, flattenDynamicVisualizationFamilyBars, flattenDynamicVisualizationFamilyGaugePie, flattenDynamicVisualizationFamilySpatial,
 	} {
 		converted, diags := family(ctx, visualization)
 		if diags.HasError() {
@@ -1337,6 +1425,31 @@ func flattenDynamicVisualizationFamilyGaugePie(ctx context.Context, visualizatio
 	return nil, nil
 }
 
+func flattenDynamicVisualizationFamilySpatial(ctx context.Context, visualization *dashboardservice.Visualization) (*DynamicVisualizationModel, diag.Diagnostics) {
+	switch {
+	case visualization.HexagonBins != nil:
+		hexagonBins, diags := flattenDynamicHexagonBins(ctx, visualization.HexagonBins)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{HexagonBins: hexagonBins}, nil
+	case visualization.Heatmap != nil:
+		heatmap, diags := flattenDynamicHeatmap(ctx, visualization.Heatmap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{Heatmap: heatmap}, nil
+	case visualization.Geomap != nil:
+		geomap, diags := flattenDynamicGeomap(ctx, visualization.Geomap)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DynamicVisualizationModel{Geomap: geomap}, nil
+	}
+
+	return nil, nil
+}
+
 func flattenDynamicStat(ctx context.Context, stat *dashboardservice.Stat) (*DynamicStatModel, diag.Diagnostics) {
 	if stat == nil {
 		return nil, nil
@@ -1423,4 +1536,47 @@ func flattenOptionalEnum[T ~string](value *T, mapping map[T]string) types.String
 		return types.StringValue(mapped)
 	}
 	return types.StringNull()
+}
+
+// ExpandSpanObservationFieldObject converts a single span observation field, as
+// used by a `stacked_group_name_field` attribute.
+func ExpandSpanObservationFieldObject(ctx context.Context, field types.Object) (*dashboardservice.SpanObservationField, diag.Diagnostics) {
+	if field.IsNull() || field.IsUnknown() {
+		return nil, nil
+	}
+
+	list, diags := types.ListValue(types.ObjectType{AttrTypes: SpanObservationFieldAttr()}, []attr.Value{field})
+	if diags.HasError() {
+		return nil, diags
+	}
+	fields, diags := ExpandSpanObservationFields(ctx, list)
+	if diags.HasError() || len(fields) == 0 {
+		return nil, diags
+	}
+	return &fields[0], diags
+}
+
+// FlattenSpanObservationFieldObject is the inverse of
+// ExpandSpanObservationFieldObject.
+func FlattenSpanObservationFieldObject(ctx context.Context, field *dashboardservice.SpanObservationField) (types.Object, diag.Diagnostics) {
+	if field == nil {
+		return types.ObjectNull(SpanObservationFieldAttr()), nil
+	}
+
+	list, diags := FlattenSpanObservationFields(ctx, []dashboardservice.SpanObservationField{*field})
+	if diags.HasError() {
+		return types.ObjectNull(SpanObservationFieldAttr()), diags
+	}
+	elements := list.Elements()
+	if len(elements) == 0 {
+		return types.ObjectNull(SpanObservationFieldAttr()), diags
+	}
+	object, ok := elements[0].(types.Object)
+	if !ok {
+		return types.ObjectNull(SpanObservationFieldAttr()), diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Error Flatten Span Observation Field",
+			fmt.Sprintf("flattened element is %T, expected an object", elements[0]),
+		)}
+	}
+	return object, diags
 }

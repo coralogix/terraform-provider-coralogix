@@ -303,6 +303,48 @@ var (
 	DashboardProtoToSchemaLegendBy = utils.ReverseMap(DashboardSchemaToProtoLegendBy)
 	DashboardValidLegendBys        = utils.GetKeys(DashboardSchemaToProtoLegendBy)
 
+	DashboardSchemaToProtoCommonAggregation = map[string]dashboardservice.CommonAggregation{
+		utils.UNSPECIFIED: dashboardservice.COMMONAGGREGATION_AGGREGATION_UNSPECIFIED,
+		"last":            dashboardservice.COMMONAGGREGATION_AGGREGATION_LAST,
+		"min":             dashboardservice.COMMONAGGREGATION_AGGREGATION_MIN,
+		"max":             dashboardservice.COMMONAGGREGATION_AGGREGATION_MAX,
+		"avg":             dashboardservice.COMMONAGGREGATION_AGGREGATION_AVG,
+		"sum":             dashboardservice.COMMONAGGREGATION_AGGREGATION_SUM,
+	}
+	DashboardProtoToSchemaCommonAggregation = utils.ReverseMap(DashboardSchemaToProtoCommonAggregation)
+	DashboardValidCommonAggregations        = utils.GetKeys(DashboardSchemaToProtoCommonAggregation)
+
+	DashboardSchemaToProtoBarValueDisplay = map[string]dashboardservice.WidgetsBarValueDisplay{
+		utils.UNSPECIFIED: dashboardservice.WIDGETSBARVALUEDISPLAY_BAR_VALUE_DISPLAY_UNSPECIFIED,
+		"top":             dashboardservice.WIDGETSBARVALUEDISPLAY_BAR_VALUE_DISPLAY_TOP,
+		"inside":          dashboardservice.WIDGETSBARVALUEDISPLAY_BAR_VALUE_DISPLAY_INSIDE,
+		"both":            dashboardservice.WIDGETSBARVALUEDISPLAY_BAR_VALUE_DISPLAY_BOTH,
+	}
+	DashboardProtoToSchemaBarValueDisplay = utils.ReverseMap(DashboardSchemaToProtoBarValueDisplay)
+	DashboardValidBarValueDisplays        = utils.GetKeys(DashboardSchemaToProtoBarValueDisplay)
+
+	DashboardSchemaToProtoXAxisTimeFormat = map[string]dashboardservice.XAxisTimeFormat{
+		utils.UNSPECIFIED: dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_UNSPECIFIED,
+		"auto":            dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_AUTO,
+		"dd_mm":           dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_DD_MM,
+		"mm_dd":           dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_MM_DD,
+		"hh_mm":           dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_HH_MM,
+		"dd_mm_hh_mm":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_DD_MM_HH_MM,
+		"hh_mm_dd_mm":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_HH_MM_DD_MM,
+		"mm_dd_hh_mm":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_MM_DD_HH_MM,
+		"hh_mm_mm_dd":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_HH_MM_MM_DD,
+	}
+	DashboardProtoToSchemaXAxisTimeFormat = utils.ReverseMap(DashboardSchemaToProtoXAxisTimeFormat)
+	DashboardValidXAxisTimeFormats        = utils.GetKeys(DashboardSchemaToProtoXAxisTimeFormat)
+
+	DashboardSchemaToProtoMetricsEditorMode = map[string]dashboardservice.MetricsQueryEditorMode{
+		utils.UNSPECIFIED: dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_UNSPECIFIED,
+		"builder":         dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_BUILDER,
+		"text":            dashboardservice.METRICSQUERYEDITORMODE_METRICS_QUERY_EDITOR_MODE_TEXT,
+	}
+	DashboardProtoToSchemaMetricsEditorMode = utils.ReverseMap(DashboardSchemaToProtoMetricsEditorMode)
+	DashboardValidMetricsEditorModes        = utils.GetKeys(DashboardSchemaToProtoMetricsEditorMode)
+
 	DashboardSchemaToProtoPromQLQueryType = map[string]dashboardservice.PromQLQueryType{
 		utils.UNSPECIFIED: dashboardservice.PROMQLQUERYTYPE_PROM_QL_QUERY_TYPE_UNSPECIFIED,
 		"range":           dashboardservice.PROMQLQUERYTYPE_PROM_QL_QUERY_TYPE_RANGE,
@@ -350,6 +392,20 @@ func OptionalEnumPointer[T ~string](value types.String, values map[string]T) *T 
 	}
 
 	return &converted
+}
+
+// FlattenEnum converts an API enum to the name the schema uses. A field the API
+// did not set arrives as the enum's zero value, which is the empty string and is
+// in no mapping; it becomes "unspecified", the schema's own name for that state.
+// Writing the empty string instead puts a value in state that the schema does not
+// allow, and an attribute that is Optional+Computed then plans as unknown for
+// ever, because Terraform cannot reconcile it with an omitted configuration.
+func FlattenEnum[T ~string](value T, mapping map[T]string) types.String {
+	if name, ok := mapping[value]; ok {
+		return types.StringValue(name)
+	}
+
+	return types.StringValue(utils.UNSPECIFIED)
 }
 
 func legacyDurationToOpenAPI(value, fieldName string) (*string, diag.Diagnostic) {
@@ -417,10 +473,13 @@ func OpenAPIDurationToGo(value *string) basetypes.StringValue {
 	return types.StringValue(duration.AsDuration().String())
 }
 
+// QueryMetricsModel is the data table's metrics query. The line chart has its
+// own LineChartQueryMetricsModel, because the two queries carry different fields.
 type QueryMetricsModel struct {
 	PromqlQuery     types.String    `tfsdk:"promql_query"`
 	Filters         types.List      `tfsdk:"filters"` //MetricsFilterModel
 	PromqlQueryType types.String    `tfsdk:"promql_query_type"`
+	EditorMode      types.String    `tfsdk:"editor_mode"`
 	TimeFrame       *TimeFrameModel `tfsdk:"time_frame"`
 }
 
@@ -537,6 +596,9 @@ type DynamicVisualizationModel struct {
 	TimeSeriesLines      *DynamicTimeSeriesLinesModel      `tfsdk:"time_series_lines"`
 	TimeSeriesLinesMulti *DynamicTimeSeriesLinesMultiModel `tfsdk:"time_series_lines_multi"`
 	TimeSeriesBars       *DynamicTimeSeriesBarsModel       `tfsdk:"time_series_bars"`
+	HexagonBins          *DynamicHexagonBinsModel          `tfsdk:"hexagon_bins"`
+	Heatmap              *DynamicHeatmapModel              `tfsdk:"heatmap"`
+	Geomap               *DynamicGeomapModel               `tfsdk:"geomap"`
 	VerticalBars         *DynamicVerticalBarsModel         `tfsdk:"vertical_bars"`
 	VerticalBarsMulti    *DynamicVerticalBarsMultiModel    `tfsdk:"vertical_bars_multi"`
 	HorizontalBars       *DynamicHorizontalBarsModel       `tfsdk:"horizontal_bars"`
@@ -572,6 +634,9 @@ type LineChartModel struct {
 	Tooltip          *TooltipModel `tfsdk:"tooltip"`
 	QueryDefinitions types.List    `tfsdk:"query_definitions"` //LineChartQueryDefinitionModel
 	StackedLine      types.String  `tfsdk:"stacked_line"`
+	ConnectNulls     types.Bool    `tfsdk:"connect_nulls"`
+	UseDataTimeRange types.Bool    `tfsdk:"use_data_time_range"`
+	XAxisTimeFormat  types.String  `tfsdk:"x_axis_time_format"`
 }
 
 type TooltipModel struct {
@@ -592,6 +657,11 @@ type LineChartQueryDefinitionModel struct {
 	HashColors         types.Bool           `tfsdk:"hash_colors"`
 	Resolution         types.Object         `tfsdk:"resolution"` //LineChartResolutionModel
 	DataModeType       types.String         `tfsdk:"data_mode_type"`
+	CustomUnit         types.String         `tfsdk:"custom_unit"`
+	Decimal            types.Number         `tfsdk:"decimal"`
+	DecimalPrecision   types.Bool           `tfsdk:"decimal_precision"`
+	YAxisMax           Float32Value         `tfsdk:"y_axis_max"`
+	YAxisMin           Float32Value         `tfsdk:"y_axis_min"`
 }
 
 type LineChartResolutionModel struct {
@@ -600,15 +670,28 @@ type LineChartResolutionModel struct {
 }
 
 type LineChartQueryModel struct {
-	Logs      *LineChartQueryLogsModel  `tfsdk:"logs"`
-	Metrics   *QueryMetricsModel        `tfsdk:"metrics"`
-	Spans     *LineChartQuerySpansModel `tfsdk:"spans"`
-	DataPrime *DataPrimeModel           `tfsdk:"data_prime"`
+	Logs      *LineChartQueryLogsModel    `tfsdk:"logs"`
+	Metrics   *LineChartQueryMetricsModel `tfsdk:"metrics"`
+	Spans     *LineChartQuerySpansModel   `tfsdk:"spans"`
+	DataPrime *DataPrimeModel             `tfsdk:"data_prime"`
+}
+
+// LineChartQueryMetricsModel is separate from QueryMetricsModel because the
+// line chart query carries editor_mode and series_limit_type, which the data
+// table query does not have.
+type LineChartQueryMetricsModel struct {
+	PromqlQuery     types.String    `tfsdk:"promql_query"`
+	Filters         types.List      `tfsdk:"filters"` //MetricsFilterModel
+	PromqlQueryType types.String    `tfsdk:"promql_query_type"`
+	EditorMode      types.String    `tfsdk:"editor_mode"`
+	SeriesLimitType types.String    `tfsdk:"series_limit_type"`
+	TimeFrame       *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type LineChartQueryLogsModel struct {
 	LuceneQuery  types.String    `tfsdk:"lucene_query"`
 	GroupBy      types.List      `tfsdk:"group_by"`     //types.String
+	GroupBys     types.List      `tfsdk:"group_bys"`    //ObservationFieldModel
 	Aggregations types.List      `tfsdk:"aggregations"` //AggregationModel
 	Filters      types.List      `tfsdk:"filters"`      //FilterModel
 	TimeFrame    *TimeFrameModel `tfsdk:"time_frame"`
@@ -623,6 +706,7 @@ type QueryMetricFilterModel struct {
 type LineChartQuerySpansModel struct {
 	LuceneQuery  types.String    `tfsdk:"lucene_query"`
 	GroupBy      types.List      `tfsdk:"group_by"`     //SpansFieldModel
+	GroupBys     types.List      `tfsdk:"group_bys"`    //SpanObservationFieldModel
 	Aggregations types.List      `tfsdk:"aggregations"` //SpansAggregationModel
 	Filters      types.List      `tfsdk:"filters"`      //SpansFilterModel
 	TimeFrame    *TimeFrameModel `tfsdk:"time_frame"`
@@ -715,6 +799,19 @@ type GaugeModel struct {
 	ThresholdType     types.String     `tfsdk:"threshold_type"`
 	DisplaySeriesName types.Bool       `tfsdk:"display_series_name"`
 	Decimal           types.Number     `tfsdk:"decimal"`
+	ArcDisplay        *ArcDisplayModel `tfsdk:"arc_display"`
+	DecimalPrecision  types.Bool       `tfsdk:"decimal_precision"`
+	CustomUnit        types.String     `tfsdk:"custom_unit"`
+	Legend            *LegendModel     `tfsdk:"legend"`
+	LegendBy          types.String     `tfsdk:"legend_by"`
+	ShowMinMax        types.Bool       `tfsdk:"show_min_max"`
+}
+
+// ArcDisplayModel replaces the gauge's deprecated show_inner_arc and
+// show_outer_arc booleans.
+type ArcDisplayModel struct {
+	ThresholdArc types.Bool `tfsdk:"threshold_arc"`
+	ValueArc     types.Bool `tfsdk:"value_arc"`
 }
 
 type GaugeQueryModel struct {
@@ -727,21 +824,26 @@ type GaugeQueryModel struct {
 type GaugeQueryLogsModel struct {
 	LuceneQuery     types.String          `tfsdk:"lucene_query"`
 	LogsAggregation *LogsAggregationModel `tfsdk:"logs_aggregation"`
-	Filters         types.List            `tfsdk:"filters"` //LogsFilterModel
+	Filters         types.List            `tfsdk:"filters"`  //LogsFilterModel
+	GroupBy         types.List            `tfsdk:"group_by"` //ObservationFieldModel
 	TimeFrame       *TimeFrameModel       `tfsdk:"time_frame"`
 }
 
 type GaugeQueryMetricsModel struct {
-	PromqlQuery types.String    `tfsdk:"promql_query"`
-	Aggregation types.String    `tfsdk:"aggregation"`
-	Filters     types.List      `tfsdk:"filters"` //MetricsFilterModel
-	TimeFrame   *TimeFrameModel `tfsdk:"time_frame"`
+	PromqlQuery     types.String    `tfsdk:"promql_query"`
+	Aggregation     types.String    `tfsdk:"aggregation"`
+	Filters         types.List      `tfsdk:"filters"` //MetricsFilterModel
+	EditorMode      types.String    `tfsdk:"editor_mode"`
+	PromqlQueryType types.String    `tfsdk:"promql_query_type"`
+	TimeFrame       *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type GaugeQuerySpansModel struct {
 	LuceneQuery      types.String           `tfsdk:"lucene_query"`
 	SpansAggregation *SpansAggregationModel `tfsdk:"spans_aggregation"`
-	Filters          types.List             `tfsdk:"filters"` //SpansFilterModel
+	Filters          types.List             `tfsdk:"filters"`   //SpansFilterModel
+	GroupBy          types.List             `tfsdk:"group_by"`  //SpansFieldModel
+	GroupBys         types.List             `tfsdk:"group_bys"` //SpanObservationFieldModel
 	TimeFrame        *TimeFrameModel        `tfsdk:"time_frame"`
 }
 
@@ -763,6 +865,11 @@ type PieChartModel struct {
 	ColorScheme        types.String                  `tfsdk:"color_scheme"`
 	HashColors         types.Bool                    `tfsdk:"hash_colors"`
 	DataModeType       types.String                  `tfsdk:"data_mode_type"`
+	CustomUnit         types.String                  `tfsdk:"custom_unit"`
+	Decimal            types.Number                  `tfsdk:"decimal"`
+	DecimalPrecision   types.Bool                    `tfsdk:"decimal_precision"`
+	Legend             *LegendModel                  `tfsdk:"legend"`
+	ShowTotal          types.Bool                    `tfsdk:"show_total"`
 }
 
 type PieChartStackDefinitionModel struct {
@@ -793,16 +900,21 @@ type PieChartQueryMetricsModel struct {
 	Filters          types.List      `tfsdk:"filters"`     //MetricsFilterModel
 	GroupNames       types.List      `tfsdk:"group_names"` //types.String
 	StackedGroupName types.String    `tfsdk:"stacked_group_name"`
+	Aggregation      types.String    `tfsdk:"aggregation"`
+	EditorMode       types.String    `tfsdk:"editor_mode"`
+	PromqlQueryType  types.String    `tfsdk:"promql_query_type"`
 	TimeFrame        *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type PieChartQuerySpansModel struct {
-	LuceneQuery      types.String           `tfsdk:"lucene_query"`
-	Aggregation      *SpansAggregationModel `tfsdk:"aggregation"`
-	Filters          types.List             `tfsdk:"filters"`     //SpansFilterModel
-	GroupNames       types.List             `tfsdk:"group_names"` //SpansFieldModel
-	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
-	TimeFrame        *TimeFrameModel        `tfsdk:"time_frame"`
+	LuceneQuery           types.String           `tfsdk:"lucene_query"`
+	Aggregation           *SpansAggregationModel `tfsdk:"aggregation"`
+	Filters               types.List             `tfsdk:"filters"`     //SpansFilterModel
+	GroupNames            types.List             `tfsdk:"group_names"` //SpansFieldModel
+	StackedGroupName      *SpansFieldModel       `tfsdk:"stacked_group_name"`
+	GroupNamesFields      types.List             `tfsdk:"group_names_fields"`       //SpanObservationFieldModel
+	StackedGroupNameField types.Object           `tfsdk:"stacked_group_name_field"` //SpanObservationFieldModel
+	TimeFrame             *TimeFrameModel        `tfsdk:"time_frame"`
 }
 
 type PieChartQueryDataPrimeModel struct {
@@ -834,6 +946,14 @@ type BarChartModel struct {
 	ColorScheme       types.String                  `tfsdk:"color_scheme"`
 	HashColors        types.Bool                    `tfsdk:"hash_colors"`
 	DataModeType      types.String                  `tfsdk:"data_mode_type"`
+	BarValueDisplay   types.String                  `tfsdk:"bar_value_display"`
+	CustomUnit        types.String                  `tfsdk:"custom_unit"`
+	Decimal           types.Number                  `tfsdk:"decimal"`
+	DecimalPrecision  types.Bool                    `tfsdk:"decimal_precision"`
+	Legend            *LegendModel                  `tfsdk:"legend"`
+	XAxisTimeFormat   types.String                  `tfsdk:"x_axis_time_format"`
+	YAxisMax          Float32Value                  `tfsdk:"y_axis_max"`
+	YAxisMin          Float32Value                  `tfsdk:"y_axis_min"`
 }
 
 type BarChartQueryModel struct {
@@ -864,16 +984,21 @@ type BarChartQueryMetricsModel struct {
 	Filters          types.List      `tfsdk:"filters"`     //MetricsFilterModel
 	GroupNames       types.List      `tfsdk:"group_names"` //types.String
 	StackedGroupName types.String    `tfsdk:"stacked_group_name"`
+	Aggregation      types.String    `tfsdk:"aggregation"`
+	EditorMode       types.String    `tfsdk:"editor_mode"`
+	PromqlQueryType  types.String    `tfsdk:"promql_query_type"`
 	TimeFrame        *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type BarChartQuerySpansModel struct {
-	LuceneQuery      types.String           `tfsdk:"lucene_query"`
-	Aggregation      *SpansAggregationModel `tfsdk:"aggregation"`
-	Filters          types.List             `tfsdk:"filters"`     //SpansFilterModel
-	GroupNames       types.List             `tfsdk:"group_names"` //SpansFieldModel
-	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
-	TimeFrame        *TimeFrameModel        `tfsdk:"time_frame"`
+	LuceneQuery           types.String           `tfsdk:"lucene_query"`
+	Aggregation           *SpansAggregationModel `tfsdk:"aggregation"`
+	Filters               types.List             `tfsdk:"filters"`     //SpansFilterModel
+	GroupNames            types.List             `tfsdk:"group_names"` //SpansFieldModel
+	StackedGroupName      *SpansFieldModel       `tfsdk:"stacked_group_name"`
+	GroupNamesFields      types.List             `tfsdk:"group_names_fields"`       //SpanObservationFieldModel
+	StackedGroupNameField types.Object           `tfsdk:"stacked_group_name_field"` //SpanObservationFieldModel
+	TimeFrame             *TimeFrameModel        `tfsdk:"time_frame"`
 }
 
 type BarChartQueryDataPrimeModel struct {
@@ -923,6 +1048,12 @@ type HorizontalBarChartModel struct {
 	ColorScheme       types.String                  `tfsdk:"color_scheme"`
 	HashColors        types.Bool                    `tfsdk:"hash_colors"`
 	DataModeType      types.String                  `tfsdk:"data_mode_type"`
+	CustomUnit        types.String                  `tfsdk:"custom_unit"`
+	Decimal           types.Number                  `tfsdk:"decimal"`
+	DecimalPrecision  types.Bool                    `tfsdk:"decimal_precision"`
+	Legend            *LegendModel                  `tfsdk:"legend"`
+	YAxisMax          Float32Value                  `tfsdk:"y_axis_max"`
+	YAxisMin          Float32Value                  `tfsdk:"y_axis_min"`
 }
 
 type HorizontalBarChartQueryModel struct {
@@ -1164,7 +1295,7 @@ func FlattenLegend(legend *dashboardservice.Legend) *LegendModel {
 		IsVisible:    types.BoolPointerValue(legend.IsVisible),
 		GroupByQuery: types.BoolPointerValue(legend.GroupByQuery),
 		Columns:      flattenLegendColumns(legend.GetColumns()),
-		Placement:    types.StringValue(DashboardLegendPlacementProtoToSchema[legend.GetPlacement()]),
+		Placement:    FlattenEnum(legend.GetPlacement(), DashboardLegendPlacementProtoToSchema),
 	}
 }
 
@@ -2980,4 +3111,91 @@ type DynamicTableSettingsModel struct {
 type DynamicTableColumnWidthModel struct {
 	ColumnName types.String `tfsdk:"column_name"`
 	Width      types.Int64  `tfsdk:"width"`
+}
+
+type DynamicHexagonBinsModel struct {
+	AllowAbbreviation types.Bool    `tfsdk:"allow_abbreviation"`
+	CategoryFields    types.List    `tfsdk:"category_fields"` //ObservationFieldModel
+	CustomUnit        types.String  `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64   `tfsdk:"decimal_precision"`
+	Legend            *LegendModel  `tfsdk:"legend"`
+	LegendBy          types.String  `tfsdk:"legend_by"`
+	Max               types.Float64 `tfsdk:"max"`
+	Min               types.Float64 `tfsdk:"min"`
+	ThresholdType     types.String  `tfsdk:"threshold_type"`
+	Thresholds        types.List    `tfsdk:"thresholds"` //DynamicThresholdModel
+	Unit              types.String  `tfsdk:"unit"`
+	ValueField        types.Object  `tfsdk:"value_field"` //ObservationFieldModel
+}
+
+type DynamicHeatmapModel struct {
+	AllowAbbreviation   types.Bool                  `tfsdk:"allow_abbreviation"`
+	ColorAxisMax        Float32Value                `tfsdk:"color_axis_max"`
+	ColorAxisMin        Float32Value                `tfsdk:"color_axis_min"`
+	ColorRange          types.String                `tfsdk:"color_range"`
+	CustomUnit          types.String                `tfsdk:"custom_unit"`
+	DecimalPrecision    types.Int64                 `tfsdk:"decimal_precision"`
+	HistogramBucketUnit types.String                `tfsdk:"histogram_bucket_unit"`
+	Preset              types.String                `tfsdk:"preset"`
+	ScaleType           types.String                `tfsdk:"scale_type"`
+	ShowNumbers         types.Bool                  `tfsdk:"show_numbers"`
+	Tooltip             *DynamicHeatmapTooltipModel `tfsdk:"tooltip"`
+	Unit                types.String                `tfsdk:"unit"`
+	ValueField          types.Object                `tfsdk:"value_field"`   //ObservationFieldModel
+	XAxisFields         types.List                  `tfsdk:"x_axis_fields"` //ObservationFieldModel
+	XAxisTimeFormat     types.String                `tfsdk:"x_axis_time_format"`
+	YAxisFields         types.List                  `tfsdk:"y_axis_fields"` //ObservationFieldModel
+}
+
+type DynamicHeatmapTooltipModel struct {
+	Labels          types.List   `tfsdk:"labels"` //ObservationFieldModel
+	MessageTemplate types.String `tfsdk:"message_template"`
+}
+
+type DynamicGeomapModel struct {
+	Aggregation       *DynamicGeomapAggregationModel `tfsdk:"aggregation"`
+	AllowAbbreviation types.Bool                     `tfsdk:"allow_abbreviation"`
+	Color             *DynamicGeomapColorModel       `tfsdk:"color"`
+	Config            *DynamicGeomapFieldConfigModel `tfsdk:"config"`
+	CustomUnit        types.String                   `tfsdk:"custom_unit"`
+	DecimalPrecision  types.Int64                    `tfsdk:"decimal_precision"`
+	MinMax            *DynamicMinMaxModel            `tfsdk:"min_max"`
+	Tooltip           *DynamicGeomapTooltipModel     `tfsdk:"tooltip"`
+	Unit              types.String                   `tfsdk:"unit"`
+}
+
+type DynamicGeomapFieldConfigModel struct {
+	AwsRegionConfig  *DynamicGeomapAwsRegionConfigModel  `tfsdk:"aws_region_config"`
+	CoordinateConfig *DynamicGeomapCoordinateConfigModel `tfsdk:"coordinate_config"`
+}
+
+type DynamicGeomapCoordinateConfigModel struct {
+	LatitudeField  types.Object `tfsdk:"latitude_field"`  //ObservationFieldModel
+	LongitudeField types.Object `tfsdk:"longitude_field"` //ObservationFieldModel
+}
+
+type DynamicGeomapAwsRegionConfigModel struct {
+	AwsRegionField types.Object `tfsdk:"aws_region_field"` //ObservationFieldModel
+}
+
+type DynamicGeomapAggregationModel struct {
+	Avg   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"avg"`
+	Count types.Bool                               `tfsdk:"count"`
+	Max   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"max"`
+	Min   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"min"`
+	Sum   *DynamicGeomapAggregationFieldBasedModel `tfsdk:"sum"`
+}
+
+type DynamicGeomapAggregationFieldBasedModel struct {
+	Field types.Object `tfsdk:"field"` //ObservationFieldModel
+}
+
+type DynamicGeomapColorModel struct {
+	ColorRange types.String `tfsdk:"color_range"`
+	Size       types.String `tfsdk:"size"`
+}
+
+type DynamicGeomapTooltipModel struct {
+	Labels          types.List   `tfsdk:"labels"` //ObservationFieldModel
+	MessageTemplate types.String `tfsdk:"message_template"`
 }

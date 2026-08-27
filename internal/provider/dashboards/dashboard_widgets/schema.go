@@ -16,6 +16,7 @@ package dashboard_widgets
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -28,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -282,10 +284,15 @@ func LegendSchema() schema.SingleNestedAttribute {
 			"placement": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					// The API owns the value when the attribute is omitted, so keep what
+					// it chose instead of planning unknown on every run.
+					stringplanmodifier.UseNonNullStateForUnknown(),
+				},
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidLegendPlacements...),
 				},
-				MarkdownDescription: fmt.Sprintf("The placement of the legend. Valid values are: %s.", strings.Join(DashboardValidLegendPlacements, ", ")),
+				MarkdownDescription: fmt.Sprintf("The placement of the legend. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidLegendPlacements, ", ")),
 			},
 		},
 		Optional: true,
@@ -326,6 +333,30 @@ func UnitSchema() schema.StringAttribute {
 			stringvalidator.OneOf(DashboardValidUnits...),
 		},
 		MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
+	}
+}
+
+// The dynamic widget documents custom_unit as 1-128 characters. The legacy
+// widget protos allow 255 for the same field, so this helper is deliberately
+// dynamic-only rather than shared with them.
+func DynamicCustomUnitSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Validators: []validator.String{
+			stringvalidator.LengthBetween(1, 128),
+		},
+		MarkdownDescription: "A free-text unit label, 1 to 128 characters. Documented as taking effect only when `unit` is `custom`.",
+	}
+}
+
+// Tooltip templates are documented as 1-4096 characters.
+func DynamicMessageTemplateSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Validators: []validator.String{
+			stringvalidator.LengthBetween(1, 4096),
+		},
+		MarkdownDescription: "A template for the tooltip text, 1 to 4096 characters.",
 	}
 }
 
@@ -428,5 +459,238 @@ func HashColorsSchema() schema.BoolAttribute {
 	return schema.BoolAttribute{
 		Optional:            true,
 		MarkdownDescription: "When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.",
+	}
+}
+
+func CustomUnitSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional:            true,
+		MarkdownDescription: "A custom unit label. Takes effect only when `unit` is `custom`.",
+	}
+}
+
+// DecimalSchema is the number of decimal places shown for numeric values. The
+// SDK documents the range as 0-15, but the API does not enforce it: 16, 400 and
+// -1 were all accepted and read back unchanged against a live environment. So
+// only what the int32 field cannot hold is rejected, because that conversion
+// would truncate or wrap the value silently. A 0-15 validator would reject
+// values the API accepts.
+func DecimalSchema() schema.NumberAttribute {
+	return schema.NumberAttribute{
+		Optional: true,
+		Validators: []validator.Number{
+			int32NumberValidator{},
+		},
+		MarkdownDescription: "The number of decimal places shown for numeric values. Must be a whole number. Values outside the documented 0 to 15 range are passed through, because the API accepts them.",
+	}
+}
+
+// NonEmptySpansFieldsSchema is SpansFieldsSchema with an explicit empty list
+// rejected. A zero-length list flattens back as null, so accepting one leaves a
+// permanent diff. SpansFieldsSchema itself is shared with the frozen prior
+// schemas and cannot gain the validator.
+func NonEmptySpansFieldsSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: SpansFieldAttributes(),
+			Validators: []validator.Object{
+				spansFieldValidator{},
+			},
+		},
+		Optional: true,
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
+	}
+}
+
+// DecimalPrecisionSchema keeps the API field name. It is a boolean on the
+// classic widgets: it turns value abbreviation off. The dynamic widgets use the
+// same JSON name for an integer precision count, so do not read one as the other.
+func DecimalPrecisionSchema() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		Optional:            true,
+		MarkdownDescription: "When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).",
+	}
+}
+
+func YAxisMaxSchema() schema.Float64Attribute {
+	return schema.Float64Attribute{
+		Optional:   true,
+		CustomType: Float32Type{},
+		Validators: []validator.Float64{
+			float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+		},
+		MarkdownDescription: "The y-axis maximum. Stored at float32 precision by the API.",
+	}
+}
+
+func YAxisMinSchema() schema.Float64Attribute {
+	return schema.Float64Attribute{
+		Optional:   true,
+		CustomType: Float32Type{},
+		Validators: []validator.Float64{
+			float64validator.Between(-math.MaxFloat32, math.MaxFloat32),
+		},
+		MarkdownDescription: "The y-axis minimum. Stored at float32 precision by the API.",
+	}
+}
+
+func XAxisTimeFormatSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidXAxisTimeFormats...),
+		},
+		MarkdownDescription: fmt.Sprintf("The x-axis time format. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidXAxisTimeFormats, ", ")),
+	}
+}
+
+func MetricsEditorModeSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidMetricsEditorModes...),
+		},
+		MarkdownDescription: fmt.Sprintf("Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidMetricsEditorModes, ", ")),
+	}
+}
+
+func MetricsSeriesLimitTypeSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
+		Validators: []validator.String{
+			stringvalidator.OneOf(dashboardValidMetricsSeriesLimitTypes...),
+		},
+		MarkdownDescription: fmt.Sprintf("How the series limit is counted. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(dashboardValidMetricsSeriesLimitTypes, ", ")),
+	}
+}
+
+func PromQLQueryTypeSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidPromQLQueryType...),
+		},
+		MarkdownDescription: fmt.Sprintf("The PromQL query type. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidPromQLQueryType, ", ")),
+	}
+}
+
+// SpanObservationFieldsSchema is the list-of-span-observation-fields shape used
+// by `group_bys` and `group_names_fields` on a spans query.
+func SpanObservationFieldsSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: spanObservationFieldSchema(),
+		},
+		Optional: true,
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
+		MarkdownDescription: "Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type.",
+	}
+}
+
+// SpanObservationFieldSchema is the single-span-observation-field shape used by
+// `stacked_group_name_field` on a spans query.
+func SpanObservationFieldSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes:          spanObservationFieldSchema(),
+		Optional:            true,
+		MarkdownDescription: "Span observation field that divides each group into subgroups. Use this when the field needs an explicit scope or relation type.",
+	}
+}
+
+// ObservationFieldsSchema is the list-of-observation-fields shape used by
+// `group_by` and `group_bys` on a logs query.
+func ObservationFieldsSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: ObservationFieldSchema(),
+		},
+		Optional: true,
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
+		MarkdownDescription: "Observation fields to group the results by. Use these when a field name contains a literal dot, or exists in more than one scope.",
+	}
+}
+
+func CommonAggregationSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidCommonAggregations...),
+		},
+		MarkdownDescription: fmt.Sprintf("How the metric series is reduced to one value per group. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidCommonAggregations, ", ")),
+	}
+}
+
+func BarValueDisplaySchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidBarValueDisplays...),
+		},
+		MarkdownDescription: fmt.Sprintf("Where the bar value is displayed. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidBarValueDisplays, ", ")),
+	}
+}
+
+func LegendBySchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			// The API owns the value when the attribute is omitted, so keep what it
+			// chose. Non-null only: a list element added on update has null prior
+			// state, and copying that null in would break the apply.
+			stringplanmodifier.UseNonNullStateForUnknown(),
+		},
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidLegendBys...),
+		},
+		MarkdownDescription: fmt.Sprintf("What the legend lists. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: %s.", strings.Join(DashboardValidLegendBys, ", ")),
 	}
 }

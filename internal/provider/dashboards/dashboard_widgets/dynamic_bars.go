@@ -60,7 +60,7 @@ func dynamicBarsQueryFieldSettingsSchema() schema.Attribute {
 	return schema.ListNestedAttribute{
 		Optional: true,
 		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
+			listvalidator.SizeBetween(1, 1000),
 		},
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
@@ -141,7 +141,7 @@ func dynamicVerticalBarsSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -150,10 +150,8 @@ func dynamicVerticalBarsSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": ColorsBySchema(),
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"colors_by":   ColorsBySchema(),
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -201,7 +199,7 @@ func dynamicVerticalBarsSchema() schema.Attribute {
 			"sub_category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -251,7 +249,7 @@ func dynamicVerticalBarsMultiSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -260,10 +258,8 @@ func dynamicVerticalBarsMultiSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": ColorsBySchema(),
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"colors_by":   ColorsBySchema(),
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -323,7 +319,7 @@ func dynamicHorizontalBarsSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -332,10 +328,8 @@ func dynamicHorizontalBarsSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": ColorsBySchema(),
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"colors_by":   ColorsBySchema(),
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -386,7 +380,7 @@ func dynamicHorizontalBarsSchema() schema.Attribute {
 			"sub_category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -436,7 +430,7 @@ func dynamicHorizontalBarsMultiSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -445,10 +439,8 @@ func dynamicHorizontalBarsMultiSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"colors_by": ColorsBySchema(),
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"colors_by":   ColorsBySchema(),
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -682,8 +674,16 @@ func expandDynamicSortStrategy(strategy *DynamicSortStrategyModel) (*dashboardse
 		}
 	}
 
+	category, diags := expandDynamicMappedValuesMarker("sort_order.strategy.category", strategy.Category)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if (category == nil) == (queryValue == nil) {
+		return nil, dynamicUnionDiagnostic("sort_order.strategy", "`category` set to true or `query_value`")
+	}
+
 	return &dashboardservice.SortStrategy{
-		Category:     expandDynamicMappedValuesMarker(strategy.Category),
+		Category:     category,
 		QueryValue:   queryValue,
 		StrategyType: strategy.StrategyType.ValueStringPointer(),
 	}, nil
@@ -709,8 +709,13 @@ func flattenDynamicSortStrategy(strategy *dashboardservice.SortStrategy) *Dynami
 			QueryID: types.StringPointerValue(strategy.QueryValue.QueryId),
 		}
 	}
+	category := flattenDynamicMappedValuesMarker(strategy.Category)
+	if category.IsNull() && queryValue == nil {
+		return nil
+	}
+
 	return &DynamicSortStrategyModel{
-		Category:     flattenDynamicMappedValuesMarker(strategy.Category),
+		Category:     category,
 		QueryValue:   queryValue,
 		StrategyType: types.StringPointerValue(strategy.StrategyType),
 	}
@@ -868,8 +873,8 @@ func expandDynamicVerticalBars(ctx context.Context, bars *DynamicVerticalBarsMod
 		SubCategoryFields: subCategoryFields,
 		Unit:              OptionalEnumPointer(bars.Unit, DashboardSchemaToProtoUnit),
 		ValueField:        valueField,
-		YAxisMax:          expandFloat32Pointer(bars.YAxisMax),
-		YAxisMin:          expandFloat32Pointer(bars.YAxisMin),
+		YAxisMax:          ExpandFloat32Pointer(bars.YAxisMax),
+		YAxisMin:          ExpandFloat32Pointer(bars.YAxisMin),
 	}, nil
 }
 
@@ -911,8 +916,8 @@ func expandDynamicVerticalBarsMulti(ctx context.Context, bars *DynamicVerticalBa
 		ScaleType:          OptionalEnumPointer(bars.ScaleType, DashboardSchemaToProtoScaleType),
 		SortOrder:          sortOrder,
 		Unit:               OptionalEnumPointer(bars.Unit, DashboardSchemaToProtoUnit),
-		YAxisMax:           expandFloat32Pointer(bars.YAxisMax),
-		YAxisMin:           expandFloat32Pointer(bars.YAxisMin),
+		YAxisMax:           ExpandFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           ExpandFloat32Pointer(bars.YAxisMin),
 	}, nil
 }
 
@@ -956,8 +961,8 @@ func expandDynamicHorizontalBars(ctx context.Context, bars *DynamicHorizontalBar
 		SubCategoryFields: subCategoryFields,
 		Unit:              OptionalEnumPointer(bars.Unit, DashboardSchemaToProtoUnit),
 		ValueField:        valueField,
-		YAxisMax:          expandFloat32Pointer(bars.YAxisMax),
-		YAxisMin:          expandFloat32Pointer(bars.YAxisMin),
+		YAxisMax:          ExpandFloat32Pointer(bars.YAxisMax),
+		YAxisMin:          ExpandFloat32Pointer(bars.YAxisMin),
 		YAxisViewBy:       OptionalEnumPointer(bars.YAxisViewBy, dashboardSchemaToProtoHorizontalBarsYAxisViewBy),
 	}, nil
 }
@@ -1000,8 +1005,8 @@ func expandDynamicHorizontalBarsMulti(ctx context.Context, bars *DynamicHorizont
 		ScaleType:          OptionalEnumPointer(bars.ScaleType, DashboardSchemaToProtoScaleType),
 		SortOrder:          sortOrder,
 		Unit:               OptionalEnumPointer(bars.Unit, DashboardSchemaToProtoUnit),
-		YAxisMax:           expandFloat32Pointer(bars.YAxisMax),
-		YAxisMin:           expandFloat32Pointer(bars.YAxisMin),
+		YAxisMax:           ExpandFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           ExpandFloat32Pointer(bars.YAxisMin),
 		YAxisViewBy:        OptionalEnumPointer(bars.YAxisViewBy, dashboardSchemaToProtoHorizontalBarsMultiYAxisViewBy),
 	}, nil
 }
@@ -1050,8 +1055,8 @@ func flattenDynamicVerticalBars(ctx context.Context, bars *dashboardservice.Vert
 		SubCategoryFields: subCategoryFields,
 		Unit:              flattenOptionalEnum(bars.Unit, DashboardProtoToSchemaUnit),
 		ValueField:        valueField,
-		YAxisMax:          flattenFloat32Pointer(bars.YAxisMax),
-		YAxisMin:          flattenFloat32Pointer(bars.YAxisMin),
+		YAxisMax:          FlattenFloat32Pointer(bars.YAxisMax),
+		YAxisMin:          FlattenFloat32Pointer(bars.YAxisMin),
 	}, nil
 }
 
@@ -1090,8 +1095,8 @@ func flattenDynamicVerticalBarsMulti(ctx context.Context, bars *dashboardservice
 		ScaleType:          flattenOptionalEnum(bars.ScaleType, DashboardProtoToSchemaScaleType),
 		SortOrder:          flattenDynamicSortOrder(bars.SortOrder),
 		Unit:               flattenOptionalEnum(bars.Unit, DashboardProtoToSchemaUnit),
-		YAxisMax:           flattenFloat32Pointer(bars.YAxisMax),
-		YAxisMin:           flattenFloat32Pointer(bars.YAxisMin),
+		YAxisMax:           FlattenFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           FlattenFloat32Pointer(bars.YAxisMin),
 	}, nil
 }
 
@@ -1137,8 +1142,8 @@ func flattenDynamicHorizontalBars(ctx context.Context, bars *dashboardservice.Ho
 		SubCategoryFields: subCategoryFields,
 		Unit:              flattenOptionalEnum(bars.Unit, DashboardProtoToSchemaUnit),
 		ValueField:        valueField,
-		YAxisMax:          flattenFloat32Pointer(bars.YAxisMax),
-		YAxisMin:          flattenFloat32Pointer(bars.YAxisMin),
+		YAxisMax:          FlattenFloat32Pointer(bars.YAxisMax),
+		YAxisMin:          FlattenFloat32Pointer(bars.YAxisMin),
 		YAxisViewBy:       flattenOptionalEnum(bars.YAxisViewBy, dashboardProtoToSchemaHorizontalBarsYAxisViewBy),
 	}, nil
 }
@@ -1178,8 +1183,8 @@ func flattenDynamicHorizontalBarsMulti(ctx context.Context, bars *dashboardservi
 		ScaleType:          flattenOptionalEnum(bars.ScaleType, DashboardProtoToSchemaScaleType),
 		SortOrder:          flattenDynamicSortOrder(bars.SortOrder),
 		Unit:               flattenOptionalEnum(bars.Unit, DashboardProtoToSchemaUnit),
-		YAxisMax:           flattenFloat32Pointer(bars.YAxisMax),
-		YAxisMin:           flattenFloat32Pointer(bars.YAxisMin),
+		YAxisMax:           FlattenFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           FlattenFloat32Pointer(bars.YAxisMin),
 		YAxisViewBy:        flattenOptionalEnum(bars.YAxisViewBy, dashboardProtoToSchemaHorizontalBarsMultiYAxisViewBy),
 	}, nil
 }

@@ -23,11 +23,7 @@
         "definition": {
          "dynamic": {
           "interpretation": "INTERPRETATION_UNSPECIFIED",
-          "visualization": {
-           "heatmap": {
-            "scaleType": "SCALE_TYPE_LINEAR"
-           }
-          },
+          "visualization": {},
           "queryDefinitions": [
            {
             "id": "00000000-0000-4000-8000-000000000001",

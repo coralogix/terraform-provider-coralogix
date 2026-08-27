@@ -49,7 +49,7 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -61,9 +61,7 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 			"connect_nulls": schema.BoolAttribute{
 				Optional: true,
 			},
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -108,7 +106,7 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 			"value_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -119,9 +117,9 @@ func dynamicTimeSeriesLinesSchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidXAxisTimeFormat...),
+					stringvalidator.OneOf(DashboardValidXAxisTimeFormats...),
 				},
-				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(dashboardValidXAxisTimeFormat, ", ")),
+				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(DashboardValidXAxisTimeFormats, ", ")),
 			},
 			"y_axis_max": schema.Float64Attribute{
 				Optional:   true,
@@ -171,9 +169,9 @@ func dynamicTimeSeriesLinesMultiSchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidXAxisTimeFormat...),
+					stringvalidator.OneOf(DashboardValidXAxisTimeFormats...),
 				},
-				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(dashboardValidXAxisTimeFormat, ", ")),
+				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(DashboardValidXAxisTimeFormats, ", ")),
 			},
 		},
 	}
@@ -198,7 +196,7 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -207,9 +205,7 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 			"color_scheme": schema.StringAttribute{
 				Optional: true,
 			},
-			"custom_unit": schema.StringAttribute{
-				Optional: true,
-			},
+			"custom_unit": DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -254,7 +250,7 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 			"value_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -265,9 +261,9 @@ func dynamicTimeSeriesBarsSchema() schema.Attribute {
 				Computed: true,
 				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidXAxisTimeFormat...),
+					stringvalidator.OneOf(DashboardValidXAxisTimeFormats...),
 				},
-				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(dashboardValidXAxisTimeFormat, ", ")),
+				MarkdownDescription: fmt.Sprintf("The x-axis time format. Valid values are: %s.", strings.Join(DashboardValidXAxisTimeFormats, ", ")),
 			},
 			"y_axis_max": schema.Float64Attribute{
 				Optional:   true,
@@ -424,9 +420,9 @@ func expandDynamicTimeSeriesLines(ctx context.Context, lines *DynamicTimeSeriesL
 		Unit:               OptionalEnumPointer(lines.Unit, DashboardSchemaToProtoUnit),
 		UseDataTimeRange:   lines.UseDataTimeRange.ValueBoolPointer(),
 		ValueFields:        valueFields,
-		XAxisTimeFormat:    OptionalEnumPointer(lines.XAxisTimeFormat, dashboardSchemaToProtoXAxisTimeFormat),
-		YAxisMax:           expandFloat32Pointer(lines.YAxisMax),
-		YAxisMin:           expandFloat32Pointer(lines.YAxisMin),
+		XAxisTimeFormat:    OptionalEnumPointer(lines.XAxisTimeFormat, DashboardSchemaToProtoXAxisTimeFormat),
+		YAxisMax:           ExpandFloat32Pointer(lines.YAxisMax),
+		YAxisMin:           ExpandFloat32Pointer(lines.YAxisMin),
 	}, nil
 }
 
@@ -452,7 +448,7 @@ func expandDynamicTimeSeriesLinesMulti(ctx context.Context, linesMulti *DynamicT
 		StackedLine:          OptionalEnumPointer(linesMulti.StackedLine, dashboardSchemaToProtoStackedLine),
 		Tooltip:              expandDynamicTimeSeriesTooltip(linesMulti.Tooltip),
 		UseDataTimeRange:     linesMulti.UseDataTimeRange.ValueBoolPointer(),
-		XAxisTimeFormat:      OptionalEnumPointer(linesMulti.XAxisTimeFormat, dashboardSchemaToProtoXAxisTimeFormat),
+		XAxisTimeFormat:      OptionalEnumPointer(linesMulti.XAxisTimeFormat, DashboardSchemaToProtoXAxisTimeFormat),
 	}, nil
 }
 
@@ -498,9 +494,9 @@ func expandDynamicTimeSeriesBars(ctx context.Context, bars *DynamicTimeSeriesBar
 		Tooltip:            expandDynamicTimeSeriesTooltip(bars.Tooltip),
 		Unit:               OptionalEnumPointer(bars.Unit, DashboardSchemaToProtoUnit),
 		ValueFields:        valueFields,
-		XAxisTimeFormat:    OptionalEnumPointer(bars.XAxisTimeFormat, dashboardSchemaToProtoXAxisTimeFormat),
-		YAxisMax:           expandFloat32Pointer(bars.YAxisMax),
-		YAxisMin:           expandFloat32Pointer(bars.YAxisMin),
+		XAxisTimeFormat:    OptionalEnumPointer(bars.XAxisTimeFormat, DashboardSchemaToProtoXAxisTimeFormat),
+		YAxisMax:           ExpandFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           ExpandFloat32Pointer(bars.YAxisMin),
 	}, nil
 }
 
@@ -553,9 +549,9 @@ func flattenDynamicTimeSeriesLines(ctx context.Context, lines *dashboardservice.
 		Unit:               flattenOptionalEnum(lines.Unit, DashboardProtoToSchemaUnit),
 		UseDataTimeRange:   types.BoolPointerValue(lines.UseDataTimeRange),
 		ValueFields:        valueFields,
-		XAxisTimeFormat:    flattenOptionalEnum(lines.XAxisTimeFormat, dashboardProtoToSchemaXAxisTimeFormat),
-		YAxisMax:           flattenFloat32Pointer(lines.YAxisMax),
-		YAxisMin:           flattenFloat32Pointer(lines.YAxisMin),
+		XAxisTimeFormat:    flattenOptionalEnum(lines.XAxisTimeFormat, DashboardProtoToSchemaXAxisTimeFormat),
+		YAxisMax:           FlattenFloat32Pointer(lines.YAxisMax),
+		YAxisMin:           FlattenFloat32Pointer(lines.YAxisMin),
 	}, nil
 }
 
@@ -576,7 +572,7 @@ func flattenDynamicTimeSeriesLinesMulti(ctx context.Context, linesMulti *dashboa
 		StackedLine:          flattenOptionalEnum(linesMulti.StackedLine, dashboardProtoToSchemaStackedLine),
 		Tooltip:              flattenDynamicTimeSeriesTooltip(linesMulti.Tooltip),
 		UseDataTimeRange:     types.BoolPointerValue(linesMulti.UseDataTimeRange),
-		XAxisTimeFormat:      flattenOptionalEnum(linesMulti.XAxisTimeFormat, dashboardProtoToSchemaXAxisTimeFormat),
+		XAxisTimeFormat:      flattenOptionalEnum(linesMulti.XAxisTimeFormat, DashboardProtoToSchemaXAxisTimeFormat),
 	}, nil
 }
 
@@ -617,9 +613,9 @@ func flattenDynamicTimeSeriesBars(ctx context.Context, bars *dashboardservice.Ti
 		Tooltip:            flattenDynamicTimeSeriesTooltip(bars.Tooltip),
 		Unit:               flattenOptionalEnum(bars.Unit, DashboardProtoToSchemaUnit),
 		ValueFields:        valueFields,
-		XAxisTimeFormat:    flattenOptionalEnum(bars.XAxisTimeFormat, dashboardProtoToSchemaXAxisTimeFormat),
-		YAxisMax:           flattenFloat32Pointer(bars.YAxisMax),
-		YAxisMin:           flattenFloat32Pointer(bars.YAxisMin),
+		XAxisTimeFormat:    flattenOptionalEnum(bars.XAxisTimeFormat, DashboardProtoToSchemaXAxisTimeFormat),
+		YAxisMax:           FlattenFloat32Pointer(bars.YAxisMax),
+		YAxisMin:           FlattenFloat32Pointer(bars.YAxisMin),
 	}, nil
 }
 
@@ -636,14 +632,12 @@ func flattenDynamicTimeSeriesTooltip(tooltip *dashboardservice.TimeSeriesTooltip
 
 var dashboardValidStackedLine = utils.GetKeys(dashboardSchemaToProtoStackedLine)
 
-var dashboardValidXAxisTimeFormat = utils.GetKeys(dashboardSchemaToProtoXAxisTimeFormat)
-
 func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 	return schema.ListNestedAttribute{
 		Optional:            true,
 		MarkdownDescription: "Per-query display settings. Each entry styles one query, named by `query_id`.",
 		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
+			listvalidator.SizeBetween(1, 1000),
 		},
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
@@ -653,7 +647,7 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 				"category_fields": schema.ListNestedAttribute{
 					Optional: true,
 					Validators: []validator.List{
-						listvalidator.SizeAtLeast(1),
+						listvalidator.SizeBetween(1, 1000),
 					},
 					NestedObject: schema.NestedAttributeObject{
 						Attributes: ObservationFieldSchema(),
@@ -662,9 +656,7 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 				"color_scheme": schema.StringAttribute{
 					Optional: true,
 				},
-				"custom_unit": schema.StringAttribute{
-					Optional: true,
-				},
+				"custom_unit": DynamicCustomUnitSchema(),
 				"decimal_precision": schema.Int64Attribute{
 					Optional: true,
 					Validators: []validator.Int64{
@@ -699,7 +691,7 @@ func dynamicQueryDisplaySettingsSchema() schema.Attribute {
 				"value_fields": schema.ListNestedAttribute{
 					Optional: true,
 					Validators: []validator.List{
-						listvalidator.SizeAtLeast(1),
+						listvalidator.SizeBetween(1, 1000),
 					},
 					NestedObject: schema.NestedAttributeObject{
 						Attributes: ObservationFieldSchema(),
@@ -758,19 +750,7 @@ var dashboardSchemaToProtoStackedLine = map[string]dashboardservice.Visualizatio
 	"relative":        dashboardservice.VISUALIZATIONSTACKEDLINE_STACKED_LINE_RELATIVE,
 }
 
-var dashboardSchemaToProtoXAxisTimeFormat = map[string]dashboardservice.XAxisTimeFormat{
-	utils.UNSPECIFIED: dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_UNSPECIFIED,
-	"auto":            dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_AUTO,
-	"dd_mm":           dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_DD_MM,
-	"mm_dd":           dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_MM_DD,
-	"hh_mm":           dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_HH_MM,
-	"dd_mm_hh_mm":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_DD_MM_HH_MM,
-	"hh_mm_dd_mm":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_HH_MM_DD_MM,
-	"mm_dd_hh_mm":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_MM_DD_HH_MM,
-	"hh_mm_mm_dd":     dashboardservice.XAXISTIMEFORMAT_X_AXIS_TIME_FORMAT_HH_MM_MM_DD,
-}
-
-func expandFloat32Pointer(value Float32Value) *float32 {
+func ExpandFloat32Pointer(value Float32Value) *float32 {
 	if value.IsNull() || value.IsUnknown() {
 		return nil
 	}
@@ -816,8 +796,8 @@ func expandDynamicQueryDisplaySettings(ctx context.Context, settings types.List)
 			TemporalField:      temporalField,
 			Unit:               OptionalEnumPointer(models[i].Unit, DashboardSchemaToProtoUnit),
 			ValueFields:        valueFields,
-			YAxisMax:           expandFloat32Pointer(models[i].YAxisMax),
-			YAxisMin:           expandFloat32Pointer(models[i].YAxisMin),
+			YAxisMax:           ExpandFloat32Pointer(models[i].YAxisMax),
+			YAxisMin:           ExpandFloat32Pointer(models[i].YAxisMin),
 		})
 	}
 
@@ -833,9 +813,7 @@ var dashboardSchemaToProtoBarValueDisplay = map[string]dashboardservice.Visualiz
 
 var dashboardProtoToSchemaStackedLine = utils.ReverseMap(dashboardSchemaToProtoStackedLine)
 
-var dashboardProtoToSchemaXAxisTimeFormat = utils.ReverseMap(dashboardSchemaToProtoXAxisTimeFormat)
-
-func flattenFloat32Pointer(value *float32) Float32Value {
+func FlattenFloat32Pointer(value *float32) Float32Value {
 	if value == nil {
 		return Float32Value{Float64Value: basetypes.NewFloat64Null()}
 	}
@@ -879,8 +857,8 @@ func flattenDynamicQueryDisplaySettings(ctx context.Context, settings []dashboar
 			TemporalField:      temporalField,
 			Unit:               flattenOptionalEnum(settings[i].Unit, DashboardProtoToSchemaUnit),
 			ValueFields:        valueFields,
-			YAxisMax:           flattenFloat32Pointer(settings[i].YAxisMax),
-			YAxisMin:           flattenFloat32Pointer(settings[i].YAxisMin),
+			YAxisMax:           FlattenFloat32Pointer(settings[i].YAxisMax),
+			YAxisMin:           FlattenFloat32Pointer(settings[i].YAxisMin),
 		}
 		element, dg := types.ObjectValueFrom(ctx, dynamicQueryDisplaySettingsModelAttr(), model)
 		if dg.HasError() {

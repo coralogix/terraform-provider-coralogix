@@ -33,6 +33,8 @@ resource "coralogix_rules_group" "rules_group_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
+  # order must be unique across every rule-group in the account. Terraform plans each
+  # rule-group on its own, so a duplicate is not caught at plan time.
   order        = 1
 
   rule_subgroups {
@@ -116,6 +118,8 @@ resource "coralogix_rules_group" "extract_timestamp_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
+  # order must be unique across every rule-group in the account. Terraform plans each
+  # rule-group on its own, so a duplicate is not caught at plan time.
   order        = 4
 
   rule_subgroups {
@@ -137,6 +141,8 @@ resource "coralogix_rules_group" "remove_fields_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
+  # order must be unique across every rule-group in the account. Terraform plans each
+  # rule-group on its own, so a duplicate is not caught at plan time.
   order        = 3
   rule_subgroups {
     rules {
@@ -155,6 +161,8 @@ resource "coralogix_rules_group" "parse_json_field_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
+  # order must be unique across every rule-group in the account. Terraform plans each
+  # rule-group on its own, so a duplicate is not caught at plan time.
   order        = 2
   rule_subgroups {
     rules {
@@ -185,7 +193,7 @@ resource "coralogix_rules_group" "parse_json_field_example" {
 - `creator` (String) Rule-group creator.
 - `description` (String) Rule-group description
 - `hidden` (Boolean)
-- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).
+- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API.
 - `rule_subgroups` (Block List) List of rule-subgroups. Every rule-subgroup is a list of rules linked with a logical 'OR' (||) operation. (see [below for nested schema](#nestedblock--rule_subgroups))
 - `severities` (Set of String) Rules will execute on logs that match the these severities. Can be one of ["Critical" "Debug" "Error" "Info" "Verbose" "Warning"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
@@ -205,7 +213,7 @@ Required:
 Optional:
 
 - `active` (Boolean) Determines whether the rule-subgroup will be active.
-- `order` (Number) Determines the index of the rule-subgroup inside the rule-group.When not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule-subgroup inside the rule-group.When not set, will be computed by the order it was declared. (1 based indexing). Set it on every rule-subgroup of the rule-group or on none of them, and keep the values unique.
 
 Read-Only:
 
@@ -241,7 +249,7 @@ Optional:
 - `blocking_all_matching_blocks` (Boolean) Block Logic. If true or nor set - blocking all matching blocks, if false - blocking all non-matching blocks.
 - `description` (String) The rule description.
 - `keep_blocked_logs` (Boolean) Determines if to view blocked logs in LiveTail and archive to S3.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing). Set it on every rule of the rule-subgroup or on none of them, and keep the values unique.
 
 Read-Only:
 
@@ -261,7 +269,7 @@ Optional:
 
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing). Set it on every rule of the rule-subgroup or on none of them, and keep the values unique.
 
 Read-Only:
 
@@ -282,7 +290,7 @@ Optional:
 
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing). Set it on every rule of the rule-subgroup or on none of them, and keep the values unique.
 
 Read-Only:
 
@@ -303,7 +311,7 @@ Optional:
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
 - `destination_field_text` (String) Required when destination_field is 'Text'. should be either 'text' or 'text.<some value>'
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing). Set it on every rule of the rule-subgroup or on none of them, and keep the values unique.
 
 Read-Only:
 
@@ -324,7 +332,7 @@ Optional:
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
 - `keep_source_field` (Boolean) Determines whether to keep or to delete the source field.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing). Set it on every rule of the rule-subgroup or on none of them, and keep the values unique.
 
 Read-Only:
 
@@ -345,7 +353,7 @@ Optional:
 
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing). Set it on every rule of the rule-subgroup or on none of them, and keep the values unique.
 
 Read-Only:
 
@@ -367,7 +375,7 @@ Optional:
 - `description` (String) The rule description.
 - `keep_destination_field` (Boolean) Determines whether to keep or to delete the destination field.
 - `keep_source_field` (Boolean) Determines whether to keep or to delete the source field.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing). Set it on every rule of the rule-subgroup or on none of them, and keep the values unique.
 
 Read-Only:
 
@@ -386,7 +394,7 @@ Optional:
 
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing). Set it on every rule of the rule-subgroup or on none of them, and keep the values unique.
 
 Read-Only:
 
@@ -407,7 +415,7 @@ Optional:
 
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing). Set it on every rule of the rule-subgroup or on none of them, and keep the values unique.
 - `replacement_string` (String) The string that will replace the matched RegEx
 
 Read-Only:

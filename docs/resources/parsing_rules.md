@@ -33,6 +33,8 @@ resource "coralogix_parsing_rules" "rules_group_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["warning"]
+  # order must be unique across every rule-group in the account. Terraform plans each
+  # rule-group on its own, so a duplicate is not caught at plan time.
   order        = 1
 
   rule_subgroups = [{
@@ -103,6 +105,8 @@ resource "coralogix_parsing_rules" "extract_timestamp_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["warning"]
+  # order must be unique across every rule-group in the account. Terraform plans each
+  # rule-group on its own, so a duplicate is not caught at plan time.
   order        = 4
 
   rule_subgroups = [{
@@ -124,6 +128,8 @@ resource "coralogix_parsing_rules" "remove_fields_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["warning"]
+  # order must be unique across every rule-group in the account. Terraform plans each
+  # rule-group on its own, so a duplicate is not caught at plan time.
   order        = 3
   rule_subgroups = [{
     rules = [{
@@ -142,6 +148,8 @@ resource "coralogix_parsing_rules" "parse_json_field_example" {
   applications = ["nginx"]          //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["warning"]
+  # order must be unique across every rule-group in the account. Terraform plans each
+  # rule-group on its own, so a duplicate is not caught at plan time.
   order        = 2
   rule_subgroups = [{
     rules = [{
@@ -172,7 +180,7 @@ resource "coralogix_parsing_rules" "parse_json_field_example" {
 - `creator` (String) Rule-group creator.
 - `description` (String) Rule-group description
 - `hidden` (Boolean)
-- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).
+- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API.
 - `rule_subgroups` (Attributes List) List of rule-subgroups. Every rule-subgroup is a list of rules linked with a logical 'OR' (||) operation. (see [below for nested schema](#nestedatt--rule_subgroups))
 - `severities` (Set of String) Rules will execute on logs that match the these severities. Can be one of ["critical" "debug" "error" "info" "verbose" "warning"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.

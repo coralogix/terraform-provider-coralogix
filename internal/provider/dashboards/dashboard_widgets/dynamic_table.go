@@ -44,7 +44,7 @@ func dynamicTableSchema() schema.Attribute {
 			"columns": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -58,7 +58,7 @@ func dynamicTableSchema() schema.Attribute {
 			"rules": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -78,7 +78,7 @@ func dynamicTableSchema() schema.Attribute {
 						"properties": schema.ListNestedAttribute{
 							Optional: true,
 							Validators: []validator.List{
-								listvalidator.SizeAtLeast(1),
+								listvalidator.SizeBetween(1, 1000),
 							},
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
@@ -122,7 +122,7 @@ func dynamicTablePropertyDefinitionSchema() schema.Attribute {
 					"actions": schema.ListNestedAttribute{
 						Optional: true,
 						Validators: []validator.List{
-							listvalidator.SizeAtLeast(1),
+							listvalidator.SizeBetween(1, 1000),
 						},
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
@@ -177,9 +177,7 @@ func dynamicTablePropertyDefinitionSchema() schema.Attribute {
 					"allow_abbreviation": schema.BoolAttribute{
 						Optional: true,
 					},
-					"custom_unit": schema.StringAttribute{
-						Optional: true,
-					},
+					"custom_unit": DynamicCustomUnitSchema(),
 					"decimal_precision": schema.Int64Attribute{
 						Optional: true,
 						Validators: []validator.Int64{
@@ -205,7 +203,7 @@ func dynamicTablePropertyDefinitionSchema() schema.Attribute {
 					"mappings": schema.ListNestedAttribute{
 						Optional: true,
 						Validators: []validator.List{
-							listvalidator.SizeAtLeast(1),
+							listvalidator.SizeBetween(1, 1000),
 						},
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
@@ -286,7 +284,7 @@ func dynamicTableSettingsSchema() schema.Attribute {
 			"column_widths": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -566,14 +564,33 @@ func expandDynamicTablePropertyDefinition(ctx context.Context, definition *Dynam
 		return nil, diags
 	}
 
+	alignment := OptionalEnumPointer(definition.Alignment, dashboardSchemaToProtoTextAlignment)
+	columnDisplayName := definition.ColumnDisplayName.ValueStringPointer()
+	regexExtract := definition.RegexExtract.ValueStringPointer()
+	units := expandDynamicTablePropertyUnits(definition.Units)
+	valuesAlias := definition.ValuesAlias.ValueStringPointer()
+
+	set := 0
+	for _, selected := range []bool{
+		alignment != nil, columnDisplayName != nil, link != nil, regexExtract != nil,
+		thresholds != nil, units != nil, valuesAlias != nil, valuesMapping != nil,
+	} {
+		if selected {
+			set++
+		}
+	}
+	if set != 1 {
+		return nil, dynamicUnionDiagnostic("a property definition", "its eight alternatives")
+	}
+
 	return &dashboardservice.PropertyDefinition{
-		Alignment:         OptionalEnumPointer(definition.Alignment, dashboardSchemaToProtoTextAlignment),
-		ColumnDisplayName: definition.ColumnDisplayName.ValueStringPointer(),
+		Alignment:         alignment,
+		ColumnDisplayName: columnDisplayName,
 		Link:              link,
-		RegexExtract:      definition.RegexExtract.ValueStringPointer(),
+		RegexExtract:      regexExtract,
 		Thresholds:        thresholds,
-		Units:             expandDynamicTablePropertyUnits(definition.Units),
-		ValuesAlias:       definition.ValuesAlias.ValueStringPointer(),
+		Units:             units,
+		ValuesAlias:       valuesAlias,
 		ValuesMapping:     valuesMapping,
 	}, nil
 }
@@ -668,10 +685,23 @@ func expandDynamicTableRuleScope(ctx context.Context, ruleScope *DynamicTableRul
 		return nil, diags
 	}
 
+	fieldType := OptionalEnumPointer(ruleScope.FieldType, dashboardSchemaToProtoFieldDataType)
+	regex := ruleScope.Regex.ValueStringPointer()
+
+	set := 0
+	for _, selected := range []bool{field != nil, fieldType != nil, regex != nil} {
+		if selected {
+			set++
+		}
+	}
+	if set != 1 {
+		return nil, dynamicUnionDiagnostic("rule_scope", "`field`, `regex` or `field_type`")
+	}
+
 	return &dashboardservice.RuleScope{
 		Field:     field,
-		FieldType: OptionalEnumPointer(ruleScope.FieldType, dashboardSchemaToProtoFieldDataType),
-		Regex:     ruleScope.Regex.ValueStringPointer(),
+		FieldType: fieldType,
+		Regex:     regex,
 	}, nil
 }
 

@@ -26,6 +26,9 @@ rg '"<sibling_attribute>": types\.' internal/provider/dashboards   # attr.Type m
 
 To find the mismatch fast, diff the two type dumps from the error rather than reading them.
 
+Faster: `go test ./internal/provider/dashboards/ -run TestWidgetSchemaMatchesWidgetModelAttr`
+walks the whole widget tree and names the attribute that is in one side and not the other.
+
 **Why:** `layout` is a `types.List` of widget objects. The framework builds the element type from
 the attr.Type map and the state type from the schema. It rejects any object whose two descriptions
 differ, even by one attribute. Whether the Go model field is a struct pointer or a `types.Object`

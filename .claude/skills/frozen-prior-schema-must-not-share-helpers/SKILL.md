@@ -22,9 +22,10 @@ it serves, keep it in the same package, and say in a comment that it must not be
 "line_chart": dashboardwidgets.LineChartSchemaV3(),   // frozen snapshot, not the shared helper
 ```
 
-Guard it with a test that counts the attribute in each schema version, asserting 0 for the frozen
-one and the real count for the current one. Prove the freeze by diffing
-`dashboardschema.V3().Type().TerraformType(ctx).String()` against `master`; it must be identical.
+`TestPriorSchemasStayFrozen` in
+`internal/provider/dashboards/dashboard_schema/frozen_prior_schema_test.go` fingerprints V1 to V3
+and fails on any change, including one made through a shared helper. Run it after touching any
+helper; a failure means you widened a prior schema, not that the fingerprint is stale.
 
 **Why:** Prior schema versions exist only to decode state written by older provider releases.
 Widening one changes how that old state is interpreted. Most prior versions in this repo declare

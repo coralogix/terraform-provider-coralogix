@@ -62,13 +62,21 @@ resource "coralogix_dashboard" "dashboard" {
                         }
                         scale_type         = "linear"
                         series_count_limit = 100
-                        unit               = "milliseconds"
+                        unit               = "custom"
+                        custom_unit        = "ms"
                         hash_colors        = true
+                        decimal            = 2
+                        decimal_precision  = true
+                        y_axis_min         = 0
+                        y_axis_max         = 2500
                         resolution = {
                           interval = "seconds:900"
                         }
                       },
                     ]
+                    connect_nulls       = true
+                    use_data_time_range = false
+                    x_axis_time_format  = "hh_mm"
                     legend = {
                       is_visible = true
                       columns    = ["avg", "max"]
@@ -201,11 +209,24 @@ resource "coralogix_dashboard" "dashboard" {
                 title = "gauge"
                 definition = {
                   gauge = {
-                    unit = "milliseconds"
+                    unit         = "custom"
+                    custom_unit  = "ms"
+                    show_min_max      = true
+                    legend_by         = "thresholds"
+                    decimal_precision = true
+                    arc_display = {
+                      value_arc     = true
+                      threshold_arc = true
+                    }
+                    legend = {
+                      is_visible = true
+                    }
                     query = {
                       metrics = {
-                        promql_query = "vector(1)"
-                        aggregation  = "unspecified"
+                        promql_query      = "vector(1)"
+                        aggregation       = "unspecified"
+                        editor_mode       = "text"
+                        promql_query_type = "instant"
                       }
                     }
                   }
@@ -467,6 +488,15 @@ resource "coralogix_dashboard" "dashboard" {
                     }
                     label_definition = {
                     }
+                    unit              = "custom"
+                    custom_unit       = "runs"
+                    decimal           = 1
+                    decimal_precision = true
+                    show_total        = true
+                    legend = {
+                      is_visible = true
+                      columns    = ["sum"]
+                    }
                   }
                 }
               },
@@ -492,7 +522,19 @@ resource "coralogix_dashboard" "dashboard" {
                         }
                       }
                     }
-                    hash_colors = true
+                    hash_colors        = true
+                    bar_value_display  = "top"
+                    unit               = "custom"
+                    custom_unit        = "runs"
+                    decimal            = 0
+                    decimal_precision  = true
+                    x_axis_time_format = "hh_mm"
+                    y_axis_min         = 0
+                    y_axis_max         = 100
+                    legend = {
+                      is_visible = true
+                      columns    = ["sum"]
+                    }
                     xaxis = {
                       time = {
                         interval          = "1h0m5s"
@@ -519,7 +561,17 @@ resource "coralogix_dashboard" "dashboard" {
                         stacked_group_name = "coralogix.metadata.severity"
                       }
                     }
-                    y_axis_view_by = "value"
+                    y_axis_view_by    = "value"
+                    unit              = "custom"
+                    custom_unit       = "runs"
+                    decimal           = 1
+                    decimal_precision = true
+                    y_axis_min        = 0
+                    y_axis_max        = 100
+                    legend = {
+                      is_visible = true
+                      columns    = ["max"]
+                    }
                   }
                 }
               },
@@ -1188,6 +1240,45 @@ resource "coralogix_dashboard" "widgets" {
                         { from = 500, color = "red", label = "high" },
                       ]
                       value_field = { keypath = ["count_0"], scope = "user_data" }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              # `geomap` plots clusters on a map. `config` says where the
+              # coordinates come from, `aggregation` what each cluster shows,
+              # and `color` how clusters are coloured - each picks exactly one
+              # alternative.
+              title = "dynamic geomap - requests by location"
+              definition = {
+                dynamic = {
+                  query_definitions = [{
+                    name = "requests"
+                    query = {
+                      logs = {
+                        lucene_query = "*"
+                        aggregations = [{
+                          type = "count"
+                        }]
+                      }
+                    }
+                  }]
+                  visualization = {
+                    geomap = {
+                      unit              = "percent"
+                      decimal_precision = 1
+                      aggregation       = { count = true }
+                      color             = { size = "blue" }
+                      config = {
+                        coordinate_config = {
+                          latitude_field  = { keypath = ["latitude"], scope = "user_data" }
+                          longitude_field = { keypath = ["longitude"], scope = "user_data" }
+                        }
+                      }
+                      tooltip = {
+                        message_template = "requests = {{_count}}"
+                      }
                     }
                   }
                 }

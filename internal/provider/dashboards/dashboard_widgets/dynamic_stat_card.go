@@ -47,17 +47,14 @@ func dynamicStatCardSchema() schema.Attribute {
 			"category_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
 				},
 			},
 			"color_label_mapping": dynamicColorLabelMappingSchema(),
-			"custom_unit": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "A free-text unit label. Documented as taking effect only when `unit` is `custom`.",
-			},
+			"custom_unit":         DynamicCustomUnitSchema(),
 			"decimal_precision": schema.Int64Attribute{
 				Optional: true,
 				Validators: []validator.Int64{
@@ -82,7 +79,7 @@ func dynamicStatCardSchema() schema.Attribute {
 			"value_fields": schema.ListNestedAttribute{
 				Optional: true,
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: ObservationFieldSchema(),
@@ -114,7 +111,7 @@ func dynamicStatVisualElementSchema(allowMappedValues bool) schema.Attribute {
 				Optional:            true,
 				MarkdownDescription: "Variables that `template_text` can reference.",
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -208,7 +205,7 @@ func dynamicMappingSectionsSchema(description string) schema.Attribute {
 				Optional:            true,
 				MarkdownDescription: "One entry per value to match.",
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeBetween(1, 1000),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -362,8 +359,13 @@ func expandDynamicStatVisualElement(ctx context.Context, element *DynamicStatVis
 		return nil, diags
 	}
 
+	mappedValues, diags := expandDynamicMappedValuesMarker("mapped_values", element.MappedValues)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.StatVisualElement{
-		MappedValues:      expandDynamicMappedValuesMarker(element.MappedValues),
+		MappedValues:      mappedValues,
 		ObservationField:  observationField,
 		TemplateText:      element.TemplateText.ValueStringPointer(),
 		TemplateVariables: templateVariables,
@@ -384,8 +386,13 @@ func expandDynamicTemplateVariables(ctx context.Context, variables types.List) (
 			diags.Append(dg...)
 			continue
 		}
+		mappedValues, dg := expandDynamicMappedValuesMarker("mapped_values", models[i].MappedValues)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
 		expanded = append(expanded, dashboardservice.DisplayNameTemplateVariable{
-			MappedValues:     expandDynamicMappedValuesMarker(models[i].MappedValues),
+			MappedValues:     mappedValues,
 			ObservationField: observationField,
 		})
 	}
@@ -411,6 +418,16 @@ func expandDynamicColorLabelMapping(ctx context.Context, mapping *DynamicColorLa
 	value, diags := expandDynamicSectionsValue(ctx, mapping.Value)
 	if diags.HasError() {
 		return nil, diags
+	}
+
+	set := 0
+	for _, selected := range []bool{rangeMapping != nil, regex != nil, value != nil} {
+		if selected {
+			set++
+		}
+	}
+	if set != 1 {
+		return nil, dynamicUnionDiagnostic("color_label_mapping", "`range`, `value` or `regex`")
 	}
 
 	return &dashboardservice.ColorLabelMapping{
@@ -595,6 +612,10 @@ func flattenDynamicColorLabelMapping(ctx context.Context, mapping *dashboardserv
 		value = &DynamicSectionsMappingModel{Sections: sections}
 	}
 
+	if rangeMapping == nil && regex == nil && value == nil {
+		return nil, nil
+	}
+
 	return &DynamicColorLabelMappingModel{
 		ColorBy: flattenOptionalEnum(mapping.ColorBy, dashboardProtoToSchemaColorApplyTarget),
 		Range:   rangeMapping,
@@ -636,7 +657,7 @@ func dynamicThresholdsSchema() schema.Attribute {
 	return schema.ListNestedAttribute{
 		Optional: true,
 		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
+			listvalidator.SizeBetween(1, 1000),
 		},
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
@@ -684,25 +705,9 @@ func expandDynamicRangeMapping(ctx context.Context, rangeMapping *DynamicRangeMa
 		return nil, diags
 	}
 
-	// The API has no representation for a min/max with neither arm chosen, so
-	// sending an empty one would come back null and fail the apply. Validators
-	// cannot catch this when `auto` is only known after apply.
-	var minMax *dashboardservice.MinMax
-	if rangeMapping.MinMax != nil {
-		switch {
-		case rangeMapping.MinMax.Custom != nil:
-			minMax = &dashboardservice.MinMax{Custom: &dashboardservice.MinMaxCustom{
-				Max: rangeMapping.MinMax.Custom.Max.ValueFloat64Pointer(),
-				Min: rangeMapping.MinMax.Custom.Min.ValueFloat64Pointer(),
-			}}
-		case rangeMapping.MinMax.Auto.ValueBool():
-			minMax = &dashboardservice.MinMax{Auto: map[string]interface{}{}}
-		default:
-			return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
-				"Invalid Attribute Combination",
-				"min_max requires exactly one of `auto` or `custom`, and `auto` must be true. Remove the min_max block to let the widget scale itself.",
-			)}
-		}
+	minMax, diags := expandDynamicMinMax(rangeMapping.MinMax)
+	if diags.HasError() {
+		return nil, diags
 	}
 
 	return &dashboardservice.RangeMapping{
@@ -741,23 +746,8 @@ func flattenDynamicRangeMapping(ctx context.Context, rangeMapping *dashboardserv
 		return nil, diags
 	}
 
-	// Leave min_max unset when the backend chose neither arm: a block with both
-	// children null is state no configuration can produce, so it would diff
-	// forever after an import.
-	var minMax *DynamicMinMaxModel
-	switch {
-	case rangeMapping.MinMax == nil:
-	case rangeMapping.MinMax.Custom != nil:
-		minMax = &DynamicMinMaxModel{Auto: types.BoolNull(), Custom: &DynamicMinMaxCustomModel{
-			Max: types.Float64PointerValue(rangeMapping.MinMax.Custom.Max),
-			Min: types.Float64PointerValue(rangeMapping.MinMax.Custom.Min),
-		}}
-	case rangeMapping.MinMax.Auto != nil:
-		minMax = &DynamicMinMaxModel{Auto: types.BoolValue(true)}
-	}
-
 	return &DynamicRangeMappingModel{
-		MinMax:        minMax,
+		MinMax:        flattenDynamicMinMax(rangeMapping.MinMax),
 		ThresholdType: flattenOptionalEnum(rangeMapping.ThresholdType, DashboardProtoToSchemaThresholdType),
 		Thresholds:    thresholds,
 	}, nil
@@ -803,11 +793,22 @@ func (v mustBeTrueValidator) ValidateBool(ctx context.Context, req validator.Boo
 // The API models mapped values as an empty message, so the only information
 // carried is whether the branch is selected. Any non-nil object therefore
 // flattens to true; if the message ever gains fields, this needs a real object.
-func expandDynamicMappedValuesMarker(value types.Bool) map[string]interface{} {
-	if value.IsNull() || value.IsUnknown() || !value.ValueBool() {
-		return nil
+// An explicitly false marker is not the same as an absent one: the configuration
+// carries a known false while the read flattens it to null, so the apply reports
+// an inconsistent result. The plan validator refuses a known false, but defers
+// while the value is unknown, so the conversion has to refuse it too - including
+// when another arm of the same union is selected.
+func expandDynamicMappedValuesMarker(attribute string, value types.Bool) (map[string]interface{}, diag.Diagnostics) {
+	switch {
+	case value.IsNull() || value.IsUnknown():
+		return nil, nil
+	case !value.ValueBool():
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Invalid Attribute Combination",
+			fmt.Sprintf("%s must be true or left unset. Set to false it selects nothing, yet stays present in the configuration, which the API cannot represent.", attribute),
+		)}
 	}
-	return map[string]interface{}{}
+	return map[string]interface{}{}, nil
 }
 
 func flattenDynamicMappedValuesMarker(value map[string]interface{}) types.Bool {

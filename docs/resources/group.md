@@ -64,7 +64,7 @@ resource "coralogix_group" "example" {
 
 ### Optional
 
-- `members` (Set of String)
+- `members` (Set of String) IDs of the users that make up the group, as the complete member list. Omit the argument to leave membership unmanaged by this resource - Terraform then reads and stores the group's current members without changing them, which is what to do when membership is maintained in the Coralogix UI or by `coralogix_group_attachment`. Set `members = []` to remove every member. A single group's membership must be managed either here or by `coralogix_group_attachment`, never by both.
 - `scope_id` (String) Scope attached to the group.
 
 ### Read-Only
