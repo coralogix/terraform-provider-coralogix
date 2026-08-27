@@ -630,7 +630,8 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																						Optional: true,
 																					},
 																				},
-																				Optional: true,
+																				Optional:           true,
+																				DeprecationMessage: "The Coralogix UI writes `time_buckets` and rewrites this block to it when the dashboard is saved, so a configuration using `time` can stop matching the dashboard it manages. Use `time_buckets` instead.",
 																			},
 																			"value": schema.SingleNestedAttribute{
 																				Attributes: map[string]schema.Attribute{},

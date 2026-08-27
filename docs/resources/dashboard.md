@@ -2572,7 +2572,7 @@ Optional:
 
 Optional:
 
-- `time` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time))
+- `time` (Attributes, Deprecated) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time))
 - `time_buckets` (Attributes) How time is grouped into buckets. Set at most one of `auto` and `manual`; omit both to leave the choice to the backend. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time_buckets))
 - `value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--value))
 
