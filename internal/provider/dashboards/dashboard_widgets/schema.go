@@ -606,6 +606,18 @@ func SpanObservationFieldSchema() schema.SingleNestedAttribute {
 	}
 }
 
+// spanObservationFilterFieldSchema is the span observation field of a widget
+// filter. It shares the attributes of the grouping shapes, including
+// `relation_type`, which the API documents as honoured in a widget filter but
+// not in a dashboard-level filter.
+func spanObservationFilterFieldSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes:          spanObservationFieldSchema(),
+		Optional:            true,
+		MarkdownDescription: "Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter.",
+	}
+}
+
 // ObservationFieldsSchema is the list-of-observation-fields shape used by
 // `group_by` and `group_bys` on a logs query.
 func ObservationFieldsSchema() schema.ListNestedAttribute {

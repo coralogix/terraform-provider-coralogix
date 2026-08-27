@@ -206,7 +206,7 @@ func dynamicSpansQuerySchema() schema.Attribute {
 				},
 			},
 			"aggregations":   dynamicAggregationsSchema(),
-			"filters":        SpansFilterSchema(),
+			"filters":        dynamicSpansFiltersSchema(),
 			"data_mode_type": dynamicDataModeTypeSchema(),
 		},
 	}
@@ -286,6 +286,34 @@ func dynamicDataModeTypeSchema() schema.Attribute {
 			stringvalidator.OneOf(DashboardValidDataModeTypes...),
 		},
 		MarkdownDescription: fmt.Sprintf("The data mode type. Valid values are: %s.", strings.Join(DashboardValidDataModeTypes, ", ")),
+	}
+}
+
+// dynamicSpansFiltersSchema is the dynamic widget's own spans filter list. It
+// carries observation_field, which the shared SpansFilterSchema cannot: that
+// helper is also used by schema V1 to V3, whose shape is frozen because it
+// decodes stored state. Only the minimum size is validated, matching the
+// shared helper: the API documents a 1000-item maximum but does not enforce it.
+func dynamicSpansFiltersSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		Optional: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"field": schema.SingleNestedAttribute{
+					Attributes: SpansFieldAttributes(),
+					Optional:   true,
+				},
+				"operator":          FilterOperatorSchema(),
+				"observation_field": spanObservationFilterFieldSchema(),
+			},
+			// No exclusivity, and no required target. SpansFilter declares
+			// field, operator and observation_field as three plain fields in
+			// the proto, with no oneof and no required entry, and the
+			// Coralogix UI writes a filter that only sets observation_field.
+		},
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
 	}
 }
 
@@ -471,7 +499,7 @@ func dynamicSpansQueryAttr() map[string]attr.Type {
 			ElemType: types.ObjectType{AttrTypes: AggregationModelAttr()},
 		},
 		"filters": types.ListType{
-			ElemType: types.ObjectType{AttrTypes: SpansFilterModelAttr()},
+			ElemType: types.ObjectType{AttrTypes: dynamicSpansFilterModelAttr()},
 		},
 		"data_mode_type": types.StringType,
 	}
@@ -703,7 +731,7 @@ func expandDynamicSpansQuery(ctx context.Context, spans *DynamicQuerySpansModel)
 		return nil, diags
 	}
 
-	filters, diags := ExpandSpansFilters(ctx, spans.Filters)
+	filters, diags := expandDynamicSpansFilters(ctx, spans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1220,7 +1248,7 @@ func flattenDynamicSpansQuery(ctx context.Context, spans *dashboardservice.Spans
 		return nil, diags
 	}
 
-	filters, diags := FlattenSpansFilters(ctx, spans.GetFilters())
+	filters, diags := flattenDynamicSpansFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1539,6 +1567,104 @@ func flattenOptionalEnum[T ~string](value *T, mapping map[T]string) types.String
 		return types.StringValue(mapped)
 	}
 	return types.StringNull()
+}
+
+// DynamicSpansFilterModel is the dynamic widget's own spans filter. It is
+// separate from SpansFilterModel because only this one carries
+// observation_field: see dynamicSpansFiltersSchema.
+type DynamicSpansFilterModel struct {
+	Field            *SpansFieldModel     `tfsdk:"field"`
+	Operator         *FilterOperatorModel `tfsdk:"operator"`
+	ObservationField types.Object         `tfsdk:"observation_field"` //SpanObservationFieldModel
+}
+
+func dynamicSpansFilterModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"field":             types.ObjectType{AttrTypes: SpansFieldModelAttr()},
+		"operator":          types.ObjectType{AttrTypes: FilterOperatorModelAttr()},
+		"observation_field": types.ObjectType{AttrTypes: SpanObservationFieldAttr()},
+	}
+}
+
+func expandDynamicSpansFilters(ctx context.Context, filters types.List) ([]dashboardservice.SpansFilter, diag.Diagnostics) {
+	var filterObjects []types.Object
+	diags := filters.ElementsAs(ctx, &filterObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var expanded []dashboardservice.SpansFilter
+	for _, filterObject := range filterObjects {
+		var filter DynamicSpansFilterModel
+		if dg := filterObject.As(ctx, &filter, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		operator, operatorDiags := expandFilterOperator(ctx, filter.Operator)
+		if operatorDiags.HasError() {
+			diags.Append(operatorDiags...)
+			continue
+		}
+		field, dg := ExpandSpansField(filter.Field)
+		if dg != nil {
+			diags.Append(dg)
+			continue
+		}
+		observationField, fieldDiags := ExpandSpanObservationFieldObject(ctx, filter.ObservationField)
+		if fieldDiags.HasError() {
+			diags.Append(fieldDiags...)
+			continue
+		}
+		expanded = append(expanded, dashboardservice.SpansFilter{
+			Field:            field,
+			Operator:         operator,
+			ObservationField: observationField,
+		})
+	}
+
+	return expanded, diags
+}
+
+func flattenDynamicSpansFilters(ctx context.Context, filters []dashboardservice.SpansFilter) (types.List, diag.Diagnostics) {
+	filterType := types.ObjectType{AttrTypes: dynamicSpansFilterModelAttr()}
+	if len(filters) == 0 {
+		return types.ListNull(filterType), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	elements := make([]attr.Value, 0, len(filters))
+	for i := range filters {
+		operator, dg := FlattenFilterOperator(filters[i].Operator)
+		if dg != nil {
+			diagnostics.Append(dg)
+			continue
+		}
+		field, dg := FlattenSpansField(filters[i].Field)
+		if dg != nil {
+			diagnostics.Append(dg)
+			continue
+		}
+		observationField, diags := FlattenSpanObservationFieldObject(ctx, filters[i].ObservationField)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		element, diags := types.ObjectValueFrom(ctx, dynamicSpansFilterModelAttr(), &DynamicSpansFilterModel{
+			Field:            field,
+			Operator:         operator,
+			ObservationField: observationField,
+		})
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		elements = append(elements, element)
+	}
+
+	if diagnostics.HasError() {
+		return types.ListNull(filterType), diagnostics
+	}
+	return types.ListValueFrom(ctx, filterType, elements)
 }
 
 // ExpandSpanObservationFieldObject converts a single span observation field, as

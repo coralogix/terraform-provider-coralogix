@@ -172,8 +172,10 @@ func TestDynamicWidgetSpansAndDataPrimeQueryFullFidelityRoundTrip(t *testing.T) 
 				"observation_field": types.ObjectNull(ObservationFieldAttr()),
 			}),
 		}),
-		Filters: types.ListValueMust(types.ObjectType{AttrTypes: SpansFilterModelAttr()}, []attr.Value{
-			types.ObjectValueMust(SpansFilterModelAttr(), map[string]attr.Value{
+		// Two filters: one targeted by the bare field, one targeted by an
+		// observation field only, which is the shape the Coralogix UI writes.
+		Filters: types.ListValueMust(types.ObjectType{AttrTypes: dynamicSpansFilterModelAttr()}, []attr.Value{
+			types.ObjectValueMust(dynamicSpansFilterModelAttr(), map[string]attr.Value{
 				"field": types.ObjectValueMust(SpansFieldModelAttr(), map[string]attr.Value{
 					"type":  types.StringValue("metadata"),
 					"value": types.StringValue("application_name"),
@@ -182,6 +184,20 @@ func TestDynamicWidgetSpansAndDataPrimeQueryFullFidelityRoundTrip(t *testing.T) 
 					"type":            types.StringValue("equals"),
 					"selection_type":  types.StringValue(filterSelectionTypeList),
 					"selected_values": types.ListValueMust(types.StringType, []attr.Value{types.StringValue("api")}),
+				}),
+				"observation_field": types.ObjectNull(SpanObservationFieldAttr()),
+			}),
+			types.ObjectValueMust(dynamicSpansFilterModelAttr(), map[string]attr.Value{
+				"field": types.ObjectNull(SpansFieldModelAttr()),
+				"operator": types.ObjectValueMust(FilterOperatorModelAttr(), map[string]attr.Value{
+					"type":            types.StringValue("not_equals"),
+					"selection_type":  types.StringValue(filterSelectionTypeList),
+					"selected_values": types.ListValueMust(types.StringType, []attr.Value{types.StringValue("codex-app-server")}),
+				}),
+				"observation_field": types.ObjectValueMust(SpanObservationFieldAttr(), map[string]attr.Value{
+					"keypath":       types.ListValueMust(types.StringType, []attr.Value{types.StringValue("servicename")}),
+					"scope":         types.StringValue("label"),
+					"relation_type": types.StringValue("unspecified"),
 				}),
 			}),
 		}),

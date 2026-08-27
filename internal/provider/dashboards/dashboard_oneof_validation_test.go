@@ -684,3 +684,44 @@ func TestDashboardLogsFilterAcceptsFieldWithObservationField(t *testing.T) {
 		})
 	}
 }
+
+// TestDashboardDynamicSpansFilterTargetsAreOptional is the spans counterpart of
+// TestDashboardLogsFilterAcceptsFieldWithObservationField. SpansFilter has the
+// same three plain fields in the proto, and the Coralogix UI writes a filter
+// that sets only `observation_field`. A required `field` made that dashboard
+// impossible to express: `attribute "field" is required`.
+//
+// The dynamic widget has its own filter list, because the shared
+// SpansFilterSchema is also used by schema V1 to V3, whose shape is frozen.
+// TestPriorSchemasStayFrozen guards that side; this test guards this one.
+func TestDashboardDynamicSpansFilterTargetsAreOptional(t *testing.T) {
+	ctx := context.Background()
+	root := dashboardschema.V4()
+
+	filters := dashboardMustType[schema.ListNestedAttribute](t,
+		dashboardResolveAttribute(t, root.Attributes,
+			"layout", "sections", "rows", "widgets", "definition", "dynamic",
+			"query_definitions", "query", "spans", "filters"),
+		"dynamic spans query filters")
+
+	attributes := filters.NestedObject.Attributes
+	if _, ok := attributes["observation_field"]; !ok {
+		t.Fatalf("the dynamic spans filter has no observation_field: %v", attributes)
+	}
+	if field := attributes["field"]; field.IsRequired() {
+		t.Fatal("the dynamic spans filter still requires field, so a filter targeted by observation_field alone cannot be written")
+	}
+
+	for _, set := range [][]string{
+		{"observation_field", "operator"},
+		{"field", "operator"},
+		{"field", "observation_field", "operator"},
+	} {
+		cfg := dashboardObjectConfig(ctx, t, filters.NestedObject.Type(), set...)
+		diagnostics := dashboardValidateObject(t, ctx, cfg,
+			path.Root("filters").AtListIndex(0), filters.NestedObject.Validators)
+		if len(diagnostics) != 0 {
+			t.Fatalf("expected a spans filter with %v to be valid, got: %v", set, diagnostics)
+		}
+	}
+}
