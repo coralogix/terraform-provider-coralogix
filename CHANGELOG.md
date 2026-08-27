@@ -39,7 +39,7 @@
 - FIX: A widget can now set a `title` together with a `markdown` definition. The Coralogix UI always gives a markdown widget a title, so a dashboard exported from the UI failed to validate.
 - FIX: Editing `content_json` updates the dashboard in place instead of recreating it, so it keeps its ID and existing links to it keep working.
 - FIX: `data.coralogix_dashboard` no longer fails on a dashboard whose widgets use an attribute with a custom value type. Deriving the data-source schema from the resource's dropped `CustomType` for numeric attributes. Affects any resource whose data source derives its schema this way.
-- DOC: Time-series visualizations need `promql_query_type = "range"`. An instant query returns a single point, so the chart renders empty while the configuration looks correct.
+- DOC: A `dynamic` widget time-series visualization needs `promql_query_type = "range"` on its metrics query. An instant query returns a single point, so the chart renders empty while the configuration looks correct. Note this does not apply to the classic `line_chart`: the API has no such field on its metrics query, so only `unspecified` applies cleanly there and any other value fails the apply with an inconsistent result. That is long-standing rather than new, and is tracked separately.
 
 
 # Release 3.10.1
