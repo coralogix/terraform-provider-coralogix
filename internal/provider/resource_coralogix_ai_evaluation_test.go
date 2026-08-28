@@ -496,7 +496,10 @@ func testAccAIClientSet() *clientset.ClientSet {
 	terraformEnvironmentAlias := strings.ToUpper(os.Getenv("CORALOGIX_ENV"))
 
 	if domain != "" {
-		targetURL := clientset.GrpcTargetFromDomain(domain)
+		targetURL, err := clientset.GrpcTargetFromDomain(domain)
+		if err != nil {
+			panic(err)
+		}
 		return clientset.NewClientSet(domain, apiKey, targetURL)
 	}
 

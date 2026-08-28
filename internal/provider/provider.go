@@ -154,7 +154,11 @@ func OldProvider() *oldSchema.Provider {
 					cxEnv = env.(string)
 				}
 			} else if domain, ok := d.GetOk("domain"); ok && domain.(string) != "" {
-				targetUrl = clientset.GrpcTargetFromDomain(domain.(string))
+				target, err := clientset.GrpcTargetFromDomain(domain.(string))
+				if err != nil {
+					return nil, diag.FromErr(err)
+				}
+				targetUrl = target
 				cxEnv = domain.(string)
 			} else if env = strings.ToUpper(os.Getenv("CORALOGIX_ENV")); env != "" {
 				if url, ok := terraformEnvironmentAliasToGrpcUrl[env.(string)]; !ok {
@@ -164,7 +168,11 @@ func OldProvider() *oldSchema.Provider {
 					cxEnv = env.(string)
 				}
 			} else if domain := os.Getenv("CORALOGIX_DOMAIN"); domain != "" {
-				targetUrl = clientset.GrpcTargetFromDomain(domain)
+				target, err := clientset.GrpcTargetFromDomain(domain)
+				if err != nil {
+					return nil, diag.FromErr(err)
+				}
+				targetUrl = target
 				cxEnv = domain
 			} else {
 				return nil, diag.Errorf("At least one of the fields 'env' or 'domain', or one of the environment variables 'CORALOGIX_ENV' or 'CORALOGIX_DOMAIN' have to be defined")
@@ -221,7 +229,7 @@ func (p *coralogixProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"domain": schema.StringAttribute{
 				Optional: true,
 				Validators: []validator.String{
-					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("domain")),
+					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("env")),
 				},
 				Description: "The Coralogix domain. For AWS PrivateLink use the management API host (e.g. api.private.eu2.coralogix.com). Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
 			},
@@ -345,7 +353,12 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	if terraformEnvironmentAlias != "" {
 		targetUrl = terraformEnvironmentAliasToGrpcUrl[terraformEnvironmentAlias]
 	} else {
-		targetUrl = clientset.GrpcTargetFromDomain(domain)
+		target, err := clientset.GrpcTargetFromDomain(domain)
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(path.Root("domain"), "Invalid Coralogix domain", err.Error())
+			return
+		}
+		targetUrl = target
 	}
 
 	sdkEnvironment := terraformEnvironmentAliasToSdkEnvironment[terraformEnvironmentAlias]

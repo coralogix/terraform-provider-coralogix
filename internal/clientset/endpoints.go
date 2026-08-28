@@ -15,8 +15,15 @@
 package clientset
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+	"unicode"
+)
+
+const (
+	maxDomainLength = 253
+	maxLabelLength  = 63
 )
 
 // GrpcTargetFromDomain returns the host:port used for gRPC management API calls when the
@@ -25,12 +32,74 @@ import (
 // AWS PrivateLink exposes management REST and gRPC on api.private.<region>.coralogix.com
 // (see Coralogix endpoints docs). The public SaaS pattern ng-api-grpc.<domain> does not
 // apply to api.private.* hostnames.
-func GrpcTargetFromDomain(domain string) string {
-	domain = normalizeProviderDomain(domain)
-	if strings.HasPrefix(domain, "api.private.") {
-		return domain + ":443"
+//
+// A domain that is not a structurally valid hostname returns an error instead of a
+// malformed target such as "ng-api-grpc.:443", which surfaces as an opaque dial failure.
+func GrpcTargetFromDomain(domain string) (string, error) {
+	host, err := normalizeAndValidateProviderDomain(domain)
+	if err != nil {
+		return "", err
 	}
-	return fmt.Sprintf("ng-api-grpc.%s:443", domain)
+	if strings.HasPrefix(host, "api.private.") {
+		return host + ":443", nil
+	}
+	return fmt.Sprintf("ng-api-grpc.%s:443", host), nil
+}
+
+// normalizeAndValidateProviderDomain normalizes domain and checks that the result is a
+// structurally valid hostname. The check is structural only: any host that DNS could
+// resolve is accepted, including PrivateLink and customer-specific private hosts.
+func normalizeAndValidateProviderDomain(domain string) (string, error) {
+	host := normalizeProviderDomain(domain)
+	if host == "" {
+		return "", invalidDomainError(domain, "it is empty after trimming whitespace, a scheme prefix and a trailing \"/\"")
+	}
+	if len(host) > maxDomainLength {
+		return "", invalidDomainError(domain, fmt.Sprintf("it is %d characters long, above the %d character hostname limit", len(host), maxDomainLength))
+	}
+	for _, label := range strings.Split(strings.TrimSuffix(host, "."), ".") {
+		if err := validateHostnameLabel(label); err != nil {
+			return "", invalidDomainError(domain, err.Error())
+		}
+	}
+	return host, nil
+}
+
+func validateHostnameLabel(label string) error {
+	if label == "" {
+		return errors.New("it contains an empty label (a leading, trailing or doubled \".\")")
+	}
+	if len(label) > maxLabelLength {
+		return fmt.Errorf("the label %q is %d characters long, above the %d character label limit", label, len(label), maxLabelLength)
+	}
+	if strings.HasPrefix(label, "-") || strings.HasSuffix(label, "-") {
+		return fmt.Errorf("the label %q starts or ends with \"-\"", label)
+	}
+	// Underscores and non-ASCII names are not conformant hostnames but do resolve in
+	// internal DNS zones, so the check rejects only what cannot be a host at all.
+	for _, r := range label {
+		if !isHostnameLabelChar(r) {
+			return fmt.Errorf("the label %q contains the invalid character %q", label, r)
+		}
+	}
+	return nil
+}
+
+func isHostnameLabelChar(r rune) bool {
+	switch {
+	case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
+		return true
+	case r == '-', r == '_':
+		return true
+	case r > unicode.MaxASCII:
+		return !unicode.IsSpace(r)
+	default:
+		return false
+	}
+}
+
+func invalidDomainError(domain, reason string) error {
+	return fmt.Errorf("invalid Coralogix domain %q: %s. The provider \"domain\" argument, or the CORALOGIX_DOMAIN environment variable, must be a hostname such as \"coralogix.com\", \"eu2.coralogix.com\" or \"api.private.eu2.coralogix.com\"; an \"https://\" prefix and a trailing \"/\" are accepted", domain, reason)
 }
 
 // ScimRestBaseURL returns the HTTPS base URL for SCIM REST APIs (users, groups) for the

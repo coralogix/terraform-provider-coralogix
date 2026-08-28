@@ -19,7 +19,7 @@ import "testing"
 func TestNewClientSet_UsersClientNotNil(t *testing.T) {
 	t.Parallel()
 
-	cs := NewClientSet("eu2", "dummy-key", GrpcTargetFromDomain("eu2.coralogix.com"))
+	cs := NewClientSet("eu2", "dummy-key", mustGrpcTargetFromDomain(t, "eu2.coralogix.com"))
 	if cs.Users() == nil {
 		t.Fatal("Users() must not be nil")
 	}
@@ -36,7 +36,7 @@ func TestNewClientSet_UsersClientNotNil(t *testing.T) {
 		t.Fatalf("Users().BaseURL() = %q", cs.Users().BaseURL())
 	}
 
-	pl := NewClientSet("api.private.eu2.coralogix.com", "dummy-key", GrpcTargetFromDomain("api.private.eu2.coralogix.com"))
+	pl := NewClientSet("api.private.eu2.coralogix.com", "dummy-key", mustGrpcTargetFromDomain(t, "api.private.eu2.coralogix.com"))
 	if pl.Users().BaseURL() != "https://api.private.eu2.coralogix.com/scim/Users" {
 		t.Fatalf("PrivateLink Users().BaseURL() = %q", pl.Users().BaseURL())
 	}

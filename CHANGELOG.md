@@ -1,5 +1,9 @@
 # Unreleased
 
+#### provider
+- FIX: A malformed `domain` is now reported as a configuration error instead of becoming a malformed API host. A value such as `" "` used to produce the gRPC target `ng-api-grpc.:443` and fail later as an opaque dial error. The check is structural only — it rejects what cannot be a host at all, and accepts AWS PrivateLink hosts, customer-specific private hosts, and internal names that use underscores or non-ASCII labels — and it covers the `domain` argument and the `CORALOGIX_DOMAIN` environment variable on both halves of the muxed provider.
+- FIX: The `domain` argument's conflict rule named `domain` instead of `env`, so it never emitted anything. Setting `env` and `domain` together was already rejected by `env`'s own rule; both attributes now report the conflict.
+
 # Release 3.12.0
 
 #### resource/coralogix_dashboard

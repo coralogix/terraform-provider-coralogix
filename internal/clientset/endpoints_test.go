@@ -14,7 +14,21 @@
 
 package clientset
 
-import "testing"
+import (
+	"fmt"
+	"strings"
+	"testing"
+)
+
+// mustGrpcTargetFromDomain is the test-side helper for the domains that must stay valid.
+func mustGrpcTargetFromDomain(t *testing.T, domain string) string {
+	t.Helper()
+	target, err := GrpcTargetFromDomain(domain)
+	if err != nil {
+		t.Fatalf("GrpcTargetFromDomain(%q) returned an unexpected error: %v", domain, err)
+	}
+	return target
+}
 
 func TestGrpcTargetFromDomain(t *testing.T) {
 	t.Parallel()
@@ -39,13 +53,104 @@ func TestGrpcTargetFromDomain(t *testing.T) {
 			domain: "api.eu2.coralogix.com",
 			want:   "ng-api-grpc.api.eu2.coralogix.com:443",
 		},
+		// Customer-specific PrivateLink hosts are accepted without any suffix assumption.
+		{
+			domain: "cx.private.internal.customer-corp.net",
+			want:   "ng-api-grpc.cx.private.internal.customer-corp.net:443",
+		},
+		// Scheme and trailing slash are tolerated, including on a single-label host.
+		{
+			domain: "https://host/",
+			want:   "ng-api-grpc.host:443",
+		},
+		{
+			domain: "http://coralogix.com",
+			want:   "ng-api-grpc.coralogix.com:443",
+		},
+		{
+			domain: "  api.eu2.coralogix.com  ",
+			want:   "ng-api-grpc.api.eu2.coralogix.com:443",
+		},
+		// Case is preserved, not rejected.
+		{
+			domain: "EU2.Coralogix.COM",
+			want:   "ng-api-grpc.EU2.Coralogix.COM:443",
+		},
+		// A fully qualified name with a root dot is not a false rejection.
+		{
+			domain: "coralogix.com.",
+			want:   "ng-api-grpc.coralogix.com.:443",
+		},
+		// Names that resolve in internal DNS zones without being conformant hostnames.
+		{
+			domain: "cx_api.internal.customer-corp.net",
+			want:   "ng-api-grpc.cx_api.internal.customer-corp.net:443",
+		},
+		{
+			domain: "münchen.customer-corp.de",
+			want:   "ng-api-grpc.münchen.customer-corp.de:443",
+		},
+		{
+			domain: "192.168.10.20",
+			want:   "ng-api-grpc.192.168.10.20:443",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.domain, func(t *testing.T) {
 			t.Parallel()
-			if got := GrpcTargetFromDomain(tt.domain); got != tt.want {
+			got, err := GrpcTargetFromDomain(tt.domain)
+			if err != nil {
+				t.Fatalf("GrpcTargetFromDomain(%q) returned an unexpected error: %v", tt.domain, err)
+			}
+			if got != tt.want {
 				t.Fatalf("GrpcTargetFromDomain(%q) = %q, want %q", tt.domain, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGrpcTargetFromDomainRejectsMalformedDomains(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		domain string
+	}{
+		{name: "empty", domain: ""},
+		{name: "single space", domain: " "},
+		{name: "whitespace only", domain: "\t\n"},
+		{name: "scheme only", domain: "https://"},
+		{name: "trailing slash only", domain: "/"},
+		{name: "leading dot", domain: ".coralogix.com"},
+		{name: "doubled dot", domain: "api..coralogix.com"},
+		{name: "explicit port", domain: "api.eu2.coralogix.com:443"},
+		{name: "path component", domain: "https://api.eu2.coralogix.com/path"},
+		{name: "userinfo", domain: "user@coralogix.com"},
+		{name: "leading hyphen label", domain: "-coralogix.com"},
+		{name: "trailing hyphen label", domain: "coralogix-.com"},
+		{name: "space inside", domain: "api eu2.coralogix.com"},
+		{name: "non-breaking space", domain: "\u00a0"},
+		{name: "label too long", domain: strings.Repeat("a", 64) + ".coralogix.com"},
+		{name: "domain too long", domain: strings.Repeat("a.", 128) + "coralogix.com"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := GrpcTargetFromDomain(tt.domain)
+			if err == nil {
+				t.Fatalf("GrpcTargetFromDomain(%q) = %q, want an error", tt.domain, got)
+			}
+			if got != "" {
+				t.Fatalf("GrpcTargetFromDomain(%q) returned target %q alongside an error", tt.domain, got)
+			}
+			// The message has to be actionable from either configuration path,
+			// and has to echo the value that was rejected.
+			for _, want := range []string{"domain", "CORALOGIX_DOMAIN", fmt.Sprintf("%q", tt.domain)} {
+				if !strings.Contains(err.Error(), want) {
+					t.Errorf("error %q does not mention %s", err, want)
+				}
 			}
 		})
 	}
