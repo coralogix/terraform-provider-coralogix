@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.12.0
+
 #### resource/coralogix_dashboard
 - FIX: An annotation keeps its `color`. The Coralogix UI offers a swatch per colour and the API stores the choice, but the provider had no attribute, so a copy of a red annotation was created as unspecified and the colour was silently lost. Valid values are `default`, `green`, `cyan`, `blue`, `purple`, `magenta`, `red`, `orange` and `yellow`. Omit the attribute for an annotation with no colour chosen: that is what the API returns, and it reads back as no value.
 - FEAT: An annotation takes a `description`. The API stores one, 0 to 4096 characters, and the Coralogix UI offers it next to the annotation name, so a dashboard built in the UI could not be expressed in Terraform.
