@@ -22,6 +22,8 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -221,5 +223,17 @@ func TestCanonicalJSON(t *testing.T) {
 				t.Fatalf("CanonicalJSON(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestConvertAttributePropagatesSensitive(t *testing.T) {
+	converted := ConvertAttribute(resourceschema.StringAttribute{Sensitive: true})
+
+	strAttr, ok := converted.(datasourceschema.StringAttribute)
+	if !ok {
+		t.Fatalf("expected datasourceschema.StringAttribute, got %T", converted)
+	}
+	if !strAttr.Sensitive {
+		t.Errorf("expected converted datasource attribute Sensitive == true, got false")
 	}
 }

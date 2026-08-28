@@ -180,6 +180,7 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			Computed:            true,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
+			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.Float32Attribute:
 		return datasourceschema.Float32Attribute{
@@ -187,6 +188,7 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
+			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.Float64Attribute:
 		return datasourceschema.Float64Attribute{
@@ -194,6 +196,7 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
+			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.Int64Attribute:
 		return datasourceschema.Int64Attribute{
@@ -201,6 +204,7 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
+			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.Int32Attribute:
 		return datasourceschema.Int32Attribute{
@@ -208,6 +212,7 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
+			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.NumberAttribute:
 		return datasourceschema.NumberAttribute{
@@ -215,6 +220,7 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
+			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.StringAttribute:
 		return datasourceschema.StringAttribute{
@@ -222,12 +228,14 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
+			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.DynamicAttribute:
 		return datasourceschema.DynamicAttribute{
 			Computed:            true,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
+			Sensitive:           attr.Sensitive,
 		}, true
 	default:
 		return nil, false
