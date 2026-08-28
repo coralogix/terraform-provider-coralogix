@@ -206,9 +206,9 @@ jobs:
           )
           skip_pattern="($DASHBOARD_MIGRATION_ACC_PATTERN)"
           for pattern in "${shard_patterns[@]}"; do
-            # Keep subtest patterns intact. This excludes the known subtests but
-            # lets new subtests in the same parent run in this catch-all.
-            skip_pattern+="|($pattern)"
+            # Keep each slash unbracketed. Go uses it as the separator between
+            # a parent test pattern and a subtest pattern.
+            skip_pattern+="|$pattern"
           done
           TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
 
