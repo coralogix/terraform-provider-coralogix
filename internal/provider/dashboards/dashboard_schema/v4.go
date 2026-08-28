@@ -29,8 +29,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -117,14 +115,11 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 														MarkdownDescription: "Widget description.",
 													},
 													"highlighted": schema.BoolAttribute{
-														Optional: true,
-														Computed: true,
-														PlanModifiers: []planmodifier.Bool{
-															// The API owns the value when the attribute is
-															// omitted. Non-null only: a widget added on update
-															// has null prior state.
-															boolplanmodifier.UseNonNullStateForUnknown(),
-														},
+														// Computed, so an omitted attribute takes the value the
+														// API returns. No state preservation: removing the
+														// attribute has to stop highlighting the widget.
+														Optional:            true,
+														Computed:            true,
 														MarkdownDescription: "Marks the widget as highlighted for every user of the dashboard. The API rejects it on a widget that only holds a `reference`.",
 													},
 													"definition": schema.SingleNestedAttribute{
@@ -213,27 +208,18 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	// default would send a value the dashboard never had.
 																	// Computed keeps whatever the API returns, and keeps a
 																	// value an older state already holds.
+																	// A wrapper field in the API, so an absent value is
+																	// not zero. No static default and no state
+																	// preservation: removing the attribute has to hand
+																	// the bound back to the API, and prior state cannot
+																	// tell a removed value from one never set.
 																	"min": schema.Float64Attribute{
 																		Optional: true,
 																		Computed: true,
-																		PlanModifiers: []planmodifier.Float64{
-																			// The API owns the value when the attribute is
-																			// omitted, and it is a wrapper field, so an
-																			// absent one is not zero. Keep a value already
-																			// in state: a configuration that relied on the
-																			// old static default of 0 must not change.
-																			float64planmodifier.UseNonNullStateForUnknown(),
-																		},
 																	},
 																	"max": schema.Float64Attribute{
 																		Optional: true,
 																		Computed: true,
-																		PlanModifiers: []planmodifier.Float64{
-																			// Same as min: keep a value already in state, so
-																			// a configuration that relied on the old static
-																			// default of 100 does not change.
-																			float64planmodifier.UseNonNullStateForUnknown(),
-																		},
 																	},
 																	"show_inner_arc": schema.BoolAttribute{
 																		Optional: true,

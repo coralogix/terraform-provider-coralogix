@@ -39,7 +39,7 @@ Coralogix Custom Dashboard. For more info please review - https://coralogix.com/
 
 Read-Only:
 
-- `color` (String) The colour the Coralogix UI draws the annotation in. Valid values are: blue, cyan, default, green, magenta, orange, purple, red, unspecified, yellow.
+- `color` (String) The colour the Coralogix UI draws the annotation in. Valid values are: blue, cyan, default, green, magenta, orange, purple, red, yellow.
 - `description` (String) A human-readable description of the annotation. The Coralogix UI shows it next to the annotation name.
 - `enabled` (Boolean)
 - `id` (String)

@@ -291,17 +291,21 @@ var (
 	// Annotation colours are user data: the Coralogix UI offers a swatch for
 	// each one, and an annotation created without a choice reads back as
 	// unspecified.
+	// An unspecified colour is not in this map on purpose. It is what the API
+	// returns for an annotation created without a choice, and the attribute is
+	// plain optional, so it has to read back as null: a configuration that omits
+	// the colour must not gain a value on apply. Omitting the attribute is how a
+	// user says "no choice"; "unspecified" is not accepted as a written value.
 	DashboardSchemaToProtoAnnotationColor = map[string]dashboardservice.AnnotationColor{
-		utils.UNSPECIFIED: dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_UNSPECIFIED,
-		"default":         dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_DEFAULT,
-		"green":           dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_GREEN,
-		"cyan":            dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_CYAN,
-		"blue":            dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_BLUE,
-		"purple":          dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_PURPLE,
-		"magenta":         dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_MAGENTA,
-		"red":             dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_RED,
-		"orange":          dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_ORANGE,
-		"yellow":          dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_YELLOW,
+		"default": dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_DEFAULT,
+		"green":   dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_GREEN,
+		"cyan":    dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_CYAN,
+		"blue":    dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_BLUE,
+		"purple":  dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_PURPLE,
+		"magenta": dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_MAGENTA,
+		"red":     dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_RED,
+		"orange":  dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_ORANGE,
+		"yellow":  dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_YELLOW,
 	}
 	DashboardProtoToSchemaAnnotationColor = utils.ReverseMap(DashboardSchemaToProtoAnnotationColor)
 	DashboardValidAnnotationColors        = utils.GetKeys(DashboardSchemaToProtoAnnotationColor)

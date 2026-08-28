@@ -21,13 +21,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
 
-// Three attributes lost a static default, because each is a wrapper field in the
-// API where an absent value is not zero: a gauge min and max, and a data table
-// column width. Dropping the default alone would change an existing
-// configuration, because the value the default put in state would be cleared on
-// the next apply. Each one keeps a non-null prior state instead, so a
-// configuration written against the old default keeps its value and plans clean.
-func TestWrapperDefaultsAreReplacedByStatePreservation(t *testing.T) {
+// Four attributes must not declare a static default and must not preserve prior
+// state: a gauge min and max, a data table column width, and a widget highlight.
+// The first three are wrapper fields in the API, where an absent value is not
+// zero, and the fourth is a plain bool. A static default invents a value the
+// dashboard never had. State preservation is worse: prior state cannot tell an
+// attribute the user removed from one never set, so keeping it would make the
+// value impossible to clear by deleting the line.
+func TestWrapperValuesHaveNoDefaultAndNoStatePreservation(t *testing.T) {
 	t.Parallel()
 	root := dashboard_schema.V4()
 	widget := []string{"layout", "sections", "rows", "widgets", "definition"}
@@ -36,35 +37,34 @@ func TestWrapperDefaultsAreReplacedByStatePreservation(t *testing.T) {
 		"gauge min":               append(append([]string{}, widget...), "gauge", "min"),
 		"gauge max":               append(append([]string{}, widget...), "gauge", "max"),
 		"data table column width": append(append([]string{}, widget...), "data_table", "columns", "width"),
+		"widget highlighted":      {"layout", "sections", "rows", "widgets", "highlighted"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			attribute := dashboardResolveAttribute(t, root.Attributes, path...)
 			if attribute == nil {
 				t.Fatalf("%s is missing", name)
 			}
+			var hasDefault bool
+			var optional, computed bool
+			var modifiers int
 			switch typed := attribute.(type) {
 			case schema.Float64Attribute:
-				if typed.Default != nil {
-					t.Errorf("%s still declares a static default", name)
-				}
-				if !typed.Optional || !typed.Computed {
-					t.Errorf("%s must stay optional and computed, got optional=%t computed=%t", name, typed.Optional, typed.Computed)
-				}
-				if len(typed.PlanModifiers) == 0 {
-					t.Errorf("%s has no plan modifier, so a stored value is cleared on the next apply", name)
-				}
+				hasDefault, optional, computed, modifiers = typed.Default != nil, typed.Optional, typed.Computed, len(typed.PlanModifiers)
 			case schema.Int64Attribute:
-				if typed.Default != nil {
-					t.Errorf("%s still declares a static default", name)
-				}
-				if !typed.Optional || !typed.Computed {
-					t.Errorf("%s must stay optional and computed, got optional=%t computed=%t", name, typed.Optional, typed.Computed)
-				}
-				if len(typed.PlanModifiers) == 0 {
-					t.Errorf("%s has no plan modifier, so a stored value is cleared on the next apply", name)
-				}
+				hasDefault, optional, computed, modifiers = typed.Default != nil, typed.Optional, typed.Computed, len(typed.PlanModifiers)
+			case schema.BoolAttribute:
+				hasDefault, optional, computed, modifiers = typed.Default != nil, typed.Optional, typed.Computed, len(typed.PlanModifiers)
 			default:
 				t.Fatalf("%s has unexpected kind %T", name, attribute)
+			}
+			if hasDefault {
+				t.Errorf("%s declares a static default, which invents a value the API never had", name)
+			}
+			if !optional || !computed {
+				t.Errorf("%s must stay optional and computed, got optional=%t computed=%t", name, optional, computed)
+			}
+			if modifiers != 0 {
+				t.Errorf("%s has a plan modifier, so a value the user removed cannot be cleared", name)
 			}
 		})
 	}

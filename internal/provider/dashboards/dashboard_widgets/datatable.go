@@ -30,7 +30,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -189,17 +188,12 @@ func DataTableSchema() schema.Attribute {
 						// The proto declares the column width as a wrapper value,
 						// and the API adjusts the width itself when it is absent, so
 						// a static default would send a width nobody asked for.
+						// A wrapper field in the API, so an absent value is not
+						// zero. No static default and no state preservation: removing
+						// the attribute has to hand the width back to the API.
 						"width": schema.Int64Attribute{
 							Optional: true,
 							Computed: true,
-							PlanModifiers: []planmodifier.Int64{
-								// The API owns the value when the attribute is omitted,
-								// and it is a wrapper field, so an absent one is not
-								// zero. Keep a value already in state: a configuration
-								// that relied on the old static default of 0 must not
-								// change.
-								int64planmodifier.UseNonNullStateForUnknown(),
-							},
 						},
 					},
 				},
