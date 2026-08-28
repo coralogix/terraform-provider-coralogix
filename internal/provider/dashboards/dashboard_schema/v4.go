@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -213,21 +214,28 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																		},
 																	},
 																	// The proto declares min and max as wrapper values, so
-																	// an omitted one is absent and not zero. A static
-																	// default would send a value the dashboard never had.
-																	// Computed keeps whatever the API returns, and keeps a
-																	// value an older state already holds.
-																	// A wrapper field: the API leaves it out when it is
-																	// unset, and returns it when it is set. So plain
-																	// optional round trips, removing the attribute
-																	// hands the bound back to the API, and no static
-																	// default invents a value on import. Computed here
-																	// would plan as "known after apply" on every run.
+																	// an omitted one is absent and not zero. A static default
+																	// would send a bound the dashboard never had, so there is
+																	// none. Computed keeps the bound the API returns for a
+																	// dashboard created elsewhere. The plan modifier copies
+																	// the prior state, and it has to be UseStateForUnknown
+																	// and not the non-null variant: the API returns no bound
+																	// at all for a gauge built in the Coralogix UI, so the
+																	// prior state is null and the non-null variant would plan
+																	// "known after apply" on every run.
 																	"min": schema.Float64Attribute{
 																		Optional: true,
+																		Computed: true,
+																		PlanModifiers: []planmodifier.Float64{
+																			float64planmodifier.UseStateForUnknown(),
+																		},
 																	},
 																	"max": schema.Float64Attribute{
 																		Optional: true,
+																		Computed: true,
+																		PlanModifiers: []planmodifier.Float64{
+																			float64planmodifier.UseStateForUnknown(),
+																		},
 																	},
 																	"show_inner_arc": schema.BoolAttribute{
 																		Optional: true,
@@ -948,6 +956,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 												},
 												Validators: []validator.Object{
 													dashboardwidgets.ExactlyOneOfChildren("definition", "reference"),
+													dashboardwidgets.HighlightedNotOnReference(),
 												},
 											},
 											Validators: []validator.List{

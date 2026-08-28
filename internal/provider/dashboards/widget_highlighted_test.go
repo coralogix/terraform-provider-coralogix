@@ -19,6 +19,9 @@ import (
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -62,6 +65,51 @@ func TestWidgetHighlightedRoundTrip(t *testing.T) {
 			}
 			if !flattened.Highlighted.Equal(highlighted) {
 				t.Fatalf("round-tripped highlighted = %v, want %v", flattened.Highlighted, highlighted)
+			}
+		})
+	}
+}
+
+// The API rejects a highlighted widget reference, so the guard has to catch it
+// at plan time. Only a true value conflicts: a reference widget reads back with
+// highlighted false, and rejecting that would make an imported reference widget
+// impossible to write.
+func TestHighlightedNotOnReferenceValidator(t *testing.T) {
+	ctx := context.Background()
+	referenceType := types.ObjectType{AttrTypes: map[string]attr.Type{
+		"dashboard_id": types.StringType,
+		"widget_id":    types.StringType,
+	}}
+	widgetType := map[string]attr.Type{
+		"highlighted": types.BoolType,
+		"reference":   referenceType,
+	}
+	reference := types.ObjectValueMust(referenceType.AttrTypes, map[string]attr.Value{
+		"dashboard_id": types.StringValue("dashboard-id"),
+		"widget_id":    types.StringValue("11111111-1111-1111-1111-111111111111"),
+	})
+
+	for name, testCase := range map[string]struct {
+		highlighted types.Bool
+		reference   attr.Value
+		wantError   bool
+	}{
+		"true on a reference":    {types.BoolValue(true), reference, true},
+		"false on a reference":   {types.BoolValue(false), reference, false},
+		"unset on a reference":   {types.BoolNull(), reference, false},
+		"true on a definition":   {types.BoolValue(true), types.ObjectNull(referenceType.AttrTypes), false},
+		"unknown on a reference": {types.BoolUnknown(), reference, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			widget := types.ObjectValueMust(widgetType, map[string]attr.Value{
+				"highlighted": testCase.highlighted,
+				"reference":   testCase.reference,
+			})
+			request := validator.ObjectRequest{Path: path.Root("layout"), ConfigValue: widget}
+			var response validator.ObjectResponse
+			dashboard_widgets.HighlightedNotOnReference().ValidateObject(ctx, request, &response)
+			if response.Diagnostics.HasError() != testCase.wantError {
+				t.Fatalf("error = %t, want %t: %v", response.Diagnostics.HasError(), testCase.wantError, response.Diagnostics)
 			}
 		})
 	}

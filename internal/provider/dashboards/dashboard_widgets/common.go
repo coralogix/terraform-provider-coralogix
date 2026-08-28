@@ -2273,6 +2273,51 @@ func SupportedWidgetsValidatorWithout(current string) validator.Object {
 // resolving path.Expressions via Config.PathMatches, so it doesn't pay for a
 // full config-tree walk per check. Attach it to the parent object of a oneof
 // group instead of to each child.
+// HighlightedNotOnReference rejects a widget that highlights a reference to a
+// widget on another dashboard. The API documents the flag as "not allowed on a
+// widget reference" and rejects the request, so the guard turns an apply-time
+// API error into a plan-time one.
+//
+// Only a true value conflicts. A reference widget reads back from the API with
+// highlighted false, so rejecting any value would make an imported reference
+// widget impossible to write.
+func HighlightedNotOnReference() validator.Object {
+	return HighlightedNotOnReferenceValidator{}
+}
+
+// HighlightedNotOnReferenceValidator is exported so a schema-wiring test can
+// type-assert it on the widget object, the same reason as
+// ExactlyOneOfChildrenValidator.
+type HighlightedNotOnReferenceValidator struct{}
+
+func (v HighlightedNotOnReferenceValidator) Description(_ context.Context) string {
+	return "highlighted must not be true on a widget that holds a reference"
+}
+
+func (v HighlightedNotOnReferenceValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v HighlightedNotOnReferenceValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	attributes := req.ConfigValue.Attributes()
+	highlighted, ok := attributes["highlighted"].(types.Bool)
+	if !ok || highlighted.IsNull() || highlighted.IsUnknown() || !highlighted.ValueBool() {
+		return
+	}
+	reference, ok := attributes["reference"].(types.Object)
+	if !ok || reference.IsNull() || reference.IsUnknown() {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(
+		req.Path.AtName("highlighted"),
+		"Invalid Attribute Combination",
+		"highlighted cannot be true on a widget that holds a reference. The API rejects it: a widget referenced from another dashboard cannot be highlighted here. Remove highlighted, or set it to false.",
+	)
+}
+
 func ExactlyOneOfChildren(childNames ...string) validator.Object {
 	return ExactlyOneOfChildrenValidator{ChildNames: childNames}
 }

@@ -2149,11 +2149,22 @@ func expandWidget(ctx context.Context, widget WidgetModel) (*dashboardservice.Wi
 		Id:          id,
 		Title:       title,
 		Description: description,
-		Highlighted: widget.Highlighted.ValueBoolPointer(),
+		Highlighted: expandOptionalBool(widget.Highlighted),
 		Appearance:  appearance,
 		Definition:  definition,
 		Reference:   reference,
 	}, nil
+}
+
+// expandOptionalBool sends nothing for a value that is null or still unknown.
+// ValueBoolPointer returns a pointer to false for an unknown value, which would
+// put an explicit false in the request on create, where the plan value of a
+// computed attribute is always unknown.
+func expandOptionalBool(value types.Bool) *bool {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	return value.ValueBoolPointer()
 }
 
 func expandWidgetReference(reference *WidgetReferenceModel) (*dashboardservice.WidgetReference, diag.Diagnostics) {
