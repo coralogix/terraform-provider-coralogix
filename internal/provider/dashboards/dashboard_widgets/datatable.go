@@ -188,12 +188,12 @@ func DataTableSchema() schema.Attribute {
 						// The proto declares the column width as a wrapper value,
 						// and the API adjusts the width itself when it is absent, so
 						// a static default would send a width nobody asked for.
-						// A wrapper field in the API, so an absent value is not
-						// zero. No static default and no state preservation: removing
-						// the attribute has to hand the width back to the API.
+						// A wrapper field: the API leaves it out when it is unset, so
+						// plain optional round trips and removing the attribute hands
+						// the width back to the API. Computed here would plan as
+						// "known after apply" on every run.
 						"width": schema.Int64Attribute{
 							Optional: true,
-							Computed: true,
 						},
 					},
 				},

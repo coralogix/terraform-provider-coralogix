@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -115,12 +116,20 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 														MarkdownDescription: "Widget description.",
 													},
 													"highlighted": schema.BoolAttribute{
-														// Computed, so an omitted attribute takes the value the
-														// API returns. No state preservation: removing the
-														// attribute has to stop highlighting the widget.
-														Optional:            true,
-														Computed:            true,
-														MarkdownDescription: "Marks the widget as highlighted for every user of the dashboard. The API rejects it on a widget that only holds a `reference`.",
+														// The API returns a value for every widget, so the
+														// attribute has to be computed: plain optional would
+														// fail the apply with "was null, but now false". A
+														// computed attribute that is null in configuration
+														// plans as "known after apply" on every run, so the
+														// prior value is kept. Write false to stop
+														// highlighting a widget; deleting the line leaves the
+														// value as it was.
+														Optional: true,
+														Computed: true,
+														PlanModifiers: []planmodifier.Bool{
+															boolplanmodifier.UseNonNullStateForUnknown(),
+														},
+														MarkdownDescription: "Marks the widget as highlighted for every user of the dashboard. Set `false` to stop highlighting it: the API returns a value for every widget, so deleting the line keeps the last value. The API rejects it on a widget that only holds a `reference`.",
 													},
 													"definition": schema.SingleNestedAttribute{
 														Optional: true,
@@ -208,18 +217,17 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																	// default would send a value the dashboard never had.
 																	// Computed keeps whatever the API returns, and keeps a
 																	// value an older state already holds.
-																	// A wrapper field in the API, so an absent value is
-																	// not zero. No static default and no state
-																	// preservation: removing the attribute has to hand
-																	// the bound back to the API, and prior state cannot
-																	// tell a removed value from one never set.
+																	// A wrapper field: the API leaves it out when it is
+																	// unset, and returns it when it is set. So plain
+																	// optional round trips, removing the attribute
+																	// hands the bound back to the API, and no static
+																	// default invents a value on import. Computed here
+																	// would plan as "known after apply" on every run.
 																	"min": schema.Float64Attribute{
 																		Optional: true,
-																		Computed: true,
 																	},
 																	"max": schema.Float64Attribute{
 																		Optional: true,
-																		Computed: true,
 																	},
 																	"show_inner_arc": schema.BoolAttribute{
 																		Optional: true,

@@ -2074,7 +2074,7 @@ Optional:
 
 - `definition` (Attributes) Inline widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown dynamic]. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 - `description` (String) Widget description.
-- `highlighted` (Boolean) Marks the widget as highlighted for every user of the dashboard. The API rejects it on a widget that only holds a `reference`.
+- `highlighted` (Boolean) Marks the widget as highlighted for every user of the dashboard. Set `false` to stop highlighting it: the API returns a value for every widget, so deleting the line keeps the last value. The API rejects it on a widget that only holds a `reference`.
 - `id` (String)
 - `reference` (Attributes) Reference to a widget on another dashboard. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--reference))
 - `title` (String) Widget title. Required for all inline widgets except markdown, where it is optional.
