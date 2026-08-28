@@ -132,6 +132,108 @@ func ExpandFilterSource(ctx context.Context, source *DashboardFilterSourceModel)
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Filter Source", fmt.Sprintf("Unknown filter source type: %#v", source))}
 	}
 }
+
+// ExpandTopLevelFilterSource builds the source of a dashboard-level filter.
+// Only its spans branch differs from the widget filter source.
+func ExpandTopLevelFilterSource(ctx context.Context, source *TopLevelFilterSourceModel) (*dashboardservice.FilterSource, diag.Diagnostics) {
+	if source == nil {
+		return nil, nil
+	}
+
+	switch {
+	case source.Logs != nil:
+		return expandFilterSourceLogs(ctx, source.Logs)
+	case source.Metrics != nil:
+		return expandFilterSourceMetrics(ctx, source.Metrics)
+	case source.Spans != nil:
+		return expandTopLevelFilterSourceSpans(ctx, source.Spans)
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Filter Source", fmt.Sprintf("Unknown filter source type: %#v", source))}
+	}
+}
+
+func expandTopLevelFilterSourceSpans(ctx context.Context, spans *SpansObservationFilterModel) (*dashboardservice.FilterSource, diag.Diagnostics) {
+	if spans == nil {
+		return nil, nil
+	}
+
+	field, dg := ExpandSpansField(spans.Field)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	operator, diags := expandFilterOperator(ctx, spans.Operator)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	observationField, diags := ExpandSpanObservationFieldObject(ctx, spans.ObservationField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboardservice.FilterSource{
+		Spans: &dashboardservice.SpansFilter{
+			Field:            field,
+			Operator:         operator,
+			ObservationField: observationField,
+		},
+	}, nil
+}
+
+// FlattenTopLevelFilterSource reads the source of a dashboard-level filter.
+func FlattenTopLevelFilterSource(ctx context.Context, source *dashboardservice.FilterSource) (*TopLevelFilterSourceModel, diag.Diagnostics) {
+	if source == nil {
+		return nil, nil
+	}
+
+	switch {
+	case source.Logs != nil:
+		logs, diags := FlattenDashboardFilterSourceLogs(ctx, source.Logs)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &TopLevelFilterSourceModel{Logs: logs}, nil
+	case source.Metrics != nil:
+		metrics, dg := FlattenDashboardFilterSourceMetrics(source.Metrics)
+		if dg != nil {
+			return nil, diag.Diagnostics{dg}
+		}
+		return &TopLevelFilterSourceModel{Metrics: metrics}, nil
+	case source.Spans != nil:
+		spans, diags := flattenTopLevelFilterSourceSpans(ctx, source.Spans)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &TopLevelFilterSourceModel{Spans: spans}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Filter Source", fmt.Sprintf("unknown filter source type %T", source))}
+	}
+}
+
+func flattenTopLevelFilterSourceSpans(ctx context.Context, spans *dashboardservice.SpansFilter) (*SpansObservationFilterModel, diag.Diagnostics) {
+	field, dg := FlattenSpansField(spans.Field)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	operator, dg := FlattenFilterOperator(spans.Operator)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	observationField, diags := FlattenSpanObservationFieldObject(ctx, spans.ObservationField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &SpansObservationFilterModel{
+		Field:            field,
+		Operator:         operator,
+		ObservationField: observationField,
+	}, nil
+}
+
 func expandFilterSourceLogs(ctx context.Context, logs *FilterSourceLogsModel) (*dashboardservice.FilterSource, diag.Diagnostics) {
 	if logs == nil {
 		return nil, nil

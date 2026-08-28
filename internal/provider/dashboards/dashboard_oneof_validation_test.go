@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
@@ -722,6 +723,171 @@ func TestDashboardDynamicSpansFilterTargetsAreOptional(t *testing.T) {
 			path.Root("filters").AtListIndex(0), filters.NestedObject.Validators)
 		if len(diagnostics) != 0 {
 			t.Fatalf("expected a spans filter with %v to be valid, got: %v", set, diagnostics)
+		}
+	}
+}
+
+// TestDashboardAnnotationCarriesDescriptionAndOptionalMetricsStrategy covers two
+// shapes the Coralogix UI creates that the schema could not express.
+//
+// An annotation has a description and a colour in the API, and the UI offers
+// both: the description next to the name, the colour as a swatch. The schema had
+// neither attribute, so a description had to fail the export rather than be
+// dropped, and a colour was silently lost - a copy of a red annotation came back
+// unspecified.
+//
+// A metrics annotation's strategy is a oneof with a single member, so a stored
+// strategy can select nothing, which is what the UI writes when no start time
+// metric is chosen. Requiring start_time made that annotation impossible to
+// write, and sending the member regardless would store a value the
+// configuration never asked for.
+func TestDashboardAnnotationCarriesDescriptionColourAndOptionalMetricsStrategy(t *testing.T) {
+	t.Parallel()
+	root := dashboardschema.V4()
+
+	annotation := dashboardMustType[schema.ListNestedAttribute](t,
+		dashboardResolveAttribute(t, root.Attributes, "annotations"), "annotations")
+	for _, name := range []string{"description", "color"} {
+		if _, ok := annotation.NestedObject.Attributes[name]; !ok {
+			t.Fatalf("an annotation has no %s: %v", name, annotation.NestedObject.Attributes)
+		}
+	}
+
+	startTime := dashboardResolveAttribute(t, root.Attributes,
+		"annotations", "source", "metrics", "strategy", "start_time")
+	if startTime.IsRequired() {
+		t.Fatal("a metrics annotation still requires start_time, so a strategy that selects nothing cannot be written")
+	}
+}
+
+// TestDashboardVariableValueLabelIsOptional covers a variable value the API
+// stores without a label. A regex, a Lucene query and the text of a textbox
+// variable have no separate label, so requiring one made a variable built in the
+// Coralogix UI impossible to write.
+func TestDashboardVariableValueLabelIsOptional(t *testing.T) {
+	t.Parallel()
+	root := dashboardschema.V4()
+
+	for _, branch := range []string{"single_string", "single_numeric", "regex", "lucene", "interval"} {
+		label := dashboardResolveAttribute(t, root.Attributes, "variables_v2", "value", branch, "label")
+		if label.IsRequired() {
+			t.Fatalf("variables_v2 value %s still requires label", branch)
+		}
+	}
+
+	label := dashboardResolveAttribute(t, root.Attributes,
+		"variables_v2", "value", "multi_string", "list", "values", "value", "label")
+	if label.IsRequired() {
+		t.Fatal("a multi_string list entry still requires label")
+	}
+}
+
+// TestDashboardFilterCarriesDisplayName covers the name the Coralogix UI puts on
+// a dashboard filter chip. The API stores it, and the schema had no attribute
+// for it, so a dashboard built in the UI could not be written.
+func TestDashboardFilterCarriesDisplayName(t *testing.T) {
+	t.Parallel()
+	root := dashboardschema.V4()
+
+	displayName := dashboardResolveAttribute(t, root.Attributes, "filters", "display_name")
+	if displayName.IsRequired() {
+		t.Fatal("a filter display_name must stay optional: the API leaves it out")
+	}
+
+	// The API stores the id the filter was created with and assigns none, so a
+	// schema without the attribute drops it on every apply.
+	id := dashboardResolveAttribute(t, root.Attributes, "filters", "id")
+	if !id.IsComputed() || id.IsRequired() {
+		t.Fatal("a filter id must be optional and computed, so an omitted one is generated")
+	}
+
+	// A prior schema has no display name, so its state has to be rebuilt rather
+	// than carried over. This is what the V1 upgrader depends on.
+	prior := dashboardschema.V1().Type().(basetypes.ObjectType).AttrTypes["filters"]
+	current := root.Type().(basetypes.ObjectType).AttrTypes["filters"]
+	if prior.Equal(current) {
+		t.Fatal("the filter type did not change, so this test no longer guards the upgrader")
+	}
+}
+
+// TestDashboardTopLevelSpansFilterAcceptsObservationField covers a
+// dashboard-level spans filter that names its target with an observation field
+// alone, which is what the Coralogix UI writes. The widget filter source cannot
+// change, because its shape is part of the frozen prior schemas, so the
+// dashboard-level source is its own schema.
+func TestDashboardTopLevelSpansFilterAcceptsObservationField(t *testing.T) {
+	t.Parallel()
+	root := dashboardschema.V4()
+
+	spans := dashboardMustType[schema.SingleNestedAttribute](t,
+		dashboardResolveAttribute(t, root.Attributes, "filters", "source", "spans"),
+		"dashboard filter spans source")
+
+	if _, ok := spans.Attributes["observation_field"]; !ok {
+		t.Fatalf("a dashboard filter spans source has no observation_field: %v", spans.Attributes)
+	}
+	if spans.Attributes["field"].IsRequired() {
+		t.Fatal("a dashboard filter spans source still requires field, so a filter targeted by observation_field alone cannot be written")
+	}
+
+	// The widget filter source keeps its shape. Its type is frozen by V1, V2
+	// and V3, so widening it would make stored state undecodable.
+	widget := dashboardMustType[schema.SingleNestedAttribute](t,
+		dashboardResolveAttribute(t, root.Attributes,
+			"layout", "sections", "rows", "widgets", "definition", "data_table", "query", "logs", "filters", "operator"),
+		"widget filter operator")
+	if len(widget.Attributes) == 0 {
+		t.Fatal("the widget filter operator lost its attributes")
+	}
+}
+
+// TestWidgetSpansFiltersAcceptObservationField covers the spans filter shape the
+// Coralogix UI writes on every widget: a target named by an observation field
+// alone. The prior schema versions keep the old shape, so this only holds for
+// the current one.
+func TestWidgetSpansFiltersAcceptObservationField(t *testing.T) {
+	t.Parallel()
+	root := dashboardschema.V4()
+
+	for _, widget := range []struct {
+		name string
+		path []string
+	}{
+		{"line_chart", []string{"line_chart", "query_definitions", "query", "spans", "filters"}},
+		{"data_table", []string{"data_table", "query", "spans", "filters"}},
+		{"gauge", []string{"gauge", "query", "spans", "filters"}},
+		{"bar_chart", []string{"bar_chart", "query", "spans", "filters"}},
+		{"horizontal_bar_chart", []string{"horizontal_bar_chart", "query", "spans", "filters"}},
+		{"pie_chart", []string{"pie_chart", "query", "spans", "filters"}},
+		{"hexagon", []string{"hexagon", "query", "spans", "filters"}},
+	} {
+		path := append([]string{"layout", "sections", "rows", "widgets", "definition"}, widget.path...)
+		filters := dashboardMustType[schema.ListNestedAttribute](t,
+			dashboardResolveAttribute(t, root.Attributes, path...),
+			widget.name+" spans filters")
+		if _, ok := filters.NestedObject.Attributes["observation_field"]; !ok {
+			t.Fatalf("%s spans filters have no observation_field", widget.name)
+		}
+		if filters.NestedObject.Attributes["field"].IsRequired() {
+			t.Fatalf("%s spans filters still require field", widget.name)
+		}
+	}
+}
+
+// TestLineChartAndHexagonCarryTheirRemainingApiFields covers four fields the
+// Coralogix UI writes that the schema had no attribute for.
+func TestLineChartAndHexagonCarryTheirRemainingApiFields(t *testing.T) {
+	t.Parallel()
+	root := dashboardschema.V4()
+
+	for _, path := range [][]string{
+		{"layout", "sections", "rows", "widgets", "definition", "line_chart", "query_definitions", "interval_resolution"},
+		{"layout", "sections", "rows", "widgets", "definition", "hexagon", "decimal_precision"},
+		{"layout", "sections", "rows", "widgets", "definition", "hexagon", "query", "spans", "group_bys"},
+		{"layout", "sections", "rows", "widgets", "definition", "hexagon", "query", "metrics", "editor_mode"},
+	} {
+		if attribute := dashboardResolveAttribute(t, root.Attributes, path...); attribute == nil {
+			t.Fatalf("%v is missing", path)
 		}
 	}
 }

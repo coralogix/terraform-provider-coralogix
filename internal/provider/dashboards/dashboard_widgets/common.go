@@ -288,6 +288,28 @@ var (
 	DashboardValidColorsBy                = []string{"stack", "group_by", "aggregation", "query", "category"}
 	SectionValidColors                    = []string{"cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
 
+	// Annotation colours are user data: the Coralogix UI offers a swatch for
+	// each one, and an annotation created without a choice reads back as
+	// unspecified.
+	// An unspecified colour is not in this map on purpose. It is what the API
+	// returns for an annotation created without a choice, and the attribute is
+	// plain optional, so it has to read back as null: a configuration that omits
+	// the colour must not gain a value on apply. Omitting the attribute is how a
+	// user says "no choice"; "unspecified" is not accepted as a written value.
+	DashboardSchemaToProtoAnnotationColor = map[string]dashboardservice.AnnotationColor{
+		"default": dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_DEFAULT,
+		"green":   dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_GREEN,
+		"cyan":    dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_CYAN,
+		"blue":    dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_BLUE,
+		"purple":  dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_PURPLE,
+		"magenta": dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_MAGENTA,
+		"red":     dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_RED,
+		"orange":  dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_ORANGE,
+		"yellow":  dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_YELLOW,
+	}
+	DashboardProtoToSchemaAnnotationColor = utils.ReverseMap(DashboardSchemaToProtoAnnotationColor)
+	DashboardValidAnnotationColors        = utils.GetKeys(DashboardSchemaToProtoAnnotationColor)
+
 	DashboardSchemaToProtoThresholdType = map[string]dashboardservice.ThresholdType{
 		utils.UNSPECIFIED: dashboardservice.THRESHOLDTYPE_THRESHOLD_TYPE_UNSPECIFIED,
 		"absolute":        dashboardservice.THRESHOLDTYPE_THRESHOLD_TYPE_ABSOLUTE,
@@ -662,6 +684,9 @@ type LineChartQueryDefinitionModel struct {
 	DecimalPrecision   types.Bool           `tfsdk:"decimal_precision"`
 	YAxisMax           Float32Value         `tfsdk:"y_axis_max"`
 	YAxisMin           Float32Value         `tfsdk:"y_axis_min"`
+	// IntervalResolution is how the query groups time into buckets. The bar
+	// chart carries the same message on its x-axis.
+	IntervalResolution *IntervalResolutionModel `tfsdk:"interval_resolution"`
 }
 
 type LineChartResolutionModel struct {
@@ -1090,6 +1115,15 @@ type DashboardFilterSourceModel struct {
 	Logs    *FilterSourceLogsModel    `tfsdk:"logs"`
 	Metrics *FilterSourceMetricsModel `tfsdk:"metrics"`
 	Spans   *FilterSourceSpansModel   `tfsdk:"spans"`
+}
+
+// TopLevelFilterSourceModel is the source of a dashboard-level filter. Its
+// spans branch carries an observation field, which the widget filter source
+// cannot: see TopLevelFilterSourceSchema.
+type TopLevelFilterSourceModel struct {
+	Logs    *FilterSourceLogsModel       `tfsdk:"logs"`
+	Metrics *FilterSourceMetricsModel    `tfsdk:"metrics"`
+	Spans   *SpansObservationFilterModel `tfsdk:"spans"`
 }
 
 type FilterSourceLogsModel struct {
@@ -2239,6 +2273,51 @@ func SupportedWidgetsValidatorWithout(current string) validator.Object {
 // resolving path.Expressions via Config.PathMatches, so it doesn't pay for a
 // full config-tree walk per check. Attach it to the parent object of a oneof
 // group instead of to each child.
+// HighlightedNotOnReference rejects a widget that highlights a reference to a
+// widget on another dashboard. The API documents the flag as "not allowed on a
+// widget reference" and rejects the request, so the guard turns an apply-time
+// API error into a plan-time one.
+//
+// Only a true value conflicts. A reference widget reads back from the API with
+// highlighted false, so rejecting any value would make an imported reference
+// widget impossible to write.
+func HighlightedNotOnReference() validator.Object {
+	return HighlightedNotOnReferenceValidator{}
+}
+
+// HighlightedNotOnReferenceValidator is exported so a schema-wiring test can
+// type-assert it on the widget object, the same reason as
+// ExactlyOneOfChildrenValidator.
+type HighlightedNotOnReferenceValidator struct{}
+
+func (v HighlightedNotOnReferenceValidator) Description(_ context.Context) string {
+	return "highlighted must not be true on a widget that holds a reference"
+}
+
+func (v HighlightedNotOnReferenceValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v HighlightedNotOnReferenceValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	attributes := req.ConfigValue.Attributes()
+	highlighted, ok := attributes["highlighted"].(types.Bool)
+	if !ok || highlighted.IsNull() || highlighted.IsUnknown() || !highlighted.ValueBool() {
+		return
+	}
+	reference, ok := attributes["reference"].(types.Object)
+	if !ok || reference.IsNull() || reference.IsUnknown() {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(
+		req.Path.AtName("highlighted"),
+		"Invalid Attribute Combination",
+		"highlighted cannot be true on a widget that holds a reference. The API rejects it: a widget referenced from another dashboard cannot be highlighted here. Remove highlighted, or set it to false.",
+	)
+}
+
 func ExactlyOneOfChildren(childNames ...string) validator.Object {
 	return ExactlyOneOfChildrenValidator{ChildNames: childNames}
 }

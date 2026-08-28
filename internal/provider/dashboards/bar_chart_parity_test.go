@@ -205,7 +205,7 @@ func TestBarChartSpansQueryObservationFieldsRoundTrip(t *testing.T) {
 	})
 	spans := &dashboardwidgets.BarChartQuerySpansModel{
 		LuceneQuery:           types.StringNull(),
-		Filters:               types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansFilterModelAttr()}),
+		Filters:               types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansObservationFilterModelAttr()}),
 		GroupNames:            types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansFieldModelAttr()}),
 		GroupNamesFields:      types.ListValueMust(types.ObjectType{AttrTypes: dashboardwidgets.SpanObservationFieldAttr()}, []attr.Value{spanField}),
 		StackedGroupNameField: spanField,

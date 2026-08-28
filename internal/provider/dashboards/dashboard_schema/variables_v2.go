@@ -235,22 +235,34 @@ func valueV2Schema() schema.SingleNestedAttribute {
 func stringValueV2Schema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{Optional: true, Attributes: map[string]schema.Attribute{
 		"value": schema.StringAttribute{Required: true},
-		"label": schema.StringAttribute{Required: true},
+		"label": valueLabelV2Attribute(),
 	}}
 }
 
 func numericValueV2Schema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{Optional: true, Attributes: map[string]schema.Attribute{
 		"value": schema.Float64Attribute{Required: true},
-		"label": schema.StringAttribute{Required: true},
+		"label": valueLabelV2Attribute(),
 	}}
 }
 
 func luceneValueV2Schema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{Optional: true, Attributes: map[string]schema.Attribute{
 		"value": schema.StringAttribute{Required: true},
-		"label": schema.StringAttribute{Required: true},
+		"label": valueLabelV2Attribute(),
 	}}
+}
+
+// valueLabelV2Attribute is the display label of a variable value. The API
+// leaves it out for a value the user typed, a regex or a Lucene query for
+// example, so it cannot be required. It is not computed either: the API adds no
+// label of its own, and a computed attribute with no value in configuration
+// plans as "known after apply" on every run.
+func valueLabelV2Attribute() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional:            true,
+		MarkdownDescription: "Display label of the value. The API leaves it out for a value that has no separate label.",
+	}
 }
 
 func multiStringValueV2Schema() schema.SingleNestedAttribute {

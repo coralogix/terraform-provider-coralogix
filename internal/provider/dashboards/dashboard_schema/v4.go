@@ -29,7 +29,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -115,11 +116,27 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 														Optional:            true,
 														MarkdownDescription: "Widget description.",
 													},
+													"highlighted": schema.BoolAttribute{
+														// The API returns a value for every widget, so the
+														// attribute has to be computed: plain optional would
+														// fail the apply with "was null, but now false". A
+														// computed attribute that is null in configuration
+														// plans as "known after apply" on every run, so the
+														// prior value is kept. Write false to stop
+														// highlighting a widget; deleting the line leaves the
+														// value as it was.
+														Optional: true,
+														Computed: true,
+														PlanModifiers: []planmodifier.Bool{
+															boolplanmodifier.UseNonNullStateForUnknown(),
+														},
+														MarkdownDescription: "Marks the widget as highlighted for every user of the dashboard. Set `false` to stop highlighting it: the API returns a value for every widget, so deleting the line keeps the last value. The API rejects it on a widget that only holds a `reference`.",
+													},
 													"definition": schema.SingleNestedAttribute{
 														Optional: true,
 														Attributes: map[string]schema.Attribute{
 															"line_chart": dashboardwidgets.LineChartSchema(),
-															"hexagon":    dashboardwidgets.HexagonSchema(),
+															"hexagon":    dashboardwidgets.HexagonSchemaV4(),
 															"data_table": dashboardwidgets.DataTableSchema(),
 															"dynamic":    dashboardwidgets.DynamicSchema(),
 															"gauge": schema.SingleNestedAttribute{
@@ -165,7 +182,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																						Optional: true,
 																					},
 																					"spans_aggregation": dashboardwidgets.SpansAggregationSchema(),
-																					"filters":           dashboardwidgets.SpansFilterSchema(),
+																					"filters":           dashboardwidgets.SpansObservationFiltersSchema(),
 																					"time_frame":        dashboardwidgets.TimeFrameSchema(),
 																					"group_by":          dashboardwidgets.NonEmptySpansFieldsSchema(),
 																					"group_bys":         dashboardwidgets.SpanObservationFieldsSchema(),
@@ -196,15 +213,29 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																			dashboardwidgets.ExactlyOneOfChildren("logs", "metrics", "spans", "data_prime"),
 																		},
 																	},
+																	// The proto declares min and max as wrapper values, so
+																	// an omitted one is absent and not zero. A static default
+																	// would send a bound the dashboard never had, so there is
+																	// none. Computed keeps the bound the API returns for a
+																	// dashboard created elsewhere. The plan modifier copies
+																	// the prior state, and it has to be UseStateForUnknown
+																	// and not the non-null variant: the API returns no bound
+																	// at all for a gauge built in the Coralogix UI, so the
+																	// prior state is null and the non-null variant would plan
+																	// "known after apply" on every run.
 																	"min": schema.Float64Attribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  float64default.StaticFloat64(0),
+																		PlanModifiers: []planmodifier.Float64{
+																			float64planmodifier.UseStateForUnknown(),
+																		},
 																	},
 																	"max": schema.Float64Attribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  float64default.StaticFloat64(100),
+																		PlanModifiers: []planmodifier.Float64{
+																			float64planmodifier.UseStateForUnknown(),
+																		},
 																	},
 																	"show_inner_arc": schema.BoolAttribute{
 																		Optional: true,
@@ -336,7 +367,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																						Optional: true,
 																					},
 																					"aggregation":              dashboardwidgets.SpansAggregationSchema(),
-																					"filters":                  dashboardwidgets.SpansFilterSchema(),
+																					"filters":                  dashboardwidgets.SpansObservationFiltersSchema(),
 																					"group_names":              dashboardwidgets.SpansFieldsSchema(),
 																					"stacked_group_name":       dashboardwidgets.SpansFieldSchema(),
 																					"time_frame":               dashboardwidgets.TimeFrameSchema(),
@@ -545,7 +576,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																						Optional: true,
 																					},
 																					"aggregation":              dashboardwidgets.SpansAggregationSchema(),
-																					"filters":                  dashboardwidgets.SpansFilterSchema(),
+																					"filters":                  dashboardwidgets.SpansObservationFiltersSchema(),
 																					"group_names":              dashboardwidgets.SpansFieldsSchema(),
 																					"stacked_group_name":       dashboardwidgets.SpansFieldSchema(),
 																					"time_frame":               dashboardwidgets.TimeFrameSchema(),
@@ -755,7 +786,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																						Optional: true,
 																					},
 																					"aggregation":              dashboardwidgets.SpansAggregationSchema(),
-																					"filters":                  dashboardwidgets.SpansFilterSchema(),
+																					"filters":                  dashboardwidgets.SpansObservationFiltersSchema(),
 																					"group_names":              dashboardwidgets.SpansFieldsSchema(),
 																					"stacked_group_name":       dashboardwidgets.SpansFieldSchema(),
 																					"time_frame":               dashboardwidgets.TimeFrameSchema(),
@@ -925,6 +956,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 												},
 												Validators: []validator.Object{
 													dashboardwidgets.ExactlyOneOfChildren("definition", "reference"),
+													dashboardwidgets.HighlightedNotOnReference(),
 												},
 											},
 											Validators: []validator.List{
@@ -1202,11 +1234,49 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 			NestedObject: schema.NestedAttributeObject{
 				Attributes: map[string]schema.Attribute{
 					"source": schema.SingleNestedAttribute{
-						Attributes: dashboardwidgets.FiltersSourceSchema(),
+						Attributes: dashboardwidgets.TopLevelFilterSourceSchema(),
 						Validators: []validator.Object{
 							dashboardwidgets.ExactlyOneOfChildren("logs", "metrics", "spans"),
 						},
 						Required: true,
+					},
+					"id": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.String{
+							// The API stores whatever id the filter was created with
+							// and does not assign one, so keep what is there.
+							stringplanmodifier.UseNonNullStateForUnknown(),
+						},
+						MarkdownDescription: "Identifier of the filter inside the dashboard. Generated when omitted.",
+					},
+					"display_name": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "Name shown on the filter chip in the Coralogix UI. The API stores it, and leaves it out when the filter has no name of its own.",
+					},
+					"scope": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"all_widgets": schema.SingleNestedAttribute{
+								Optional:            true,
+								Attributes:          map[string]schema.Attribute{},
+								MarkdownDescription: "Apply this filter to every widget in the dashboard.",
+							},
+							"specific_widgets": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"widget_ids": schema.ListAttribute{
+										ElementType:         types.StringType,
+										Required:            true,
+										MarkdownDescription: "UUIDs of the widgets this filter applies to.",
+									},
+								},
+							},
+						},
+						Validators: []validator.Object{
+							dashboardwidgets.ExactlyOneOfChildren("all_widgets", "specific_widgets"),
+						},
+						MarkdownDescription: "Restrict this filter to specific widgets. Omit to apply it to all widgets.",
 					},
 					"enabled": schema.BoolAttribute{
 						Optional: true,
@@ -1268,6 +1338,17 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 							stringplanmodifier.UseNonNullStateForUnknown(),
 						},
 					},
+					"description": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "A human-readable description of the annotation. The Coralogix UI shows it next to the annotation name.",
+					},
+					"color": schema.StringAttribute{
+						Optional: true,
+						Validators: []validator.String{
+							stringvalidator.OneOf(dashboardwidgets.DashboardValidAnnotationColors...),
+						},
+						MarkdownDescription: fmt.Sprintf("The colour the Coralogix UI draws the annotation in. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidAnnotationColors, ", ")),
+					},
 					"name": schema.StringAttribute{
 						Required: true,
 					},
@@ -1285,9 +1366,15 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 									},
 									"strategy": schema.SingleNestedAttribute{
 										Attributes: map[string]schema.Attribute{
+											// The API models this as a oneof with a
+											// single member, so a stored strategy can
+											// select nothing. Requiring it made an
+											// annotation the Coralogix UI creates
+											// impossible to express.
 											"start_time": schema.SingleNestedAttribute{
-												Attributes: map[string]schema.Attribute{},
-												Required:   true,
+												Attributes:          map[string]schema.Attribute{},
+												Optional:            true,
+												MarkdownDescription: "Take the first data point and use its value as the annotation timestamp, instead of the point's own timestamp. Omit the block to leave the strategy unset, which is what the API stores when nothing is chosen.",
 											},
 										},
 										Required: true,
@@ -1356,7 +1443,7 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 					Computed: true,
 					Default:  stringdefault.StaticString("off"),
 					Validators: []validator.String{
-						stringvalidator.OneOf("off", "two_minutes", "five_minutes"),
+						stringvalidator.OneOf("off", "one_minute", "two_minutes", "five_minutes", "fifteen_minutes"),
 					},
 				},
 			},

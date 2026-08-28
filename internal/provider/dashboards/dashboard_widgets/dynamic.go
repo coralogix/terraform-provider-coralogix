@@ -205,7 +205,7 @@ func dynamicSpansQuerySchema() schema.Attribute {
 				},
 			},
 			"aggregations":   dynamicAggregationsSchema(),
-			"filters":        dynamicSpansFiltersSchema(),
+			"filters":        SpansObservationFiltersSchema(),
 			"data_mode_type": dynamicDataModeTypeSchema(),
 		},
 	}
@@ -293,26 +293,33 @@ func dynamicDataModeTypeSchema() schema.Attribute {
 // helper is also used by schema V1 to V3, whose shape is frozen because it
 // decodes stored state. Only the minimum size is validated, matching the
 // shared helper: the API documents a 1000-item maximum but does not enforce it.
-func dynamicSpansFiltersSchema() schema.ListNestedAttribute {
+// SpansObservationFiltersSchema is a list of spans filters that may be targeted
+// by an observation field. A widget whose schema is frozen by a prior version
+// keeps SpansFilterSchema instead.
+func SpansObservationFiltersSchema() schema.ListNestedAttribute {
 	return schema.ListNestedAttribute{
 		Optional: true,
 		NestedObject: schema.NestedAttributeObject{
-			Attributes: map[string]schema.Attribute{
-				"field": schema.SingleNestedAttribute{
-					Attributes: SpansFieldAttributes(),
-					Optional:   true,
-				},
-				"operator":          FilterOperatorSchema(),
-				"observation_field": spanObservationFilterFieldSchema(),
-			},
-			// No exclusivity, and no required target. SpansFilter declares
-			// field, operator and observation_field as three plain fields in
-			// the proto, with no oneof and no required entry, and the
-			// Coralogix UI writes a filter that only sets observation_field.
+			Attributes: SpansObservationFilterAttributes(),
 		},
 		Validators: []validator.List{
 			listvalidator.SizeAtLeast(1),
 		},
+	}
+}
+
+// SpansObservationFilterAttributes is a spans filter with no exclusivity and no
+// required target. SpansFilter declares field, operator and observation_field
+// as three plain fields in the proto, with no oneof and no required entry, and
+// the Coralogix UI writes a filter that only sets observation_field.
+func SpansObservationFilterAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"field": schema.SingleNestedAttribute{
+			Attributes: SpansFieldAttributes(),
+			Optional:   true,
+		},
+		"operator":          FilterOperatorSchema(),
+		"observation_field": spanObservationFilterFieldSchema(),
 	}
 }
 
@@ -492,7 +499,7 @@ func dynamicSpansQueryAttr() map[string]attr.Type {
 			ElemType: types.ObjectType{AttrTypes: AggregationModelAttr()},
 		},
 		"filters": types.ListType{
-			ElemType: types.ObjectType{AttrTypes: dynamicSpansFilterModelAttr()},
+			ElemType: types.ObjectType{AttrTypes: SpansObservationFilterModelAttr()},
 		},
 		"data_mode_type": types.StringType,
 	}
@@ -724,7 +731,7 @@ func expandDynamicSpansQuery(ctx context.Context, spans *DynamicQuerySpansModel)
 		return nil, diags
 	}
 
-	filters, diags := expandDynamicSpansFilters(ctx, spans.Filters)
+	filters, diags := ExpandSpansObservationFilters(ctx, spans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1241,7 +1248,7 @@ func flattenDynamicSpansQuery(ctx context.Context, spans *dashboardservice.Spans
 		return nil, diags
 	}
 
-	filters, diags := flattenDynamicSpansFilters(ctx, spans.GetFilters())
+	filters, diags := FlattenSpansObservationFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1552,6 +1559,11 @@ func flattenDynamicThresholds(ctx context.Context, thresholds []dashboardservice
 	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dynamicThresholdAttr()}, thresholdElements)
 }
 
+// FlattenOptionalEnum is flattenOptionalEnum for callers outside this package.
+func FlattenOptionalEnum[T ~string](value *T, mapping map[T]string) types.String {
+	return flattenOptionalEnum(value, mapping)
+}
+
 func flattenOptionalEnum[T ~string](value *T, mapping map[T]string) types.String {
 	if value == nil {
 		return types.StringNull()
@@ -1562,16 +1574,18 @@ func flattenOptionalEnum[T ~string](value *T, mapping map[T]string) types.String
 	return types.StringNull()
 }
 
-// DynamicSpansFilterModel is the dynamic widget's own spans filter. It is
-// separate from SpansFilterModel because only this one carries
-// observation_field: see dynamicSpansFiltersSchema.
-type DynamicSpansFilterModel struct {
+// SpansObservationFilterModel is a spans filter that can be targeted by field,
+// by observation_field, or by both. It is separate from SpansFilterModel
+// because only this one carries observation_field. The dynamic widget and the
+// dashboard-level filters both use it: they are the same API message, and the
+// Coralogix UI writes an observation field in both places.
+type SpansObservationFilterModel struct {
 	Field            *SpansFieldModel     `tfsdk:"field"`
 	Operator         *FilterOperatorModel `tfsdk:"operator"`
 	ObservationField types.Object         `tfsdk:"observation_field"` //SpanObservationFieldModel
 }
 
-func dynamicSpansFilterModelAttr() map[string]attr.Type {
+func SpansObservationFilterModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"field":             types.ObjectType{AttrTypes: SpansFieldModelAttr()},
 		"operator":          types.ObjectType{AttrTypes: FilterOperatorModelAttr()},
@@ -1579,7 +1593,7 @@ func dynamicSpansFilterModelAttr() map[string]attr.Type {
 	}
 }
 
-func expandDynamicSpansFilters(ctx context.Context, filters types.List) ([]dashboardservice.SpansFilter, diag.Diagnostics) {
+func ExpandSpansObservationFilters(ctx context.Context, filters types.List) ([]dashboardservice.SpansFilter, diag.Diagnostics) {
 	var filterObjects []types.Object
 	diags := filters.ElementsAs(ctx, &filterObjects, true)
 	if diags.HasError() {
@@ -1588,7 +1602,7 @@ func expandDynamicSpansFilters(ctx context.Context, filters types.List) ([]dashb
 
 	var expanded []dashboardservice.SpansFilter
 	for _, filterObject := range filterObjects {
-		var filter DynamicSpansFilterModel
+		var filter SpansObservationFilterModel
 		if dg := filterObject.As(ctx, &filter, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -1618,8 +1632,8 @@ func expandDynamicSpansFilters(ctx context.Context, filters types.List) ([]dashb
 	return expanded, diags
 }
 
-func flattenDynamicSpansFilters(ctx context.Context, filters []dashboardservice.SpansFilter) (types.List, diag.Diagnostics) {
-	filterType := types.ObjectType{AttrTypes: dynamicSpansFilterModelAttr()}
+func FlattenSpansObservationFilters(ctx context.Context, filters []dashboardservice.SpansFilter) (types.List, diag.Diagnostics) {
+	filterType := types.ObjectType{AttrTypes: SpansObservationFilterModelAttr()}
 	if len(filters) == 0 {
 		return types.ListNull(filterType), nil
 	}
@@ -1642,7 +1656,7 @@ func flattenDynamicSpansFilters(ctx context.Context, filters []dashboardservice.
 			diagnostics.Append(diags...)
 			continue
 		}
-		element, diags := types.ObjectValueFrom(ctx, dynamicSpansFilterModelAttr(), &DynamicSpansFilterModel{
+		element, diags := types.ObjectValueFrom(ctx, SpansObservationFilterModelAttr(), &SpansObservationFilterModel{
 			Field:            field,
 			Operator:         operator,
 			ObservationField: observationField,

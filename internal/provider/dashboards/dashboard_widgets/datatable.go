@@ -30,7 +30,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -93,7 +93,7 @@ func DataTableSchema() schema.Attribute {
 							"lucene_query": schema.StringAttribute{
 								Optional: true,
 							},
-							"filters": SpansFilterSchema(),
+							"filters": SpansObservationFiltersSchema(),
 							"grouping": schema.SingleNestedAttribute{
 								Attributes: map[string]schema.Attribute{
 									"group_by": SpansFieldsSchema(),
@@ -186,10 +186,20 @@ func DataTableSchema() schema.Attribute {
 						"field": schema.StringAttribute{
 							Required: true,
 						},
+						// The proto declares the column width as a wrapper value, so
+						// an omitted width is absent and not zero. A static default
+						// would send a width nobody asked for, so there is none.
+						// Computed keeps the width the API returns for a dashboard
+						// created elsewhere. The plan modifier copies the prior
+						// state, including a null one, so a column the API left
+						// without a width does not plan "known after apply" on
+						// every run.
 						"width": schema.Int64Attribute{
 							Optional: true,
 							Computed: true,
-							Default:  int64default.StaticInt64(0),
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 					},
 				},
@@ -276,7 +286,7 @@ func DataTableType() types.ObjectType {
 							"lucene_query": types.StringType,
 							"filters": types.ListType{
 								ElemType: types.ObjectType{
-									AttrTypes: SpansFilterModelAttr(),
+									AttrTypes: SpansObservationFilterModelAttr(),
 								},
 							},
 							"grouping": types.ObjectType{
@@ -509,7 +519,7 @@ func flattenDataTableSpansQuery(ctx context.Context, spans *dashboardservice.Dat
 		return nil, nil
 	}
 
-	filters, diags := FlattenSpansFilters(ctx, spans.GetFilters())
+	filters, diags := FlattenSpansObservationFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -856,7 +866,7 @@ func expandDataTableSpansQuery(ctx context.Context, dataTableQuerySpans *DataTab
 		return nil, nil
 	}
 
-	filters, diags := ExpandSpansFilters(ctx, dataTableQuerySpans.Filters)
+	filters, diags := ExpandSpansObservationFilters(ctx, dataTableQuerySpans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}

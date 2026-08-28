@@ -45,17 +45,20 @@ var (
 )
 
 type HexagonModel struct {
-	CustomUnit    types.String       `tfsdk:"custom_unit"`
-	LegendBy      types.String       `tfsdk:"legend_by"`
-	Decimal       types.Number       `tfsdk:"decimal"`
-	DataModeType  types.String       `tfsdk:"data_mode_type"`
-	Thresholds    types.Set          `tfsdk:"thresholds"` //HexagonThresholdModel
-	ThresholdType types.String       `tfsdk:"threshold_type"`
-	Min           types.Number       `tfsdk:"min"`
-	Max           types.Number       `tfsdk:"max"`
-	Unit          types.String       `tfsdk:"unit"`
-	Legend        *LegendModel       `tfsdk:"legend"`
-	Query         *HexagonQueryModel `tfsdk:"query"`
+	CustomUnit types.String `tfsdk:"custom_unit"`
+	LegendBy   types.String `tfsdk:"legend_by"`
+	Decimal    types.Number `tfsdk:"decimal"`
+	// DecimalPrecision is a wrapper value in the API, so false is a value and
+	// not an absence.
+	DecimalPrecision types.Bool         `tfsdk:"decimal_precision"`
+	DataModeType     types.String       `tfsdk:"data_mode_type"`
+	Thresholds       types.Set          `tfsdk:"thresholds"` //HexagonThresholdModel
+	ThresholdType    types.String       `tfsdk:"threshold_type"`
+	Min              types.Number       `tfsdk:"min"`
+	Max              types.Number       `tfsdk:"max"`
+	Unit             types.String       `tfsdk:"unit"`
+	Legend           *LegendModel       `tfsdk:"legend"`
+	Query            *HexagonQueryModel `tfsdk:"query"`
 }
 
 type HexagonQueryModel struct {
@@ -66,8 +69,11 @@ type HexagonQueryModel struct {
 }
 
 type HexagonQuerySpansModel struct {
-	LuceneQuery types.String           `tfsdk:"lucene_query"`
-	GroupBy     types.List             `tfsdk:"group_by"` //SpansFieldModel
+	LuceneQuery types.String `tfsdk:"lucene_query"`
+	GroupBy     types.List   `tfsdk:"group_by"` //SpansFieldModel
+	// GroupBys are the observation fields the Coralogix UI writes. group_by is
+	// the older span-field form and the API keeps both.
+	GroupBys    types.List             `tfsdk:"group_bys"` //SpanObservationFieldModel
 	Aggregation *SpansAggregationModel `tfsdk:"aggregation"`
 	Filters     types.List             `tfsdk:"filters"` //SpansFilterModel
 	TimeFrame   *TimeFrameModel        `tfsdk:"time_frame"`
@@ -78,6 +84,7 @@ type HexagonQueryMetricsModel struct {
 	Filters         types.List      `tfsdk:"filters"` //MetricsFilterModel
 	PromqlQueryType types.String    `tfsdk:"promql_query_type"`
 	Aggregation     types.String    `tfsdk:"aggregation"`
+	EditorMode      types.String    `tfsdk:"editor_mode"`
 	TimeFrame       *TimeFrameModel `tfsdk:"time_frame"`
 }
 
@@ -93,6 +100,31 @@ type HexagonThresholdModel struct {
 	From  types.Number `tfsdk:"from"`
 	Color types.String `tfsdk:"color"`
 	Label types.String `tfsdk:"label"`
+}
+
+// HexagonSchemaV4 is the current hexagon. It is HexagonSchema plus
+// decimal_precision, which the API stores as a wrapper value, so false is a
+// value and not an absence. HexagonSchema itself cannot gain the attribute:
+// V1 and V3 reference it, and their types are frozen so stored state stays
+// decodable.
+func HexagonSchemaV4() schema.Attribute {
+	// HexagonSchema builds fresh maps on every call, so these are safe to
+	// change in place.
+	hexagon := HexagonSchema().(schema.SingleNestedAttribute)
+	hexagon.Attributes["decimal_precision"] = DecimalPrecisionSchema()
+
+	query := hexagon.Attributes["query"].(schema.SingleNestedAttribute)
+	metrics := query.Attributes["metrics"].(schema.SingleNestedAttribute)
+	metrics.Attributes["editor_mode"] = MetricsEditorModeSchema()
+	query.Attributes["metrics"] = metrics
+
+	spans := query.Attributes["spans"].(schema.SingleNestedAttribute)
+	spans.Attributes["group_bys"] = SpanObservationFieldsSchema()
+	spans.Attributes["filters"] = SpansObservationFiltersSchema()
+	query.Attributes["spans"] = spans
+	hexagon.Attributes["query"] = query
+
+	return hexagon
 }
 
 func HexagonSchema() schema.Attribute {
@@ -399,9 +431,10 @@ func HexagonSchemaV0() schema.Attribute {
 func HexagonType() types.ObjectType {
 	return types.ObjectType{
 		AttrTypes: map[string]attr.Type{
-			"min":     types.NumberType,
-			"max":     types.NumberType,
-			"decimal": types.NumberType,
+			"min":               types.NumberType,
+			"max":               types.NumberType,
+			"decimal":           types.NumberType,
+			"decimal_precision": types.BoolType,
 			"legend": types.ObjectType{
 				AttrTypes: LegendAttr(),
 			},
@@ -440,6 +473,7 @@ func HexagonType() types.ObjectType {
 						AttrTypes: map[string]attr.Type{
 							"promql_query":      types.StringType,
 							"promql_query_type": types.StringType,
+							"editor_mode":       types.StringType,
 							"filters": types.ListType{
 								ElemType: types.ObjectType{
 									AttrTypes: MetricsFilterModelAttr(),
@@ -456,12 +490,17 @@ func HexagonType() types.ObjectType {
 							"lucene_query": types.StringType,
 							"filters": types.ListType{
 								ElemType: types.ObjectType{
-									AttrTypes: SpansFilterModelAttr(),
+									AttrTypes: SpansObservationFilterModelAttr(),
 								},
 							},
 							"group_by": types.ListType{
 								ElemType: types.ObjectType{
 									AttrTypes: SpansFieldModelAttr(),
+								},
+							},
+							"group_bys": types.ListType{
+								ElemType: types.ObjectType{
+									AttrTypes: SpanObservationFieldAttr(),
 								},
 							},
 							"aggregation": types.ObjectType{
@@ -508,17 +547,18 @@ func FlattenHexagon(ctx context.Context, hexagon *dashboardservice.Hexagon) (*Wi
 
 	return &WidgetDefinitionModel{
 		Hexagon: &HexagonModel{
-			Legend:        FlattenLegend(hexagon.Legend),
-			Query:         query,
-			Min:           float64PointerToNumberType(hexagon.Min),
-			Max:           float64PointerToNumberType(hexagon.Max),
-			CustomUnit:    utils.StringPointerToTypeString(hexagon.CustomUnit),
-			Decimal:       int32PointerToNumberType(hexagon.Decimal),
-			LegendBy:      basetypes.NewStringValue(DashboardProtoToSchemaLegendBy[hexagon.GetLegendBy()]),
-			Unit:          basetypes.NewStringValue(DashboardProtoToSchemaUnit[hexagon.GetUnit()]),
-			DataModeType:  basetypes.NewStringValue(DashboardProtoToSchemaDataModeType[hexagon.GetDataModeType()]),
-			ThresholdType: basetypes.NewStringValue(DashboardProtoToSchemaThresholdType[hexagon.GetThresholdType()]),
-			Thresholds:    thresholds,
+			Legend:           FlattenLegend(hexagon.Legend),
+			Query:            query,
+			Min:              float64PointerToNumberType(hexagon.Min),
+			Max:              float64PointerToNumberType(hexagon.Max),
+			CustomUnit:       utils.StringPointerToTypeString(hexagon.CustomUnit),
+			Decimal:          int32PointerToNumberType(hexagon.Decimal),
+			DecimalPrecision: types.BoolPointerValue(hexagon.DecimalPrecision),
+			LegendBy:         basetypes.NewStringValue(DashboardProtoToSchemaLegendBy[hexagon.GetLegendBy()]),
+			Unit:             basetypes.NewStringValue(DashboardProtoToSchemaUnit[hexagon.GetUnit()]),
+			DataModeType:     basetypes.NewStringValue(DashboardProtoToSchemaDataModeType[hexagon.GetDataModeType()]),
+			ThresholdType:    basetypes.NewStringValue(DashboardProtoToSchemaThresholdType[hexagon.GetThresholdType()]),
+			Thresholds:       thresholds,
 		},
 	}, nil
 }
@@ -656,6 +696,7 @@ func flattenHexagonMetricsQuery(ctx context.Context, metrics *dashboardservice.H
 			Filters:         filters,
 			PromqlQueryType: types.StringValue(DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
 			Aggregation:     types.StringValue(DashboardProtoToSchemaHexagonMetricAggregation[metrics.GetAggregation()]),
+			EditorMode:      FlattenEnum(metrics.GetEditorMode(), DashboardProtoToSchemaMetricsEditorMode),
 			TimeFrame:       timeframe,
 		},
 	}, nil
@@ -666,7 +707,7 @@ func flattenHexagonSpansQuery(ctx context.Context, spans *dashboardservice.Hexag
 		return nil, nil
 	}
 
-	filters, diags := FlattenSpansFilters(ctx, spans.GetFilters())
+	filters, diags := FlattenSpansObservationFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -687,11 +728,17 @@ func flattenHexagonSpansQuery(ctx context.Context, spans *dashboardservice.Hexag
 		return nil, diags
 	}
 
+	groupBys, diags := FlattenSpanObservationFields(ctx, spans.GetGroupBys())
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &HexagonQueryModel{
 		Spans: &HexagonQuerySpansModel{
 			LuceneQuery: flattenLuceneQuery(spans.LuceneQuery),
 			Filters:     filters,
 			GroupBy:     grouping,
+			GroupBys:    groupBys,
 			Aggregation: aggregation,
 			TimeFrame:   timeframe,
 		},
@@ -720,17 +767,18 @@ func ExpandHexagon(ctx context.Context, hexagon *HexagonModel) (*dashboardservic
 
 	return &dashboardservice.WidgetDefinition{
 		Hexagon: &dashboardservice.Hexagon{
-			Min:           numberTypeToFloat64Pointer(hexagon.Min),
-			Max:           numberTypeToFloat64Pointer(hexagon.Max),
-			CustomUnit:    utils.TypeStringToStringPointer(hexagon.CustomUnit),
-			Decimal:       numberTypeToInt32Pointer(hexagon.Decimal),
-			LegendBy:      OptionalEnumPointer(hexagon.LegendBy, DashboardSchemaToProtoLegendBy),
-			ThresholdType: OptionalEnumPointer(hexagon.ThresholdType, DashboardSchemaToProtoThresholdType),
-			Unit:          OptionalEnumPointer(hexagon.Unit, DashboardSchemaToProtoUnit),
-			DataModeType:  OptionalEnumPointer(hexagon.DataModeType, DashboardSchemaToProtoDataModeType),
-			Thresholds:    thresholds,
-			Legend:        legend,
-			Query:         query,
+			Min:              numberTypeToFloat64Pointer(hexagon.Min),
+			Max:              numberTypeToFloat64Pointer(hexagon.Max),
+			CustomUnit:       utils.TypeStringToStringPointer(hexagon.CustomUnit),
+			Decimal:          numberTypeToInt32Pointer(hexagon.Decimal),
+			DecimalPrecision: hexagon.DecimalPrecision.ValueBoolPointer(),
+			LegendBy:         OptionalEnumPointer(hexagon.LegendBy, DashboardSchemaToProtoLegendBy),
+			ThresholdType:    OptionalEnumPointer(hexagon.ThresholdType, DashboardSchemaToProtoThresholdType),
+			Unit:             OptionalEnumPointer(hexagon.Unit, DashboardSchemaToProtoUnit),
+			DataModeType:     OptionalEnumPointer(hexagon.DataModeType, DashboardSchemaToProtoDataModeType),
+			Thresholds:       thresholds,
+			Legend:           legend,
+			Query:            query,
 		},
 	}, nil
 }
@@ -862,6 +910,7 @@ func expandHexagonMetricsQuery(ctx context.Context, queryMetrics *HexagonQueryMe
 		TimeFrame:       timeframe,
 		PromqlQueryType: OptionalEnumPointer(queryMetrics.PromqlQueryType, DashboardSchemaToProtoPromQLQueryType),
 		Aggregation:     OptionalEnumPointer(queryMetrics.Aggregation, DashboardSchemaToProtoHexagonAggregation),
+		EditorMode:      OptionalEnumPointer(queryMetrics.EditorMode, DashboardSchemaToProtoMetricsEditorMode),
 	}, nil
 }
 
@@ -904,7 +953,7 @@ func expandHexagonSpansQuery(ctx context.Context, hexagonQuerySpans *HexagonQuer
 		return nil, nil
 	}
 
-	filters, diags := ExpandSpansFilters(ctx, hexagonQuerySpans.Filters)
+	filters, diags := ExpandSpansObservationFilters(ctx, hexagonQuerySpans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -925,10 +974,16 @@ func expandHexagonSpansQuery(ctx context.Context, hexagonQuerySpans *HexagonQuer
 		return nil, diags
 	}
 
+	groupBys, diags := ExpandSpanObservationFields(ctx, hexagonQuerySpans.GroupBys)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.HexagonSpansQuery{
 		LuceneQuery:      ExpandLuceneQuery(hexagonQuerySpans.LuceneQuery),
 		Filters:          filters,
 		GroupBy:          grouping,
+		GroupBys:         groupBys,
 		SpansAggregation: aggregation,
 		TimeFrame:        timeframe,
 	}, nil

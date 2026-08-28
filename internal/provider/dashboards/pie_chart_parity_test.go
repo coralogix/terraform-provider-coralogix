@@ -118,7 +118,7 @@ func TestPieChartQueryFieldsRoundTrip(t *testing.T) {
 		"relation_type": types.StringValue("unspecified"),
 	})
 	spans := &dashboardwidgets.PieChartQuerySpansModel{
-		Filters:               types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansFilterModelAttr()}),
+		Filters:               types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansObservationFilterModelAttr()}),
 		GroupNames:            types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansFieldModelAttr()}),
 		GroupNamesFields:      types.ListValueMust(types.ObjectType{AttrTypes: dashboardwidgets.SpanObservationFieldAttr()}, []attr.Value{spanField}),
 		StackedGroupNameField: spanField,

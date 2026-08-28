@@ -174,8 +174,8 @@ func TestDynamicWidgetSpansAndDataPrimeQueryFullFidelityRoundTrip(t *testing.T) 
 		}),
 		// Two filters: one targeted by the bare field, one targeted by an
 		// observation field only, which is the shape the Coralogix UI writes.
-		Filters: types.ListValueMust(types.ObjectType{AttrTypes: dynamicSpansFilterModelAttr()}, []attr.Value{
-			types.ObjectValueMust(dynamicSpansFilterModelAttr(), map[string]attr.Value{
+		Filters: types.ListValueMust(types.ObjectType{AttrTypes: SpansObservationFilterModelAttr()}, []attr.Value{
+			types.ObjectValueMust(SpansObservationFilterModelAttr(), map[string]attr.Value{
 				"field": types.ObjectValueMust(SpansFieldModelAttr(), map[string]attr.Value{
 					"type":  types.StringValue("metadata"),
 					"value": types.StringValue("application_name"),
@@ -187,7 +187,7 @@ func TestDynamicWidgetSpansAndDataPrimeQueryFullFidelityRoundTrip(t *testing.T) 
 				}),
 				"observation_field": types.ObjectNull(SpanObservationFieldAttr()),
 			}),
-			types.ObjectValueMust(dynamicSpansFilterModelAttr(), map[string]attr.Value{
+			types.ObjectValueMust(SpansObservationFilterModelAttr(), map[string]attr.Value{
 				"field": types.ObjectNull(SpansFieldModelAttr()),
 				"operator": types.ObjectValueMust(FilterOperatorModelAttr(), map[string]attr.Value{
 					"type":            types.StringValue("not_equals"),
