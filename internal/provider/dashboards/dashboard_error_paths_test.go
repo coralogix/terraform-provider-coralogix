@@ -390,28 +390,18 @@ func TestDashboardResourceDeleteFailurePreservesStateForRetry(t *testing.T) {
 }
 
 func TestDashboardStateUpgradeNotFoundKeepsUpgradedStateWithWarning(t *testing.T) {
-	for _, testCase := range []struct {
-		name        string
-		priorSchema schema.Schema
-	}{
-		{name: "prior schema v2", priorSchema: dashboardschema.V2()},
-		{name: "prior schema v3", priorSchema: dashboardschema.V3()},
-	} {
-		t.Run(testCase.name, func(t *testing.T) {
+	ctx := context.Background()
+	for _, version := range []int64{1, 2, 3} {
+		t.Run(dashboardPriorVersionName(version), func(t *testing.T) {
 			server := dashboardNotFoundTestServer(t)
 			defer server.Close()
 
-			ctx := context.Background()
 			contentJSON := `{"id":"` + dashboardErrorPathTestID + `"}`
-			priorState := dashboardErrorPathState(ctx, testCase.priorSchema, dashboardErrorPathTestID, contentJSON)
+			upgrader := dashboardStateUpgraderForVersion(t, ctx, newDashboardOpenAPITestClient(server, ""), version)
+			priorState := dashboardErrorPathState(ctx, *upgrader.PriorSchema, dashboardErrorPathTestID, contentJSON)
 			response := frameworkresource.UpgradeStateResponse{State: tfsdk.State{Schema: dashboardschema.V4()}}
 
-			upgradeDashboardStateV3ToV4(
-				ctx,
-				frameworkresource.UpgradeStateRequest{State: &priorState},
-				&response,
-				newDashboardOpenAPITestClient(server, ""),
-			)
+			upgrader.StateUpgrader(ctx, frameworkresource.UpgradeStateRequest{State: &priorState}, &response)
 
 			if response.Diagnostics.HasError() {
 				t.Fatalf("state upgrade diagnostics = %v, want warning only", response.Diagnostics)
