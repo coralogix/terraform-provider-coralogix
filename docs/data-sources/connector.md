@@ -51,7 +51,7 @@ Read-Only:
 Read-Only:
 
 - `field_name` (String)
-- `template` (String)
+- `template` (String, Sensitive)
 
 
 
@@ -68,4 +68,4 @@ Read-Only:
 Read-Only:
 
 - `field_name` (String)
-- `value` (String)
+- `value` (String, Sensitive)

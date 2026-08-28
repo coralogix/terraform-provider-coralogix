@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_connector
+- FIX: Mark connector credential fields (`value` and `template`) as sensitive so their values are redacted from Terraform plan output.
+
 # Release 3.12.0
 
 #### resource/coralogix_dashboard

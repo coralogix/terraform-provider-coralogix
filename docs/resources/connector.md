@@ -311,7 +311,7 @@ Required:
 Required:
 
 - `field_name` (String)
-- `template` (String)
+- `template` (String, Sensitive)
 
 
 
@@ -328,4 +328,4 @@ Required:
 Required:
 
 - `field_name` (String)
-- `value` (String)
+- `value` (String, Sensitive)
