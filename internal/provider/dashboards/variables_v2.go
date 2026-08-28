@@ -1024,7 +1024,11 @@ func flattenQuerySourceV2(ctx context.Context, source *dashboardservice.Variable
 	} else {
 		attrs["refresh_strategy"] = types.StringNull()
 	}
-	if source.ValueDisplayOptions != nil {
+	// The API returns an empty object when neither regex is set. The attribute
+	// requires at least one of them, so read that as no value at all. Writing an
+	// object of nulls would make a configuration that cannot be planned.
+	if source.ValueDisplayOptions != nil &&
+		(source.ValueDisplayOptions.ValueRegex != nil || source.ValueDisplayOptions.LabelRegex != nil) {
 		attrs["value_display_options"] = types.ObjectValueMust(
 			objectType.AttrTypes["value_display_options"].(types.ObjectType).AttrTypes,
 			map[string]attr.Value{

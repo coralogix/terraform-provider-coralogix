@@ -53,7 +53,8 @@ const (
 	dashboardNoProviderPath = "not exposed by the structured coralogix_dashboard schema"
 
 	dashboardContentJSONGeneratedOneOfContractTestName = "TestDashboardContentJSONGeneratedOneOfBranchContract"
-	dashboardStructuredRejectionContractTestName       = "TestDashboardStructuredConfigurationRejectsUnsupportedAutoRefreshBranches"
+	dashboardStructuredRejectionContractTestName       = "TestDashboardStructuredConfigurationHasNoDeprecatedTextboxDefaults"
+	dashboardAutoRefreshRoundTripTestName              = "TestDashboardAutoRefreshEveryIntervalRoundTrip"
 	dashboardOutsideCRUDContractTestName               = "TestDashboardOutsideCRUDOneOfContract"
 )
 
@@ -313,8 +314,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 				"off":               covered("auto_refresh.type=off", dashboardOpenAPIBackendHydrationTestName),
 				"twoMinutes":        covered("auto_refresh.type=two_minutes", dashboardOpenAPINestedPresentationTestName),
 				"fiveMinutes":       covered("auto_refresh.type=five_minutes", dashboardOpenAPINestedPresentationTestName),
-				"oneMinute":         structuredRejected("auto_refresh.type=one_minute", "dashboard.proto and the REST model expose one_minute, but the provider validator rejects it before both auto-refresh converters"),
-				"fifteenMinutes":    structuredRejected("auto_refresh.type=fifteen_minutes", "dashboard.proto and the REST model expose fifteen_minutes, but the provider validator rejects it before both auto-refresh converters"),
+				"oneMinute":         covered("auto_refresh.type=one_minute", dashboardAutoRefreshRoundTripTestName),
+				"fifteenMinutes":    covered("auto_refresh.type=fifteen_minutes", dashboardAutoRefreshRoundTripTestName),
 				"absoluteTimeFrame": covered("time_frame.absolute", dashboardOpenAPIBackendHydrationTestName),
 				"relativeTimeFrame": covered("time_frame.relative", "TestAccCoralogixResourceDashboard"),
 			},
@@ -856,8 +857,10 @@ func TestDashboardOpenAPIOneOfCoverageManifest(t *testing.T) {
 		t.Errorf("manifest branches = %d, want 216", manifestBranches)
 	}
 
-	assertDashboardAPIOnlyBranch(t, "Dashboard", "oneMinute", false)
-	assertDashboardAPIOnlyBranch(t, "Dashboard", "fifteenMinutes", false)
+	// Both used to be api-only, because the provider validator rejected them.
+	// The provider carries all five auto refresh intervals now.
+	assertDashboardCoveredBranch(t, "Dashboard", "oneMinute", dashboardAutoRefreshRoundTripTestName)
+	assertDashboardCoveredBranch(t, "Dashboard", "fifteenMinutes", dashboardAutoRefreshRoundTripTestName)
 }
 
 func TestDashboardOpenAPIStructuredAcceptanceLifecycleDelegation(t *testing.T) {
@@ -1213,17 +1216,17 @@ func validateDashboardOneOfLegacyMigration(t *testing.T, model, branch string, c
 	}
 }
 
-func assertDashboardAPIOnlyBranch(t *testing.T, model, branch string, hydration bool) {
+func assertDashboardCoveredBranch(t *testing.T, model, branch, fixtureOrTest string) {
 	t.Helper()
 	coverage, ok := dashboardOpenAPIOneOfCoverage[model].Branches[branch]
 	if !ok {
-		t.Fatalf("required API-only branch %s.%s is absent", model, branch)
+		t.Fatalf("required branch %s.%s is absent", model, branch)
 	}
-	if coverage.Status != dashboardOneOfAPIOnly {
-		t.Fatalf("%s.%s status = %q, want %q", model, branch, coverage.Status, dashboardOneOfAPIOnly)
+	if coverage.Status != dashboardOneOfAcceptanceCovered {
+		t.Fatalf("%s.%s status = %q, want %q", model, branch, coverage.Status, dashboardOneOfAcceptanceCovered)
 	}
-	if coverage.ImportHydration != hydration || coverage.DataSourceHydration != hydration {
-		t.Fatalf("%s.%s hydration = import:%t data-source:%t, want %t", model, branch, coverage.ImportHydration, coverage.DataSourceHydration, hydration)
+	if coverage.FixtureOrTest != fixtureOrTest {
+		t.Fatalf("%s.%s evidence = %q, want %q", model, branch, coverage.FixtureOrTest, fixtureOrTest)
 	}
 }
 

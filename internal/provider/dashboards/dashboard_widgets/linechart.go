@@ -141,7 +141,7 @@ func LineChartSchema() schema.Attribute {
 										"group_by":     SpansFieldsSchema(),
 										"group_bys":    SpanObservationFieldsSchema(),
 										"aggregations": SpansAggregationsSchema(),
-										"filters":      SpansFilterSchema(),
+										"filters":      SpansObservationFiltersSchema(),
 										"time_frame":   TimeFrameSchema(),
 									},
 									Optional: true,
@@ -228,6 +228,7 @@ func LineChartSchema() schema.Attribute {
 							},
 							Default: stringdefault.StaticString(utils.UNSPECIFIED),
 						},
+						"interval_resolution": IntervalResolutionSchema(),
 					},
 				},
 			},
@@ -330,7 +331,7 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 						},
 						"filters": types.ListType{
 							ElemType: types.ObjectType{
-								AttrTypes: SpansFilterModelAttr(),
+								AttrTypes: SpansObservationFilterModelAttr(),
 							},
 						},
 						"time_frame": types.ObjectType{
@@ -372,7 +373,8 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 				"buckets_presented": types.Int64Type,
 			},
 		},
-		"data_mode_type": types.StringType,
+		"data_mode_type":      types.StringType,
+		"interval_resolution": types.ObjectType{AttrTypes: IntervalResolutionAttr()},
 	}
 }
 
@@ -468,6 +470,7 @@ func flattenLineChartQueryDefinition(ctx context.Context, definition *dashboards
 		YAxisMax:           FlattenFloat32Pointer(definition.YAxisMax),
 		YAxisMin:           FlattenFloat32Pointer(definition.YAxisMin),
 		Resolution:         resolution,
+		IntervalResolution: FlattenIntervalResolution(definition.IntervalResolution),
 		DataModeType:       types.StringValue(DashboardProtoToSchemaDataModeType[definition.GetDataModeType()]),
 	}, nil
 }
@@ -645,7 +648,7 @@ func flattenLineChartQuerySpans(ctx context.Context, spans *dashboardservice.Lin
 		return nil, diags
 	}
 
-	filters, diags := FlattenSpansFilters(ctx, spans.GetFilters())
+	filters, diags := FlattenSpansObservationFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -785,6 +788,11 @@ func expandLineChartQueryDefinition(ctx context.Context, queryDefinition *LineCh
 		return nil, diags
 	}
 
+	intervalResolution, diags := ExpandIntervalResolution(queryDefinition.IntervalResolution)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardservice.LineChartQueryDefinition{
 		Id:                 *ExpandDashboardIDs(queryDefinition.ID),
 		Query:              query,
@@ -802,6 +810,7 @@ func expandLineChartQueryDefinition(ctx context.Context, queryDefinition *LineCh
 		YAxisMax:           ExpandFloat32Pointer(queryDefinition.YAxisMax),
 		YAxisMin:           ExpandFloat32Pointer(queryDefinition.YAxisMin),
 		Resolution:         resolution,
+		IntervalResolution: intervalResolution,
 		DataModeType:       OptionalEnumPointer(queryDefinition.DataModeType, DashboardSchemaToProtoDataModeType),
 	}, nil
 }
@@ -953,7 +962,7 @@ func expandLineChartSpansQuery(ctx context.Context, spans *LineChartQuerySpansMo
 		return nil, diags
 	}
 
-	filters, diags := ExpandSpansFilters(ctx, spans.Filters)
+	filters, diags := ExpandSpansObservationFilters(ctx, spans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}

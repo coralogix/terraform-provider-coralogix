@@ -47,12 +47,13 @@ func TestHexagonSpansQueryModelRoundTrip(t *testing.T) {
 			Spans: &HexagonQuerySpansModel{
 				LuceneQuery: types.StringNull(),
 				GroupBy:     types.ListNull(types.ObjectType{AttrTypes: SpansFieldModelAttr()}),
+				GroupBys:    types.ListNull(types.ObjectType{AttrTypes: SpanObservationFieldAttr()}),
 				Aggregation: &SpansAggregationModel{
 					Type:            types.StringValue("dimension"),
 					AggregationType: types.StringValue("unique_count"),
 					Field:           types.StringValue("trace_id"),
 				},
-				Filters: types.ListNull(types.ObjectType{AttrTypes: SpansFilterModelAttr()}),
+				Filters: types.ListNull(types.ObjectType{AttrTypes: SpansObservationFilterModelAttr()}),
 			},
 		},
 	}

@@ -288,6 +288,24 @@ var (
 	DashboardValidColorsBy                = []string{"stack", "group_by", "aggregation", "query", "category"}
 	SectionValidColors                    = []string{"cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
 
+	// Annotation colours are user data: the Coralogix UI offers a swatch for
+	// each one, and an annotation created without a choice reads back as
+	// unspecified.
+	DashboardSchemaToProtoAnnotationColor = map[string]dashboardservice.AnnotationColor{
+		utils.UNSPECIFIED: dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_UNSPECIFIED,
+		"default":         dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_DEFAULT,
+		"green":           dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_GREEN,
+		"cyan":            dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_CYAN,
+		"blue":            dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_BLUE,
+		"purple":          dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_PURPLE,
+		"magenta":         dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_MAGENTA,
+		"red":             dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_RED,
+		"orange":          dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_ORANGE,
+		"yellow":          dashboardservice.ANNOTATIONCOLOR_ANNOTATION_COLOR_YELLOW,
+	}
+	DashboardProtoToSchemaAnnotationColor = utils.ReverseMap(DashboardSchemaToProtoAnnotationColor)
+	DashboardValidAnnotationColors        = utils.GetKeys(DashboardSchemaToProtoAnnotationColor)
+
 	DashboardSchemaToProtoThresholdType = map[string]dashboardservice.ThresholdType{
 		utils.UNSPECIFIED: dashboardservice.THRESHOLDTYPE_THRESHOLD_TYPE_UNSPECIFIED,
 		"absolute":        dashboardservice.THRESHOLDTYPE_THRESHOLD_TYPE_ABSOLUTE,
@@ -662,6 +680,9 @@ type LineChartQueryDefinitionModel struct {
 	DecimalPrecision   types.Bool           `tfsdk:"decimal_precision"`
 	YAxisMax           Float32Value         `tfsdk:"y_axis_max"`
 	YAxisMin           Float32Value         `tfsdk:"y_axis_min"`
+	// IntervalResolution is how the query groups time into buckets. The bar
+	// chart carries the same message on its x-axis.
+	IntervalResolution *IntervalResolutionModel `tfsdk:"interval_resolution"`
 }
 
 type LineChartResolutionModel struct {
@@ -1090,6 +1111,15 @@ type DashboardFilterSourceModel struct {
 	Logs    *FilterSourceLogsModel    `tfsdk:"logs"`
 	Metrics *FilterSourceMetricsModel `tfsdk:"metrics"`
 	Spans   *FilterSourceSpansModel   `tfsdk:"spans"`
+}
+
+// TopLevelFilterSourceModel is the source of a dashboard-level filter. Its
+// spans branch carries an observation field, which the widget filter source
+// cannot: see TopLevelFilterSourceSchema.
+type TopLevelFilterSourceModel struct {
+	Logs    *FilterSourceLogsModel       `tfsdk:"logs"`
+	Metrics *FilterSourceMetricsModel    `tfsdk:"metrics"`
+	Spans   *SpansObservationFilterModel `tfsdk:"spans"`
 }
 
 type FilterSourceLogsModel struct {

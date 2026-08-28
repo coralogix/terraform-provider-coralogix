@@ -731,3 +731,62 @@ func mustMetricsLabelFilterV2(t *testing.T, typeset variablesV2QueryTypes, metri
 		"operator": operator,
 	})
 }
+
+// TestFlattenVariableV2EmptyValueDisplayOptionsIsNull covers the empty object the
+// API returns when a query variable sets neither regex. The attribute requires
+// at least one of them, so an object of nulls in state would produce a
+// configuration that cannot be planned.
+func TestFlattenVariableV2EmptyValueDisplayOptionsIsNull(t *testing.T) {
+	ctx := context.Background()
+	elementType := dashboardVariablesV2ElementType()
+	regex := ".*"
+
+	flattened, diags := flattenDashboardVariableV2(ctx, &dashboardservice.VariableV2{
+		Name:        "env",
+		DisplayName: "Env",
+		DisplayType: dashboardservice.VARIABLEDISPLAYTYPEV2_VARIABLE_DISPLAY_TYPE_V2_LABEL_VALUE,
+		Source: dashboardservice.VariableSourceV2{
+			Query: &dashboardservice.VariableSourceV2QuerySource{
+				ValueDisplayOptions: &dashboardservice.VariableSourceV2ValueDisplayOptions{},
+			},
+		},
+		Value: dashboardservice.VariableValueV2{
+			Regex: &dashboardservice.RegexValue{
+				Value: &dashboardservice.StringValueLabel{Value: &regex},
+			},
+		},
+	}, elementType)
+	if diags.HasError() {
+		t.Fatalf("flatten: %v", diags)
+	}
+
+	source, ok := flattened.Attributes()["source"].(types.Object)
+	if !ok {
+		t.Fatalf("source type = %T, want types.Object", flattened.Attributes()["source"])
+	}
+	query, ok := source.Attributes()["query"].(types.Object)
+	if !ok {
+		t.Fatalf("query type = %T, want types.Object", source.Attributes()["query"])
+	}
+	options, ok := query.Attributes()["value_display_options"].(types.Object)
+	if !ok {
+		t.Fatalf("value_display_options type = %T, want types.Object", query.Attributes()["value_display_options"])
+	}
+	if !options.IsNull() {
+		t.Fatalf("an empty value_display_options should read as null, got %v", options)
+	}
+
+	// A label with no value stays absent, so the regex value reads back as the
+	// API stored it.
+	value, ok := flattened.Attributes()["value"].(types.Object)
+	if !ok {
+		t.Fatalf("value type = %T, want types.Object", flattened.Attributes()["value"])
+	}
+	regexValue, ok := value.Attributes()["regex"].(types.Object)
+	if !ok {
+		t.Fatalf("regex type = %T, want types.Object", value.Attributes()["regex"])
+	}
+	if label := regexValue.Attributes()["label"].(types.String); !label.IsNull() {
+		t.Fatalf("label = %q, want null", label.ValueString())
+	}
+}

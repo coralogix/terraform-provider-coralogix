@@ -54,6 +54,13 @@ func FilterSourceModelAttr() map[string]attr.Type {
 	}
 }
 
+// TopLevelFilterSourceModelAttr matches TopLevelFilterSourceSchema.
+func TopLevelFilterSourceModelAttr() map[string]attr.Type {
+	attributes := FilterSourceModelAttr()
+	attributes["spans"] = types.ObjectType{AttrTypes: SpansObservationFilterModelAttr()}
+	return attributes
+}
+
 func LogsFilterModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"field": types.StringType,

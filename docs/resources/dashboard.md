@@ -1373,6 +1373,8 @@ Required:
 
 Optional:
 
+- `color` (String) The colour the Coralogix UI draws the annotation in. Valid values are: blue, cyan, default, green, magenta, orange, purple, red, unspecified, yellow.
+- `description` (String) A human-readable description of the annotation. The Coralogix UI shows it next to the annotation name.
 - `enabled` (Boolean)
 - `id` (String)
 - `scope` (Attributes) Restrict this annotation to specific widgets. Omit to show on all widgets. (see [below for nested schema](#nestedatt--annotations--scope))
@@ -1713,9 +1715,9 @@ Optional:
 <a id="nestedatt--annotations--source--metrics--strategy"></a>
 ### Nested Schema for `annotations.source.metrics.strategy`
 
-Required:
+Optional:
 
-- `start_time` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics--strategy--start_time))
+- `start_time` (Attributes) Take the first data point and use its value as the annotation timestamp, instead of the point's own timestamp. Omit the block to leave the strategy unset, which is what the API stores when nothing is chosen. (see [below for nested schema](#nestedatt--annotations--source--metrics--strategy--start_time))
 
 <a id="nestedatt--annotations--source--metrics--strategy--start_time"></a>
 ### Nested Schema for `annotations.source.metrics.strategy.start_time`
@@ -1868,7 +1870,10 @@ Required:
 Optional:
 
 - `collapsed` (Boolean)
+- `display_name` (String) Name shown on the filter chip in the Coralogix UI. The API stores it, and leaves it out when the filter has no name of its own.
 - `enabled` (Boolean)
+- `id` (String) Identifier of the filter inside the dashboard. Generated when omitted.
+- `scope` (Attributes) Restrict this filter to specific widgets. Omit to apply it to all widgets. (see [below for nested schema](#nestedatt--filters--scope))
 
 <a id="nestedatt--filters--source"></a>
 ### Nested Schema for `filters.source`
@@ -1945,17 +1950,12 @@ Optional:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--filters--source--spans--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--filters--source--spans--operator))
 
-<a id="nestedatt--filters--source--spans--field"></a>
-### Nested Schema for `filters.source.spans.field`
+Optional:
 
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--filters--source--spans--field))
+- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--filters--source--spans--observation_field))
 
 <a id="nestedatt--filters--source--spans--operator"></a>
 ### Nested Schema for `filters.source.spans.operator`
@@ -1969,6 +1969,49 @@ Optional:
 - `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
 - `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 
+
+<a id="nestedatt--filters--source--spans--field"></a>
+### Nested Schema for `filters.source.spans.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--filters--source--spans--observation_field"></a>
+### Nested Schema for `filters.source.spans.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
+
+
+
+
+<a id="nestedatt--filters--scope"></a>
+### Nested Schema for `filters.scope`
+
+Optional:
+
+- `all_widgets` (Attributes) Apply this filter to every widget in the dashboard. (see [below for nested schema](#nestedatt--filters--scope--all_widgets))
+- `specific_widgets` (Attributes) (see [below for nested schema](#nestedatt--filters--scope--specific_widgets))
+
+<a id="nestedatt--filters--scope--all_widgets"></a>
+### Nested Schema for `filters.scope.all_widgets`
+
+
+<a id="nestedatt--filters--scope--specific_widgets"></a>
+### Nested Schema for `filters.scope.specific_widgets`
+
+Required:
+
+- `widget_ids` (List of String) UUIDs of the widgets this filter applies to.
 
 
 
@@ -2031,6 +2074,7 @@ Optional:
 
 - `definition` (Attributes) Inline widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown dynamic]. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 - `description` (String) Widget description.
+- `highlighted` (Boolean) Marks the widget as highlighted for every user of the dashboard. The API rejects it on a widget that only holds a `reference`.
 - `id` (String)
 - `reference` (Attributes) Reference to a widget on another dashboard. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--reference))
 - `title` (String) Widget title. Required for all inline widgets except markdown, where it is optional.
@@ -2460,17 +2504,12 @@ Required:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.field`
+Optional:
 
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.operator`
@@ -2483,6 +2522,28 @@ Optional:
 
 - `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
 - `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -2998,17 +3059,12 @@ Optional:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.field`
+Optional:
 
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.operator`
@@ -3021,6 +3077,28 @@ Optional:
 
 - `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
 - `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -5287,17 +5365,12 @@ Optional:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.field`
+Optional:
 
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator`
@@ -5310,6 +5383,28 @@ Optional:
 
 - `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
 - `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -5416,6 +5511,7 @@ Optional:
 - `custom_unit` (String) A custom unit
 - `data_mode_type` (String)
 - `decimal` (Number)
+- `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--legend))
 - `legend_by` (String) The legend by. Valid values are: groups, thresholds, unspecified.
 - `max` (Number)
@@ -5690,6 +5786,7 @@ Required:
 Optional:
 
 - `aggregation` (String)
+- `editor_mode` (String) Which query editor the Coralogix UI opens for this query. The API chooses a value when this is omitted, so set `unspecified` explicitly to go back to that. Valid values are: builder, text, unspecified.
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters))
 - `promql_query_type` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame))
@@ -5755,6 +5852,7 @@ Optional:
 - `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--aggregation))
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters))
 - `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_by))
+- `group_bys` (Attributes List) Span observation fields to group the results by. Use these when a field needs an explicit scope or relation type. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_bys))
 - `lucene_query` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame))
 
@@ -5773,17 +5871,12 @@ Required:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.field`
+Optional:
 
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.operator`
@@ -5798,6 +5891,28 @@ Optional:
 - `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_by"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.group_by`
@@ -5806,6 +5921,19 @@ Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_bys"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.group_bys`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame"></a>
@@ -6269,17 +6397,12 @@ Required:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.field`
+Optional:
 
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.operator`
@@ -6292,6 +6415,28 @@ Optional:
 
 - `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
 - `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -6408,6 +6553,7 @@ Optional:
 - `decimal` (Number) The number of decimal places shown for numeric values. Must be a whole number. Values outside the documented 0 to 15 range are passed through, because the API accepts them.
 - `decimal_precision` (Boolean) When true, numeric values are rendered in full instead of abbreviated (`1200` instead of `1.2K`).
 - `hash_colors` (Boolean) When true, each series takes a color from a hash of its name, and `color_scheme` is ignored. The Coralogix UI calls this `Legend Color Hashing`.
+- `interval_resolution` (Attributes) How time is grouped into buckets. Set at most one of `auto` and `manual`; omit both to leave the choice to the backend. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution))
 - `is_visible` (Boolean)
 - `name` (String)
 - `resolution` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--resolution))
@@ -6774,17 +6920,12 @@ Required:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.field`
+Optional:
 
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.operator`
@@ -6797,6 +6938,28 @@ Optional:
 
 - `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
 - `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -6847,6 +7010,38 @@ Required:
 - `duration` (String)
 
 
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.interval_resolution`
+
+Optional:
+
+- `auto` (Attributes) Let the backend choose the interval, within the constraints below. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution--auto))
+- `manual` (Attributes) Set the interval yourself. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution--manual))
+- `use_advanced_limit` (Boolean) Whether the maximum data points and minimum interval fields are editable in the Coralogix UI. It does not change how the interval is calculated.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution--auto"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.interval_resolution.auto`
+
+Optional:
+
+- `maximum_data_points` (Number) The most data points to display. The calculated interval keeps within this limit.
+- `minimum_interval` (String) The smallest interval the calculation may choose. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--interval_resolution--manual"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.interval_resolution.manual`
+
+Required:
+
+- `interval` (String) The fixed interval for time buckets. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
+
+Optional:
+
+- `maximum_data_points` (Number) The most data points the selected interval may produce.
+- `minimum_interval` (String) The smallest interval the selected one may be. Written as a number of seconds with an `s`, for example `900s` or `15s`, which is the form the API stores and returns.
 
 
 
@@ -7299,17 +7494,12 @@ Required:
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field))
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.field`
+Optional:
 
-Required:
-
-- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
-
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field))
+- `observation_field` (Attributes) Explicit span field reference with scope. Use instead of `field` when the field needs an explicit scope, or a relation type. `relation_type` takes effect in a widget filter only; the API ignores it in a dashboard-level filter. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--observation_field))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.operator`
@@ -7322,6 +7512,28 @@ Optional:
 
 - `selected_values` (List of String) Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.
 - `selection_type` (String) How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.field`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.observation_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments identifying the span field.
+- `scope` (String) Where the field lives. Valid values are: label, metadata, unspecified, user_data.
+
+Optional:
+
+- `relation_type` (String) The span relation type. Valid values are: other, parent, root, unspecified.
 
 
 
@@ -8144,8 +8356,11 @@ Optional:
 
 Required:
 
-- `label` (String)
 - `value` (String)
+
+Optional:
+
+- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.
 
 
 <a id="nestedatt--variables_v2--value--lucene"></a>
@@ -8153,8 +8368,11 @@ Required:
 
 Required:
 
-- `label` (String)
 - `value` (String)
+
+Optional:
+
+- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.
 
 
 <a id="nestedatt--variables_v2--value--multi_string"></a>
@@ -8189,8 +8407,11 @@ Optional:
 
 Required:
 
-- `label` (String)
 - `value` (String)
+
+Optional:
+
+- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.
 
 
 
@@ -8205,8 +8426,11 @@ Required:
 
 Required:
 
-- `label` (String)
 - `value` (String)
+
+Optional:
+
+- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.
 
 
 <a id="nestedatt--variables_v2--value--single_numeric"></a>
@@ -8214,8 +8438,11 @@ Required:
 
 Required:
 
-- `label` (String)
 - `value` (Number)
+
+Optional:
+
+- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.
 
 
 <a id="nestedatt--variables_v2--value--single_string"></a>
@@ -8223,5 +8450,8 @@ Required:
 
 Required:
 
-- `label` (String)
 - `value` (String)
+
+Optional:
+
+- `label` (String) Display label of the value. The API leaves it out for a value that has no separate label.

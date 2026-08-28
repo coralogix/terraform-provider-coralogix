@@ -34,6 +34,7 @@ import (
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -338,7 +339,46 @@ func TestDashboardContentJSONGeneratedRequiredFieldAliases(t *testing.T) {
 	}
 }
 
-func TestDashboardStructuredConfigurationRejectsUnsupportedAutoRefreshBranches(t *testing.T) {
+// The API keeps two deprecated textbox defaults, single_string and
+// single_numeric. The provider exposes default_string_value and
+// default_numeric_value instead, so the deprecated pair must have no attribute
+// at all: a configuration that names one cannot be written. The oneOf coverage
+// manifest points at this test as the evidence for that decision.
+func TestDashboardStructuredConfigurationHasNoDeprecatedTextboxDefaults(t *testing.T) {
+	root := dashboard_schema.V4()
+	variables, ok := root.Attributes["variables_v2"].(resourceschema.ListNestedAttribute)
+	if !ok {
+		t.Fatal("variables_v2 is not a list nested attribute")
+	}
+	source, ok := variables.NestedObject.Attributes["source"].(resourceschema.SingleNestedAttribute)
+	if !ok {
+		t.Fatal("variables_v2.source is not a single nested attribute")
+	}
+	textbox, ok := source.Attributes["textbox"].(resourceschema.SingleNestedAttribute)
+	if !ok {
+		t.Fatal("variables_v2.source.textbox is not a single nested attribute")
+	}
+	defaultValue, ok := textbox.Attributes["default_value"].(resourceschema.SingleNestedAttribute)
+	if !ok {
+		t.Fatal("variables_v2.source.textbox.default_value is not a single nested attribute")
+	}
+
+	for _, deprecated := range []string{"single_string", "single_numeric"} {
+		if _, present := defaultValue.Attributes[deprecated]; present {
+			t.Errorf("default_value exposes the deprecated %q branch", deprecated)
+		}
+	}
+	for _, replacement := range []string{"default_string_value", "default_numeric_value"} {
+		if _, present := defaultValue.Attributes[replacement]; !present {
+			t.Errorf("default_value is missing %q, which replaces the deprecated branch", replacement)
+		}
+	}
+}
+
+// The API models five auto refresh intervals and the Coralogix UI offers all
+// five, so all five have to pass validation. This test used to assert the
+// opposite for one minute and fifteen minutes, which the provider was missing.
+func TestDashboardStructuredConfigurationAcceptsEveryAutoRefreshBranch(t *testing.T) {
 	root := dashboard_schema.V4()
 	autoRefresh, ok := root.Attributes["auto_refresh"].(resourceschema.SingleNestedAttribute)
 	if !ok {
@@ -349,18 +389,27 @@ func TestDashboardStructuredConfigurationRejectsUnsupportedAutoRefreshBranches(t
 		t.Fatal("auto_refresh.type has no string validator")
 	}
 
-	for _, value := range []string{"one_minute", "fifteen_minutes"} {
+	validate := func(value string) diag.Diagnostics {
+		request := validator.StringRequest{ConfigValue: types.StringValue(value)}
+		var response validator.StringResponse
+		for _, configuredValidator := range refreshType.Validators {
+			configuredValidator.ValidateString(context.Background(), request, &response)
+		}
+		return response.Diagnostics
+	}
+
+	for _, value := range []string{"off", "one_minute", "two_minutes", "five_minutes", "fifteen_minutes"} {
 		t.Run(value, func(t *testing.T) {
-			request := validator.StringRequest{ConfigValue: types.StringValue(value)}
-			var response validator.StringResponse
-			for _, configuredValidator := range refreshType.Validators {
-				configuredValidator.ValidateString(context.Background(), request, &response)
-			}
-			if !response.Diagnostics.HasError() {
-				t.Fatalf("structured auto_refresh.type=%q reached transport validation without an error", value)
+			if diags := validate(value); diags.HasError() {
+				t.Fatalf("auto_refresh.type=%q was rejected: %v", value, diags)
 			}
 		})
 	}
+	t.Run("unknown interval", func(t *testing.T) {
+		if diags := validate("thirty_seconds"); !diags.HasError() {
+			t.Fatal("an interval the API does not model reached transport validation without an error")
+		}
+	})
 }
 
 type dashboardGeneratedParent struct {
@@ -1087,6 +1136,36 @@ func TestAnnotationScopeAllWidgetsRoundTrip(t *testing.T) {
 	}
 }
 
+// assertAnnotationScopeNamesTwoWidgets checks the flattened side of the round
+// trip. It is a helper so the test itself stays under the complexity limit.
+func assertAnnotationScopeNamesTwoWidgets(t *testing.T, ctx context.Context, flattened types.Object) {
+	t.Helper()
+	if flattened.IsNull() {
+		t.Fatal("expected non-null scope")
+	}
+	var scope DashboardAnnotationScopeModel
+	if dg := flattened.As(ctx, &scope, basetypes.ObjectAsOptions{}); dg.HasError() {
+		t.Fatalf("scope.As: %v", dg)
+	}
+	if scope.SpecificWidgets.IsNull() {
+		t.Fatal("expected specific_widgets to be set")
+	}
+	if !scope.AllWidgets.IsNull() {
+		t.Fatal("expected all_widgets to be null")
+	}
+	var specific DashboardAnnotationScopeSpecificWidgetsModel
+	if dg := scope.SpecificWidgets.As(ctx, &specific, basetypes.ObjectAsOptions{}); dg.HasError() {
+		t.Fatalf("specific_widgets.As: %v", dg)
+	}
+	var ids []string
+	if dg := specific.WidgetIDs.ElementsAs(ctx, &ids, false); dg.HasError() {
+		t.Fatalf("widget_ids.ElementsAs: %v", dg)
+	}
+	if len(ids) != 2 || ids[0] != "widget-id-1" || ids[1] != "widget-id-2" {
+		t.Fatalf("unexpected widget_ids: %v", ids)
+	}
+}
+
 func TestAnnotationScopeSpecificWidgetsRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	sdkScope := &dashboardservice.AnnotationWidgetScope{
@@ -1098,30 +1177,8 @@ func TestAnnotationScopeSpecificWidgetsRoundTrip(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("flattenAnnotationScope(specificWidgets): %v", diags)
 	}
-	if flattened.IsNull() {
-		t.Fatal("expected non-null scope")
-	}
-	var s DashboardAnnotationScopeModel
-	if dg := flattened.As(ctx, &s, basetypes.ObjectAsOptions{}); dg.HasError() {
-		t.Fatalf("scope.As: %v", dg)
-	}
-	if s.SpecificWidgets.IsNull() {
-		t.Fatal("expected specific_widgets to be set")
-	}
-	if !s.AllWidgets.IsNull() {
-		t.Fatal("expected all_widgets to be null")
-	}
-	var sw DashboardAnnotationScopeSpecificWidgetsModel
-	if dg := s.SpecificWidgets.As(ctx, &sw, basetypes.ObjectAsOptions{}); dg.HasError() {
-		t.Fatalf("specific_widgets.As: %v", dg)
-	}
-	var ids []string
-	if dg := sw.WidgetIDs.ElementsAs(ctx, &ids, false); dg.HasError() {
-		t.Fatalf("widget_ids.ElementsAs: %v", dg)
-	}
-	if len(ids) != 2 || ids[0] != "widget-id-1" || ids[1] != "widget-id-2" {
-		t.Fatalf("unexpected widget_ids: %v", ids)
-	}
+	assertAnnotationScopeNamesTwoWidgets(t, ctx, flattened)
+
 	expanded, diags := expandAnnotationScope(ctx, flattened)
 	if diags.HasError() {
 		t.Fatalf("expandAnnotationScope(specificWidgets): %v", diags)

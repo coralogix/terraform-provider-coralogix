@@ -128,7 +128,7 @@ func TestGaugeQueryGroupingFieldsRoundTrip(t *testing.T) {
 		"relation_type": types.StringValue("unspecified"),
 	})
 	spans := &dashboardwidgets.GaugeQuerySpansModel{
-		Filters:  types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansFilterModelAttr()}),
+		Filters:  types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansObservationFilterModelAttr()}),
 		GroupBy:  types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansFieldModelAttr()}),
 		GroupBys: types.ListValueMust(types.ObjectType{AttrTypes: dashboardwidgets.SpanObservationFieldAttr()}, []attr.Value{spanField}),
 	}

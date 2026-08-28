@@ -123,6 +123,7 @@ type WidgetModel struct {
 	ID          types.String                            `tfsdk:"id"`
 	Title       types.String                            `tfsdk:"title"`
 	Description types.String                            `tfsdk:"description"`
+	Highlighted types.Bool                              `tfsdk:"highlighted"`
 	Definition  *dashboardwidgets.WidgetDefinitionModel `tfsdk:"definition"`
 	Reference   *WidgetReferenceModel                   `tfsdk:"reference"`
 	Width       types.Int64                             `tfsdk:"width"`
@@ -300,9 +301,21 @@ type MultiSelectValueDisplayOptionsModel struct {
 }
 
 type DashboardFilterModel struct {
-	Source    *dashboardwidgets.DashboardFilterSourceModel `tfsdk:"source"`
-	Enabled   types.Bool                                   `tfsdk:"enabled"`
-	Collapsed types.Bool                                   `tfsdk:"collapsed"`
+	Source      *dashboardwidgets.TopLevelFilterSourceModel `tfsdk:"source"`
+	ID          types.String                                `tfsdk:"id"`
+	DisplayName types.String                                `tfsdk:"display_name"`
+	Scope       types.Object                                `tfsdk:"scope"` //DashboardFilterScopeModel
+	Enabled     types.Bool                                  `tfsdk:"enabled"`
+	Collapsed   types.Bool                                  `tfsdk:"collapsed"`
+}
+
+type DashboardFilterScopeModel struct {
+	AllWidgets      types.Object `tfsdk:"all_widgets"`
+	SpecificWidgets types.Object `tfsdk:"specific_widgets"`
+}
+
+type DashboardFilterScopeSpecificWidgetsModel struct {
+	WidgetIDs types.List `tfsdk:"widget_ids"`
 }
 
 type DashboardFolderModel struct {
@@ -311,11 +324,13 @@ type DashboardFolderModel struct {
 }
 
 type DashboardAnnotationModel struct {
-	ID      types.String `tfsdk:"id"`
-	Name    types.String `tfsdk:"name"`
-	Enabled types.Bool   `tfsdk:"enabled"`
-	Source  types.Object `tfsdk:"source"` //DashboardAnnotationSourceModel
-	Scope   types.Object `tfsdk:"scope"`  //DashboardAnnotationScopeModel
+	ID          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+	Color       types.String `tfsdk:"color"`
+	Enabled     types.Bool   `tfsdk:"enabled"`
+	Source      types.Object `tfsdk:"source"` //DashboardAnnotationSourceModel
+	Scope       types.Object `tfsdk:"scope"`  //DashboardAnnotationScopeModel
 }
 
 type DashboardAnnotationScopeModel struct {
@@ -945,6 +960,10 @@ func upgradeDashboardAnnotationsV0(ctx context.Context, annotations types.List) 
 			Source:  source,
 			ID:      priorAnnotation.ID,
 			Scope:   types.ObjectNull(annotationScopeModelAttr()),
+			// The prior schemas have neither description nor colour, so upgraded
+			// state carries none. The next read fills both in from the API.
+			Description: types.StringNull(),
+			Color:       types.StringNull(),
 		}
 
 		upgradedGroups = append(upgradedGroups, upgradedGroup)
@@ -1179,19 +1198,26 @@ func expandDashboardAutoRefresh(ctx context.Context, dashboard *dashboardservice
 		return nil, diags
 	}
 
+	// The API models the interval as one empty object per choice, so exactly one
+	// of them may be set. Clearing all five first keeps that true whatever the
+	// dashboard carried before.
+	dashboard.Off = nil
+	dashboard.OneMinute = nil
+	dashboard.TwoMinutes = nil
+	dashboard.FiveMinutes = nil
+	dashboard.FifteenMinutes = nil
+	selected := map[string]interface{}{}
 	switch refreshObject.Type.ValueString() {
+	case "one_minute":
+		dashboard.OneMinute = selected
 	case "two_minutes":
-		dashboard.TwoMinutes = map[string]interface{}{}
-		dashboard.FiveMinutes = nil
-		dashboard.Off = nil
+		dashboard.TwoMinutes = selected
 	case "five_minutes":
-		dashboard.FiveMinutes = map[string]interface{}{}
-		dashboard.TwoMinutes = nil
-		dashboard.Off = nil
+		dashboard.FiveMinutes = selected
+	case "fifteen_minutes":
+		dashboard.FifteenMinutes = selected
 	default:
-		dashboard.Off = map[string]interface{}{}
-		dashboard.TwoMinutes = nil
-		dashboard.FiveMinutes = nil
+		dashboard.Off = selected
 	}
 
 	return dashboard, nil
@@ -1235,13 +1261,51 @@ func expandAnnotation(ctx context.Context, annotation DashboardAnnotationModel) 
 	}
 
 	return &dashboardservice.Annotation{
-		Id:      dashboardwidgets.ExpandDashboardIDs(annotation.ID),
-		Name:    utils.TypeStringToStringPointer(annotation.Name),
-		Enabled: typeBoolToBoolPointer(annotation.Enabled),
-		Source:  source,
-		Scope:   scope,
+		Id:          dashboardwidgets.ExpandDashboardIDs(annotation.ID),
+		Name:        utils.TypeStringToStringPointer(annotation.Name),
+		Description: utils.TypeStringToStringPointer(annotation.Description),
+		Color:       dashboardwidgets.OptionalEnumPointer(annotation.Color, dashboardwidgets.DashboardSchemaToProtoAnnotationColor),
+		Enabled:     typeBoolToBoolPointer(annotation.Enabled),
+		Source:      source,
+		Scope:       scope,
 	}, nil
 
+}
+
+// expandFilterScope builds the widget scope of a dashboard filter. The API
+// carries each widget id in a wrapper object, while Terraform models a plain
+// string, so the ids are wrapped here and unwrapped on read.
+func expandFilterScope(ctx context.Context, scope types.Object) (*dashboardservice.FilterWidgetScope, diag.Diagnostics) {
+	if scope.IsNull() || scope.IsUnknown() {
+		return nil, nil
+	}
+	var model DashboardFilterScopeModel
+	if diags := scope.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	switch {
+	case objectIsKnown(model.AllWidgets):
+		return &dashboardservice.FilterWidgetScope{AllWidgets: map[string]interface{}{}}, nil
+	case objectIsKnown(model.SpecificWidgets):
+		var specific DashboardFilterScopeSpecificWidgetsModel
+		if diags := model.SpecificWidgets.As(ctx, &specific, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		var ids []string
+		if diags := specific.WidgetIDs.ElementsAs(ctx, &ids, false); diags.HasError() {
+			return nil, diags
+		}
+		widgetIDs := make([]dashboardservice.UUID, 0, len(ids))
+		for _, id := range ids {
+			widgetIDs = append(widgetIDs, dashboardservice.UUID{Value: &id})
+		}
+		return &dashboardservice.FilterWidgetScope{
+			SpecificWidgets: &dashboardservice.FilterWidgetScopeSpecificWidgets{WidgetIds: widgetIDs},
+		}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Filter Scope",
+			"Filter scope must be one of: all_widgets, specific_widgets")}
+	}
 }
 
 func expandAnnotationScope(ctx context.Context, scope types.Object) (*dashboardservice.AnnotationWidgetScope, diag.Diagnostics) {
@@ -1887,6 +1951,12 @@ func expandMetricSourceStrategy(ctx context.Context, strategy types.Object) (*da
 		return nil, diags
 	}
 
+	// The API models this as a oneof with one member, so an omitted start_time
+	// means the strategy selects nothing. Sending the member regardless would
+	// store a value the configuration never asked for.
+	if utils.ObjIsNullOrUnknown(strategyObject.StartTime) {
+		return &dashboardservice.MetricsSourceStrategy{}, nil
+	}
 	return &dashboardservice.MetricsSourceStrategy{StartTimeMetric: map[string]interface{}{}}, nil
 }
 
@@ -2079,6 +2149,7 @@ func expandWidget(ctx context.Context, widget WidgetModel) (*dashboardservice.Wi
 		Id:          id,
 		Title:       title,
 		Description: description,
+		Highlighted: widget.Highlighted.ValueBoolPointer(),
 		Appearance:  appearance,
 		Definition:  definition,
 		Reference:   reference,
@@ -2407,7 +2478,7 @@ func expandGaugeQuerySpans(ctx context.Context, gaugeQuerySpans *dashboardwidget
 	if gaugeQuerySpans == nil {
 		return nil, nil
 	}
-	filters, diags := dashboardwidgets.ExpandSpansFilters(ctx, gaugeQuerySpans.Filters)
+	filters, diags := dashboardwidgets.ExpandSpansObservationFilters(ctx, gaugeQuerySpans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3205,18 +3276,30 @@ func expandHorizontalBarChartLogsQuery(ctx context.Context, logs types.Object) (
 		return nil, diags
 	}
 
+	groupNamesFields, diags := dashboardwidgets.ExpandObservationFields(ctx, logsObject.GroupNamesFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	stackedGroupNameField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, logsObject.StackedGroupNameField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	timeFrame, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, logsObject.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &dashboardservice.HorizontalBarChartLogsQuery{
-		LuceneQuery:      dashboardwidgets.ExpandLuceneQuery(logsObject.LuceneQuery),
-		Aggregation:      aggregation,
-		Filters:          filters,
-		GroupNames:       groupNames,
-		StackedGroupName: utils.TypeStringToStringPointer(logsObject.StackedGroupName),
-		TimeFrame:        timeFrame,
+		LuceneQuery:           dashboardwidgets.ExpandLuceneQuery(logsObject.LuceneQuery),
+		Aggregation:           aggregation,
+		Filters:               filters,
+		GroupNames:            groupNames,
+		GroupNamesFields:      groupNamesFields,
+		StackedGroupName:      utils.TypeStringToStringPointer(logsObject.StackedGroupName),
+		StackedGroupNameField: stackedGroupNameField,
+		TimeFrame:             timeFrame,
 	}, nil
 }
 
@@ -3273,7 +3356,7 @@ func expandHorizontalBarChartSpansQuery(ctx context.Context, spans types.Object)
 		return nil, diag.Diagnostics{dg}
 	}
 
-	filters, diags := dashboardwidgets.ExpandSpansFilters(ctx, spansObject.Filters)
+	filters, diags := dashboardwidgets.ExpandSpansObservationFilters(ctx, spansObject.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3422,7 +3505,7 @@ func expandBarChartSpansQuery(ctx context.Context, barChartQuerySpans types.Obje
 		return nil, diag.Diagnostics{dg}
 	}
 
-	filters, diags := dashboardwidgets.ExpandSpansFilters(ctx, barChartQuerySpansObject.Filters)
+	filters, diags := dashboardwidgets.ExpandSpansObservationFilters(ctx, barChartQuerySpansObject.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3634,7 +3717,7 @@ func expandPieChartSpansQuery(ctx context.Context, pieChartQuerySpans *dashboard
 		return nil, diag.Diagnostics{dg}
 	}
 
-	filters, diags := dashboardwidgets.ExpandSpansFilters(ctx, pieChartQuerySpans.Filters)
+	filters, diags := dashboardwidgets.ExpandSpansObservationFilters(ctx, pieChartQuerySpans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3905,15 +3988,23 @@ func expandDashboardFilter(ctx context.Context, filter *DashboardFilterModel) (*
 		return nil, nil
 	}
 
-	source, diags := dashboardwidgets.ExpandFilterSource(ctx, filter.Source)
+	source, diags := dashboardwidgets.ExpandTopLevelFilterSource(ctx, filter.Source)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	scope, diags := expandFilterScope(ctx, filter.Scope)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &dashboardservice.FiltersFilter{
-		Source:    source,
-		Enabled:   typeBoolToBoolPointer(filter.Enabled),
-		Collapsed: typeBoolToBoolPointer(filter.Collapsed),
+		Source:      source,
+		Id:          dashboardwidgets.ExpandDashboardUUID(filter.ID),
+		DisplayName: utils.TypeStringToStringPointer(filter.DisplayName),
+		Scope:       scope,
+		Enabled:     typeBoolToBoolPointer(filter.Enabled),
+		Collapsed:   typeBoolToBoolPointer(filter.Collapsed),
 	}, nil
 }
 
@@ -4159,6 +4250,7 @@ func widgetModelAttr() map[string]attr.Type {
 		"id":          types.StringType,
 		"title":       types.StringType,
 		"description": types.StringType,
+		"highlighted": types.BoolType,
 		"definition": types.ObjectType{
 			AttrTypes: map[string]attr.Type{
 				"hexagon":    dashboardwidgets.HexagonType(),
@@ -4212,7 +4304,7 @@ func widgetModelAttr() map[string]attr.Type {
 										},
 										"filters": types.ListType{
 											ElemType: types.ObjectType{
-												AttrTypes: dashboardwidgets.SpansFilterModelAttr(),
+												AttrTypes: dashboardwidgets.SpansObservationFilterModelAttr(),
 											},
 										},
 										"group_by": types.ListType{
@@ -4324,7 +4416,7 @@ func widgetModelAttr() map[string]attr.Type {
 										},
 										"filters": types.ListType{
 											ElemType: types.ObjectType{
-												AttrTypes: dashboardwidgets.SpansFilterModelAttr(),
+												AttrTypes: dashboardwidgets.SpansObservationFilterModelAttr(),
 											},
 										},
 										"group_names": types.ListType{
@@ -4573,7 +4665,7 @@ func barChartSpansQueryAttr() map[string]attr.Type {
 		},
 		"filters": types.ListType{
 			ElemType: types.ObjectType{
-				AttrTypes: dashboardwidgets.SpansFilterModelAttr(),
+				AttrTypes: dashboardwidgets.SpansObservationFilterModelAttr(),
 			},
 		},
 		"group_names": types.ListType{
@@ -4618,15 +4710,30 @@ func barChartDataPrimeQueryAttr() map[string]attr.Type {
 
 func dashboardsAnnotationsModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"id":      types.StringType,
-		"name":    types.StringType,
-		"enabled": types.BoolType,
+		"id":          types.StringType,
+		"name":        types.StringType,
+		"description": types.StringType,
+		"color":       types.StringType,
+		"enabled":     types.BoolType,
 		"source": types.ObjectType{
 			AttrTypes: annotationSourceModelAttr(),
 		},
 		"scope": types.ObjectType{
 			AttrTypes: annotationScopeModelAttr(),
 		},
+	}
+}
+
+func filterScopeModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"all_widgets":      types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"specific_widgets": types.ObjectType{AttrTypes: filterScopeSpecificWidgetsModelAttr()},
+	}
+}
+
+func filterScopeSpecificWidgetsModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"widget_ids": types.ListType{ElemType: types.StringType},
 	}
 }
 
@@ -4893,10 +5000,13 @@ func dashboardsVariablesModelAttr() map[string]attr.Type {
 func dashboardsFiltersModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"source": types.ObjectType{
-			AttrTypes: dashboardwidgets.FilterSourceModelAttr(),
+			AttrTypes: dashboardwidgets.TopLevelFilterSourceModelAttr(),
 		},
-		"enabled":   types.BoolType,
-		"collapsed": types.BoolType,
+		"id":           types.StringType,
+		"display_name": types.StringType,
+		"scope":        types.ObjectType{AttrTypes: filterScopeModelAttr()},
+		"enabled":      types.BoolType,
+		"collapsed":    types.BoolType,
 	}
 }
 
@@ -5062,6 +5172,7 @@ func flattenDashboardWidget(ctx context.Context, widget *dashboardservice.Widget
 		ID:          uuidToTypeString(widget.Id),
 		Title:       utils.StringPointerToTypeString(widget.Title),
 		Description: utils.StringPointerToTypeString(widget.Description),
+		Highlighted: types.BoolPointerValue(widget.Highlighted),
 		Width:       int32PointerToTypeInt64(widget.GetAppearance().Width),
 		Definition:  definition,
 		Reference:   flattenWidgetReference(widget.Reference),
@@ -5324,7 +5435,7 @@ func flattenHorizontalBarChartQuerySpans(ctx context.Context, spans *dashboardse
 		return nil, diag.Diagnostics{dg}
 	}
 
-	filters, diags := dashboardwidgets.FlattenSpansFilters(ctx, spans.GetFilters())
+	filters, diags := dashboardwidgets.FlattenSpansObservationFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5531,7 +5642,7 @@ func flattenGaugeQuerySpans(ctx context.Context, spans *dashboardservice.GaugeSp
 		return nil, nil
 	}
 
-	filters, diags := dashboardwidgets.FlattenSpansFilters(ctx, spans.GetFilters())
+	filters, diags := dashboardwidgets.FlattenSpansObservationFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5742,7 +5853,7 @@ func flattenPieChartQuerySpans(ctx context.Context, spans *dashboardservice.PieC
 		return nil, nil
 	}
 
-	filters, diags := dashboardwidgets.FlattenSpansFilters(ctx, spans.GetFilters())
+	filters, diags := dashboardwidgets.FlattenSpansObservationFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5973,7 +6084,7 @@ func flattenBarChartQuerySpans(ctx context.Context, spans *dashboardservice.BarC
 		return nil, nil
 	}
 
-	filters, diags := dashboardwidgets.FlattenSpansFilters(ctx, spans.GetFilters())
+	filters, diags := dashboardwidgets.FlattenSpansObservationFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -6824,15 +6935,23 @@ func flattenDashboardFilter(ctx context.Context, filter *dashboardservice.Filter
 		return nil, nil
 	}
 
-	source, diags := dashboardwidgets.FlattenDashboardFilterSource(ctx, filter.Source)
+	source, diags := dashboardwidgets.FlattenTopLevelFilterSource(ctx, filter.Source)
 	if diags != nil {
 		return nil, diags
 	}
 
+	scope, diags := flattenFilterScope(ctx, filter.Scope)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &DashboardFilterModel{
-		Source:    source,
-		Enabled:   types.BoolPointerValue(filter.Enabled),
-		Collapsed: types.BoolPointerValue(filter.Collapsed),
+		Source:      source,
+		ID:          uuidToTypeString(filter.Id),
+		DisplayName: utils.StringPointerToTypeString(filter.DisplayName),
+		Scope:       scope,
+		Enabled:     types.BoolPointerValue(filter.Enabled),
+		Collapsed:   types.BoolPointerValue(filter.Collapsed),
 	}, nil
 }
 
@@ -6963,12 +7082,49 @@ func flattenDashboardAnnotation(ctx context.Context, annotation *dashboardservic
 	}
 
 	return &DashboardAnnotationModel{
-		ID:      utils.StringPointerToTypeString(annotation.Id),
-		Name:    utils.StringPointerToTypeString(annotation.Name),
-		Enabled: types.BoolPointerValue(annotation.Enabled),
-		Source:  source,
-		Scope:   scope,
+		ID:          utils.StringPointerToTypeString(annotation.Id),
+		Name:        utils.StringPointerToTypeString(annotation.Name),
+		Description: utils.StringPointerToTypeString(annotation.Description),
+		Color:       dashboardwidgets.FlattenOptionalEnum(annotation.Color, dashboardwidgets.DashboardProtoToSchemaAnnotationColor),
+		Enabled:     types.BoolPointerValue(annotation.Enabled),
+		Source:      source,
+		Scope:       scope,
 	}, nil
+}
+
+func flattenFilterScope(ctx context.Context, scope *dashboardservice.FilterWidgetScope) (types.Object, diag.Diagnostics) {
+	if scope == nil {
+		return types.ObjectNull(filterScopeModelAttr()), nil
+	}
+	var model DashboardFilterScopeModel
+	switch {
+	case scope.AllWidgets != nil:
+		allWidgets, diags := types.ObjectValue(map[string]attr.Type{}, map[string]attr.Value{})
+		if diags.HasError() {
+			return types.ObjectNull(filterScopeModelAttr()), diags
+		}
+		model.AllWidgets = allWidgets
+		model.SpecificWidgets = types.ObjectNull(filterScopeSpecificWidgetsModelAttr())
+	case scope.SpecificWidgets != nil:
+		ids := make([]string, 0, len(scope.SpecificWidgets.WidgetIds))
+		for _, widgetID := range scope.SpecificWidgets.WidgetIds {
+			ids = append(ids, widgetID.GetValue())
+		}
+		widgetIDs, diags := types.ListValueFrom(ctx, types.StringType, ids)
+		if diags.HasError() {
+			return types.ObjectNull(filterScopeModelAttr()), diags
+		}
+		specific, diags := types.ObjectValueFrom(ctx, filterScopeSpecificWidgetsModelAttr(),
+			DashboardFilterScopeSpecificWidgetsModel{WidgetIDs: widgetIDs})
+		if diags.HasError() {
+			return types.ObjectNull(filterScopeModelAttr()), diags
+		}
+		model.SpecificWidgets = specific
+		model.AllWidgets = types.ObjectNull(map[string]attr.Type{})
+	default:
+		return types.ObjectNull(filterScopeModelAttr()), nil
+	}
+	return types.ObjectValueFrom(ctx, filterScopeModelAttr(), model)
 }
 
 func flattenAnnotationScope(ctx context.Context, scope *dashboardservice.AnnotationWidgetScope) (types.Object, diag.Diagnostics) {
@@ -7397,6 +7553,14 @@ func flattenDashboardAnnotationStrategy(ctx context.Context, strategy *dashboard
 	if strategy == nil {
 		return types.ObjectNull(metricStrategyModelAttr()), nil
 	}
+	// A stored strategy that selects nothing reads back with start_time unset,
+	// so a configuration that omits the block plans clean after an import.
+	if strategy.StartTimeMetric == nil {
+		return types.ObjectValueFrom(ctx, metricStrategyModelAttr(), &DashboardAnnotationMetricStrategyModel{
+			StartTime: types.ObjectNull(map[string]attr.Type{}),
+		})
+	}
+
 	startTime, diags := types.ObjectValueFrom(ctx, map[string]attr.Type{}, &MetricStrategyStartTimeModel{})
 	if diags.HasError() {
 		return types.ObjectNull(metricStrategyModelAttr()), diags
@@ -7616,10 +7780,14 @@ func flattenDashboardAutoRefresh(ctx context.Context, dashboard *dashboardservic
 	switch {
 	case dashboard.Off != nil:
 		refreshType.Type = types.StringValue("off")
-	case dashboard.FiveMinutes != nil:
-		refreshType.Type = types.StringValue("five_minutes")
+	case dashboard.OneMinute != nil:
+		refreshType.Type = types.StringValue("one_minute")
 	case dashboard.TwoMinutes != nil:
 		refreshType.Type = types.StringValue("two_minutes")
+	case dashboard.FiveMinutes != nil:
+		refreshType.Type = types.StringValue("five_minutes")
+	case dashboard.FifteenMinutes != nil:
+		refreshType.Type = types.StringValue("fifteen_minutes")
 	default:
 		return types.ObjectNull(dashboardAutoRefreshModelAttr()), nil
 	}

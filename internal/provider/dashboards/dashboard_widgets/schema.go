@@ -386,6 +386,19 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 	}
 }
 
+// TopLevelFilterSourceSchema is the source of a dashboard-level filter. It is
+// the widget filter source with one difference: its spans branch accepts an
+// observation field, and does not require the bare field. The widget sources
+// cannot change, because their shape is part of the frozen prior schemas.
+func TopLevelFilterSourceSchema() map[string]schema.Attribute {
+	attributes := FiltersSourceSchema()
+	attributes["spans"] = schema.SingleNestedAttribute{
+		Attributes: SpansObservationFilterAttributes(),
+		Optional:   true,
+	}
+	return attributes
+}
+
 func FilterOperatorSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Attributes: map[string]schema.Attribute{
