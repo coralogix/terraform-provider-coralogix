@@ -17,8 +17,8 @@ on:
       - '**/*.md'
 
 env:
-  DASHBOARD_ACC_PATTERN: &dashboard_acc_pattern '^TestAccCoralogix(Resource|DataSource)Dashboards?'
-  DASHBOARD_MIGRATION_ACC_PATTERN: &dashboard_migration_acc_pattern '^TestAccCoralogixResourceDashboardMigration'
+  DASHBOARD_ACC_PATTERN: '^TestAccCoralogix(Resource|DataSource)Dashboards?'
+  DASHBOARD_MIGRATION_ACC_PATTERN: '^TestAccCoralogixResourceDashboardMigration'
   DASHBOARD_MIGRATION_V360_PATTERN: &dashboard_migration_v360_pattern '^TestAccCoralogixResourceDashboardMigrationFromV360$'
   DASHBOARD_MIGRATION_SCHEMA_V3_PATTERN: &dashboard_migration_schema_v3_pattern '^TestAccCoralogixResourceDashboardMigrationFromSchemaV3$'
   EVENTS2METRIC_MIGRATION_ACC_PATTERN: &events2metric_migration_acc_pattern '^TestAccCoralogixResourceEvents2MetricMigration$'
@@ -31,30 +31,39 @@ env:
   DASHBOARD_SHARD_PRESENTATION_COLORS_BY_BRANCHES: &dashboard_shard_presentation_colors_by_branches '^TestAccCoralogixResourceDashboardOpenAPINestedPresentationBranches$/colors-by-branches$'
   DASHBOARD_SHARD_OPENAPI_BRANCHES: &dashboard_shard_openapi_branches '^TestAccCoralogixResourceDashboardOpenAPI(OneOfTransitions|LogsAggregationBranches|SpansAndFilterBranches|VariableBranches|AnnotationBranches)$'
   DASHBOARD_SHARD_CORE: &dashboard_shard_core '^TestAccCoralogix(DataSourceDashboard(_basic|AccessPolicy)|DataSourceDashboardsFolder_(basic|by_name)|ResourceDashboardsFolder|ResourceDashboard(ContentJSON(ProtobufSpellings|FolderOverride|DynamicQueriesTable)|RESTCreated(Hydration|UnsupportedDynamicHydration)|AccessPolicy|HexagonWidget|LinechartWidget|GaugeWidget(DataPrime|ThresholdType)?|DataTableWidget(ObservationFieldFilter)?|FromJson(WithFolder|WithVar)?|FolderIDNoDrift|MultiSelectSelectionType|LayoutColor|ManualAnnotation)?)$'
+  DASHBOARD_SHARD_DYNAMIC_TIME_SERIES_AND_SPATIAL: &dashboard_shard_dynamic_time_series_and_spatial '^TestAccCoralogixResourceDashboardDynamic(TimeSeriesWidgets|SpatialWidgets)$'
+  DASHBOARD_SHARD_DYNAMIC_STAT: &dashboard_shard_dynamic_stat '^TestAccCoralogixResourceDashboardDynamic(StatWidget|StatCardWidget)$'
+  DASHBOARD_SHARD_DYNAMIC_BARS_TABLE_AND_GAUGE: &dashboard_shard_dynamic_bars_table_and_gauge '^TestAccCoralogixResourceDashboardDynamic(BarsWidgets|TableWidget|GaugeAndPieWidgets)$'
+  NON_DASHBOARD_SHARD_ALERTS_AND_INTEGRATIONS: &non_dashboard_shard_alerts_and_integrations '^TestAccCoralogix.*(Alert|Webhook|Connector|Preset|Integration)'
+  NON_DASHBOARD_SHARD_DATA_PROCESSING: &non_dashboard_shard_data_processing '^TestAccCoralogix.*(ParsingRules|Enrichments?|DataSet|TCOPolicies|QuotaAllocation)'
 
 jobs:
   test:
-    name: Acceptance tests (excluding dashboards)
+    name: Non-dashboard acceptance tests (${{ matrix.shard }})
     permissions:
       contents: read
     env:
       GO111MODULE: on
     strategy:
+      fail-fast: false
       matrix:
-        go-version: [ 1.26.x ]
-        os: [ ubuntu-latest ]
-    runs-on: ${{ matrix.os }}
+        include:
+          - shard: alerts-and-integrations
+            pattern: *non_dashboard_shard_alerts_and_integrations
+          - shard: data-processing
+            pattern: *non_dashboard_shard_data_processing
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Install Go
         uses: actions/setup-go@v6
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: 1.26.x
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
-      - name: Acceptance Tests
+      - name: Non-Dashboard Acceptance Tests
         env:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
@@ -66,7 +75,46 @@ jobs:
           SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
           PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
         run: |
-          make testacc
+          make testacc TESTARGS="-run '${{ matrix.pattern }}'"
+
+  test-unsharded:
+    name: Non-dashboard acceptance tests (unsharded catch-all)
+    permissions:
+      contents: read
+    env:
+      GO111MODULE: on
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.x
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Non-Dashboard Acceptance Tests Not Covered By A Shard
+        env:
+          CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
+          AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
+          ARCHIVE_BUCKET: ${{ secrets.ARCHIVE_BUCKET }}
+          SLACK_INTEGRATION_ID: ${{ secrets.SLACK_INTEGRATION_ID }}
+          SLACK_INTEGRATION_CHANNEL: ${{ secrets.SLACK_INTEGRATION_CHANNEL }}
+          SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
+          PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
+        run: |
+          shard_patterns=(
+            "$NON_DASHBOARD_SHARD_ALERTS_AND_INTEGRATIONS"
+            "$NON_DASHBOARD_SHARD_DATA_PROCESSING"
+          )
+          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN"
+          for pattern in "${shard_patterns[@]}"; do
+            skip_pattern+="|($pattern)"
+          done
+          ACC_SKIP_PATTERN="$skip_pattern" make testacc
 
   dashboard:
     name: Dashboard acceptance tests (${{ matrix.shard }})
@@ -96,6 +144,12 @@ jobs:
             pattern: *dashboard_shard_openapi_branches
           - shard: core
             pattern: *dashboard_shard_core
+          - shard: dynamic-time-series-and-spatial
+            pattern: *dashboard_shard_dynamic_time_series_and_spatial
+          - shard: dynamic-stat
+            pattern: *dashboard_shard_dynamic_stat
+          - shard: dynamic-bars-table-and-gauge
+            pattern: *dashboard_shard_dynamic_bars_table_and_gauge
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -146,13 +200,15 @@ jobs:
             "$DASHBOARD_SHARD_PRESENTATION_COLORS_BY_BRANCHES"
             "$DASHBOARD_SHARD_OPENAPI_BRANCHES"
             "$DASHBOARD_SHARD_CORE"
+            "$DASHBOARD_SHARD_DYNAMIC_TIME_SERIES_AND_SPATIAL"
+            "$DASHBOARD_SHARD_DYNAMIC_STAT"
+            "$DASHBOARD_SHARD_DYNAMIC_BARS_TABLE_AND_GAUGE"
           )
           skip_pattern="($DASHBOARD_MIGRATION_ACC_PATTERN)"
           for pattern in "${shard_patterns[@]}"; do
-            # Parent patterns exclude the sharded test functions without excluding
-            # unrelated dashboard tests from the catch-all.
-            pattern="${pattern%%/*}"
-            skip_pattern+="|($pattern)"
+            # Keep each slash unbracketed. Go uses it as the separator between
+            # a parent test pattern and a subtest pattern.
+            skip_pattern+="|$pattern"
           done
           TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
 
@@ -196,6 +252,7 @@ jobs:
     if: ${{ always() && github.event_name == 'schedule' }}
     needs:
       - test
+      - test-unsharded
       - dashboard
       - dashboard-unsharded
       - provider-migration
