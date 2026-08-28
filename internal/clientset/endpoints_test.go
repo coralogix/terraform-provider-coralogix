@@ -156,6 +156,53 @@ func TestGrpcTargetFromDomainRejectsMalformedDomains(t *testing.T) {
 	}
 }
 
+// domainOfLength builds a syntactically valid domain of exactly n characters, using
+// maximum-length labels separated by dots.
+func domainOfLength(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		if i%(maxLabelLength+1) == maxLabelLength {
+			b[i] = '.'
+		} else {
+			b[i] = 'a'
+		}
+	}
+	return string(b)
+}
+
+// A non-PrivateLink domain is prefixed with "ng-api-grpc.", so its budget is that many
+// characters short of the DNS limit. A PrivateLink host is used as-is and keeps the full
+// budget.
+func TestGrpcTargetFromDomainChecksPrefixedHostLength(t *testing.T) {
+	t.Parallel()
+
+	longest := domainOfLength(maxDomainLength - len(grpcHostPrefix))
+	target, err := GrpcTargetFromDomain(longest)
+	if err != nil {
+		t.Fatalf("GrpcTargetFromDomain(<%d chars>) returned an unexpected error: %v", len(longest), err)
+	}
+	if want := grpcHostPrefix + longest + ":443"; target != want {
+		t.Fatalf("GrpcTargetFromDomain(<%d chars>) = %q, want %q", len(longest), target, want)
+	}
+	if host := strings.TrimSuffix(target, ":443"); len(host) != maxDomainLength {
+		t.Fatalf("prefixed host is %d characters, want exactly %d", len(host), maxDomainLength)
+	}
+
+	overLimit := domainOfLength(maxDomainLength - len(grpcHostPrefix) + 1)
+	got, err := GrpcTargetFromDomain(overLimit)
+	if err == nil {
+		t.Fatalf("GrpcTargetFromDomain(<%d chars>) = %q, want an error: the prefixed host is %d characters", len(overLimit), got, len(grpcHostPrefix)+len(overLimit))
+	}
+	if got != "" {
+		t.Fatalf("GrpcTargetFromDomain(<%d chars>) returned target %q alongside an error", len(overLimit), got)
+	}
+
+	privateLink := "api.private." + domainOfLength(maxDomainLength-len("api.private."))
+	if _, err := GrpcTargetFromDomain(privateLink); err != nil {
+		t.Fatalf("a PrivateLink host of %d characters takes no prefix and must be accepted: %v", len(privateLink), err)
+	}
+}
+
 func TestScimRestBaseURL(t *testing.T) {
 	t.Parallel()
 

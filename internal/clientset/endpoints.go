@@ -24,6 +24,7 @@ import (
 const (
 	maxDomainLength = 253
 	maxLabelLength  = 63
+	grpcHostPrefix  = "ng-api-grpc."
 )
 
 // GrpcTargetFromDomain returns the host:port used for gRPC management API calls when the
@@ -35,6 +36,8 @@ const (
 //
 // A domain that is not a structurally valid hostname returns an error instead of a
 // malformed target such as "ng-api-grpc.:443", which surfaces as an opaque dial failure.
+// The prefixed host is length-checked too, so the prefix cannot push an otherwise valid
+// domain past the DNS limit and move the failure back to the resolver.
 func GrpcTargetFromDomain(domain string) (string, error) {
 	host, err := normalizeAndValidateProviderDomain(domain)
 	if err != nil {
@@ -43,7 +46,11 @@ func GrpcTargetFromDomain(domain string) (string, error) {
 	if strings.HasPrefix(host, "api.private.") {
 		return host + ":443", nil
 	}
-	return fmt.Sprintf("ng-api-grpc.%s:443", host), nil
+	prefixed := grpcHostPrefix + host
+	if len(prefixed) > maxDomainLength {
+		return "", invalidDomainError(domain, fmt.Sprintf("the provider prefixes it with %q for gRPC calls, and the resulting host is %d characters long, above the %d character hostname limit", grpcHostPrefix, len(prefixed), maxDomainLength))
+	}
+	return prefixed + ":443", nil
 }
 
 // normalizeAndValidateProviderDomain normalizes domain and checks that the result is a
