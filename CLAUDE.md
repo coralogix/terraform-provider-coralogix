@@ -126,6 +126,7 @@ git diff master.. -- internal docs examples | grep -iE "BUGV2-|CX-[0-9]" || echo
 - **CRUD error paths:** After `resp.Diagnostics.AddError`, return immediately. A failed create/update must not continue into flatten/state writes, because empty IDs or zero-value state can poison later reads and plans.
 - **API behavior hidden by generated types:** Do not infer semantics from Go zero values alone. Check for exact numeric/string conversions, time windows that cross midnight, host/domain routing special cases, backend-only defaults, and hard-coded request values that users cannot express in schema.
 - **Regression coverage:** Prefer tests that exercise apply → read → second plan, set → change → remove for optional fields, import, unknown/variable config, and API-returned optional blocks. Many past bugs only appeared on the second plan or on update/import, not on initial create.
+- **A state upgrader cannot carry a value whose type changed:** A stored value keeps the type of the schema version that wrote it, so an upgrader that hands `layout`-style nested values to the current schema fails with a value conversion error, and a null value fails the same way. If the resource can read itself from the API, refresh and flatten instead of translating: the read rebuilds every attribute at the current type, so one upgrader serves every prior version and every attribute that changed shape. Test every wired prior version, not only the newest, because the version that breaks is the oldest one nobody exercises.
 
 ## Skill maintenance (dynamic)
 

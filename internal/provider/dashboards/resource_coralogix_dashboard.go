@@ -77,6 +77,21 @@ type DashboardResourceModel struct {
 
 // dashboardResourceModelV3 must match the schema used to decode prior v2 and
 // v3 state. access_policy was added in schema v4.
+// dashboardResourceModelV1 is the state of a dashboard written by a provider
+// older than v1.13.1, the release that added schema version 2.
+type dashboardResourceModelV1 struct {
+	ID          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+	Layout      types.Object `tfsdk:"layout"`
+	Variables   types.List   `tfsdk:"variables"`
+	Filters     types.List   `tfsdk:"filters"`
+	TimeFrame   types.Object `tfsdk:"time_frame"`
+	Folder      types.Object `tfsdk:"folder"`
+	Annotations types.List   `tfsdk:"annotations"`
+	ContentJson types.String `tfsdk:"content_json"`
+}
+
 type dashboardResourceModelV3 struct {
 	ID          types.String                     `tfsdk:"id"`
 	Name        types.String                     `tfsdk:"name"`
@@ -563,8 +578,10 @@ func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.St
 
 	return map[int64]resource.StateUpgrader{
 		1: {
-			PriorSchema:   &schemaV1,
-			StateUpgrader: upgradeDashboardStateV1ToV2,
+			PriorSchema: &schemaV1,
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				upgradeDashboardStateV1ToV4(ctx, req, resp, r.openAPIClient)
+			},
 		},
 		2: {
 			PriorSchema: &schemaV2,
@@ -583,78 +600,109 @@ func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.St
 
 func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse, client *dashboardOpenAPIClient) {
 	log.Printf("[INFO] Upgrading state from v%v", req.State.Schema.GetVersion())
-	var stateID types.String
-	diags := req.State.GetAttribute(ctx, path.Root("id"), &stateID)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	var priorState dashboardResourceModelV3
-	diags = req.State.Get(ctx, &priorState)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorState)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	//Get refreshed Dashboard value from Coralogix
-	id := stateID.ValueString()
+	refreshDashboardUpgradedState(ctx, client, dashboardUpgradeSeed(
+		priorState.ID,
+		priorState.Name,
+		priorState.Description,
+		priorState.ContentJson,
+		priorState.Folder,
+	), resp)
+}
+
+// upgradeDashboardStateV1ToV4 upgrades state written before schema version 2,
+// which a provider older than v1.13.1 wrote.
+func upgradeDashboardStateV1ToV4(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse, client *dashboardOpenAPIClient) {
+	log.Printf("[INFO] Upgrading state from v%v", req.State.Schema.GetVersion())
+	var priorState dashboardResourceModelV1
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorState)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	refreshDashboardUpgradedState(ctx, client, dashboardUpgradeSeed(
+		priorState.ID,
+		priorState.Name,
+		priorState.Description,
+		priorState.ContentJson,
+		priorState.Folder,
+	), resp)
+}
+
+// dashboardUpgradeSeed holds the attributes an upgrader can hand over unchanged.
+// Every other attribute is null at the current type, because a prior version
+// stored it with a type the current schema cannot hold: writing such a value
+// back fails with a value conversion error, and a null value carries the old
+// type just the same. The read supplies them. The folder and content_json keep
+// their stored value, so the folder's id-or-path form and a content_json
+// dashboard survive the upgrade.
+func dashboardUpgradeSeed(id, name, description, contentJSON types.String, folder types.Object) DashboardResourceModel {
+	return DashboardResourceModel{
+		ID:           id,
+		Name:         name,
+		Description:  description,
+		ContentJson:  contentJSON,
+		Folder:       folder,
+		Layout:       types.ObjectNull(layoutModelAttr()),
+		Variables:    types.ListNull(types.ObjectType{AttrTypes: dashboardsVariablesModelAttr()}),
+		VariablesV2:  types.ListNull(dashboardVariablesV2ElementType()),
+		Filters:      types.ListNull(types.ObjectType{AttrTypes: dashboardsFiltersModelAttr()}),
+		TimeFrame:    nil,
+		Annotations:  types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}),
+		AutoRefresh:  types.ObjectNull(dashboardAutoRefreshModelAttr()),
+		AccessPolicy: types.StringNull(),
+	}
+}
+
+// refreshDashboardUpgradedState writes state at the current schema version from
+// a read of the dashboard. The seed carries the attributes an upgrader can hand
+// over unchanged; the read fills in the rest. A dashboard that no longer exists
+// keeps a minimal state with a warning, so the next apply recreates it.
+func refreshDashboardUpgradedState(ctx context.Context, client *dashboardOpenAPIClient, seed DashboardResourceModel, resp *resource.UpgradeStateResponse) {
+	id := seed.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
 	getDashboardResp, err := client.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if errors.Is(err, errDashboardOpenAPINotFound) {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Dashboard %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			upgradedState, upgradeErr := dashboardStateForMissingDashboard(resp.State.Schema.Type().TerraformType(ctx), priorState)
-			if upgradeErr != nil {
-				resp.Diagnostics.AddError(
-					"Error upgrading Dashboard state",
-					upgradeErr.Error(),
-				)
-				return
-			}
-			resp.State.Raw = upgradedState
-		} else {
+		if !errors.Is(err, errDashboardOpenAPINotFound) {
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
 				err.Error(),
 			)
+			return
 		}
+		resp.Diagnostics.AddWarning(
+			fmt.Sprintf("Dashboard %q is in state, but no longer exists in Coralogix backend", id),
+			fmt.Sprintf("%s will be recreated when you apply", id),
+		)
+		upgradedState, upgradeErr := dashboardStateForMissingDashboard(resp.State.Schema.Type().TerraformType(ctx), seed)
+		if upgradeErr != nil {
+			resp.Diagnostics.AddError(
+				"Error upgrading Dashboard state",
+				upgradeErr.Error(),
+			)
+			return
+		}
+		resp.State.Raw = upgradedState
 		return
 	}
 	log.Printf("[INFO] Received Dashboard: %s", dashboardLogString(getDashboardResp.Dashboard))
 
-	state := DashboardResourceModel{
-		ID:           priorState.ID,
-		Name:         priorState.Name,
-		Description:  priorState.Description,
-		Layout:       priorState.Layout,
-		Variables:    priorState.Variables,
-		VariablesV2:  types.ListNull(dashboardVariablesV2ElementType()),
-		Filters:      priorState.Filters,
-		TimeFrame:    priorState.TimeFrame,
-		Folder:       priorState.Folder,
-		Annotations:  priorState.Annotations,
-		AutoRefresh:  priorState.AutoRefresh,
-		ContentJson:  priorState.ContentJson,
-		AccessPolicy: types.StringNull(),
-	}
-
-	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp)
+	flattenedDashboard, diags := flattenDashboard(ctx, seed, getDashboardResp)
 	if diags != nil {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	state = *flattenedDashboard
 
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, flattenedDashboard)...)
 }
 
-func dashboardStateForMissingDashboard(schemaType tftypes.Type, priorState dashboardResourceModelV3) (tftypes.Value, error) {
+func dashboardStateForMissingDashboard(schemaType tftypes.Type, seed DashboardResourceModel) (tftypes.Value, error) {
 	objectType, ok := schemaType.(tftypes.Object)
 	if !ok {
 		return tftypes.Value{}, fmt.Errorf("dashboard schema type is %T, expected an object type", schemaType)
@@ -665,10 +713,10 @@ func dashboardStateForMissingDashboard(schemaType tftypes.Type, priorState dashb
 		attributes[name] = tftypes.NewValue(attributeType, nil)
 	}
 	for name, priorValue := range map[string]types.String{
-		"id":           priorState.ID,
-		"name":         priorState.Name,
-		"description":  priorState.Description,
-		"content_json": priorState.ContentJson,
+		"id":           seed.ID,
+		"name":         seed.Name,
+		"description":  seed.Description,
+		"content_json": seed.ContentJson,
 	} {
 		attributeType, ok := objectType.AttributeTypes[name]
 		if !ok || !attributeType.Is(tftypes.String) || priorValue.IsNull() || priorValue.IsUnknown() {
@@ -876,125 +924,6 @@ func upgradeDashboardSpansQueryV2ToV3(ctx context.Context, old *dashboardQuerySp
 		Aggregation: aggregation,
 		GroupBy:     old.GroupBy,
 	}, true
-}
-
-func upgradeDashboardStateV1ToV2(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-	type DashboardResourceModelV0 struct {
-		ID          types.String `tfsdk:"id"`
-		Name        types.String `tfsdk:"name"`
-		Description types.String `tfsdk:"description"`
-		Layout      types.Object `tfsdk:"layout"`
-		Variables   types.List   `tfsdk:"variables"`
-		Filters     types.List   `tfsdk:"filters"`
-		TimeFrame   types.Object `tfsdk:"time_frame"`
-		Folder      types.Object `tfsdk:"folder"`
-		Annotations types.List   `tfsdk:"annotations"`
-		ContentJson types.String `tfsdk:"content_json"`
-	}
-
-	var priorStateData DashboardResourceModelV0
-	resp.Diagnostics.Append(req.State.Get(ctx, &priorStateData)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	annotations, diags := upgradeDashboardAnnotationsV0(ctx, priorStateData.Annotations)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	var timeframe *dashboardwidgets.TimeFrameModel
-	if !utils.ObjIsNullOrUnknown(priorStateData.TimeFrame) {
-		_ = priorStateData.TimeFrame.As(ctx, timeframe, basetypes.ObjectAsOptions{})
-	} else {
-		timeframe = nil
-	}
-
-	upgradedStateData := DashboardResourceModel{
-		ID:          priorStateData.ID,
-		Name:        priorStateData.Name,
-		Description: priorStateData.Description,
-		Layout:      priorStateData.Layout,
-		Variables:   priorStateData.Variables,
-		Filters:     priorStateData.Filters,
-		TimeFrame:   timeframe,
-		Folder:      priorStateData.Folder,
-		Annotations: annotations,
-		AutoRefresh: types.ObjectNull(dashboardAutoRefreshModelAttr()),
-		ContentJson: priorStateData.ContentJson,
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
-}
-
-func upgradeDashboardAnnotationsV0(ctx context.Context, annotations types.List) (types.List, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	var priorAnnotationObjects []types.Object
-	var upgradedGroups []DashboardAnnotationModel
-	annotations.ElementsAs(ctx, &priorAnnotationObjects, true)
-
-	type annotationModelV0 struct {
-		ID      types.String `tfsdk:"id"`
-		Name    types.String `tfsdk:"name"`
-		Enabled types.Bool   `tfsdk:"enabled"`
-		Source  types.Object `tfsdk:"source"`
-	}
-
-	for _, annotationObject := range priorAnnotationObjects {
-		var priorAnnotation annotationModelV0
-		if dg := annotationObject.As(ctx, &priorAnnotation, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-
-		source, dg := upgradeAnnotationSourceV0(ctx, priorAnnotation.Source)
-		if dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-
-		upgradedGroup := DashboardAnnotationModel{
-			Name:    priorAnnotation.Name,
-			Enabled: priorAnnotation.Enabled,
-			Source:  source,
-			ID:      priorAnnotation.ID,
-			Scope:   types.ObjectNull(annotationScopeModelAttr()),
-			// The prior schemas have neither description nor colour, so upgraded
-			// state carries none. The next read fills both in from the API.
-			Description: types.StringNull(),
-			Color:       types.StringNull(),
-		}
-
-		upgradedGroups = append(upgradedGroups, upgradedGroup)
-	}
-
-	if diags.HasError() {
-		return types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}), diags
-	}
-
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}, upgradedGroups)
-}
-
-func upgradeAnnotationSourceV0(ctx context.Context, source types.Object) (types.Object, diag.Diagnostics) {
-	type DashboardAnnotationSourceModelV0 struct {
-		Metric types.Object `tfsdk:"metric"` //DashboardAnnotationMetricSourceModel
-	}
-	var priorSource DashboardAnnotationSourceModelV0
-	if dg := source.As(ctx, &priorSource, basetypes.ObjectAsOptions{}); dg.HasError() {
-		return types.ObjectNull(annotationSourceModelAttr()), dg
-	}
-
-	upgradeSource := DashboardAnnotationSourceModel{
-		Metrics:         priorSource.Metric,
-		Logs:            types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
-		Spans:           types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
-		Manual:          types.ObjectNull(annotationsManualSourceModelAttr()),
-		Dataprime:       types.ObjectNull(annotationsDataprimeSourceModelAttr()),
-		EventRecurrence: types.ObjectNull(annotationsEventRecurrenceSourceModelAttr()),
-	}
-
-	return types.ObjectValueFrom(ctx, annotationSourceModelAttr(), upgradeSource)
 }
 
 func (r DashboardResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
