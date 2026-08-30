@@ -4,6 +4,8 @@
 - FIX: Mark the connector credential fields `connector_config.fields[].value` and `config_overrides[].fields[].template` as sensitive, so their values are redacted from Terraform plan and apply output. They are still written to state; keeping a secret out of state needs a write-only attribute, which is tracked separately.
 
 #### provider
+- FIX: A malformed `domain` is now reported as a configuration error instead of becoming a malformed API host. A value such as `" "` used to produce the gRPC target `ng-api-grpc.:443` and fail later as an opaque dial error. The check is structural only — it rejects what cannot be a host at all, and accepts AWS PrivateLink hosts, customer-specific private hosts, and internal names that use underscores or non-ASCII labels — and it covers the `domain` argument and the `CORALOGIX_DOMAIN` environment variable on both halves of the muxed provider.
+- FIX: The `domain` argument's conflict rule named `domain` instead of `env`, so it never emitted anything. Setting `env` and `domain` together was already rejected by `env`'s own rule; both attributes now report the conflict.
 - FIX: A data source that derives its schema from a resource now keeps the resource's `sensitive` flag, which the conversion was dropping. The attribute this affects today is `data.coralogix_api_key.value`: it is marked sensitive on the resource but was published as an ordinary string by the data source, so reading a key through the data source echoed it in plan output. Note that an `output` referencing it now needs `sensitive = true`, or Terraform reports "Output refers to sensitive values" at plan time.
 
 # Release 3.12.0
