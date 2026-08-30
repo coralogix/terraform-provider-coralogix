@@ -1710,7 +1710,10 @@ func testAccAlertClientSet() (*clientset.ClientSet, error) {
 		return nil, fmt.Errorf("only one of CORALOGIX_ENV or CORALOGIX_DOMAIN can be set")
 	}
 	if domain != "" {
-		targetURL := clientset.GrpcTargetFromDomain(domain)
+		targetURL, err := clientset.GrpcTargetFromDomain(domain)
+		if err != nil {
+			return nil, err
+		}
 		return clientset.NewClientSet(domain, apiKey, targetURL), nil
 	}
 
