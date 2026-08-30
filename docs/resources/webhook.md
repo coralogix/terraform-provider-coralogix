@@ -161,7 +161,7 @@ resource "coralogix_alert" "alert_with_webhook" {
 
 Optional:
 
-- `headers` (Map of String, Sensitive) Webhook headers. Map of string to string. Marked sensitive because headers commonly carry credentials, such as an `Authorization` value.
+- `headers` (Map of String, Sensitive) Webhook headers. Map of string to string. Headers commonly carry credentials, such as an `Authorization` value.
 - `method` (String) Webhook method. can be one of: get, post, put
 - `payload` (String) Webhook payload. JSON string.
 - `url` (String) Webhook URL.

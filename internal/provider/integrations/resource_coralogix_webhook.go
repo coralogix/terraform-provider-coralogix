@@ -400,7 +400,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Computed:            true,
 						Sensitive:           true,
 						ElementType:         types.StringType,
-						MarkdownDescription: "Webhook headers. Map of string to string. Marked sensitive because headers commonly carry credentials, such as an `Authorization` value.",
+						MarkdownDescription: "Webhook headers. Map of string to string. Headers commonly carry credentials, such as an `Authorization` value.",
 					},
 					"payload": schema.StringAttribute{
 						Optional:            true,
