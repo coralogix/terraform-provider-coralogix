@@ -161,7 +161,7 @@ resource "coralogix_alert" "alert_with_webhook" {
 
 Optional:
 
-- `headers` (Map of String) Webhook headers. Map of string to string.
+- `headers` (Map of String, Sensitive) Webhook headers. Map of string to string. Marked sensitive because headers commonly carry credentials, such as an `Authorization` value.
 - `method` (String) Webhook method. can be one of: get, post, put
 - `payload` (String) Webhook payload. JSON string.
 - `url` (String) Webhook URL.
@@ -210,7 +210,7 @@ Required:
 
 Optional:
 
-- `api_token` (String) Jira API token.
+- `api_token` (String, Sensitive) Jira API token.
 - `email` (String) email.
 - `project_key` (String) Jira project key.
 
@@ -244,7 +244,7 @@ Required:
 
 Optional:
 
-- `service_key` (String) PagerDuty service key.
+- `service_key` (String, Sensitive) PagerDuty service key.
 
 
 <a id="nestedatt--sendlog"></a>

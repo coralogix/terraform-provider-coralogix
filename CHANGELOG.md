@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_webhook
+- FIX: Mark the credential-bearing attributes `pager_duty.service_key`, `jira.api_token` and `custom.headers` as sensitive, so their values are redacted from Terraform plan and apply output. `custom.headers` is marked as a whole because a map cannot mark individual keys, and it is where an `Authorization` header goes. These values are still written to state; keeping a secret out of state needs a write-only attribute, which is tracked separately.
+
 #### provider
 - FIX: A malformed `domain` is now reported as a configuration error instead of becoming a malformed API host. A value such as `" "` used to produce the gRPC target `ng-api-grpc.:443` and fail later as an opaque dial error. The check is structural only — it rejects what cannot be a host at all, and accepts AWS PrivateLink hosts, customer-specific private hosts, and internal names that use underscores or non-ASCII labels — and it covers the `domain` argument and the `CORALOGIX_DOMAIN` environment variable on both halves of the muxed provider.
 - FIX: The `domain` argument's conflict rule named `domain` instead of `env`, so it never emitted anything. Setting `env` and `domain` together was already rejected by `env`'s own rule; both attributes now report the conflict.

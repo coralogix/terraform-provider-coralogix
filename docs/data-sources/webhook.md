@@ -50,7 +50,7 @@ data "coralogix_webhook" "imported_webhook_by_name" {
 
 Read-Only:
 
-- `headers` (Map of String) Webhook headers. Map of string to string.
+- `headers` (Map of String) Webhook headers. Map of string to string. Marked sensitive because headers commonly carry credentials, such as an `Authorization` value.
 - `method` (String) Webhook method. can be one of: get, post, put
 - `payload` (String) Webhook payload. JSON string.
 - `url` (String) Webhook URL.

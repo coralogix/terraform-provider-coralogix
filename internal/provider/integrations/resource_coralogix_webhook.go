@@ -398,8 +398,9 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"headers": schema.MapAttribute{
 						Optional:            true,
 						Computed:            true,
+						Sensitive:           true,
 						ElementType:         types.StringType,
-						MarkdownDescription: "Webhook headers. Map of string to string.",
+						MarkdownDescription: "Webhook headers. Map of string to string. Marked sensitive because headers commonly carry credentials, such as an `Authorization` value.",
 					},
 					"payload": schema.StringAttribute{
 						Optional:            true,
@@ -487,6 +488,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Attributes: map[string]schema.Attribute{
 					"service_key": schema.StringAttribute{
 						Optional:            true,
+						Sensitive:           true,
 						MarkdownDescription: "PagerDuty service key.",
 					},
 				},
@@ -622,6 +624,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Attributes: map[string]schema.Attribute{
 					"api_token": schema.StringAttribute{
 						Optional:            true,
+						Sensitive:           true,
 						MarkdownDescription: "Jira API token.",
 					},
 					"email": schema.StringAttribute{
