@@ -327,7 +327,7 @@ func extractGlobalRouter(ctx context.Context, plan *GlobalRouterResourceModel) (
 		Fallback:        fallback,
 		FallbackTargets: fallbackTargets,
 		Disabled:        plan.Disabled.ValueBoolPointer(),
-		EntityLabels:    &entityLabels,
+		EntityLabels:    entityLabels,
 		RoutingLabels:   routingLabels,
 	}, nil
 }
@@ -416,7 +416,7 @@ func extractRoutingRule(ctx context.Context, routingModel RoutingRuleModel) (*gl
 		Name:          utils.TypeStringToStringPointer(routingModel.Name),
 		Condition:     routingModel.Condition.ValueStringPointer(),
 		Targets:       targets,
-		CustomDetails: &customDetails,
+		CustomDetails: customDetails,
 		EntityType:    &entityType,
 	}, nil
 }
@@ -479,7 +479,7 @@ func extractRoutingTarget(ctx context.Context, routingTargetModel RoutingTargetM
 	return &globalRouters.RoutingTarget{
 		ConnectorId:   routingTargetModel.ConnectorId.ValueStringPointer(),
 		PresetId:      utils.TypeStringToStringPointer(routingTargetModel.PresetId),
-		CustomDetails: &customDetails,
+		CustomDetails: customDetails,
 	}, nil
 }
 
@@ -491,7 +491,7 @@ func flattenGlobalRouter(ctx context.Context, globalRouter *globalRouters.Global
 
 	routingLabels := flattenRoutingLabels(globalRouter.RoutingLabels)
 
-	entityLabels, diags := utils.StringMapToTypeMap(ctx, globalRouter.EntityLabels)
+	entityLabels, diags := utils.StringMapToTypeMap(ctx, &globalRouter.EntityLabels)
 	if diags.HasError() {
 		return nil, diags
 	}

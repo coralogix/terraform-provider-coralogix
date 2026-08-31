@@ -1072,7 +1072,7 @@ func expandGenericWebhook(ctx context.Context, genericWebhook *CustomWebhookMode
 		GenericWebhook: &webhooks.GenericWebhookConfig{
 			Uuid:    &uuid,
 			Method:  &method,
-			Headers: &headers,
+			Headers: headers,
 			Payload: genericWebhook.Payload.ValueStringPointer(),
 		},
 	}, nil
