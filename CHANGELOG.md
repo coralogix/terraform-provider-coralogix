@@ -1,6 +1,10 @@
 # Unreleased
 
 #### resource/coralogix_dashboard
+- FEAT: A layout section takes a `repetitive_var`, repeating the section once per selected value of a dashboard variable. The Coralogix UI offers this as "Add Repetition" and the API stores it, but the provider had no attribute, so a repeated section could not be written and an imported one lost the setting.
+- FIX: A section whose options use the API's unnamed-default arm now round-trips. The Coralogix UI stores that arm for a dashboard whose sections were never named, and the provider read the whole options block back as absent, so the next apply cleared it. Express it as `options = { internal = {} }`. `name` is optional now so that arm is writable; a section that is not `internal` still requires a name, which the schema enforces because the API rejects an otherwise empty one.
+
+#### resource/coralogix_dashboard
 - FIX: A metric annotation keeps its `orientation`. The Coralogix UI offers `vertical` and `horizontal` on a metrics-source annotation and the API stores the choice, but the provider had no attribute, so a horizontal annotation read back as vertical and the next apply reset it. Manual and Dataprime annotations already had the attribute. Omit it to accept what the API returns, which is `vertical`.
 
 #### provider

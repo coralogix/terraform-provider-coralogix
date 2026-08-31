@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -2143,6 +2144,99 @@ resource "coralogix_dashboard" "test" {
 					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.0", "staging"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.1", "test-trade"),
 				),
+			},
+			testAccDashboardImportStep(),
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardSectionOptionBranches(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	config := func(options string) string {
+		return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing section option branches"
+
+  layout = {
+    sections = [{
+      options = %s
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          width = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = { logs = { aggregations = [{ type = "count" }] } }
+              }]
+              legend = { is_visible = false }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name, options)
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				// the arms are mutually exclusive at the API, so the schema rejects both.
+				// Validation-only steps come first: a trailing invalid config would also
+				// be used for the post-test destroy, which then fails.
+				Config:      config(`{ name = "x", internal = {} }`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+			{
+				// a custom section must carry a name: the API rejects an empty one
+				Config:      config(`{ collapsed = true }`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+			{
+				// the custom arm, carrying a repetition
+				Config: config(`{
+        name           = "repeated section"
+        repetitive_var = { name = "pod_name" }
+      }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.name", "repeated section"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.repetitive_var.name", "pod_name"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.options.internal"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			testAccDashboardImportStep(),
+			{
+				// dropping the repetition must reach the API, not linger in state
+				Config: config(`{ name = "repeated section" }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.options.repetitive_var"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// the internal arm: an unnamed section, which the UI creates and
+				// which used to read back with no options at all
+				Config: config(`{ internal = {} }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					// an empty nested object is asserted by its element count
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.internal.%", "0"),
+					resource.TestCheckNoResourceAttr(dashboardResourceName, "layout.sections.0.options.name"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
 			},
 			testAccDashboardImportStep(),
 		},
