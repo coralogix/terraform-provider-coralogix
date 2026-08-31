@@ -1,6 +1,9 @@
 # Unreleased
 
 #### resource/coralogix_dashboard
+- FEAT: A layout section takes a `repetitive_var`, repeating the section once per selected value of a dashboard variable. The Coralogix UI offers this as "Add Repetition" and the API stores it, but the provider had no attribute, so a repeated section could not be written and an imported one lost the setting.
+- CHORE: Correct two stale entries in the dashboard API branch-coverage manifest. The bar chart `xaxis.time_buckets` branch was still recorded as unsupported although it shipped earlier, and the section options unnamed-default branch was recorded as deliberately ignored. The manifest only failed on a missing entry, never on an untrue one, so both went unnoticed.
+- FIX: A section whose options use the API's unnamed-default arm now round-trips. The Coralogix UI stores that arm for a dashboard whose sections were never named, and the provider read the whole options block back as absent, so the next apply cleared it. Express it as `options = { internal = {} }`. `name` is optional now so that arm is writable; a section that is not `internal` still requires a name, which the schema enforces because the API rejects an otherwise empty one.
 - FEAT: `content_json` now warns about fields the provider does not recognise, naming each one by its JSON path. Such fields were silently discarded, so a misspelled field looked applied but never reached the API. The check mirrors the decoder's own field matching, including its acceptance of both `camelCase` and `snake_case` spellings, so it does not warn about anything the provider actually keeps. It is a warning rather than an error, because a field can also be newer than the Coralogix SDK the provider is built against, which a configuration change cannot fix.
 
 #### resource/coralogix_dashboard

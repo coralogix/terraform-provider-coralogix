@@ -21,6 +21,7 @@ import (
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -974,22 +975,58 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 							"options": schema.SingleNestedAttribute{
 								Attributes: map[string]schema.Attribute{
 									"name": schema.StringAttribute{
-										Required: true,
+										Optional: true,
 									},
 									"description": schema.StringAttribute{
 										Optional: true,
+										Validators: []validator.String{
+											stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("internal")),
+										},
 									},
 									"color": schema.StringAttribute{
 										Optional: true,
 										Validators: []validator.String{
 											stringvalidator.OneOf(dashboardwidgets.SectionValidColors...),
+											stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("internal")),
 										},
 										MarkdownDescription: fmt.Sprintf("Section color, valid values: %v", dashboardwidgets.SectionValidColors),
 									},
 									"collapsed": schema.BoolAttribute{
 										Optional: true,
+										Validators: []validator.Bool{
+											boolvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("internal")),
+										},
 									},
-								}, Optional: true,
+									"repetitive_var": schema.SingleNestedAttribute{
+										Attributes: map[string]schema.Attribute{
+											"name": schema.StringAttribute{
+												Required:            true,
+												MarkdownDescription: "Name of the dashboard variable to repeat the section over.",
+											},
+										},
+										Optional: true,
+										Validators: []validator.Object{
+											objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("internal")),
+										},
+										MarkdownDescription: "Repeat the section once per selected value of a dashboard variable. The Coralogix UI offers this for multi-value variables.",
+									},
+									// The API models an unnamed section as a union arm
+									// with no fields, which is what it stores for a
+									// dashboard whose sections were never named. Without
+									// an attribute for it such a section reads back with
+									// no options at all and the next apply clears it.
+									"internal": schema.SingleNestedAttribute{
+										Attributes:          map[string]schema.Attribute{},
+										Optional:            true,
+										MarkdownDescription: "Marks the section as the dashboard's unnamed default. Carries no settings, and cannot be combined with the other options.",
+									},
+								},
+								Optional: true,
+								Validators: []validator.Object{
+									// A custom section must carry a name: the API rejects
+									// an otherwise empty one.
+									dashboardwidgets.ExactlyOneOfChildren("name", "internal"),
+								},
 							},
 						},
 					},

@@ -35,6 +35,12 @@ const (
 	dashboardMigrationGRPCVersion     = "= 3.6.0"
 	dashboardMigrationSchemaV3Version = "= 2.1.2"
 
+	// The newest release that shares the current schema version. State written
+	// by it carries the same version number as the local schema, so Terraform
+	// runs no upgrader and decodes it directly against the current type. Bump
+	// this on release to keep the check against the newest published shape.
+	dashboardMigrationSameSchemaVersion = "= 3.12.0"
+
 	// The external providers below reject a widget "title" next to a
 	// "markdown" definition, so the shared config generator must leave the
 	// title out. Step 1 is planned and applied by the external provider, and
@@ -51,6 +57,97 @@ type dashboardMigrationIdentity struct {
 	resourceID   string
 	folderID     string
 	generatedIDs []string
+}
+
+// Every schema addition lands in the current version without bumping it, so
+// state written by a released provider is decoded against a type that has
+// gained attributes. Terraform runs no upgrader in that case, and the
+// framework's passthrough fills the missing attributes with null. This asserts
+// that, because the failure mode is a state conversion error on refresh for
+// every existing dashboard, and no other migration test covers it: the rest
+// start from schema v1 to v3, where an upgrader does run.
+func TestAccCoralogixResourceDashboardMigrationFromSameSchemaVersion(t *testing.T) {
+	requireDashboardMigrationAcceptance(t)
+
+	name := dashboardOpenAPIFixtureName(t.Name())
+
+	// Only attributes the released provider already knows, so it can apply this.
+	released := fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Written by the released provider"
+  layout = {
+    sections = [{
+      options = {
+        name        = "named section"
+        description = "carried over"
+        collapsed   = false
+      }
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          definition = {
+            line_chart = {
+              query_definitions = [{ query = { logs = { aggregations = [{ type = "count" }] } } }]
+              legend            = { is_visible = false }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name)
+
+	// The same dashboard, now using an attribute the released provider lacks.
+	usingNewAttribute := strings.Replace(released,
+		`        collapsed   = false`,
+		`        collapsed   = false
+        repetitive_var = { name = "pod_name" }`, 1)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		CheckDestroy: testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config:            released,
+				ExternalProviders: dashboardMigrationExternalProvider(dashboardMigrationSameSchemaVersion),
+			},
+			{
+				// the assertion that matters: the local provider reads state the
+				// released one wrote, at the same schema version, as a no-op
+				Config:                   released,
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionNoop),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.name", "named section"),
+			},
+			{
+				// an attribute added since that release is usable on the same resource
+				Config:                   usingNewAttribute,
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(dashboardResourceName, plancheck.ResourceActionUpdate),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.repetitive_var.name", "pod_name"),
+			},
+			{
+				ResourceName:             dashboardResourceName,
+				ImportState:              true,
+				ImportStateVerify:        true,
+				ImportStateVerifyIgnore:  []string{"access_policy", "folder"},
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+			},
+		},
+	})
 }
 
 func TestAccCoralogixResourceDashboardMigrationFromV360(t *testing.T) {

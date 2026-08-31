@@ -676,7 +676,21 @@ Read-Only:
 - `collapsed` (Boolean)
 - `color` (String) Section color, valid values: [cyan green blue purple magenta pink orange]
 - `description` (String)
+- `internal` (Attributes) Marks the section as the dashboard's unnamed default. Carries no settings, and cannot be combined with the other options. (see [below for nested schema](#nestedatt--layout--sections--options--internal))
 - `name` (String)
+- `repetitive_var` (Attributes) Repeat the section once per selected value of a dashboard variable. The Coralogix UI offers this for multi-value variables. (see [below for nested schema](#nestedatt--layout--sections--options--repetitive_var))
+
+<a id="nestedatt--layout--sections--options--internal"></a>
+### Nested Schema for `layout.sections.options.internal`
+
+
+<a id="nestedatt--layout--sections--options--repetitive_var"></a>
+### Nested Schema for `layout.sections.options.repetitive_var`
+
+Read-Only:
+
+- `name` (String) Name of the dashboard variable to repeat the section over.
+
 
 
 <a id="nestedatt--layout--sections--rows"></a>

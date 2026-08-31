@@ -644,7 +644,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 		"SectionOptions": {
 			ProtoSource: "ast/layout.proto#SectionOptions.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{
-				"internal": apiOnly(dashboardNoProviderPath, false, "expandSectionOptions always creates Custom and flattenDashboardOptions intentionally ignores Internal"),
+				"internal": covered("layout.sections[*].options.internal", "TestAccCoralogixResourceDashboardSectionOptionBranches"),
 				"custom":   covered("layout.sections[*].options", "TestAccCoralogixResourceDashboard"),
 			},
 		},
@@ -760,7 +760,7 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"value":       covered(widget+".bar_chart.xaxis.value", dashboardOpenAPINestedPresentationTestName),
 				"time":        covered(widget+".bar_chart.xaxis.time", dashboardOpenAPINestedPresentationTestName),
-				"timeBuckets": apiOnly(dashboardNoProviderPath, false, "bar_chart.proto retains time_buckets, but the schema model and both XAxis converters support only value and time"),
+				"timeBuckets": covered(widget+".bar_chart.xaxis.time_buckets", "TestAccCoralogixResourceDashboardBarChartReadsEveryStoredXAxis"),
 			},
 		},
 	}
