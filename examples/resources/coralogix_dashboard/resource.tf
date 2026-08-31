@@ -35,6 +35,9 @@ resource "coralogix_dashboard" "dashboard" {
           description = "abc"
           collapsed   = false
           color       = "blue"
+          # one copy of this section per selected value of the multi-value
+          # "service" variable defined below
+          repetitive_var = { name = "service" }
         }
         rows = [
           {
