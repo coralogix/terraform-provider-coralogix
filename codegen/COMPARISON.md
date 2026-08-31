@@ -1,9 +1,11 @@
 # OpenAPI generator vs. our hand-written resources
 
 **TL;DR — the HashiCorp OpenAPI generator does not work for `coralogix_alert` or
-`coralogix_parsing_rules` as-is.** Both resources model a discriminated union with
-`oneOf`, which the generator explicitly does not support, so out of the box it drops
-both resources entirely and emits an empty spec. Even after manually rewriting the
+`coralogix_parsing_rules` as-is.** Both resources model a **discriminated union**
+(N object variants) with `oneOf`. The generator supports `oneOf`/`anyOf` only for the
+two-element *nullable / multi-type-scalar* idiom (`oneOf: [T, null]`), **not** for a
+many-variant union — so out of the box it drops both resources entirely and emits an
+empty spec. Even after manually rewriting the
 specs to remove the `oneOf`, what comes out is a schema + type-plumbing only — no
 CRUD, no expand/flatten, no validation, and a schema shape that is semantically
 wrong for a union. It is not a viable replacement for what we maintain today; at
@@ -35,10 +37,38 @@ zero data sources**:
 
 Root cause: `AlertDefProperties` uses a root-level `oneOf` over its 16 alert-type
 variants (logs-threshold, metric-threshold, flow, logs-anomaly, tracing, SLO, …);
-`RuleGroup.ruleMatchers` uses `oneOf` over its 4 matcher variants. `oneOf`/`anyOf`/
-`allOf` composition is [a documented non-feature](https://developer.hashicorp.com/terraform/plugin/code-generation/openapi-generator#schema)
-of the generator. When it hits one in a resource's root schema, it discards the
-whole resource, not just the field.
+`RuleGroup.ruleMatchers` uses `oneOf` over its 4 matcher variants.
+
+**What the generator actually supports for `oneOf`/`anyOf`** (source:
+`tfplugingen-openapi@v0.3.0` — the latest release — `internal/mapper/oas/build.go`,
+`buildSchemaProxy` / `getMultiTypeSchema`, lines 120–225):
+
+```go
+//   - allOf: If len == 1, will resolve with that one item.
+//   - anyOf: If len == 2, will resolve nullable or stringable types
+//   - oneOf: If len == 2, will resolve nullable or stringable types
+// # Any other combinations of allOf, anyOf, or oneOf will return a SchemaError
+```
+
+- `oneOf`/`anyOf` are handled **only when there are exactly two subschemas**, and even
+  then only to reduce a *multi-type scalar*: one branch is `null` → use the other (the
+  nullable idiom the [DESIGN.md `anyOf`/`oneOf` examples](https://github.com/hashicorp/terraform-plugin-codegen-openapi/blob/main/DESIGN.md#examples-with-anyof-and-oneof)
+  show), or one is `string` and the other is a stringable scalar → use the string.
+- A `oneOf` of **two objects**, or of **more than two** subschemas, is rejected with
+  `"...schema composition is currently not supported"`. There is **no discriminator
+  handling and no union-of-objects support** — i.e. no support for a discriminated
+  union, which is exactly what these two resources are (16 and 4 object variants).
+- When composition *is* resolved, it returns the single reduced subschema and **discards
+  any sibling `properties`** on the parent — so "composition + base object" isn't merged.
+- `allOf` is only unwrapped when `len == 1`; merging `len >= 2` is unsupported
+  ([issue #56](https://github.com/hashicorp/terraform-plugin-codegen-openapi/issues/56)).
+
+When it hits the unsupported `oneOf` in a resource's root schema, it discards the whole
+resource, not just the field.
+
+So the precise framing is **not** "oneOf is unsupported" (the nullable idiom in the docs
+works) — it's that the generator has **no support for many-variant discriminated unions**,
+which is the entire structure of both resources here.
 
 ## Result 2 — with a manual `oneOf`-stripping workaround
 
