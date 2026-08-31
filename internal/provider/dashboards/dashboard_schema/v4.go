@@ -1361,6 +1361,15 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 						Attributes: map[string]schema.Attribute{
 							"metrics": schema.SingleNestedAttribute{
 								Attributes: map[string]schema.Attribute{
+									"orientation": schema.StringAttribute{
+										Optional: true,
+										Computed: true,
+										Default:  stringdefault.StaticString("vertical"),
+										Validators: []validator.String{
+											stringvalidator.OneOf("vertical", "horizontal"),
+										},
+										MarkdownDescription: "Draw the annotation as a `vertical` line marking a moment in time, or a `horizontal` line marking a value. The API returns `vertical` when nothing is chosen.",
+									},
 									"promql_query": schema.StringAttribute{
 										Required: true,
 									},

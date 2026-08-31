@@ -1711,6 +1711,7 @@ Optional:
 
 - `labels` (List of String)
 - `message_template` (String)
+- `orientation` (String) Draw the annotation as a `vertical` line marking a moment in time, or a `horizontal` line marking a value. The API returns `vertical` when nothing is chosen.
 
 <a id="nestedatt--annotations--source--metrics--strategy"></a>
 ### Nested Schema for `annotations.source.metrics.strategy`

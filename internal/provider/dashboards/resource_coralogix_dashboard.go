@@ -397,6 +397,7 @@ type DashboardAnnotationMetricSourceModel struct {
 	Strategy        types.Object `tfsdk:"strategy"` //DashboardAnnotationMetricStrategyModel
 	MessageTemplate types.String `tfsdk:"message_template"`
 	Labels          types.List   `tfsdk:"labels"` //types.String
+	Orientation     types.String `tfsdk:"orientation"`
 }
 
 type DashboardAnnotationSpansOrLogsSourceModel struct {
@@ -1870,6 +1871,7 @@ func expandMetricSource(ctx context.Context, metric types.Object) (*dashboardser
 		Strategy:        strategy,
 		MessageTemplate: utils.TypeStringToStringPointer(metricObject.MessageTemplate),
 		Labels:          labels,
+		Orientation:     expandManualAnnotationOrientation(metricObject.Orientation).Ptr(),
 	}, nil
 }
 
@@ -4753,6 +4755,7 @@ func manualRangeStrategyModelAttr() map[string]attr.Type {
 
 func annotationsMetricsSourceModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
+		"orientation":  types.StringType,
 		"promql_query": types.StringType,
 		"strategy": types.ObjectType{
 			AttrTypes: metricStrategyModelAttr(),
@@ -7484,6 +7487,7 @@ func flattenDashboardAnnotationMetricSourceModel(ctx context.Context, metricSour
 		Strategy:        strategy,
 		MessageTemplate: utils.StringPointerToTypeString(metricSource.MessageTemplate),
 		Labels:          utils.StringSliceToTypeStringList(metricSource.GetLabels()),
+		Orientation:     flattenManualAnnotationOrientation(metricSource.GetOrientation()),
 	}
 
 	return types.ObjectValueFrom(ctx, annotationsMetricsSourceModelAttr(), metricSourceObject)
