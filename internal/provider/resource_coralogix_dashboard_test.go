@@ -3083,6 +3083,108 @@ resource "coralogix_dashboard" "test" {
 	})
 }
 
+func TestAccCoralogixResourceDashboardMetricAnnotationOrientation(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	// orientationLine is a whole HCL line so the omitted case is expressible too
+	config := func(orientationLine string) string {
+		return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing metric annotation orientation"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  annotations = [{
+    name    = "metric marker"
+    enabled = true
+    source = {
+      metrics = {
+        promql_query = "up"
+        %s
+        strategy     = {}
+      }
+    }
+  }]
+
+  layout = {
+    sections = [{
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          width = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{
+                      type = "count"
+                    }]
+                  }
+                }
+              }]
+              legend = {
+                is_visible = false
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name, orientationLine)
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: config(`orientation = "horizontal"`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.metrics.orientation", "horizontal"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			testAccDashboardImportStep(),
+			{
+				// changing the orientation must reach the API rather than drift
+				Config: config(`orientation = "vertical"`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.metrics.orientation", "vertical"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				// omitting it must settle on what the API returns, not diff forever
+				Config: config(""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, "annotations.0.source.metrics.orientation", "vertical"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardDataprimeAnnotation(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 	resource.ParallelTest(t, resource.TestCase{

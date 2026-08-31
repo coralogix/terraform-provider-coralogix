@@ -2,6 +2,8 @@
 
 #### resource/coralogix_webhook
 - FIX: Mark the credential-bearing attributes `pager_duty.service_key`, `jira.api_token` and `custom.headers` as sensitive, so their values are redacted from Terraform plan and apply output. `custom.headers` is marked as a whole because a map cannot mark individual keys, and it is where an `Authorization` header goes. Reading a webhook through `data.coralogix_webhook` is not covered: the resource-to-data-source schema conversion drops the flag, which is fixed separately. These values are still written to state; keeping a secret out of state needs a write-only attribute, which is tracked separately.
+#### resource/coralogix_dashboard
+- FIX: A metric annotation keeps its `orientation`. The Coralogix UI offers `vertical` and `horizontal` on a metrics-source annotation and the API stores the choice, but the provider had no attribute, so a horizontal annotation read back as vertical and the next apply reset it. Manual and Dataprime annotations already had the attribute. Omit it to accept what the API returns, which is `vertical`.
 
 #### provider
 - FIX: A malformed `domain` is now reported as a configuration error instead of becoming a malformed API host. A value such as `" "` used to produce the gRPC target `ng-api-grpc.:443` and fail later as an opaque dial error. The check is structural only — it rejects what cannot be a host at all, and accepts AWS PrivateLink hosts, customer-specific private hosts, and internal names that use underscores or non-ASCII labels — and it covers the `domain` argument and the `CORALOGIX_DOMAIN` environment variable on both halves of the muxed provider.
