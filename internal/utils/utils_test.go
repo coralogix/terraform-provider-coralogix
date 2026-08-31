@@ -22,8 +22,10 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -235,5 +237,37 @@ func TestConvertAttributePropagatesSensitive(t *testing.T) {
 	}
 	if !strAttr.Sensitive {
 		t.Errorf("expected converted datasource attribute Sensitive == true, got false")
+	}
+}
+
+// Every attribute shape must carry Sensitive across, not only the primitives:
+// a secret in a map, a list or a nested block is still a secret.
+func TestConvertAttributePropagatesSensitiveForEveryShape(t *testing.T) {
+	nested := resourceschema.NestedAttributeObject{
+		Attributes: map[string]resourceschema.Attribute{
+			"inner": resourceschema.StringAttribute{Optional: true},
+		},
+	}
+	for name, in := range map[string]resourceschema.Attribute{
+		"string":        resourceschema.StringAttribute{Sensitive: true},
+		"dynamic":       resourceschema.DynamicAttribute{Sensitive: true},
+		"map":           resourceschema.MapAttribute{Sensitive: true, ElementType: types.StringType},
+		"list":          resourceschema.ListAttribute{Sensitive: true, ElementType: types.StringType},
+		"set":           resourceschema.SetAttribute{Sensitive: true, ElementType: types.StringType},
+		"object":        resourceschema.ObjectAttribute{Sensitive: true, AttributeTypes: map[string]attr.Type{"a": types.StringType}},
+		"list_nested":   resourceschema.ListNestedAttribute{Sensitive: true, NestedObject: nested},
+		"map_nested":    resourceschema.MapNestedAttribute{Sensitive: true, NestedObject: nested},
+		"set_nested":    resourceschema.SetNestedAttribute{Sensitive: true, NestedObject: nested},
+		"single_nested": resourceschema.SingleNestedAttribute{Sensitive: true, Attributes: map[string]resourceschema.Attribute{"inner": resourceschema.StringAttribute{Optional: true}}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			converted := ConvertAttribute(in)
+			if converted == nil {
+				t.Fatalf("%s was not converted at all", name)
+			}
+			if !converted.IsSensitive() {
+				t.Errorf("%s lost Sensitive in conversion", name)
+			}
+		})
 	}
 }

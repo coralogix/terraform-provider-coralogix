@@ -247,6 +247,7 @@ func convertCollectionAttribute(resourceAttribute resourceschema.Attribute) (dat
 	case resourceschema.MapAttribute:
 		return datasourceschema.MapAttribute{
 			Computed:            true,
+			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			ElementType:         attr.ElementType,
@@ -254,6 +255,7 @@ func convertCollectionAttribute(resourceAttribute resourceschema.Attribute) (dat
 	case resourceschema.ObjectAttribute:
 		return datasourceschema.ObjectAttribute{
 			Computed:            true,
+			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			AttributeTypes:      attr.AttributeTypes,
@@ -261,6 +263,7 @@ func convertCollectionAttribute(resourceAttribute resourceschema.Attribute) (dat
 	case resourceschema.SetAttribute:
 		return datasourceschema.SetAttribute{
 			Computed:            true,
+			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			ElementType:         attr.ElementType,
@@ -268,6 +271,7 @@ func convertCollectionAttribute(resourceAttribute resourceschema.Attribute) (dat
 	case resourceschema.ListAttribute:
 		return datasourceschema.ListAttribute{
 			Computed:            true,
+			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			ElementType:         attr.ElementType,
@@ -282,6 +286,7 @@ func convertNestedAttribute(resourceAttribute resourceschema.Attribute) (datasou
 	case resourceschema.ListNestedAttribute:
 		return datasourceschema.ListNestedAttribute{
 			Computed:            true,
+			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			NestedObject: datasourceschema.NestedAttributeObject{
@@ -291,6 +296,7 @@ func convertNestedAttribute(resourceAttribute resourceschema.Attribute) (datasou
 	case resourceschema.MapNestedAttribute:
 		return datasourceschema.MapNestedAttribute{
 			Computed:            true,
+			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			NestedObject: datasourceschema.NestedAttributeObject{
@@ -300,6 +306,7 @@ func convertNestedAttribute(resourceAttribute resourceschema.Attribute) (datasou
 	case resourceschema.SetNestedAttribute:
 		return datasourceschema.SetNestedAttribute{
 			Computed:            true,
+			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			NestedObject: datasourceschema.NestedAttributeObject{
@@ -309,6 +316,7 @@ func convertNestedAttribute(resourceAttribute resourceschema.Attribute) (datasou
 	case resourceschema.SingleNestedAttribute:
 		return datasourceschema.SingleNestedAttribute{
 			Computed:            true,
+			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			Attributes:          ConvertAttributes(attr.Attributes),
