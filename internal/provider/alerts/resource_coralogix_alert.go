@@ -872,7 +872,7 @@ func expandLogsImmediateAlertTypeDefinition(ctx context.Context, properties *ale
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 
@@ -1064,7 +1064,7 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *alerts.A
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(thresholdObject) {
@@ -1256,7 +1256,7 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alert
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(anomaly) {
@@ -1371,7 +1371,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(ratioThreshold) {
@@ -1536,7 +1536,7 @@ func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *aler
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if newValue.IsNull() || newValue.IsUnknown() {
@@ -1651,7 +1651,7 @@ func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *a
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(uniqueCount) {
@@ -1773,7 +1773,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(relativeThreshold) {
@@ -1883,7 +1883,7 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *a
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(metricThreshold) {
@@ -2047,7 +2047,7 @@ func expandTracingImmediateTypeDefinition(ctx context.Context, properties *alert
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(tracingImmediate) {
@@ -2109,7 +2109,7 @@ func expandTracingThresholdTypeDefinition(ctx context.Context, properties *alert
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(tracingThreshold) {
@@ -2350,7 +2350,7 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *ale
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(metricAnomaly) {
@@ -2489,7 +2489,7 @@ func expandFlowAlertTypeDefinition(ctx context.Context, properties *alerts.Alert
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(flow) {
@@ -2651,7 +2651,7 @@ func expandSloThresholdAlertTypeDefinition(ctx context.Context, properties *aler
 	properties.GroupByKeys = groupBy
 	properties.IncidentsSettings = incidentsSettings
 	properties.NotificationGroup = notificationGroup
-	properties.EntityLabels = &labels
+	properties.EntityLabels = labels
 	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(sloThreshold) {
@@ -3106,7 +3106,7 @@ func getAlertIncidentSettings(alertDefProperties *alerts.AlertDefProperties) *al
 	}
 }
 
-func getAlertEntityLabels(alertDefProperties *alerts.AlertDefProperties) *map[string]string {
+func getAlertEntityLabels(alertDefProperties *alerts.AlertDefProperties) map[string]string {
 	if alertDefProperties.Flow != nil {
 		return alertDefProperties.EntityLabels
 	} else if alertDefProperties.LogsImmediate != nil {
