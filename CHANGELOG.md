@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+- FIX: A metric annotation keeps its `orientation`. The Coralogix UI offers `vertical` and `horizontal` on a metrics-source annotation and the API stores the choice, but the provider had no attribute, so a horizontal annotation read back as vertical and the next apply reset it. Manual and Dataprime annotations already had the attribute. Omit it to accept what the API returns, which is `vertical`.
+
 #### provider
 - FIX: A malformed `domain` is now reported as a configuration error instead of becoming a malformed API host. A value such as `" "` used to produce the gRPC target `ng-api-grpc.:443` and fail later as an opaque dial error. The check is structural only — it rejects what cannot be a host at all, and accepts AWS PrivateLink hosts, customer-specific private hosts, and internal names that use underscores or non-ASCII labels — and it covers the `domain` argument and the `CORALOGIX_DOMAIN` environment variable on both halves of the muxed provider.
 - FIX: The `domain` argument's conflict rule named `domain` instead of `env`, so it never emitted anything. Setting `env` and `domain` together was already rejected by `env`'s own rule; both attributes now report the conflict.

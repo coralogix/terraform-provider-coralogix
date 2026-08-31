@@ -383,6 +383,7 @@ Read-Only:
 
 - `labels` (List of String)
 - `message_template` (String)
+- `orientation` (String) Draw the annotation as a `vertical` line marking a moment in time, or a `horizontal` line marking a value. The API returns `vertical` when nothing is chosen.
 - `promql_query` (String)
 - `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics--strategy))
 
