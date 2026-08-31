@@ -1,6 +1,9 @@
 # Unreleased
 
 #### resource/coralogix_dashboard
+- FEAT: `content_json` now warns about fields the provider does not recognise, naming each one by its JSON path. Such fields were silently discarded, so a misspelled field looked applied but never reached the API. The check mirrors the decoder's own field matching, including its acceptance of both `camelCase` and `snake_case` spellings, so it does not warn about anything the provider actually keeps. It is a warning rather than an error, because a field can also be newer than the Coralogix SDK the provider is built against, which a configuration change cannot fix.
+
+#### resource/coralogix_dashboard
 - FIX: A metric annotation keeps its `orientation`. The Coralogix UI offers `vertical` and `horizontal` on a metrics-source annotation and the API stores the choice, but the provider had no attribute, so a horizontal annotation read back as vertical and the next apply reset it. Manual and Dataprime annotations already had the attribute. Omit it to accept what the API returns, which is `vertical`.
 
 #### provider
