@@ -2092,7 +2092,7 @@ Optional:
 
 Optional:
 
-- `custom_actions` (Attributes List) Actions offered from this widget, each opening a URL. The Coralogix UI calls these custom actions and offers them in the widget's settings panel. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--custom_actions))
+- `custom_actions` (Attributes List) Actions offered from this widget, each opening a URL. The Coralogix UI calls these custom actions and offers them in the widget's settings panel. Omit the attribute rather than setting an empty list. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--custom_actions))
 - `definition` (Attributes) Inline widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown dynamic]. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 - `description` (String) Widget description.
 - `highlighted` (Boolean) Marks the widget as highlighted for every user of the dashboard. Set `false` to stop highlighting it: the API returns a value for every widget, so deleting the line keeps the last value. The API rejects it on a widget that only holds a `reference`.

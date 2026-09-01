@@ -143,8 +143,17 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																},
 															},
 														},
-														Optional:            true,
-														MarkdownDescription: "Actions offered from this widget, each opening a URL. The Coralogix UI calls these custom actions and offers them in the widget's settings panel.",
+														Optional: true,
+														// An empty list would read back as null, because the
+														// API stores no actions and the read returns none,
+														// and the apply would fail as an inconsistent
+														// result. Omitting the attribute says the same thing,
+														// so an empty list is rejected rather than silently
+														// rewritten.
+														Validators: []validator.List{
+															listvalidator.SizeAtLeast(1),
+														},
+														MarkdownDescription: "Actions offered from this widget, each opening a URL. The Coralogix UI calls these custom actions and offers them in the widget's settings panel. Omit the attribute rather than setting an empty list.",
 													},
 													"description": schema.StringAttribute{
 														Optional:            true,

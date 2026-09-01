@@ -2322,6 +2322,12 @@ resource "coralogix_dashboard" "test" {
 				},
 			},
 			{
+				// an empty list would read back null and fail the apply as an
+				// inconsistent result, so the schema rejects it outright
+				Config:      config(`custom_actions = []`),
+				ExpectError: regexp.MustCompile(`(?s)custom_actions.*at least 1 element`),
+			},
+			{
 				// removing them must clear them at the API, not linger in state
 				Config: config(``),
 				Check: resource.ComposeAggregateTestCheckFunc(
