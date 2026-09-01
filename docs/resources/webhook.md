@@ -45,13 +45,19 @@ resource "coralogix_webhook" "custom_webhook" {
     method  = "post"
     headers = { "Content-Type" : "application/json" }
     url     = "https://example-url.com/"
+    # A header carrying a secret goes here rather than in headers: Terraform
+    # sends these values to Coralogix and never writes them to state.
+    # Increment the matching version to send a rotated secret.
+    headers_wo          = { "Authorization" : "Bearer example-token" }
+    headers_wo_versions = { "Authorization" : 1 }
   }
 }
 
 resource "coralogix_webhook" "pager_duty_webhook" {
   name = "pagerduty-webhook"
   pager_duty = {
-    service_key = "service-key"
+    service_key_wo         = "service-key"
+    service_key_wo_version = 1
   }
 }
 
@@ -72,10 +78,11 @@ resource "coralogix_webhook" "microsoft_teams_webhook" {
 resource "coralogix_webhook" "jira_webhook" {
   name = "jira-webhook"
   jira = {
-    api_token   = "api-token"
-    email       = "example@coralogix.com"
-    project_key = "project-key"
-    url         = "https://coralogix.atlassian.net/jira/your-work"
+    api_token_wo         = "api-token"
+    api_token_wo_version = 1
+    email                = "example@coralogix.com"
+    project_key          = "project-key"
+    url                  = "https://coralogix.atlassian.net/jira/your-work"
   }
 }
 
@@ -94,7 +101,7 @@ resource "coralogix_webhook" "demisto_webhook" {
 }
 
 resource "coralogix_webhook" "sendlog_webhook" {
-  name = "sendlog-webhook"
+  name    = "sendlog-webhook"
   sendlog = {}
 }
 
@@ -161,7 +168,9 @@ resource "coralogix_alert" "alert_with_webhook" {
 
 Optional:
 
-- `headers` (Map of String) Webhook headers. Map of string to string.
+- `headers` (Map of String) Webhook headers. Map of string to string. A header carrying a secret belongs in `headers_wo` instead, so its value is never written to state.
+- `headers_wo` (Map of String) Webhook headers whose values are secret, keyed by header name. Values are sent to Coralogix and never written to state. Every key needs a matching entry in `headers_wo_versions`, and a key here must not also appear in `headers`. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `headers_wo_versions` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it.
+- `headers_wo_versions` (Map of Number) Version of each `headers_wo` value, keyed by header name. Increment a header's version to send a rotated secret.
 - `method` (String) Webhook method. can be one of: get, post, put
 - `payload` (String) Webhook payload. JSON string.
 - `url` (String) Webhook URL.
@@ -210,7 +219,9 @@ Required:
 
 Optional:
 
-- `api_token` (String) Jira API token.
+- `api_token` (String) Jira API token. Use `api_token_wo` instead to keep it out of state.
+- `api_token_wo` (String) Jira API token, sent to Coralogix and never written to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `api_token_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it.
+- `api_token_wo_version` (Number) Version of `api_token_wo`. Increment it to send a rotated API token.
 - `email` (String) email.
 - `project_key` (String) Jira project key.
 
@@ -244,7 +255,9 @@ Required:
 
 Optional:
 
-- `service_key` (String) PagerDuty service key.
+- `service_key` (String) PagerDuty service key. Use `service_key_wo` instead to keep it out of state.
+- `service_key_wo` (String) PagerDuty service key, sent to Coralogix and never written to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `service_key_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it.
+- `service_key_wo_version` (Number) Version of `service_key_wo`. Increment it to send a rotated service key.
 
 
 <a id="nestedatt--sendlog"></a>

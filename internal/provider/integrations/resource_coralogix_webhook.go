@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -30,6 +31,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -271,6 +274,11 @@ type CustomWebhookModel struct {
 	Headers types.Map    `tfsdk:"headers"`
 	Payload types.String `tfsdk:"payload"`
 	URL     types.String `tfsdk:"url"`
+	// The versions map is keyed by header name, so state records which headers
+	// are write-only. Read has no config to consult, and needs that to know
+	// which values the API echoed back must be kept out of state.
+	HeadersWO         types.Map `tfsdk:"headers_wo"`
+	HeadersWOVersions types.Map `tfsdk:"headers_wo_versions"`
 }
 
 type SlackModel struct {
@@ -285,7 +293,9 @@ type SlackAttachmentModel struct {
 }
 
 type PagerDutyModel struct {
-	ServiceKey types.String `tfsdk:"service_key"`
+	ServiceKey          types.String `tfsdk:"service_key"`
+	ServiceKeyWO        types.String `tfsdk:"service_key_wo"`
+	ServiceKeyWOVersion types.Int64  `tfsdk:"service_key_wo_version"`
 }
 
 type SendLogModel struct {
@@ -303,10 +313,12 @@ type MsTeamsWorkflowModel struct {
 }
 
 type JiraModel struct {
-	ApiKey    types.String `tfsdk:"api_token"`
-	Email     types.String `tfsdk:"email"`
-	ProjectID types.String `tfsdk:"project_key"`
-	URL       types.String `tfsdk:"url"`
+	ApiKey            types.String `tfsdk:"api_token"`
+	Email             types.String `tfsdk:"email"`
+	ProjectID         types.String `tfsdk:"project_key"`
+	URL               types.String `tfsdk:"url"`
+	ApiTokenWO        types.String `tfsdk:"api_token_wo"`
+	ApiTokenWOVersion types.Int64  `tfsdk:"api_token_wo_version"`
 }
 
 type OpsgenieModel struct {
@@ -399,7 +411,24 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Optional:            true,
 						Computed:            true,
 						ElementType:         types.StringType,
-						MarkdownDescription: "Webhook headers. Map of string to string.",
+						MarkdownDescription: "Webhook headers. Map of string to string. A header carrying a secret belongs in `headers_wo` instead, so its value is never written to state.",
+					},
+					"headers_wo": schema.MapAttribute{
+						Optional:    true,
+						WriteOnly:   true,
+						ElementType: types.StringType,
+						Validators: []validator.Map{
+							mapvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("headers_wo_versions")),
+						},
+						MarkdownDescription: "Webhook headers whose values are secret, keyed by header name. Values are sent to Coralogix and never written to state. Every key needs a matching entry in `headers_wo_versions`, and a key here must not also appear in `headers`. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `headers_wo_versions` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it.",
+					},
+					"headers_wo_versions": schema.MapAttribute{
+						Optional:    true,
+						ElementType: types.Int64Type,
+						Validators: []validator.Map{
+							mapvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("headers_wo")),
+						},
+						MarkdownDescription: "Version of each `headers_wo` value, keyed by header name. Increment a header's version to send a rotated secret.",
 					},
 					"payload": schema.StringAttribute{
 						Optional:            true,
@@ -487,7 +516,23 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Attributes: map[string]schema.Attribute{
 					"service_key": schema.StringAttribute{
 						Optional:            true,
-						MarkdownDescription: "PagerDuty service key.",
+						MarkdownDescription: "PagerDuty service key. Use `service_key_wo` instead to keep it out of state.",
+					},
+					"service_key_wo": schema.StringAttribute{
+						Optional:  true,
+						WriteOnly: true,
+						Validators: []validator.String{
+							stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("service_key")),
+							stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("service_key_wo_version")),
+						},
+						MarkdownDescription: "PagerDuty service key, sent to Coralogix and never written to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `service_key_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it.",
+					},
+					"service_key_wo_version": schema.Int64Attribute{
+						Optional: true,
+						Validators: []validator.Int64{
+							int64validator.AlsoRequires(path.MatchRelative().AtParent().AtName("service_key_wo")),
+						},
+						MarkdownDescription: "Version of `service_key_wo`. Increment it to send a rotated service key.",
 					},
 				},
 				Validators: []validator.Object{
@@ -622,7 +667,23 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Attributes: map[string]schema.Attribute{
 					"api_token": schema.StringAttribute{
 						Optional:            true,
-						MarkdownDescription: "Jira API token.",
+						MarkdownDescription: "Jira API token. Use `api_token_wo` instead to keep it out of state.",
+					},
+					"api_token_wo": schema.StringAttribute{
+						Optional:  true,
+						WriteOnly: true,
+						Validators: []validator.String{
+							stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("api_token")),
+							stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("api_token_wo_version")),
+						},
+						MarkdownDescription: "Jira API token, sent to Coralogix and never written to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `api_token_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it.",
+					},
+					"api_token_wo_version": schema.Int64Attribute{
+						Optional: true,
+						Validators: []validator.Int64{
+							int64validator.AlsoRequires(path.MatchRelative().AtParent().AtName("api_token_wo")),
+						},
+						MarkdownDescription: "Version of `api_token_wo`. Increment it to send a rotated API token.",
 					},
 					"email": schema.StringAttribute{
 						Optional:            true,
@@ -757,10 +818,168 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 	}
 }
 
+// A write-only value reaches the provider only through the configuration, and
+// must not survive into state. Both halves are handled here: the value is moved
+// into the field the request is built from, and afterwards cleared from what
+// gets stored. The API echoes every one of these secrets back on read, so
+// clearing it is what keeps it out of state.
+//
+// Which secrets are write-only is recorded by the version attributes, which are
+// ordinary attributes and so are present in plan and state alike. Read has no
+// configuration to consult and relies on that.
+
+func injectWebhookWriteOnlySecrets(ctx context.Context, plan, config *WebhookResourceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if config == nil {
+		return diags
+	}
+
+	if plan.Jira != nil && config.Jira != nil && !config.Jira.ApiTokenWO.IsNull() {
+		plan.Jira.ApiKey = config.Jira.ApiTokenWO
+	}
+	if plan.PagerDuty != nil && config.PagerDuty != nil && !config.PagerDuty.ServiceKeyWO.IsNull() {
+		plan.PagerDuty.ServiceKey = config.PagerDuty.ServiceKeyWO
+	}
+	if plan.CustomWebhook != nil && config.CustomWebhook != nil && !config.CustomWebhook.HeadersWO.IsNull() {
+		merged, mergeDiags := mergeWebhookWriteOnlyHeaders(ctx, plan.CustomWebhook.Headers, config.CustomWebhook.HeadersWO)
+		diags.Append(mergeDiags...)
+		if diags.HasError() {
+			return diags
+		}
+		plan.CustomWebhook.Headers = merged
+	}
+	return diags
+}
+
+func mergeWebhookWriteOnlyHeaders(ctx context.Context, headers, writeOnly types.Map) (types.Map, diag.Diagnostics) {
+	merged := make(map[string]string)
+	if !headers.IsNull() && !headers.IsUnknown() {
+		values, diags := utils.TypeMapToStringMap(ctx, headers)
+		if diags.HasError() {
+			return types.MapNull(types.StringType), diags
+		}
+		for name, value := range values {
+			merged[name] = value
+		}
+	}
+	values, diags := utils.TypeMapToStringMap(ctx, writeOnly)
+	if diags.HasError() {
+		return types.MapNull(types.StringType), diags
+	}
+	for name, value := range values {
+		merged[name] = value
+	}
+	return types.MapValueFrom(ctx, types.StringType, merged)
+}
+
+// stripWebhookWriteOnlySecrets clears the secrets the configuration supplies
+// write-only from freshly flattened state, and carries the version attributes
+// across, since the API knows nothing about them.
+func stripWebhookWriteOnlySecrets(ctx context.Context, state, prior *WebhookResourceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if state == nil || prior == nil {
+		return diags
+	}
+
+	if state.Jira != nil && prior.Jira != nil && !prior.Jira.ApiTokenWOVersion.IsNull() {
+		state.Jira.ApiKey = types.StringNull()
+		state.Jira.ApiTokenWOVersion = prior.Jira.ApiTokenWOVersion
+	}
+	if state.PagerDuty != nil && prior.PagerDuty != nil && !prior.PagerDuty.ServiceKeyWOVersion.IsNull() {
+		state.PagerDuty.ServiceKey = types.StringNull()
+		state.PagerDuty.ServiceKeyWOVersion = prior.PagerDuty.ServiceKeyWOVersion
+	}
+	if state.CustomWebhook != nil && prior.CustomWebhook != nil && !prior.CustomWebhook.HeadersWOVersions.IsNull() {
+		remaining, removeDiags := withoutWebhookWriteOnlyHeaders(ctx, state.CustomWebhook.Headers, prior.CustomWebhook.HeadersWOVersions)
+		diags.Append(removeDiags...)
+		if diags.HasError() {
+			return diags
+		}
+		state.CustomWebhook.Headers = remaining
+		state.CustomWebhook.HeadersWOVersions = prior.CustomWebhook.HeadersWOVersions
+	}
+	return diags
+}
+
+func withoutWebhookWriteOnlyHeaders(ctx context.Context, headers, versions types.Map) (types.Map, diag.Diagnostics) {
+	values, diags := utils.TypeMapToStringMap(ctx, headers)
+	if diags.HasError() {
+		return types.MapNull(types.StringType), diags
+	}
+	for name := range versions.Elements() {
+		delete(values, name)
+	}
+	return types.MapValueFrom(ctx, types.StringType, values)
+}
+
+// writeOnlyWebhookHeaderNameConflicts reports header names given both a plain
+// and a write-only value. Which one would win is not something to leave to the
+// merge order.
+func writeOnlyWebhookHeaderNameConflicts(headers, writeOnly types.Map) []string {
+	if headers.IsNull() || headers.IsUnknown() || writeOnly.IsNull() || writeOnly.IsUnknown() {
+		return nil
+	}
+	var conflicts []string
+	for name := range writeOnly.Elements() {
+		if _, ok := headers.Elements()[name]; ok {
+			conflicts = append(conflicts, name)
+		}
+	}
+	sort.Strings(conflicts)
+	return conflicts
+}
+
+func (r *WebhookResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config *WebhookResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() || config == nil || config.CustomWebhook == nil {
+		return
+	}
+
+	if conflicts := writeOnlyWebhookHeaderNameConflicts(config.CustomWebhook.Headers, config.CustomWebhook.HeadersWO); len(conflicts) > 0 {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("custom").AtName("headers_wo"),
+			"Header set both ways",
+			fmt.Sprintf("%s appears in both headers and headers_wo. Keep a secret header in headers_wo only.", strings.Join(conflicts, ", ")),
+		)
+	}
+
+	names := config.CustomWebhook.HeadersWO.Elements()
+	versions := config.CustomWebhook.HeadersWOVersions.Elements()
+	for name := range names {
+		if _, ok := versions[name]; !ok {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("custom").AtName("headers_wo_versions"),
+				"Missing write-only header version",
+				fmt.Sprintf("Header %q is set in headers_wo but has no entry in headers_wo_versions. Terraform holds no copy of a write-only value, so the version is what tells it the secret changed.", name),
+			)
+		}
+	}
+	for name := range versions {
+		if _, ok := names[name]; !ok {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("custom").AtName("headers_wo_versions"),
+				"Version without a write-only header",
+				fmt.Sprintf("Header %q has an entry in headers_wo_versions but is not set in headers_wo.", name),
+			)
+		}
+	}
+}
+
 func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan *WebhookResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var config *WebhookResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(injectWebhookWriteOnlySecrets(ctx, plan, config)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -795,14 +1014,18 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	plan, diags = flattenWebhook(ctx, result.Webhook)
+	state, diags := flattenWebhook(ctx, result.Webhook)
 
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	resp.Diagnostics.Append(stripWebhookWriteOnlySecrets(ctx, state, plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -834,9 +1057,14 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
+	prior := state
 	state, diags = flattenWebhook(ctx, result.Webhook)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
+		return
+	}
+	resp.Diagnostics.Append(stripWebhookWriteOnlySecrets(ctx, state, prior)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -853,6 +1081,16 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 	id := plan.ID.ValueString()
+
+	var config *WebhookResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(injectWebhookWriteOnlySecrets(ctx, plan, config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	data, diags := expandWebhookType(ctx, plan)
 
@@ -885,13 +1123,17 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	plan, diags = flattenWebhook(ctx, result.Webhook)
+	state, diags := flattenWebhook(ctx, result.Webhook)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	resp.Diagnostics.Append(stripWebhookWriteOnlySecrets(ctx, state, plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -1200,6 +1442,9 @@ func flattenGenericWebhook(ctx context.Context, genericWebhook *webhooks.Outgoin
 		Headers: headers,
 		Payload: types.StringPointerValue(genericWebhook.GenericWebhook.Payload),
 		URL:     types.StringPointerValue(genericWebhook.Url),
+		// A zero-value Map carries no element type and fails state conversion.
+		HeadersWO:         types.MapNull(types.StringType),
+		HeadersWOVersions: types.MapNull(types.Int64Type),
 	}, types.StringPointerValue(genericWebhook.Id), utils.Int64ToStringValue(genericWebhook.ExternalId), types.StringPointerValue(genericWebhook.Name), diags
 }
 

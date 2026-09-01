@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_webhook
+- FEAT: A webhook credential can be supplied write-only, so the secret is sent to Coralogix and never written to state. Use `jira.api_token_wo` with `jira.api_token_wo_version`, `pager_duty.service_key_wo` with `pager_duty.service_key_wo_version`, or `custom.headers_wo` with `custom.headers_wo_versions` for individual secret headers. Terraform holds no copy of a write-only value, so it cannot notice that a secret changed: increment the version to send a rotated one. Requires Terraform 1.11 or later. Existing configurations are unaffected. Note that importing a webhook brings the secret into state, because an import has neither configuration nor prior state to say which value is managed this way; one apply afterwards removes it again. This reduces what is stored in state and does not replace securing the state file.
+
 # Release 3.13.0
 
 #### resource/coralogix_dashboard
