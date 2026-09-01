@@ -41,6 +41,9 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 		CheckDestroy:             testAccCheckEvents2MetricDestroy,
 		Steps: []resource.TestStep{
 			{
+				// Named data_source "default/logs" is rejected on accounts that
+				// have not provisioned that catalog entry. Omit the field so
+				// the backend uses the implicit logs stream.
 				Config: testAccCoralogixResourceLogs2Metric(events2Metric, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(events2metricResourceName, "id"),
@@ -67,18 +70,6 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_labels.Path", "http_referer"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.limit", strconv.Itoa(events2Metric.limit)),
 					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.has_exceed_limit", "false"),
-					resource.TestCheckNoResourceAttr(events2metricResourceName, "data_source"),
-				),
-			},
-			{
-				Config: testAccCoralogixResourceLogs2Metric(events2Metric, "default/logs"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(events2metricResourceName, "data_source", "default/logs"),
-				),
-			},
-			{
-				Config: testAccCoralogixResourceLogs2Metric(events2Metric, ""),
-				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckNoResourceAttr(events2metricResourceName, "data_source"),
 				),
 			},
