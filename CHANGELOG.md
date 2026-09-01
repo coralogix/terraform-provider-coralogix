@@ -1,5 +1,15 @@
 # Unreleased
 
+#### resource/coralogix_quota_allocation_rule_set
+- FEAT: Allow `rules = []` to clear all customer-managed quota allocation rules.
+- FEAT: Document the full known entity-type list (including `browserLogs/v2`) and note that the list is additive.
+- FEAT: Document `locked_units`, the percentage pool after locked units, `cx_managed` filtering, and delete semantics.
+- FIX: Keep `allocation_type = "unspecified"` as a compatible alias of `percentage`, and normalize it during planning. API `UNSPECIFIED` still flattens to `percentage`.
+- FIX: Stop sending Coralogix-managed rules on create/replace/delete. Customer requests now include only customer rules; the API preserves `cx_managed` rules.
+
+#### data-source/coralogix_quota_allocation_rule_set
+- FEAT: Document known entity types, `locked_units` vs percentage pool (including bundle-unit fit), and `cx_managed` semantics.
+
 # Release 3.13.0
 
 #### resource/coralogix_dashboard
