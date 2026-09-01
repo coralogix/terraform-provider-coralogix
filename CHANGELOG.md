@@ -1,6 +1,9 @@
 # Unreleased
 
 #### resource/coralogix_dashboard
+- FEAT: A widget takes `custom_actions`, each opening a URL from that widget. The Coralogix UI offers these in the widget's settings panel and the API stores them, but the provider had no attribute, so a dashboard using them could not be written and an imported one lost them. The API keeps them on the dashboard, each tagged with the id of the widget it belongs to; they are nested under the widget here because that is where the UI offers them and because a widget id is usually generated, so it cannot be referenced from elsewhere in the same configuration. `data_source` is required: the API requires it, rejects its unspecified value, and does not check it against the widget, so set it to match the widget's own query.
+
+#### resource/coralogix_dashboard
 - FEAT: A layout section takes a `repetitive_var`, repeating the section once per selected value of a dashboard variable. The Coralogix UI offers this as "Add Repetition" and the API stores it, but the provider had no attribute, so a repeated section could not be written and an imported one lost the setting.
 - CHORE: Correct two stale entries in the dashboard API branch-coverage manifest. The bar chart `xaxis.time_buckets` branch was still recorded as unsupported although it shipped earlier, and the section options unnamed-default branch was recorded as deliberately ignored. The manifest only failed on a missing entry, never on an untrue one, so both went unnoticed.
 - FIX: A section whose options use the API's unnamed-default arm now round-trips. The Coralogix UI stores that arm for a dashboard whose sections were never named, and the provider read the whole options block back as absent, so the next apply cleared it. Express it as `options = { internal = {} }`. `name` is optional now so that arm is writable; a section that is not `internal` still requires a name, which the schema enforces because the API rejects an otherwise empty one.

@@ -288,6 +288,17 @@ var (
 	DashboardValidColorsBy                = []string{"stack", "group_by", "aggregation", "query", "category"}
 	SectionValidColors                    = []string{"cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
 
+	// A widget action's data source. The API rejects the unspecified value, so
+	// it is deliberately absent here.
+	ActionDataSourceToProto = map[string]dashboardservice.ActionDataSourceType{
+		"logs":      dashboardservice.ACTIONDATASOURCETYPE_ACTION_DATA_SOURCE_TYPE_LOGS,
+		"spans":     dashboardservice.ACTIONDATASOURCETYPE_ACTION_DATA_SOURCE_TYPE_SPANS,
+		"metrics":   dashboardservice.ACTIONDATASOURCETYPE_ACTION_DATA_SOURCE_TYPE_METRICS,
+		"dataprime": dashboardservice.ACTIONDATASOURCETYPE_ACTION_DATA_SOURCE_TYPE_DATAPRIME,
+	}
+	ActionDataSourceToSchema = utils.ReverseMap(ActionDataSourceToProto)
+	ActionValidDataSources   = utils.GetKeys(ActionDataSourceToProto)
+
 	// Annotation colours are user data: the Coralogix UI offers a swatch for
 	// each one, and an annotation created without a choice reads back as
 	// unspecified.

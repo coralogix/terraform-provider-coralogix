@@ -2243,6 +2243,99 @@ resource "coralogix_dashboard" "test" {
 	})
 }
 
+func TestAccCoralogixResourceDashboardWidgetCustomActions(t *testing.T) {
+	name := dashboardOpenAPIFixtureName(t.Name())
+	config := func(actions string) string {
+		return fmt.Sprintf(`
+resource "coralogix_dashboard" "test" {
+  name        = %q
+  description = "Testing widget custom actions"
+  layout = {
+    sections = [{
+      options = { name = "s" }
+      rows = [{
+        height = 10
+        widgets = [{
+          title = "placeholder"
+          width = 0
+          %s
+          definition = {
+            line_chart = {
+              query_definitions = [{ query = { logs = { aggregations = [{ type = "count" }] } } }]
+              legend            = { is_visible = false }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+`, name, actions)
+	}
+
+	const attr = "layout.sections.0.rows.0.widgets.0.custom_actions"
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: config(`custom_actions = [{
+            name                      = "open runbook"
+            url                       = "https://example.com/runbook"
+            data_source               = "logs"
+            should_open_in_new_window = true
+          }]`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, attr+".#", "1"),
+					resource.TestCheckResourceAttr(dashboardResourceName, attr+".0.name", "open runbook"),
+					resource.TestCheckResourceAttr(dashboardResourceName, attr+".0.url", "https://example.com/runbook"),
+					resource.TestCheckResourceAttr(dashboardResourceName, attr+".0.data_source", "logs"),
+					resource.TestCheckResourceAttr(dashboardResourceName, attr+".0.should_open_in_new_window", "true"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			testAccDashboardImportStep(),
+			{
+				// two actions on one widget, and a changed field, must reach the API
+				Config: config(`custom_actions = [
+            {
+              name        = "open runbook"
+              url         = "https://example.com/runbook-v2"
+              data_source = "logs"
+            },
+            {
+              name        = "search traces"
+              url         = "https://example.com/traces"
+              data_source = "spans"
+            },
+          ]`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dashboardResourceName, attr+".#", "2"),
+					resource.TestCheckResourceAttr(dashboardResourceName, attr+".0.url", "https://example.com/runbook-v2"),
+					resource.TestCheckResourceAttr(dashboardResourceName, attr+".1.data_source", "spans"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// removing them must clear them at the API, not linger in state
+				Config: config(``),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr(dashboardResourceName, attr+".#"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			testAccDashboardImportStep(),
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardLayoutColor(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
 	resource.ParallelTest(t, resource.TestCase{

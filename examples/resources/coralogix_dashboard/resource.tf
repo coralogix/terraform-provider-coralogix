@@ -45,6 +45,11 @@ resource "coralogix_dashboard" "dashboard" {
             widgets = [
               {
                 title = "Avg api response times"
+                custom_actions = [{
+                  name        = "Open runbook"
+                  url         = "https://example.com/runbook"
+                  data_source = "logs"
+                }]
                 definition = {
                   line_chart = {
                     query_definitions = [

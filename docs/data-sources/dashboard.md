@@ -707,6 +707,7 @@ Read-Only:
 
 Read-Only:
 
+- `custom_actions` (Attributes List) Actions offered from this widget, each opening a URL. The Coralogix UI calls these custom actions and offers them in the widget's settings panel. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--custom_actions))
 - `definition` (Attributes) Inline widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown dynamic]. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 - `description` (String) Widget description.
 - `highlighted` (Boolean) Marks the widget as highlighted for every user of the dashboard. Set `false` to stop highlighting it: the API returns a value for every widget, so deleting the line keeps the last value. The API rejects it on a widget that only holds a `reference`.
@@ -714,6 +715,17 @@ Read-Only:
 - `reference` (Attributes) Reference to a widget on another dashboard. Exactly one of `definition` or `reference` must be set. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--reference))
 - `title` (String) Widget title. Required for all inline widgets except markdown, where it is optional.
 - `width` (Number) Deprecated: the widget appearance.width field is ignored by the API and has no effect.
+
+<a id="nestedatt--layout--sections--rows--widgets--custom_actions"></a>
+### Nested Schema for `layout.sections.rows.widgets.custom_actions`
+
+Read-Only:
+
+- `data_source` (String) Which of the widget's data the action draws on, one of: [dataprime logs metrics spans]. The API requires it and does not check it against the widget, so set it to match the widget's own query.
+- `name` (String) Name shown on the action.
+- `should_open_in_new_window` (Boolean) Open the destination in a new window.
+- `url` (String) Destination the action opens. May reference widget data, as the Coralogix UI describes.
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition`
