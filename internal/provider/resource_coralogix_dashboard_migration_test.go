@@ -35,10 +35,11 @@ const (
 	dashboardMigrationGRPCVersion     = "= 3.6.0"
 	dashboardMigrationSchemaV3Version = "= 2.1.2"
 
-	// The newest release that shares the current schema version. State written
+	// A published release that shares the current schema version. State written
 	// by it carries the same version number as the local schema, so Terraform
-	// runs no upgrader and decodes it directly against the current type. Bump
-	// this on release to keep the check against the newest published shape.
+	// runs no upgrader and decodes it directly against the current type, which
+	// is the property this pin exists to check. Any release on schema v4 does
+	// that, so the pin does not track the newest one and needs no upkeep.
 	dashboardMigrationSameSchemaVersion = "= 3.12.0"
 
 	// The external providers below reject a widget "title" next to a
