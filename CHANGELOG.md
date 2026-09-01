@@ -2,6 +2,7 @@
 
 #### resource/coralogix_connector
 - FIX: Mark the connector credential fields `connector_config.fields[].value` and `config_overrides[].fields[].template` as sensitive, so their values are redacted from Terraform plan and apply output. They are still written to state; keeping a secret out of state needs a write-only attribute, which is tracked separately.
+
 #### resource/coralogix_dashboard
 - FEAT: A layout section takes a `repetitive_var`, repeating the section once per selected value of a dashboard variable. The Coralogix UI offers this as "Add Repetition" and the API stores it, but the provider had no attribute, so a repeated section could not be written and an imported one lost the setting.
 - CHORE: Correct two stale entries in the dashboard API branch-coverage manifest. The bar chart `xaxis.time_buckets` branch was still recorded as unsupported although it shipped earlier, and the section options unnamed-default branch was recorded as deliberately ignored. The manifest only failed on a missing entry, never on an untrue one, so both went unnoticed.
@@ -14,7 +15,6 @@
 #### provider
 - FIX: A malformed `domain` is now reported as a configuration error instead of becoming a malformed API host. A value such as `" "` used to produce the gRPC target `ng-api-grpc.:443` and fail later as an opaque dial error. The check is structural only — it rejects what cannot be a host at all, and accepts AWS PrivateLink hosts, customer-specific private hosts, and internal names that use underscores or non-ASCII labels — and it covers the `domain` argument and the `CORALOGIX_DOMAIN` environment variable on both halves of the muxed provider.
 - FIX: The `domain` argument's conflict rule named `domain` instead of `env`, so it never emitted anything. Setting `env` and `domain` together was already rejected by `env`'s own rule; both attributes now report the conflict.
-- BREAKING: A data source that derives its schema from a resource now keeps the resource's `sensitive` flag, which the conversion was dropping for every attribute shape. Reading a secret through such a data source used to echo it in plan output. The attributes this affects today are `data.coralogix_api_key.value` and the `coralogix_connector` credential fields; the `coralogix_webhook` ones follow from their own change. An `output` referencing any of them now needs `sensitive = true`, or Terraform reports "Output refers to sensitive values" at plan time, and a sensitive value cannot be used in `for_each` or as a map key. Nothing about state or types changes, so no resource is replaced and no plan gains a diff.
 
 # Release 3.12.0
 

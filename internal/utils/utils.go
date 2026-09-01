@@ -180,7 +180,6 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			Computed:            true,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
-			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.Float32Attribute:
 		return datasourceschema.Float32Attribute{
@@ -188,7 +187,6 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
-			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.Float64Attribute:
 		return datasourceschema.Float64Attribute{
@@ -196,7 +194,6 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
-			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.Int64Attribute:
 		return datasourceschema.Int64Attribute{
@@ -204,7 +201,6 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
-			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.Int32Attribute:
 		return datasourceschema.Int32Attribute{
@@ -212,7 +208,6 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
-			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.NumberAttribute:
 		return datasourceschema.NumberAttribute{
@@ -220,7 +215,6 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
-			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.StringAttribute:
 		return datasourceschema.StringAttribute{
@@ -228,14 +222,12 @@ func convertPrimitiveAttribute(resourceAttribute resourceschema.Attribute) (data
 			CustomType:          attr.CustomType,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
-			Sensitive:           attr.Sensitive,
 		}, true
 	case resourceschema.DynamicAttribute:
 		return datasourceschema.DynamicAttribute{
 			Computed:            true,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
-			Sensitive:           attr.Sensitive,
 		}, true
 	default:
 		return nil, false
@@ -247,7 +239,6 @@ func convertCollectionAttribute(resourceAttribute resourceschema.Attribute) (dat
 	case resourceschema.MapAttribute:
 		return datasourceschema.MapAttribute{
 			Computed:            true,
-			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			ElementType:         attr.ElementType,
@@ -255,7 +246,6 @@ func convertCollectionAttribute(resourceAttribute resourceschema.Attribute) (dat
 	case resourceschema.ObjectAttribute:
 		return datasourceschema.ObjectAttribute{
 			Computed:            true,
-			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			AttributeTypes:      attr.AttributeTypes,
@@ -263,7 +253,6 @@ func convertCollectionAttribute(resourceAttribute resourceschema.Attribute) (dat
 	case resourceschema.SetAttribute:
 		return datasourceschema.SetAttribute{
 			Computed:            true,
-			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			ElementType:         attr.ElementType,
@@ -271,7 +260,6 @@ func convertCollectionAttribute(resourceAttribute resourceschema.Attribute) (dat
 	case resourceschema.ListAttribute:
 		return datasourceschema.ListAttribute{
 			Computed:            true,
-			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			ElementType:         attr.ElementType,
@@ -286,7 +274,6 @@ func convertNestedAttribute(resourceAttribute resourceschema.Attribute) (datasou
 	case resourceschema.ListNestedAttribute:
 		return datasourceschema.ListNestedAttribute{
 			Computed:            true,
-			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			NestedObject: datasourceschema.NestedAttributeObject{
@@ -296,7 +283,6 @@ func convertNestedAttribute(resourceAttribute resourceschema.Attribute) (datasou
 	case resourceschema.MapNestedAttribute:
 		return datasourceschema.MapNestedAttribute{
 			Computed:            true,
-			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			NestedObject: datasourceschema.NestedAttributeObject{
@@ -306,7 +292,6 @@ func convertNestedAttribute(resourceAttribute resourceschema.Attribute) (datasou
 	case resourceschema.SetNestedAttribute:
 		return datasourceschema.SetNestedAttribute{
 			Computed:            true,
-			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			NestedObject: datasourceschema.NestedAttributeObject{
@@ -316,7 +301,6 @@ func convertNestedAttribute(resourceAttribute resourceschema.Attribute) (datasou
 	case resourceschema.SingleNestedAttribute:
 		return datasourceschema.SingleNestedAttribute{
 			Computed:            true,
-			Sensitive:           attr.Sensitive,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			Attributes:          ConvertAttributes(attr.Attributes),
