@@ -21,7 +21,6 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
@@ -747,7 +746,14 @@ resource "coralogix_connector" "wo" {
 // assertion cannot show whether the secret actually arrived.
 func connectorBackendFieldEquals(id, fieldName, want string) resource.TestCheckFunc {
 	return func(_ *terraform.State) error {
-		c, _, _ := clientset.NewClientSet(os.Getenv("CORALOGIX_ENV"), os.Getenv("CORALOGIX_API_KEY"), "").GetNotifications()
+		// Built through the provider so it honours whichever of CORALOGIX_ENV
+		// or CORALOGIX_DOMAIN the run supplies, as testAccPreCheck accepts
+		// either. Reading the environment here would miss a domain-only run.
+		clients, err := testAccNewClientSet()
+		if err != nil {
+			return err
+		}
+		c, _, _ := clients.GetNotifications()
 		res, _, err := c.ConnectorsServiceGetConnector(context.Background(), id).Execute()
 		if err != nil {
 			return err
