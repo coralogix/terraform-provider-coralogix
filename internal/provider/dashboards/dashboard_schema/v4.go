@@ -122,6 +122,17 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 													"custom_actions": schema.ListNestedAttribute{
 														NestedObject: schema.NestedAttributeObject{
 															Attributes: map[string]schema.Attribute{
+																// The API requires an id and does not
+																// generate one. Keeping the stored value
+																// stops an unrelated dashboard change from
+																// rewriting every action's id.
+																"id": schema.StringAttribute{
+																	Optional: true,
+																	Computed: true,
+																	PlanModifiers: []planmodifier.String{
+																		stringplanmodifier.UseNonNullStateForUnknown(),
+																	},
+																},
 																"name": schema.StringAttribute{
 																	Required:            true,
 																	MarkdownDescription: "Name shown on the action.",

@@ -2112,6 +2112,7 @@ Required:
 
 Optional:
 
+- `id` (String)
 - `should_open_in_new_window` (Boolean) Open the destination in a new window.
 
 

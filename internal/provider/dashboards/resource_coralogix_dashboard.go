@@ -27,7 +27,6 @@ import (
 	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-	"github.com/google/uuid"
 
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/dashboardjson"
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
@@ -157,6 +156,7 @@ type WidgetModel struct {
 }
 
 type WidgetCustomActionModel struct {
+	ID                    types.String `tfsdk:"id"`
 	Name                  types.String `tfsdk:"name"`
 	URL                   types.String `tfsdk:"url"`
 	DataSource            types.String `tfsdk:"data_source"`
@@ -1087,8 +1087,15 @@ func hoistWidgetCustomActions(ctx context.Context, layoutModel types.Object, exp
 	if dg := model.Sections.ElementsAs(ctx, &sections, true); dg.HasError() {
 		return nil, dg
 	}
+	// Expansion appends a diagnostic for anything it skips and the caller
+	// returns on error, so the counts always match by the time this runs.
+	// Reporting the mismatch keeps a future regression visible: returning
+	// nothing would drop the configured actions without saying so.
 	if len(sections) != len(expanded.Sections) {
-		return nil, nil
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Extract Widget Custom Actions Error",
+			fmt.Sprintf("expanded %d section(s) from %d configured, so widget custom actions cannot be matched to their widgets", len(expanded.Sections), len(sections)),
+		)}
 	}
 
 	var actions []dashboardservice.DashboardAction
@@ -1099,6 +1106,8 @@ func hoistWidgetCustomActions(ctx context.Context, layoutModel types.Object, exp
 			continue
 		}
 		if len(rows) != len(expanded.Sections[si].Rows) {
+			diags.AddError("Extract Widget Custom Actions Error",
+				fmt.Sprintf("section %d expanded %d row(s) from %d configured, so widget custom actions cannot be matched to their widgets", si, len(expanded.Sections[si].Rows), len(rows)))
 			continue
 		}
 		for ri := range rows {
@@ -1109,6 +1118,8 @@ func hoistWidgetCustomActions(ctx context.Context, layoutModel types.Object, exp
 			}
 			expandedWidgets := expanded.Sections[si].Rows[ri].Widgets
 			if len(widgets) != len(expandedWidgets) {
+				diags.AddError("Extract Widget Custom Actions Error",
+					fmt.Sprintf("section %d row %d expanded %d widget(s) from %d configured, so widget custom actions cannot be matched to their widgets", si, ri, len(expandedWidgets), len(widgets)))
 				continue
 			}
 			for wi := range widgets {
@@ -1145,12 +1156,11 @@ func expandWidgetCustomActions(ctx context.Context, list types.List, widgetID *d
 				fmt.Sprintf("Unknown action data source: %s", m.DataSource.ValueString()))
 			continue
 		}
-		// The API requires an id and does not generate one, so an action that
-		// does not carry one from a previous read gets a fresh id here, exactly
-		// as a widget without an id does.
-		id := uuid.NewString()
+		// The API requires an id and does not generate one. Reusing the id the
+		// read stored keeps it stable: generating one per apply would rewrite
+		// every action's id whenever anything else on the dashboard changed.
 		action := dashboardservice.DashboardAction{
-			Id:         &id,
+			Id:         dashboardwidgets.ExpandDashboardIDs(m.ID),
 			Name:       utils.TypeStringToStringPointer(m.Name),
 			DataSource: &dataSource,
 			Definition: &dashboardservice.ActionDefinition{
@@ -4327,6 +4337,7 @@ func flattenWidgetCustomActions(ctx context.Context, byWidget map[string][]dashb
 			}
 		}
 		models = append(models, WidgetCustomActionModel{
+			ID:                    utils.StringPointerToTypeString(a.Id),
 			Name:                  utils.StringPointerToTypeString(a.Name),
 			URL:                   utils.StringPointerToTypeString(a.Definition.CustomAction.Url),
 			DataSource:            dataSource,
@@ -4400,6 +4411,7 @@ func rowModelAttr() map[string]attr.Type {
 
 func widgetCustomActionAttr() map[string]attr.Type {
 	return map[string]attr.Type{
+		"id":                        types.StringType,
 		"name":                      types.StringType,
 		"url":                       types.StringType,
 		"data_source":               types.StringType,

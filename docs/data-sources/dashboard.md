@@ -722,6 +722,7 @@ Read-Only:
 Read-Only:
 
 - `data_source` (String) Which of the widget's data the action draws on, one of: [dataprime logs metrics spans]. The API requires it and does not check it against the widget, so set it to match the widget's own query.
+- `id` (String)
 - `name` (String) Name shown on the action.
 - `should_open_in_new_window` (Boolean) Open the destination in a new window.
 - `url` (String) Destination the action opens. May reference widget data, as the Coralogix UI describes.

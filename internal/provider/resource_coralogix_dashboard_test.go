@@ -2245,11 +2245,11 @@ resource "coralogix_dashboard" "test" {
 
 func TestAccCoralogixResourceDashboardWidgetCustomActions(t *testing.T) {
 	name := dashboardOpenAPIFixtureName(t.Name())
-	config := func(actions string) string {
+	config := func(description, actions string) string {
 		return fmt.Sprintf(`
 resource "coralogix_dashboard" "test" {
   name        = %q
-  description = "Testing widget custom actions"
+  description = %q
   layout = {
     sections = [{
       options = { name = "s" }
@@ -2270,17 +2270,41 @@ resource "coralogix_dashboard" "test" {
     }]
   }
 }
-`, name, actions)
+`, name, description, actions)
 	}
 
 	const attr = "layout.sections.0.rows.0.widgets.0.custom_actions"
+
+	// The API requires an action id and honours whatever is sent, so a fresh id
+	// per apply would rewrite every action whenever anything else on the
+	// dashboard changed. That churn is invisible in a plan, because the id is
+	// computed, so it needs an explicit before-and-after comparison.
+	var capturedID string
+	captureID := func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[dashboardResourceName]
+		if !ok {
+			return fmt.Errorf("%s not in state", dashboardResourceName)
+		}
+		capturedID = rs.Primary.Attributes[attr+".0.id"]
+		if capturedID == "" {
+			return fmt.Errorf("action id is empty after apply")
+		}
+		return nil
+	}
+	requireSameID := func(s *terraform.State) error {
+		rs := s.RootModule().Resources[dashboardResourceName]
+		if got := rs.Primary.Attributes[attr+".0.id"]; got != capturedID {
+			return fmt.Errorf("action id changed on an unrelated update: %q -> %q", capturedID, got)
+		}
+		return nil
+	}
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckDashboardDestroy(t),
 		Steps: []resource.TestStep{
 			{
-				Config: config(`custom_actions = [{
+				Config: config("Testing widget custom actions", `custom_actions = [{
             name                      = "open runbook"
             url                       = "https://example.com/runbook"
             data_source               = "logs"
@@ -2292,6 +2316,7 @@ resource "coralogix_dashboard" "test" {
 					resource.TestCheckResourceAttr(dashboardResourceName, attr+".0.url", "https://example.com/runbook"),
 					resource.TestCheckResourceAttr(dashboardResourceName, attr+".0.data_source", "logs"),
 					resource.TestCheckResourceAttr(dashboardResourceName, attr+".0.should_open_in_new_window", "true"),
+					captureID,
 				),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
@@ -2299,8 +2324,21 @@ resource "coralogix_dashboard" "test" {
 			},
 			testAccDashboardImportStep(),
 			{
+				// only the description changes; the action id must survive
+				Config: config("Changed, actions untouched", `custom_actions = [{
+            name                      = "open runbook"
+            url                       = "https://example.com/runbook"
+            data_source               = "logs"
+            should_open_in_new_window = true
+          }]`),
+				Check: requireSameID,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
 				// two actions on one widget, and a changed field, must reach the API
-				Config: config(`custom_actions = [
+				Config: config("Testing widget custom actions", `custom_actions = [
             {
               name        = "open runbook"
               url         = "https://example.com/runbook-v2"
@@ -2324,12 +2362,12 @@ resource "coralogix_dashboard" "test" {
 			{
 				// an empty list would read back null and fail the apply as an
 				// inconsistent result, so the schema rejects it outright
-				Config:      config(`custom_actions = []`),
+				Config:      config("Testing widget custom actions", `custom_actions = []`),
 				ExpectError: regexp.MustCompile(`(?s)custom_actions.*at least 1 element`),
 			},
 			{
 				// removing them must clear them at the API, not linger in state
-				Config: config(``),
+				Config: config("Testing widget custom actions", ``),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckNoResourceAttr(dashboardResourceName, attr+".#"),
 				),
