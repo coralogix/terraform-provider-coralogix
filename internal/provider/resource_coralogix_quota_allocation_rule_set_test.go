@@ -94,7 +94,7 @@ func TestAccCoralogixResourceQuotaAllocationRuleSet(t *testing.T) {
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(quotaAllocationRuleSetResourceName, "rules.*", map[string]string{
 						"entity_type":     "spans",
-						"allocation":      "10",
+						"allocation":      "1",
 						"allocation_type": "locked_units",
 						"enabled":         "true",
 						"can_overflow":    "false",
@@ -202,7 +202,7 @@ resource "coralogix_quota_allocation_rule_set" "test" {
     },
     {
       entity_type     = "spans"
-      allocation      = 10
+      allocation      = 1
       allocation_type = "locked_units"
       enabled         = true
       can_overflow    = false
