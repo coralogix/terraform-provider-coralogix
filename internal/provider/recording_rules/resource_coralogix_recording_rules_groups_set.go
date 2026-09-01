@@ -805,7 +805,7 @@ func expandRecordingRule(ctx context.Context, rule RecordingRuleModel) (*recRule
 	return &recRuless.InRule{
 		Record: rule.Record.ValueString(),
 		Expr:   rule.Expr.ValueString(),
-		Labels: &labels,
+		Labels: labels,
 	}, nil
 }
 

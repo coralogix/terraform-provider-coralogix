@@ -434,7 +434,7 @@ func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*slos.Slo, dia
 	slo := &slos.Slo{
 		Description:               description,
 		Id:                        id,
-		Labels:                    &labels,
+		Labels:                    labels,
 		Name:                      name,
 		SloTimeFrame:              timeFrame,
 		TargetThresholdPercentage: &targetThresholdPct,
@@ -627,7 +627,7 @@ func flattenRequestBasedSLI(ctx context.Context, slo *slos.Slo) (*SLOV2ResourceM
 		return nil, diags
 	}
 
-	labels, diags := utils.StringMapToTypeMap(ctx, slo.Labels)
+	labels, diags := utils.StringMapToTypeMap(ctx, &slo.Labels)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -693,7 +693,7 @@ func flattenWindowBasedSLI(ctx context.Context, slo *slos.Slo) (*SLOV2ResourceMo
 		return nil, diags
 	}
 
-	labels, diags := utils.StringMapToTypeMap(ctx, slo.Labels)
+	labels, diags := utils.StringMapToTypeMap(ctx, &slo.Labels)
 	if diags.HasError() {
 		return nil, diags
 	}

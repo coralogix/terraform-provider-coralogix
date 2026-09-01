@@ -17,6 +17,7 @@ package dashboard_schema
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	dashboardwidgets "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets"
@@ -153,6 +154,23 @@ func (c ContentJsonValidator) ValidateString(_ context.Context, request validato
 	err := dashboardjson.Unmarshal([]byte(request.ConfigValue.ValueString()), &dashboardservice.Dashboard{})
 	if err != nil {
 		response.Diagnostics.Append(diag.NewErrorDiagnostic("content_json validation failed", fmt.Sprintf("json content is not matching layout schema. got an err while unmarshalling - %s", err)))
+		return
+	}
+
+	// Unknown keys are discarded silently, so a misspelled field looks applied
+	// but never reaches the API. Warn rather than fail: a newer backend may
+	// accept keys this provider's pinned models do not know yet.
+	if unknown := unknownContentJSONKeys(request.ConfigValue.ValueString()); len(unknown) > 0 {
+		response.Diagnostics.Append(diag.NewAttributeWarningDiagnostic(
+			request.Path,
+			"Unknown fields in content_json",
+			fmt.Sprintf(
+				"The provider does not recognise these fields and will drop them, so they will have no effect on the dashboard:\n\n  %s\n\n"+
+					"Either a name is misspelled, or the field is newer than the Coralogix SDK this provider is built against. "+
+					"A field copied from an existing dashboard's export is usually the second case, and needs a provider release rather than a configuration change.",
+				strings.Join(unknown, "\n  "),
+			),
+		))
 	}
 }
 

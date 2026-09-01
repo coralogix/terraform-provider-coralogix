@@ -261,7 +261,7 @@ func extractIpAccessRules(rules []IpAccessRuleModel) []ipaccess.IpAccess {
 func flattenCreateResponse(resp *ipaccess.CreateCompanyIpAccessSettingsResponse) IpAccessCompanySettingsModel {
 
 	rules := make([]IpAccessRuleModel, 0)
-	for _, v := range *resp.Settings.IpAccess {
+	for _, v := range resp.Settings.IpAccess {
 		rules = append(rules, flattenIPAccess(&v))
 	}
 	return IpAccessCompanySettingsModel{
@@ -273,7 +273,7 @@ func flattenCreateResponse(resp *ipaccess.CreateCompanyIpAccessSettingsResponse)
 
 func flattenReplaceResponse(resp *ipaccess.ReplaceCompanyIpAccessSettingsResponse) IpAccessCompanySettingsModel {
 	rules := make([]IpAccessRuleModel, 0)
-	for _, v := range *resp.Settings.IpAccess {
+	for _, v := range resp.Settings.IpAccess {
 		rules = append(rules, flattenIPAccess(&v))
 	}
 	return IpAccessCompanySettingsModel{
@@ -286,7 +286,7 @@ func flattenReplaceResponse(resp *ipaccess.ReplaceCompanyIpAccessSettingsRespons
 func flattenReadResponse(resp *ipaccess.GetCompanyIpAccessSettingsResponse) IpAccessCompanySettingsModel {
 	rules := make([]IpAccessRuleModel, 0)
 	if resp.Settings.IpAccess != nil {
-		for _, v := range *resp.Settings.IpAccess {
+		for _, v := range resp.Settings.IpAccess {
 			rules = append(rules, flattenIPAccess(&v))
 		}
 	}

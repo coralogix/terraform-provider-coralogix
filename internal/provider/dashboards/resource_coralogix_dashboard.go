@@ -117,10 +117,16 @@ type SectionModel struct {
 }
 
 type SectionOptionsModel struct {
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Collapsed   types.Bool   `tfsdk:"collapsed"`
-	Color       types.String `tfsdk:"color"`
+	Name          types.String `tfsdk:"name"`
+	Description   types.String `tfsdk:"description"`
+	Collapsed     types.Bool   `tfsdk:"collapsed"`
+	Color         types.String `tfsdk:"color"`
+	RepetitiveVar types.Object `tfsdk:"repetitive_var"` //SectionRepetitiveVarModel
+	Internal      types.Object `tfsdk:"internal"`
+}
+
+type SectionRepetitiveVarModel struct {
+	Name types.String `tfsdk:"name"`
 }
 
 type RowModel struct {
@@ -397,6 +403,7 @@ type DashboardAnnotationMetricSourceModel struct {
 	Strategy        types.Object `tfsdk:"strategy"` //DashboardAnnotationMetricStrategyModel
 	MessageTemplate types.String `tfsdk:"message_template"`
 	Labels          types.List   `tfsdk:"labels"` //types.String
+	Orientation     types.String `tfsdk:"orientation"`
 }
 
 type DashboardAnnotationSpansOrLogsSourceModel struct {
@@ -1870,6 +1877,7 @@ func expandMetricSource(ctx context.Context, metric types.Object) (*dashboardser
 		Strategy:        strategy,
 		MessageTemplate: utils.TypeStringToStringPointer(metricObject.MessageTemplate),
 		Labels:          labels,
+		Orientation:     expandManualAnnotationOrientation(metricObject.Orientation).Ptr(),
 	}, nil
 }
 
@@ -1956,7 +1964,25 @@ func expandSection(ctx context.Context, section SectionModel) (*dashboardservice
 	}
 }
 
-func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*dashboardservice.SectionOptions, diag.Diagnostics) {
+func sectionOptionsAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"name":        types.StringType,
+		"description": types.StringType,
+		"color":       types.StringType,
+		"collapsed":   types.BoolType,
+		"repetitive_var": types.ObjectType{
+			AttrTypes: map[string]attr.Type{"name": types.StringType},
+		},
+		"internal": types.ObjectType{AttrTypes: map[string]attr.Type{}},
+	}
+}
+
+func expandSectionOptions(ctx context.Context, option SectionOptionsModel) (*dashboardservice.SectionOptions, diag.Diagnostics) {
+	// The arms are mutually exclusive at the API, and an unnamed section carries
+	// no other setting, so the internal arm short-circuits the rest.
+	if !option.Internal.IsNull() && !option.Internal.IsUnknown() {
+		return &dashboardservice.SectionOptions{Internal: map[string]interface{}{}}, nil
+	}
 
 	var color *dashboardservice.SectionColor
 	if !option.Color.IsNull() {
@@ -1974,12 +2000,24 @@ func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*dashb
 		}
 	}
 
+	var repetitiveVar *dashboardservice.RepetitiveVar
+	if !option.RepetitiveVar.IsNull() && !option.RepetitiveVar.IsUnknown() {
+		var model SectionRepetitiveVarModel
+		if dg := option.RepetitiveVar.As(ctx, &model, basetypes.ObjectAsOptions{}); dg.HasError() {
+			return nil, dg
+		}
+		repetitiveVar = &dashboardservice.RepetitiveVar{
+			Name: utils.TypeStringToStringPointer(model.Name),
+		}
+	}
+
 	return &dashboardservice.SectionOptions{
 		Custom: &dashboardservice.CustomSectionOptions{
-			Name:        utils.TypeStringToStringPointer(option.Name),
-			Description: utils.TypeStringToStringPointer(option.Description),
-			Collapsed:   typeBoolToBoolPointer(option.Collapsed),
-			Color:       color,
+			Name:          utils.TypeStringToStringPointer(option.Name),
+			Description:   utils.TypeStringToStringPointer(option.Description),
+			Collapsed:     typeBoolToBoolPointer(option.Collapsed),
+			Color:         color,
+			RepetitiveVar: repetitiveVar,
 		},
 	}, nil
 }
@@ -4165,12 +4203,7 @@ func sectionModelAttr() map[string]attr.Type {
 			},
 		},
 		"options": types.ObjectType{
-			AttrTypes: map[string]attr.Type{
-				"name":        types.StringType,
-				"description": types.StringType,
-				"color":       types.StringType,
-				"collapsed":   types.BoolType,
-			},
+			AttrTypes: sectionOptionsAttr(),
 		},
 	}
 }
@@ -4753,6 +4786,7 @@ func manualRangeStrategyModelAttr() map[string]attr.Type {
 
 func annotationsMetricsSourceModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
+		"orientation":  types.StringType,
 		"promql_query": types.StringType,
 		"strategy": types.ObjectType{
 			AttrTypes: metricStrategyModelAttr(),
@@ -4995,9 +5029,24 @@ func flattenDashboardSection(ctx context.Context, section *dashboardservice.Sect
 	}, nil
 }
 
-func flattenDashboardOptions(_ context.Context, opts *dashboardservice.SectionOptions) (*SectionOptionsModel, diag.Diagnostics) {
-	if opts == nil || opts.Custom == nil {
+func flattenDashboardOptions(ctx context.Context, opts *dashboardservice.SectionOptions) (*SectionOptionsModel, diag.Diagnostics) {
+	if opts == nil {
 		return nil, nil
+	}
+	// An unnamed section stores the internal arm, which carries no settings.
+	// Returning nil here would drop the arm and clear it on the next apply.
+	if opts.Custom == nil {
+		if opts.Internal == nil {
+			return nil, nil
+		}
+		return &SectionOptionsModel{
+			Name:          types.StringNull(),
+			Description:   types.StringNull(),
+			Collapsed:     types.BoolNull(),
+			Color:         types.StringNull(),
+			RepetitiveVar: types.ObjectNull(map[string]attr.Type{"name": types.StringType}),
+			Internal:      types.ObjectValueMust(map[string]attr.Type{}, map[string]attr.Value{}),
+		}, nil
 	}
 	custom := opts.Custom
 	var description basetypes.StringValue
@@ -5026,11 +5075,23 @@ func flattenDashboardOptions(_ context.Context, opts *dashboardservice.SectionOp
 		color = types.StringNull()
 	}
 
+	repetitiveVar := types.ObjectNull(map[string]attr.Type{"name": types.StringType})
+	if custom.RepetitiveVar != nil {
+		value, diags := types.ObjectValueFrom(ctx, map[string]attr.Type{"name": types.StringType},
+			SectionRepetitiveVarModel{Name: utils.StringPointerToTypeString(custom.RepetitiveVar.Name)})
+		if diags.HasError() {
+			return nil, diags
+		}
+		repetitiveVar = value
+	}
+
 	return &SectionOptionsModel{
-		Name:        utils.StringPointerToTypeString(custom.Name),
-		Description: description,
-		Collapsed:   collapsed,
-		Color:       color,
+		Name:          utils.StringPointerToTypeString(custom.Name),
+		Description:   description,
+		Collapsed:     collapsed,
+		Color:         color,
+		RepetitiveVar: repetitiveVar,
+		Internal:      types.ObjectNull(map[string]attr.Type{}),
 	}, nil
 }
 
@@ -7484,6 +7545,7 @@ func flattenDashboardAnnotationMetricSourceModel(ctx context.Context, metricSour
 		Strategy:        strategy,
 		MessageTemplate: utils.StringPointerToTypeString(metricSource.MessageTemplate),
 		Labels:          utils.StringSliceToTypeStringList(metricSource.GetLabels()),
+		Orientation:     flattenManualAnnotationOrientation(metricSource.GetOrientation()),
 	}
 
 	return types.ObjectValueFrom(ctx, annotationsMetricsSourceModelAttr(), metricSourceObject)
