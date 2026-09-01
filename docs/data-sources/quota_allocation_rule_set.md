@@ -43,7 +43,7 @@ data "coralogix_quota_allocation_rule_set" "current" {}
 
 Read-Only:
 
-- `allocation` (Number) Quota allocation value for this entity type. For `percentage`, this is a share of the pool left after `locked_units`. For `locked_units`, this is a fixed reservation from the team daily quota.
+- `allocation` (Number) Quota allocation value for this entity type. For `percentage`, this is a share of the pool left after `locked_units`. For `locked_units`, this is a fixed reservation from the team daily quota. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota.
 - `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage` and `locked_units`. An API `UNSPECIFIED` value is returned as `percentage`.
 - `can_overflow` (Boolean) Whether this entity type can overflow beyond its allocation.
 - `cx_managed` (Boolean) Whether the quota allocation rule is managed by Coralogix. Customer Terraform configurations must not send edits that collide with a `cx_managed` rule for the same entity type. Delete clears customer-managed rules only.

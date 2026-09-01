@@ -77,11 +77,11 @@ resource "coralogix_quota_allocation_rule_set" "example" {
 
 Required:
 
-- `allocation` (Number) Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative and fit within the team daily quota.
+- `allocation` (Number) Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota.
 - `can_overflow` (Boolean) Whether this entity type can overflow beyond its allocation.
 - `enabled` (Boolean) Whether the quota allocation rule is enabled.
 - `entity_type` (String) Entity type covered by the rule. Known values include `logs`, `spans`, `metrics`, `cpuProfiles`, `memoryProfiles`, `browserLogs`, `browserLogs/v2`, `sessionRecordings`, `olly`, `auditEvents`, `alerts`, `quotaEvents`, `engineQueries`, `engineSchemaFields`, `labsLimitViolations`, and `notificationDeliveries`. The list is additive; the API may accept more values over time.
 
 Optional:
 
-- `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage` (default) and `locked_units`. Locked units are reserved first from the team daily quota; percentage rules share the remaining pool and their enabled allocations must sum to at most 100.
+- `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage` (default) and `locked_units`. `unspecified` is accepted as a compatible alias of `percentage` and is normalized to `percentage` during planning. Locked units are reserved first from the team daily quota; percentage rules share the remaining pool and their enabled allocations must sum to at most 100.

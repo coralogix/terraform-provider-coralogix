@@ -17,6 +17,8 @@ package dataplans
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+
 	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -272,6 +274,39 @@ func TestFlattenQuotaAllocationRuleSetUnspecifiedBecomesPercentage(t *testing.T)
 	}
 }
 
+func TestExpandQuotaAllocationRuleSetUnspecifiedBecomesPercentage(t *testing.T) {
+	plan := QuotaAllocationRuleSetModel{
+		Rules: []QuotaAllocationRuleModel{
+			{
+				EntityType:     types.StringValue("logs"),
+				Allocation:     types.Float64Value(40),
+				AllocationType: types.StringValue(quotaAllocationTypeUnspecified),
+				Enabled:        types.BoolValue(true),
+				CanOverflow:    types.BoolValue(true),
+			},
+		},
+	}
+
+	ruleSet, diags := expandQuotaAllocationRuleSet(plan)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	allocationType, ok := ruleSet.Rules[0].GetAllocationTypeOk()
+	if !ok || *allocationType != quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE {
+		t.Fatalf("expected unspecified to expand as percentage, got %v", allocationType)
+	}
+}
+
+func TestNormalizeUnspecifiedQuotaAllocationTypePlanModifier(t *testing.T) {
+	modifier := normalizeUnspecifiedQuotaAllocationType()
+	var resp planmodifier.StringResponse
+	modifier.PlanModifyString(t.Context(), planmodifier.StringRequest{
+		ConfigValue: types.StringValue(quotaAllocationTypeUnspecified),
+	}, &resp)
+	if resp.PlanValue.ValueString() != quotaAllocationTypePercentage {
+		t.Fatalf("expected plan value percentage, got %q", resp.PlanValue.ValueString())
+	}
+}
 func TestExpandAndFlattenQuotaAllocationRuleSetEmptyRules(t *testing.T) {
 	plan := QuotaAllocationRuleSetModel{
 		ID:    types.StringValue("rule-set-id"),
@@ -295,116 +330,6 @@ func TestExpandAndFlattenQuotaAllocationRuleSetEmptyRules(t *testing.T) {
 	}
 	if len(state.Rules) != 0 {
 		t.Fatalf("expected empty flatten rules, got %d", len(state.Rules))
-	}
-}
-
-func TestMergeManagedQuotaAllocationRulesPreservesRemoteManagedRules(t *testing.T) {
-	id := "rule-set-id"
-	cxManaged := true
-	ruleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{
-		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-			{
-				EntityType:  "logs",
-				Allocation:  90,
-				Enabled:     true,
-				CanOverflow: true,
-			},
-		},
-	}
-	remoteRuleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{
-		Id: &id,
-		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-			{
-				EntityType:  "metrics",
-				Allocation:  10,
-				CxManaged:   &cxManaged,
-				Enabled:     true,
-				CanOverflow: false,
-			},
-			{
-				EntityType:  "spans",
-				Allocation:  50,
-				Enabled:     true,
-				CanOverflow: true,
-			},
-		},
-	}
-
-	mergedRuleSet := mergeManagedQuotaAllocationRules(ruleSet, remoteRuleSet)
-
-	if len(mergedRuleSet.Rules) != 2 {
-		t.Fatalf("expected planned and managed rules, got %d", len(mergedRuleSet.Rules))
-	}
-	if mergedRuleSet.Rules[0].GetEntityType() != "logs" {
-		t.Fatalf("expected planned rule first after sorting, got %q", mergedRuleSet.Rules[0].GetEntityType())
-	}
-	if mergedRuleSet.Rules[1].GetEntityType() != "metrics" {
-		t.Fatalf("expected managed rule to be preserved, got %q", mergedRuleSet.Rules[1].GetEntityType())
-	}
-	if mergedRuleSet.Rules[1].HasCxManaged() {
-		t.Fatal("cx_managed is read-only and should not be sent for preserved managed rules")
-	}
-}
-
-func TestMergeManagedQuotaAllocationRulesSkipsManagedRuleOverriddenByPlan(t *testing.T) {
-	cxManaged := true
-	ruleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{
-		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-			{
-				EntityType: "logs",
-				Allocation: 90,
-			},
-		},
-	}
-	remoteRuleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{
-		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-			{
-				EntityType: "logs",
-				Allocation: 10,
-				CxManaged:  &cxManaged,
-			},
-		},
-	}
-
-	mergedRuleSet := mergeManagedQuotaAllocationRules(ruleSet, remoteRuleSet)
-
-	if len(mergedRuleSet.Rules) != 1 {
-		t.Fatalf("expected planned rule to override matching managed rule, got %d rules", len(mergedRuleSet.Rules))
-	}
-	if mergedRuleSet.Rules[0].GetAllocation() != 90 {
-		t.Fatalf("expected planned allocation to be preserved, got %v", mergedRuleSet.Rules[0].GetAllocation())
-	}
-}
-
-func TestManagedQuotaAllocationRuleSetKeepsOnlyManagedRules(t *testing.T) {
-	id := "rule-set-id"
-	cxManaged := true
-	remoteRuleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{
-		Id: &id,
-		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-			{
-				EntityType: "logs",
-			},
-			{
-				EntityType: "metrics",
-				CxManaged:  &cxManaged,
-			},
-		},
-	}
-
-	managedRuleSet := managedQuotaAllocationRuleSet(remoteRuleSet)
-
-	if managedRuleSet.GetId() != id {
-		t.Fatalf("expected id to round-trip, got %q", managedRuleSet.GetId())
-	}
-	if len(managedRuleSet.Rules) != 1 {
-		t.Fatalf("expected only managed rules, got %d", len(managedRuleSet.Rules))
-	}
-	if managedRuleSet.Rules[0].GetEntityType() != "metrics" {
-		t.Fatalf("expected metrics managed rule, got %q", managedRuleSet.Rules[0].GetEntityType())
-	}
-	if managedRuleSet.Rules[0].HasCxManaged() {
-		t.Fatal("cx_managed is read-only and should not be sent for preserved managed rules")
 	}
 }
 

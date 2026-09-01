@@ -95,7 +95,7 @@ func (d *QuotaAllocationRuleSetDataSource) Schema(_ context.Context, _ datasourc
 						},
 						"allocation": schema.Float64Attribute{
 							Computed:            true,
-							MarkdownDescription: "Quota allocation value for this entity type. For `percentage`, this is a share of the pool left after `locked_units`. For `locked_units`, this is a fixed reservation from the team daily quota.",
+							MarkdownDescription: "Quota allocation value for this entity type. For `percentage`, this is a share of the pool left after `locked_units`. For `locked_units`, this is a fixed reservation from the team daily quota. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota.",
 						},
 						"allocation_type": schema.StringAttribute{
 							Computed:            true,
