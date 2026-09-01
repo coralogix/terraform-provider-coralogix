@@ -7,6 +7,12 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  # Same group as acceptance-tests.yml so the nightly cleanup cannot delete
+  # resources belonging to an in-progress live acceptance run.
+  group: acceptance-tests-live-cx
+  cancel-in-progress: false
+
 jobs:
   test:
     env:
