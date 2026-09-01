@@ -27,7 +27,6 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -41,24 +40,25 @@ import (
 const quotaAllocationRuleSetImportID = "quota-allocation-rule-set"
 
 const (
-	quotaAllocationTypeUnspecified = "unspecified"
 	quotaAllocationTypePercentage  = "percentage"
 	quotaAllocationTypeLockedUnits = "locked_units"
 )
 
+// Known allocatable entity types verified against the API. The list is additive; the API may accept more values over time.
+const quotaAllocationKnownEntityTypesDoc = "`logs`, `spans`, `metrics`, `cpuProfiles`, `memoryProfiles`, `browserLogs`, `browserLogs/v2`, `sessionRecordings`, `olly`, `auditEvents`, `alerts`, `quotaEvents`, `engineQueries`, `engineSchemaFields`, `labsLimitViolations`, and `notificationDeliveries`"
+
 var (
 	quotaAllocationTypeSchemaToAPI = map[string]quotaRules.QuotaAllocationType{
-		quotaAllocationTypeUnspecified: quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_UNSPECIFIED,
 		quotaAllocationTypePercentage:  quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE,
 		quotaAllocationTypeLockedUnits: quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS,
 	}
+	// API UNSPECIFIED flattens to percentage (same effective default the API applies on write).
 	quotaAllocationTypeAPIToSchema = map[quotaRules.QuotaAllocationType]string{
-		quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_UNSPECIFIED:  quotaAllocationTypeUnspecified,
+		quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_UNSPECIFIED:  quotaAllocationTypePercentage,
 		quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE:   quotaAllocationTypePercentage,
 		quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS: quotaAllocationTypeLockedUnits,
 	}
 	validQuotaAllocationTypes = []string{
-		quotaAllocationTypeUnspecified,
 		quotaAllocationTypePercentage,
 		quotaAllocationTypeLockedUnits,
 	}
@@ -114,18 +114,15 @@ func (r *QuotaAllocationRuleSetResource) Configure(_ context.Context, req resour
 
 func (r *QuotaAllocationRuleSetResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set, and delete removes the account rule set. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Known entity types include `logs`, `browserLogs`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`, but the API may accept additional values.",
+		MarkdownDescription: "Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set. Delete clears customer-managed rules only; Coralogix-managed (`cx_managed`) rules are preserved. This resource filters `cx_managed` rules out of state; the data source exposes them. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Known entity types include " + quotaAllocationKnownEntityTypesDoc + ". The list is additive; the API may accept more values over time.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The backend identifier for the quota allocation rule set. Import accepts this value or `quota-allocation-rule-set`.",
 			},
 			"rules": schema.SetNestedAttribute{
-				Required: true,
-				Validators: []validator.Set{
-					setvalidator.SizeAtLeast(1),
-				},
-				MarkdownDescription: "Complete set of quota allocation rules. Because the backend stores a single account-level rule set, Terraform replaces the full set during update.",
+				Required:            true,
+				MarkdownDescription: "Complete set of customer-managed quota allocation rules. Because the backend stores a single account-level rule set, Terraform replaces the full customer-managed set during update. Set `rules = []` to clear all customer-managed rules.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"entity_type": schema.StringAttribute{
@@ -133,14 +130,14 @@ func (r *QuotaAllocationRuleSetResource) Schema(_ context.Context, _ resource.Sc
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
-							MarkdownDescription: "Entity type covered by the rule. Known values include `logs`, `browserLogs`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`.",
+							MarkdownDescription: "Entity type covered by the rule. Known values include " + quotaAllocationKnownEntityTypesDoc + ". The list is additive; the API may accept more values over time.",
 						},
 						"allocation": schema.Float64Attribute{
 							Required: true,
 							Validators: []validator.Float64{
 								float64validator.AtLeast(0),
 							},
-							MarkdownDescription: "Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative.",
+							MarkdownDescription: "Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative and fit within the team daily quota.",
 						},
 						"allocation_type": schema.StringAttribute{
 							Optional: true,
@@ -149,7 +146,7 @@ func (r *QuotaAllocationRuleSetResource) Schema(_ context.Context, _ resource.Sc
 							Validators: []validator.String{
 								stringvalidator.OneOf(validQuotaAllocationTypes...),
 							},
-							MarkdownDescription: "How the allocation value is interpreted. Valid values are `percentage`, `locked_units`, and `unspecified`.",
+							MarkdownDescription: "How the allocation value is interpreted. Valid values are `percentage` (default) and `locked_units`. Locked units are reserved first from the team daily quota; percentage rules share the remaining pool and their enabled allocations must sum to at most 100.",
 						},
 						"enabled": schema.BoolAttribute{
 							Required:            true,
@@ -273,18 +270,11 @@ func (r *QuotaAllocationRuleSetResource) Read(ctx context.Context, req resource.
 		)
 		return
 	}
-	if quotaAllocationRuleSetIsEmpty(result) {
-		resp.State.RemoveResource(ctx)
-		return
-	}
 
+	// Empty customer-managed rules are a valid managed state (`rules = []` clears them).
 	newState, diags := flattenGetQuotaAllocationRuleSetResponse(result)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
-		return
-	}
-	if len(newState.Rules) == 0 {
-		resp.State.RemoveResource(ctx)
 		return
 	}
 

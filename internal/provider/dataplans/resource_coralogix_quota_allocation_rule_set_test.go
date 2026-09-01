@@ -251,6 +251,53 @@ func TestFlattenQuotaAllocationRuleSetUsesSyntheticID(t *testing.T) {
 	}
 }
 
+func TestFlattenQuotaAllocationRuleSetUnspecifiedBecomesPercentage(t *testing.T) {
+	unspecified := quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_UNSPECIFIED
+	state, diags := flattenQuotaAllocationRuleSet(&quotaRules.QuotaAllocationEntityTypeRuleSet{
+		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+			{
+				EntityType:     "logs",
+				Allocation:     40,
+				AllocationType: &unspecified,
+				Enabled:        true,
+				CanOverflow:    true,
+			},
+		},
+	})
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if got := state.Rules[0].AllocationType.ValueString(); got != quotaAllocationTypePercentage {
+		t.Fatalf("expected unspecified allocation_type to flatten to %q, got %q", quotaAllocationTypePercentage, got)
+	}
+}
+
+func TestExpandAndFlattenQuotaAllocationRuleSetEmptyRules(t *testing.T) {
+	plan := QuotaAllocationRuleSetModel{
+		ID:    types.StringValue("rule-set-id"),
+		Rules: []QuotaAllocationRuleModel{},
+	}
+
+	ruleSet, diags := expandQuotaAllocationRuleSet(plan)
+	if diags.HasError() {
+		t.Fatalf("unexpected expand diagnostics: %v", diags)
+	}
+	if len(ruleSet.Rules) != 0 {
+		t.Fatalf("expected empty expand rules, got %d", len(ruleSet.Rules))
+	}
+
+	state, diags := flattenQuotaAllocationRuleSet(ruleSet)
+	if diags.HasError() {
+		t.Fatalf("unexpected flatten diagnostics: %v", diags)
+	}
+	if state.Rules == nil {
+		t.Fatal("expected empty rules slice, got nil")
+	}
+	if len(state.Rules) != 0 {
+		t.Fatalf("expected empty flatten rules, got %d", len(state.Rules))
+	}
+}
+
 func TestMergeManagedQuotaAllocationRulesPreservesRemoteManagedRules(t *testing.T) {
 	id := "rule-set-id"
 	cxManaged := true

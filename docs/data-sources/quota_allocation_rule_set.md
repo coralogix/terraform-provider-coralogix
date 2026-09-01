@@ -3,12 +3,12 @@
 page_title: "coralogix_quota_allocation_rule_set Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Reads the current account-level Coralogix quota allocation rule set. Requires team-quota-rules:Read permission.
+  Reads the current account-level Coralogix quota allocation rule set, including Coralogix-managed (cx_managed) rules that the resource filters out of state. Requires team-quota-rules:Read permission. Known entity types include logs, spans, metrics, cpuProfiles, memoryProfiles, browserLogs, browserLogs/v2, sessionRecordings, olly, auditEvents, alerts, quotaEvents, engineQueries, engineSchemaFields, labsLimitViolations, and notificationDeliveries. The list is additive; the API may accept more values over time.
 ---
 
 # coralogix_quota_allocation_rule_set (Data Source)
 
-Reads the current account-level Coralogix quota allocation rule set. Requires `team-quota-rules:Read` permission.
+Reads the current account-level Coralogix quota allocation rule set, including Coralogix-managed (`cx_managed`) rules that the resource filters out of state. Requires `team-quota-rules:Read` permission. Known entity types include `logs`, `spans`, `metrics`, `cpuProfiles`, `memoryProfiles`, `browserLogs`, `browserLogs/v2`, `sessionRecordings`, `olly`, `auditEvents`, `alerts`, `quotaEvents`, `engineQueries`, `engineSchemaFields`, `labsLimitViolations`, and `notificationDeliveries`. The list is additive; the API may accept more values over time.
 
 ## Example Usage
 
@@ -36,16 +36,16 @@ data "coralogix_quota_allocation_rule_set" "current" {}
 ### Read-Only
 
 - `id` (String) The backend identifier for the quota allocation rule set.
-- `rules` (Attributes Set) Current quota allocation rules returned by the backend. (see [below for nested schema](#nestedatt--rules))
+- `rules` (Attributes Set) Current quota allocation rules returned by the backend, including `cx_managed` rules. (see [below for nested schema](#nestedatt--rules))
 
 <a id="nestedatt--rules"></a>
 ### Nested Schema for `rules`
 
 Read-Only:
 
-- `allocation` (Number) Quota allocation value for this entity type.
-- `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage`, `locked_units`, and `unspecified`.
+- `allocation` (Number) Quota allocation value for this entity type. For `percentage`, this is a share of the pool left after `locked_units`. For `locked_units`, this is a fixed reservation from the team daily quota.
+- `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage` and `locked_units`. An API `UNSPECIFIED` value is returned as `percentage`.
 - `can_overflow` (Boolean) Whether this entity type can overflow beyond its allocation.
-- `cx_managed` (Boolean) Whether the quota allocation rule is managed by Coralogix.
+- `cx_managed` (Boolean) Whether the quota allocation rule is managed by Coralogix. Customer Terraform configurations must not send edits that collide with a `cx_managed` rule for the same entity type. Delete clears customer-managed rules only.
 - `enabled` (Boolean) Whether the quota allocation rule is enabled.
-- `entity_type` (String) Entity type covered by the rule.
+- `entity_type` (String) Entity type covered by the rule. Known values include `logs`, `spans`, `metrics`, `cpuProfiles`, `memoryProfiles`, `browserLogs`, `browserLogs/v2`, `sessionRecordings`, `olly`, `auditEvents`, `alerts`, `quotaEvents`, `engineQueries`, `engineSchemaFields`, `labsLimitViolations`, and `notificationDeliveries`. The list is additive; the API may accept more values over time.

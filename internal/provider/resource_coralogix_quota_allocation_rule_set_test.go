@@ -39,16 +39,18 @@ func TestAccCoralogixResourceQuotaAllocationRuleSet(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(quotaAllocationRuleSetResourceName, "rules.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(quotaAllocationRuleSetResourceName, "rules.*", map[string]string{
-						"entity_type":  "logs",
-						"allocation":   "60",
-						"enabled":      "true",
-						"can_overflow": "true",
+						"entity_type":     "logs",
+						"allocation":      "60",
+						"allocation_type": "percentage",
+						"enabled":         "true",
+						"can_overflow":    "true",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(quotaAllocationRuleSetResourceName, "rules.*", map[string]string{
-						"entity_type":  "metrics",
-						"allocation":   "40",
-						"enabled":      "true",
-						"can_overflow": "false",
+						"entity_type":     "metrics",
+						"allocation":      "40",
+						"allocation_type": "percentage",
+						"enabled":         "true",
+						"can_overflow":    "false",
 					}),
 				),
 			},
@@ -77,6 +79,54 @@ func TestAccCoralogixResourceQuotaAllocationRuleSet(t *testing.T) {
 			},
 			{
 				Config:   testAccCoralogixResourceQuotaAllocationRuleSet(55, 45, false),
+				PlanOnly: true,
+			},
+			{
+				Config: testAccCoralogixResourceQuotaAllocationRuleSetMixed(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(quotaAllocationRuleSetResourceName, "rules.#", "4"),
+					resource.TestCheckTypeSetElemNestedAttrs(quotaAllocationRuleSetResourceName, "rules.*", map[string]string{
+						"entity_type":     "logs",
+						"allocation":      "50",
+						"allocation_type": "percentage",
+						"enabled":         "true",
+						"can_overflow":    "true",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(quotaAllocationRuleSetResourceName, "rules.*", map[string]string{
+						"entity_type":     "spans",
+						"allocation":      "10",
+						"allocation_type": "locked_units",
+						"enabled":         "true",
+						"can_overflow":    "false",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(quotaAllocationRuleSetResourceName, "rules.*", map[string]string{
+						"entity_type":     "browserLogs",
+						"allocation":      "10",
+						"allocation_type": "percentage",
+						"enabled":         "true",
+						"can_overflow":    "false",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(quotaAllocationRuleSetResourceName, "rules.*", map[string]string{
+						"entity_type":     "browserLogs/v2",
+						"allocation":      "10",
+						"allocation_type": "percentage",
+						"enabled":         "true",
+						"can_overflow":    "false",
+					}),
+				),
+			},
+			{
+				Config:   testAccCoralogixResourceQuotaAllocationRuleSetMixed(),
+				PlanOnly: true,
+			},
+			{
+				Config: testAccCoralogixResourceQuotaAllocationRuleSetEmpty(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(quotaAllocationRuleSetResourceName, "rules.#", "0"),
+				),
+			},
+			{
+				Config:   testAccCoralogixResourceQuotaAllocationRuleSetEmpty(),
 				PlanOnly: true,
 			},
 		},
@@ -137,4 +187,49 @@ resource "coralogix_quota_allocation_rule_set" "test" {
   ]
 }
 `, logsAllocation, logsEnabled, metricsAllocation)
+}
+
+func testAccCoralogixResourceQuotaAllocationRuleSetMixed() string {
+	return `
+resource "coralogix_quota_allocation_rule_set" "test" {
+  rules = [
+    {
+      entity_type     = "logs"
+      allocation      = 50
+      allocation_type = "percentage"
+      enabled         = true
+      can_overflow    = true
+    },
+    {
+      entity_type     = "spans"
+      allocation      = 10
+      allocation_type = "locked_units"
+      enabled         = true
+      can_overflow    = false
+    },
+    {
+      entity_type     = "browserLogs"
+      allocation      = 10
+      allocation_type = "percentage"
+      enabled         = true
+      can_overflow    = false
+    },
+    {
+      entity_type     = "browserLogs/v2"
+      allocation      = 10
+      allocation_type = "percentage"
+      enabled         = true
+      can_overflow    = false
+    }
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceQuotaAllocationRuleSetEmpty() string {
+	return `
+resource "coralogix_quota_allocation_rule_set" "test" {
+  rules = []
+}
+`
 }

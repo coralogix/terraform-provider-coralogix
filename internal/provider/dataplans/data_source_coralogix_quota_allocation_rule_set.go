@@ -78,7 +78,7 @@ func (d *QuotaAllocationRuleSetDataSource) Configure(_ context.Context, req data
 
 func (d *QuotaAllocationRuleSetDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Reads the current account-level Coralogix quota allocation rule set. Requires `team-quota-rules:Read` permission.",
+		MarkdownDescription: "Reads the current account-level Coralogix quota allocation rule set, including Coralogix-managed (`cx_managed`) rules that the resource filters out of state. Requires `team-quota-rules:Read` permission. Known entity types include " + quotaAllocationKnownEntityTypesDoc + ". The list is additive; the API may accept more values over time.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -86,20 +86,20 @@ func (d *QuotaAllocationRuleSetDataSource) Schema(_ context.Context, _ datasourc
 			},
 			"rules": schema.SetNestedAttribute{
 				Computed:            true,
-				MarkdownDescription: "Current quota allocation rules returned by the backend.",
+				MarkdownDescription: "Current quota allocation rules returned by the backend, including `cx_managed` rules.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"entity_type": schema.StringAttribute{
 							Computed:            true,
-							MarkdownDescription: "Entity type covered by the rule.",
+							MarkdownDescription: "Entity type covered by the rule. Known values include " + quotaAllocationKnownEntityTypesDoc + ". The list is additive; the API may accept more values over time.",
 						},
 						"allocation": schema.Float64Attribute{
 							Computed:            true,
-							MarkdownDescription: "Quota allocation value for this entity type.",
+							MarkdownDescription: "Quota allocation value for this entity type. For `percentage`, this is a share of the pool left after `locked_units`. For `locked_units`, this is a fixed reservation from the team daily quota.",
 						},
 						"allocation_type": schema.StringAttribute{
 							Computed:            true,
-							MarkdownDescription: "How the allocation value is interpreted. Valid values are `percentage`, `locked_units`, and `unspecified`.",
+							MarkdownDescription: "How the allocation value is interpreted. Valid values are `percentage` and `locked_units`. An API `UNSPECIFIED` value is returned as `percentage`.",
 						},
 						"enabled": schema.BoolAttribute{
 							Computed:            true,
@@ -111,7 +111,7 @@ func (d *QuotaAllocationRuleSetDataSource) Schema(_ context.Context, _ datasourc
 						},
 						"cx_managed": schema.BoolAttribute{
 							Computed:            true,
-							MarkdownDescription: "Whether the quota allocation rule is managed by Coralogix.",
+							MarkdownDescription: "Whether the quota allocation rule is managed by Coralogix. Customer Terraform configurations must not send edits that collide with a `cx_managed` rule for the same entity type. Delete clears customer-managed rules only.",
 						},
 					},
 				},
