@@ -15,12 +15,17 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 var (
@@ -637,4 +642,124 @@ func testAccResourceCoralogixEmailConnectorUpdate(name string) string {
    }
    config_overrides = []
  }`, name)
+}
+
+// The secret must reach the API and never reach state. The version map is what
+// makes that work on a read, which has no configuration to consult.
+func TestAccCoralogixResourceConnectorWriteOnlySecret(t *testing.T) {
+	name := uuid.NewString()
+	fields := `
+      { field_name = "url",                  value = "https://api.staging.coralogix.net/mgmt/testing/tools/httpbin/post" },
+      { field_name = "method",               value = "post" },
+      { field_name = "additionalBodyFields", value = "{}" },`
+
+	config := func(secret string, version int, description string) string {
+		return fmt.Sprintf(`
+resource "coralogix_connector" "wo" {
+  id          = %[1]q
+  name        = %[1]q
+  description = %[4]q
+  type        = "generic_https"
+
+  connector_config = {
+    fields = [%[5]s
+    ]
+    field_values_wo          = { additionalHeaders = %[2]q }
+    field_values_wo_versions = { additionalHeaders = %[3]d }
+  }
+}
+`, name, secret, version, description, fields)
+	}
+
+	// A version naming a field that is not supplied write-only would make the
+	// read drop that field, so the schema rejects it.
+	orphanVersion := fmt.Sprintf(`
+resource "coralogix_connector" "wo" {
+  id          = %[1]q
+  name        = %[1]q
+  description = "invalid"
+  type        = "generic_https"
+
+  connector_config = {
+    fields = [%[2]s
+      { field_name = "additionalHeaders",    value = "{}" },
+    ]
+    field_values_wo_versions = { additionalHeaders = 1 }
+  }
+}
+`, name, fields)
+
+	const rn = "coralogix_connector.wo"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Validation-only steps go first: a trailing invalid
+				// configuration is also used for the post-test destroy.
+				Config:      orphanVersion,
+				ExpectError: regexp.MustCompile(`Version Without a Write-Only Field`),
+			},
+			{
+				Config: config(`{"Authorization":"OAuth SECRET-ONE"}`, 1, "created"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr(rn, "connector_config.field_values_wo"),
+					resource.TestCheckResourceAttr(rn, "connector_config.field_values_wo_versions.additionalHeaders", "1"),
+					// the secret's field is absent from the field list
+					resource.TestCheckResourceAttr(rn, "connector_config.fields.#", "3"),
+					resource.TestCheckTypeSetElemNestedAttrs(rn, "connector_config.fields.*", map[string]string{
+						"field_name": "method", "value": "post",
+					}),
+					connectorBackendFieldEquals(name, "additionalHeaders", `{"Authorization":"OAuth SECRET-ONE"}`),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// an unrelated change must not wipe the secret: update takes
+				// normal values from the plan and the secret from configuration
+				Config: config(`{"Authorization":"OAuth SECRET-ONE"}`, 1, "description changed"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "description", "description changed"),
+					connectorBackendFieldEquals(name, "additionalHeaders", `{"Authorization":"OAuth SECRET-ONE"}`),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// rotation: the new secret reaches the API when the version moves
+				Config: config(`{"Authorization":"OAuth SECRET-TWO"}`, 2, "description changed"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "connector_config.field_values_wo_versions.additionalHeaders", "2"),
+					connectorBackendFieldEquals(name, "additionalHeaders", `{"Authorization":"OAuth SECRET-TWO"}`),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
+// connectorBackendFieldEquals reads the connector from the API. A state
+// assertion cannot show whether the secret actually arrived.
+func connectorBackendFieldEquals(id, fieldName, want string) resource.TestCheckFunc {
+	return func(_ *terraform.State) error {
+		c, _, _ := clientset.NewClientSet(os.Getenv("CORALOGIX_ENV"), os.Getenv("CORALOGIX_API_KEY"), "").GetNotifications()
+		res, _, err := c.ConnectorsServiceGetConnector(context.Background(), id).Execute()
+		if err != nil {
+			return err
+		}
+		for _, f := range res.Connector.ConnectorConfig.Fields {
+			if f.GetFieldName() == fieldName {
+				if f.GetValue() != want {
+					return fmt.Errorf("backend %s = %q, want %q", fieldName, f.GetValue(), want)
+				}
+				return nil
+			}
+		}
+		return fmt.Errorf("%s absent from the backend connector", fieldName)
+	}
 }

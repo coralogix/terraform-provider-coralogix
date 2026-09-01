@@ -43,14 +43,6 @@ resource "coralogix_connector" "generic_https_example" {
         value      = "POST"
       },
       {
-        field_name = "additionalHeaders"
-        value = jsonencode(
-          {
-            "Authorization" : "GenieKey <key>",
-            "Content-Type" : "application/json"
-        })
-      },
-      {
         field_name = "additionalBodyFields"
         value = jsonencode(
           {
@@ -58,6 +50,19 @@ resource "coralogix_connector" "generic_https_example" {
         })
       }
     ]
+    # additionalHeaders carries the API key, so it is set here rather than in
+    # fields: Terraform sends these values to Coralogix and never writes them
+    # to state. Increment the matching version to send a rotated secret.
+    field_values_wo = {
+      additionalHeaders = jsonencode(
+        {
+          "Authorization" : "GenieKey <key>",
+          "Content-Type" : "application/json"
+      })
+    }
+    field_values_wo_versions = {
+      additionalHeaders = 1
+    }
   }
   config_overrides = [
     {
@@ -321,6 +326,11 @@ Required:
 Required:
 
 - `fields` (Attributes Set) (see [below for nested schema](#nestedatt--connector_config--fields))
+
+Optional:
+
+- `field_values_wo` (Map of String) Secret values for connector fields, keyed by field name, which Terraform sends to the API and never writes to state. A field named here must not also appear in `fields`. Each entry needs a matching entry in `field_values_wo_versions`. Requires Terraform 1.11 or later.
+- `field_values_wo_versions` (Map of Number) Version of each `field_values_wo` entry, keyed by the same field name. Increment a value to send a rotated secret: Terraform holds no copy of a write-only value, so it cannot notice that one changed. These versions are kept in state and are not secret.
 
 <a id="nestedatt--connector_config--fields"></a>
 ### Nested Schema for `connector_config.fields`
