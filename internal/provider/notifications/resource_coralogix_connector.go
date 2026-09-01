@@ -177,7 +177,9 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 							mapvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("field_values_wo_versions")),
 						},
 						MarkdownDescription: "Secret values for connector fields, keyed by field name, which Terraform sends to the API and never writes to state. " +
-							"A field named here must not also appear in `fields`. Each entry needs a matching entry in `field_values_wo_versions`. Requires Terraform 1.11 or later.",
+							"A field named here must not also appear in `fields`. Each entry needs a matching entry in `field_values_wo_versions`. Requires Terraform 1.11 or later.\n\n" +
+							"Importing is the one exception. An import has neither configuration nor prior state, so nothing identifies which field is a secret, and the API returns every field's value: " +
+							"the secret is written to state by the import itself. The following apply removes it again. Treat a secret that has been through an import as exposed, and rotate it.",
 					},
 					"field_values_wo_versions": schema.MapAttribute{
 						ElementType: types.Int64Type,

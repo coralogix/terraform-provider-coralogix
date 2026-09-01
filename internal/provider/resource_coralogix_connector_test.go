@@ -728,6 +728,16 @@ resource "coralogix_connector" "wo" {
 				},
 			},
 			{
+				// Import cannot know which field is a secret, so it brings the
+				// value into state and the next apply removes it. Pinned here
+				// because it is the one place the write-only guarantee does not
+				// hold, and a silent change either way would matter.
+				ResourceName:            rn,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"connector_config"},
+			},
+			{
 				// rotation: the new secret reaches the API when the version moves
 				Config: config(`{"Authorization":"OAuth SECRET-TWO"}`, 2, "description changed"),
 				Check: resource.ComposeAggregateTestCheckFunc(
