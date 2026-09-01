@@ -113,6 +113,59 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 														Optional:            true,
 														MarkdownDescription: "Widget title. Required for all inline widgets except markdown, where it is optional.",
 													},
+													// The API stores these on the dashboard, each carrying
+													// the id of the widget it belongs to. They are nested
+													// under the widget here because that is where the
+													// Coralogix UI offers them, and because a widget id is
+													// usually generated, so it cannot be referenced from
+													// elsewhere in the same configuration.
+													"custom_actions": schema.ListNestedAttribute{
+														NestedObject: schema.NestedAttributeObject{
+															Attributes: map[string]schema.Attribute{
+																// The API requires an id and does not
+																// generate one. Keeping the stored value
+																// stops an unrelated dashboard change from
+																// rewriting every action's id.
+																"id": schema.StringAttribute{
+																	Optional: true,
+																	Computed: true,
+																	PlanModifiers: []planmodifier.String{
+																		stringplanmodifier.UseNonNullStateForUnknown(),
+																	},
+																},
+																"name": schema.StringAttribute{
+																	Required:            true,
+																	MarkdownDescription: "Name shown on the action.",
+																},
+																"url": schema.StringAttribute{
+																	Required:            true,
+																	MarkdownDescription: "Destination the action opens. May reference widget data, as the Coralogix UI describes.",
+																},
+																"data_source": schema.StringAttribute{
+																	Required: true,
+																	Validators: []validator.String{
+																		stringvalidator.OneOf(dashboardwidgets.ActionValidDataSources...),
+																	},
+																	MarkdownDescription: fmt.Sprintf("Which of the widget's data the action draws on, one of: %v. The API requires it and does not check it against the widget, so set it to match the widget's own query.", dashboardwidgets.ActionValidDataSources),
+																},
+																"should_open_in_new_window": schema.BoolAttribute{
+																	Optional:            true,
+																	MarkdownDescription: "Open the destination in a new window.",
+																},
+															},
+														},
+														Optional: true,
+														// An empty list would read back as null, because the
+														// API stores no actions and the read returns none,
+														// and the apply would fail as an inconsistent
+														// result. Omitting the attribute says the same thing,
+														// so an empty list is rejected rather than silently
+														// rewritten.
+														Validators: []validator.List{
+															listvalidator.SizeAtLeast(1),
+														},
+														MarkdownDescription: "Actions offered from this widget, each opening a URL. The Coralogix UI calls these custom actions and offers them in the widget's settings panel. Omit the attribute rather than setting an empty list.",
+													},
 													"description": schema.StringAttribute{
 														Optional:            true,
 														MarkdownDescription: "Widget description.",

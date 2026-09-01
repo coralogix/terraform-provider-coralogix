@@ -269,7 +269,7 @@ func TestFlattenDashboardSectionWritesGeneratedSectionAndRowIds(t *testing.T) {
 				Appearance: &dashboardservice.RowAppearance{Height: &height},
 			},
 		},
-	})
+	}, nil)
 	if diags.HasError() {
 		t.Fatalf("flattenDashboardSection diagnostics = %v", diags)
 	}

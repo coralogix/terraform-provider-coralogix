@@ -254,11 +254,14 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 	visualization.Branches["geomap"] = covered(dynamicWidget+".visualization.geomap", dashboardOpenAPIDynamicGeoHeatTestName)
 
 	return map[string]dashboardOneOfModelCoverage{
-		"ActionDefinition": apiOnlyModel(
-			"common/action.proto#ActionDefinition.type",
-			"action definitions are reachable only below Dashboard.actions, which is absent from the structured coralogix_dashboard schema and both converters",
-			"customAction", "goToDashboardAction",
-		),
+		"ActionDefinition": {
+			ProtoSource: "common/action.proto#ActionDefinition.type",
+			Branches: map[string]dashboardOneOfBranchCoverage{
+				"customAction": covered("layout.sections[*].rows[*].widgets[*].custom_actions", "TestAccCoralogixResourceDashboardWidgetCustomActions"),
+				"goToDashboardAction": apiOnly(dashboardNoProviderPath, false,
+					"the Coralogix UI's custom action form offers a name and a URL only, so this branch is unreachable through the product; a URL pointing at another dashboard achieves the same"),
+			},
+		},
 		"AnnotationSource": {
 			ProtoSource: "ast/annotations/annotation.proto#Annotation.Source.value",
 			Branches: map[string]dashboardOneOfBranchCoverage{

@@ -148,6 +148,19 @@ type WidgetModel struct {
 	Definition  *dashboardwidgets.WidgetDefinitionModel `tfsdk:"definition"`
 	Reference   *WidgetReferenceModel                   `tfsdk:"reference"`
 	Width       types.Int64                             `tfsdk:"width"`
+	// The API stores these on the dashboard, each pointing back at a widget.
+	// They are nested under the widget here because that is where the Coralogix
+	// UI offers them and because a widget's id is usually generated, so it
+	// cannot be referenced from elsewhere in the same configuration.
+	CustomActions types.List `tfsdk:"custom_actions"` //WidgetCustomActionModel
+}
+
+type WidgetCustomActionModel struct {
+	ID                    types.String `tfsdk:"id"`
+	Name                  types.String `tfsdk:"name"`
+	URL                   types.String `tfsdk:"url"`
+	DataSource            types.String `tfsdk:"data_source"`
+	ShouldOpenInNewWindow types.Bool   `tfsdk:"should_open_in_new_window"`
 }
 
 // These models describe the dashboard schema before hexagon query time frames
@@ -1051,6 +1064,123 @@ func dashboardLogString(dashboard any) string {
 	return string(content)
 }
 
+// hoistWidgetCustomActions moves each widget's custom actions to the
+// dashboard-level list the API expects, tagging every one with the id of the
+// widget it came from.
+//
+// The ids are read from the expanded layout rather than the configuration,
+// because a widget whose id is unset gets one generated during expansion and
+// that generated value is what the request carries. Model and expanded widgets
+// are walked in step; a length mismatch means expansion dropped a widget, in
+// which case the actions are left out rather than attached to the wrong widget.
+func hoistWidgetCustomActions(ctx context.Context, layoutModel types.Object, expanded *dashboardservice.Layout) ([]dashboardservice.DashboardAction, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if layoutModel.IsNull() || layoutModel.IsUnknown() || expanded == nil {
+		return nil, nil
+	}
+
+	var model DashboardLayoutModel
+	if dg := layoutModel.As(ctx, &model, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return nil, dg
+	}
+	var sections []SectionModel
+	if dg := model.Sections.ElementsAs(ctx, &sections, true); dg.HasError() {
+		return nil, dg
+	}
+	// Expansion appends a diagnostic for anything it skips and the caller
+	// returns on error, so the counts always match by the time this runs.
+	// Reporting the mismatch keeps a future regression visible: returning
+	// nothing would drop the configured actions without saying so.
+	if len(sections) != len(expanded.Sections) {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Extract Widget Custom Actions Error",
+			fmt.Sprintf("expanded %d section(s) from %d configured, so widget custom actions cannot be matched to their widgets", len(expanded.Sections), len(sections)),
+		)}
+	}
+
+	var actions []dashboardservice.DashboardAction
+	for si := range sections {
+		var rows []RowModel
+		if dg := sections[si].Rows.ElementsAs(ctx, &rows, true); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		if len(rows) != len(expanded.Sections[si].Rows) {
+			diags.AddError("Extract Widget Custom Actions Error",
+				fmt.Sprintf("section %d expanded %d row(s) from %d configured, so widget custom actions cannot be matched to their widgets", si, len(expanded.Sections[si].Rows), len(rows)))
+			continue
+		}
+		for ri := range rows {
+			var widgets []WidgetModel
+			if dg := rows[ri].Widgets.ElementsAs(ctx, &widgets, true); dg.HasError() {
+				diags.Append(dg...)
+				continue
+			}
+			expandedWidgets := expanded.Sections[si].Rows[ri].Widgets
+			if len(widgets) != len(expandedWidgets) {
+				diags.AddError("Extract Widget Custom Actions Error",
+					fmt.Sprintf("section %d row %d expanded %d widget(s) from %d configured, so widget custom actions cannot be matched to their widgets", si, ri, len(expandedWidgets), len(widgets)))
+				continue
+			}
+			for wi := range widgets {
+				widgetActions, dg := expandWidgetCustomActions(ctx, widgets[wi].CustomActions, expandedWidgets[wi].Id)
+				if dg.HasError() {
+					diags.Append(dg...)
+					continue
+				}
+				actions = append(actions, widgetActions...)
+			}
+		}
+	}
+	if diags.HasError() {
+		return nil, diags
+	}
+	return actions, diags
+}
+
+func expandWidgetCustomActions(ctx context.Context, list types.List, widgetID *dashboardservice.UUID) ([]dashboardservice.DashboardAction, diag.Diagnostics) {
+	if list.IsNull() || list.IsUnknown() {
+		return nil, nil
+	}
+	var models []WidgetCustomActionModel
+	if dg := list.ElementsAs(ctx, &models, true); dg.HasError() {
+		return nil, dg
+	}
+
+	var diags diag.Diagnostics
+	actions := make([]dashboardservice.DashboardAction, 0, len(models))
+	for _, m := range models {
+		dataSource, ok := dashboardwidgets.ActionDataSourceToProto[m.DataSource.ValueString()]
+		if !ok {
+			diags.AddError("Extract Widget Custom Action Error",
+				fmt.Sprintf("Unknown action data source: %s", m.DataSource.ValueString()))
+			continue
+		}
+		// The API requires an id and does not generate one. Reusing the id the
+		// read stored keeps it stable: generating one per apply would rewrite
+		// every action's id whenever anything else on the dashboard changed.
+		action := dashboardservice.DashboardAction{
+			Id:         dashboardwidgets.ExpandDashboardIDs(m.ID),
+			Name:       utils.TypeStringToStringPointer(m.Name),
+			DataSource: &dataSource,
+			Definition: &dashboardservice.ActionDefinition{
+				CustomAction: &dashboardservice.CustomAction{
+					Url: utils.TypeStringToStringPointer(m.URL),
+				},
+			},
+			ShouldOpenInNewWindow: typeBoolToBoolPointer(m.ShouldOpenInNewWindow),
+		}
+		if widgetID != nil && widgetID.Value != nil {
+			action.WidgetId = widgetID.Value
+		}
+		actions = append(actions, action)
+	}
+	if diags.HasError() {
+		return nil, diags
+	}
+	return actions, diags
+}
+
 func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashboardservice.Dashboard, diag.Diagnostics) {
 	if !plan.ContentJson.IsNull() {
 		dashboard := new(dashboardservice.Dashboard)
@@ -1093,6 +1223,11 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 		layoutValue = *layout
 	}
 
+	actions, diags := hoistWidgetCustomActions(ctx, plan.Layout, layout)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	dashboard := &dashboardservice.Dashboard{
 		Id:          utils.TypeStringToStringPointer(plan.ID),
 		Name:        plan.Name.ValueString(),
@@ -1102,6 +1237,7 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 		VariablesV2: variablesV2,
 		Filters:     filters,
 		Annotations: annotations,
+		Actions:     actions,
 	}
 
 	if plan.TimeFrame != nil {
@@ -4041,7 +4177,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, response
 		return flattenContentJSONDashboard(ctx, plan, response.Dashboard, flattenedAccessPolicy)
 	}
 
-	layout, diags := flattenDashboardLayout(ctx, &dashboard.Layout)
+	layout, diags := flattenDashboardLayout(ctx, &dashboard.Layout, groupActionsByWidget(dashboard.Actions))
 	if diags.HasError() {
 		log.Printf("[ERROR] ERROR flattenDashboardLayout: %s", diags.Errors())
 		return nil, diags
@@ -4159,8 +4295,63 @@ func flattenDashboardAccessPolicy(planAccessPolicy types.String, accessPolicy *s
 	return types.StringValue(canonical), nil
 }
 
-func flattenDashboardLayout(ctx context.Context, layout *dashboardservice.Layout) (types.Object, diag.Diagnostics) {
-	sections, diags := flattenDashboardSections(ctx, layout.GetSections())
+// groupActionsByWidget indexes the dashboard's actions by the widget each one
+// points at, so the flatten can put them back under that widget.
+func groupActionsByWidget(actions []dashboardservice.DashboardAction) map[string][]dashboardservice.DashboardAction {
+	if len(actions) == 0 {
+		return nil
+	}
+	byWidget := make(map[string][]dashboardservice.DashboardAction, len(actions))
+	for _, a := range actions {
+		if a.WidgetId == nil {
+			continue
+		}
+		byWidget[*a.WidgetId] = append(byWidget[*a.WidgetId], a)
+	}
+	return byWidget
+}
+
+// flattenWidgetCustomActions returns the actions belonging to one widget. An
+// action the provider cannot express, one whose definition is not a custom
+// action, is left out rather than reported: the dashboard is still readable and
+// only that action is absent.
+func flattenWidgetCustomActions(ctx context.Context, byWidget map[string][]dashboardservice.DashboardAction, widgetID *dashboardservice.UUID) (types.List, diag.Diagnostics) {
+	elemType := types.ObjectType{AttrTypes: widgetCustomActionAttr()}
+	if len(byWidget) == 0 || widgetID == nil || widgetID.Value == nil {
+		return types.ListNull(elemType), nil
+	}
+	actions := byWidget[*widgetID.Value]
+	if len(actions) == 0 {
+		return types.ListNull(elemType), nil
+	}
+
+	models := make([]WidgetCustomActionModel, 0, len(actions))
+	for _, a := range actions {
+		if a.Definition == nil || a.Definition.CustomAction == nil {
+			continue
+		}
+		dataSource := types.StringNull()
+		if a.DataSource != nil {
+			if name, ok := dashboardwidgets.ActionDataSourceToSchema[*a.DataSource]; ok {
+				dataSource = types.StringValue(name)
+			}
+		}
+		models = append(models, WidgetCustomActionModel{
+			ID:                    utils.StringPointerToTypeString(a.Id),
+			Name:                  utils.StringPointerToTypeString(a.Name),
+			URL:                   utils.StringPointerToTypeString(a.Definition.CustomAction.Url),
+			DataSource:            dataSource,
+			ShouldOpenInNewWindow: types.BoolPointerValue(a.ShouldOpenInNewWindow),
+		})
+	}
+	if len(models) == 0 {
+		return types.ListNull(elemType), nil
+	}
+	return types.ListValueFrom(ctx, elemType, models)
+}
+
+func flattenDashboardLayout(ctx context.Context, layout *dashboardservice.Layout, actionsByWidget map[string][]dashboardservice.DashboardAction) (types.Object, diag.Diagnostics) {
+	sections, diags := flattenDashboardSections(ctx, layout.GetSections(), actionsByWidget)
 	if diags.HasError() {
 		return types.ObjectNull(layoutModelAttr()), diags
 	}
@@ -4170,7 +4361,7 @@ func flattenDashboardLayout(ctx context.Context, layout *dashboardservice.Layout
 	return types.ObjectValueFrom(ctx, layoutModelAttr(), flattenedLayout)
 }
 
-func flattenDashboardSections(ctx context.Context, sections []dashboardservice.Section) (types.List, diag.Diagnostics) {
+func flattenDashboardSections(ctx context.Context, sections []dashboardservice.Section, actionsByWidget map[string][]dashboardservice.DashboardAction) (types.List, diag.Diagnostics) {
 	if len(sections) == 0 {
 		return types.ListNull(types.ObjectType{AttrTypes: sectionModelAttr()}), nil
 	}
@@ -4178,7 +4369,7 @@ func flattenDashboardSections(ctx context.Context, sections []dashboardservice.S
 	var diagnostics diag.Diagnostics
 	sectionsElements := make([]attr.Value, 0)
 	for i := range sections {
-		flattenedSection, diags := flattenDashboardSection(ctx, &sections[i])
+		flattenedSection, diags := flattenDashboardSection(ctx, &sections[i], actionsByWidget)
 		if diags.HasError() {
 			diagnostics = append(diagnostics, diags...)
 			continue
@@ -4218,12 +4409,25 @@ func rowModelAttr() map[string]attr.Type {
 	}
 }
 
+func widgetCustomActionAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":                        types.StringType,
+		"name":                      types.StringType,
+		"url":                       types.StringType,
+		"data_source":               types.StringType,
+		"should_open_in_new_window": types.BoolType,
+	}
+}
+
 func widgetModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"id":          types.StringType,
 		"title":       types.StringType,
 		"description": types.StringType,
 		"highlighted": types.BoolType,
+		"custom_actions": types.ListType{
+			ElemType: types.ObjectType{AttrTypes: widgetCustomActionAttr()},
+		},
 		"definition": types.ObjectType{
 			AttrTypes: map[string]attr.Type{
 				"hexagon":    dashboardwidgets.HexagonType(),
@@ -5007,12 +5211,12 @@ func dashboardAutoRefreshModelAttr() map[string]attr.Type {
 	}
 }
 
-func flattenDashboardSection(ctx context.Context, section *dashboardservice.Section) (*SectionModel, diag.Diagnostics) {
+func flattenDashboardSection(ctx context.Context, section *dashboardservice.Section, actionsByWidget map[string][]dashboardservice.DashboardAction) (*SectionModel, diag.Diagnostics) {
 	if section == nil {
 		return nil, nil
 	}
 
-	rows, diags := flattenDashboardRows(ctx, section.GetRows())
+	rows, diags := flattenDashboardRows(ctx, section.GetRows(), actionsByWidget)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5095,7 +5299,7 @@ func flattenDashboardOptions(ctx context.Context, opts *dashboardservice.Section
 	}, nil
 }
 
-func flattenDashboardRows(ctx context.Context, rows []dashboardservice.Row) (types.List, diag.Diagnostics) {
+func flattenDashboardRows(ctx context.Context, rows []dashboardservice.Row, actionsByWidget map[string][]dashboardservice.DashboardAction) (types.List, diag.Diagnostics) {
 	if len(rows) == 0 {
 		return types.ListNull(types.ObjectType{AttrTypes: rowModelAttr()}), nil
 	}
@@ -5103,7 +5307,7 @@ func flattenDashboardRows(ctx context.Context, rows []dashboardservice.Row) (typ
 	var diagnostics diag.Diagnostics
 	rowsElements := make([]attr.Value, 0)
 	for i := range rows {
-		flattenedRow, diags := flattenDashboardRow(ctx, &rows[i])
+		flattenedRow, diags := flattenDashboardRow(ctx, &rows[i], actionsByWidget)
 		if diags.HasError() {
 			diagnostics = append(diagnostics, diags...)
 			continue
@@ -5119,12 +5323,12 @@ func flattenDashboardRows(ctx context.Context, rows []dashboardservice.Row) (typ
 	return types.ListValueMust(types.ObjectType{AttrTypes: rowModelAttr()}, rowsElements), diagnostics
 }
 
-func flattenDashboardRow(ctx context.Context, row *dashboardservice.Row) (*RowModel, diag.Diagnostics) {
+func flattenDashboardRow(ctx context.Context, row *dashboardservice.Row, actionsByWidget map[string][]dashboardservice.DashboardAction) (*RowModel, diag.Diagnostics) {
 	if row == nil {
 		return nil, nil
 	}
 
-	widgets, diags := flattenDashboardWidgets(ctx, row.GetWidgets())
+	widgets, diags := flattenDashboardWidgets(ctx, row.GetWidgets(), actionsByWidget)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5135,7 +5339,7 @@ func flattenDashboardRow(ctx context.Context, row *dashboardservice.Row) (*RowMo
 	}, nil
 }
 
-func flattenDashboardWidgets(ctx context.Context, widgets []dashboardservice.Widget) (types.List, diag.Diagnostics) {
+func flattenDashboardWidgets(ctx context.Context, widgets []dashboardservice.Widget, actionsByWidget map[string][]dashboardservice.DashboardAction) (types.List, diag.Diagnostics) {
 	if len(widgets) == 0 {
 		return types.ListNull(types.ObjectType{AttrTypes: widgetModelAttr()}), nil
 	}
@@ -5148,6 +5352,12 @@ func flattenDashboardWidgets(ctx context.Context, widgets []dashboardservice.Wid
 			diagnostics.Append(diags...)
 			continue
 		}
+		customActions, diags := flattenWidgetCustomActions(ctx, actionsByWidget, widgets[i].Id)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		flattenedWidget.CustomActions = customActions
 		widgetElement, diags := types.ObjectValueFrom(ctx, widgetModelAttr(), flattenedWidget)
 		if diags.HasError() {
 			diagnostics.Append(diags...)
