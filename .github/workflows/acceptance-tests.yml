@@ -16,6 +16,15 @@ on:
       - 'CLAUDE.md'
       - '**/*.md'
 
+concurrency:
+  # One shared group for all live acceptance runs (any PR, master push, or nightly).
+  # Per-PR/ref groups allow overlapping jobs on the same Coralogix team; tests that
+  # overwrite team-wide state (TCO, archive logs/metrics, quota) then race.
+  group: acceptance-tests-live-cx
+  # Live suites create remote Coralogix resources and clean them up on teardown.
+  # Cancelling mid-run can leak fixtures in the shared team.
+  cancel-in-progress: false
+
 env:
   DASHBOARD_ACC_PATTERN: '^TestAccCoralogix(Resource|DataSource)Dashboards?'
   DASHBOARD_MIGRATION_ACC_PATTERN: '^TestAccCoralogixResourceDashboardMigration'
@@ -250,8 +259,8 @@ jobs:
 
   notify-failure:
     name: Notify Slack on failure
-    # Only scheduled (nightly) runs alert. Pull request and master push runs stay quiet.
-    if: ${{ always() && github.event_name == 'schedule' }}
+    # Scheduled (nightly) and master push runs alert. Pull request runs stay quiet.
+    if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'push') }}
     needs:
       - test
       - test-unsharded

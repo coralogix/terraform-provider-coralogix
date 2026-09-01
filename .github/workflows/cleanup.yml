@@ -7,6 +7,12 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  # Same group as acceptance-tests.yml so the nightly cleanup cannot delete
+  # resources belonging to an in-progress live acceptance run.
+  group: acceptance-tests-live-cx
+  cancel-in-progress: false
+
 jobs:
   test:
     env:
@@ -25,7 +31,7 @@ jobs:
       - name: Clean up any resources
         env:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
-          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_USER_API_KEY }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
           TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}          
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
         run: |
