@@ -60,7 +60,7 @@ resource "coralogix_group" "example" {
 ### Required
 
 - `display_name` (String) Group display name.
-- `role` (String)
+- `role` (String) Role assigned to the group. Create and update send this name. Read stores the name the API returns.
 
 ### Optional
 
