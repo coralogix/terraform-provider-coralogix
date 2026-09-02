@@ -15,6 +15,7 @@
 package aaa
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -134,17 +135,44 @@ func TestIdsToAddAndIntersect(t *testing.T) {
 	}
 }
 
-func TestRoleNameForStatePrefersConfiguredAlias(t *testing.T) {
+func TestTeamGroupRoleUpdateByName(t *testing.T) {
 	t.Parallel()
 
-	if got := roleNameForState("Legacy Read Only", "Read Only"); got != "Read Only" {
-		t.Errorf("preferred alias: got %q", got)
+	got := teamGroupRoleUpdateByName("Read Only")
+	if got == nil || got.Action == nil {
+		t.Fatal("nil role update")
 	}
-	if got := roleNameForState("Legacy Read Only", ""); got != "Read Only" {
-		t.Errorf("import reverse alias: got %q", got)
+	if got.Action.ActionType != "set_role_by_name" {
+		t.Errorf("ActionType = %q", got.Action.ActionType)
 	}
-	if got := roleNameForState("Read-Only User", ""); got != "Read-Only User" {
-		t.Errorf("unrelated role: got %q", got)
+	if got.Action.SetRoleByName == nil || got.Action.SetRoleByName.Value != "Read Only" {
+		t.Errorf("SetRoleByName = %#v", got.Action.SetRoleByName)
+	}
+	if got.Action.SetRoleId != nil {
+		t.Errorf("SetRoleId = %#v, want nil", got.Action.SetRoleId)
+	}
+}
+
+func TestExtractCreateTeamGroupRequestUsesRoleName(t *testing.T) {
+	t.Parallel()
+
+	req, diags := (&GroupResource{}).extractCreateTeamGroupRequest(context.Background(), &GroupResourceModel{
+		DisplayName: types.StringValue("example"),
+		Role:        types.StringValue("Read Only"),
+		Members:     types.SetNull(types.StringType),
+		ScopeID:     types.StringNull(),
+	})
+	if diags.HasError() {
+		t.Fatalf("diagnostics: %v", diags)
+	}
+	if req == nil {
+		t.Fatal("nil request")
+	}
+	if req.RoleId != nil {
+		t.Errorf("RoleId = %v, want unset", *req.RoleId)
+	}
+	if req.GetRoleName() != "Read Only" {
+		t.Errorf("RoleName = %q", req.GetRoleName())
 	}
 }
 

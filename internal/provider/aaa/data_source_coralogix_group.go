@@ -116,7 +116,7 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	data, diags = flattenTeamGroupWithPreferredRole(group, memberIDs, data.Role.ValueString())
+	data, diags = flattenTeamGroup(group, memberIDs)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

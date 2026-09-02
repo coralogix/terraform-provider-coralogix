@@ -23,7 +23,6 @@ import (
 
 	"github.com/cenkalti/backoff/v5"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
 	teamGroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/team_groups_management_service"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -47,7 +46,6 @@ func NewGroupResource() resource.Resource {
 
 type GroupResource struct {
 	client *teamGroups.TeamGroupsManagementServiceAPIService
-	roles  *roless.RoleManagementServiceAPIService
 }
 
 func (r *GroupResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -69,7 +67,6 @@ func (r *GroupResource) Configure(_ context.Context, req resource.ConfigureReque
 	}
 
 	r.client = clientSet.TeamGroups()
-	r.roles = clientSet.CustomRoles()
 }
 
 func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -100,7 +97,8 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				MarkdownDescription: "IDs of the users that make up the group, as the complete member list. Omit the argument to leave membership unmanaged by this resource - Terraform then reads and stores the group's current members without changing them, which is what to do when membership is maintained in the Coralogix UI or by `coralogix_group_attachment`. Set `members = []` to remove every member. A single group's membership must be managed either here or by `coralogix_group_attachment`, never by both.",
 			},
 			"role": schema.StringAttribute{
-				Required: true,
+				Required:            true,
+				MarkdownDescription: "Role assigned to the group. Create and update send this name. Read stores the name the API returns.",
 			},
 			"scope_id": schema.StringAttribute{
 				Optional:            true,
@@ -147,7 +145,7 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	state, diags := r.readFlattenedGroupToState(ctx, *createResp.Group.GroupId, plan.ScopeID.ValueString(), plan.Role.ValueString())
+	state, diags := r.readFlattenedGroupToState(ctx, *createResp.Group.GroupId, plan.ScopeID.ValueString())
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -173,7 +171,7 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	}
 
 	log.Printf("[INFO] Reading Group: %d", groupID)
-	flattened, err := r.readFlattenedGroup(ctx, groupID, "", state.Role.ValueString())
+	flattened, err := r.readFlattenedGroup(ctx, groupID, "")
 	if err != nil {
 		if isGroupNotFoundErr(err) {
 			resp.Diagnostics.AddWarning(
@@ -240,7 +238,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	state, err := r.readFlattenedGroup(ctx, groupID, plan.ScopeID.ValueString(), plan.Role.ValueString())
+	state, err := r.readFlattenedGroup(ctx, groupID, plan.ScopeID.ValueString())
 	if err != nil {
 		if isGroupNotFoundErr(err) {
 			resp.Diagnostics.AddWarning(
@@ -297,10 +295,7 @@ type GroupResourceModel struct {
 }
 
 func (r *GroupResource) extractCreateTeamGroupRequest(ctx context.Context, plan *GroupResourceModel) (*teamGroups.CreateTeamGroupRequest, diag.Diagnostics) {
-	roleID, diags := lookupRoleID(ctx, r.roles, plan.Role.ValueString())
-	if diags.HasError() {
-		return nil, diags
-	}
+	var diags diag.Diagnostics
 
 	userIDs, memberDiags := extractMemberIDs(ctx, plan.Members)
 	diags.Append(memberDiags...)
@@ -309,9 +304,9 @@ func (r *GroupResource) extractCreateTeamGroupRequest(ctx context.Context, plan 
 	}
 
 	createReq := &teamGroups.CreateTeamGroupRequest{
-		Name:    teamGroups.PtrString(plan.DisplayName.ValueString()),
-		RoleId:  teamGroups.PtrInt64(roleID),
-		UserIds: userIDs,
+		Name:     teamGroups.PtrString(plan.DisplayName.ValueString()),
+		RoleName: teamGroups.PtrString(plan.Role.ValueString()),
+		UserIds:  userIDs,
 	}
 	if !plan.ScopeID.IsNull() && !plan.ScopeID.IsUnknown() && plan.ScopeID.ValueString() != "" {
 		createReq.Scope = &teamGroups.V2Scope{ScopeId: teamGroups.PtrString(plan.ScopeID.ValueString())}
@@ -320,14 +315,11 @@ func (r *GroupResource) extractCreateTeamGroupRequest(ctx context.Context, plan 
 }
 
 func (r *GroupResource) extractUpdateTeamGroupRequest(ctx context.Context, plan, config *GroupResourceModel) (*teamGroups.UpdateTeamGroupRequest, diag.Diagnostics) {
-	roleID, diags := lookupRoleID(ctx, r.roles, plan.Role.ValueString())
-	if diags.HasError() {
-		return nil, diags
-	}
+	var diags diag.Diagnostics
 
 	updateReq := &teamGroups.UpdateTeamGroupRequest{
 		Name:       teamGroups.PtrString(plan.DisplayName.ValueString()),
-		RoleUpdate: teamGroupRoleUpdate(roleID),
+		RoleUpdate: teamGroupRoleUpdateByName(plan.Role.ValueString()),
 	}
 	if !membersUnmanaged(config.Members) {
 		userIDs, memberDiags := extractMemberIDs(ctx, plan.Members)
@@ -348,9 +340,9 @@ func scopeUpdateFromPlan(plan *GroupResourceModel) *teamGroups.ScopeUpdate {
 	return teamGroupScopeSet(plan.ScopeID.ValueString())
 }
 
-func (r *GroupResource) readFlattenedGroupToState(ctx context.Context, groupID int64, expectedScopeID, preferredRole string) (*GroupResourceModel, diag.Diagnostics) {
+func (r *GroupResource) readFlattenedGroupToState(ctx context.Context, groupID int64, expectedScopeID string) (*GroupResourceModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	state, err := r.readFlattenedGroup(ctx, groupID, expectedScopeID, preferredRole)
+	state, err := r.readFlattenedGroup(ctx, groupID, expectedScopeID)
 	if err != nil {
 		diags.AddError("Error reading Group", err.Error())
 		return nil, diags
@@ -358,7 +350,7 @@ func (r *GroupResource) readFlattenedGroupToState(ctx context.Context, groupID i
 	return state, diags
 }
 
-func (r *GroupResource) readFlattenedGroup(ctx context.Context, groupID int64, expectedScopeID, preferredRole string) (*GroupResourceModel, error) {
+func (r *GroupResource) readFlattenedGroup(ctx context.Context, groupID int64, expectedScopeID string) (*GroupResourceModel, error) {
 	group, err := r.getGroupWithScopeRetry(ctx, groupID, expectedScopeID)
 	if err != nil {
 		return nil, err
@@ -369,7 +361,7 @@ func (r *GroupResource) readFlattenedGroup(ctx context.Context, groupID int64, e
 		return nil, formatGroupReadError(httpResp, err, groupID)
 	}
 
-	state, diags := flattenTeamGroupWithPreferredRole(group, memberIDs, preferredRole)
+	state, diags := flattenTeamGroup(group, memberIDs)
 	if diags.HasError() {
 		return nil, fmt.Errorf("%s", diags[0].Detail())
 	}
