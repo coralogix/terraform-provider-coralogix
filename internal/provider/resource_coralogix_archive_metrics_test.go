@@ -24,12 +24,12 @@ import (
 
 var (
 	archiveMetricsResourceName = "coralogix_archive_metrics.test"
-	archiveMetricsBucket       = os.Getenv("ARCHIVE_BUCKET")
+	archiveMetricsBucket       = os.Getenv("ARCHIVE_METRICS_BUCKET")
 )
 
 func TestAccCoralogixResourceResourceArchiveMetrics(t *testing.T) {
 	if archiveMetricsBucket == "" {
-		t.Skip("ARCHIVE_BUCKET must be set for this acceptance test")
+		t.Skip("ARCHIVE_METRICS_BUCKET must be set for this acceptance test")
 	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccArchivePreCheck(t) },

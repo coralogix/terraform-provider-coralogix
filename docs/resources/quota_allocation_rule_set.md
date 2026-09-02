@@ -3,12 +3,12 @@
 page_title: "coralogix_quota_allocation_rule_set Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set, and delete removes the account rule set. Requires team-quota-rules:Read and team-quota-rules:Manage permissions. Known entity types include logs, browserLogs, spans, metrics, sessionRecordings, cpuProfiles, and olly, but the API may accept additional values.
+  Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set. Delete clears customer-managed rules only; Coralogix-managed (cx_managed) rules are preserved. This resource filters cx_managed rules out of state; the data source exposes them. Requires team-quota-rules:Read and team-quota-rules:Manage permissions. Known entity types include logs, spans, metrics, cpuProfiles, memoryProfiles, browserLogs, browserLogs/v2, sessionRecordings, olly, auditEvents, alerts, quotaEvents, engineQueries, engineSchemaFields, labsLimitViolations, and notificationDeliveries. The list is additive; the API may accept more values over time.
 ---
 
 # coralogix_quota_allocation_rule_set (Resource)
 
-Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set, and delete removes the account rule set. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Known entity types include `logs`, `browserLogs`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`, but the API may accept additional values.
+Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set. Delete clears customer-managed rules only; Coralogix-managed (`cx_managed`) rules are preserved. This resource filters `cx_managed` rules out of state; the data source exposes them. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Known entity types include `logs`, `spans`, `metrics`, `cpuProfiles`, `memoryProfiles`, `browserLogs`, `browserLogs/v2`, `sessionRecordings`, `olly`, `auditEvents`, `alerts`, `quotaEvents`, `engineQueries`, `engineSchemaFields`, `labsLimitViolations`, and `notificationDeliveries`. The list is additive; the API may accept more values over time.
 
 ## Example Usage
 
@@ -31,18 +31,32 @@ resource "coralogix_quota_allocation_rule_set" "example" {
   rules = [
     {
       entity_type     = "logs"
-      allocation      = 60
+      allocation      = 50
       allocation_type = "percentage"
       enabled         = true
       can_overflow    = true
     },
     {
-      entity_type     = "metrics"
-      allocation      = 40
+      entity_type     = "spans"
+      allocation      = 10
+      allocation_type = "locked_units"
+      enabled         = true
+      can_overflow    = false
+    },
+    {
+      entity_type     = "browserLogs"
+      allocation      = 10
       allocation_type = "percentage"
       enabled         = true
       can_overflow    = false
-    }
+    },
+    {
+      entity_type     = "browserLogs/v2"
+      allocation      = 10
+      allocation_type = "percentage"
+      enabled         = true
+      can_overflow    = false
+    },
   ]
 }
 ```
@@ -52,7 +66,7 @@ resource "coralogix_quota_allocation_rule_set" "example" {
 
 ### Required
 
-- `rules` (Attributes Set) Complete set of quota allocation rules. Because the backend stores a single account-level rule set, Terraform replaces the full set during update. (see [below for nested schema](#nestedatt--rules))
+- `rules` (Attributes Set) Complete set of customer-managed quota allocation rules. Because the backend stores a single account-level rule set, Terraform replaces the full customer-managed set during update. Set `rules = []` to clear all customer-managed rules. (see [below for nested schema](#nestedatt--rules))
 
 ### Read-Only
 
@@ -63,11 +77,11 @@ resource "coralogix_quota_allocation_rule_set" "example" {
 
 Required:
 
-- `allocation` (Number) Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative.
+- `allocation` (Number) Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota.
 - `can_overflow` (Boolean) Whether this entity type can overflow beyond its allocation.
 - `enabled` (Boolean) Whether the quota allocation rule is enabled.
-- `entity_type` (String) Entity type covered by the rule. Known values include `logs`, `browserLogs`, `spans`, `metrics`, `sessionRecordings`, `cpuProfiles`, and `olly`.
+- `entity_type` (String) Entity type covered by the rule. Known values include `logs`, `spans`, `metrics`, `cpuProfiles`, `memoryProfiles`, `browserLogs`, `browserLogs/v2`, `sessionRecordings`, `olly`, `auditEvents`, `alerts`, `quotaEvents`, `engineQueries`, `engineSchemaFields`, `labsLimitViolations`, and `notificationDeliveries`. The list is additive; the API may accept more values over time.
 
 Optional:
 
-- `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage`, `locked_units`, and `unspecified`.
+- `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage` (default) and `locked_units`. `unspecified` is accepted as a compatible alias of `percentage` and is normalized to `percentage` during planning. Locked units are reserved first from the team daily quota; percentage rules share the remaining pool and their enabled allocations must sum to at most 100.

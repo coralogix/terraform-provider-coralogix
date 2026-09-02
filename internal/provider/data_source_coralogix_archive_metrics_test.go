@@ -23,6 +23,9 @@ import (
 var archiveMetricsDataSourceName = "data." + archiveMetricsResourceName
 
 func TestAccCoralogixDataSourceArchiveMetrics_basic(t *testing.T) {
+	if archiveMetricsBucket == "" {
+		t.Skip("ARCHIVE_METRICS_BUCKET must be set for this acceptance test")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -33,7 +36,7 @@ func TestAccCoralogixDataSourceArchiveMetrics_basic(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(archiveMetricsDataSourceName, "s3.region", "eu-north-1"),
 					// This check fails randomly for unknown reasons
-					// resource.TestCheckResourceAttr(archiveMetricsDataSourceName, "s3.bucket", "yak-coralogix-bucket"),
+					// resource.TestCheckResourceAttr(archiveMetricsDataSourceName, "s3.bucket", archiveMetricsBucket),
 				),
 			},
 		},

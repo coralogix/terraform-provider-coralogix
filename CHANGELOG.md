@@ -2,6 +2,15 @@
 
 #### resource/coralogix_connector
 - FEAT: A connector field's value can be supplied write-only, so the secret is sent to the API and never written to state. Set it in `connector_config.field_values_wo`, keyed by field name, with a matching entry in `connector_config.field_values_wo_versions`; leave that field out of `fields`. Terraform holds no copy of a write-only value, so it cannot notice that a secret changed: increment the version to send a rotated one. Requires Terraform 1.11 or later. Existing configurations are unaffected. Note that importing a connector brings the secret into state, because an import has neither configuration nor prior state to say which field is managed this way; one apply afterwards removes it again. This reduces what is stored in state and does not replace securing the state file.
+#### resource/coralogix_quota_allocation_rule_set
+- FEAT: Allow `rules = []` to clear all customer-managed quota allocation rules.
+- FEAT: Document the full known entity-type list (including `browserLogs/v2`) and note that the list is additive.
+- FEAT: Document `locked_units`, the percentage pool after locked units, `cx_managed` filtering, and delete semantics.
+- FIX: Keep `allocation_type = "unspecified"` as a compatible alias of `percentage`, and normalize it during planning. API `UNSPECIFIED` still flattens to `percentage`.
+- FIX: Stop sending Coralogix-managed rules on create/replace/delete. Customer requests now include only customer rules; the API preserves `cx_managed` rules.
+
+#### data-source/coralogix_quota_allocation_rule_set
+- FEAT: Document known entity types, `locked_units` vs percentage pool (including bundle-unit fit), and `cx_managed` semantics.
 
 # Release 3.13.0
 

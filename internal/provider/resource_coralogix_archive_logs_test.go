@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -28,9 +29,13 @@ import (
 
 var (
 	archiveLogsResourceName = "coralogix_archive_logs.test"
+	archiveLogsBucket       = os.Getenv("ARCHIVE_LOGS_BUCKET")
 )
 
 func TestAccCoralogixResourceResourceArchiveLogs(t *testing.T) {
+	if archiveLogsBucket == "" {
+		t.Skip("ARCHIVE_LOGS_BUCKET must be set for this acceptance test")
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccArchivePreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -39,7 +44,7 @@ func TestAccCoralogixResourceResourceArchiveLogs(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceArchiveLogs(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(archiveLogsResourceName, "bucket", "yak-coralogix-bucket"),
+					resource.TestCheckResourceAttr(archiveLogsResourceName, "bucket", archiveLogsBucket),
 					resource.TestCheckResourceAttr(archiveLogsResourceName, "active", "true"),
 				),
 			},
@@ -51,7 +56,7 @@ func TestAccCoralogixResourceResourceArchiveLogs(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceArchiveLogsUpdate(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(archiveLogsResourceName, "bucket", "yak-coralogix-bucket"),
+					resource.TestCheckResourceAttr(archiveLogsResourceName, "bucket", archiveLogsBucket),
 					resource.TestCheckResourceAttr(archiveLogsResourceName, "active", "false"),
 				),
 			},
@@ -60,19 +65,19 @@ func TestAccCoralogixResourceResourceArchiveLogs(t *testing.T) {
 }
 
 func testAccCoralogixResourceArchiveLogs() string {
-	return `resource "coralogix_archive_logs" "test" {
- 	bucket = "yak-coralogix-bucket"
+	return fmt.Sprintf(`resource "coralogix_archive_logs" "test" {
+	bucket = %q
 	region = "eu-north-1"
 }
-`
+`, archiveLogsBucket)
 }
 
 func testAccCoralogixResourceArchiveLogsUpdate() string {
-	return `resource "coralogix_archive_logs" "test" {
-  		bucket = "yak-coralogix-bucket"
- 		active = false
+	return fmt.Sprintf(`resource "coralogix_archive_logs" "test" {
+	bucket = %q
+	active = false
 }
-`
+`, archiveLogsBucket)
 }
 
 func testAccArchivePreCheck(t *testing.T) {
