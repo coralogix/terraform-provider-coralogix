@@ -21,14 +21,10 @@ import (
 	"net/http"
 	"strconv"
 
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
 	teamGroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/team_groups_management_service"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
 
 func parseGroupID(id string) (int64, diag.Diagnostics) {
@@ -80,10 +76,6 @@ func listGroupUserIDs(ctx context.Context, client *teamGroups.TeamGroupsManageme
 }
 
 func flattenTeamGroup(group *teamGroups.TeamGroup, memberIDs []string) (*GroupResourceModel, diag.Diagnostics) {
-	return flattenTeamGroupWithPreferredRole(group, memberIDs, "")
-}
-
-func flattenTeamGroupWithPreferredRole(group *teamGroups.TeamGroup, memberIDs []string, preferredRole string) (*GroupResourceModel, diag.Diagnostics) {
 	if group == nil || group.GroupId == nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid group", "API returned an empty group")}
 	}
@@ -107,7 +99,7 @@ func flattenTeamGroupWithPreferredRole(group *teamGroups.TeamGroup, memberIDs []
 		ID:          types.StringValue(strconv.FormatInt(*group.GroupId, 10)),
 		DisplayName: types.StringValue(group.GetName()),
 		Members:     members,
-		Role:        types.StringValue(roleNameForState(apiRole, preferredRole)),
+		Role:        types.StringValue(apiRole),
 		ScopeID:     scopeID,
 	}, nil
 }
@@ -151,119 +143,11 @@ func extractMemberIDs(ctx context.Context, members types.Set) ([]string, diag.Di
 	return ids, diags
 }
 
-// roleAliases maps historical SCIM role names to OpenAPI system role names.
-// SCIM accepted "Read Only"; ListSystemRoles returns "Legacy Read Only".
-var roleAliases = map[string]string{
-	"Read Only": "Legacy Read Only",
-}
-
-func roleLookupNames(name string) []string {
-	names := []string{name}
-	if alias, ok := roleAliases[name]; ok {
-		names = append(names, alias)
-	}
-	return names
-}
-
-func roleNameMatches(apiName, requested string) bool {
-	if apiName == requested {
-		return true
-	}
-	if alias, ok := roleAliases[requested]; ok && apiName == alias {
-		return true
-	}
-	return false
-}
-
-func roleNameForState(apiName, preferred string) string {
-	if preferred != "" && roleNameMatches(apiName, preferred) {
-		return preferred
-	}
-	if preferred == "" {
-		for alias, target := range roleAliases {
-			if apiName == target {
-				return alias
-			}
-		}
-	}
-	return apiName
-}
-
-func lookupRoleID(ctx context.Context, roles *roless.RoleManagementServiceAPIService, name string) (int64, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	candidates := roleLookupNames(name)
-
-	systemResp, httpResp, err := roles.RoleManagementServiceListSystemRoles(ctx).Execute()
-	if err != nil {
-		diags.AddError("Error listing system roles", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "ListSystemRoles", name))
-		return 0, diags
-	}
-	if id, ok := firstMatchingRoleID(systemRoleIDs(systemResp), candidates); ok {
-		return id, diags
-	}
-
-	customResp, httpResp, err := roles.RoleManagementServiceListCustomRoles(ctx).Execute()
-	if err != nil {
-		diags.AddError("Error listing custom roles", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "ListCustomRoles", name))
-		return 0, diags
-	}
-	if id, ok := firstMatchingRoleID(customRoleIDs(customResp), candidates); ok {
-		return id, diags
-	}
-
-	diags.AddError("Role not found", fmt.Sprintf("no system or custom role named %q", name))
-	return 0, diags
-}
-
-type namedRoleID struct {
-	name string
-	id   int64
-}
-
-func systemRoleIDs(resp *roless.ListSystemRolesResponse) []namedRoleID {
-	if resp == nil {
-		return nil
-	}
-	out := make([]namedRoleID, 0, len(resp.GetRoles()))
-	for _, role := range resp.GetRoles() {
-		if role.RoleId != nil && role.GetName() != "" {
-			out = append(out, namedRoleID{name: role.GetName(), id: *role.RoleId})
-		}
-	}
-	return out
-}
-
-func customRoleIDs(resp *roless.ListCustomRolesResponse) []namedRoleID {
-	if resp == nil {
-		return nil
-	}
-	out := make([]namedRoleID, 0, len(resp.GetRoles()))
-	for _, role := range resp.GetRoles() {
-		if role.RoleId != nil && role.GetName() != "" {
-			out = append(out, namedRoleID{name: role.GetName(), id: *role.RoleId})
-		}
-	}
-	return out
-}
-
-func firstMatchingRoleID(roles []namedRoleID, names []string) (int64, bool) {
-	for _, name := range names {
-		for _, role := range roles {
-			if role.name == name {
-				return role.id, true
-			}
-		}
-	}
-	return 0, false
-}
-
-func teamGroupRoleUpdate(roleID int64) *teamGroups.RoleUpdate {
+func teamGroupRoleUpdateByName(name string) *teamGroups.RoleUpdate {
 	return &teamGroups.RoleUpdate{
 		Action: &teamGroups.RoleUpdateAction{
-			ActionType: "set_role_id",
-			SetRoleId: &teamGroups.SetRoleId{
-				Value: teamGroups.PtrInt64(roleID),
-			},
+			ActionType:    "set_role_by_name",
+			SetRoleByName: teamGroups.NewSetRoleByName(name),
 		},
 	}
 }

@@ -168,6 +168,52 @@ func TestAccCoralogixResourceGroupMembersOmissionAndExplicitClear(t *testing.T) 
 	})
 }
 
+func TestAccCoralogixResourceGroupRoleByName(t *testing.T) {
+	for _, role := range []string{"Read Only", "Legacy Read Only"} {
+		role := role
+		t.Run(role, func(t *testing.T) {
+			userName := randUserName()
+			displayName := acctest.RandomWithPrefix("tf-acc-test-group")
+			updatedName := displayName + "-renamed"
+			scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
+			initial := testAccCoralogixResourceGroupWithRole(userName, displayName, scopeName, role)
+			updated := testAccCoralogixResourceGroupWithRole(userName, updatedName, scopeName, role)
+
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				CheckDestroy:             testAccCheckGroupDestroy,
+				Steps: []resource.TestStep{
+					{
+						Config: initial,
+						Check: resource.ComposeAggregateTestCheckFunc(
+							resource.TestCheckResourceAttrSet(groupResourceName, "id"),
+							resource.TestCheckResourceAttr(groupResourceName, "display_name", displayName),
+							resource.TestCheckResourceAttr(groupResourceName, "role", role),
+							testAccCheckGroupRoleAssigned(groupResourceName, role),
+						),
+					},
+					{
+						Config:   initial,
+						PlanOnly: true,
+					},
+					{
+						Config: updated,
+						Check: resource.ComposeAggregateTestCheckFunc(
+							resource.TestCheckResourceAttr(groupResourceName, "display_name", updatedName),
+							resource.TestCheckResourceAttr(groupResourceName, "role", role),
+							testAccCheckGroupRoleAssigned(groupResourceName, role),
+						),
+						ConfigPlanChecks: resource.ConfigPlanChecks{
+							PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+						},
+					},
+				},
+			})
+		})
+	}
+}
+
 func testAccCheckGroupMemberCount(resourceAddress string, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceAddress]
@@ -188,6 +234,39 @@ func testAccCheckGroupMemberCount(resourceAddress string, expected int) resource
 			return fmt.Errorf("expected group %s to have %d member(s) in Coralogix, got %d", rs.Primary.ID, expected, len(userIDs))
 		}
 
+		return nil
+	}
+}
+
+func testAccCheckGroupRoleAssigned(resourceAddress, configuredRole string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceAddress]
+		if !ok {
+			return fmt.Errorf("%s not found in state", resourceAddress)
+		}
+
+		client, err := testAccTeamGroupsClient()
+		if err != nil {
+			return err
+		}
+
+		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		if err != nil {
+			return fmt.Errorf("parse group id %q: %w", rs.Primary.ID, err)
+		}
+
+		resp, httpResp, err := client.GroupsMgmtServiceGetTeamGroup(context.TODO(), id).Execute()
+		if err != nil {
+			return fmt.Errorf("get group: %s", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Get", rs.Primary.ID))
+		}
+		if resp == nil || resp.Group == nil || resp.Group.Role == nil || resp.Group.Role.GetName() == "" {
+			return fmt.Errorf("group %s has no assigned role", rs.Primary.ID)
+		}
+
+		apiRole := resp.Group.Role.GetName()
+		if apiRole != configuredRole {
+			return fmt.Errorf("group %s role is %q, configured %q", rs.Primary.ID, apiRole, configuredRole)
+		}
 		return nil
 	}
 }
@@ -250,6 +329,32 @@ func testAccCoralogixResourceGroup(userName, displayName, scopeName string) stri
 		scope_id     = coralogix_scope.test.id
 	}
 `, scopeName, userName, displayName)
+}
+
+func testAccCoralogixResourceGroupWithRole(userName, displayName, scopeName, role string) string {
+	return fmt.Sprintf(`
+	resource "coralogix_scope" "test" {
+		display_name       = "%s"
+		default_expression = "<v1>true"
+		filters            = [
+		{
+			entity_type = "logs"
+			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
+		}
+		]
+	}
+
+	resource "coralogix_user" "test" {
+		user_name = "%s"
+	}
+
+	resource "coralogix_group" "test" {
+		display_name = "%s"
+		role         = %q
+		members      = [coralogix_user.test.id]
+		scope_id     = coralogix_scope.test.id
+	}
+`, scopeName, userName, displayName, role)
 }
 
 func testAccCoralogixResourceGroupUpdatedMembers(userName, userName2, displayName, scopeName string) string {
