@@ -294,3 +294,4 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		teams:                 cs.Teams(),
 	}
 }
+// ci: draft PR to verify rotated Actions secrets; safe to close
