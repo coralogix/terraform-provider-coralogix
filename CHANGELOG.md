@@ -2,6 +2,7 @@
 
 #### resource/coralogix_group
 - CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+- FEAT: Create and update send the configured role name. Read stores the name the API returns.
 
 #### data-source/coralogix_group
 - CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.

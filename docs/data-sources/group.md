@@ -23,5 +23,5 @@ Coralogix group. Groups bind users to roles and scopes. For more info please rev
 ### Read-Only
 
 - `members` (Set of String) IDs of the users that make up the group.
-- `role` (String)
+- `role` (String) Role assigned to the group. Create and update send this name. Read stores the name the API returns.
 - `scope_id` (String) Scope attached to the group.
