@@ -61,16 +61,9 @@ func TestAccCoralogixResourceEvents2MetricMigration(t *testing.T) {
 			initialConfig: events2MetricMigrationEmptyAggregations,
 			updatedConfig: events2MetricMigrationEmptyAggregationsUpdated,
 		},
-		{
-			name:          "data-source-set",
-			initialConfig: events2MetricMigrationDataSourceSet,
-			updatedConfig: events2MetricMigrationDataSourceRemoved,
-			updateChecks: func(string) []resource.TestCheckFunc {
-				return []resource.TestCheckFunc{
-					resource.TestCheckNoResourceAttr(events2metricResourceName, "data_source"),
-				}
-			},
-		},
+		// Named data_source "default/logs" is rejected on accounts that have
+		// not provisioned that catalog entry, so the set-then-clear case is
+		// omitted. The implicit logs stream is covered by logs-baseline.
 		{
 			name:          "histogram-buckets",
 			initialConfig: events2MetricMigrationHistogramBuckets,
@@ -414,55 +407,6 @@ func events2MetricMigrationEmptyAggregationsUpdated(name, metricField string) st
   metric_fields = {
     %s = {
       source_field = "method"
-    }
-  }
-  permutations = {
-    limit = 0
-  }
-}
-`, name, metricField)
-}
-
-func events2MetricMigrationDataSourceSet(name, metricField string) string {
-	return fmt.Sprintf(`resource "coralogix_events2metric" "test" {
-  name        = %q
-  description = "Created by the gRPC-backed provider"
-  data_source = "default/logs"
-  logs_query = {
-    lucene       = "remote_addr_enriched:/.*/"
-    applications = ["nginx"]
-    severities   = ["Debug"]
-  }
-  metric_fields = {
-    %s = {
-      source_field = "duration"
-      aggregations = {
-        avg = { enable = true }
-      }
-    }
-  }
-  permutations = {
-    limit = 0
-  }
-}
-`, name, metricField)
-}
-
-func events2MetricMigrationDataSourceRemoved(name, metricField string) string {
-	return fmt.Sprintf(`resource "coralogix_events2metric" "test" {
-  name        = %q
-  description = "Updated by the REST-backed provider"
-  logs_query = {
-    lucene       = "remote_addr_enriched:/.*/"
-    applications = ["nginx"]
-    severities   = ["Debug"]
-  }
-  metric_fields = {
-    %s = {
-      source_field = "duration"
-      aggregations = {
-        avg = { enable = true }
-      }
     }
   }
   permutations = {
