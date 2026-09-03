@@ -237,6 +237,114 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 
 func (r *ConnectorResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+
+	// Only the ID is known here, so the warning cannot say whether this
+	// connector holds a secret. It is worth saying anyway: the import is the
+	// point at which the value lands in state, and by the time a plan shows it
+	// the secret has already been written.
+	resp.Diagnostics.AddWarning(
+		"An imported secret is written to state",
+		"Importing reads the connector's current configuration from Coralogix, including every field value it carries, and writes it to state. "+
+			"Treat an imported secret as exposed and rotate it.\n\n"+
+			"To keep it out of state from then on, move the value from connector_config.fields into connector_config.field_values_wo, "+
+			"give it an entry in connector_config.field_values_wo_versions, and apply. That apply removes the imported value from state. "+
+			"Write-only attributes need Terraform 1.11 or later.",
+	)
+}
+
+// Connector field names that carry a secret often enough to be worth naming.
+// The field list holds every value a connector takes, most of them ordinary --
+// a URL, a method, a channel -- so warning on all of them would be noise.
+var connectorCredentialFieldNames = map[string]struct{}{
+	"additionalheaders": {},
+	"alertsourcetoken":  {},
+	"apikey":            {},
+	"authorization":     {},
+	"headers":           {},
+	"integrationkey":    {},
+	"password":          {},
+	"secret":            {},
+	"servicekey":        {},
+	"token":             {},
+}
+
+// connectorWarningSummary names the connector in the warning summary.
+// Terraform's console renderer collapses diagnostics by summary alone -- the
+// detail is not considered -- so a shared summary would report only the first
+// of several affected connectors. The id is preferred because it is the
+// backend identifier and unique; a name need not be.
+func connectorWarningSummary(config *ConnectorResourceModel, field string) string {
+	subject := ""
+	switch {
+	case !config.ID.IsNull() && !config.ID.IsUnknown():
+		subject = config.ID.ValueString()
+	case !config.Name.IsNull() && !config.Name.IsUnknown():
+		subject = config.Name.ValueString()
+	}
+	if subject == "" {
+		return fmt.Sprintf("Connector field %q is stored in state", field)
+	}
+	return fmt.Sprintf("Connector field %q of %q is stored in state", field, subject)
+}
+
+// connectorCredentialWarnings reports secret-looking field values given through
+// the ordinary field list, which puts them in state.
+func connectorCredentialWarnings(ctx context.Context, config *ConnectorResourceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if config == nil || config.ConnectorConfig.IsNull() || config.ConnectorConfig.IsUnknown() {
+		return diags
+	}
+
+	var connectorConfig ConnectorConfigModel
+	if dg := config.ConnectorConfig.As(ctx, &connectorConfig, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return diags
+	}
+	fieldSet := connectorConfig.ConnectorConfigFields
+	if fieldSet.IsNull() || fieldSet.IsUnknown() {
+		return diags
+	}
+
+	var fields []ConnectorConfigFieldModel
+	if dg := fieldSet.ElementsAs(ctx, &fields, false); dg.HasError() {
+		return diags
+	}
+
+	names := make([]string, 0, len(fields))
+	for _, field := range fields {
+		if field.FieldName.IsNull() || field.FieldName.IsUnknown() {
+			continue
+		}
+		name := field.FieldName.ValueString()
+		if _, ok := connectorCredentialFieldNames[strings.ToLower(name)]; !ok {
+			continue
+		}
+		if field.Value.IsNull() {
+			continue
+		}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		diags.AddAttributeWarning(
+			path.Root("connector_config").AtName("fields"),
+			connectorWarningSummary(config, name),
+			fmt.Sprintf("%s is set through fields, which appears to carry a secret. Terraform writes it to state. ", name)+
+				"Move it to connector_config.field_values_wo with an entry in connector_config.field_values_wo_versions to send the value without storing it. "+
+				"Write-only attributes need Terraform 1.11 or later. "+
+				"Terraform shows one warning per distinct message, so check any other connector with the same name as well.",
+		)
+	}
+	return diags
+}
+
+func (r *ConnectorResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config *ConnectorResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(connectorCredentialWarnings(ctx, config)...)
 }
 
 func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

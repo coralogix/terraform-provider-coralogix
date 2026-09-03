@@ -2,6 +2,8 @@
 
 #### resource/coralogix_connector
 - FEAT: A connector field's value can be supplied write-only, so the secret is sent to the API and never written to state. Set it in `connector_config.field_values_wo`, keyed by field name, with a matching entry in `connector_config.field_values_wo_versions`; leave that field out of `fields`. Terraform holds no copy of a write-only value, so it cannot notice that a secret changed: increment the version to send a rotated one. Requires Terraform 1.11 or later. Existing configurations are unaffected. Note that importing a connector brings the secret into state, because an import has neither configuration nor prior state to say which field is managed this way; one apply afterwards removes it again. This reduces what is stored in state and does not replace securing the state file.
+- FEAT: Warn when a field value that looks like a secret is set through `connector_config.fields` rather than `field_values_wo`, naming the field to move. Importing a connector warns too, since the import is the point at which a secret is written to state.
+
 #### resource/coralogix_quota_allocation_rule_set
 - FEAT: Allow `rules = []` to clear all customer-managed quota allocation rules.
 - FEAT: Document the full known entity-type list (including `browserLogs/v2`) and note that the list is additive.
