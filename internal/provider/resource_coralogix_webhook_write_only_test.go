@@ -276,6 +276,28 @@ resource "coralogix_webhook" "test" {
 				ExpectNonEmptyPlan: true,
 			},
 			{
+				// A null value is decoded as an empty string, so without this
+				// the webhook is configured with an empty auth header and
+				// nothing says so.
+				Config: fmt.Sprintf(`
+variable "secrets" {
+  type    = map(string)
+  default = { Authorization = null }
+}
+
+resource "coralogix_webhook" "test" {
+  name = %q
+  custom = {
+    url                 = %q
+    method              = "post"
+    headers_wo          = var.secrets
+    headers_wo_versions = { Authorization = 1 }
+  }
+}
+`, name, url),
+				ExpectError: regexp.MustCompile(`(?s)Null write-only header value`),
+			},
+			{
 				// A null version passes a presence check while recording
 				// nothing, so a later change to the secret alone would never
 				// be sent.

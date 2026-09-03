@@ -1104,6 +1104,21 @@ func (r *WebhookResource) ValidateConfig(ctx context.Context, req resource.Valid
 
 	names := config.CustomWebhook.HeadersWO.Elements()
 	versions := config.CustomWebhook.HeadersWOVersions.Elements()
+	// A null secret is decoded as an empty string and sent as an empty header,
+	// which configures the webhook with a broken credential and reports nothing.
+	for name, secret := range names {
+		if secret.IsNull() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("custom").AtName("headers_wo"),
+				"Null write-only header value",
+				fmt.Sprintf("Header %q has a null value in headers_wo. A write-only header needs a value to send, and a null one would be sent as an empty header. Give it a value, or leave it out of headers_wo along with its version.", name),
+			)
+		}
+	}
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	for name := range names {
 		version, ok := versions[name]
 		if !ok {
