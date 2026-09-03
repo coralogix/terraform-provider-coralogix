@@ -221,13 +221,23 @@ func Acquire(t *testing.T) *Team {
 			t.Logf("ephemeralteam: test failed; keeping team %d (%s) for inspection", teamID, name)
 			return
 		}
-		_, httpResp, err := cs.Teams().TeamServiceDeleteTeam(context.Background(), teamID).Execute()
-		if err != nil {
-			t.Errorf("ephemeralteam: deleting team %d: %s", teamID,
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Delete", nil))
-			return
+		// Deletion is best-effort: the backend refuses DeleteTeam while the
+		// org's quota ledger is being rebalanced (e.g. "DailyQuota must be
+		// greater than 0.01" when the org's default team is over its quota).
+		// A leaked, prefix-named team is sweepable later; failing a green
+		// test over it is not, so retry and then warn instead of erroring.
+		var lastErr string
+		for attempt := 1; attempt <= 3; attempt++ {
+			_, httpResp, err := cs.Teams().TeamServiceDeleteTeam(context.Background(), teamID).Execute()
+			if err == nil {
+				t.Logf("ephemeralteam: deleted team %d (%s)", teamID, name)
+				return
+			}
+			lastErr = utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Delete", nil)
+			time.Sleep(time.Duration(attempt) * 2 * time.Second)
 		}
-		t.Logf("ephemeralteam: deleted team %d (%s)", teamID, name)
+		t.Logf("ephemeralteam: WARNING: could not delete team %d (%s); leaving it for the sweeper: %s",
+			teamID, name, lastErr)
 	})
 
 	keyName := name + "-key"
