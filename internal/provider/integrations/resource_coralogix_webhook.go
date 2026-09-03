@@ -339,8 +339,72 @@ type EventBridgeModel struct {
 	RoleName    types.String `tfsdk:"role_name"`
 }
 
+// webhookCredentialWarnings reports credentials given through an ordinary
+// attribute, which puts them in state, and names the write-only alternative.
+func webhookCredentialWarnings(config *WebhookResourceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if config == nil {
+		return diags
+	}
+
+	if jira := config.Jira; jira != nil && !jira.ApiKey.IsNull() && !jira.ApiKey.IsUnknown() {
+		diags.AddAttributeWarning(
+			path.Root("jira").AtName("api_token"),
+			"Jira API token is stored in state",
+			"The Jira API token is set through api_token."+fmt.Sprintf(webhookWriteOnlyAdvice, "api_token_wo", "api_token_wo_version"),
+		)
+	}
+	if pagerDuty := config.PagerDuty; pagerDuty != nil && !pagerDuty.ServiceKey.IsNull() && !pagerDuty.ServiceKey.IsUnknown() {
+		diags.AddAttributeWarning(
+			path.Root("pager_duty").AtName("service_key"),
+			"PagerDuty service key is stored in state",
+			"The PagerDuty service key is set through service_key."+fmt.Sprintf(webhookWriteOnlyAdvice, "service_key_wo", "service_key_wo_version"),
+		)
+	}
+	if names := plainWebhookCredentialHeaderNames(config); len(names) > 0 {
+		diags.AddAttributeWarning(
+			path.Root("custom").AtName("headers"),
+			"Webhook header carrying a credential is stored in state",
+			fmt.Sprintf("%s appears to carry a credential and is set through headers.", strings.Join(names, ", "))+
+				fmt.Sprintf(webhookWriteOnlyAdvice, "headers_wo", "headers_wo_versions"),
+		)
+	}
+	return diags
+}
+
+func plainWebhookCredentialHeaderNames(config *WebhookResourceModel) []string {
+	if config.CustomWebhook == nil {
+		return nil
+	}
+	headers := config.CustomWebhook.Headers
+	if headers.IsNull() || headers.IsUnknown() {
+		return nil
+	}
+	var names []string
+	for name := range headers.Elements() {
+		if _, ok := webhookCredentialHeaderNames[strings.ToLower(name)]; ok {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
 func (r *WebhookResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+
+	// Only the ID is known here, so the warning cannot say whether this
+	// particular webhook carries a credential. It is worth saying anyway: the
+	// import is the point at which the value lands in state, and by the time a
+	// plan shows it the secret has already been written.
+	resp.Diagnostics.AddWarning(
+		"An imported credential is written to state",
+		"Importing reads the webhook's current configuration from Coralogix, including any credential it carries, and writes it to state. "+
+			"Treat an imported credential as exposed and rotate it.\n\n"+
+			"To keep it out of state from then on, move the value into the matching write-only attribute "+
+			"(jira.api_token_wo, pager_duty.service_key_wo, or custom.headers_wo), set its version, and apply. "+
+			"That apply removes the imported value from state. Write-only attributes need Terraform 1.11 or later.",
+	)
 }
 
 func (r *WebhookResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -951,10 +1015,33 @@ func writeOnlyWebhookHeaderNameConflicts(headers, writeOnly types.Map) []string 
 	return conflicts
 }
 
+// Header names that carry a credential often enough to be worth naming. A
+// warning on every headers entry would fire on Content-Type and be ignored,
+// so the check is deliberately a short list rather than a guess at intent.
+// Each of these warnings needs its own summary: Terraform's console renderer
+// shows one warning per summary and suppresses the rest, so sharing a summary
+// would hide every warning after the first.
+var webhookCredentialHeaderNames = map[string]struct{}{
+	"authorization":       {},
+	"proxy-authorization": {},
+	"x-api-key":           {},
+	"api-key":             {},
+	"x-auth-token":        {},
+	"cookie":              {},
+}
+
+const webhookWriteOnlyAdvice = " Terraform writes it to state. Use %s with %s to send the secret without storing it. Write-only attributes need Terraform 1.11 or later."
+
 func (r *WebhookResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 	var config *WebhookResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-	if resp.Diagnostics.HasError() || config == nil || config.CustomWebhook == nil {
+	if resp.Diagnostics.HasError() || config == nil {
+		return
+	}
+
+	resp.Diagnostics.Append(webhookCredentialWarnings(config)...)
+
+	if config.CustomWebhook == nil {
 		return
 	}
 
