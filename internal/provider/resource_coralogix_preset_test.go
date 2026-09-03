@@ -68,7 +68,7 @@ func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 				Config: testAccResourceCoralogixGenericHttpsPresetUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "id", name),
-					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "name", "generic_https example updated"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "name", name+"-updated"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "description", "generic_https preset example"),
 					// attachment_config was ENABLED on create and is omitted here; it must reset to AUTO.
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "attachment_config", "AUTO"),
@@ -200,7 +200,7 @@ func TestAccCoralogixResourcePagerdutyPreset(t *testing.T) {
 				Config: testAccResourceCoralogixPagerdutyPresetUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "id", name),
-					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "name", "pagerduty example updated"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "name", name+"-updated"),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "description", "pagerduty preset example"),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "entity_type", "alerts"),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "connector_type", "pagerduty"),
@@ -265,7 +265,7 @@ func TestAccCoralogixResourceEmailPreset(t *testing.T) {
 				Config: testAccResourceCoralogixEmailPresetUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(emailPresetResourceName, "id", name),
-					resource.TestCheckResourceAttr(emailPresetResourceName, "name", "email example updated"),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "name", name+"-updated"),
 					resource.TestCheckResourceAttr(emailPresetResourceName, "description", "email preset example"),
 					resource.TestCheckResourceAttr(emailPresetResourceName, "entity_type", "alerts"),
 					resource.TestCheckResourceAttr(emailPresetResourceName, "connector_type", "email"),
@@ -319,7 +319,7 @@ func testAccResourceCoralogixGenericHttpsPreset(name string) string {
 func testAccResourceCoralogixGenericHttpsPresetUpdate(name string) string {
 	return fmt.Sprintf(`resource "coralogix_preset" "generic_https_example" {
       id               = "%[1]v"
-      name             = "generic_https example updated"
+      name             = "%[1]v-updated"
       description      = "generic_https preset example"
       entity_type      = "alerts"
       connector_type   = "generic_https"
@@ -466,7 +466,7 @@ func testAccResourceCoralogixPagerdutyPreset(name string) string {
 func testAccResourceCoralogixPagerdutyPresetUpdate(name string) string {
 	return fmt.Sprintf(`resource "coralogix_preset" "pagerduty_example" {
       id               = "%[1]v"
-      name             = "pagerduty example updated"
+      name             = "%[1]v-updated"
       description      = "pagerduty preset example"
       entity_type      = "alerts"
       connector_type   = "pagerduty"
@@ -546,7 +546,7 @@ func testAccResourceCoralogixEmailPreset(name string) string {
 func testAccResourceCoralogixEmailPresetUpdate(name string) string {
 	return fmt.Sprintf(`resource "coralogix_preset" "email_example" {
       id             = "%[1]v"
-      name           = "email example updated"
+      name           = "%[1]v-updated"
       description    = "email preset example"
       entity_type    = "alerts"
       connector_type = "email"
