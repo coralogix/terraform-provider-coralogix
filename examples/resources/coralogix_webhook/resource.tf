@@ -30,13 +30,19 @@ resource "coralogix_webhook" "custom_webhook" {
     method  = "post"
     headers = { "Content-Type" : "application/json" }
     url     = "https://example-url.com/"
+    # A header carrying a secret goes here rather than in headers: Terraform
+    # sends these values to Coralogix and never writes them to state.
+    # Increment the matching version to send a rotated secret.
+    headers_wo          = { "Authorization" : "Bearer example-token" }
+    headers_wo_versions = { "Authorization" : 1 }
   }
 }
 
 resource "coralogix_webhook" "pager_duty_webhook" {
   name = "pagerduty-webhook"
   pager_duty = {
-    service_key = "service-key"
+    service_key_wo         = "service-key"
+    service_key_wo_version = 1
   }
 }
 
@@ -57,10 +63,11 @@ resource "coralogix_webhook" "microsoft_teams_webhook" {
 resource "coralogix_webhook" "jira_webhook" {
   name = "jira-webhook"
   jira = {
-    api_token   = "api-token"
-    email       = "example@coralogix.com"
-    project_key = "project-key"
-    url         = "https://coralogix.atlassian.net/jira/your-work"
+    api_token_wo         = "api-token"
+    api_token_wo_version = 1
+    email                = "example@coralogix.com"
+    project_key          = "project-key"
+    url                  = "https://coralogix.atlassian.net/jira/your-work"
   }
 }
 
@@ -79,7 +86,7 @@ resource "coralogix_webhook" "demisto_webhook" {
 }
 
 resource "coralogix_webhook" "sendlog_webhook" {
-  name = "sendlog-webhook"
+  name    = "sendlog-webhook"
   sendlog = {}
 }
 
