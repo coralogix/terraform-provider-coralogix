@@ -350,22 +350,22 @@ func webhookCredentialWarnings(config *WebhookResourceModel) diag.Diagnostics {
 	if jira := config.Jira; jira != nil && !jira.ApiKey.IsNull() && !jira.ApiKey.IsUnknown() {
 		diags.AddAttributeWarning(
 			path.Root("jira").AtName("api_token"),
-			"Jira API token is stored in state",
-			"The Jira API token is set through api_token."+fmt.Sprintf(webhookWriteOnlyAdvice, "api_token_wo", "api_token_wo_version"),
+			webhookWarningSummary(config, "Jira API token"),
+			"The token is set through api_token."+fmt.Sprintf(webhookWriteOnlyAdvice, "api_token_wo", "api_token_wo_version"),
 		)
 	}
 	if pagerDuty := config.PagerDuty; pagerDuty != nil && !pagerDuty.ServiceKey.IsNull() && !pagerDuty.ServiceKey.IsUnknown() {
 		diags.AddAttributeWarning(
 			path.Root("pager_duty").AtName("service_key"),
-			"PagerDuty service key is stored in state",
-			"The PagerDuty service key is set through service_key."+fmt.Sprintf(webhookWriteOnlyAdvice, "service_key_wo", "service_key_wo_version"),
+			webhookWarningSummary(config, "PagerDuty service key"),
+			"The key is set through service_key."+fmt.Sprintf(webhookWriteOnlyAdvice, "service_key_wo", "service_key_wo_version"),
 		)
 	}
 	if names := plainWebhookCredentialHeaderNames(config); len(names) > 0 {
 		diags.AddAttributeWarning(
 			path.Root("custom").AtName("headers"),
-			"Webhook header carrying a credential is stored in state",
-			fmt.Sprintf("%s appears to carry a credential and is set through headers.", strings.Join(names, ", "))+
+			webhookWarningSummary(config, "Credential-carrying webhook header"),
+			fmt.Sprintf("%s is set through headers and appears to carry a credential.", strings.Join(names, ", "))+
 				fmt.Sprintf(webhookWriteOnlyAdvice, "headers_wo", "headers_wo_versions"),
 		)
 	}
@@ -1031,6 +1031,17 @@ var webhookCredentialHeaderNames = map[string]struct{}{
 }
 
 const webhookWriteOnlyAdvice = " Terraform writes it to state. Use %s with %s to send the secret without storing it. Write-only attributes need Terraform 1.11 or later."
+
+// webhookWarningSummary names the webhook in the warning summary. Terraform's
+// console renderer collapses diagnostics by summary alone -- the detail is not
+// considered -- so a shared summary would report only the first of several
+// affected webhooks and leave the rest to surface one plan at a time.
+func webhookWarningSummary(config *WebhookResourceModel, credential string) string {
+	if config.Name.IsNull() || config.Name.IsUnknown() {
+		return credential + " is stored in state"
+	}
+	return fmt.Sprintf("%s for %q is stored in state", credential, config.Name.ValueString())
+}
 
 func (r *WebhookResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 	var config *WebhookResourceModel

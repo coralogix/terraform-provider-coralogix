@@ -67,11 +67,12 @@ func TestPlainWebhookCredentialHeaderNames(t *testing.T) {
 	}
 }
 
-// Terraform's console renderer shows one warning per summary and suppresses the
-// rest, so two credentials sharing a summary would hide the second warning.
+// Terraform's console renderer collapses diagnostics by summary alone, so two
+// warnings sharing a summary means only the first is ever shown.
 func TestWebhookCredentialWarningSummariesAreDistinct(t *testing.T) {
 	summaries := map[string]int{}
 	for _, warning := range webhookCredentialWarnings(&WebhookResourceModel{
+		Name:          types.StringValue("one"),
 		Jira:          &JiraModel{ApiKey: types.StringValue("token")},
 		PagerDuty:     &PagerDutyModel{ServiceKey: types.StringValue("key")},
 		CustomWebhook: &CustomWebhookModel{Headers: headerMap(t, map[string]string{"Authorization": "x"})},
@@ -85,6 +86,38 @@ func TestWebhookCredentialWarningSummariesAreDistinct(t *testing.T) {
 		if count > 1 {
 			t.Errorf("summary %q used %d times; only the first would be shown", summary, count)
 		}
+	}
+}
+
+// Two webhooks with the same problem must produce different summaries, or the
+// plan reports one of them and the other surfaces only after that one is fixed.
+func TestWebhookCredentialWarningSummariesDifferPerWebhook(t *testing.T) {
+	summaryFor := func(name string) string {
+		warnings := webhookCredentialWarnings(&WebhookResourceModel{
+			Name: types.StringValue(name),
+			Jira: &JiraModel{ApiKey: types.StringValue("token")},
+		})
+		if len(warnings) != 1 {
+			t.Fatalf("expected 1 warning for %q, got %d", name, len(warnings))
+		}
+		return warnings[0].Summary()
+	}
+	if first, second := summaryFor("alpha"), summaryFor("beta"); first == second {
+		t.Errorf("both webhooks produced the summary %q; only one would be shown", first)
+	}
+}
+
+// A webhook whose name is not yet known still has to warn.
+func TestWebhookCredentialWarningWithUnknownName(t *testing.T) {
+	warnings := webhookCredentialWarnings(&WebhookResourceModel{
+		Name: types.StringUnknown(),
+		Jira: &JiraModel{ApiKey: types.StringValue("token")},
+	})
+	if len(warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d", len(warnings))
+	}
+	if strings.Contains(warnings[0].Summary(), "%!") {
+		t.Errorf("summary has a broken format verb: %q", warnings[0].Summary())
 	}
 }
 
