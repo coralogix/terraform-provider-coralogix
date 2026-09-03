@@ -235,6 +235,47 @@ resource "coralogix_webhook" "test" {
 				ExpectError: regexp.MustCompile(`(?s)Missing write-only header version`),
 			},
 			{
+				// Elements() cannot tell an unknown map from an empty one, so
+				// comparing key sets while either side is unknown invents a
+				// mismatch. Both directions have to stay plannable.
+				Config: fmt.Sprintf(`
+resource "terraform_data" "versions" {
+  input = { "Authorization" = 1 }
+}
+
+resource "coralogix_webhook" "test" {
+  name = %q
+  custom = {
+    url                 = %q
+    method              = "post"
+    headers_wo          = { "Authorization" = "secret" }
+    headers_wo_versions = terraform_data.versions.output
+  }
+}
+`, name, url),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: fmt.Sprintf(`
+resource "terraform_data" "secrets" {
+  input = { "Authorization" = "secret" }
+}
+
+resource "coralogix_webhook" "test" {
+  name = %q
+  custom = {
+    url                 = %q
+    method              = "post"
+    headers_wo          = terraform_data.secrets.output
+    headers_wo_versions = { "Authorization" = 1 }
+  }
+}
+`, name, url),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			{
 				// An empty write-only map needs no versions map.
 				Config: fmt.Sprintf(`
 resource "coralogix_webhook" "test" {

@@ -1093,6 +1093,15 @@ func (r *WebhookResource) ValidateConfig(ctx context.Context, req resource.Valid
 		)
 	}
 
+	// Elements() on an unknown map returns nothing, which is indistinguishable
+	// from an empty one, so comparing key sets while either side is unknown
+	// invents a mismatch and rejects a configuration that is fine. Terraform
+	// re-runs this validation before apply with the values resolved, which is
+	// where the comparison can actually be made.
+	if config.CustomWebhook.HeadersWO.IsUnknown() || config.CustomWebhook.HeadersWOVersions.IsUnknown() {
+		return
+	}
+
 	names := config.CustomWebhook.HeadersWO.Elements()
 	versions := config.CustomWebhook.HeadersWOVersions.Elements()
 	for name := range names {
