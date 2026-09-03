@@ -45,6 +45,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -1030,7 +1031,11 @@ var webhookCredentialHeaderNames = map[string]struct{}{
 	"cookie":              {},
 }
 
-const webhookWriteOnlyAdvice = " Terraform writes it to state. Use %s with %s to send the secret without storing it. Write-only attributes need Terraform 1.11 or later."
+const webhookWriteOnlyAdvice = " Terraform writes it to state. Use %s with %s to send the secret without storing it. Write-only attributes need Terraform 1.11 or later." +
+	// Nothing identifies the resource to a provider during validation, so two
+	// webhooks sharing a name produce the same summary and Terraform shows one
+	// of them. Saying so beats letting the list look complete.
+	" Terraform shows one warning per distinct message, so check any other webhook with the same name as well."
 
 // webhookWarningSummary names the webhook in the warning summary. Terraform's
 // console renderer collapses diagnostics by summary alone -- the detail is not
@@ -1043,10 +1048,41 @@ func webhookWarningSummary(config *WebhookResourceModel, credential string) stri
 	return fmt.Sprintf("%s for %q is stored in state", credential, config.Name.ValueString())
 }
 
+// knownWebhookConfigBlock decodes one nested block, and reports whether it was
+// there to decode.
+//
+// Reading the whole configuration into WebhookResourceModel would be simpler
+// but fails when a block is itself unknown -- jira = terraform_data.x.output --
+// because a pointer-backed struct has no way to represent an unknown object.
+// Validation has nothing to say about a block whose contents are not known yet,
+// so the block is read as an object and only decoded once it is known.
+func knownWebhookConfigBlock(ctx context.Context, config tfsdk.Config, blockPath path.Path, target any, diags *diag.Diagnostics) bool {
+	var object types.Object
+	diags.Append(config.GetAttribute(ctx, blockPath, &object)...)
+	if diags.HasError() || object.IsNull() || object.IsUnknown() {
+		return false
+	}
+	diags.Append(object.As(ctx, target, basetypes.ObjectAsOptions{})...)
+	return !diags.HasError()
+}
+
 func (r *WebhookResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var config *WebhookResourceModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-	if resp.Diagnostics.HasError() || config == nil {
+	config := &WebhookResourceModel{}
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("name"), &config.Name)...)
+
+	var jira JiraModel
+	if knownWebhookConfigBlock(ctx, req.Config, path.Root("jira"), &jira, &resp.Diagnostics) {
+		config.Jira = &jira
+	}
+	var pagerDuty PagerDutyModel
+	if knownWebhookConfigBlock(ctx, req.Config, path.Root("pager_duty"), &pagerDuty, &resp.Diagnostics) {
+		config.PagerDuty = &pagerDuty
+	}
+	var custom CustomWebhookModel
+	if knownWebhookConfigBlock(ctx, req.Config, path.Root("custom"), &custom, &resp.Diagnostics) {
+		config.CustomWebhook = &custom
+	}
+	if resp.Diagnostics.HasError() {
 		return
 	}
 

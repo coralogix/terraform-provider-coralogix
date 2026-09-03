@@ -115,6 +115,38 @@ resource "coralogix_webhook" "test" {
 	})
 }
 
+// An unknown nested block cannot be decoded into a pointer-backed struct, so
+// validation has to read each block as an object first. Getting this wrong
+// makes any variable-derived block unplannable, which a plan-only step catches.
+func TestAccCoralogixResourceWebhookUnknownBlockIsPlannable(t *testing.T) {
+	name := acctest.RandomWithPrefix("tf-acc-test")
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "terraform_data" "credentials" {
+  input = {
+    api_token   = "token"
+    email       = "a@b.com"
+    project_key = "ABC"
+    url         = "https://example.atlassian.net"
+  }
+}
+
+resource "coralogix_webhook" "test" {
+  name = %q
+  jira = terraform_data.credentials.output
+}
+`, name),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceWebhookWriteOnlyPagerDuty(t *testing.T) {
 	rn := "coralogix_webhook.test"
 	name := acctest.RandomWithPrefix("tf-acc-test")
