@@ -219,6 +219,39 @@ resource "coralogix_webhook" "test" {
 				ExpectError: regexp.MustCompile(`(?s)collides with another header name`),
 			},
 			{
+				// The per-key check is the only guard here: requiring the
+				// versions map to be present would reject an empty headers_wo,
+				// which a module passing a variable hits on its default.
+				Config: fmt.Sprintf(`
+resource "coralogix_webhook" "test" {
+  name = %q
+  custom = {
+    url        = %q
+    method     = "post"
+    headers_wo = { "Authorization" = "secret" }
+  }
+}
+`, name, url),
+				ExpectError: regexp.MustCompile(`(?s)Missing write-only header version`),
+			},
+			{
+				// An empty write-only map needs no versions map.
+				Config: fmt.Sprintf(`
+resource "coralogix_webhook" "test" {
+  name = %q
+  custom = {
+    url        = %q
+    method     = "post"
+    headers    = { "Content-Type" = "application/json" }
+    headers_wo = {}
+  }
+}
+`, name, url),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "custom.headers.Content-Type", "application/json"),
+				),
+			},
+			{
 				// HTTP header names are case-insensitive and the API stores both
 				// spellings, so the recipient would decide which value applies.
 				Config: fmt.Sprintf(`

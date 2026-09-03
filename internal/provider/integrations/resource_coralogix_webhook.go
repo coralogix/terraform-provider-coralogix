@@ -32,7 +32,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -479,20 +478,14 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						MarkdownDescription: "Webhook headers. Map of string to string. A header carrying a secret belongs in `headers_wo` instead, so its value is never written to state.",
 					},
 					"headers_wo": schema.MapAttribute{
-						Optional:    true,
-						WriteOnly:   true,
-						ElementType: types.StringType,
-						Validators: []validator.Map{
-							mapvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("headers_wo_versions")),
-						},
+						Optional:            true,
+						WriteOnly:           true,
+						ElementType:         types.StringType,
 						MarkdownDescription: "Webhook headers whose values are secret, keyed by header name. Values are sent to Coralogix and never written to state. Every key needs a matching entry in `headers_wo_versions`, and a key here must not also appear in `headers`. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `headers_wo_versions` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.",
 					},
 					"headers_wo_versions": schema.MapAttribute{
-						Optional:    true,
-						ElementType: types.Int64Type,
-						Validators: []validator.Map{
-							mapvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("headers_wo")),
-						},
+						Optional:            true,
+						ElementType:         types.Int64Type,
 						MarkdownDescription: "Version of each `headers_wo` value, keyed by header name. Increment a header's version to send a rotated secret.",
 					},
 					"payload": schema.StringAttribute{
