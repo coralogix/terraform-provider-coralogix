@@ -644,19 +644,36 @@ func (v connectorWriteOnlyFieldsValidator) ValidateObject(ctx context.Context, r
 		return
 	}
 
+	// A null version satisfies the presence check while carrying no version at
+	// all, and since a change to the secret alone is invisible to planning, the
+	// next rotation would quietly not ship. Treated as no version rather than
+	// as a version, which is what it is.
 	missing := make([]string, 0, len(secrets))
+	nullVersions := make([]string, 0, len(secrets))
 	for name := range secrets {
-		if _, ok := versions[name]; !ok {
+		version, ok := versions[name]
+		switch {
+		case !ok:
 			missing = append(missing, name)
+		case version.IsNull():
+			nullVersions = append(nullVersions, name)
 		}
 	}
 	sort.Strings(missing)
+	sort.Strings(nullVersions)
 	if len(missing) > 0 {
 		resp.Diagnostics.AddAttributeError(req.Path.AtName("field_values_wo_versions"),
 			"Missing Write-Only Field Version",
 			fmt.Sprintf("These `field_values_wo` entries have no matching `field_values_wo_versions` entry: %s.\n\n"+
 				"Every write-only secret needs a version. Terraform keeps no copy of the value, so the version is both how a rotation is signalled and the only record in state that the field is managed this way.",
 				strings.Join(missing, ", ")))
+	}
+	if len(nullVersions) > 0 {
+		resp.Diagnostics.AddAttributeError(req.Path.AtName("field_values_wo_versions"),
+			"Null Write-Only Field Version",
+			fmt.Sprintf("These `field_values_wo_versions` entries are null: %s.\n\n"+
+				"A null version records nothing, so a later change to the secret alone would never be sent: Terraform keeps no copy of the value and would see no reason to update. Give the field a number.",
+				strings.Join(nullVersions, ", ")))
 	}
 
 	if config.ConnectorConfigFields.IsNull() || config.ConnectorConfigFields.IsUnknown() {
