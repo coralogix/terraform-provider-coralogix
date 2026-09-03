@@ -139,7 +139,9 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	data, diags = flattenConnector(ctx, result.Connector)
+	data, diags = // A data source has no configuration for write-only values and no prior
+		// state, so nothing is omitted: it reports what the API returns.
+		flattenConnector(ctx, result.Connector, nil)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
