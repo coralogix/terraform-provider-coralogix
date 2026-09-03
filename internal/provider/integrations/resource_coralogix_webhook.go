@@ -420,7 +420,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Validators: []validator.Map{
 							mapvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("headers_wo_versions")),
 						},
-						MarkdownDescription: "Webhook headers whose values are secret, keyed by header name. Values are sent to Coralogix and never written to state. Every key needs a matching entry in `headers_wo_versions`, and a key here must not also appear in `headers`. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `headers_wo_versions` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it.",
+						MarkdownDescription: "Webhook headers whose values are secret, keyed by header name. Values are sent to Coralogix and never written to state. Every key needs a matching entry in `headers_wo_versions`, and a key here must not also appear in `headers`. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `headers_wo_versions` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.",
 					},
 					"headers_wo_versions": schema.MapAttribute{
 						Optional:    true,
@@ -525,7 +525,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("service_key")),
 							stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("service_key_wo_version")),
 						},
-						MarkdownDescription: "PagerDuty service key, sent to Coralogix and never written to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `service_key_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it.",
+						MarkdownDescription: "PagerDuty service key, sent to Coralogix and never written to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `service_key_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.",
 					},
 					"service_key_wo_version": schema.Int64Attribute{
 						Optional: true,
@@ -676,7 +676,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("api_token")),
 							stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("api_token_wo_version")),
 						},
-						MarkdownDescription: "Jira API token, sent to Coralogix and never written to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `api_token_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it.",
+						MarkdownDescription: "Jira API token, sent to Coralogix and never written to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `api_token_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.",
 					},
 					"api_token_wo_version": schema.Int64Attribute{
 						Optional: true,
@@ -912,20 +912,42 @@ func withoutWebhookWriteOnlyHeaders(ctx context.Context, headers, versions types
 	return types.MapValueFrom(ctx, types.StringType, values)
 }
 
-// writeOnlyWebhookHeaderNameConflicts reports header names given both a plain
-// and a write-only value. Which one would win is not something to leave to the
-// merge order.
+// writeOnlyWebhookHeaderNameConflicts reports write-only header names that
+// collide with another header. Which value would win is not something to leave
+// to the merge order, and HTTP header names are case-insensitive, so two
+// spellings of one name are a collision too: the API stores both, and the
+// recipient decides which applies.
+//
+// The comparison is deliberately not applied to the versions map. Those keys
+// have to match headers_wo exactly, because the value stripped from state is
+// deleted by the key the API echoes back, and the API preserves the case it
+// was given.
 func writeOnlyWebhookHeaderNameConflicts(headers, writeOnly types.Map) []string {
-	if headers.IsNull() || headers.IsUnknown() || writeOnly.IsNull() || writeOnly.IsUnknown() {
+	if writeOnly.IsNull() || writeOnly.IsUnknown() {
 		return nil
 	}
-	var conflicts []string
-	for name := range writeOnly.Elements() {
-		if _, ok := headers.Elements()[name]; ok {
-			conflicts = append(conflicts, name)
+
+	seen := make(map[string]int)
+	if !headers.IsNull() && !headers.IsUnknown() {
+		for name := range headers.Elements() {
+			seen[strings.ToLower(name)]++
 		}
 	}
-	sort.Strings(conflicts)
+
+	names := make([]string, 0, len(writeOnly.Elements()))
+	for name := range writeOnly.Elements() {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	var conflicts []string
+	for _, name := range names {
+		lower := strings.ToLower(name)
+		if seen[lower] > 0 {
+			conflicts = append(conflicts, name)
+		}
+		seen[lower]++
+	}
 	return conflicts
 }
 
@@ -940,7 +962,7 @@ func (r *WebhookResource) ValidateConfig(ctx context.Context, req resource.Valid
 		resp.Diagnostics.AddAttributeError(
 			path.Root("custom").AtName("headers_wo"),
 			"Header set both ways",
-			fmt.Sprintf("%s appears in both headers and headers_wo. Keep a secret header in headers_wo only.", strings.Join(conflicts, ", ")),
+			fmt.Sprintf("%s collides with another header name. Keep a secret header in headers_wo only, and give it one spelling: HTTP header names are case-insensitive, so headers and headers_wo must not name the same header even in different case.", strings.Join(conflicts, ", ")),
 		)
 	}
 

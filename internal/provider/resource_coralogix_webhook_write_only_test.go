@@ -184,7 +184,39 @@ resource "coralogix_webhook" "test" {
   }
 }
 `, name, url),
-				ExpectError: regexp.MustCompile(`(?s)both headers and headers_wo`),
+				ExpectError: regexp.MustCompile(`(?s)collides with another header name`),
+			},
+			{
+				// HTTP header names are case-insensitive and the API stores both
+				// spellings, so the recipient would decide which value applies.
+				Config: fmt.Sprintf(`
+resource "coralogix_webhook" "test" {
+  name = %q
+  custom = {
+    url                 = %q
+    method              = "post"
+    headers             = { "authorization" = "plain" }
+    headers_wo          = { "Authorization" = "secret" }
+    headers_wo_versions = { "Authorization" = 1 }
+  }
+}
+`, name, url),
+				ExpectError: regexp.MustCompile(`(?s)case-insensitive`),
+			},
+			{
+				// Two spellings within headers_wo are the same collision.
+				Config: fmt.Sprintf(`
+resource "coralogix_webhook" "test" {
+  name = %q
+  custom = {
+    url                 = %q
+    method              = "post"
+    headers_wo          = { "Authorization" = "a", "authorization" = "b" }
+    headers_wo_versions = { "Authorization" = 1, "authorization" = 1 }
+  }
+}
+`, name, url),
+				ExpectError: regexp.MustCompile(`(?s)collides with another header name`),
 			},
 			{
 				Config: fmt.Sprintf(`
