@@ -276,6 +276,28 @@ resource "coralogix_webhook" "test" {
 				ExpectNonEmptyPlan: true,
 			},
 			{
+				// A null version passes a presence check while recording
+				// nothing, so a later change to the secret alone would never
+				// be sent.
+				Config: fmt.Sprintf(`
+variable "versions" {
+  type    = map(number)
+  default = { Authorization = null }
+}
+
+resource "coralogix_webhook" "test" {
+  name = %q
+  custom = {
+    url                 = %q
+    method              = "post"
+    headers_wo          = { "Authorization" = "secret" }
+    headers_wo_versions = var.versions
+  }
+}
+`, name, url),
+				ExpectError: regexp.MustCompile(`(?s)Null write-only header version`),
+			},
+			{
 				// An empty write-only map needs no versions map.
 				Config: fmt.Sprintf(`
 resource "coralogix_webhook" "test" {

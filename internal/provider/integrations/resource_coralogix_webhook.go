@@ -1105,11 +1105,23 @@ func (r *WebhookResource) ValidateConfig(ctx context.Context, req resource.Valid
 	names := config.CustomWebhook.HeadersWO.Elements()
 	versions := config.CustomWebhook.HeadersWOVersions.Elements()
 	for name := range names {
-		if _, ok := versions[name]; !ok {
+		version, ok := versions[name]
+		if !ok {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("custom").AtName("headers_wo_versions"),
 				"Missing write-only header version",
 				fmt.Sprintf("Header %q is set in headers_wo but has no entry in headers_wo_versions. Terraform holds no copy of a write-only value, so the version is what tells it the secret changed.", name),
+			)
+			continue
+		}
+		// A null version passes the presence check while recording nothing, and
+		// a change to the secret alone is invisible to planning, so the next
+		// rotation would quietly not ship.
+		if version.IsNull() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("custom").AtName("headers_wo_versions"),
+				"Null write-only header version",
+				fmt.Sprintf("Header %q has a null entry in headers_wo_versions. A null version records nothing, so a later change to the secret alone would never be sent: Terraform holds no copy of the value and would see no reason to update. Give the header a number.", name),
 			)
 		}
 	}
