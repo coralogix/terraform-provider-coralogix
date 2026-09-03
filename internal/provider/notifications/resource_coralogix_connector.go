@@ -644,6 +644,25 @@ func (v connectorWriteOnlyFieldsValidator) ValidateObject(ctx context.Context, r
 		return
 	}
 
+	// A null secret cannot be decoded into the request, and the failure would
+	// otherwise surface from the apply as a value conversion error telling the
+	// user to report a provider bug.
+	nullSecrets := make([]string, 0, len(secrets))
+	for name, secret := range secrets {
+		if secret.IsNull() {
+			nullSecrets = append(nullSecrets, name)
+		}
+	}
+	sort.Strings(nullSecrets)
+	if len(nullSecrets) > 0 {
+		resp.Diagnostics.AddAttributeError(req.Path.AtName("field_values_wo"),
+			"Null Write-Only Field Value",
+			fmt.Sprintf("These `field_values_wo` entries are null: %s.\n\n"+
+				"A write-only field needs a value to send. Give the field a value, or leave it out of `field_values_wo` along with its version.",
+				strings.Join(nullSecrets, ", ")))
+		return
+	}
+
 	// A null version satisfies the presence check while carrying no version at
 	// all, and since a change to the secret alone is invisible to planning, the
 	// next rotation would quietly not ship. Treated as no version rather than

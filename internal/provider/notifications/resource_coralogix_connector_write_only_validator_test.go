@@ -90,6 +90,18 @@ func TestConnectorWriteOnlyVersionValidation(t *testing.T) {
 			secrets:  secret,
 			versions: mapOf(t, types.Int64Type, map[string]attr.Value{"additionalHeaders": types.Int64Unknown()}),
 		},
+		// A null secret cannot be decoded into the request, and the failure
+		// would otherwise surface from the apply as a value conversion error
+		// telling the user to report a provider bug.
+		"a null secret is rejected": {
+			secrets:  mapOf(t, types.StringType, map[string]attr.Value{"additionalHeaders": types.StringNull()}),
+			versions: mapOf(t, types.Int64Type, map[string]attr.Value{"additionalHeaders": types.Int64Value(1)}),
+			want:     "Null Write-Only Field Value",
+		},
+		"an unknown secret defers": {
+			secrets:  mapOf(t, types.StringType, map[string]attr.Value{"additionalHeaders": types.StringUnknown()}),
+			versions: mapOf(t, types.Int64Type, map[string]attr.Value{"additionalHeaders": types.Int64Value(1)}),
+		},
 		"a missing version is rejected": {
 			secrets:  secret,
 			versions: types.MapNull(types.Int64Type),
