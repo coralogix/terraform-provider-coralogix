@@ -1,11 +1,11 @@
 ---
 name: ephemeral-team-for-singleton-tests
-description: "Use when writing or fixing acceptance tests for team-wide singleton resources (coralogix_archive_logs, archive_metrics, archive_retentions, tco_policies_*, quota_allocation_rule_set, ip_access, data_enrichments) that flake under concurrent CI runs. Isolates the test in a disposable team. Do NOT use for ID-addressed resources — unique names suffice there."
+description: "Use when an acceptance test mutates team-wide singleton state (archive, TCO, quota, ip_access, enrichments) and flakes under concurrent CI runs. Isolates the test in a disposable team."
 ---
 
 # Ephemeral team per singleton acceptance test
 
-**Trigger:** a test mutates one-per-team state (ID-less API, atomic list overwrite, hardcoded resource ID) and concurrent workflow runs clobber each other.
+**Trigger:** a test mutates one-per-team state (ID-less API, atomic list overwrite, hardcoded resource ID) and concurrent workflow runs clobber each other. Applies to `coralogix_archive_logs`, `archive_metrics`, `archive_retentions`, `tco_policies_*`, `quota_allocation_rule_set`, `ip_access`, `data_enrichments`. Do NOT use for ID-addressed resources — unique names suffice there.
 
 **Fix:** prepend the harness's provider override to every `TestStep` config:
 
