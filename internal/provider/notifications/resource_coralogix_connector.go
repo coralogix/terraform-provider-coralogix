@@ -27,7 +27,6 @@ import (
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -173,13 +172,11 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 						ElementType: types.StringType,
 						Optional:    true,
 						WriteOnly:   true,
-						Validators: []validator.Map{
-							mapvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("field_values_wo_versions")),
-						},
 						MarkdownDescription: "Secret values for connector fields, keyed by field name, which Terraform sends to the API and never writes to state. " +
 							"A field named here must not also appear in `fields`. Each entry needs a matching entry in `field_values_wo_versions`. Requires Terraform 1.11 or later.\n\n" +
 							"Importing is the one exception. An import has neither configuration nor prior state, so nothing identifies which field is a secret, and the API returns every field's value: " +
-							"the secret is written to state by the import itself. The following apply removes it again. Treat a secret that has been through an import as exposed, and rotate it.",
+							"the secret is written to state by the import itself. The following apply removes it again. Treat a secret that has been through an import as exposed, and rotate it. " +
+							"Reading the same connector through `data.coralogix_connector` also returns the value, under `connector_config.fields`: a data source reads from the API and has no configuration telling it which value is managed write-only.",
 					},
 					"field_values_wo_versions": schema.MapAttribute{
 						ElementType: types.Int64Type,
