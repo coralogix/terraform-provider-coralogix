@@ -23,7 +23,8 @@ BUILD_ARGS=-ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflic
 DASHBOARD_ACC_PATTERN=^TestAccCoralogix(Resource|DataSource)Dashboards?
 DASHBOARD_MIGRATION_ACC_PATTERN=^TestAccCoralogixResourceDashboardMigration
 EVENTS2METRIC_MIGRATION_ACC_PATTERN=^TestAccCoralogixResourceEvents2MetricMigration$$
-ACC_SKIP_PATTERN?=${DASHBOARD_ACC_PATTERN}|${EVENTS2METRIC_MIGRATION_ACC_PATTERN}
+USER_MIGRATION_ACC_PATTERN=^TestAccCoralogixResourceUserMigration
+ACC_SKIP_PATTERN?=${DASHBOARD_ACC_PATTERN}|${EVENTS2METRIC_MIGRATION_ACC_PATTERN}|${USER_MIGRATION_ACC_PATTERN}
 
 default: install
 
@@ -67,8 +68,11 @@ testacc-dashboard-migration:
 testacc-events2metric-migration:
 	CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test ${BUILD_ARGS} ./internal/provider -run '${EVENTS2METRIC_MIGRATION_ACC_PATTERN}' -v -count=1 -timeout 120m -parallel=3
 
+testacc-user-migration:
+	CORALOGIX_USER_MIGRATION_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test ${BUILD_ARGS} ./internal/provider -run '${USER_MIGRATION_ACC_PATTERN}' -v -count=1 -timeout 120m -parallel=3
+
 testacc-provider-migration:
-	CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test ${BUILD_ARGS} ./internal/provider -run '${DASHBOARD_MIGRATION_ACC_PATTERN}|${EVENTS2METRIC_MIGRATION_ACC_PATTERN}' -v -count=1 -timeout 120m -parallel=3
+	CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test ${BUILD_ARGS} ./internal/provider -run '${DASHBOARD_MIGRATION_ACC_PATTERN}|${EVENTS2METRIC_MIGRATION_ACC_PATTERN}|${USER_MIGRATION_ACC_PATTERN}' -v -count=1 -timeout 120m -parallel=3
 
 generate:
 	go generate ${BUILD_ARGS}
