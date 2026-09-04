@@ -33,6 +33,7 @@ import (
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 	e2ms "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/events2metrics_service"
+	cfggroups "github.com/coralogix/terraform-provider-coralogix/internal/openapi/configuration_group_service"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
@@ -81,6 +82,7 @@ type ClientSet struct {
 	slos                  *slos.SlosServiceAPIService
 	customRole            *roless.RoleManagementServiceAPIService
 	scopes                *scopess.ScopesServiceAPIService
+	configurationGroups   *cfggroups.FleetManagerConfigurationGroupsAPIService
 	connectors            *connectors.ConnectorsServiceAPIService
 	presets               *presets.PresetsServiceAPIService
 	globalRouters         *globalRouters.GlobalRoutersServiceAPIService
@@ -128,6 +130,10 @@ func (c *ClientSet) Enrichments() *cxsdk.EnrichmentsClient {
 
 func (c *ClientSet) DataSet() *cxsdk.DataSetClient {
 	return c.dataSet
+}
+
+func (c *ClientSet) ConfigurationGroups() *cfggroups.FleetManagerConfigurationGroupsAPIService {
+	return c.configurationGroups
 }
 
 func (c *ClientSet) Dashboards() *dashboardservice.DashboardServiceAPIService {
@@ -227,6 +233,18 @@ func (c *ClientSet) DataEnrichments() (*ess.EnrichmentsServiceAPIService, *cess.
 	return c.dataEnrichments, c.customDataEnrichments
 }
 
+func newConfigurationGroupsClient(region, apiKey string) *cfggroups.FleetManagerConfigurationGroupsAPIService {
+	cfg := cfggroups.NewConfiguration()
+	url, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
+	if !found {
+		url = cxsdkOpenapi.URLFromDomain(region)
+	}
+	cfg.Servers = cfggroups.ServerConfigurations{{URL: url}}
+	cfg.AddDefaultHeader("Authorization", "Bearer "+apiKey)
+	cfg.AddDefaultHeader("x-cx-sdk-version", "terraform-"+TF_PROVIDER_VERSION)
+	return cfggroups.NewAPIClient(cfg).FleetManagerConfigurationGroupsAPI
+}
+
 func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 	grpcCreator := newTerraformSDKCallPropertiesCreator(apiKey, TF_PROVIDER_VERSION, grpcTarget)
 	apikeyCPC := NewCallPropertiesCreator(grpcTarget, apiKey)
@@ -268,6 +286,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		alerts:                cs.Alerts(),
 		archiveRetentions:     cs.ArchiveRetentions(),
 		dashboards:            cs.Dashboards(),
+		configurationGroups:   newConfigurationGroupsClient(region, apiKey),
 		recordingRuleGroups:   cs.RecordingRules(),
 		archiveLogs:           cs.ArchiveLogs(),
 		tcoPolicies:           cs.TCOPolicies(),
