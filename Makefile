@@ -52,8 +52,12 @@ install: build
 test:
 	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -timeout=30s -parallel=4
 
+# ACC_SKIP_PATTERN is read by the shell, not expanded by Make: environment
+# variables are recursively expanded by Make, so a regex containing `$|`
+# (end-anchor before an alternation) loses those characters to Make's $|
+# automatic variable, silently corrupting the skip pattern.
 testacc:
-	TF_ACC=1 go test ${BUILD_ARGS} $(TEST) -v $(TESTARGS) -skip '${ACC_SKIP_PATTERN}' -timeout 120m -parallel=4
+	TF_ACC=1 go test ${BUILD_ARGS} $(TEST) -v $(TESTARGS) -skip "$$ACC_SKIP_PATTERN" -timeout 120m -parallel=4
 
 testacc-dashboard:
 	TF_ACC=1 go test ${BUILD_ARGS} ./internal/provider -v -run '${DASHBOARD_ACC_PATTERN}' $(TESTARGS) -timeout 120m -parallel=4

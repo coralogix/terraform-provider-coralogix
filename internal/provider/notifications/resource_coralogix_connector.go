@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
+	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -83,6 +85,10 @@ type ConnectorResourceModel struct {
 
 type ConnectorConfigModel struct {
 	ConnectorConfigFields types.Set `tfsdk:"fields"` // ConnectorConfigFieldModel
+	// Beside the field list rather than inside it: a write-only attribute is
+	// not allowed anywhere under a set.
+	FieldValuesWO         types.Map `tfsdk:"field_values_wo"`          // field name -> secret
+	FieldValuesWOVersions types.Map `tfsdk:"field_values_wo_versions"` // field name -> int64
 }
 
 type ConnectorConfigFieldModel struct {
@@ -158,7 +164,26 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			},
 			"connector_config": schema.SingleNestedAttribute{
 				Optional: true,
+				Validators: []validator.Object{
+					connectorWriteOnlyFieldsValidator{},
+				},
 				Attributes: map[string]schema.Attribute{
+					"field_values_wo": schema.MapAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+						WriteOnly:   true,
+						MarkdownDescription: "Secret values for connector fields, keyed by field name, which Terraform sends to the API and never writes to state. " +
+							"A field named here must not also appear in `fields`. Each entry needs a matching entry in `field_values_wo_versions`. Requires Terraform 1.11 or later.\n\n" +
+							"Importing is the one exception. An import has neither configuration nor prior state, so nothing identifies which field is a secret, and the API returns every field's value: " +
+							"the secret is written to state by the import itself. The following apply removes it again. Treat a secret that has been through an import as exposed, and rotate it. " +
+							"Reading the same connector through `data.coralogix_connector` also returns the value, under `connector_config.fields`: a data source reads from the API and has no configuration telling it which value is managed write-only.",
+					},
+					"field_values_wo_versions": schema.MapAttribute{
+						ElementType: types.Int64Type,
+						Optional:    true,
+						MarkdownDescription: "Version of each `field_values_wo` entry, keyed by the same field name. Increment a value to send a rotated secret: " +
+							"Terraform holds no copy of a write-only value, so it cannot notice that one changed. These versions are kept in state and are not secret.",
+					},
 					"fields": schema.SetNestedAttribute{
 						Required: true,
 						NestedObject: schema.NestedAttributeObject{
@@ -209,6 +234,114 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 
 func (r *ConnectorResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+
+	// Only the ID is known here, so the warning cannot say whether this
+	// connector holds a secret. It is worth saying anyway: the import is the
+	// point at which the value lands in state, and by the time a plan shows it
+	// the secret has already been written.
+	resp.Diagnostics.AddWarning(
+		"An imported secret is written to state",
+		"Importing reads the connector's current configuration from Coralogix, including every field value it carries, and writes it to state. "+
+			"Treat an imported secret as exposed and rotate it.\n\n"+
+			"To keep it out of state from then on, move the value from connector_config.fields into connector_config.field_values_wo, "+
+			"give it an entry in connector_config.field_values_wo_versions, and apply. That apply removes the imported value from state. "+
+			"Write-only attributes need Terraform 1.11 or later.",
+	)
+}
+
+// Connector field names that carry a secret often enough to be worth naming.
+// The field list holds every value a connector takes, most of them ordinary --
+// a URL, a method, a channel -- so warning on all of them would be noise.
+var connectorCredentialFieldNames = map[string]struct{}{
+	"additionalheaders": {},
+	"alertsourcetoken":  {},
+	"apikey":            {},
+	"authorization":     {},
+	"headers":           {},
+	"integrationkey":    {},
+	"password":          {},
+	"secret":            {},
+	"servicekey":        {},
+	"token":             {},
+}
+
+// connectorWarningSummary names the connector in the warning summary.
+// Terraform's console renderer collapses diagnostics by summary alone -- the
+// detail is not considered -- so a shared summary would report only the first
+// of several affected connectors. The id is preferred because it is the
+// backend identifier and unique; a name need not be.
+func connectorWarningSummary(config *ConnectorResourceModel, field string) string {
+	subject := ""
+	switch {
+	case !config.ID.IsNull() && !config.ID.IsUnknown():
+		subject = config.ID.ValueString()
+	case !config.Name.IsNull() && !config.Name.IsUnknown():
+		subject = config.Name.ValueString()
+	}
+	if subject == "" {
+		return fmt.Sprintf("Connector field %q is stored in state", field)
+	}
+	return fmt.Sprintf("Connector field %q of %q is stored in state", field, subject)
+}
+
+// connectorCredentialWarnings reports secret-looking field values given through
+// the ordinary field list, which puts them in state.
+func connectorCredentialWarnings(ctx context.Context, config *ConnectorResourceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if config == nil || config.ConnectorConfig.IsNull() || config.ConnectorConfig.IsUnknown() {
+		return diags
+	}
+
+	var connectorConfig ConnectorConfigModel
+	if dg := config.ConnectorConfig.As(ctx, &connectorConfig, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return diags
+	}
+	fieldSet := connectorConfig.ConnectorConfigFields
+	if fieldSet.IsNull() || fieldSet.IsUnknown() {
+		return diags
+	}
+
+	var fields []ConnectorConfigFieldModel
+	if dg := fieldSet.ElementsAs(ctx, &fields, false); dg.HasError() {
+		return diags
+	}
+
+	names := make([]string, 0, len(fields))
+	for _, field := range fields {
+		if field.FieldName.IsNull() || field.FieldName.IsUnknown() {
+			continue
+		}
+		name := field.FieldName.ValueString()
+		if _, ok := connectorCredentialFieldNames[strings.ToLower(name)]; !ok {
+			continue
+		}
+		if field.Value.IsNull() {
+			continue
+		}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		diags.AddAttributeWarning(
+			path.Root("connector_config").AtName("fields"),
+			connectorWarningSummary(config, name),
+			fmt.Sprintf("%s is set through fields, which appears to carry a secret. Terraform writes it to state. ", name)+
+				"Move it to connector_config.field_values_wo with an entry in connector_config.field_values_wo_versions to send the value without storing it. "+
+				"Write-only attributes need Terraform 1.11 or later. "+
+				"Terraform shows one warning per distinct message, so check any other connector with the same name as well.",
+		)
+	}
+	return diags
+}
+
+func (r *ConnectorResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config *ConnectorResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(connectorCredentialWarnings(ctx, config)...)
 }
 
 func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -218,7 +351,19 @@ func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	connector, diags := extractConnector(ctx, plan)
+	var config *ConnectorResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	secretFields, diags := secretFieldsFromConfig(ctx, config)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	writeOnlyFields := writeOnlyFieldNames(ctx, plan)
+
+	connector, diags := extractConnector(ctx, plan, secretFields)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -238,7 +383,11 @@ func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	plan, diags = flattenConnector(ctx, result.Connector)
+	source := plan
+	plan, diags = flattenConnector(ctx, result.Connector, writeOnlyFields)
+	if !diags.HasError() {
+		diags.Append(carryWriteOnlyVersions(ctx, plan, source)...)
+	}
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -276,7 +425,12 @@ func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	state, diags = flattenConnector(ctx, result.Connector)
+	// Read has no configuration, so the field names come from prior state.
+	priorState := state
+	state, diags = flattenConnector(ctx, result.Connector, writeOnlyFieldNames(ctx, state))
+	if !diags.HasError() {
+		diags.Append(carryWriteOnlyVersions(ctx, state, priorState)...)
+	}
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -293,7 +447,19 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 	id := plan.ID.ValueString()
-	connector, diags := extractConnector(ctx, plan)
+	var config *ConnectorResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	secretFields, diags := secretFieldsFromConfig(ctx, config)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	writeOnlyFields := writeOnlyFieldNames(ctx, plan)
+
+	connector, diags := extractConnector(ctx, plan, secretFields)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -321,7 +487,11 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	plan, diags = flattenConnector(ctx, result.Connector)
+	source := plan
+	plan, diags = flattenConnector(ctx, result.Connector, writeOnlyFields)
+	if !diags.HasError() {
+		diags.Append(carryWriteOnlyVersions(ctx, plan, source)...)
+	}
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -352,8 +522,209 @@ func (r ConnectorResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 }
 
-func extractConnector(ctx context.Context, plan *ConnectorResourceModel) (*connectors.Connector, diag.Diagnostics) {
-	connectorConfigs, diags := extractConnectorConfig(ctx, plan.ConnectorConfig)
+// secretFieldsFromConfig reads the write-only secrets. They exist nowhere but
+// the configuration, which is also why Read cannot obtain them.
+func secretFieldsFromConfig(ctx context.Context, config *ConnectorResourceModel) (map[string]string, diag.Diagnostics) {
+	if config == nil || config.ConnectorConfig.IsNull() || config.ConnectorConfig.IsUnknown() {
+		return nil, nil
+	}
+	var model ConnectorConfigModel
+	if dg := config.ConnectorConfig.As(ctx, &model, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return nil, dg
+	}
+	if model.FieldValuesWO.IsNull() || model.FieldValuesWO.IsUnknown() {
+		return nil, nil
+	}
+	out := make(map[string]string)
+	if dg := model.FieldValuesWO.ElementsAs(ctx, &out, false); dg.HasError() {
+		return nil, dg
+	}
+	return out, nil
+}
+
+// writeOnlyFieldNames reads the managed field names from the versions map,
+// which is the only record of them that reaches state.
+func writeOnlyFieldNames(ctx context.Context, model *ConnectorResourceModel) map[string]struct{} {
+	if model == nil || model.ConnectorConfig.IsNull() || model.ConnectorConfig.IsUnknown() {
+		return nil
+	}
+	var config ConnectorConfigModel
+	if dg := model.ConnectorConfig.As(ctx, &config, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return nil
+	}
+	if config.FieldValuesWOVersions.IsNull() || config.FieldValuesWOVersions.IsUnknown() {
+		return nil
+	}
+	names := make(map[string]struct{}, len(config.FieldValuesWOVersions.Elements()))
+	for name := range config.FieldValuesWOVersions.Elements() {
+		names[name] = struct{}{}
+	}
+	return names
+}
+
+// carryWriteOnlyVersions restores the versions map, which the API does not
+// store and the flatten therefore cannot recover.
+func carryWriteOnlyVersions(ctx context.Context, flattened, source *ConnectorResourceModel) diag.Diagnostics {
+	if flattened == nil || source == nil || flattened.ConnectorConfig.IsNull() {
+		return nil
+	}
+	var from ConnectorConfigModel
+	if source.ConnectorConfig.IsNull() || source.ConnectorConfig.IsUnknown() {
+		return nil
+	}
+	if dg := source.ConnectorConfig.As(ctx, &from, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return dg
+	}
+	var into ConnectorConfigModel
+	if dg := flattened.ConnectorConfig.As(ctx, &into, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return dg
+	}
+	into.FieldValuesWOVersions = from.FieldValuesWOVersions
+	value, dg := types.ObjectValueFrom(ctx, connectorConfigAttr(), into)
+	if dg.HasError() {
+		return dg
+	}
+	flattened.ConnectorConfig = value
+	return nil
+}
+
+// connectorWriteOnlyFieldsValidator exists because both mistakes it catches are
+// otherwise silent: a duplicated name is sent twice and the API keeps one, and a
+// secret with no version leaves nothing in state to omit it on read.
+type connectorWriteOnlyFieldsValidator struct{}
+
+func (v connectorWriteOnlyFieldsValidator) Description(_ context.Context) string {
+	return "each field_values_wo entry needs a matching field_values_wo_versions entry, and must not also appear in fields"
+}
+
+func (v connectorWriteOnlyFieldsValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v connectorWriteOnlyFieldsValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	var config ConnectorConfigModel
+	if dg := req.ConfigValue.As(ctx, &config, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return
+	}
+	if config.FieldValuesWO.IsUnknown() || config.FieldValuesWOVersions.IsUnknown() {
+		return
+	}
+
+	secrets := map[string]attr.Value{}
+	if !config.FieldValuesWO.IsNull() {
+		secrets = config.FieldValuesWO.Elements()
+	}
+	versions := map[string]attr.Value{}
+	if !config.FieldValuesWOVersions.IsNull() {
+		versions = config.FieldValuesWOVersions.Elements()
+	}
+
+	// A version naming a field that is not managed write-only makes the read
+	// leave that field out, and the apply then fails on a value the
+	// configuration still declares.
+	orphans := make([]string, 0, len(versions))
+	for name := range versions {
+		if _, ok := secrets[name]; !ok {
+			orphans = append(orphans, name)
+		}
+	}
+	sort.Strings(orphans)
+	if len(orphans) > 0 {
+		resp.Diagnostics.AddAttributeError(req.Path.AtName("field_values_wo_versions"),
+			"Version Without a Write-Only Field",
+			fmt.Sprintf("These `field_values_wo_versions` entries name a field that is not set in `field_values_wo`: %s.\n\n"+
+				"A version only means something for a field whose value is supplied write-only. Remove the version, or move that field's value into `field_values_wo`.",
+				strings.Join(orphans, ", ")))
+	}
+
+	if len(secrets) == 0 {
+		return
+	}
+
+	// A null secret cannot be decoded into the request, and the failure would
+	// otherwise surface from the apply as a value conversion error telling the
+	// user to report a provider bug.
+	nullSecrets := make([]string, 0, len(secrets))
+	for name, secret := range secrets {
+		if secret.IsNull() {
+			nullSecrets = append(nullSecrets, name)
+		}
+	}
+	sort.Strings(nullSecrets)
+	if len(nullSecrets) > 0 {
+		resp.Diagnostics.AddAttributeError(req.Path.AtName("field_values_wo"),
+			"Null Write-Only Field Value",
+			fmt.Sprintf("These `field_values_wo` entries are null: %s.\n\n"+
+				"A write-only field needs a value to send. Give the field a value, or leave it out of `field_values_wo` along with its version.",
+				strings.Join(nullSecrets, ", ")))
+		return
+	}
+
+	// A null version satisfies the presence check while carrying no version at
+	// all, and since a change to the secret alone is invisible to planning, the
+	// next rotation would quietly not ship. Treated as no version rather than
+	// as a version, which is what it is.
+	missing := make([]string, 0, len(secrets))
+	nullVersions := make([]string, 0, len(secrets))
+	for name := range secrets {
+		version, ok := versions[name]
+		switch {
+		case !ok:
+			missing = append(missing, name)
+		case version.IsNull():
+			nullVersions = append(nullVersions, name)
+		}
+	}
+	sort.Strings(missing)
+	sort.Strings(nullVersions)
+	if len(missing) > 0 {
+		resp.Diagnostics.AddAttributeError(req.Path.AtName("field_values_wo_versions"),
+			"Missing Write-Only Field Version",
+			fmt.Sprintf("These `field_values_wo` entries have no matching `field_values_wo_versions` entry: %s.\n\n"+
+				"Every write-only secret needs a version. Terraform keeps no copy of the value, so the version is both how a rotation is signalled and the only record in state that the field is managed this way.",
+				strings.Join(missing, ", ")))
+	}
+	if len(nullVersions) > 0 {
+		resp.Diagnostics.AddAttributeError(req.Path.AtName("field_values_wo_versions"),
+			"Null Write-Only Field Version",
+			fmt.Sprintf("These `field_values_wo_versions` entries are null: %s.\n\n"+
+				"A null version records nothing, so a later change to the secret alone would never be sent: Terraform keeps no copy of the value and would see no reason to update. Give the field a number.",
+				strings.Join(nullVersions, ", ")))
+	}
+
+	if config.ConnectorConfigFields.IsNull() || config.ConnectorConfigFields.IsUnknown() {
+		return
+	}
+	var fields []ConnectorConfigFieldModel
+	if dg := config.ConnectorConfigFields.ElementsAs(ctx, &fields, true); dg.HasError() {
+		return
+	}
+	both := make([]string, 0)
+	for _, f := range fields {
+		if f.FieldName.IsNull() || f.FieldName.IsUnknown() {
+			continue
+		}
+		if _, ok := secrets[f.FieldName.ValueString()]; ok {
+			both = append(both, f.FieldName.ValueString())
+		}
+	}
+	sort.Strings(both)
+	if len(both) > 0 {
+		resp.Diagnostics.AddAttributeError(req.Path.AtName("field_values_wo"),
+			"Duplicate Connector Field",
+			fmt.Sprintf("These fields are set in both `fields` and `field_values_wo`: %s.\n\n"+
+				"Give each field a value in one place only. A field whose value is secret belongs in `field_values_wo`, and should be left out of `fields`.",
+				strings.Join(both, ", ")))
+	}
+}
+
+// secretFields is passed in rather than read from the plan, which never carries
+// a write-only value.
+func extractConnector(ctx context.Context, plan *ConnectorResourceModel, secretFields map[string]string) (*connectors.Connector, diag.Diagnostics) {
+	connectorConfigs, diags := extractConnectorConfig(ctx, plan.ConnectorConfig, secretFields)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -373,14 +744,14 @@ func extractConnector(ctx context.Context, plan *ConnectorResourceModel) (*conne
 	}, nil
 }
 
-func extractConnectorConfig(ctx context.Context, connectorConfig types.Object) (*connectors.ConnectorConfig, diag.Diagnostics) {
+func extractConnectorConfig(ctx context.Context, connectorConfig types.Object, secretFields map[string]string) (*connectors.ConnectorConfig, diag.Diagnostics) {
 	var connectorConfigModel ConnectorConfigModel
 	diags := connectorConfig.As(ctx, &connectorConfigModel, basetypes.ObjectAsOptions{})
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	extractedConnectorConfigFields, diags := extractConnectorConfigFields(ctx, connectorConfigModel.ConnectorConfigFields)
+	extractedConnectorConfigFields, diags := extractConnectorConfigFields(ctx, connectorConfigModel.ConnectorConfigFields, secretFields)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -390,7 +761,7 @@ func extractConnectorConfig(ctx context.Context, connectorConfig types.Object) (
 	}, nil
 }
 
-func extractConnectorConfigFields(ctx context.Context, connectorConfigFields types.Set) ([]connectors.NotificationCenterConnectorConfigField, diag.Diagnostics) {
+func extractConnectorConfigFields(ctx context.Context, connectorConfigFields types.Set, secretFields map[string]string) ([]connectors.NotificationCenterConnectorConfigField, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var connectorConfigFieldsObjects []types.Object
 	connectorConfigFields.ElementsAs(ctx, &connectorConfigFieldsObjects, true)
@@ -408,6 +779,21 @@ func extractConnectorConfigFields(ctx context.Context, connectorConfigFields typ
 
 	if diags.HasError() {
 		return nil, diags
+	}
+
+	// Appended rather than merged by key: the schema already rejects a name
+	// present in both places.
+	secretNames := make([]string, 0, len(secretFields))
+	for name := range secretFields {
+		secretNames = append(secretNames, name)
+	}
+	sort.Strings(secretNames)
+	for _, name := range secretNames {
+		fieldName, value := name, secretFields[name]
+		extractedConnectorConfigFields = append(extractedConnectorConfigFields, connectors.NotificationCenterConnectorConfigField{
+			FieldName: &fieldName,
+			Value:     &value,
+		})
 	}
 
 	return extractedConnectorConfigFields, diags
@@ -492,8 +878,13 @@ func extractTemplatedConnectorConfigField(model TemplatedConnectorConfigFieldMod
 	}
 }
 
-func flattenConnector(ctx context.Context, connector *connectors.Connector) (*ConnectorResourceModel, diag.Diagnostics) {
-	config, diags := flattenConnectorConfig(ctx, *connector.ConnectorConfig)
+// Fields named in writeOnlyFields are left out. The API returns their values,
+// and storing one would put the secret in state and diff on every later plan.
+func flattenConnector(ctx context.Context, connector *connectors.Connector, writeOnlyFields map[string]struct{}) (*ConnectorResourceModel, diag.Diagnostics) {
+	if connector.ConnectorConfig == nil {
+		connector.ConnectorConfig = &connectors.ConnectorConfig{}
+	}
+	config, diags := flattenConnectorConfig(ctx, *connector.ConnectorConfig, writeOnlyFields)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -579,20 +970,25 @@ func flattenTemplatedConnectorConfigField(ctx context.Context, field *connectors
 	return types.ObjectValueFrom(ctx, templatedConnectorConfigFieldAttr(), fieldModel)
 }
 
-func flattenConnectorConfig(ctx context.Context, connectorConfig connectors.ConnectorConfig) (types.Object, diag.Diagnostics) {
+func flattenConnectorConfig(ctx context.Context, connectorConfig connectors.ConnectorConfig, writeOnlyFields map[string]struct{}) (types.Object, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	configFields, dg := flattenConnectorConfigFields(ctx, connectorConfig.Fields)
+	configFields, dg := flattenConnectorConfigFields(ctx, connectorConfig.Fields, writeOnlyFields)
 	if dg.HasError() {
 		diags.Append(dg...)
 		return types.ObjectNull(connectorConfigAttr()), diags
 	}
 
-	connectorConfigModel := ConnectorConfigModel{ConnectorConfigFields: configFields}
+	connectorConfigModel := ConnectorConfigModel{
+		ConnectorConfigFields: configFields,
+		// Never written to state; the caller restores the versions map.
+		FieldValuesWO:         types.MapNull(types.StringType),
+		FieldValuesWOVersions: types.MapNull(types.Int64Type),
+	}
 
 	return types.ObjectValueFrom(ctx, connectorConfigAttr(), connectorConfigModel)
 }
 
-func flattenConnectorConfigFields(ctx context.Context, configFields []connectors.NotificationCenterConnectorConfigField) (types.Set, diag.Diagnostics) {
+func flattenConnectorConfigFields(ctx context.Context, configFields []connectors.NotificationCenterConnectorConfigField, writeOnlyFields map[string]struct{}) (types.Set, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if configFields == nil {
 		return types.SetNull(types.ObjectType{AttrTypes: connectorConfigFieldAttrs()}), diags
@@ -600,6 +996,9 @@ func flattenConnectorConfigFields(ctx context.Context, configFields []connectors
 
 	configFieldsList := make([]ConnectorConfigFieldModel, 0, len(configFields))
 	for _, field := range configFields {
+		if _, managed := writeOnlyFields[field.GetFieldName()]; managed {
+			continue
+		}
 		fieldModel := ConnectorConfigFieldModel{
 			FieldName: types.StringValue(field.GetFieldName()),
 			Value:     types.StringValue(field.GetValue()),
@@ -612,7 +1011,9 @@ func flattenConnectorConfigFields(ctx context.Context, configFields []connectors
 
 func connectorConfigAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"fields": types.SetType{ElemType: types.ObjectType{AttrTypes: connectorConfigFieldAttrs()}},
+		"fields":                   types.SetType{ElemType: types.ObjectType{AttrTypes: connectorConfigFieldAttrs()}},
+		"field_values_wo":          types.MapType{ElemType: types.StringType},
+		"field_values_wo_versions": types.MapType{ElemType: types.Int64Type},
 	}
 }
 

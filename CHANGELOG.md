@@ -11,7 +11,18 @@
 - CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
 
 #### provider
-- CHORE: Bump `coralogix-management-sdk` to include Team Groups `roleName` / `set_role_by_name`.
+- CHORE: Bump `coralogix-management-sdk`. The OpenAPI ClientSet now exposes Identity and Users clients, which the `coralogix_user` migration off SCIM needs. No user-facing behaviour changes.
+
+# Release 3.14.0
+
+#### resource/coralogix_connector
+- FEAT: A connector field's value can be supplied write-only, so the secret is sent to the API and never written to state. Set it in `connector_config.field_values_wo`, keyed by field name, with a matching entry in `connector_config.field_values_wo_versions`; leave that field out of `fields`. Terraform holds no copy of a write-only value, so it cannot notice that a secret changed: increment the version to send a rotated one. Requires Terraform 1.11 or later. Existing configurations are unaffected. Note that importing a connector brings the secret into state, because an import has neither configuration nor prior state to say which field is managed this way; one apply afterwards removes it again. This reduces what is stored in state and does not replace securing the state file. Reading the same connector through `data.coralogix_connector` still returns the value, because a data source reads from the API and has no configuration telling it which value is managed write-only.
+- FEAT: Warn when a field value that looks like a secret is set through `connector_config.fields` rather than `field_values_wo`, naming the field to move. Importing a connector warns too, since the import is the point at which a secret is written to state.
+- FIX: Reject a null `connector_config.field_values_wo_versions` entry. It recorded nothing, so a later change to the secret alone was never sent. An empty `field_values_wo` no longer requires a versions map either, which a module passing a variable hits on its default. A null `field_values_wo` value is rejected as well, rather than aborting the apply with a value conversion error.
+#### resource/coralogix_webhook
+- FEAT: A webhook credential can be supplied write-only, so the secret is sent to Coralogix and never written to state. Use `jira.api_token_wo` with `jira.api_token_wo_version`, `pager_duty.service_key_wo` with `pager_duty.service_key_wo_version`, or `custom.headers_wo` with `custom.headers_wo_versions` for individual secret headers. Terraform holds no copy of a write-only value, so it cannot notice that a secret changed: increment the version to send a rotated one. Requires Terraform 1.11 or later. Existing configurations are unaffected. Note that importing a webhook brings the secret into state, because an import has neither configuration nor prior state to say which value is managed this way; one apply afterwards removes it again. This reduces what is stored in state and does not replace securing the state file. Reading the same webhook through `data.coralogix_webhook` still returns these values, because a data source reads from the API and has no configuration telling it which value is managed write-only.
+- FEAT: Warn when a credential is set through an ordinary attribute rather than its write-only counterpart, naming the attribute to use instead. Importing a webhook warns too, since the import is the point at which a credential is written to state.
+- FIX: Accept an empty `custom.headers_wo` without requiring `custom.headers_wo_versions`, which a module passing a variable hits on its default. Mismatched keys are still rejected. A plan no longer reports a missing version when only one of the two maps is still unknown; the comparison waits until both resolve. A null version entry is rejected: it records nothing, so a later change to the secret alone would never be sent. A null `custom.headers_wo` value is rejected as well, rather than being sent as an empty header.
 
 #### resource/coralogix_quota_allocation_rule_set
 - FEAT: Allow `rules = []` to clear all customer-managed quota allocation rules.
@@ -100,7 +111,6 @@
 - FIX: Editing `content_json` updates the dashboard in place instead of recreating it, so it keeps its ID and existing links to it keep working.
 - FIX: `data.coralogix_dashboard` no longer fails on a dashboard whose widgets use an attribute with a custom value type. Deriving the data-source schema from the resource's dropped `CustomType` for numeric attributes. Affects any resource whose data source derives its schema this way.
 - DOC: A `dynamic` widget time-series visualization needs `promql_query_type = "range"` on its metrics query. An instant query returns a single point, so the chart renders empty while the configuration looks correct. Note this does not apply to the classic `line_chart`: the API has no such field on its metrics query, so only `unspecified` applies cleanly there and any other value fails the apply with an inconsistent result. That is long-standing rather than new, and is tracked separately.
-
 
 # Release 3.10.1
 
@@ -247,7 +257,6 @@
 
 - FIX: Deprecate the dashboard variable `constant_value` attribute and fail fast on it. It maps to the API's deprecated `Constant` variant, which the backend rejects with an opaque `invalid variable definition: Constant(...)` error. A `DeprecationMessage` surfaces this at plan time, and the provider now returns a clear error (instead of letting the opaque API rejection through) directing users to a `multi_select` variable with a `constant_list` source and a single `selected_values` entry — the supported replacement.
 - FIX: `folder.id` and `folder.path` no longer perpetually show `(known after apply)` on plans after a successful apply. Dropped `Computed: true` from both inner attributes (they remain `Optional` with the existing `ExactlyOneOf` mutual-exclusion validator) and updated `flattenDashboardFolder` to mirror whichever field the user set in config, so state matches config cleanly on every refresh. Users whose state was previously double-populated with both `folder.id` and `folder.path` by the buggy flatten will see a one-time diff on the first plan after upgrade as the unused field returns to null; the subsequent apply self-heals.
-
 
 # Release 3.6.0
 
@@ -408,7 +417,6 @@
 Fix:
 * Don't send `maxUniqueCountPerGroupByKey` when optional field `max_unique_count_per_group_by_key` is not set in `logs_unique_count` alerts. Previously, the provider sent `"0"` causing API `400 Bad Request` errors.
 
-
 # Release 3.1.0
 
 **Internal:**
@@ -554,7 +562,6 @@ Fix:
 
 # Release 2.1.1
 
-
 ## provider
 
 Fix:
@@ -574,7 +581,6 @@ Fix:
 
 # Release 2.1.0
 
-
 ## data_source/coralogix_slo
 
 - Deprecation notice
@@ -592,7 +598,6 @@ Feature:
 
 Feature: 
 - added new SLO type independent of APM
-
 
 ## resource/data_set
 
@@ -644,7 +649,6 @@ Feature: adding support for dynamic duration format for metric alerts time-windo
 Bug Fix:
 changing `config_overrides.*.payload_type` to Computed (in addition to Optional) - Will be computed if not set.
 
-
 # Release 2.0.18
 
 ## New resources and data-sources ()
@@ -677,7 +681,6 @@ Fix:
 
 Feature: 
 * allow to specify folder when creating a dashboard from json
-
 
 ## resource/coralogix_alert
 
@@ -796,7 +799,6 @@ Fix:
 
 * Add PhantomMode field
 
-
 ### resource/coralogix_integration
 
 Fix:
@@ -834,7 +836,6 @@ Fix:
 # Release 2.0.1
 ### resource/coralogix_slo
 * Various SLO fixes
-
 
 # Release 2.0.0
 
@@ -965,7 +966,6 @@ New Features:
 
 #### resource/coralogix_group
 * added support for associated scopes
-
 
 # Release 1.16.4
 Bug fixing:
@@ -1266,7 +1266,6 @@ Breaking Changes:
 
 **Please note** - this version contains a [State Upgrader](https://developer.hashicorp.com/terraform/plugin/framework/migrating/resources/state-upgrade#framework). It will upgrade the state to the new schema. Please make sure to back up your state before upgrading.
 (for upgrading the schemas the resource names have to be change manually to coralogix_tco_policy_logs before upgrading)
-
 
 FEATURES:
 

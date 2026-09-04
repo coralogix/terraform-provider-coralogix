@@ -28,14 +28,6 @@ resource "coralogix_connector" "generic_https_example" {
         value      = "POST"
       },
       {
-        field_name = "additionalHeaders"
-        value = jsonencode(
-          {
-            "Authorization" : "GenieKey <key>",
-            "Content-Type" : "application/json"
-        })
-      },
-      {
         field_name = "additionalBodyFields"
         value = jsonencode(
           {
@@ -43,6 +35,19 @@ resource "coralogix_connector" "generic_https_example" {
         })
       }
     ]
+    # additionalHeaders carries the API key, so it is set here rather than in
+    # fields: Terraform sends these values to Coralogix and never writes them
+    # to state. Increment the matching version to send a rotated secret.
+    field_values_wo = {
+      additionalHeaders = jsonencode(
+        {
+          "Authorization" : "GenieKey <key>",
+          "Content-Type" : "application/json"
+      })
+    }
+    field_values_wo_versions = {
+      additionalHeaders = 1
+    }
   }
   config_overrides = [
     {
