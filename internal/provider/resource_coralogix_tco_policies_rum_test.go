@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
+
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dataplans"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -29,13 +31,18 @@ import (
 var tcoPoliciesRumResourceName = "coralogix_tco_policies_rum.test"
 
 func TestAccCoralogixResourceTCOPoliciesRumCreate(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccTCOPoliciesRumCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPoliciesRumCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesRum(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesRum(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.name", "Example rum tco_policy 1"),
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.priority", "low"),
@@ -69,13 +76,18 @@ func TestAccCoralogixResourceTCOPoliciesRumCreate(t *testing.T) {
 // is a DataPrime expression instead of severities. The two are mutually exclusive at the
 // API, so this fixture omits severities entirely.
 func TestAccCoralogixResourceTCOPoliciesRum_dpxl_expression(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccTCOPoliciesRumCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPoliciesRumCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesRumDpxlExpression(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesRumDpxlExpression(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.name", "Example rum tco_policy with DPXL expression"),
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.priority", "medium"),
@@ -91,13 +103,18 @@ func TestAccCoralogixResourceTCOPoliciesRum_dpxl_expression(t *testing.T) {
 // `quota_based_priority_override`, where `priority` is the fallback applied once all tiers
 // are exhausted. The second step re-applies the same config to assert idempotency.
 func TestAccCoralogixResourceTCOPoliciesRum_quotaOverride(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccTCOPoliciesRumCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPoliciesRumCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesRumQuotaOverride(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesRumQuotaOverride(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.priority", "block"),
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.quota_based_priority_override.usage_tiers.#", "2"),
@@ -107,7 +124,7 @@ func TestAccCoralogixResourceTCOPoliciesRum_quotaOverride(t *testing.T) {
 			},
 			{
 				// Same config again must produce no diff.
-				Config:   testAccCoralogixResourceTCOPoliciesRumQuotaOverride(),
+				Config:   providerConfig + testAccCoralogixResourceTCOPoliciesRumQuotaOverride(),
 				PlanOnly: true,
 			},
 		},
@@ -117,13 +134,18 @@ func TestAccCoralogixResourceTCOPoliciesRum_quotaOverride(t *testing.T) {
 // TestAccCoralogixResourceTCOPoliciesRum_dpxl_replaces_severities verifies switching a
 // policy's matcher from severities to a DPXL expression.
 func TestAccCoralogixResourceTCOPoliciesRum_dpxl_replaces_severities(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccTCOPoliciesRumCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPoliciesRumCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesRumSeveritiesOnly(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesRumSeveritiesOnly(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.severities.#", "1"),
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesRumResourceName, "policies.0.severities.*", "info"),
@@ -131,7 +153,7 @@ func TestAccCoralogixResourceTCOPoliciesRum_dpxl_replaces_severities(t *testing.
 				),
 			},
 			{
-				Config: testAccCoralogixResourceTCOPoliciesRumDpxlOnly(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesRumDpxlOnly(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.dpxl_expression", "<v1> $d.severity == 'Error'"),
 					resource.TestCheckResourceAttr(tcoPoliciesRumResourceName, "policies.0.severities.#", "0"),

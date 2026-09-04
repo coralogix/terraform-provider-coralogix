@@ -18,18 +18,21 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var tcoPoliciesRumDataSourceName = "data." + tcoPoliciesRumResourceName
 
 func TestAccCoralogixDataSourceTCOPoliciesRum_basic(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesRum() +
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesRum() +
 					testAccCoralogixResourceTCORumPolicies_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesRumDataSourceName, "policies.0.priority", "low"),

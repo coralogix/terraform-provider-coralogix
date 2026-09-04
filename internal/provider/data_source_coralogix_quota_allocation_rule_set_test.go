@@ -18,18 +18,21 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 const quotaAllocationRuleSetDataSourceName = "data.coralogix_quota_allocation_rule_set.test"
 
 func TestAccCoralogixDataSourceQuotaAllocationRuleSet(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceQuotaAllocationRuleSet(60, 40, true) +
+				Config: providerConfig + testAccCoralogixResourceQuotaAllocationRuleSet(60, 40, true) +
 					testAccCoralogixDataSourceQuotaAllocationRuleSet(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(quotaAllocationRuleSetDataSourceName, "rules.#", "2"),

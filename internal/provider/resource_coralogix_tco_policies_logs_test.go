@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
+
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dataplans"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -30,13 +32,18 @@ import (
 var tcoPoliciesResourceName = "coralogix_tco_policies_logs.test"
 
 func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccTCOPoliciesLogsCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:  testAccCoralogixResourceTCOPoliciesLogs(),
+				Config:  providerConfig + testAccCoralogixResourceTCOPoliciesLogs(),
 				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy from terraform 1"),
@@ -52,7 +59,10 @@ func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.subsystems.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.subsystems.names.*", "mobile"),
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.subsystems.names.*", "web"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.archive_retention_id", "e1c980d0-c910-4c54-8326-67f3cf95645a"),
+					// archive_retention_id comes from the archive-retentions data source, so the
+					// fixture is portable across teams; assert it round-tripped rather than a
+					// hard-coded shared-team retention id.
+					resource.TestCheckResourceAttrSet(tcoPoliciesResourceName, "policies.0.archive_retention_id"),
 					// No targets were configured, so the default target the backend injects must
 					// not land in state — otherwise every subsequent plan drifts.
 					resource.TestCheckNoResourceAttr(tcoPoliciesResourceName, "policies.0.targets"),
@@ -111,7 +121,9 @@ func testAccTCOPoliciesLogsCheckDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceTCOPoliciesLogs() string {
-	return `resource "coralogix_tco_policies_logs" test {
+	return `data "coralogix_archive_retentions" "all" {}
+
+resource "coralogix_tco_policies_logs" test {
 policies = [{
 	name                 = "Example tco_policy from terraform 1"
 	priority             = "low"
@@ -124,7 +136,7 @@ policies = [{
 		rule_type        = "is"
 		names            = ["mobile", "web"]
 	}
-	archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
+	archive_retention_id = data.coralogix_archive_retentions.all.retentions[1].id
 },
 {
 	name            = "Example tco_policy from terraform 2"
@@ -161,13 +173,18 @@ policies = [{
 // whose matcher is a DataPrime expression instead of severities. The two are
 // mutually exclusive at the API level, so this fixture omits severities entirely.
 func TestAccCoralogixResourceTCOPoliciesLogs_dpxl_expression(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccTCOPoliciesLogsCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesLogsDpxlExpression(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesLogsDpxlExpression(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with DPXL expression"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.priority", "high"),
@@ -179,13 +196,18 @@ func TestAccCoralogixResourceTCOPoliciesLogs_dpxl_expression(t *testing.T) {
 	})
 }
 func TestAccCoralogixResourceTCOPoliciesLogs_quota_based_priority_override(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccTCOPoliciesLogsCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesLogsQuotaBasedOverride(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesLogsQuotaBasedOverride(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with quota-based override"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.priority", "block"),
@@ -201,13 +223,18 @@ func TestAccCoralogixResourceTCOPoliciesLogs_quota_based_priority_override(t *te
 }
 
 func TestAccCoralogixResourceTCOPoliciesLogs_dpxl_replaces_severities(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccTCOPoliciesLogsCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesLogsSeveritiesOnly(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesLogsSeveritiesOnly(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.severities.#", "1"),
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesResourceName, "policies.0.severities.*", "info"),
@@ -215,7 +242,7 @@ func TestAccCoralogixResourceTCOPoliciesLogs_dpxl_replaces_severities(t *testing
 				),
 			},
 			{
-				Config: testAccCoralogixResourceTCOPoliciesLogsDpxlOnly(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesLogsDpxlOnly(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.dpxl_expression", "<v1> $d.severity == 'INFO'"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.severities.#", "0"),
@@ -289,13 +316,18 @@ func testAccCoralogixResourceTCOPoliciesLogsQuotaBasedOverride() string {
 // block. Every target carries its own priority — the backend requires one on each target — and
 // the policy-level priority is omitted.
 func TestAccCoralogixResourceTCOPoliciesLogs_targets(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccTCOPoliciesLogsCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with per-target priorities"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "2"),
@@ -336,13 +368,18 @@ func testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority() string {
 // have exactly the targets that were configured; the policy without targets must have none in
 // state, even though the backend injects a default target for it.
 func TestAccCoralogixResourceTCOPoliciesLogs_mixedTargets(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccTCOPoliciesLogsCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesLogsMixedTargets(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesLogsMixedTargets(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Policy 0: has targets, each with its own priority.
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "policy-with-targets"),
@@ -389,13 +426,18 @@ func testAccCoralogixResourceTCOPoliciesLogsMixedTargets() string {
 // neither a priority nor a policy-level override. Tier priorities must be less restrictive than
 // the target's own priority, hence the `block` base.
 func TestAccCoralogixResourceTCOPoliciesLogs_targetPriorityOverride(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccTCOPoliciesLogsCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPoliciesLogsTargetPriorityOverride(),
+				Config: providerConfig + testAccCoralogixResourceTCOPoliciesLogsTargetPriorityOverride(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "1"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority", "block"),

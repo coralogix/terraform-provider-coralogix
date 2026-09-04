@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
+
 	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -29,13 +31,18 @@ import (
 const quotaAllocationRuleSetResourceName = "coralogix_quota_allocation_rule_set.test"
 
 func TestAccCoralogixResourceQuotaAllocationRuleSet(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
+	checkDestroy := testAccQuotaAllocationRuleSetCheckDestroy
+	if providerConfig != "" {
+		checkDestroy = nil
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQuotaAllocationRuleSetCheckDestroy,
+		CheckDestroy:             checkDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceQuotaAllocationRuleSet(60, 40, true),
+				Config: providerConfig + testAccCoralogixResourceQuotaAllocationRuleSet(60, 40, true),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(quotaAllocationRuleSetResourceName, "rules.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(quotaAllocationRuleSetResourceName, "rules.*", map[string]string{
@@ -61,7 +68,7 @@ func TestAccCoralogixResourceQuotaAllocationRuleSet(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccCoralogixResourceQuotaAllocationRuleSet(55, 45, false),
+				Config: providerConfig + testAccCoralogixResourceQuotaAllocationRuleSet(55, 45, false),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckTypeSetElemNestedAttrs(quotaAllocationRuleSetResourceName, "rules.*", map[string]string{
 						"entity_type":  "logs",
@@ -78,11 +85,11 @@ func TestAccCoralogixResourceQuotaAllocationRuleSet(t *testing.T) {
 				),
 			},
 			{
-				Config:   testAccCoralogixResourceQuotaAllocationRuleSet(55, 45, false),
+				Config:   providerConfig + testAccCoralogixResourceQuotaAllocationRuleSet(55, 45, false),
 				PlanOnly: true,
 			},
 			{
-				Config: testAccCoralogixResourceQuotaAllocationRuleSetMixed(),
+				Config: providerConfig + testAccCoralogixResourceQuotaAllocationRuleSetMixed(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(quotaAllocationRuleSetResourceName, "rules.#", "4"),
 					resource.TestCheckTypeSetElemNestedAttrs(quotaAllocationRuleSetResourceName, "rules.*", map[string]string{
@@ -116,17 +123,17 @@ func TestAccCoralogixResourceQuotaAllocationRuleSet(t *testing.T) {
 				),
 			},
 			{
-				Config:   testAccCoralogixResourceQuotaAllocationRuleSetMixed(),
+				Config:   providerConfig + testAccCoralogixResourceQuotaAllocationRuleSetMixed(),
 				PlanOnly: true,
 			},
 			{
-				Config: testAccCoralogixResourceQuotaAllocationRuleSetEmpty(),
+				Config: providerConfig + testAccCoralogixResourceQuotaAllocationRuleSetEmpty(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(quotaAllocationRuleSetResourceName, "rules.#", "0"),
 				),
 			},
 			{
-				Config:   testAccCoralogixResourceQuotaAllocationRuleSetEmpty(),
+				Config:   providerConfig + testAccCoralogixResourceQuotaAllocationRuleSetEmpty(),
 				PlanOnly: true,
 			},
 		},

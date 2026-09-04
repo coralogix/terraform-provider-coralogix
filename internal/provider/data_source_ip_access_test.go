@@ -17,18 +17,21 @@ package provider
 import (
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var ipAccessDataSourceName = "data.coralogix_ip_access.test2"
 
 func TestAccCoralogixDataSourceIpAccess(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: IpAccessResource +
+				Config: providerConfig + IpAccessResource +
 					testIpAccessResource_Read,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(ipAccessDataSourceName, "enable_coralogix_customer_support_access", "enabled"),
