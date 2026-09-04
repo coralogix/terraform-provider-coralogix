@@ -146,8 +146,14 @@ func (d *UserDataSource) userByID(ctx context.Context, id string) (*UserResource
 	var diags diag.Diagnostics
 	log.Printf("[INFO] Reading User: %s", id)
 
+	teamID, err := d.clients.teamID(ctx)
+	if err != nil {
+		diags.AddError("Error reading User", teamIDErrorDetail(err))
+		return nil, diags
+	}
+
 	// The data source has no state, so there is no username to narrow the search with.
-	state, err := readUser(ctx, d.clients, id, "")
+	state, err := readUser(ctx, d.clients, teamID, id, "")
 	if err != nil {
 		if isUserNotFoundErr(err) {
 			diags.AddError(fmt.Sprintf("User %q not found", id), "")

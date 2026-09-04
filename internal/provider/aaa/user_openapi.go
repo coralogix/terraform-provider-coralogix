@@ -27,7 +27,6 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	identity "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/identity_service"
 	teamGroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/team_groups_management_service"
 	users "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -67,32 +66,22 @@ func isUserNotFoundErr(err error) bool {
 	return errors.As(err, &notFound)
 }
 
-// userClients holds the three services a user read or write needs.
+// userClients holds what a user read or write needs: the two services it calls, and
+// the team id every Users path contains. teamID is the client set's own resolver, so
+// the resource and the data source share one cached lookup without either of them
+// holding the whole client set.
 type userClients struct {
 	users      *users.UsersManagementServiceAPIService
 	teamGroups *teamGroups.TeamGroupsManagementServiceAPIService
-	identity   *identity.IdentityServiceAPIService
+	teamID     func(ctx context.Context) (int64, error)
 }
 
 func newUserClients(clientSet *clientset.ClientSet) *userClients {
 	return &userClients{
 		users:      clientSet.Users(),
 		teamGroups: clientSet.TeamGroups(),
-		identity:   clientSet.Identity(),
+		teamID:     clientSet.TeamID,
 	}
-}
-
-// teamID asks WhoAmI which team the API key belongs to. Every Users API path contains
-// a team id, and an API key does not carry one.
-func (c *userClients) teamID(ctx context.Context) (int64, error) {
-	resp, httpResp, err := c.identity.IdentityServiceWhoAmI(ctx).Execute()
-	if err != nil {
-		return 0, cxsdkOpenapi.NewAPIError(httpResp, err)
-	}
-	if resp == nil || resp.TeamId == 0 {
-		return 0, errors.New("whoami returned no team id")
-	}
-	return resp.TeamId, nil
 }
 
 // searchUsers pages SearchUsers and returns every user it lists. An empty username
@@ -270,12 +259,9 @@ func listTeamGroupUserIDs(ctx context.Context, client *teamGroups.TeamGroupsMana
 }
 
 // readUser resolves the user and its group memberships, then flattens both into state.
-func readUser(ctx context.Context, clients *userClients, userID, hintUsername string) (*UserResourceModel, error) {
-	teamID, err := clients.teamID(ctx)
-	if err != nil {
-		return nil, err
-	}
-
+// The team id is a parameter rather than a lookup, so a caller that already has it
+// does not pay for a second WhoAmI.
+func readUser(ctx context.Context, clients *userClients, teamID int64, userID, hintUsername string) (*UserResourceModel, error) {
 	user, err := findUserByID(ctx, clients.users, teamID, userID, hintUsername)
 	if err != nil {
 		return nil, err
