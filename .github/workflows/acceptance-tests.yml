@@ -76,7 +76,11 @@ jobs:
         env:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
-          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}          
+          # Org-scoped key (org-teams:Manage + team API key creation). When set,
+          # team-singleton tests provision an ephemeral team per test instead of
+          # mutating the shared team. See internal/ephemeralteam.
+          CORALOGIX_ORG_API_KEY: ${{ secrets.CORALOGIX_ORG_API_KEY }}
+          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
           ARCHIVE_METRICS_BUCKET: ${{ secrets.ARCHIVE_METRICS_BUCKET }}
@@ -108,6 +112,11 @@ jobs:
         env:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+          # Org-scoped key (org-teams:Manage + team API key creation). When set,
+          # team-singleton tests provision an ephemeral team per test instead of
+          # mutating the shared team. See internal/ephemeralteam. The singleton
+          # tests (archive, TCO, quota, ip_access) run in this catch-all job.
+          CORALOGIX_ORG_API_KEY: ${{ secrets.CORALOGIX_ORG_API_KEY }}
           TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
