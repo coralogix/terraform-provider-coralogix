@@ -17,6 +17,8 @@ package provider
 import (
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
+
 	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -26,12 +28,15 @@ var (
 )
 
 func TestAccCoralogixResourceResourceArchiveRetentions(t *testing.T) {
+	// Archive retentions are a team-wide singleton; isolate in an ephemeral
+	// team when the org key is available.
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceArchiveRetentions(),
+				Config: providerConfig + testAccCoralogixResourceArchiveRetentions(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(archiveRetentionsResourceName, "retentions.0.name", "Default"),
 					resource.TestCheckResourceAttr(archiveRetentionsResourceName, "retentions.1.name", "name_2"),
@@ -45,7 +50,7 @@ func TestAccCoralogixResourceResourceArchiveRetentions(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccCoralogixResourceArchiveRetentionsUpdate(),
+				Config: providerConfig + testAccCoralogixResourceArchiveRetentionsUpdate(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(archiveRetentionsResourceName, "retentions.0.name", "Default"),
 					resource.TestCheckResourceAttr(archiveRetentionsResourceName, "retentions.1.name", "new_name_2"),
@@ -102,12 +107,13 @@ func testAccCoralogixResourceArchiveRetentionsUpdate() string {
 // with values injected via ConfigVariables (the test-framework analogue of
 // .tfvars / TF_VAR_*).
 func TestAccCoralogixResourceArchiveRetentions_via_variable(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceArchiveRetentionsViaVariable(),
+				Config: providerConfig + testAccCoralogixResourceArchiveRetentionsViaVariable(),
 				ConfigVariables: config.Variables{
 					"retentions_list": config.ListVariable(
 						config.ObjectVariable(map[string]config.Variable{}),

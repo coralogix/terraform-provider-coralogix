@@ -17,6 +17,8 @@ package provider
 import (
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -26,12 +28,13 @@ func TestAccCoralogixDataSourceArchiveMetrics_basic(t *testing.T) {
 	if archiveMetricsBucket == "" {
 		t.Skip("ARCHIVE_METRICS_BUCKET must be set for this acceptance test")
 	}
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceArchiveMetrics() +
+				Config: providerConfig + testAccCoralogixResourceArchiveMetrics() +
 					testAccCoralogixDataSourceArchiveMetrics_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(archiveMetricsDataSourceName, "s3.region", "eu-north-1"),
@@ -44,7 +47,11 @@ func TestAccCoralogixDataSourceArchiveMetrics_basic(t *testing.T) {
 }
 
 func testAccCoralogixDataSourceArchiveMetrics_read() string {
+	// depends_on defers the read to apply time: on a fresh (ephemeral) team no
+	// tenant config exists until the resource creates it, and a plan-time read
+	// returns a null object.
 	return `data "coralogix_archive_metrics" "test" {
+  depends_on = [coralogix_archive_metrics.test]
 }
 `
 }

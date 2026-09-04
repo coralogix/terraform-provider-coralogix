@@ -26,6 +26,7 @@ The Makefile's `OS_ARCH=darwin_arm64` may need editing for non-Apple-Silicon dev
 
 - `CORALOGIX_API_KEY` — required.
 - Either `CORALOGIX_ENV` (e.g. `EU1`, `US1`, `AP3`, etc.) **or** `CORALOGIX_DOMAIN` (e.g. `coralogix.com`) — exactly one. Setting both is a configuration error. The full env→gRPC URL map lives in `internal/provider/provider.go`.
+- `CORALOGIX_ORG_API_KEY` — optional, acceptance tests only: an org-scoped key that lets team-singleton tests provision an ephemeral team per test (see `internal/ephemeralteam/`) and the nightly cleanup sweep stale `*-ephemeral-*` teams. When unset, those tests run against the shared team.
 
 ## Architecture
 
@@ -125,6 +126,7 @@ git diff master.. -- internal docs examples | grep -iE "BUGV2-|CX-[0-9]" || echo
 - **Null, unknown, and import safety:** Validators and extractors must tolerate `null`, `unknown`, and variable-derived values without panics. Import reads often start with only an ID, so dynamic or required-looking nested values must be hydrated from the backend before conversion.
 - **CRUD error paths:** After `resp.Diagnostics.AddError`, return immediately. A failed create/update must not continue into flatten/state writes, because empty IDs or zero-value state can poison later reads and plans.
 - **API behavior hidden by generated types:** Do not infer semantics from Go zero values alone. Check for exact numeric/string conversions, time windows that cross midnight, host/domain routing special cases, backend-only defaults, and hard-coded request values that users cannot express in schema.
+- **Minted-key permissions:** A resource whose acceptance test runs in an ephemeral team gets its API access from `ephemeralteam.DefaultTeamKeyPermissions`. When a test starts exercising a new API surface, add the surface's permission there, with the name verified against the SDK catalog (`go/internal/coralogix/permissions/v1/permission_definitions.pb.go` in the pinned `coralogix-management-sdk`) — otherwise the test 403s only on the ephemeral path.
 - **Regression coverage:** Prefer tests that exercise apply → read → second plan, set → change → remove for optional fields, import, unknown/variable config, and API-returned optional blocks. Many past bugs only appeared on the second plan or on update/import, not on initial create.
 - **A state upgrader cannot carry a value whose type changed:** A stored value keeps the type of the schema version that wrote it, so an upgrader that hands `layout`-style nested values to the current schema fails with a value conversion error, and a null value fails the same way. If the resource can read itself from the API, refresh and flatten instead of translating: the read rebuilds every attribute at the current type, so one upgrader serves every prior version and every attribute that changed shape. Test every wired prior version, not only the newest, because the version that breaks is the oldest one nobody exercises.
 
@@ -192,6 +194,7 @@ Use this map to choose the smallest useful reading set before opening broad dire
 - `internal/provider/*_test.go` at the provider root are acceptance-test entry points. `internal/provider/<domain>/*_test.go` holds package-local tests and fixtures when they exist.
 - `internal/clientset/` builds backend API clients and endpoint/auth call properties. Read it when changing SDK client construction, REST clients, region endpoints, provider version, or auth metadata.
 - `internal/utils/` holds small shared helpers and constants. Check here before adding cross-resource utilities, but prefer local helpers for resource-specific behavior.
+- `internal/ephemeralteam/` provisions a disposable Coralogix team per singleton acceptance test (opt-in via `CORALOGIX_ORG_API_KEY`). Read it when changing test isolation, the minted key's permissions, or team cleanup semantics.
 - `examples/resources/coralogix_<name>/resource.tf` and `examples/data-sources/coralogix_<name>/data-source.tf` are user-facing examples and generated-doc inputs. Update them with schema changes that affect configuration.
 - `docs/resources/` and `docs/data-sources/` are generated from schemas/examples. Do not hand-edit them; run `make generate` after changing generated docs inputs.
 - `docs/guides/` is hand-written documentation and is preserved by the docs generation workflow.

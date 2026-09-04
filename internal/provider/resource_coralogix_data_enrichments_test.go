@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -22,12 +24,13 @@ func TestAccCoralogixResourceCustomDataEnrichments(t *testing.T) {
 	}
 	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_data_enrichments/date-to-day-of-the-week.csv"
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, fmt.Sprintf("file(\"%v\")", filePath)),
+				Config: providerConfig + testAccCoralogixResourceCustomDataEnrichments(name, description, fmt.Sprintf("file(\"%v\")", filePath)),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
 					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "custom.custom_enrichment_data.name", name),
@@ -54,12 +57,13 @@ func TestAccCoralogixResourceCustomDataEnrichmentsWithUploadedFile(t *testing.T)
 	}
 	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_data_enrichments/date-to-day-of-the-week.csv"
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, fmt.Sprintf("file(\"%v\")", filePath)),
+				Config: providerConfig + testAccCoralogixResourceCustomDataEnrichments(name, description, fmt.Sprintf("file(\"%v\")", filePath)),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "custom.custom_enrichment_data.id"),
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "custom.custom_enrichment_data.contents"),
@@ -73,7 +77,7 @@ func TestAccCoralogixResourceCustomDataEnrichmentsWithUploadedFile(t *testing.T)
 				ImportState:  true,
 			},
 			{
-				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, updatedTestData),
+				Config: providerConfig + testAccCoralogixResourceCustomDataEnrichments(name, description, updatedTestData),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
 					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "custom.custom_enrichment_data.name", name),
@@ -83,7 +87,7 @@ func TestAccCoralogixResourceCustomDataEnrichmentsWithUploadedFile(t *testing.T)
 			},
 			{
 				PlanOnly: true,
-				Config:   testAccCoralogixResourceCustomDataEnrichments(name, description, updatedTestData),
+				Config:   providerConfig + testAccCoralogixResourceCustomDataEnrichments(name, description, updatedTestData),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "custom.custom_enrichment_data.id"),
 					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "custom.custom_enrichment_data.name", name),
@@ -97,12 +101,13 @@ func TestAccCoralogixResourceCustomDataEnrichmentsWithUploadedFile(t *testing.T)
 
 func TestAccCoralogixResourceGeoIpDataEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceGeoIpDataEnrichment(fieldName),
+				Config: providerConfig + testAccCoralogixResourceGeoIpDataEnrichment(fieldName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "geo_ip.fields.0.id"),
 					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.name", fieldName),
@@ -119,12 +124,13 @@ func TestAccCoralogixResourceGeoIpDataEnrichment(t *testing.T) {
 
 func TestAccCoralogixResourceSuspiciousIpDataEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceSuspiciousIpDataEnrichment(fieldName),
+				Config: providerConfig + testAccCoralogixResourceSuspiciousIpDataEnrichment(fieldName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
 					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "suspicious_ip.fields.0.name", fieldName),
@@ -140,12 +146,13 @@ func TestAccCoralogixResourceSuspiciousIpDataEnrichment(t *testing.T) {
 }
 
 func TestAccCoralogixResourceGeoIpAndSuspiciousIpDataEnrichment(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceGeoIpSusIpDataEnrichments(),
+				Config: providerConfig + testAccCoralogixResourceGeoIpSusIpDataEnrichments(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
 					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.name", "coralogix.metadata.sdkId"),
@@ -162,12 +169,13 @@ func TestAccCoralogixResourceGeoIpAndSuspiciousIpDataEnrichment(t *testing.T) {
 }
 
 func TestAccCoralogixResourceGeoIpAndSuspiciousIpDataEnrichmentsSelectedColumns(t *testing.T) {
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceGeoIpSusIpDataEnrichmentsSelectedColumns("client_ip_geo"),
+				Config: providerConfig + testAccCoralogixResourceGeoIpSusIpDataEnrichmentsSelectedColumns("client_ip_geo"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
 					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.enriched_field_name", "client_ip_geo"),
@@ -181,7 +189,7 @@ func TestAccCoralogixResourceGeoIpAndSuspiciousIpDataEnrichmentsSelectedColumns(
 				),
 			},
 			{
-				Config: testAccCoralogixResourceGeoIpSusIpDataEnrichmentsSelectedColumns("client_ip_geo_v2"),
+				Config: providerConfig + testAccCoralogixResourceGeoIpSusIpDataEnrichmentsSelectedColumns("client_ip_geo_v2"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
 					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "geo_ip.fields.0.enriched_field_name", "client_ip_geo_v2"),
@@ -211,12 +219,13 @@ func TestAccCoralogixResourceDataEnrichmentsParitySurface(t *testing.T) {
 		t.Skip("set CORALOGIX_AWS_ENRICHMENT_RESOURCE_TYPE to an AWS cloud resource type present in the account to run AWS enrichment parity")
 	}
 
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceDataEnrichmentsParitySurface(awsResourceType),
+				Config: providerConfig + testAccCoralogixResourceDataEnrichmentsParitySurface(awsResourceType),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "aws.fields.0.id"),
@@ -254,12 +263,13 @@ func TestAccCoralogixResourceDataEnrichmentsParitySurface(t *testing.T) {
 
 func TestAccCoralogixResourceCustomDataEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
+	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceCustomDataEnrichment(fieldName),
+				Config: providerConfig + testAccCoralogixResourceCustomDataEnrichment(fieldName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "custom.custom_enrichment_data.id"),

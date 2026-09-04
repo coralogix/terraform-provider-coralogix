@@ -19,7 +19,10 @@ import (
 	"context"
 	"log"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
@@ -297,10 +300,10 @@ func main() {
 	ipaccess, _, err := ipaccessClient.IpAccessServiceGetCompanyIpAccessSettings(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all IpAccess")
-		if ipaccess.Settings.IpAccess != nil {
-			for _ = range *ipaccess.Settings.IpAccess {
-				ipaccessClient.IpAccessServiceDeleteCompanyIpAccessSettings(ctx).Execute()
-			}
+		// The delete endpoint clears the whole company IP-access settings
+		// object, so one call suffices when any rules exist.
+		if len(ipaccess.Settings.IpAccess) > 0 {
+			ipaccessClient.IpAccessServiceDeleteCompanyIpAccessSettings(ctx).Execute()
 		}
 	} else {
 		log.Print("Error listing IP Access:", err)
@@ -318,5 +321,51 @@ func main() {
 		}
 	} else {
 		log.Print("Error listing SLOs:", err)
+	}
+
+	sweepStaleEphemeralTeams(ctx, region)
+}
+
+// ephemeralTeamName matches the throwaway teams every repo's ephemeral-team
+// harness creates (terraform provider, coralogix-operator, view-as-code,
+// mgmt-mcp). The suffix is the creation time in UnixNano, which is the only
+// age signal available: the teams API does not return timestamps.
+var ephemeralTeamName = regexp.MustCompile(`^(?:tf-acc|vac-e2e|mcp-e2e|cx-operator-e2e)-ephemeral-(\d+)$`)
+
+// sweepStaleEphemeralTeams deletes ephemeral CI teams older than 24h across
+// all four repos. Failed CI runs keep their team for inspection and this
+// sweep is the backstop that reclaims them (and their org quota). Requires
+// the org-scoped CORALOGIX_ORG_API_KEY; silently skipped when it is unset.
+func sweepStaleEphemeralTeams(ctx context.Context, region string) {
+	orgKey := os.Getenv("CORALOGIX_ORG_API_KEY")
+	if orgKey == "" {
+		log.Println("CORALOGIX_ORG_API_KEY not set; skipping the stale ephemeral-team sweep")
+		return
+	}
+
+	orgClients := clientset.NewClientSet(region, orgKey, cxsdk.CoralogixGrpcEndpointFromRegion(region))
+	teams, _, err := orgClients.Teams().TeamServiceListTeams(ctx).Execute()
+	if err != nil {
+		log.Print("Error listing teams for the ephemeral sweep:", err)
+		return
+	}
+
+	cutoff := time.Now().Add(-24 * time.Hour)
+	for _, team := range teams.GetTeams() {
+		name := team.GetTeamName()
+		match := ephemeralTeamName.FindStringSubmatch(name)
+		if match == nil {
+			continue
+		}
+		nanos, err := strconv.ParseInt(match[1], 10, 64)
+		if err != nil || time.Unix(0, nanos).After(cutoff) {
+			continue
+		}
+		teamID := team.TeamId.GetId()
+		if _, _, err := orgClients.Teams().TeamServiceDeleteTeam(ctx, teamID).Execute(); err != nil {
+			log.Printf("Error deleting stale ephemeral team %d (%s): %v", teamID, name, err)
+			continue
+		}
+		log.Printf("Deleted stale ephemeral team %d (%s)", teamID, name)
 	}
 }

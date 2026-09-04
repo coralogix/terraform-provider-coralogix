@@ -151,6 +151,12 @@ var DefaultTeamKeyPermissions = []string{
 	"team-custom-enrichment:UpdateData",
 	"team-dashboards:Read",
 	"team-dashboards:Update",
+	// Beyond the documented legacy set: quota allocation rules and IP access
+	// (names verified against the SDK permission catalog).
+	"team-ip-access:Manage",
+	"team-ip-access:ReadConfig",
+	"team-quota-rules:Manage",
+	"team-quota-rules:Read",
 	"team-quota:Manage",
 	"team-quota:Read",
 	"user-actions:ReadConfig",
