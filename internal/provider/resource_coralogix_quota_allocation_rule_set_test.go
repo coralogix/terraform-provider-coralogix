@@ -101,7 +101,7 @@ func TestAccCoralogixResourceQuotaAllocationRuleSet(t *testing.T) {
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(quotaAllocationRuleSetResourceName, "rules.*", map[string]string{
 						"entity_type":     "spans",
-						"allocation":      "1",
+						"allocation":      "0.001",
 						"allocation_type": "locked_units",
 						"enabled":         "true",
 						"can_overflow":    "false",
@@ -209,7 +209,9 @@ resource "coralogix_quota_allocation_rule_set" "test" {
     },
     {
       entity_type     = "spans"
-      allocation      = 1
+      # Fractional units so the fixture fits an ephemeral team's minimal
+      # 0.01-unit daily quota; locked units must not exceed the team quota.
+      allocation      = 0.001
       allocation_type = "locked_units"
       enabled         = true
       can_overflow    = false

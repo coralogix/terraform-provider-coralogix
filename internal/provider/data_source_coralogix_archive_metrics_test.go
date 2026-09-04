@@ -47,7 +47,11 @@ func TestAccCoralogixDataSourceArchiveMetrics_basic(t *testing.T) {
 }
 
 func testAccCoralogixDataSourceArchiveMetrics_read() string {
+	// depends_on defers the read to apply time: on a fresh (ephemeral) team no
+	// tenant config exists until the resource creates it, and a plan-time read
+	// returns a null object.
 	return `data "coralogix_archive_metrics" "test" {
+  depends_on = [coralogix_archive_metrics.test]
 }
 `
 }
