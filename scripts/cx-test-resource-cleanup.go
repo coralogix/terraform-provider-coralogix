@@ -249,9 +249,7 @@ func main() {
 
 	// Users. The Users API has no delete, so cleanup deactivates instead.
 	usersClient := cs.Users()
-	whoAmI, _, err := cs.Identity().IdentityServiceWhoAmI(ctx).Execute()
-	if err == nil {
-		teamID := whoAmI.GetTeamId()
+	if teamID, err := cs.TeamID(ctx); err == nil {
 		searchRes, _, err := usersClient.UsersMgmtServiceSearchUsers(ctx, teamID).PageSize(100).Execute()
 		if err == nil {
 			log.Println("Deactivating all users")
