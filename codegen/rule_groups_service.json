@@ -1,0 +1,1686 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/parsing-rules/limits/v1": {
+      "post": {
+        "tags": [
+          "Rule Groups Service"
+        ],
+        "summary": "Get Company Usage Limits",
+        "description": "Returns parsing rule usage limits.",
+        "externalDocs": {
+          "url": ""
+        },
+        "operationId": "RuleGroupsService_GetCompanyUsageLimits",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCompanyUsageLimitsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parsing-rules/mapping/v1": {
+      "post": {
+        "tags": [
+          "Rule Groups Service"
+        ],
+        "summary": "Get Rule Group Model Mapping",
+        "description": "Returns the model mapping for a parsing rule group.",
+        "externalDocs": {
+          "url": ""
+        },
+        "operationId": "RuleGroupsService_GetRuleGroupModelMapping",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "description": "Request for retrieving the model mapping for a parsing rule group.",
+                "type": "object",
+                "properties": {
+                  "creator": {
+                    "description": "Creator.",
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  "description": {
+                    "description": "Human-readable description.",
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  "enabled": {
+                    "description": "Whether this resource is enabled.",
+                    "type": "boolean"
+                  },
+                  "hidden": {
+                    "description": "Whether to hide this rule group from the standard view.",
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "description": "Display name.",
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  "order": {
+                    "description": "Sort order.",
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 0
+                  },
+                  "ruleMatchers": {
+                    "description": "List of rule matchers that determine which logs this group applies to.",
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/RuleMatcher"
+                    },
+                    "minItems": 0
+                  },
+                  "ruleSubgroups": {
+                    "description": "List of rule subgroups defining the ordered set of rules in this group.",
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/GetRuleGroupModelMappingRequest.CreateRuleSubgroup"
+                    },
+                    "minItems": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetRuleGroupModelMappingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parsing-rules/rule-groups/v1": {
+      "get": {
+        "tags": [
+          "Rule Groups Service"
+        ],
+        "summary": "List Rule Groups",
+        "description": "Returns all parsing rule groups for the team.",
+        "externalDocs": {
+          "url": ""
+        },
+        "operationId": "RuleGroupsService_ListRuleGroups",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListRuleGroupsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Rule Groups Service"
+        ],
+        "summary": "Create Rule Group",
+        "description": "Creates a new parsing rule group.",
+        "externalDocs": {
+          "url": ""
+        },
+        "operationId": "RuleGroupsService_CreateRuleGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "description": "Request to create a new parsing rule group.",
+                "type": "object",
+                "properties": {
+                  "creator": {
+                    "description": "Creator.",
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  "description": {
+                    "description": "Human-readable description.",
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  "enabled": {
+                    "description": "Whether this resource is enabled.",
+                    "type": "boolean"
+                  },
+                  "hidden": {
+                    "description": "The hidden.",
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "description": "Display name.",
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  "order": {
+                    "description": "Sort order.",
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 0
+                  },
+                  "ruleMatchers": {
+                    "description": "The rule matchers.",
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/RuleMatcher"
+                    },
+                    "minItems": 0
+                  },
+                  "ruleSubgroups": {
+                    "description": "The rule subgroups.",
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/CreateRuleGroupRequest.CreateRuleSubgroup"
+                    },
+                    "minItems": 0
+                  },
+                  "teamId": {
+                    "$ref": "#/components/schemas/v1.TeamId"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateRuleGroupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Rule Groups Service"
+        ],
+        "summary": "Bulk Delete Rule Group",
+        "description": "Deletes all parsing rule groups.",
+        "externalDocs": {
+          "url": ""
+        },
+        "operationId": "RuleGroupsService_BulkDeleteRuleGroup",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "group_ids",
+            "description": "The unique identifiers of the parsing rule groups to delete.",
+            "schema": {
+              "description": "The unique identifiers of the parsing rule groups to delete.",
+              "type": "array",
+              "items": {
+                "description": "The unique identifiers of the parsing rule groups to delete.",
+                "type": "string",
+                "minLength": 0
+              },
+              "minItems": 0
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkDeleteRuleGroupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parsing-rules/rule-groups/v1/{group_id}": {
+      "get": {
+        "tags": [
+          "Rule Groups Service"
+        ],
+        "summary": "Get Rule Group",
+        "description": "Returns the details of the specified parsing rule group.",
+        "externalDocs": {
+          "url": ""
+        },
+        "operationId": "RuleGroupsService_GetRuleGroup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "description": "The unique identifier of the parsing rule group to retrieve.",
+            "required": true,
+            "schema": {
+              "description": "The unique identifier of the parsing rule group to retrieve.",
+              "type": "string",
+              "minLength": 0
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetRuleGroupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Rule Groups Service"
+        ],
+        "summary": "Update Rule Group",
+        "description": "Updates the specified parsing rule group.",
+        "externalDocs": {
+          "url": ""
+        },
+        "operationId": "RuleGroupsService_UpdateRuleGroup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "description": "The unique identifier of the parsing rule group to update.",
+            "required": true,
+            "schema": {
+              "description": "The unique identifier of the parsing rule group to update.",
+              "type": "string",
+              "minLength": 0
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "description": "Request to create a new parsing rule group.",
+                "type": "object",
+                "properties": {
+                  "creator": {
+                    "description": "Creator.",
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  "description": {
+                    "description": "Human-readable description.",
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  "enabled": {
+                    "description": "Whether this resource is enabled.",
+                    "type": "boolean"
+                  },
+                  "hidden": {
+                    "description": "The hidden.",
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "description": "Display name.",
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  "order": {
+                    "description": "Sort order.",
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 0
+                  },
+                  "ruleMatchers": {
+                    "description": "The rule matchers.",
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/RuleMatcher"
+                    },
+                    "minItems": 0
+                  },
+                  "ruleSubgroups": {
+                    "description": "The rule subgroups.",
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/CreateRuleGroupRequest.CreateRuleSubgroup"
+                    },
+                    "minItems": 0
+                  },
+                  "teamId": {
+                    "$ref": "#/components/schemas/v1.TeamId"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateRuleGroupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Rule Groups Service"
+        ],
+        "summary": "Delete Rule Group",
+        "description": "Deletes the parsing rule group with the specified ID.",
+        "externalDocs": {
+          "url": ""
+        },
+        "operationId": "RuleGroupsService_DeleteRuleGroup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "description": "The unique identifier of the parsing rule group to delete.",
+            "required": true,
+            "schema": {
+              "description": "The unique identifier of the parsing rule group to delete.",
+              "type": "string",
+              "minLength": 0
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteRuleGroupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AllowParameters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Allow parameters.",
+        "type": "object",
+        "properties": {
+          "keepBlockedLogs": {
+            "description": "The keep blocked logs.",
+            "type": "boolean"
+          },
+          "rule": {
+            "description": "Rule.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "ApplicationNameConstraint": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Application name constraint.",
+        "type": "object",
+        "properties": {
+          "value": {
+            "description": "The value.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "BlockParameters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Block parameters.",
+        "type": "object",
+        "properties": {
+          "keepBlockedLogs": {
+            "description": "The keep blocked logs.",
+            "type": "boolean"
+          },
+          "rule": {
+            "description": "Rule.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "BulkDeleteRuleGroupResponse": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Response returned after deleting all parsing rule groups.",
+        "type": "object",
+        "additionalProperties": false
+      },
+      "Counts": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Counts.",
+        "type": "object",
+        "properties": {
+          "groups": {
+            "description": "List of groups.",
+            "type": "integer",
+            "format": "int32"
+          },
+          "parsingThemes": {
+            "description": "The parsing themes.",
+            "type": "integer",
+            "format": "int32"
+          },
+          "rules": {
+            "description": "List of rules.",
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreateRuleGroupRequest.CreateRuleSubgroup": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "description": "Whether this resource is enabled.",
+            "type": "boolean"
+          },
+          "order": {
+            "description": "Sort order.",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rules": {
+            "description": "List of rules.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateRuleGroupRequest.CreateRuleSubgroup.CreateRule"
+            },
+            "minItems": 0
+          }
+        }
+      },
+      "CreateRuleGroupRequest.CreateRuleSubgroup.CreateRule": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "description": "Human-readable description.",
+            "type": "string",
+            "minLength": 0
+          },
+          "enabled": {
+            "description": "Whether this resource is enabled.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Display name.",
+            "type": "string",
+            "minLength": 0
+          },
+          "order": {
+            "description": "Sort order.",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/RuleParameters"
+          },
+          "sourceField": {
+            "description": "The source field.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "CreateRuleGroupResponse": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Response returned after successfully creating a parsing rule group.",
+        "type": "object",
+        "properties": {
+          "ruleGroup": {
+            "$ref": "#/components/schemas/RuleGroup"
+          }
+        }
+      },
+      "DeleteRuleGroupResponse": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Response returned after successfully deleting a parsing rule group.",
+        "type": "object",
+        "additionalProperties": false
+      },
+      "DestinationField": {
+        "description": "Destination field.",
+        "type": "string",
+        "enum": [
+          "DESTINATION_FIELD_CATEGORY_OR_UNSPECIFIED",
+          "DESTINATION_FIELD_CLASSNAME",
+          "DESTINATION_FIELD_METHODNAME",
+          "DESTINATION_FIELD_THREADID",
+          "DESTINATION_FIELD_SEVERITY",
+          "DESTINATION_FIELD_TEXT"
+        ]
+      },
+      "Error": {
+        "description": "Standard error response body returned for a failed request.",
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "HTTP status code of the error (for example 400, 404, 500).",
+            "type": "integer",
+            "format": "int32",
+            "minimum": 100,
+            "maximum": 599
+          },
+          "message": {
+            "description": "Human-readable description of the error.",
+            "type": "string",
+            "pattern": "^[\\s\\S]*$",
+            "minLength": 0,
+            "maxLength": 4096
+          }
+        }
+      },
+      "ExtractParameters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Extract parameters.",
+        "type": "object",
+        "properties": {
+          "rule": {
+            "description": "Rule.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "ExtractTimestampParameters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Extract timestamp parameters.",
+        "type": "object",
+        "properties": {
+          "format": {
+            "description": "The format.",
+            "type": "string",
+            "minLength": 0
+          },
+          "standard": {
+            "$ref": "#/components/schemas/FormatStandard"
+          }
+        }
+      },
+      "FilterPathAndValues": {
+        "externalDocs": {
+          "url": ""
+        },
+        "title": "FilterPathAndValues",
+        "description": "This data structure represents a filter path and values",
+        "type": "object",
+        "properties": {
+          "filters": {
+            "description": "The filters.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Filters"
+              }
+            ]
+          },
+          "multipleValues": {
+            "$ref": "#/components/schemas/MultipleValues"
+          },
+          "path": {
+            "example": "test",
+            "type": "string",
+            "minLength": 0
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "multipleValues"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "filters"
+            ]
+          }
+        ]
+      },
+      "Filters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "title": "Filters",
+        "description": "This data structure represents a filter",
+        "type": "object",
+        "properties": {
+          "operator": {
+            "example": "FILTER_OPERATOR_OR",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/v3.FilterOperator"
+              }
+            ]
+          },
+          "pathAndValues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterPathAndValues"
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "pathAndValues"
+        ]
+      },
+      "FormatStandard": {
+        "description": "Format standard.",
+        "type": "string",
+        "enum": [
+          "FORMAT_STANDARD_STRFTIME_OR_UNSPECIFIED",
+          "FORMAT_STANDARD_JAVASDF",
+          "FORMAT_STANDARD_GOLANG",
+          "FORMAT_STANDARD_SECONDSTS",
+          "FORMAT_STANDARD_MILLITS",
+          "FORMAT_STANDARD_MICROTS",
+          "FORMAT_STANDARD_NANOTS"
+        ]
+      },
+      "GetCompanyUsageLimitsResponse": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Response containing the company-level rule usage limits.",
+        "type": "object",
+        "properties": {
+          "companyId": {
+            "description": "The company id.",
+            "type": "string",
+            "minLength": 0
+          },
+          "limits": {
+            "$ref": "#/components/schemas/Counts"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Counts"
+          }
+        }
+      },
+      "GetRuleGroupModelMappingRequest.CreateRuleSubgroup": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "description": "Whether this resource is enabled.",
+            "type": "boolean"
+          },
+          "order": {
+            "description": "Sort order.",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rules": {
+            "description": "List of rules.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GetRuleGroupModelMappingRequest.CreateRuleSubgroup.CreateRule"
+            },
+            "minItems": 0
+          }
+        }
+      },
+      "GetRuleGroupModelMappingRequest.CreateRuleSubgroup.CreateRule": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "description": "Human-readable description.",
+            "type": "string",
+            "minLength": 0
+          },
+          "enabled": {
+            "description": "Whether this resource is enabled.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Display name.",
+            "type": "string",
+            "minLength": 0
+          },
+          "order": {
+            "description": "Sort order.",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/RuleParameters"
+          },
+          "sourceField": {
+            "description": "The source field.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "GetRuleGroupModelMappingResponse": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Response containing the model mapping for a parsing rule group.",
+        "type": "object",
+        "properties": {
+          "ruleDefinition": {
+            "description": "The rule definition.",
+            "type": "object"
+          }
+        }
+      },
+      "GetRuleGroupResponse": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Response containing the details of a parsing rule group.",
+        "type": "object",
+        "properties": {
+          "ruleGroup": {
+            "$ref": "#/components/schemas/RuleGroup"
+          }
+        }
+      },
+      "JsonExtractParameters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Json extract parameters.",
+        "type": "object",
+        "properties": {
+          "destinationFieldText": {
+            "description": "The destination field text.",
+            "type": "string",
+            "minLength": 0
+          },
+          "destinationFieldType": {
+            "$ref": "#/components/schemas/DestinationField"
+          },
+          "rule": {
+            "description": "Rule.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "JsonParseParameters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Json parse parameters.",
+        "type": "object",
+        "properties": {
+          "deleteSource": {
+            "description": "The delete source.",
+            "type": "boolean"
+          },
+          "destinationField": {
+            "description": "The destination field.",
+            "type": "string",
+            "minLength": 0
+          },
+          "escapedValue": {
+            "description": "The escaped value.",
+            "type": "boolean"
+          },
+          "overrideDest": {
+            "description": "The override dest.",
+            "type": "boolean"
+          }
+        }
+      },
+      "JsonStringifyParameters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Json stringify parameters.",
+        "type": "object",
+        "properties": {
+          "deleteSource": {
+            "description": "The delete source.",
+            "type": "boolean"
+          },
+          "destinationField": {
+            "description": "The destination field.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "ListRuleGroupsResponse": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Response containing a list of parsing rule groups.",
+        "type": "object",
+        "properties": {
+          "ruleGroups": {
+            "description": "The rule groups.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleGroup"
+            },
+            "minItems": 0
+          }
+        }
+      },
+      "MultipleValues": {
+        "type": "object",
+        "properties": {
+          "matcher": {
+            "$ref": "#/components/schemas/events.v3.FilterMatcher"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 0
+            },
+            "minItems": 0
+          }
+        }
+      },
+      "ParseParameters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Parse parameters.",
+        "type": "object",
+        "properties": {
+          "destinationField": {
+            "description": "The destination field.",
+            "type": "string",
+            "minLength": 0
+          },
+          "rule": {
+            "description": "Rule.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "RemoveFieldsParameters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Remove fields parameters.",
+        "type": "object",
+        "properties": {
+          "fields": {
+            "description": "List of fields.",
+            "type": "array",
+            "items": {
+              "description": "List of fields.",
+              "type": "string",
+              "minLength": 0
+            },
+            "minItems": 0
+          }
+        }
+      },
+      "ReplaceParameters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Replace parameters.",
+        "type": "object",
+        "properties": {
+          "destinationField": {
+            "description": "The destination field.",
+            "type": "string",
+            "minLength": 0
+          },
+          "replaceNewVal": {
+            "description": "The replace new val.",
+            "type": "string",
+            "minLength": 0
+          },
+          "rule": {
+            "description": "Rule.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "RuleGroup": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Rule group.",
+        "type": "object",
+        "properties": {
+          "creator": {
+            "description": "Creator.",
+            "type": "string",
+            "minLength": 0
+          },
+          "description": {
+            "description": "Human-readable description.",
+            "type": "string",
+            "minLength": 0
+          },
+          "enabled": {
+            "description": "Whether this resource is enabled.",
+            "type": "boolean"
+          },
+          "hidden": {
+            "description": "The hidden.",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Unique identifier.",
+            "type": "string",
+            "minLength": 0
+          },
+          "name": {
+            "description": "Display name.",
+            "type": "string",
+            "minLength": 0
+          },
+          "order": {
+            "description": "Sort order.",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "ruleMatchers": {
+            "description": "The rule matchers.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleMatcher"
+            },
+            "minItems": 0
+          },
+          "ruleSubgroups": {
+            "description": "The rule subgroups.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleSubgroup"
+            },
+            "minItems": 0
+          }
+        }
+      },
+      "RuleMatcher": {
+        "type": "object",
+        "properties": {
+          "applicationName": {
+            "$ref": "#/components/schemas/ApplicationNameConstraint"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/SeverityConstraint"
+          },
+          "subsystemName": {
+            "$ref": "#/components/schemas/SubsystemNameConstraint"
+          }
+        },
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "applicationName"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "subsystemName"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "severity"
+            ]
+          },
+          {
+            "type": "object",
+            "not": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "applicationName"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "subsystemName"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "severity"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "RuleParameters": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Rule parameters.",
+        "type": "object",
+        "properties": {
+          "allowParameters": {
+            "$ref": "#/components/schemas/AllowParameters"
+          },
+          "blockParameters": {
+            "$ref": "#/components/schemas/BlockParameters"
+          },
+          "extractParameters": {
+            "$ref": "#/components/schemas/ExtractParameters"
+          },
+          "extractTimestampParameters": {
+            "$ref": "#/components/schemas/ExtractTimestampParameters"
+          },
+          "jsonExtractParameters": {
+            "$ref": "#/components/schemas/JsonExtractParameters"
+          },
+          "jsonParseParameters": {
+            "$ref": "#/components/schemas/JsonParseParameters"
+          },
+          "jsonStringifyParameters": {
+            "$ref": "#/components/schemas/JsonStringifyParameters"
+          },
+          "parseParameters": {
+            "$ref": "#/components/schemas/ParseParameters"
+          },
+          "removeFieldsParameters": {
+            "$ref": "#/components/schemas/RemoveFieldsParameters"
+          },
+          "replaceParameters": {
+            "$ref": "#/components/schemas/ReplaceParameters"
+          }
+        },
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "extractParameters"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "jsonExtractParameters"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "replaceParameters"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "parseParameters"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "allowParameters"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "blockParameters"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "extractTimestampParameters"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "removeFieldsParameters"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "jsonStringifyParameters"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "jsonParseParameters"
+            ]
+          },
+          {
+            "type": "object",
+            "not": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "extractParameters"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "jsonExtractParameters"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "replaceParameters"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "parseParameters"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "allowParameters"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "blockParameters"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "extractTimestampParameters"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "removeFieldsParameters"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "jsonStringifyParameters"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "jsonParseParameters"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "RuleSubgroup": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "description": "Whether this resource is enabled.",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Unique identifier.",
+            "type": "string",
+            "minLength": 0
+          },
+          "order": {
+            "description": "Sort order.",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rules": {
+            "description": "List of rules.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/rules.v1.Rule"
+            },
+            "minItems": 0
+          }
+        }
+      },
+      "SeverityConstraint": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Severity constraint.",
+        "type": "object",
+        "properties": {
+          "value": {
+            "description": "The value.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Value"
+              }
+            ]
+          }
+        }
+      },
+      "SubsystemNameConstraint": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Subsystem name constraint.",
+        "type": "object",
+        "properties": {
+          "value": {
+            "description": "The value.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "UpdateRuleGroupResponse": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Response returned after successfully updating a parsing rule group.",
+        "type": "object",
+        "properties": {
+          "ruleGroup": {
+            "$ref": "#/components/schemas/RuleGroup"
+          }
+        }
+      },
+      "Value": {
+        "description": "Value.",
+        "type": "string",
+        "enum": [
+          "VALUE_DEBUG_OR_UNSPECIFIED",
+          "VALUE_VERBOSE",
+          "VALUE_INFO",
+          "VALUE_WARNING",
+          "VALUE_ERROR",
+          "VALUE_CRITICAL"
+        ]
+      },
+      "events.v3.FilterMatcher": {
+        "type": "string",
+        "enum": [
+          "FILTER_MATCHER_TEXT_OR_UNSPECIFIED",
+          "FILTER_MATCHER_REGEXP"
+        ]
+      },
+      "rules.v1.Rule": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "description": "Human-readable description.",
+            "type": "string",
+            "minLength": 0
+          },
+          "enabled": {
+            "description": "Whether this resource is enabled.",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Unique identifier.",
+            "type": "string",
+            "minLength": 0
+          },
+          "name": {
+            "description": "Display name.",
+            "type": "string",
+            "minLength": 0
+          },
+          "order": {
+            "description": "Sort order.",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/RuleParameters"
+          },
+          "sourceField": {
+            "description": "The source field.",
+            "type": "string",
+            "minLength": 0
+          }
+        }
+      },
+      "v1.TeamId": {
+        "externalDocs": {
+          "url": ""
+        },
+        "description": "Team id.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique identifier.",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "v3.FilterOperator": {
+        "description": "Filter operator.",
+        "type": "string",
+        "enum": [
+          "FILTER_OPERATOR_AND_OR_UNSPECIFIED",
+          "FILTER_OPERATOR_OR"
+        ]
+      }
+    }
+  }
+}
