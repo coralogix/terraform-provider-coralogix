@@ -204,7 +204,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 	log.Printf("[INFO] Submitted new User %s", userID)
 
-	state, err := r.readUserAfterWrite(ctx, userID, userName)
+	state, err := r.readUserAfterWrite(ctx, teamID, userID, userName)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading User after create", err.Error())
 		return
@@ -223,7 +223,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 			resp.Diagnostics.AddError("Error setting User status after create", err.Error())
 			return
 		}
-		if state, err = r.readUserAfterWrite(ctx, userID, userName); err != nil {
+		if state, err = r.readUserAfterWrite(ctx, teamID, userID, userName); err != nil {
 			resp.Diagnostics.AddError("Error reading User after create", err.Error())
 			return
 		}
@@ -242,9 +242,15 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
+	teamID, err := r.clients.teamID(ctx)
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading User", teamIDErrorDetail(err))
+		return
+	}
+
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading User: %s", id)
-	refreshed, err := readUser(ctx, r.clients, id, state.UserName.ValueString())
+	refreshed, err := readUser(ctx, r.clients, teamID, id, state.UserName.ValueString())
 	if err != nil {
 		if isUserNotFoundErr(err) {
 			resp.Diagnostics.AddWarning(
@@ -330,7 +336,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	refreshed, err := r.readUserAfterWrite(ctx, userID, userName)
+	refreshed, err := r.readUserAfterWrite(ctx, teamID, userID, userName)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading User after update", err.Error())
 		return
@@ -448,13 +454,13 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 // readUserAfterWrite reads the user back so the state written by a create or an update
 // is exactly the state a later refresh produces. A write is followed by a short retry,
 // because a freshly created user can take a moment to appear in the search index.
-func (r *UserResource) readUserAfterWrite(ctx context.Context, userID, userName string) (*UserResourceModel, error) {
+func (r *UserResource) readUserAfterWrite(ctx context.Context, teamID int64, userID, userName string) (*UserResourceModel, error) {
 	b := backoff.NewExponentialBackOff()
 	b.InitialInterval = time.Second
 	b.MaxInterval = 3 * time.Second
 
 	op := func() (*UserResourceModel, error) {
-		state, err := readUser(ctx, r.clients, userID, userName)
+		state, err := readUser(ctx, r.clients, teamID, userID, userName)
 		if err != nil {
 			if isUserNotFoundErr(err) {
 				log.Printf("[INFO] User %s not visible yet (eventual consistency), retrying", userID)

@@ -95,6 +95,7 @@ type ClientSet struct {
 	teams                 *teamsservice.TeamsServiceAPIService
 	users                 *usersservice.UsersManagementServiceAPIService
 	identity              *identity.IdentityServiceAPIService
+	teamID                teamIDCache
 }
 
 func (c *ClientSet) ParsingRuleGroups() *prgs.RuleGroupsServiceAPIService {

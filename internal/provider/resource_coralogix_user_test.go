@@ -225,7 +225,7 @@ func testAccSetUserActiveOutOfBand(t *testing.T, userName string, active bool) {
 	cs := testAccProvider.Meta().(*clientset.ClientSet)
 	ctx := context.TODO()
 
-	teamID, err := testAccTeamID(cs)
+	teamID, err := cs.TeamID(ctx)
 	if err != nil {
 		t.Fatalf("resolving team id: %s", err)
 	}
@@ -266,7 +266,7 @@ func testAccCheckUserDestroy(s *terraform.State) error {
 	cs := testAccProvider.Meta().(*clientset.ClientSet)
 	ctx := context.TODO()
 
-	teamID, err := testAccTeamID(cs)
+	teamID, err := cs.TeamID(ctx)
 	if err != nil {
 		return err
 	}
@@ -291,16 +291,6 @@ func testAccCheckUserDestroy(s *terraform.State) error {
 	}
 
 	return nil
-}
-
-// testAccTeamID resolves the team the API key belongs to, which every Users API path
-// contains.
-func testAccTeamID(cs *clientset.ClientSet) (int64, error) {
-	whoAmI, _, err := cs.Identity().IdentityServiceWhoAmI(context.TODO()).Execute()
-	if err != nil {
-		return 0, err
-	}
-	return whoAmI.TeamId, nil
 }
 
 func randUserName() string {
