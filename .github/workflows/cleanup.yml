@@ -32,7 +32,11 @@ jobs:
         env:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
-          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}          
+          # Org-scoped key: enables the stale ephemeral-team sweep (teams named
+          # *-ephemeral-<unixnano> older than 24h, leaked by failed CI runs in
+          # any of the four repos that use the ephemeral-team harness).
+          CORALOGIX_ORG_API_KEY: ${{ secrets.CORALOGIX_ORG_API_KEY }}
+          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
         run: |
           go run -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" scripts/cx-test-resource-cleanup.go
