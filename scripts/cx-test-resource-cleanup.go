@@ -23,6 +23,7 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
+	usersservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
 	clientset "github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -246,18 +247,33 @@ func main() {
 		log.Print("Error listing global routers:", err)
 	}
 
-	// Users
+	// Users. The Users API has no delete, so cleanup deactivates instead.
 	usersClient := cs.Users()
-	users, err := usersClient.List(ctx)
+	whoAmI, _, err := cs.Identity().IdentityServiceWhoAmI(ctx).Execute()
 	if err == nil {
-		log.Println("Deleting all users")
-		for _, user := range users {
-			if user.ID != nil {
-				usersClient.Delete(ctx, *user.ID)
+		teamID := whoAmI.GetTeamId()
+		searchRes, _, err := usersClient.UsersMgmtServiceSearchUsers(ctx, teamID).PageSize(100).Execute()
+		if err == nil {
+			log.Println("Deactivating all users")
+			accountIDs := []int64{}
+			for _, user := range searchRes.Users {
+				if user.UserAccountId != nil {
+					accountIDs = append(accountIDs, *user.UserAccountId)
+				}
 			}
+			if len(accountIDs) > 0 {
+				inactive := usersservice.USERSTATUS_USER_STATUS_INACTIVE
+				usersClient.UsersMgmtServiceUpdateUsersStatuses(ctx, teamID).
+					UpdateUserStatusRequest(usersservice.UpdateUserStatusRequest{
+						Status:         &inactive,
+						UserAccountIds: accountIDs,
+					}).Execute()
+			}
+		} else {
+			log.Print("Error searching users:", err)
 		}
 	} else {
-		log.Print("Error listing users:", err)
+		log.Print("Error resolving team id:", err)
 	}
 
 	// Views
