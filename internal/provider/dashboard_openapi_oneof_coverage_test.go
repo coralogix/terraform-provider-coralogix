@@ -426,6 +426,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"coordinateConfig": covered(geomap+".config.coordinate_config", dashboardOpenAPIDynamicGeoHeatTestName),
 				"awsRegionConfig":  covered(geomap+".config.aws_region_config", dashboardOpenAPIDynamicGeoHeatTestName),
+				"ibmRegionConfig":  gap(geomap + ".config.ibm_region_config"),
+				"allRegionConfig":  gap(geomap + ".config.all_region_config"),
 			},
 		},
 		"Heatmap": {
@@ -792,7 +794,7 @@ var dashboardProtoOnlyBranches = []dashboardProtoOnlyBranch{
 }
 
 // These seven protobuf oneofs are presence wrappers with one live arm, not
-// unions. They are intentionally kept out of the 216-branch generated-union
+// unions. They are intentionally kept out of the 218-branch generated-union
 // manifest and should not be confused with enums.
 var dashboardSingleArmProtoOneOfs = []string{
 	"ast/annotations/annotation.proto#Annotation.EventRecurrenceSource.Recurrence.frequency_type.weekly",
@@ -816,8 +818,8 @@ func TestDashboardOpenAPIOneOfCoverageManifest(t *testing.T) {
 	for _, branches := range generated {
 		generatedBranches += len(branches)
 	}
-	if generatedBranches != 216 {
-		t.Fatalf("generated dashboard union branches = %d, want 216", generatedBranches)
+	if generatedBranches != 218 {
+		t.Fatalf("generated dashboard union branches = %d, want 218", generatedBranches)
 	}
 
 	for model, generatedModelBranches := range generated {
@@ -856,8 +858,8 @@ func TestDashboardOpenAPIOneOfCoverageManifest(t *testing.T) {
 	for _, model := range dashboardOpenAPIOneOfCoverage {
 		manifestBranches += len(model.Branches)
 	}
-	if manifestBranches != 216 {
-		t.Errorf("manifest branches = %d, want 216", manifestBranches)
+	if manifestBranches != 218 {
+		t.Errorf("manifest branches = %d, want 218", manifestBranches)
 	}
 
 	// Both used to be api-only, because the provider validator rejected them.
@@ -881,16 +883,16 @@ func TestDashboardOpenAPIStructuredAcceptanceLifecycleDelegation(t *testing.T) {
 
 func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 	// Source inventory: 71 protobuf oneofs = 64 multi-branch unions and seven
-	// single-arm presence wrappers. The 64 unions have 216 branches.
+	// single-arm presence wrappers. The 64 unions have 218 branches.
 	const (
 		protoOneOfs            = 71
 		protoMultiBranchOneOfs = 64
-		protoMultiBranches     = 216
+		protoMultiBranches     = 218
 	)
 	if protoOneOfs-protoMultiBranchOneOfs != len(dashboardSingleArmProtoOneOfs) {
 		t.Fatalf("single-arm protobuf reconciliation is incomplete")
 	}
-	if protoMultiBranches != 216 {
+	if protoMultiBranches != 218 {
 		t.Fatalf("protobuf multi-branch count changed")
 	}
 	if len(dashboardProtoOnlyBranches) != 2 {
@@ -916,7 +918,7 @@ func TestDashboardProtoAndRESTOneOfReconciliation(t *testing.T) {
 	// The two imported FilterPathAndValues branches replace the two proto-only
 	// AnnotationEvent branches in the guarded REST inventory. Merging the two
 	// Dashboard oneofs reduces 64 source unions to 63 generated models without
-	// changing the reconciled 216 branch count.
+	// changing the reconciled 218 branch count.
 	if got := len(dashboardOpenAPIOneOfCoverage); got != 63 {
 		t.Fatalf("reconciled generated models = %d, want 63", got)
 	}
@@ -1084,8 +1086,8 @@ func assertDashboardProtoInventoryCounts(t *testing.T, protoInventory map[string
 			multiBranches += len(branches)
 		}
 	}
-	if multiBranchOneOfs != 64 || multiBranches != 216 {
-		t.Fatalf("dashboard protobuf multi-branch inventory = %d oneofs/%d branches, want 64/216", multiBranchOneOfs, multiBranches)
+	if multiBranchOneOfs != 64 || multiBranches != 218 {
+		t.Fatalf("dashboard protobuf multi-branch inventory = %d oneofs/%d branches, want 64/218", multiBranchOneOfs, multiBranches)
 	}
 }
 
