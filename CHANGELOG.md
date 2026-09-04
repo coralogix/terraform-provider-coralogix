@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_fleet_configuration_group
+- FEAT: Add Beta `coralogix_fleet_configuration_group` resource and data source for Fleet Manager configuration groups. Destroy archives the group. **Note: This resource is in Beta stage.**
+
 # Release 3.14.0
 
 #### resource/coralogix_connector

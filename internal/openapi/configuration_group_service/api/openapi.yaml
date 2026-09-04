@@ -1,0 +1,747 @@
+openapi: 3.1.0
+info:
+  title: Configuration Group Service
+  version: 1.0.0
+servers:
+- url: /
+paths:
+  /fleet-management/configuration-groups/v1:
+    post:
+      description: Creates a fleet-manager configuration group.
+      operationId: ConfigurationGroupService_CreateConfigurationGroup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfigurationGroupService_CreateConfigurationGroup_request"
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                group:
+                  description: Collector configuration group for production.
+                  families: []
+                  id: 01975ed4-9c1a-7b3f-8d4e-426614174000
+                  name: Production collectors
+                  priorityOrder: 100
+                  tags:
+                  - production
+              schema:
+                $ref: "#/components/schemas/CreateConfigurationGroupResponse"
+          description: ""
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unauthorized request
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Configuration group already exists
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Internal server error
+      summary: Create configuration group
+      tags:
+      - Fleet Manager Configuration Groups
+      x-stability: preview
+  /fleet-management/configuration-groups/v1/{id}:
+    get:
+      description: Gets a fleet-manager configuration group by ID.
+      operationId: ConfigurationGroupService_GetConfigurationGroup
+      parameters:
+      - description: Return only the latest configuration family when true.
+        explode: true
+        in: query
+        name: latest_family_only
+        required: false
+        schema:
+          description: Return only the latest configuration family when true.
+          type: boolean
+        style: form
+      - description: Configuration group UUID v7.
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          description: Configuration group UUID v7.
+          maxLength: 36
+          minLength: 36
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                group:
+                  description: Collector configuration group for production.
+                  families: []
+                  id: 01975ed4-9c1a-7b3f-8d4e-426614174000
+                  name: Production collectors
+                  priorityOrder: 100
+                  tags:
+                  - production
+              schema:
+                $ref: "#/components/schemas/GetConfigurationGroupResponse"
+          description: ""
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unauthorized request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Configuration group not found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Internal server error
+      summary: Get configuration group
+      tags:
+      - Fleet Manager Configuration Groups
+      x-stability: preview
+    parameters:
+    - description: Configuration group UUID v7.
+      explode: false
+      in: path
+      name: id
+      required: true
+      schema:
+        description: Configuration group UUID v7.
+        maxLength: 36
+        minLength: 36
+        pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+        type: string
+      style: simple
+    put:
+      description: Updates provided fleet-manager configuration group fields and optionally
+        updates the latest family.
+      operationId: ConfigurationGroupService_ReplaceConfigurationGroup
+      parameters:
+      - description: Configuration group UUID v7.
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          description: Configuration group UUID v7.
+          maxLength: 36
+          minLength: 36
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfigurationGroupService_ReplaceConfigurationGroup_request"
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                group:
+                  description: Updated collector configuration group.
+                  families: []
+                  id: 01975ed4-9c1a-7b3f-8d4e-426614174000
+                  name: Production collectors
+                  priorityOrder: 100
+                  tags:
+                  - production
+              schema:
+                $ref: "#/components/schemas/ReplaceConfigurationGroupResponse"
+          description: ""
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unauthorized request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Configuration group not found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Internal server error
+      summary: Update configuration group
+      tags:
+      - Fleet Manager Configuration Groups
+      x-stability: preview
+  /fleet-management/configuration-groups/v1/{id}/archive:
+    post:
+      description: Archives a fleet-manager configuration group.
+      operationId: ConfigurationGroupService_ArchiveConfigurationGroup
+      parameters:
+      - description: Configuration group UUID v7.
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          description: Configuration group UUID v7.
+          maxLength: 36
+          minLength: 36
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              example: {}
+              schema:
+                $ref: "#/components/schemas/ArchiveConfigurationGroupResponse"
+          description: ""
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unauthorized request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Configuration group not found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Internal server error
+      summary: Archive configuration group
+      tags:
+      - Fleet Manager Configuration Groups
+      x-stability: preview
+components:
+  schemas:
+    AgentSelectorRequest:
+      description: Agent selector used in requests.
+      externalDocs:
+        url: ""
+      properties:
+        attributes:
+          additionalProperties:
+            maxLength: 4096
+            minLength: 0
+            pattern: "^[\\s\\S]*$"
+            type: string
+          description: "Flat agent attributes to match. If collectorVersion is set,\
+            \ service.version must match it or is added automatically."
+    AgentSelectorResponse:
+      description: Agent selector returned in responses.
+      externalDocs:
+        url: ""
+      properties:
+        attributes:
+          additionalProperties:
+            maxLength: 4096
+            minLength: 0
+            pattern: "^[\\s\\S]*$"
+            type: string
+          description: Flat agent attributes matched by the selector.
+    ArchiveConfigurationGroupResponse:
+      additionalProperties: false
+      description: Empty response returned after archiving a fleet-manager configuration
+        group.
+      externalDocs:
+        url: ""
+      type: object
+    ChartName:
+      description: Helm chart name for fleet-manager configuration families.
+      enum:
+      - CHART_NAME_UNSPECIFIED
+      - CHART_NAME_OTEL_INTEGRATION
+      - CHART_NAME_OPENTELEMETRY_COLLECTOR
+      - CHART_NAME_OTEL_LINUX_STANDALONE
+      - CHART_NAME_OTEL_WINDOWS_STANDALONE
+      - CHART_NAME_OTEL_MACOS_STANDALONE
+      - CHART_NAME_OTEL_ECS_EC2
+      title: Fleet-manager chart name
+      type: string
+    ConfigurationFamily:
+      description: Configuration family returned by Fleet Manager.
+      externalDocs:
+        url: ""
+      properties:
+        active:
+          description: Whether this family is active.
+          type: boolean
+        basedOnConfigurationFamilyId:
+          description: Configuration family UUID v7 this family is based on.
+          maxLength: 36
+          minLength: 36
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          type: string
+        chartName:
+          allOf:
+          - $ref: "#/components/schemas/ChartName"
+          description: Helm chart name for Helm-backed families.
+        chartVersion:
+          description: Helm chart or template version used by this family.
+          maxLength: 256
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        collectorVersion:
+          description: "Collector semantic version this configuration family targets,\
+            \ without a leading v prefix."
+          maxLength: 256
+          minLength: 5
+          pattern: "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\\
+            .(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\\
+            .[0-9A-Za-z-]+)*))?$"
+          type: string
+        description:
+          description: Human-readable description.
+          maxLength: 4096
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        id:
+          description: Configuration family UUID v7.
+          maxLength: 36
+          minLength: 36
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          type: string
+        integrationVersion:
+          description: Integration version from the onboarding flow.
+          maxLength: 256
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        lastActivatedAt:
+          description: Time when this family was last activated.
+          format: date-time
+          maxLength: 64
+          minLength: 0
+          type: string
+        metadata:
+          additionalProperties:
+            maxLength: 4096
+            minLength: 0
+            pattern: "^[\\s\\S]*$"
+            type: string
+          description: Metadata stored with this configuration family.
+        remoteConfigurations:
+          description: Remote configurations in this family.
+          items:
+            $ref: "#/components/schemas/RemoteConfiguration"
+          maxItems: 128
+          minItems: 0
+          type: array
+        version:
+          description: Monotonic version number of this configuration family within
+            its group.
+          maxLength: 256
+          minLength: 1
+          pattern: "^[\\s\\S]*$"
+          type: string
+    ConfigurationFamilyCreate:
+      description: Initial configuration family to create.
+      externalDocs:
+        url: ""
+      properties:
+        active:
+          description: Whether this family is active.
+          type: boolean
+        basedOnConfigurationFamilyId:
+          description: Configuration family UUID v7 this family is based on.
+          maxLength: 36
+          minLength: 36
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          type: string
+        collectorVersion:
+          description: "Collector semantic version this configuration family targets,\
+            \ without a leading v prefix. The service.version selector must match\
+            \ this value or is added automatically."
+          maxLength: 256
+          minLength: 5
+          pattern: "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\\
+            .(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\\
+            .[0-9A-Za-z-]+)*))?$"
+          type: string
+        description:
+          description: Human-readable description.
+          maxLength: 4096
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        metadata:
+          additionalProperties:
+            maxLength: 4096
+            minLength: 0
+            pattern: "^[\\s\\S]*$"
+            type: string
+          description: Metadata stored with this configuration family.
+        remoteConfigurations:
+          description: Remote configurations to create in this family.
+          items:
+            $ref: "#/components/schemas/RemoteConfigurationCreate"
+          maxItems: 128
+          minItems: 1
+          type: array
+    ConfigurationGroup:
+      description: Fleet-manager configuration group.
+      externalDocs:
+        url: ""
+      properties:
+        description:
+          description: Human-readable description.
+          maxLength: 4096
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        families:
+          description: Configuration families in this group.
+          items:
+            $ref: "#/components/schemas/ConfigurationFamily"
+          maxItems: 128
+          minItems: 0
+          type: array
+        id:
+          description: Configuration group UUID v7.
+          maxLength: 36
+          minLength: 36
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          type: string
+        name:
+          description: Display name.
+          maxLength: 256
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        priorityOrder:
+          description: Selection precedence. Higher values win on ties and 0 is the
+            default.
+          format: int32
+          maximum: 2147483647
+          minimum: -2147483648
+          type: integer
+        tags:
+          description: Tags attached to the configuration group.
+          items:
+            description: Tags attached to the configuration group.
+            maxLength: 256
+            minLength: 0
+            pattern: "^[\\s\\S]*$"
+            type: string
+          maxItems: 64
+          minItems: 0
+          type: array
+    ConfigurationGroupCreate:
+      description: Payload used to create a fleet-manager configuration group.
+      externalDocs:
+        url: ""
+      properties:
+        description:
+          description: Human-readable description.
+          maxLength: 4096
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        family:
+          allOf:
+          - $ref: "#/components/schemas/ConfigurationFamilyCreate"
+          description: Initial configuration family to create with this group.
+        name:
+          description: Display name.
+          maxLength: 256
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        priorityOrder:
+          description: Selection precedence. Higher values win on ties and 0 is the
+            default.
+          format: int32
+          maximum: 2147483647
+          minimum: -2147483648
+          type: integer
+        tags:
+          description: Tags attached to the configuration group.
+          items:
+            description: Tags attached to the configuration group.
+            maxLength: 256
+            minLength: 0
+            pattern: "^[\\s\\S]*$"
+            type: string
+          maxItems: 64
+          minItems: 0
+          type: array
+    CreateConfigurationGroupResponse:
+      description: Response containing the created fleet-manager configuration group.
+      example:
+        group: ""
+      externalDocs:
+        url: ""
+      properties:
+        group:
+          allOf:
+          - $ref: "#/components/schemas/ConfigurationGroup"
+          description: Created configuration group.
+    Error:
+      description: Standard error response body returned for a failed request.
+      example:
+        code: 139
+        message: message
+      properties:
+        code:
+          description: "HTTP status code of the error (for example 400, 404, 500)."
+          format: int32
+          maximum: 599
+          minimum: 100
+          type: integer
+        message:
+          description: Human-readable description of the error.
+          maxLength: 4096
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+    GetConfigurationGroupResponse:
+      description: Response containing the requested fleet-manager configuration group.
+      example:
+        group: ""
+      externalDocs:
+        url: ""
+      properties:
+        group:
+          allOf:
+          - $ref: "#/components/schemas/ConfigurationGroup"
+          description: Requested configuration group.
+    RemoteConfiguration:
+      description: Remote configuration returned by Fleet Manager.
+      externalDocs:
+        url: ""
+      properties:
+        agentSelector:
+          allOf:
+          - $ref: "#/components/schemas/AgentSelectorResponse"
+          description: Flat agent attributes that match agents for this configuration.
+        createdAt:
+          description: Time when this remote configuration was created.
+          format: date-time
+          maxLength: 64
+          minLength: 0
+          type: string
+        hash:
+          description: SHA-256 hash of the normalized raw configuration content.
+          maxLength: 256
+          minLength: 1
+          pattern: "^[\\s\\S]*$"
+          type: string
+        id:
+          description: Remote configuration UUID v7.
+          maxLength: 36
+          minLength: 36
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          type: string
+        name:
+          description: Remote configuration name.
+          maxLength: 256
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        rawConfiguration:
+          description: Normalized OpenTelemetry Collector configuration YAML.
+          maxLength: 1048576
+          minLength: 1
+          pattern: "^[\\s\\S]*$"
+          type: string
+        updatedAt:
+          description: Time when this remote configuration was last updated.
+          format: date-time
+          maxLength: 64
+          minLength: 0
+          type: string
+    RemoteConfigurationCreate:
+      description: Remote configuration to create.
+      externalDocs:
+        url: ""
+      properties:
+        agentSelector:
+          allOf:
+          - $ref: "#/components/schemas/AgentSelectorRequest"
+          description: Flat agent attributes that match agents for this configuration.
+        name:
+          description: Remote configuration name.
+          maxLength: 256
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        rawConfiguration:
+          description: OpenTelemetry Collector configuration YAML. The supervisor-managed
+            OpAMP extension must not be configured.
+          maxLength: 1048576
+          minLength: 1
+          pattern: "^[\\s\\S]*$"
+          type: string
+    RemoteConfigurationReplace:
+      description: Remote configuration content used in a family update.
+      externalDocs:
+        url: ""
+      properties:
+        agentSelector:
+          allOf:
+          - $ref: "#/components/schemas/AgentSelectorRequest"
+          description: Flat agent attributes that match agents for this configuration.
+        name:
+          description: Remote configuration name.
+          maxLength: 256
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        rawConfiguration:
+          description: OpenTelemetry Collector configuration YAML. The supervisor-managed
+            OpAMP extension must not be configured.
+          maxLength: 1048576
+          minLength: 1
+          pattern: "^[\\s\\S]*$"
+          type: string
+    ReplaceConfigurationGroupResponse:
+      description: Response containing the updated fleet-manager configuration group.
+      example:
+        group: ""
+      externalDocs:
+        url: ""
+      properties:
+        group:
+          allOf:
+          - $ref: "#/components/schemas/ConfigurationGroup"
+          description: Updated configuration group.
+    ConfigurationGroupService_CreateConfigurationGroup_request:
+      description: Request to create a fleet-manager configuration group.
+      properties:
+        group:
+          allOf:
+          - $ref: "#/components/schemas/ConfigurationGroupCreate"
+          description: Configuration group to create.
+    ConfigurationGroupService_ReplaceConfigurationGroup_request_group_family:
+      description: Fields used to update the latest configuration family. Omitted
+        optional fields keep their existing values.
+      externalDocs:
+        url: ""
+      properties:
+        active:
+          description: Whether this family is active.
+          type: boolean
+        collectorVersion:
+          description: "Collector semantic version this configuration family targets,\
+            \ without a leading v prefix. The service.version selector must match\
+            \ this value or is added automatically."
+          maxLength: 256
+          minLength: 5
+          pattern: "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\\
+            .(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\\
+            .[0-9A-Za-z-]+)*))?$"
+          type: string
+        description:
+          description: Human-readable description.
+          maxLength: 4096
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        metadata:
+          additionalProperties:
+            maxLength: 4096
+            minLength: 0
+            pattern: "^[\\s\\S]*$"
+            type: string
+          description: Metadata stored with this configuration family.
+        remoteConfigurations:
+          description: Remote configurations to use when creating or replacing family
+            content.
+          items:
+            $ref: "#/components/schemas/RemoteConfigurationReplace"
+          maxItems: 128
+          minItems: 0
+          type: array
+    ConfigurationGroupService_ReplaceConfigurationGroup_request_group:
+      description: Fields used to update a fleet-manager configuration group. Omitted
+        optional fields keep their existing values.
+      externalDocs:
+        url: ""
+      properties:
+        description:
+          description: Human-readable description.
+          maxLength: 4096
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        family:
+          $ref: "#/components/schemas/ConfigurationGroupService_ReplaceConfigurationGroup_request_group_family"
+        name:
+          description: Display name.
+          maxLength: 256
+          minLength: 0
+          pattern: "^[\\s\\S]*$"
+          type: string
+        priorityOrder:
+          description: Selection precedence. Higher values win on ties and 0 is the
+            default.
+          format: int32
+          maximum: 2147483647
+          minimum: -2147483648
+          type: integer
+        tags:
+          description: Tags attached to the configuration group.
+          items:
+            description: Tags attached to the configuration group.
+            maxLength: 256
+            minLength: 0
+            pattern: "^[\\s\\S]*$"
+            type: string
+          maxItems: 64
+          minItems: 0
+          type: array
+    ConfigurationGroupService_ReplaceConfigurationGroup_request:
+      description: Request to update a fleet-manager configuration group.
+      properties:
+        group:
+          $ref: "#/components/schemas/ConfigurationGroupService_ReplaceConfigurationGroup_request_group"
