@@ -206,7 +206,7 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		AlertDefsServiceReplaceAlertDef(ctx).
 		ReplaceAlertDefinitionRequest(*rq).Execute()
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_alert %v is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%v will be recreated when you apply", id),
@@ -259,7 +259,7 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_alert %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
