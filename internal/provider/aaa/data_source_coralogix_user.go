@@ -16,7 +16,6 @@ package aaa
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -24,7 +23,6 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework-validators/datasourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -34,8 +32,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 var (
@@ -48,7 +44,7 @@ func NewUserDataSource() datasource.DataSource {
 }
 
 type UserDataSource struct {
-	client *clientset.UsersClient
+	clients *userClients
 }
 
 func (d *UserDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -69,7 +65,7 @@ func (d *UserDataSource) Configure(_ context.Context, req datasource.ConfigureRe
 		return
 	}
 
-	d.client = clientSet.Users()
+	d.clients = newUserClients(clientSet)
 }
 
 func (d *UserDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -117,7 +113,6 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	var user *cxsdk.SCIMUser
 	configuredUserName := data.UserName
 	idSet, userNameSet := isKnownString(data.ID), isKnownString(data.UserName)
 	switch {
@@ -129,9 +124,9 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		)
 		return
 	case idSet:
-		user, diags = d.userByID(ctx, data.ID.ValueString())
+		data, diags = d.userByID(ctx, data.ID.ValueString())
 	case userNameSet:
-		user, diags = d.userByUserName(ctx, data.UserName.ValueString())
+		data, diags = d.userByUserName(ctx, data.UserName.ValueString())
 	default:
 		resp.Diagnostics.AddError("User id or user_name must be set", "")
 		return
@@ -141,99 +136,81 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	respStr, _ := json.Marshal(user)
-	log.Printf("[INFO] Received User: %s", string(respStr))
-
-	data, diags = flattenSCIMUser(ctx, user)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	if isKnownString(configuredUserName) && strings.EqualFold(configuredUserName.ValueString(), data.UserName.ValueString()) {
-		data.UserName = configuredUserName
-	}
+	data.UserName = preserveUserNameCase(configuredUserName, data.UserName)
 
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (d *UserDataSource) userByID(ctx context.Context, id string) (*cxsdk.SCIMUser, diag.Diagnostics) {
+func (d *UserDataSource) userByID(ctx context.Context, id string) (*UserResourceModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	log.Printf("[INFO] Reading User: %s", id)
-	getUserResp, err := d.client.Get(ctx, id)
+
+	teamID, err := d.clients.teamID(ctx)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		diags.AddError("Error reading User", teamIDErrorDetail(err))
+		return nil, diags
+	}
+
+	// The data source has no state, so there is no username to narrow the search with.
+	state, err := readUser(ctx, d.clients, teamID, id, "")
+	if err != nil {
+		if isUserNotFoundErr(err) {
 			diags.AddError(fmt.Sprintf("User %q not found", id), "")
 		} else {
-			diags.AddError(
-				"Error reading User",
-				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", d.client.BaseURL(), id), ""),
-			)
+			diags.AddError("Error reading User", err.Error())
 		}
 		return nil, diags
 	}
 
-	return getUserResp, diags
+	return state, diags
 }
 
-func (d *UserDataSource) userByUserName(ctx context.Context, userName string) (*cxsdk.SCIMUser, diag.Diagnostics) {
+func (d *UserDataSource) userByUserName(ctx context.Context, userName string) (*UserResourceModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	log.Printf("[INFO] Listing Users to find by user name: %s", userName)
-	users, err := d.client.ListByUserName(ctx, userName)
+	log.Printf("[INFO] Searching Users to find by user name: %s", userName)
+
+	teamID, err := d.clients.teamID(ctx)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		diags.AddError(
-			"Error listing Users",
-			utils.FormatRpcErrors(err, d.client.BaseURL(), fmt.Sprintf("user_name: %s", userName)),
-		)
+		diags.AddError("Error reading User", teamIDErrorDetail(err))
 		return nil, diags
 	}
 
-	matches := matchSCIMUsersByUserName(users, userName)
+	matches, err := findUsersByUsername(ctx, d.clients.users, teamID, userName)
+	if err != nil {
+		diags.AddError("Error searching Users", err.Error())
+		return nil, diags
+	}
+
 	switch len(matches) {
 	case 0:
 		diags.AddError(fmt.Sprintf("User with user_name %q not found", userName), "")
 		return nil, diags
 	case 1:
-		if matches[0].ID == nil {
+		if matches[0].GetUserId() == "" {
 			diags.AddError(
 				fmt.Sprintf("User with user_name %q was returned without an id", userName),
 				"Look the user up by id instead, or report this to the provider developers.",
 			)
 			return nil, diags
 		}
-		return &matches[0], diags
 	default:
 		diags.AddError(
 			fmt.Sprintf("Multiple Users found with user_name %q", userName),
-			fmt.Sprintf("Matched user ids: %s. Look the user up by id instead.", strings.Join(scimUserIDs(matches), ", ")),
+			fmt.Sprintf("Matched user ids: %s. Look the user up by id instead.", strings.Join(userIDs(matches), ", ")),
 		)
 		return nil, diags
 	}
-}
 
-func matchSCIMUsersByUserName(users []cxsdk.SCIMUser, userName string) []cxsdk.SCIMUser {
-	matches := make([]cxsdk.SCIMUser, 0, len(users))
-	for _, user := range users {
-		if strings.EqualFold(user.UserName, userName) {
-			matches = append(matches, user)
-		}
+	state, err := flattenUserWithGroups(ctx, d.clients, teamID, &matches[0])
+	if err != nil {
+		diags.AddError("Error reading User", err.Error())
+		return nil, diags
 	}
-	return matches
+
+	return state, diags
 }
 
 func isKnownString(value types.String) bool {
 	return !value.IsNull() && !value.IsUnknown()
-}
-
-func scimUserIDs(users []cxsdk.SCIMUser) []string {
-	ids := make([]string, 0, len(users))
-	for _, user := range users {
-		if user.ID != nil {
-			ids = append(ids, *user.ID)
-		}
-	}
-	return ids
 }

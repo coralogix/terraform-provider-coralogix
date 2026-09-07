@@ -1,5 +1,12 @@
 # Unreleased
 
+#### resource/coralogix_user
+- CHORE: Read and write users through the Users OpenAPI instead of SCIM. The HCL shape, the `id`, and the computed `emails` and `groups` are unchanged, so existing state refreshes without a migration and existing imports by id keep working. Two behaviours follow from the new API. `emails` is now derived from `user_name` as a single primary `work` entry, which is what SCIM returned for every user. Destroy now deactivates the user rather than calling a delete, which is what the SCIM delete already did. Reading a user costs one request per group in the team, because the Users API does not report group memberships.
+- CHORE: An update sends only the fields the resource manages, so a user's login modes and access type are left alone. Creating a user still sends both the SSO and the local login mode, because the API rejects a create without one and the resource has no attribute for it.
+
+#### data-source/coralogix_user
+- CHORE: Read users through the Users OpenAPI instead of SCIM. Lookup by `id` or by `user_name` is unchanged, and `user_name` matching stays exact and case-insensitive.
+
 #### provider
 - CHORE: Bump `coralogix-management-sdk`. The OpenAPI ClientSet now exposes Identity and Users clients, which the `coralogix_user` migration off SCIM needs. No user-facing behaviour changes.
 
