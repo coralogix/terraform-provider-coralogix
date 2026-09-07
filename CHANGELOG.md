@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.14.1
+
 #### provider
 - CHORE: Bump `coralogix-management-sdk`. The OpenAPI ClientSet now exposes Identity and Users clients, which the `coralogix_user` migration off SCIM needs. No user-facing behaviour changes.
 
