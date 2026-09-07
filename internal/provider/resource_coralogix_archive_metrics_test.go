@@ -19,8 +19,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -33,29 +31,13 @@ func TestAccCoralogixResourceResourceArchiveMetrics(t *testing.T) {
 	if archiveMetricsBucket == "" {
 		t.Skip("ARCHIVE_METRICS_BUCKET must be set for this acceptance test")
 	}
-	// Archive-metrics settings are a team-wide singleton; run inside an
-	// ephemeral team when the org key is available. The shared-team cleanup
-	// pre-check and destroy check use the environment API key, so they only
-	// apply on the shared-team path.
-	providerConfig := ephemeralteam.ProviderConfig(t)
-	usingEphemeralTeam := providerConfig != ""
-	checkDestroy := testAccCheckArchiveMetricsDestroy
-	if usingEphemeralTeam {
-		checkDestroy = nil
-	}
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			if usingEphemeralTeam {
-				testAccPreCheck(t)
-			} else {
-				testAccArchivePreCheck(t)
-			}
-		},
+		PreCheck:                 func() { testAccArchivePreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             checkDestroy,
+		CheckDestroy:             testAccCheckArchiveMetricsDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + testAccCoralogixResourceArchiveMetrics(),
+				Config: testAccCoralogixResourceArchiveMetrics(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(archiveMetricsResourceName, "s3.region", "eu-north-1"),
 					resource.TestCheckResourceAttr(archiveMetricsResourceName, "s3.bucket", archiveMetricsBucket),
