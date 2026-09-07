@@ -20,21 +20,18 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccCoralogixDataSourceDataEnrichments_basic(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
-	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + testAccCoralogixResourceGeoIpDataEnrichment(fieldName) +
+				Config: testAccCoralogixResourceGeoIpDataEnrichment(fieldName) +
 					testAccCoralogixDataSourceDataEnrichments_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coralogix_data_enrichments.test", "id", "geo_ip"),
@@ -62,13 +59,12 @@ func TestAccCoralogixDataSourceDataEnrichmentsCustom_basic(t *testing.T) {
 	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_data_enrichments/date-to-day-of-the-week.csv"
 
-	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + testAccCoralogixResourceCustomDataEnrichments(name, description, fmt.Sprintf("file(\"%v\")", filePath)) +
+				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, fmt.Sprintf("file(\"%v\")", filePath)) +
 					testAccCoralogixDataSourceDataEnrichments_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coralogix_data_enrichments.test", "custom.custom_enrichment_data.name", name),

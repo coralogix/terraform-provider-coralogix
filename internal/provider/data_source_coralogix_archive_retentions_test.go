@@ -17,21 +17,18 @@ package provider
 import (
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var archiveRetentionsDataSourceName = "data." + archiveRetentionsResourceName
 
 func TestAccCoralogixDataSourceArchiveRetentions_basic(t *testing.T) {
-	providerConfig := ephemeralteam.ProviderConfig(t)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + testAccCoralogixResourceArchiveRetentions() +
+				Config: testAccCoralogixResourceArchiveRetentions() +
 					testAccCoralogixDataSourceArchiveRetentions_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(archiveRetentionsDataSourceName, "retentions.#", "4"),

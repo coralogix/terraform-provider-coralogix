@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
-
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dataplans"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -32,18 +30,13 @@ import (
 var tcoPoliciesTracesResourceName = "coralogix_tco_policies_traces.test"
 
 func TestAccCoralogixResourceTCOPoliciesTracesCreate(t *testing.T) {
-	providerConfig := ephemeralteam.ProviderConfig(t)
-	checkDestroy := testAccTCOPoliciesTracesCheckDestroy
-	if providerConfig != "" {
-		checkDestroy = nil
-	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             checkDestroy,
+		CheckDestroy:             testAccTCOPoliciesTracesCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:  providerConfig + testAccCoralogixResourceTCOPoliciesTraces(),
+				Config:  testAccCoralogixResourceTCOPoliciesTraces(),
 				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.name", "Example tco_policy from terraform 1"),
@@ -66,10 +59,7 @@ func TestAccCoralogixResourceTCOPoliciesTracesCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.tags.tags.http.method.rule_type", "includes"),
 					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.tags.tags.http.method.names.#", "1"),
 					resource.TestCheckTypeSetElemAttr(tcoPoliciesTracesResourceName, "policies.0.tags.tags.http.method.names.*", "GET"),
-					// archive_retention_id comes from the archive-retentions data source, so the
-					// fixture is portable across teams; assert it round-tripped rather than a
-					// hard-coded shared-team retention id.
-					resource.TestCheckResourceAttrSet(tcoPoliciesTracesResourceName, "policies.0.archive_retention_id"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.archive_retention_id", "e1c980d0-c910-4c54-8326-67f3cf95645a"),
 
 					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.1.name", "Example tco_policy from terraform 2"),
 					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.1.priority", "medium"),
@@ -141,9 +131,7 @@ func testAccTCOPoliciesTracesCheckDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceTCOPoliciesTraces() string {
-	return `data "coralogix_archive_retentions" "all" {}
-
-resource "coralogix_tco_policies_traces" "test"{
+	return `resource "coralogix_tco_policies_traces" "test"{
 				policies = [
 				{
 				  name       = "Example tco_policy from terraform 1"
@@ -169,7 +157,7 @@ resource "coralogix_tco_policies_traces" "test"{
 				        names = ["GET"]
 				    }
 				  }
-				  archive_retention_id = data.coralogix_archive_retentions.all.retentions[1].id
+				  archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
 				},
 				{
 				  name       = "Example tco_policy from terraform 2"
