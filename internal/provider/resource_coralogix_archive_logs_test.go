@@ -23,8 +23,6 @@ import (
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/ephemeralteam"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -38,30 +36,13 @@ func TestAccCoralogixResourceResourceArchiveLogs(t *testing.T) {
 	if archiveLogsBucket == "" {
 		t.Skip("ARCHIVE_LOGS_BUCKET must be set for this acceptance test")
 	}
-	// Archive-logs settings are a team-wide singleton. When
-	// CORALOGIX_ORG_API_KEY is set, the test runs inside its own ephemeral
-	// team so concurrent CI runs cannot clobber each other's settings. The
-	// shared-team cleanup and destroy checks below use the environment API
-	// key, so they only apply on the shared-team path.
-	providerConfig := ephemeralteam.ProviderConfig(t)
-	usingEphemeralTeam := providerConfig != ""
-	checkDestroy := testAccCheckArchiveLogsDestroy
-	if usingEphemeralTeam {
-		checkDestroy = nil
-	}
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			if usingEphemeralTeam {
-				testAccPreCheck(t)
-			} else {
-				testAccArchivePreCheck(t)
-			}
-		},
+		PreCheck:                 func() { testAccArchivePreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             checkDestroy,
+		CheckDestroy:             testAccCheckArchiveLogsDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + testAccCoralogixResourceArchiveLogs(),
+				Config: testAccCoralogixResourceArchiveLogs(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(archiveLogsResourceName, "bucket", archiveLogsBucket),
 					resource.TestCheckResourceAttr(archiveLogsResourceName, "active", "true"),
@@ -73,7 +54,7 @@ func TestAccCoralogixResourceResourceArchiveLogs(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: providerConfig + testAccCoralogixResourceArchiveLogsUpdate(),
+				Config: testAccCoralogixResourceArchiveLogsUpdate(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(archiveLogsResourceName, "bucket", archiveLogsBucket),
 					resource.TestCheckResourceAttr(archiveLogsResourceName, "active", "false"),
