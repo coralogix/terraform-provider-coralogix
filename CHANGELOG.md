@@ -1,5 +1,10 @@
 # Unreleased
 
+# Release 3.14.2
+
+#### provider
+- CHORE: Re-cut the provider so Terraform Registry can ingest a new version after the release signing-key rotation.
+
 # Release 3.14.1
 
 #### provider
