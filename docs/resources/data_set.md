@@ -3,12 +3,12 @@
 page_title: "coralogix_data_set Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Note: Data Sets will be removed in version 5.0.0 of the Terraform Provider. Please use coralogix_data_enrichments instead.
+  Note: Data Sets are deprecated and will be removed in a future version of the Terraform Provider. Please use coralogix_data_enrichments instead.
 ---
 
 # coralogix_data_set (Resource)
 
-**Note:** Data Sets will be removed in version 5.0.0 of the Terraform Provider. Please use `coralogix_data_enrichments` instead.
+**Note:** Data Sets are deprecated and will be removed in a future version of the Terraform Provider. Please use `coralogix_data_enrichments` instead.
 
 ## Example Usage
 

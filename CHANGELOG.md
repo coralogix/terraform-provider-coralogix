@@ -3,6 +3,18 @@
 #### data-source/coralogix_rules_group
 - DEPRECATE: Warn that this data source is deprecated and will be removed in a future version. Use `coralogix_parsing_rules` instead.
 
+#### resource/coralogix_rules_group
+- DOC: The deprecation warning now says the resource will be removed in a future version.
+
+#### resource/coralogix_enrichment
+- DOC: The deprecation warning now says the resource will be removed in a future version.
+
+#### data-source/coralogix_enrichment
+- DOC: The deprecation warning now says the data source will be removed in a future version.
+
+#### resource/coralogix_data_set
+- DOC: The deprecation warning now says Data Sets will be removed in a future version.
+
 # Release 3.14.1
 
 #### provider
