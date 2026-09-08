@@ -126,7 +126,8 @@ func (r *ActionResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
-				MarkdownDescription: "Determines weather the action will be shown at the action menu.",
+				DeprecationMessage:  "`is_hidden` is a per-user UI preference, not a property of the action. It will be removed in a future version.",
+				MarkdownDescription: "Deprecated: `is_hidden` is a per-user UI preference, not a property of the action. It will be removed in a future version.",
 			},
 			"source_type": schema.StringAttribute{
 				Required: true,

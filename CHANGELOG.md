@@ -1,5 +1,11 @@
 # Unreleased
 
+#### resource/coralogix_action
+- DEPRECATE: Warn that `is_hidden` is a per-user UI preference, not a property of the action, and will be removed in a future version.
+
+#### data-source/coralogix_action
+- DEPRECATE: Document that `is_hidden` is a per-user UI preference, not a property of the action, and will be removed in a future version.
+
 #### data-source/coralogix_rules_group
 - DEPRECATE: Warn that this data source is deprecated and will be removed in a future version. Use `coralogix_parsing_rules` instead.
 
