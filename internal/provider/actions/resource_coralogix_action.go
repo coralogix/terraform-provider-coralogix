@@ -231,7 +231,7 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_action %v is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%v will be recreated when you apply", id),
@@ -264,7 +264,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		ActionsServiceReplaceActionRequest(*rq).
 		Execute()
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_action %v is in state, but no longer exists in Coralogix backend", rq.Action.Id),
 				fmt.Sprintf("%v will be recreated when you apply", rq.Action.Id),
@@ -295,6 +295,9 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	_, httpResponse, err := rq.Execute()
 
 	if err != nil {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting coralogix_action",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
