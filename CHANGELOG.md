@@ -1,5 +1,20 @@
 # Unreleased
 
+#### data-source/coralogix_rules_group
+- DEPRECATE: Warn that this data source is deprecated and will be removed in a future version. Use `coralogix_parsing_rules` instead.
+
+#### resource/coralogix_rules_group
+- DOC: The deprecation warning now says the resource will be removed in a future version.
+
+#### resource/coralogix_enrichment
+- DOC: The deprecation warning now says the resource will be removed in a future version.
+
+#### data-source/coralogix_enrichment
+- DOC: The deprecation warning now says the data source will be removed in a future version.
+
+#### resource/coralogix_data_set
+- DOC: The deprecation warning now says Data Sets will be removed in a future version.
+
 #### resource/coralogix_alert
 - FIX: Nil pointer dereference when a network failure interrupts a read or an update. A DNS failure, dial timeout, or connection refused leaves the HTTP response nil, which the not-found check dereferenced; the provider now reports the transport error as a diagnostic and keeps the resource in state instead of crashing.
 

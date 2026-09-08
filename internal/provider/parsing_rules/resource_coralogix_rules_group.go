@@ -90,7 +90,7 @@ func ResourceCoralogixRulesGroup() *schema.Resource {
 
 		CustomizeDiff:      validateRuleGroupOrders,
 		Schema:             RulesGroupSchema(),
-		DeprecationMessage: "This resource will be removed in 5.0.0. Please use coralogix_parsing_rules instead.",
+		DeprecationMessage: "This resource is deprecated and will be removed in a future version. Please use coralogix_parsing_rules instead.",
 		Description:        "**DEPRECATED** Rule-group is list of rule-subgroups with 'and' (&&) operation between. For more info please review - https://coralogix.com/docs/log-parsing-rules/ .",
 	}
 }
@@ -117,7 +117,13 @@ func validateRuleGroupOrdersInConfig(rawConfig cty.Value) error {
 		return nil
 	}
 	subgroupValues := subgroups.AsValueSlice()
+	if err := checkOrders("rule_subgroups", collectSubgroupOrders(subgroupValues)); err != nil {
+		return err
+	}
+	return validateSubgroupRuleOrders(subgroupValues)
+}
 
+func collectSubgroupOrders(subgroupValues []cty.Value) []configuredOrder {
 	subgroupOrders := make([]configuredOrder, 0, len(subgroupValues))
 	for i, subgroup := range subgroupValues {
 		if subgroup.IsNull() || !subgroup.IsKnown() || !subgroup.Type().HasAttribute("order") {
@@ -126,10 +132,10 @@ func validateRuleGroupOrdersInConfig(rawConfig cty.Value) error {
 		}
 		subgroupOrders = append(subgroupOrders, readConfiguredOrder(i, subgroup.GetAttr("order")))
 	}
-	if err := checkOrders("rule_subgroups", subgroupOrders); err != nil {
-		return err
-	}
+	return subgroupOrders
+}
 
+func validateSubgroupRuleOrders(subgroupValues []cty.Value) error {
 	for i, subgroup := range subgroupValues {
 		if subgroup.IsNull() || !subgroup.IsKnown() || !subgroup.Type().HasAttribute("rules") {
 			continue
@@ -142,7 +148,6 @@ func validateRuleGroupOrdersInConfig(rawConfig cty.Value) error {
 			return err
 		}
 	}
-
 	return nil
 }
 
