@@ -33,7 +33,7 @@ import (
 	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 	e2ms "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/events2metrics_service"
-	cfggroups "github.com/coralogix/terraform-provider-coralogix/internal/openapi/configuration_group_service"
+	cfggroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/fleet_manager_configuration_groups"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"

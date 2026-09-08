@@ -2,6 +2,8 @@
 
 #### resource/coralogix_fleet_configuration_group
 - FEAT: Add Beta `coralogix_fleet_configuration_group` resource and data source for Fleet Manager configuration groups. Destroy archives the group. **Note: This resource is in Beta stage.**
+- DOC: Omitting `family.collector_version` on update keeps the existing remote value; the API has no clear representation.
+- CHORE: Call the Fleet Manager configuration-group API through the management SDK instead of a vendored OpenAPI client.
 
 #### resource/coralogix_action
 - DEPRECATE: Warn that `is_hidden` is a per-user UI preference, not a property of the action, and will be removed in a future version.

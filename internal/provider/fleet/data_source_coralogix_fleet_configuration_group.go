@@ -23,7 +23,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	cfggroups "github.com/coralogix/terraform-provider-coralogix/internal/openapi/configuration_group_service"
+	cfggroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/fleet_manager_configuration_groups"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"

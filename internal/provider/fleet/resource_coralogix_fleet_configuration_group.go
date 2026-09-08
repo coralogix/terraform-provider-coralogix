@@ -17,14 +17,16 @@ package fleet
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	cfggroups "github.com/coralogix/terraform-provider-coralogix/internal/openapi/configuration_group_service"
+	cfggroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/fleet_manager_configuration_groups"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -130,9 +132,12 @@ func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.S
 				MarkdownDescription: "Tags attached to the configuration group.",
 			},
 			"priority_order": schema.Int64Attribute{
-				Optional:            true,
-				Computed:            true,
-				Default:             int64default.StaticInt64(0),
+				Optional: true,
+				Computed: true,
+				Default:  int64default.StaticInt64(0),
+				Validators: []validator.Int64{
+					int64validator.Between(math.MinInt32, math.MaxInt32),
+				},
 				MarkdownDescription: "Selection precedence. Higher values win on ties. Defaults to 0.",
 			},
 			"family": schema.SingleNestedAttribute{
@@ -164,8 +169,11 @@ func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.S
 						MarkdownDescription: "Human-readable family description.",
 					},
 					"collector_version": schema.StringAttribute{
-						Optional:            true,
-						MarkdownDescription: "Collector semantic version this family targets, without a leading v prefix.",
+						Optional: true,
+						Computed: true,
+						MarkdownDescription: "Collector semantic version this family targets, without a leading v prefix. " +
+							"The replace API keeps the existing value when this attribute is omitted, and empty string is not a valid clear representation, " +
+							"so removing it from configuration does not unset it remotely.",
 					},
 					"metadata": schema.MapAttribute{
 						Optional:            true,
@@ -176,6 +184,7 @@ func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.S
 						Required: true,
 						Validators: []validator.List{
 							listvalidator.SizeAtLeast(1),
+							listvalidator.SizeAtMost(128),
 						},
 						MarkdownDescription: "Remote OpenTelemetry Collector configurations in this family.",
 						NestedObject: schema.NestedAttributeObject{
@@ -203,6 +212,9 @@ func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.S
 								},
 								"raw_configuration": schema.StringAttribute{
 									Required: true,
+									Validators: []validator.String{
+										stringvalidator.LengthAtLeast(1),
+									},
 									PlanModifiers: []planmodifier.String{
 										PreserveStateForEquivalentYAML{},
 									},
@@ -596,12 +608,11 @@ func flattenConfigurationGroup(ctx context.Context, plan *FleetConfigurationGrou
 		return nil, diags
 	}
 
-	description := types.StringNull()
-	if group.Description != nil && *group.Description != "" {
-		description = types.StringValue(*group.Description)
-	} else if plan != nil && !plan.Description.IsNull() && plan.Description.ValueString() == "" {
-		description = types.StringNull()
+	planDescription := types.StringNull()
+	if plan != nil {
+		planDescription = plan.Description
 	}
+	description := flattenConfiguredString(group.Description, planDescription)
 
 	priority := int64(0)
 	if group.PriorityOrder != nil {
@@ -642,10 +653,11 @@ func flattenFamily(ctx context.Context, plan *FleetConfigurationGroupFamilyModel
 		return nil, diags
 	}
 
-	description := types.StringNull()
-	if family.Description != nil && *family.Description != "" {
-		description = types.StringValue(*family.Description)
+	planDescription := types.StringNull()
+	if plan != nil {
+		planDescription = plan.Description
 	}
+	description := flattenConfiguredString(family.Description, planDescription)
 	collectorVersion := types.StringNull()
 	if family.CollectorVersion != nil && *family.CollectorVersion != "" {
 		collectorVersion = types.StringValue(*family.CollectorVersion)
@@ -735,6 +747,16 @@ func flattenStringList(_ context.Context, values []string, plan types.List) (typ
 		elems = append(elems, types.StringValue(value))
 	}
 	return types.ListValue(types.StringType, elems)
+}
+
+func flattenConfiguredString(api *string, plan types.String) types.String {
+	if api != nil && *api != "" {
+		return types.StringValue(*api)
+	}
+	if !plan.IsNull() && !plan.IsUnknown() {
+		return plan
+	}
+	return types.StringNull()
 }
 
 func flattenStringMap(_ context.Context, values map[string]string, plan types.Map) (types.Map, diag.Diagnostics) {

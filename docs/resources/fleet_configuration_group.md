@@ -96,7 +96,7 @@ Required:
 Optional:
 
 - `active` (Boolean) Whether this family is active. Defaults to true.
-- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix.
+- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix. The replace API keeps the existing value when this attribute is omitted, and empty string is not a valid clear representation, so removing it from configuration does not unset it remotely.
 - `description` (String) Human-readable family description.
 - `metadata` (Map of String) Metadata stored with this configuration family.
 

@@ -34,6 +34,18 @@ func TestYAMLStringsEqualRejectsDifferentDocuments(t *testing.T) {
 	}
 }
 
+func TestFlattenConfiguredStringPreservesEmptyPlan(t *testing.T) {
+	empty := ""
+	got := flattenConfiguredString(&empty, types.StringValue(""))
+	if got.IsNull() || got.ValueString() != "" {
+		t.Fatalf("configured empty string should stay empty, got %#v", got)
+	}
+	got = flattenConfiguredString(nil, types.StringNull())
+	if !got.IsNull() {
+		t.Fatalf("omitted description should stay null, got %#v", got)
+	}
+}
+
 func TestSelectorAttrsForStateDropsInjectedCollectorVersion(t *testing.T) {
 	api := map[string]string{
 		"cx.agent.type":   "agent",
