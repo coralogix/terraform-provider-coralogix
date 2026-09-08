@@ -140,11 +140,17 @@ func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.S
 				MarkdownDescription: "Latest configuration family for this group.",
 				Attributes: map[string]schema.Attribute{
 					"id": schema.StringAttribute{
-						Computed:            true,
+						Computed: true,
+						PlanModifiers: []planmodifier.String{
+							UseStateForUnknownWhenYAMLUnchanged{},
+						},
 						MarkdownDescription: "Configuration family UUID. Replace may mint a new version.",
 					},
 					"version": schema.StringAttribute{
-						Computed:            true,
+						Computed: true,
+						PlanModifiers: []planmodifier.String{
+							UseStateForUnknownWhenYAMLUnchanged{},
+						},
 						MarkdownDescription: "Monotonic family version within the group.",
 					},
 					"active": schema.BoolAttribute{
@@ -175,11 +181,17 @@ func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.S
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"id": schema.StringAttribute{
-									Computed:            true,
+									Computed: true,
+									PlanModifiers: []planmodifier.String{
+										UseStateForUnknownWhenYAMLUnchanged{},
+									},
 									MarkdownDescription: "Remote configuration UUID. Replace may mint a new version.",
 								},
 								"hash": schema.StringAttribute{
-									Computed:            true,
+									Computed: true,
+									PlanModifiers: []planmodifier.String{
+										UseStateForUnknownWhenYAMLUnchanged{},
+									},
 									MarkdownDescription: "SHA-256 hash of the normalized raw configuration. Replace may mint a new version.",
 								},
 								"name": schema.StringAttribute{
@@ -679,12 +691,36 @@ func flattenRemotes(ctx context.Context, plan []FleetRemoteConfigurationModel, r
 	return out, diags
 }
 
+const collectorVersionSelectorKey = "service.version"
+
 func flattenAgentSelector(ctx context.Context, selector *cfggroups.AgentSelectorResponse, plan types.Map) (types.Map, diag.Diagnostics) {
 	var attrs map[string]string
 	if selector != nil {
 		attrs = selector.Attributes
 	}
-	return flattenStringMap(ctx, attrs, plan)
+	return flattenStringMap(ctx, selectorAttrsForState(attrs, plan), plan)
+}
+
+// The API copies collectorVersion onto agentSelector as service.version when
+// omitted. Drop that injected key unless the user configured it, so state
+// matches configuration and plans stay empty.
+func selectorAttrsForState(api map[string]string, plan types.Map) map[string]string {
+	if len(api) == 0 {
+		return api
+	}
+	if !plan.IsNull() && !plan.IsUnknown() {
+		if _, configured := plan.Elements()[collectorVersionSelectorKey]; configured {
+			return api
+		}
+	}
+	out := make(map[string]string, len(api))
+	for key, value := range api {
+		if key == collectorVersionSelectorKey {
+			continue
+		}
+		out[key] = value
+	}
+	return out
 }
 
 func flattenStringList(_ context.Context, values []string, plan types.List) (types.List, diag.Diagnostics) {

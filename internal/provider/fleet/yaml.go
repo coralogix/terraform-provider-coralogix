@@ -18,6 +18,7 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"gopkg.in/yaml.v3"
@@ -42,6 +43,111 @@ func (m PreserveStateForEquivalentYAML) PlanModifyString(_ context.Context, req 
 	if yamlStringsEqual(req.ConfigValue.ValueString(), req.StateValue.ValueString()) {
 		resp.PlanValue = req.StateValue
 	}
+}
+
+// UseStateForUnknownWhenYAMLUnchanged keeps computed family/remote IDs when
+// the only configuration difference is semantically equal YAML. Terraform marks
+// computed nils unknown whenever any config text differs, including inline vs
+// multiline lists, before YAML plan modifiers run.
+type UseStateForUnknownWhenYAMLUnchanged struct{}
+
+func (m UseStateForUnknownWhenYAMLUnchanged) Description(_ context.Context) string {
+	return "Keeps the previous computed value when remote configuration YAML is semantically unchanged."
+}
+
+func (m UseStateForUnknownWhenYAMLUnchanged) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m UseStateForUnknownWhenYAMLUnchanged) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if !req.PlanValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+		return
+	}
+	if familyOrRemoteYAMLUnchanged(ctx, req) {
+		resp.PlanValue = req.StateValue
+	}
+}
+
+func familyOrRemoteYAMLUnchanged(ctx context.Context, req planmodifier.StringRequest) bool {
+	parent := req.Path.ParentPath()
+	var planYAML types.String
+	if diags := req.Plan.GetAttribute(ctx, parent.AtName("raw_configuration"), &planYAML); !diags.HasError() && !planYAML.IsNull() {
+		return yamlAttrUnchanged(ctx, req, parent.AtName("raw_configuration")) &&
+			stringAttrEqual(ctx, req, parent.AtName("name")) &&
+			mapAttrEqual(ctx, req, parent.AtName("agent_selector"))
+	}
+
+	if !boolAttrEqual(ctx, req, parent.AtName("active")) ||
+		!stringAttrEqual(ctx, req, parent.AtName("collector_version")) ||
+		!stringAttrEqual(ctx, req, parent.AtName("description")) ||
+		!mapAttrEqual(ctx, req, parent.AtName("metadata")) {
+		return false
+	}
+
+	remotesPath := parent.AtName("remote_configuration")
+	var planRemotes, stateRemotes types.List
+	if diags := req.Plan.GetAttribute(ctx, remotesPath, &planRemotes); diags.HasError() || planRemotes.IsNull() || planRemotes.IsUnknown() {
+		return false
+	}
+	if diags := req.State.GetAttribute(ctx, remotesPath, &stateRemotes); diags.HasError() || stateRemotes.IsNull() || stateRemotes.IsUnknown() {
+		return false
+	}
+	if len(planRemotes.Elements()) != len(stateRemotes.Elements()) {
+		return false
+	}
+	for i := range planRemotes.Elements() {
+		item := remotesPath.AtListIndex(i)
+		if !yamlAttrUnchanged(ctx, req, item.AtName("raw_configuration")) ||
+			!stringAttrEqual(ctx, req, item.AtName("name")) ||
+			!mapAttrEqual(ctx, req, item.AtName("agent_selector")) {
+			return false
+		}
+	}
+	return true
+}
+
+func yamlAttrUnchanged(ctx context.Context, req planmodifier.StringRequest, attrPath path.Path) bool {
+	var planYAML, stateYAML types.String
+	if diags := req.Plan.GetAttribute(ctx, attrPath, &planYAML); diags.HasError() || planYAML.IsNull() || planYAML.IsUnknown() {
+		return false
+	}
+	if diags := req.State.GetAttribute(ctx, attrPath, &stateYAML); diags.HasError() || stateYAML.IsNull() || stateYAML.IsUnknown() {
+		return false
+	}
+	return yamlStringsEqual(planYAML.ValueString(), stateYAML.ValueString())
+}
+
+func stringAttrEqual(ctx context.Context, req planmodifier.StringRequest, attrPath path.Path) bool {
+	var planVal, stateVal types.String
+	if diags := req.Plan.GetAttribute(ctx, attrPath, &planVal); diags.HasError() {
+		return false
+	}
+	if diags := req.State.GetAttribute(ctx, attrPath, &stateVal); diags.HasError() {
+		return false
+	}
+	return planVal.Equal(stateVal)
+}
+
+func boolAttrEqual(ctx context.Context, req planmodifier.StringRequest, attrPath path.Path) bool {
+	var planVal, stateVal types.Bool
+	if diags := req.Plan.GetAttribute(ctx, attrPath, &planVal); diags.HasError() {
+		return false
+	}
+	if diags := req.State.GetAttribute(ctx, attrPath, &stateVal); diags.HasError() {
+		return false
+	}
+	return planVal.Equal(stateVal)
+}
+
+func mapAttrEqual(ctx context.Context, req planmodifier.StringRequest, attrPath path.Path) bool {
+	var planVal, stateVal types.Map
+	if diags := req.Plan.GetAttribute(ctx, attrPath, &planVal); diags.HasError() {
+		return false
+	}
+	if diags := req.State.GetAttribute(ctx, attrPath, &stateVal); diags.HasError() {
+		return false
+	}
+	return planVal.Equal(stateVal)
 }
 
 func echoYAML(configured, api string) types.String {

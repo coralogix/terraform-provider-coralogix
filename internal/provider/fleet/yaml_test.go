@@ -14,7 +14,11 @@
 
 package fleet
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
 
 func TestYAMLStringsEqualTreatsInlineAndMultilineListsAsTheSame(t *testing.T) {
 	inline := "receivers: [otlp]\n"
@@ -27,5 +31,19 @@ func TestYAMLStringsEqualTreatsInlineAndMultilineListsAsTheSame(t *testing.T) {
 func TestYAMLStringsEqualRejectsDifferentDocuments(t *testing.T) {
 	if yamlStringsEqual("receivers: [otlp]\n", "receivers: [http]\n") {
 		t.Fatal("different YAML documents should not compare equal")
+	}
+}
+
+func TestSelectorAttrsForStateDropsInjectedCollectorVersion(t *testing.T) {
+	api := map[string]string{
+		"cx.agent.type":   "agent",
+		"service.version": "0.114.0",
+	}
+	got := selectorAttrsForState(api, types.MapNull(types.StringType))
+	if _, ok := got["service.version"]; ok {
+		t.Fatal("injected service.version should be dropped when not configured")
+	}
+	if got["cx.agent.type"] != "agent" {
+		t.Fatalf("kept selector attr = %q", got["cx.agent.type"])
 	}
 }

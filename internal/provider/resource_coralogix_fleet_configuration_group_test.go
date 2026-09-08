@@ -51,9 +51,10 @@ func TestAccCoralogixResourceFleetConfigurationGroup(t *testing.T) {
 				ExpectNonEmptyPlan: false,
 			},
 			{
-				ResourceName:      fleetConfigurationGroupResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            fleetConfigurationGroupResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"family.remote_configuration.0.raw_configuration"},
 			},
 		},
 	})
