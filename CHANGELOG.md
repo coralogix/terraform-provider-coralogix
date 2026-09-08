@@ -15,6 +15,9 @@
 #### resource/coralogix_data_set
 - DOC: The deprecation warning now says Data Sets will be removed in a future version.
 
+#### resource/coralogix_alert
+- FIX: Nil pointer dereference when a network failure interrupts a read or an update. A DNS failure, dial timeout, or connection refused leaves the HTTP response nil, which the not-found check dereferenced; the provider now reports the transport error as a diagnostic and keeps the resource in state instead of crashing.
+
 # Release 3.14.1
 
 #### provider
