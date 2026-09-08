@@ -38,7 +38,9 @@ func DataSourceCoralogixRulesGroup() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceCoralogixRulesGroupRead,
 
-		Schema: rulesGroupSchema,
+		Schema:             rulesGroupSchema,
+		DeprecationMessage: "This data source will be removed in 5.0.0. Please use coralogix_parsing_rules instead.",
+		Description:        "**DEPRECATED**. Please use `coralogix_parsing_rules` instead.",
 	}
 }
 

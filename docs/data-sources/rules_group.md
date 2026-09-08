@@ -3,12 +3,12 @@
 page_title: "coralogix_rules_group Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  DEPRECATED. Please use coralogix_parsing_rules instead.
 ---
 
 # coralogix_rules_group (Data Source)
 
-
+**DEPRECATED**. Please use `coralogix_parsing_rules` instead.
 
 ## Example Usage
 

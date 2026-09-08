@@ -1,5 +1,8 @@
 # Unreleased
 
+#### data-source/coralogix_rules_group
+- DEPRECATE: Warn that this data source will be removed in 5.0.0. Use `coralogix_parsing_rules` instead.
+
 # Release 3.14.1
 
 #### provider
