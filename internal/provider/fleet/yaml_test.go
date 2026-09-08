@@ -15,6 +15,7 @@
 package fleet
 
 import (
+	"context"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -46,16 +47,108 @@ func TestFlattenConfiguredStringPreservesEmptyPlan(t *testing.T) {
 	}
 }
 
+func TestFlattenConfiguredStringDoesNotMaskRemoteClear(t *testing.T) {
+	empty := ""
+	got := flattenConfiguredString(&empty, types.StringValue("kept by terraform"))
+	if !got.IsNull() {
+		t.Fatalf("remotely cleared description should become null, got %#v", got)
+	}
+	got = flattenConfiguredString(nil, types.StringValue("kept by terraform"))
+	if !got.IsNull() {
+		t.Fatalf("nil API description should not echo prior nonempty state, got %#v", got)
+	}
+}
+
 func TestSelectorAttrsForStateDropsInjectedCollectorVersion(t *testing.T) {
 	api := map[string]string{
 		"cx.agent.type":   "agent",
 		"service.version": "0.114.0",
 	}
-	got := selectorAttrsForState(api, types.MapNull(types.StringType))
+	got := selectorAttrsForState(api, types.MapNull(types.StringType), "0.114.0", true)
 	if _, ok := got["service.version"]; ok {
-		t.Fatal("injected service.version should be dropped when not configured")
+		t.Fatal("injected service.version should be dropped when it matches collector_version")
 	}
 	if got["cx.agent.type"] != "agent" {
 		t.Fatalf("kept selector attr = %q", got["cx.agent.type"])
+	}
+}
+
+func TestSelectorAttrsForStateKeepsExplicitServiceVersion(t *testing.T) {
+	api := map[string]string{
+		"cx.agent.type":   "agent",
+		"service.version": "1.2.3",
+	}
+	got := selectorAttrsForState(api, types.MapNull(types.StringType), "", true)
+	if got["service.version"] != "1.2.3" {
+		t.Fatalf("explicit service.version without collector_version should be kept, got %#v", got)
+	}
+	got = selectorAttrsForState(api, types.MapNull(types.StringType), "0.114.0", false)
+	if got["service.version"] != "1.2.3" {
+		t.Fatalf("data-source reads should keep remote service.version, got %#v", got)
+	}
+}
+
+func TestFamilyConfigUnchangedIgnoresGroupLevelFields(t *testing.T) {
+	family := &FleetConfigurationGroupFamilyModel{
+		Active:           types.BoolValue(true),
+		CollectorVersion: types.StringValue("0.114.0"),
+		Description:      types.StringNull(),
+		Metadata:         types.MapNull(types.StringType),
+		RemoteConfigurations: []FleetRemoteConfigurationModel{{
+			Name:             types.StringValue("default"),
+			RawConfiguration: types.StringValue("receivers: [otlp]\n"),
+			AgentSelector:    types.MapNull(types.StringType),
+		}},
+	}
+	if !familyConfigUnchanged(family, family) {
+		t.Fatal("identical families should compare equal")
+	}
+	changed := *family
+	changed.CollectorVersion = types.StringValue("0.115.0")
+	if familyConfigUnchanged(&changed, family) {
+		t.Fatal("collector_version change should not compare equal")
+	}
+}
+
+func TestExpandReplaceRequestOmitsUnchangedFamily(t *testing.T) {
+	family := &FleetConfigurationGroupFamilyModel{
+		Active:           types.BoolValue(true),
+		CollectorVersion: types.StringValue("0.114.0"),
+		Description:      types.StringNull(),
+		Metadata:         types.MapNull(types.StringType),
+		RemoteConfigurations: []FleetRemoteConfigurationModel{{
+			Name:             types.StringValue("default"),
+			RawConfiguration: types.StringValue("receivers: {}\n"),
+			AgentSelector:    types.MapNull(types.StringType),
+		}},
+	}
+	plan := &FleetConfigurationGroupResourceModel{
+		Name:          types.StringValue("new-name"),
+		Description:   types.StringNull(),
+		Tags:          types.ListNull(types.StringType),
+		PriorityOrder: types.Int64Value(0),
+		Family:        family,
+	}
+	prior := &FleetConfigurationGroupResourceModel{
+		Name:          types.StringValue("old-name"),
+		Description:   types.StringNull(),
+		Tags:          types.ListNull(types.StringType),
+		PriorityOrder: types.Int64Value(0),
+		Family:        family,
+	}
+	req, diags := expandReplaceRequest(context.Background(), plan, prior)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if req.Group.HasFamily() {
+		t.Fatal("unchanged family should be omitted from replace")
+	}
+
+	req, diags = expandReplaceRequest(context.Background(), plan, nil)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if !req.Group.HasFamily() {
+		t.Fatal("replace without prior state should include family")
 	}
 }

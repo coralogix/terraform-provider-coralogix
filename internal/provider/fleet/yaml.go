@@ -173,3 +173,32 @@ func yamlStringsEqual(a, b string) bool {
 	}
 	return reflect.DeepEqual(left, right)
 }
+
+func familyConfigUnchanged(plan, state *FleetConfigurationGroupFamilyModel) bool {
+	if plan == nil || state == nil {
+		return plan == state
+	}
+	if !plan.Active.Equal(state.Active) ||
+		!plan.Description.Equal(state.Description) ||
+		!plan.CollectorVersion.Equal(state.CollectorVersion) ||
+		!plan.Metadata.Equal(state.Metadata) {
+		return false
+	}
+	if len(plan.RemoteConfigurations) != len(state.RemoteConfigurations) {
+		return false
+	}
+	for i := range plan.RemoteConfigurations {
+		planned := plan.RemoteConfigurations[i]
+		prior := state.RemoteConfigurations[i]
+		if !planned.Name.Equal(prior.Name) || !planned.AgentSelector.Equal(prior.AgentSelector) {
+			return false
+		}
+		if planned.RawConfiguration.IsUnknown() || prior.RawConfiguration.IsUnknown() {
+			return false
+		}
+		if !yamlStringsEqual(planned.RawConfiguration.ValueString(), prior.RawConfiguration.ValueString()) {
+			return false
+		}
+	}
+	return true
+}

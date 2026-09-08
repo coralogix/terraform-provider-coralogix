@@ -258,7 +258,7 @@ func (r *FleetConfigurationGroupResource) Create(ctx context.Context, req resour
 		return
 	}
 
-	state, diags := flattenConfigurationGroup(ctx, plan, result.Group)
+	state, diags := flattenConfigurationGroup(ctx, plan, result.Group, true)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -290,7 +290,7 @@ func (r *FleetConfigurationGroupResource) Read(ctx context.Context, req resource
 		return
 	}
 
-	flattened, diags := flattenConfigurationGroup(ctx, state, group)
+	flattened, diags := flattenConfigurationGroup(ctx, state, group, true)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -305,8 +305,13 @@ func (r *FleetConfigurationGroupResource) Update(ctx context.Context, req resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var prior *FleetConfigurationGroupResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &prior)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	replaceReq, diags := expandReplaceRequest(ctx, plan)
+	replaceReq, diags := expandReplaceRequest(ctx, plan, prior)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -323,7 +328,7 @@ func (r *FleetConfigurationGroupResource) Update(ctx context.Context, req resour
 		return
 	}
 
-	state, diags := flattenConfigurationGroup(ctx, plan, result.Group)
+	state, diags := flattenConfigurationGroup(ctx, plan, result.Group, true)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -386,7 +391,7 @@ func deactivateFamilyIfActive(ctx context.Context, client *cfggroups.FleetManage
 	family.Active = types.BoolValue(false)
 	inactive.Family = &family
 
-	replaceReq, diags := expandReplaceRequest(ctx, &inactive)
+	replaceReq, diags := expandReplaceRequest(ctx, &inactive, nil)
 	if diags.HasError() {
 		return fmt.Errorf("preparing deactivate request: %s", diags.Errors()[0].Detail())
 	}
@@ -432,7 +437,7 @@ func expandCreateRequest(ctx context.Context, plan *FleetConfigurationGroupResou
 	return *req, diags
 }
 
-func expandReplaceRequest(ctx context.Context, plan *FleetConfigurationGroupResourceModel) (cfggroups.ConfigurationGroupServiceReplaceConfigurationGroupRequest, diag.Diagnostics) {
+func expandReplaceRequest(ctx context.Context, plan, prior *FleetConfigurationGroupResourceModel) (cfggroups.ConfigurationGroupServiceReplaceConfigurationGroupRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	group := cfggroups.NewConfigurationGroupServiceReplaceConfigurationGroupRequestGroup()
 	group.SetName(plan.Name.ValueString())
@@ -451,12 +456,20 @@ func expandReplaceRequest(ctx context.Context, plan *FleetConfigurationGroupReso
 		group.SetPriorityOrder(int32(plan.PriorityOrder.ValueInt64()))
 	}
 
-	family, familyDiags := expandFamilyReplace(ctx, plan.Family)
-	diags.Append(familyDiags...)
-	if familyDiags.HasError() {
-		return cfggroups.ConfigurationGroupServiceReplaceConfigurationGroupRequest{}, diags
+	// Omit an unchanged family so group-only updates keep existing family IDs.
+	// Sending family on every PUT can mint a new version even when content is equal.
+	var priorFamily *FleetConfigurationGroupFamilyModel
+	if prior != nil {
+		priorFamily = prior.Family
 	}
-	group.SetFamily(*family)
+	if !familyConfigUnchanged(plan.Family, priorFamily) {
+		family, familyDiags := expandFamilyReplace(ctx, plan.Family)
+		diags.Append(familyDiags...)
+		if familyDiags.HasError() {
+			return cfggroups.ConfigurationGroupServiceReplaceConfigurationGroupRequest{}, diags
+		}
+		group.SetFamily(*family)
+	}
 
 	req := cfggroups.NewConfigurationGroupServiceReplaceConfigurationGroupRequest()
 	req.SetGroup(*group)
@@ -588,7 +601,7 @@ func expandStringMap(ctx context.Context, m types.Map) (map[string]string, diag.
 	return values, diags
 }
 
-func flattenConfigurationGroup(ctx context.Context, plan *FleetConfigurationGroupResourceModel, group *cfggroups.ConfigurationGroup) (*FleetConfigurationGroupResourceModel, diag.Diagnostics) {
+func flattenConfigurationGroup(ctx context.Context, plan *FleetConfigurationGroupResourceModel, group *cfggroups.ConfigurationGroup, dropInjectedSelector bool) (*FleetConfigurationGroupResourceModel, diag.Diagnostics) {
 	if group == nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Empty configuration group", "API returned no configuration group")}
 	}
@@ -602,7 +615,7 @@ func flattenConfigurationGroup(ctx context.Context, plan *FleetConfigurationGrou
 	if plan != nil {
 		planFamily = plan.Family
 	}
-	family, familyDiags := flattenFamily(ctx, planFamily, group.Families)
+	family, familyDiags := flattenFamily(ctx, planFamily, group.Families, dropInjectedSelector)
 	diags.Append(familyDiags...)
 	if familyDiags.HasError() {
 		return nil, diags
@@ -629,7 +642,7 @@ func flattenConfigurationGroup(ctx context.Context, plan *FleetConfigurationGrou
 	}, diags
 }
 
-func flattenFamily(ctx context.Context, plan *FleetConfigurationGroupFamilyModel, families []cfggroups.ConfigurationFamily) (*FleetConfigurationGroupFamilyModel, diag.Diagnostics) {
+func flattenFamily(ctx context.Context, plan *FleetConfigurationGroupFamilyModel, families []cfggroups.ConfigurationFamily, dropInjectedSelector bool) (*FleetConfigurationGroupFamilyModel, diag.Diagnostics) {
 	if len(families) == 0 {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Missing family", "API returned no configuration family")}
 	}
@@ -647,7 +660,7 @@ func flattenFamily(ctx context.Context, plan *FleetConfigurationGroupFamilyModel
 	if plan != nil {
 		planRemotes = plan.RemoteConfigurations
 	}
-	remotes, remoteDiags := flattenRemotes(ctx, planRemotes, family.RemoteConfigurations)
+	remotes, remoteDiags := flattenRemotes(ctx, planRemotes, family.RemoteConfigurations, family.GetCollectorVersion(), dropInjectedSelector)
 	diags.Append(remoteDiags...)
 	if remoteDiags.HasError() {
 		return nil, diags
@@ -674,7 +687,7 @@ func flattenFamily(ctx context.Context, plan *FleetConfigurationGroupFamilyModel
 	}, diags
 }
 
-func flattenRemotes(ctx context.Context, plan []FleetRemoteConfigurationModel, remotes []cfggroups.RemoteConfiguration) ([]FleetRemoteConfigurationModel, diag.Diagnostics) {
+func flattenRemotes(ctx context.Context, plan []FleetRemoteConfigurationModel, remotes []cfggroups.RemoteConfiguration, collectorVersion string, dropInjectedSelector bool) ([]FleetRemoteConfigurationModel, diag.Diagnostics) {
 	byName := make(map[string]FleetRemoteConfigurationModel, len(plan))
 	for _, remote := range plan {
 		byName[remote.Name.ValueString()] = remote
@@ -690,7 +703,7 @@ func flattenRemotes(ctx context.Context, plan []FleetRemoteConfigurationModel, r
 			plannedYAML = planned.RawConfiguration.ValueString()
 			plannedSelector = planned.AgentSelector
 		}
-		selector, selectorDiags := flattenAgentSelector(ctx, remote.AgentSelector, plannedSelector)
+		selector, selectorDiags := flattenAgentSelector(ctx, remote.AgentSelector, plannedSelector, collectorVersion, dropInjectedSelector)
 		diags.Append(selectorDiags...)
 		out = append(out, FleetRemoteConfigurationModel{
 			ID:               types.StringValue(remote.GetId()),
@@ -705,19 +718,19 @@ func flattenRemotes(ctx context.Context, plan []FleetRemoteConfigurationModel, r
 
 const collectorVersionSelectorKey = "service.version"
 
-func flattenAgentSelector(ctx context.Context, selector *cfggroups.AgentSelectorResponse, plan types.Map) (types.Map, diag.Diagnostics) {
+func flattenAgentSelector(ctx context.Context, selector *cfggroups.AgentSelectorResponse, plan types.Map, collectorVersion string, dropInjectedSelector bool) (types.Map, diag.Diagnostics) {
 	var attrs map[string]string
 	if selector != nil {
 		attrs = selector.Attributes
 	}
-	return flattenStringMap(ctx, selectorAttrsForState(attrs, plan), plan)
+	return flattenStringMap(ctx, selectorAttrsForState(attrs, plan, collectorVersion, dropInjectedSelector), plan)
 }
 
 // The API copies collectorVersion onto agentSelector as service.version when
-// omitted. Drop that injected key unless the user configured it, so state
-// matches configuration and plans stay empty.
-func selectorAttrsForState(api map[string]string, plan types.Map) map[string]string {
-	if len(api) == 0 {
+// omitted. Drop that injected key on resource reads unless the user configured
+// it, so state matches configuration. Data-source reads keep the remote map.
+func selectorAttrsForState(api map[string]string, plan types.Map, collectorVersion string, dropInjectedSelector bool) map[string]string {
+	if len(api) == 0 || !dropInjectedSelector {
 		return api
 	}
 	if !plan.IsNull() && !plan.IsUnknown() {
@@ -725,7 +738,11 @@ func selectorAttrsForState(api map[string]string, plan types.Map) map[string]str
 			return api
 		}
 	}
-	out := make(map[string]string, len(api))
+	injected, ok := api[collectorVersionSelectorKey]
+	if !ok || collectorVersion == "" || injected != collectorVersion {
+		return api
+	}
+	out := make(map[string]string, len(api)-1)
 	for key, value := range api {
 		if key == collectorVersionSelectorKey {
 			continue
@@ -753,7 +770,9 @@ func flattenConfiguredString(api *string, plan types.String) types.String {
 	if api != nil && *api != "" {
 		return types.StringValue(*api)
 	}
-	if !plan.IsNull() && !plan.IsUnknown() {
+	// Preserve only an explicit configured empty string so description = ""
+	// round-trips. A nonempty prior value against an empty API result is drift.
+	if !plan.IsNull() && !plan.IsUnknown() && plan.ValueString() == "" {
 		return plan
 	}
 	return types.StringNull()
