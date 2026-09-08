@@ -7,6 +7,7 @@
 - FIX: Omit an unchanged family from replace so group-only updates do not pin stale family IDs.
 - FIX: Keep remote `service.version` selectors on data-source reads and when they are not API-injected.
 - FIX: Detect remotely cleared descriptions instead of echoing prior nonempty state.
+- FIX: Leave remote IDs unknown when a family-level field changes, because replace mints new remote UUIDs.
 
 #### resource/coralogix_action
 - DEPRECATE: Warn that `is_hidden` is a per-user UI preference, not a property of the action, and will be removed in a future version.

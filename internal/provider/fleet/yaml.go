@@ -72,19 +72,22 @@ func familyOrRemoteYAMLUnchanged(ctx context.Context, req planmodifier.StringReq
 	parent := req.Path.ParentPath()
 	var planYAML types.String
 	if diags := req.Plan.GetAttribute(ctx, parent.AtName("raw_configuration"), &planYAML); !diags.HasError() && !planYAML.IsNull() {
-		return yamlAttrUnchanged(ctx, req, parent.AtName("raw_configuration")) &&
-			stringAttrEqual(ctx, req, parent.AtName("name")) &&
-			mapAttrEqual(ctx, req, parent.AtName("agent_selector"))
+		// Remote id/hash: replacing a family mints new remote IDs even when this
+		// remote's YAML is unchanged, so require the whole family to be unchanged.
+		return familyFieldsUnchanged(ctx, req, parent.ParentPath().ParentPath())
 	}
+	return familyFieldsUnchanged(ctx, req, parent)
+}
 
-	if !boolAttrEqual(ctx, req, parent.AtName("active")) ||
-		!stringAttrEqual(ctx, req, parent.AtName("collector_version")) ||
-		!stringAttrEqual(ctx, req, parent.AtName("description")) ||
-		!mapAttrEqual(ctx, req, parent.AtName("metadata")) {
+func familyFieldsUnchanged(ctx context.Context, req planmodifier.StringRequest, familyPath path.Path) bool {
+	if !boolAttrEqual(ctx, req, familyPath.AtName("active")) ||
+		!stringAttrEqual(ctx, req, familyPath.AtName("collector_version")) ||
+		!stringAttrEqual(ctx, req, familyPath.AtName("description")) ||
+		!mapAttrEqual(ctx, req, familyPath.AtName("metadata")) {
 		return false
 	}
 
-	remotesPath := parent.AtName("remote_configuration")
+	remotesPath := familyPath.AtName("remote_configuration")
 	var planRemotes, stateRemotes types.List
 	if diags := req.Plan.GetAttribute(ctx, remotesPath, &planRemotes); diags.HasError() || planRemotes.IsNull() || planRemotes.IsUnknown() {
 		return false
