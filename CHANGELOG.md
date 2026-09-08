@@ -2,6 +2,8 @@
 
 #### resource/coralogix_action
 - DEPRECATE: Warn that `is_hidden` is a per-user UI preference, not a property of the action, and will be removed in a future version.
+- FIX: Nil pointer dereference when a network failure interrupts a read or an update. A DNS failure, dial timeout, or connection refused leaves the HTTP response nil, which the not-found check dereferenced; the provider now reports the transport error as a diagnostic and keeps the resource in state instead of crashing.
+- FIX: Destroying an action that was already deleted outside Terraform failed the apply. A delete that the backend answers with `404 Not Found` now converges instead of raising a blocking diagnostic.
 
 #### data-source/coralogix_action
 - DEPRECATE: Document that `is_hidden` is a per-user UI preference, not a property of the action, and will be removed in a future version.
