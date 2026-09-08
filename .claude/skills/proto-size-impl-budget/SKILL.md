@@ -7,7 +7,7 @@ description: "Use when reviewing or adding a Terraform resource. Estimate size f
 
 **Trigger:** A new or large resource for one management API.
 
-**Fix:** Count exported JSON-tagged fields on generated model structs in the **pinned** `coralogix-management-sdk` from `go.mod` (`go/openapi/gen/<service>`). Skip duplicated OpenAPI filter/error types. Do not use live proto HEAD. If the SDK has no types for that API, skip the ratio.
+**Fix:** Count exported JSON-tagged fields on generated model structs in the **pinned** `coralogix-management-sdk` from `go.mod` (`go/openapi/gen/<service>`). Count **this resource only**. If one gen package backs several resources (for example `policies_service` for three TCO resources), do not use the whole package. Use this resource’s types (name prefixes, or models reachable from its create/get/replace requests). Skip duplicated OpenAPI filter/error types. Do not use live proto HEAD. If the SDK has no types for that API, skip the ratio.
 
 Count **all non-test, non-example `.go` lines** for that API: resource, data source, helpers, and any generated client copied into this repo. Skip tests, examples, and docs. Compare:
 
