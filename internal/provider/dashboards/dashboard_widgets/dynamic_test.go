@@ -1022,6 +1022,24 @@ func TestDynamicWidgetSpatialFullFidelityRoundTrip(t *testing.T) {
 				},
 			},
 		}},
+		// The two preview arms of the same field-config union. Both name their
+		// observation field `region_field`, unlike the AWS arm above.
+		"geomap_ibm_region_config": {Geomap: &DynamicGeomapModel{
+			Aggregation: &DynamicGeomapAggregationModel{Count: types.BoolValue(true)},
+			Config: &DynamicGeomapFieldConfigModel{
+				IbmRegionConfig: &DynamicGeomapIbmRegionConfigModel{
+					RegionField: observationFieldObject("ibm_region", "user_data"),
+				},
+			},
+		}},
+		"geomap_all_region_config": {Geomap: &DynamicGeomapModel{
+			Aggregation: &DynamicGeomapAggregationModel{Count: types.BoolValue(true)},
+			Config: &DynamicGeomapFieldConfigModel{
+				AllRegionConfig: &DynamicGeomapAllRegionConfigModel{
+					RegionField: observationFieldObject("cloud_region", "user_data"),
+				},
+			},
+		}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			assertDynamicRoundTrip(ctx, t, &DynamicModel{
@@ -1142,6 +1160,28 @@ func TestExpandDynamicSpatialUnionsRejectUnresolvedShapes(t *testing.T) {
 		})
 		if !diags.HasError() {
 			t.Error("a field config with both arms must be refused")
+		}
+	})
+
+	// The union grew from two arms to four, so the check has to count rather
+	// than compare a pair: any two of the four are equally impossible.
+	t.Run("field config with two preview arms", func(t *testing.T) {
+		_, diags := expandDynamicGeomapFieldConfig(ctx, &DynamicGeomapFieldConfigModel{
+			AllRegionConfig: &DynamicGeomapAllRegionConfigModel{RegionField: field},
+			IbmRegionConfig: &DynamicGeomapIbmRegionConfigModel{RegionField: field},
+		})
+		if !diags.HasError() {
+			t.Error("a field config with both region arms must be refused")
+		}
+	})
+
+	t.Run("field config with a preview arm alongside an existing one", func(t *testing.T) {
+		_, diags := expandDynamicGeomapFieldConfig(ctx, &DynamicGeomapFieldConfigModel{
+			AwsRegionConfig: &DynamicGeomapAwsRegionConfigModel{AwsRegionField: field},
+			IbmRegionConfig: &DynamicGeomapIbmRegionConfigModel{RegionField: field},
+		})
+		if !diags.HasError() {
+			t.Error("a field config mixing the AWS and IBM arms must be refused")
 		}
 	})
 
@@ -1386,6 +1426,32 @@ func TestFlattenDynamicNormalisesEmptyUnionWrappers(t *testing.T) {
 		size := dashboardservice.COLORSOLIDTYPE_COLOR_SOLID_TYPE_BLUE
 		if got := flattenDynamicGeomapColor(&dashboardservice.GeomapColor{Size: &size}); got == nil || got.Size.IsNull() {
 			t.Errorf("a colour size must read back set, got %v", got)
+		}
+	})
+}
+
+// A selected arm is not an arm-less wrapper, even when the arm itself carries
+// nothing: the API preserves `{"ibmRegionConfig":{}}` for a config that names an
+// arm but omits its optional field. Normalising that away the way an arm-less
+// wrapper is normalised would drop the user's choice and diff forever.
+func TestFlattenDynamicGeomapFieldConfigKeepsAnEmptySelectedArm(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("ibm", func(t *testing.T) {
+		got, diags := flattenDynamicGeomapFieldConfig(ctx, &dashboardservice.GeomapFieldConfig{
+			IbmRegionConfig: &dashboardservice.GeomapIbmRegionConfig{},
+		})
+		if diags.HasError() || got == nil || got.IbmRegionConfig == nil || !got.IbmRegionConfig.RegionField.IsNull() {
+			t.Errorf("the ibm arm must read back present with a null region field, got %v %v", got, diags)
+		}
+	})
+
+	t.Run("all", func(t *testing.T) {
+		got, diags := flattenDynamicGeomapFieldConfig(ctx, &dashboardservice.GeomapFieldConfig{
+			AllRegionConfig: &dashboardservice.GeomapAllRegionConfig{},
+		})
+		if diags.HasError() || got == nil || got.AllRegionConfig == nil || !got.AllRegionConfig.RegionField.IsNull() {
+			t.Errorf("the all arm must read back present with a null region field, got %v %v", got, diags)
 		}
 	})
 }

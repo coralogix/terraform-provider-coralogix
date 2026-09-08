@@ -3313,8 +3313,10 @@ type DynamicGeomapModel struct {
 }
 
 type DynamicGeomapFieldConfigModel struct {
+	AllRegionConfig  *DynamicGeomapAllRegionConfigModel  `tfsdk:"all_region_config"`
 	AwsRegionConfig  *DynamicGeomapAwsRegionConfigModel  `tfsdk:"aws_region_config"`
 	CoordinateConfig *DynamicGeomapCoordinateConfigModel `tfsdk:"coordinate_config"`
+	IbmRegionConfig  *DynamicGeomapIbmRegionConfigModel  `tfsdk:"ibm_region_config"`
 }
 
 type DynamicGeomapCoordinateConfigModel struct {
@@ -3324,6 +3326,16 @@ type DynamicGeomapCoordinateConfigModel struct {
 
 type DynamicGeomapAwsRegionConfigModel struct {
 	AwsRegionField types.Object `tfsdk:"aws_region_field"` //ObservationFieldModel
+}
+
+// The AWS arm names its field after the wire name `awsRegionField`; the IBM and
+// all-provider arms both call theirs `regionField`, so they diverge from it.
+type DynamicGeomapIbmRegionConfigModel struct {
+	RegionField types.Object `tfsdk:"region_field"` //ObservationFieldModel
+}
+
+type DynamicGeomapAllRegionConfigModel struct {
+	RegionField types.Object `tfsdk:"region_field"` //ObservationFieldModel
 }
 
 type DynamicGeomapAggregationModel struct {

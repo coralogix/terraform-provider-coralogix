@@ -39,13 +39,17 @@ func TestAccCoralogixResourceDashboardDynamicSpatialWidgets(t *testing.T) {
 	hexagon := "layout.sections.0.rows.0.widgets.0.definition.dynamic.visualization.hexagon_bins."
 	heatmap := "layout.sections.0.rows.0.widgets.1.definition.dynamic.visualization.heatmap."
 	geomap := "layout.sections.0.rows.1.widgets.0.definition.dynamic.visualization.geomap."
+	ibmGeomap := "layout.sections.0.rows.1.widgets.2.definition.dynamic.visualization.geomap."
+	allGeomap := "layout.sections.0.rows.1.widgets.3.definition.dynamic.visualization.geomap."
 
-	backendCheck := func(state *terraform.State) error {
-		dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
-		if err != nil {
-			return err
+	backendCheck := func(wantIbmConfig bool) resource.TestCheckFunc {
+		return func(state *terraform.State) error {
+			dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
+			if err != nil {
+				return err
+			}
+			return dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard, fixture, wantIbmConfig)
 		}
-		return dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard, fixture)
 	}
 
 	steps := dashboardOpenAPIStructuredLifecycleSteps(
@@ -75,7 +79,13 @@ func TestAccCoralogixResourceDashboardDynamicSpatialWidgets(t *testing.T) {
 				resource.TestCheckResourceAttr(dashboardResourceName, geomap+"config.coordinate_config.latitude_field.keypath.0", "lat"),
 				resource.TestCheckResourceAttr(dashboardResourceName, geomap+"min_max.custom.max", "50"),
 
-				backendCheck,
+				// The two preview arms of the same field-config union.
+				resource.TestCheckResourceAttr(dashboardResourceName, ibmGeomap+"config.ibm_region_config.region_field.keypath.0", "ibm_region"),
+				resource.TestCheckResourceAttr(dashboardResourceName, ibmGeomap+"config.ibm_region_config.region_field.scope", "user_data"),
+				resource.TestCheckResourceAttr(dashboardResourceName, allGeomap+"config.all_region_config.region_field.keypath.0", "cloud_region"),
+				resource.TestCheckResourceAttr(dashboardResourceName, allGeomap+"config.all_region_config.region_field.scope", "user_data"),
+
+				backendCheck(true),
 			),
 		},
 		[]dashboardOpenAPILifecyclePhase{
@@ -83,16 +93,19 @@ func TestAccCoralogixResourceDashboardDynamicSpatialWidgets(t *testing.T) {
 				Config: testAccCoralogixResourceDashboardDynamicSpatialConfig(name, "spatial updated", true),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "spatial updated"),
-					backendCheck,
+					backendCheck(true),
 				),
 			},
 			{
-				// Removing the optional enums must reset them rather than keep the old value.
+				// Removing the optional enums must reset them rather than keep
+				// the old value, and removing the whole preview config block
+				// must clear it rather than leave the previous mapping behind.
 				Config: testAccCoralogixResourceDashboardDynamicSpatialConfig(name, "spatial updated", false),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(dashboardResourceName, hexagon+"threshold_type", "unspecified"),
 					resource.TestCheckResourceAttr(dashboardResourceName, heatmap+"scale_type", "unspecified"),
-					backendCheck,
+					resource.TestCheckNoResourceAttr(dashboardResourceName, ibmGeomap+"config.ibm_region_config.region_field.keypath.0"),
+					backendCheck(false),
 				),
 			},
 		},
@@ -101,7 +114,7 @@ func TestAccCoralogixResourceDashboardDynamicSpatialWidgets(t *testing.T) {
 			ImportState:       true,
 			ImportStateVerify: true,
 			ImportStateCheck: dashboardOpenAPIImportDashboardCheck(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
-				return dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard, fixture)
+				return dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard, fixture, false)
 			}),
 		},
 	)
@@ -117,7 +130,10 @@ func TestAccCoralogixResourceDashboardDynamicSpatialWidgets(t *testing.T) {
 	})
 }
 
-func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Dashboard, fixture string) error {
+// wantIbmConfig says whether the step under assertion still carries the third
+// geomap's preview field config. The removal step drops it, and the backend
+// must drop it too rather than merging the previous mapping back in.
+func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Dashboard, fixture string, wantIbmConfig bool) error {
 	expected := []struct {
 		row    int
 		widget int
@@ -127,6 +143,8 @@ func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Das
 		{row: 0, widget: 1, branch: "heatmap"},
 		{row: 1, widget: 0, branch: "geomap"},
 		{row: 1, widget: 1, branch: "geomap"},
+		{row: 1, widget: 2, branch: "geomap"},
+		{row: 1, widget: 3, branch: "geomap"},
 	}
 
 	sections := dashboard.Layout.Sections
@@ -163,28 +181,42 @@ func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Das
 	// rather than spot-checking a couple, so an extra arm appearing through a
 	// converter or backend change cannot slip past the exactly-one contract
 	// this test is what makes the coverage manifest claim.
-	first := rows[1].GetWidgets()[0].Definition.Dynamic.Visualization.Geomap
-	if first == nil {
-		return fmt.Errorf("dashboard fixture %q (dashboard %q): the first geomap was not stored", fixture, dashboard.GetId())
+	geomaps := make([]*dashboardservice.Geomap, 0, 4)
+	for index, ordinal := range []string{"first", "second", "third", "fourth"} {
+		geomap := rows[1].GetWidgets()[index].Definition.Dynamic.Visualization.Geomap
+		if geomap == nil {
+			return fmt.Errorf("dashboard fixture %q (dashboard %q): the %s geomap was not stored", fixture, dashboard.GetId(), ordinal)
+		}
+		geomaps = append(geomaps, geomap)
 	}
-	second := rows[1].GetWidgets()[1].Definition.Dynamic.Visualization.Geomap
-	if second == nil {
-		return fmt.Errorf("dashboard fixture %q (dashboard %q): the second geomap was not stored", fixture, dashboard.GetId())
-	}
+	first, second, third, fourth := geomaps[0], geomaps[1], geomaps[2], geomaps[3]
 
-	for _, want := range []struct {
+	type geomapArmAssertion struct {
 		widget string
 		union  string
 		arm    string
 		arms   map[string]bool
-	}{
+	}
+	arms := []geomapArmAssertion{
 		{"first", "aggregation", "count", geomapAggregationArms(first.Aggregation)},
 		{"first", "config", "coordinateConfig", geomapConfigArms(first.Config)},
 		{"first", "color", "size", geomapColorArms(first.Color)},
 		{"second", "aggregation", "sum", geomapAggregationArms(second.Aggregation)},
 		{"second", "config", "awsRegionConfig", geomapConfigArms(second.Config)},
 		{"second", "color", "colorRange", geomapColorArms(second.Color)},
-	} {
+		{"third", "aggregation", "count", geomapAggregationArms(third.Aggregation)},
+		{"fourth", "aggregation", "count", geomapAggregationArms(fourth.Aggregation)},
+		{"fourth", "config", "allRegionConfig", geomapConfigArms(fourth.Config)},
+	}
+	switch {
+	case wantIbmConfig:
+		arms = append(arms, geomapArmAssertion{"third", "config", "ibmRegionConfig", geomapConfigArms(third.Config)})
+	case third.Config != nil:
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the third geomap kept a config after it was removed, stored %v",
+			fixture, dashboard.GetId(), geomapConfigArms(third.Config))
+	}
+
+	for _, want := range arms {
 		if err := dashboardOpenAPIAssertExactlyOneArm(want.widget, want.union, want.arm, want.arms, dashboard.GetId(), fixture); err != nil {
 			return err
 		}
@@ -245,6 +277,18 @@ func TestAccCoralogixResourceDashboardDynamicSpatialRejectsInvalidUnions(t *test
             }
           }
         }`,
+		// The pair the API itself rejects with a raw proto oneof error, so the
+		// plan has to refuse it before the request is ever sent.
+		"two preview field config arms": `geomap = {
+          config = {
+            ibm_region_config = {
+              region_field = { keypath = ["ibm_region"], scope = "user_data" }
+            }
+            all_region_config = {
+              region_field = { keypath = ["cloud_region"], scope = "user_data" }
+            }
+          }
+        }`,
 		"two colour arms": `geomap = {
           color = {
             size        = "blue"
@@ -288,13 +332,21 @@ func testAccCoralogixResourceDashboardDynamicSpatialVisualizationConfig(name, vi
 `, name, visualization)
 }
 
-func testAccCoralogixResourceDashboardDynamicSpatialConfig(name, title string, setOptionalEnums bool) string {
-	thresholdType, scaleType := "", ""
-	if setOptionalEnums {
+// setRemovableOptionals also drives the preview field config, so the step that
+// drops the optional enums drops an entire union block too.
+func testAccCoralogixResourceDashboardDynamicSpatialConfig(name, title string, setRemovableOptionals bool) string {
+	thresholdType, scaleType, ibmConfig := "", "", ""
+	if setRemovableOptionals {
 		thresholdType = `
                     threshold_type = "absolute"`
 		scaleType = `
                     scale_type = "linear"`
+		ibmConfig = `
+                    config = {
+                      ibm_region_config = {
+                        region_field = { keypath = ["ibm_region"], scope = "user_data" }
+                      }
+                    }`
 	}
 
 	return fmt.Sprintf(`resource "coralogix_dashboard" "test" {
@@ -410,13 +462,44 @@ func testAccCoralogixResourceDashboardDynamicSpatialConfig(name, title string, s
                 }
               }}
             },
+            {
+              # The two preview arms of the field-config union. This one drops
+              # its config in the removal step, so the lifecycle also proves
+              # that removing the block clears the mapping on the backend
+              # rather than keeping the previous one.
+              title = "geomap ibm region"
+              definition = { dynamic = {
+                query_definitions = [{ name = "rows", query = { logs = { lucene_query = "*" } } }]
+                visualization = {
+                  geomap = {
+                    aggregation = { count = true }%[5]s
+                  }
+                }
+              }}
+            },
+            {
+              title = "geomap all region"
+              definition = { dynamic = {
+                query_definitions = [{ name = "rows", query = { logs = { lucene_query = "*" } } }]
+                visualization = {
+                  geomap = {
+                    aggregation = { count = true }
+                    config = {
+                      all_region_config = {
+                        region_field = { keypath = ["cloud_region"], scope = "user_data" }
+                      }
+                    }
+                  }
+                }
+              }}
+            },
           ]
         },
       ]
     }]
   }
 }
-`, name, title, thresholdType, scaleType)
+`, name, title, thresholdType, scaleType, ibmConfig)
 }
 
 // The arms of each geomap union, keyed by their wire names, so the assertion
@@ -441,6 +524,8 @@ func geomapConfigArms(config *dashboardservice.GeomapFieldConfig) map[string]boo
 	return map[string]bool{
 		"coordinateConfig": config.CoordinateConfig != nil,
 		"awsRegionConfig":  config.AwsRegionConfig != nil,
+		"ibmRegionConfig":  config.IbmRegionConfig != nil,
+		"allRegionConfig":  config.AllRegionConfig != nil,
 	}
 }
 

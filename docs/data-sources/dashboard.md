@@ -2168,8 +2168,27 @@ Read-Only:
 
 Read-Only:
 
+- `all_region_config` (Attributes) Takes the geographic information from a field holding region values of any supported cloud provider. This is a preview alternative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config))
 - `aws_region_config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config))
 - `coordinate_config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config))
+- `ibm_region_config` (Attributes) Takes the geographic information from a field holding IBM Cloud region values. This is a preview alternative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.all_region_config`
+
+Read-Only:
+
+- `region_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config--region_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config--region_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.all_region_config.region_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.aws_region_config`
@@ -2207,6 +2226,23 @@ Read-Only:
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--longitude_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.coordinate_config.longitude_field`
+
+Read-Only:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.ibm_region_config`
+
+Read-Only:
+
+- `region_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config--region_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config--region_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.ibm_region_config.region_field`
 
 Read-Only:
 

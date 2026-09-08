@@ -1297,6 +1297,14 @@ resource "coralogix_dashboard" "widgets" {
                       decimal_precision = 1
                       aggregation       = { count = true }
                       color             = { size = "blue" }
+                      # `coordinate_config` reads latitude and longitude
+                      # fields. The alternatives instead read a single field
+                      # holding region names: `aws_region_config`, or the
+                      # preview `ibm_region_config` and `all_region_config`,
+                      # for example
+                      #   all_region_config = {
+                      #     region_field = { keypath = ["cloud_region"], scope = "user_data" }
+                      #   }
                       config = {
                         coordinate_config = {
                           latitude_field  = { keypath = ["latitude"], scope = "user_data" }
@@ -3703,8 +3711,27 @@ Optional:
 
 Optional:
 
+- `all_region_config` (Attributes) Takes the geographic information from a field holding region values of any supported cloud provider. This is a preview alternative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config))
 - `aws_region_config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config))
 - `coordinate_config` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config))
+- `ibm_region_config` (Attributes) Takes the geographic information from a field holding IBM Cloud region values. This is a preview alternative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.all_region_config`
+
+Optional:
+
+- `region_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config--region_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--all_region_config--region_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.all_region_config.region_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--aws_region_config"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.aws_region_config`
@@ -3742,6 +3769,23 @@ Required:
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--coordinate_config--longitude_field"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.coordinate_config.longitude_field`
+
+Required:
+
+- `keypath` (List of String) Ordered path segments. Single element for literal-dot identifiers (`["log.level"]`); multiple elements for nested paths (`["meta","responseTime"]`).
+- `scope` (String) Where the field lives. Disambiguates fields with the same name across scopes (e.g. `timestamp` in metadata vs user data).
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.ibm_region_config`
+
+Optional:
+
+- `region_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config--region_field))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--dynamic--visualization--geomap--config--ibm_region_config--region_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.dynamic.visualization.geomap.config.ibm_region_config.region_field`
 
 Required:
 

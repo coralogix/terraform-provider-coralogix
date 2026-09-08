@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+- FEAT: Add the preview `ibm_region_config` and `all_region_config` alternatives to the dynamic `geomap` widget's `config`, alongside the existing `coordinate_config` and `aws_region_config`.
+
 #### resource/coralogix_action
 - DEPRECATE: Warn that `is_hidden` is a per-user UI preference, not a property of the action, and will be removed in a future version.
 - FIX: Nil pointer dereference when a network failure interrupts a read or an update. A DNS failure, dial timeout, or connection refused leaves the HTTP response nil, which the not-found check dereferenced; the provider now reports the transport error as a diagnostic and keeps the resource in state instead of crashing.

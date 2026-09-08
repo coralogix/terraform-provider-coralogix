@@ -426,8 +426,8 @@ func dashboardOpenAPIOneOfCoverageManifest() map[string]dashboardOneOfModelCover
 			Branches: map[string]dashboardOneOfBranchCoverage{
 				"coordinateConfig": covered(geomap+".config.coordinate_config", dashboardOpenAPIDynamicGeoHeatTestName),
 				"awsRegionConfig":  covered(geomap+".config.aws_region_config", dashboardOpenAPIDynamicGeoHeatTestName),
-				"ibmRegionConfig":  gap(geomap + ".config.ibm_region_config"),
-				"allRegionConfig":  gap(geomap + ".config.all_region_config"),
+				"ibmRegionConfig":  covered(geomap+".config.ibm_region_config", dashboardOpenAPIDynamicGeoHeatTestName),
+				"allRegionConfig":  covered(geomap+".config.all_region_config", dashboardOpenAPIDynamicGeoHeatTestName),
 			},
 		},
 		"Heatmap": {

@@ -1282,6 +1282,14 @@ resource "coralogix_dashboard" "widgets" {
                       decimal_precision = 1
                       aggregation       = { count = true }
                       color             = { size = "blue" }
+                      # `coordinate_config` reads latitude and longitude
+                      # fields. The alternatives instead read a single field
+                      # holding region names: `aws_region_config`, or the
+                      # preview `ibm_region_config` and `all_region_config`,
+                      # for example
+                      #   all_region_config = {
+                      #     region_field = { keypath = ["cloud_region"], scope = "user_data" }
+                      #   }
                       config = {
                         coordinate_config = {
                           latitude_field  = { keypath = ["latitude"], scope = "user_data" }
