@@ -145,9 +145,9 @@ func (r *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	state, err := flattenCustomRole(result.Role, plan)
-	if err != nil {
-		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after creation", err.Error())
+	state, diags := flattenCustomRole(result.Role, plan, permissionsFromPlan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -187,9 +187,9 @@ func (r *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		}
 		return
 	}
-	state, err = flattenCustomRole(result.Role, state)
-	if err != nil {
-		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after read", err.Error())
+	state, diags = flattenCustomRole(result.Role, state, permissionsFromAPI)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -243,9 +243,9 @@ func (r *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	state, err := flattenCustomRole(result.Role, plan)
-	if err != nil {
-		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after update", err.Error())
+	state, diags := flattenCustomRole(result.Role, plan, permissionsFromPlan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -301,52 +301,71 @@ func extractCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) 
 	}, nil
 }
 
-func flattenCustomRole(customRole *roless.CustomRole, plan *RolesModel) (*RolesModel, error) {
-	permissionsFromPlan := utils.TypeStringSetToStringSlice(context.Background(), plan.Permissions)
-	permissionsFromAPI := customRole.Permissions
-	// permissions are required, so if plan.Permissions is null, it must mean that we're importing
-	isImport := plan.Permissions.IsNull()
+// permissionsOrigin selects which permission set flattenCustomRole writes to state.
+type permissionsOrigin int
 
-	if isImport {
-		// Just take what the API gives us and return, because we're importing
-		apiPermsSet, diags := types.SetValueFrom(context.Background(), types.StringType, customRole.Permissions)
-		if diags.HasError() {
-			return nil, fmt.Errorf("failed to convert API permissions to set")
-		}
+const (
+	// permissionsFromPlan keeps the planned set, which the apply path must preserve.
+	permissionsFromPlan permissionsOrigin = iota
+	// permissionsFromAPI writes what the backend reports so out-of-band edits
+	// show up as drift on the next plan. Used by Read and import.
+	permissionsFromAPI
+)
 
-		return &RolesModel{
-			ID:          utils.Int64ToStringValue(customRole.RoleId),
-			ParentRole:  types.StringPointerValue(customRole.ParentRoleName),
-			Permissions: apiPermsSet,
-			Description: types.StringPointerValue(customRole.Description),
-			Name:        types.StringPointerValue(customRole.Name),
-		}, nil
-	}
-	if len(permissionsFromAPI) != len(permissionsFromPlan) {
-		return nil, fmt.Errorf("the number of permissions specified in the plan (%d) does not match the number of permissions returned from the Coralogix API (%d).", len(permissionsFromPlan), len(permissionsFromAPI))
-	}
-	for _, perm := range permissionsFromPlan {
-		permissionWasReturnedFromAPI := false
-		for _, apiPerm := range permissionsFromAPI {
-			if strings.ToLower(perm) == strings.ToLower(apiPerm) {
-				permissionWasReturnedFromAPI = true
-				break
-			}
-		}
-		if !permissionWasReturnedFromAPI {
-			return nil, fmt.Errorf("permission %s was specified in the plan but was not returned from the Coralogix API.", perm)
-		}
-	}
+// flattenCustomRole maps an API role onto the Terraform model. tfModel is the
+// Terraform-side value being reconciled: the plan on Create/Update, the state on Read.
+func flattenCustomRole(customRole *roless.CustomRole, tfModel *RolesModel, origin permissionsOrigin) (*RolesModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
 
-	return &RolesModel{
-		ID:         utils.Int64ToStringValue(customRole.RoleId),
-		ParentRole: types.StringPointerValue(customRole.ParentRoleName),
-		// The reason we do this is that the API can return permissions with different casing than what was sent.
-		// In order to make sure that the output is correct, we perform the checks above.
-		Permissions: plan.Permissions,
+	model := &RolesModel{
+		ID:          utils.Int64ToStringValue(customRole.RoleId),
+		ParentRole:  types.StringPointerValue(customRole.ParentRoleName),
 		Description: types.StringPointerValue(customRole.Description),
 		Name:        types.StringPointerValue(customRole.Name),
-	}, nil
+		Permissions: tfModel.Permissions,
+	}
+
+	if origin == permissionsFromPlan {
+		// `permissions` is Required
+		if tfModel.Permissions.IsNull() {
+			diags.AddError("Invalid coralogix_custom_role plan", "permissions is required but was null in the plan")
+			return nil, diags
+		}
+		return model, diags
+	}
+
+	// Refresh: the backend is the source of truth. Keep the casing already in
+	// state wherever the two match case-insensitively, otherwise a casing-only
+	// echo looks like drift.
+	tfPermissions := utils.TypeStringSetToStringSlice(context.Background(), tfModel.Permissions)
+	permissions, setDiags := types.SetValueFrom(context.Background(), types.StringType, alignPermissionCasing(customRole.Permissions, tfPermissions))
+	diags.Append(setDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	model.Permissions = permissions
+
+	return model, diags
+}
+
+// alignPermissionCasing returns apiPermissions using the casing found in
+// reference wherever the two match case-insensitively. The API may echo a
+// permission with different casing than the configuration used.
+func alignPermissionCasing(apiPermissions, reference []string) []string {
+	byLower := make(map[string]string, len(reference))
+	for _, permission := range reference {
+		byLower[strings.ToLower(permission)] = permission
+	}
+
+	aligned := make([]string, 0, len(apiPermissions))
+	for _, apiPermission := range apiPermissions {
+		if cased, ok := byLower[strings.ToLower(apiPermission)]; ok {
+			aligned = append(aligned, cased)
+			continue
+		}
+		aligned = append(aligned, apiPermission)
+	}
+	return aligned
 }
 
 func extractUpdateCustomRoleRequest(ctx context.Context, model *RolesModel) (*roless.RoleManagementServiceUpdateRoleRequest, diag.Diagnostics) {

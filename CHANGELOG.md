@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_custom_role
+- FIX: Read no longer errors when the API returns a different set of permissions than the plan/state. Permissions are reconciled from the API response, so drift caused by UI edits or partial failures is surfaced in the plan and corrected on the next apply.
+
 #### resource/coralogix_api_key
 - FIX: Destroy converges when the backend answers `404 Not Found`.
 
