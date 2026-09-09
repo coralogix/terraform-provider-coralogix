@@ -81,7 +81,7 @@ func familyOrRemoteYAMLUnchanged(ctx context.Context, req planmodifier.StringReq
 
 func familyFieldsUnchanged(ctx context.Context, req planmodifier.StringRequest, familyPath path.Path) bool {
 	if !boolAttrEqual(ctx, req, familyPath.AtName("active")) ||
-		!stringAttrEqual(ctx, req, familyPath.AtName("collector_version")) ||
+		!stringAttrEqualOrUnknownPlan(ctx, req, familyPath.AtName("collector_version")) ||
 		!stringAttrEqual(ctx, req, familyPath.AtName("description")) ||
 		!mapAttrEqual(ctx, req, familyPath.AtName("metadata")) {
 		return false
@@ -124,6 +124,23 @@ func stringAttrEqual(ctx context.Context, req planmodifier.StringRequest, attrPa
 	var planVal, stateVal types.String
 	if diags := req.Plan.GetAttribute(ctx, attrPath, &planVal); diags.HasError() {
 		return false
+	}
+	if diags := req.State.GetAttribute(ctx, attrPath, &stateVal); diags.HasError() {
+		return false
+	}
+	return planVal.Equal(stateVal)
+}
+
+// stringAttrEqualOrUnknownPlan treats an unknown plan value as unchanged. Nested
+// Optional+Computed attributes such as collector_version become unknown when
+// omitted, and the API keeps the prior value.
+func stringAttrEqualOrUnknownPlan(ctx context.Context, req planmodifier.StringRequest, attrPath path.Path) bool {
+	var planVal, stateVal types.String
+	if diags := req.Plan.GetAttribute(ctx, attrPath, &planVal); diags.HasError() {
+		return false
+	}
+	if planVal.IsUnknown() {
+		return true
 	}
 	if diags := req.State.GetAttribute(ctx, attrPath, &stateVal); diags.HasError() {
 		return false
@@ -183,8 +200,11 @@ func familyConfigUnchanged(plan, state *FleetConfigurationGroupFamilyModel) bool
 	}
 	if !plan.Active.Equal(state.Active) ||
 		!plan.Description.Equal(state.Description) ||
-		!plan.CollectorVersion.Equal(state.CollectorVersion) ||
 		!plan.Metadata.Equal(state.Metadata) {
+		return false
+	}
+	// Omitting collector_version plans unknown; the API keeps the prior value.
+	if !plan.CollectorVersion.IsUnknown() && !plan.CollectorVersion.Equal(state.CollectorVersion) {
 		return false
 	}
 	if len(plan.RemoteConfigurations) != len(state.RemoteConfigurations) {

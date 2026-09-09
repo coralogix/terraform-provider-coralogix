@@ -106,7 +106,7 @@ func (r *FleetConfigurationGroupResource) Configure(_ context.Context, req resou
 func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version:             0,
-		MarkdownDescription: "Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. **Note: This resource is in private preview (Beta).**",
+		MarkdownDescription: "Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy deactivates the latest family and then archives the group. **Note: This resource is in private preview (Beta).**",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -171,6 +171,9 @@ func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.S
 					"collector_version": schema.StringAttribute{
 						Optional: true,
 						Computed: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 						MarkdownDescription: "Collector semantic version this family targets, without a leading v prefix. " +
 							"The replace API keeps the existing value when this attribute is omitted, and empty string is not a valid clear representation, " +
 							"so removing it from configuration does not unset it remotely.",
@@ -221,9 +224,11 @@ func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.S
 									MarkdownDescription: "OpenTelemetry Collector configuration YAML. The supervisor-managed OpAMP extension must not be configured. Semantically equal YAML does not plan.",
 								},
 								"agent_selector": schema.MapAttribute{
-									Optional:            true,
-									ElementType:         types.StringType,
-									MarkdownDescription: "Flat agent attributes that match agents for this configuration.",
+									Optional:    true,
+									ElementType: types.StringType,
+									MarkdownDescription: "Flat agent attributes that match agents for this configuration. " +
+										"The API may copy family.collector_version onto service.version when that key is omitted; " +
+										"the resource drops that injected key unless configuration sets it. Data-source reads keep the remote map.",
 								},
 							},
 						},
@@ -345,6 +350,10 @@ func (r *FleetConfigurationGroupResource) Delete(ctx context.Context, req resour
 	}
 
 	id := state.ID.ValueString()
+	// Archive requires an inactive family. Deactivate first; if archive then
+	// fails, the group stays inactive in Coralogix and in Terraform state.
+	// Retrying destroy archives. A later apply still manages the group and
+	// will send active=true from the schema default.
 	if err := deactivateFamilyIfActive(ctx, r.client, state); err != nil {
 		resp.Diagnostics.AddError("Error archiving coralogix_fleet_configuration_group", err.Error())
 		return

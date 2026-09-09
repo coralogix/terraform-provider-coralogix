@@ -3,12 +3,12 @@
 page_title: "coralogix_fleet_configuration_group Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. Note: This resource is in private preview (Beta).
+  Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy deactivates the latest family and then archives the group. Note: This resource is in private preview (Beta).
 ---
 
 # coralogix_fleet_configuration_group (Resource)
 
-Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. **Note: This resource is in private preview (Beta).**
+Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy deactivates the latest family and then archives the group. **Note: This resource is in private preview (Beta).**
 
 ## Example Usage
 
@@ -107,7 +107,7 @@ Required:
 
 Optional:
 
-- `agent_selector` (Map of String) Flat agent attributes that match agents for this configuration.
+- `agent_selector` (Map of String) Flat agent attributes that match agents for this configuration. The API may copy family.collector_version onto service.version when that key is omitted; the resource drops that injected key unless configuration sets it. Data-source reads keep the remote map.
 
 Read-Only:
 

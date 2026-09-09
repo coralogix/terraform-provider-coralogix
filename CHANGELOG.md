@@ -1,14 +1,8 @@
 # Unreleased
 
 #### resource/coralogix_fleet_configuration_group
-- FEAT: Add private preview (Beta) `coralogix_fleet_configuration_group` resource and data source for Fleet Manager configuration groups. Destroy archives the group.
+- FEAT: Add private preview (Beta) `coralogix_fleet_configuration_group` resource and data source for Fleet Manager configuration groups. Destroy deactivates the latest family and then archives the group. Omitting `family.collector_version` keeps the existing remote value.
 - DOC: Example loads collector YAML from files and includes agent plus cluster-collector remotes.
-- DOC: Omitting `family.collector_version` on update keeps the existing remote value; the API has no clear representation.
-- CHORE: Call the Fleet Manager configuration-group API through the management SDK instead of a vendored OpenAPI client.
-- FIX: Omit an unchanged family from replace so group-only updates do not pin stale family IDs.
-- FIX: Keep remote `service.version` selectors on data-source reads and when they are not API-injected.
-- FIX: Detect remotely cleared descriptions instead of echoing prior nonempty state.
-- FIX: Leave remote IDs unknown when a family-level field changes, because replace mints new remote UUIDs.
 
 #### resource/coralogix_action
 - DEPRECATE: Warn that `is_hidden` is a per-user UI preference, not a property of the action, and will be removed in a future version.

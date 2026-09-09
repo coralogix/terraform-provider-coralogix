@@ -53,6 +53,11 @@ func TestAccCoralogixResourceFleetConfigurationGroup(t *testing.T) {
 				ExpectNonEmptyPlan: false,
 			},
 			{
+				Config:             testAccCoralogixResourceFleetConfigurationGroupOmitCollectorVersion(name, fleetAccRawConfigInlineList),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
 				ResourceName:            fleetConfigurationGroupResourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
@@ -154,6 +159,29 @@ func testAccCoralogixResourceFleetConfigurationGroup(name, rawConfiguration stri
   family = {
     active            = true
     collector_version = "0.114.0"
+    remote_configuration = [
+      {
+        name              = "default"
+        raw_configuration = %q
+        agent_selector = {
+          "cx.agent.type" = "agent"
+        }
+      }
+    ]
+  }
+}
+`, name, rawConfiguration)
+}
+
+func testAccCoralogixResourceFleetConfigurationGroupOmitCollectorVersion(name, rawConfiguration string) string {
+	return fmt.Sprintf(`resource "coralogix_fleet_configuration_group" "test" {
+  name           = %q
+  description    = "Acceptance test configuration group"
+  tags           = ["tf-acc"]
+  priority_order = 10
+
+  family = {
+    active = true
     remote_configuration = [
       {
         name              = "default"
