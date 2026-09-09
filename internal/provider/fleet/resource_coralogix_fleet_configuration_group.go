@@ -106,7 +106,7 @@ func (r *FleetConfigurationGroupResource) Configure(_ context.Context, req resou
 func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version:             0,
-		MarkdownDescription: "Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. **Note: This resource is in Beta stage.**",
+		MarkdownDescription: "Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. **Note: This resource is in private preview (Beta).**",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

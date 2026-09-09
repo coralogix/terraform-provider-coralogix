@@ -3,12 +3,12 @@
 page_title: "coralogix_fleet_configuration_group Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. Note: This resource is in Beta stage.
+  Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. Note: This resource is in private preview (Beta).
 ---
 
 # coralogix_fleet_configuration_group (Resource)
 
-Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. **Note: This resource is in Beta stage.**
+Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. **Note: This resource is in private preview (Beta).**
 
 ## Example Usage
 
@@ -42,25 +42,17 @@ resource "coralogix_fleet_configuration_group" "example" {
     }
     remote_configuration = [
       {
-        name              = "default"
-        raw_configuration = <<-EOT
-          receivers:
-            otlp:
-              protocols:
-                grpc: {}
-          processors:
-            batch: {}
-          exporters:
-            nop: {}
-          service:
-            pipelines:
-              traces:
-                receivers: [otlp]
-                processors: [batch]
-                exporters: [nop]
-        EOT
+        name              = "otel-agent"
+        raw_configuration = file("./otel-agent.yaml")
         agent_selector = {
           "cx.agent.type" = "agent"
+        }
+      },
+      {
+        name              = "otel-cluster-collector"
+        raw_configuration = file("./otel-cluster-collector.yaml")
+        agent_selector = {
+          "cx.agent.type" = "cluster-collector"
         }
       }
     ]

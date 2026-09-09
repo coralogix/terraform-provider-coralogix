@@ -16,10 +16,31 @@ package fleet
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"gopkg.in/yaml.v3"
 )
+
+func TestExampleCollectorYAMLFilesParse(t *testing.T) {
+	exampleDir := filepath.Join("..", "..", "..", "examples", "resources", "coralogix_fleet_configuration_group")
+	for _, name := range []string{"otel-agent.yaml", "otel-cluster-collector.yaml"} {
+		path := filepath.Join(exampleDir, name)
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read %s: %v", path, err)
+		}
+		var doc any
+		if err := yaml.Unmarshal(raw, &doc); err != nil {
+			t.Fatalf("parse %s: %v", path, err)
+		}
+		if doc == nil {
+			t.Fatalf("%s decoded to nil", path)
+		}
+	}
+}
 
 func TestYAMLStringsEqualTreatsInlineAndMultilineListsAsTheSame(t *testing.T) {
 	inline := "receivers: [otlp]\n"

@@ -28,24 +28,16 @@ resource "coralogix_fleet_configuration_group" "example" {
     remote_configuration = [
       {
         name              = "otel-agent"
-        raw_configuration = <<-EOT
-          receivers:
-            otlp:
-              protocols:
-                grpc: {}
-          processors:
-            batch: {}
-          exporters:
-            nop: {}
-          service:
-            pipelines:
-              traces:
-                receivers: [otlp]
-                processors: [batch]
-                exporters: [nop]
-        EOT
+        raw_configuration = file("./otel-agent.yaml")
         agent_selector = {
           "cx.agent.type" = "agent"
+        }
+      },
+      {
+        name              = "otel-cluster-collector"
+        raw_configuration = file("./otel-cluster-collector.yaml")
+        agent_selector = {
+          "cx.agent.type" = "cluster-collector"
         }
       }
     ]

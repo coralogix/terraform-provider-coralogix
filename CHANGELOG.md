@@ -1,7 +1,8 @@
 # Unreleased
 
 #### resource/coralogix_fleet_configuration_group
-- FEAT: Add Beta `coralogix_fleet_configuration_group` resource and data source for Fleet Manager configuration groups. Destroy archives the group. **Note: This resource is in Beta stage.**
+- FEAT: Add private preview (Beta) `coralogix_fleet_configuration_group` resource and data source for Fleet Manager configuration groups. Destroy archives the group.
+- DOC: Example loads collector YAML from files and includes agent plus cluster-collector remotes.
 - DOC: Omitting `family.collector_version` on update keeps the existing remote value; the API has no clear representation.
 - CHORE: Call the Fleet Manager configuration-group API through the management SDK instead of a vendored OpenAPI client.
 - FIX: Omit an unchanged family from replace so group-only updates do not pin stale family IDs.

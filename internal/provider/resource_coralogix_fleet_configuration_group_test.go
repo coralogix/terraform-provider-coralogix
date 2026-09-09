@@ -16,6 +16,8 @@ package provider
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -95,6 +97,53 @@ service:
         - nop
 `
 
+func TestAccCoralogixResourceFleetConfigurationGroupFromFile(t *testing.T) {
+	name := acctest.RandomWithPrefix("tf-acc-fleet-cg-file")
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	exampleDir := filepath.Join(filepath.Dir(filepath.Dir(wd)), "examples", "resources", "coralogix_fleet_configuration_group")
+	agentYAML := filepath.Join(exampleDir, "otel-agent.yaml")
+	clusterYAML := filepath.Join(exampleDir, "otel-cluster-collector.yaml")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceFleetConfigurationGroupFromFile(name, agentYAML, clusterYAML),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "id"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "name", name),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.remote_configuration.#", "2"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.remote_configuration.0.name", "otel-agent"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.remote_configuration.0.agent_selector.cx.agent.type", "agent"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.remote_configuration.1.name", "otel-cluster-collector"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.remote_configuration.1.agent_selector.cx.agent.type", "cluster-collector"),
+					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.id"),
+					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.remote_configuration.0.hash"),
+					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.remote_configuration.1.hash"),
+				),
+			},
+			{
+				Config:             testAccCoralogixResourceFleetConfigurationGroupFromFile(name, agentYAML, clusterYAML),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				ResourceName:      fleetConfigurationGroupResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"family.remote_configuration.0.raw_configuration",
+					"family.remote_configuration.1.raw_configuration",
+				},
+			},
+		},
+	})
+}
+
 func testAccCoralogixResourceFleetConfigurationGroup(name, rawConfiguration string) string {
 	return fmt.Sprintf(`resource "coralogix_fleet_configuration_group" "test" {
   name           = %q
@@ -117,4 +166,35 @@ func testAccCoralogixResourceFleetConfigurationGroup(name, rawConfiguration stri
   }
 }
 `, name, rawConfiguration)
+}
+
+func testAccCoralogixResourceFleetConfigurationGroupFromFile(name, agentYAML, clusterYAML string) string {
+	return fmt.Sprintf(`resource "coralogix_fleet_configuration_group" "test" {
+  name           = %q
+  description    = "Acceptance test configuration group from file"
+  tags           = ["tf-acc"]
+  priority_order = 10
+
+  family = {
+    active            = true
+    collector_version = "0.114.0"
+    remote_configuration = [
+      {
+        name              = "otel-agent"
+        raw_configuration = file(%q)
+        agent_selector = {
+          "cx.agent.type" = "agent"
+        }
+      },
+      {
+        name              = "otel-cluster-collector"
+        raw_configuration = file(%q)
+        agent_selector = {
+          "cx.agent.type" = "cluster-collector"
+        }
+      }
+    ]
+  }
+}
+`, name, agentYAML, clusterYAML)
 }

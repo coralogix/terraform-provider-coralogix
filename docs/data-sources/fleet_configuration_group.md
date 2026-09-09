@@ -3,12 +3,12 @@
 page_title: "coralogix_fleet_configuration_group Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. Note: This resource is in Beta stage.
+  Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. Note: This resource is in private preview (Beta).
 ---
 
 # coralogix_fleet_configuration_group (Data Source)
 
-Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. **Note: This resource is in Beta stage.**
+Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy archives the group. **Note: This resource is in private preview (Beta).**
 
 ## Example Usage
 
