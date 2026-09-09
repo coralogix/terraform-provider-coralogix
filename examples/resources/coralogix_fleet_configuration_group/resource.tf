@@ -27,7 +27,7 @@ resource "coralogix_fleet_configuration_group" "example" {
     }
     remote_configuration = [
       {
-        name              = "default"
+        name              = "otel-agent"
         raw_configuration = <<-EOT
           receivers:
             otlp:
