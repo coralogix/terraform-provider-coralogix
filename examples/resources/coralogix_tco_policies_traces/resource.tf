@@ -88,6 +88,15 @@ resource "coralogix_tco_policies_traces" "tco_policies" {
           names     = ["GET", "POST"]
         }
       }
+    },
+    # DPXL-expression-based matcher. Mutually exclusive with the structured span
+    # matchers (`services`, `actions`, `tags`) — set either this or those. The
+    # expression must include a version prefix, e.g. `<v1>`.
+    {
+      name            = "Example tco_policy with DPXL expression"
+      description     = "Match spans via DataPrime expression instead of the structured matchers"
+      priority        = "high"
+      dpxl_expression = "<v1> $d.status == 'ERROR'"
     }
   ]
 }
