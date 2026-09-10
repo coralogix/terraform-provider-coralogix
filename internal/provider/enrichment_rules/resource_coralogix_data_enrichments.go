@@ -598,9 +598,11 @@ func (r *DataEnrichmentsResource) Delete(ctx context.Context, req resource.Delet
 
 	_, httpResponse, err := r.client.EnrichmentServiceRemoveEnrichments(ctx).EnrichmentIds(ids).Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting coralogix_data_enrichments",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-		)
+		if httpResponse == nil || httpResponse.StatusCode != http.StatusNotFound {
+			resp.Diagnostics.AddError("Error deleting coralogix_data_enrichments",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
+			)
+		}
 	}
 
 	customEnrichmentId := getCustomEnrichmentId(state)
@@ -609,9 +611,11 @@ func (r *DataEnrichmentsResource) Delete(ctx context.Context, req resource.Delet
 			CustomEnrichmentServiceDeleteCustomEnrichment(ctx, *customEnrichmentId).
 			Execute()
 		if err != nil {
-
-			resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+			if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+				return
+			}
+			resp.Diagnostics.AddError("Error deleting coralogix_data_enrichments",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 			)
 			return
 		}

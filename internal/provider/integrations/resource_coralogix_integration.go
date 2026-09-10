@@ -504,6 +504,9 @@ func (r *IntegrationResource) Delete(ctx context.Context, req resource.DeleteReq
 		Execute()
 
 	if err != nil {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting coralogix_integration",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)

@@ -218,6 +218,9 @@ func (r *IpAccessResource) Delete(ctx context.Context, req resource.DeleteReques
 		Execute()
 
 	if err != nil {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting coralogix_ip_access",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)

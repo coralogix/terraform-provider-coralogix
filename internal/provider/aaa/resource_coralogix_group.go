@@ -375,6 +375,9 @@ func (r *GroupResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Group %s", id)
 	if err := r.client.DeleteGroup(ctx, id); err != nil {
+		if status.Code(err) == codes.NotFound {
+			return
+		}
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Group %s", id),
 			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),

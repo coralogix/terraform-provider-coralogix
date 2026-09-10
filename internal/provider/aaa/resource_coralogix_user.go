@@ -398,6 +398,9 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting User %s", id)
 	if err := r.client.Delete(ctx, id); err != nil {
+		if status.Code(err) == codes.NotFound {
+			return
+		}
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting User %s", id),
 			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), ""),
