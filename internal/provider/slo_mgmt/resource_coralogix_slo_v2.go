@@ -405,6 +405,9 @@ func (r *SLOV2Resource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		Execute()
 
 	if err != nil {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting coralogix_slo_v2",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)

@@ -284,6 +284,9 @@ func (r GlobalRouterResource) Delete(ctx context.Context, req resource.DeleteReq
 	id := state.ID.ValueString()
 
 	if _, httpResponse, err := r.client.GlobalRoutersServiceDeleteGlobalRouter(ctx, id).Execute(); err != nil {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting coralogix_global_router",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", id),
 		)

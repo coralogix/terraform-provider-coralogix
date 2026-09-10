@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"net/http"
 	"strconv"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -315,6 +316,9 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	log.Printf("[INFO] Deleting Team: %d", teamId)
 	_, httpResponse, err := r.client.TeamServiceDeleteTeam(ctx, teamId).Execute()
 	if err != nil {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return
+		}
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error deleting Team",

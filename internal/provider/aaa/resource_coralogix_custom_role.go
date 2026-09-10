@@ -277,6 +277,9 @@ func (r *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 		Execute()
 
 	if err != nil {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting coralogix_custom_role",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)

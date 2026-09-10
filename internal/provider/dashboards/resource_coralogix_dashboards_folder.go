@@ -234,6 +234,9 @@ func (r *DashboardsFolderResource) Delete(ctx context.Context, req resource.Dele
 	id := state.ID.ValueString()
 
 	if _, httpResponse, err := r.client.DashboardFoldersServiceDeleteDashboardFolder(ctx, id).Execute(); err != nil {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting coralogix_dashboard_folder",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil))
 		return

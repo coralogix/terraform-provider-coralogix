@@ -535,6 +535,9 @@ func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource
 	rq := r.client.RuleGroupSetsDelete(ctx, id)
 	_, httpResponse, err := rq.Execute()
 	if err != nil {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting coralogix_recording_rule_groups", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", rq))
 		return
 	}

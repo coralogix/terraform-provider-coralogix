@@ -1,5 +1,47 @@
 # Unreleased
 
+#### resource/coralogix_api_key
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_custom_role
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_scope
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_team
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_ip_access
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_dashboards_folder
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_slo_v2
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_integration
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_preset
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_global_router
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_recording_rules_groups_set
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_data_enrichments
+- FIX: Destroy converges when the backend answers `404 Not Found`. The delete error message also correctly reads "Error deleting" instead of "Error reading".
+
+#### resource/coralogix_user
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
+#### resource/coralogix_group
+- FIX: Destroy converges when the backend answers `404 Not Found`.
+
 # Release 3.15.0
 
 #### resource/coralogix_alert
