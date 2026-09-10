@@ -204,6 +204,33 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 			updateConfig:   `    sql_hallucination = {}`,
 		},
 		{
+			name:           "sql_load",
+			evaluationType: aievaluations.EVALUATIONTYPE_SQL_LOAD,
+			createConfig: `    sql_load = {
+      join_limit          = 5
+      cte_limit           = 3
+      allow_recursive_cte = true
+    }`,
+			// The update changes join_limit and flips allow_recursive_cte while leaving cte_limit at 3.
+			// The backend replaces the whole sqlLoad object, so a sparse request would reset cte_limit
+			// to 0 and fail the updateChecks below.
+			updateConfig: `    sql_load = {
+      join_limit          = 9
+      cte_limit           = 3
+      allow_recursive_cte = false
+    }`,
+			createChecks: []resource.TestCheckFunc{
+				resource.TestCheckResourceAttr(aiEvaluationResourceName, "config.sql_load.join_limit", "5"),
+				resource.TestCheckResourceAttr(aiEvaluationResourceName, "config.sql_load.cte_limit", "3"),
+				resource.TestCheckResourceAttr(aiEvaluationResourceName, "config.sql_load.allow_recursive_cte", "true"),
+			},
+			updateChecks: []resource.TestCheckFunc{
+				resource.TestCheckResourceAttr(aiEvaluationResourceName, "config.sql_load.join_limit", "9"),
+				resource.TestCheckResourceAttr(aiEvaluationResourceName, "config.sql_load.cte_limit", "3"),
+				resource.TestCheckResourceAttr(aiEvaluationResourceName, "config.sql_load.allow_recursive_cte", "false"),
+			},
+		},
+		{
 			name:           "sql_read_only",
 			evaluationType: aievaluations.EVALUATIONTYPE_SQL_READ_ONLY,
 			createConfig:   `    sql_read_only = {}`,
