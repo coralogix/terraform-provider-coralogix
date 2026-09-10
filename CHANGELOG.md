@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.15.0
+
 #### resource/coralogix_alert
 - FIX: Destroying an alert that was already deleted outside Terraform failed the apply. A delete that the backend answers with `404 Not Found` now converges instead of raising a blocking diagnostic. The delete error message also correctly reads "Error deleting alert" instead of "Error reading alert".
 
