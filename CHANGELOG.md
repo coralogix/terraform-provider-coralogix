@@ -6,6 +6,15 @@
 #### resource/coralogix_alerts_scheduler
 - FIX: `description` is now Optional+Computed with a default of `""`, so omitting or removing it produces a zero-diff plan instead of perpetual drift.
 
+#### resource/coralogix_tco_policies_traces
+- FEAT: Add support for `policies[*].dpxl_expression`, a DataPrime matcher that is mutually exclusive with `services`, `actions`, `tags`, `applications` and `subsystems`.
+
+#### resource/coralogix_tco_policies_logs
+- FIX: `policies[*].dpxl_expression` now conflicts with `applications` and `subsystems` at plan time, matching the API which rejects the combination.
+
+#### resource/coralogix_tco_policies_rum
+- FIX: `policies[*].dpxl_expression` now conflicts with `applications` and `subsystems` at plan time, matching the API which rejects the combination.
+
 #### resource/coralogix_api_key
 - FIX: Destroy converges when the backend answers `404 Not Found`.
 

@@ -103,6 +103,15 @@ resource "coralogix_tco_policies_traces" "tco_policies" {
           names     = ["GET", "POST"]
         }
       }
+    },
+    # DPXL-expression-based matcher. Mutually exclusive with the structured span
+    # matchers (`services`, `actions`, `tags`) — set either this or those. The
+    # expression must include a version prefix, e.g. `<v1>`.
+    {
+      name            = "Example tco_policy with DPXL expression"
+      description     = "Match spans via DataPrime expression instead of the structured matchers"
+      priority        = "high"
+      dpxl_expression = "<v1> $d.status == 'ERROR'"
     }
   ]
 }
@@ -133,6 +142,7 @@ Optional:
 - `applications` (Attributes) The applications to apply the policy on. Applies the policy on all the applications by default. (see [below for nested schema](#nestedatt--policies--applications))
 - `archive_retention_id` (String) Allowing logs with a specific retention to be tagged.
 - `description` (String) The policy description
+- `dpxl_expression` (String) DataPrime expression to match spans for this policy. Mutually exclusive with the structured matchers (`services`, `actions`, `tags`, `applications`, `subsystems`) — set either this or those. Omit the attribute to clear it; an empty string is rejected by the API. The expression must include a version prefix, e.g. `<v1> $d.status == 'ERROR'`.
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
 - `services` (Attributes) The services to apply the policy on. Applies the policy on all the services by default. (see [below for nested schema](#nestedatt--policies--services))
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
