@@ -75,6 +75,7 @@ type TCOPolicyTracesModel struct {
 	Services           types.Object `tfsdk:"services"` //TCORuleModel
 	Actions            types.Object `tfsdk:"actions"`  //TCORuleModel
 	Tags               types.Map    `tfsdk:"tags"`     //string -> TCORuleModel
+	DpxlExpression     types.String `tfsdk:"dpxl_expression"`
 }
 
 func (r *TCOPoliciesTracesResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -194,6 +195,20 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 								},
 							},
 							MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
+						},
+						"dpxl_expression": schema.StringAttribute{
+							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("services"),
+									path.MatchRelative().AtParent().AtName("actions"),
+									path.MatchRelative().AtParent().AtName("tags"),
+									path.MatchRelative().AtParent().AtName("applications"),
+									path.MatchRelative().AtParent().AtName("subsystems"),
+								),
+							},
+							MarkdownDescription: "DataPrime expression to match spans for this policy. Mutually exclusive with the structured matchers (`services`, `actions`, `tags`, `applications`, `subsystems`) — set either this or those. Omit the attribute to clear it; an empty string is rejected by the API. The expression must include a version prefix, e.g. `<v1> $d.status == 'ERROR'`.",
 						},
 						"actions": schema.SingleNestedAttribute{
 							Optional: true,
@@ -481,6 +496,18 @@ func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*tc
 	}
 	enabled := !plan.Enabled.ValueBool()
 
+	// The API rejects a policy that carries both a DPXL expression and the structured span
+	// matchers, and expandTagsRules returns a non-nil empty slice for a null tags map, so the
+	// structured fields have to be left out explicitly rather than relying on omitempty.
+	spanRules := tcoPolicys.SpanRules{}
+	if !plan.DpxlExpression.IsNull() && !plan.DpxlExpression.IsUnknown() {
+		spanRules.DpxlExpression = plan.DpxlExpression.ValueStringPointer()
+	} else {
+		spanRules.ServiceRule = services
+		spanRules.ActionRule = actions
+		spanRules.TagRules = tagRules
+	}
+
 	return &tcoPolicys.CreateSpanPolicyRequest{
 		Policy: tcoPolicys.CreateGenericPolicyRequest{
 			Name:             plan.Name.ValueString(),
@@ -491,11 +518,7 @@ func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*tc
 			ArchiveRetention: archiveRetention,
 			Disabled:         &enabled,
 		},
-		SpanRules: tcoPolicys.SpanRules{
-			ServiceRule: services,
-			ActionRule:  actions,
-			TagRules:    tagRules,
-		},
+		SpanRules: spanRules,
 	}, nil
 }
 
@@ -536,6 +559,7 @@ func policiesTracesAttr() map[string]attr.Type {
 		"actions":              types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()},
 		"services":             types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()},
 		"tags":                 types.MapType{ElemType: types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()}},
+		"dpxl_expression":      types.StringType,
 	}
 }
 
@@ -598,6 +622,7 @@ func flattenTCOTracesPolicy(ctx context.Context, policy *tcoPolicys.Policy) (*TC
 		Services:           services,
 		Actions:            actions,
 		Tags:               flattenTCOPolicyTags(ctx, traceRules.TagRules),
+		DpxlExpression:     types.StringPointerValue(traceRules.DpxlExpression),
 	}, nil
 }
 

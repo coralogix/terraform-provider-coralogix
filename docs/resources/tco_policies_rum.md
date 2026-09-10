@@ -109,7 +109,7 @@ Optional:
 - `applications` (Attributes) The applications to apply the policy on. Applies the policy on all the applications by default. (see [below for nested schema](#nestedatt--policies--applications))
 - `archive_retention_id` (String) Allowing RUM events with a specific retention to be tagged.
 - `description` (String) The policy description
-- `dpxl_expression` (String) DataPrime expression to match RUM events for this policy. Mutually exclusive with `severities` — set exactly one. The expression must include a version prefix and reference the canonical `$d.*` schema (not `$d.cx_rum.*`), e.g. `<v1> $d.severity == 'Error'`.
+- `dpxl_expression` (String) DataPrime expression to match RUM events for this policy. Mutually exclusive with the structured matchers (`severities`, `applications`, `subsystems`) — set either this or those. The expression must include a version prefix and reference the canonical `$d.*` schema (not `$d.cx_rum.*`), e.g. `<v1> $d.severity == 'Error'`.
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
 - `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
 - `severities` (Set of String) The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"]. Mutually exclusive with `dpxl_expression` — set exactly one.
