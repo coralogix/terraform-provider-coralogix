@@ -193,6 +193,22 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "sql_load" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     sql_load = {
+#       join_limit          = 5
+#       cte_limit           = 3
+#       allow_recursive_cte = true
+#     }
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "sql_read_only" {
 #   application = "my-chatbot"
 #   subsystem   = "production"

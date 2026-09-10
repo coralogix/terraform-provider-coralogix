@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -26,6 +27,7 @@ import (
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	aievaluations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_evaluations_service"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -97,6 +99,7 @@ type AIEvaluationConfigModel struct {
 	Sexism                        *AIEvaluationSexismConfigModel                        `tfsdk:"sexism"`
 	SQLAllowedTables              *AIEvaluationSQLAllowedTablesConfigModel              `tfsdk:"sql_allowed_tables"`
 	SQLHallucination              *AIEvaluationSQLHallucinationConfigModel              `tfsdk:"sql_hallucination"`
+	SQLLoad                       *AIEvaluationSQLLoadConfigModel                       `tfsdk:"sql_load"`
 	SQLReadOnly                   *AIEvaluationSQLReadOnlyConfigModel                   `tfsdk:"sql_read_only"`
 	SQLRestrictedTables           *AIEvaluationSQLRestrictedTablesConfigModel           `tfsdk:"sql_restricted_tables"`
 	Toxicity                      *AIEvaluationToxicityConfigModel                      `tfsdk:"toxicity"`
@@ -141,6 +144,12 @@ type AIEvaluationSQLAllowedTablesConfigModel struct {
 }
 
 type AIEvaluationSQLHallucinationConfigModel struct{}
+
+type AIEvaluationSQLLoadConfigModel struct {
+	JoinLimit         types.Int64 `tfsdk:"join_limit"`
+	CteLimit          types.Int64 `tfsdk:"cte_limit"`
+	AllowRecursiveCte types.Bool  `tfsdk:"allow_recursive_cte"`
+}
 
 type AIEvaluationSQLReadOnlyConfigModel struct{}
 
@@ -242,6 +251,7 @@ func (r *AIEvaluationResource) Schema(_ context.Context, _ resource.SchemaReques
 					"sexism":                          aiEvaluationSexismConfigAttribute(),
 					"sql_allowed_tables":              aiEvaluationSQLAllowedTablesConfigAttribute(),
 					"sql_hallucination":               aiEvaluationSQLHallucinationConfigAttribute(),
+					"sql_load":                        aiEvaluationSQLLoadConfigAttribute(),
 					"sql_read_only":                   aiEvaluationSQLReadOnlyConfigAttribute(),
 					"sql_restricted_tables":           aiEvaluationSQLRestrictedTablesConfigAttribute(),
 					"toxicity":                        aiEvaluationToxicityConfigAttribute(),
@@ -270,6 +280,7 @@ func (r *AIEvaluationResource) ConfigValidators(_ context.Context) []resource.Co
 			path.MatchRoot("config").AtName("sexism"),
 			path.MatchRoot("config").AtName("sql_allowed_tables"),
 			path.MatchRoot("config").AtName("sql_hallucination"),
+			path.MatchRoot("config").AtName("sql_load"),
 			path.MatchRoot("config").AtName("sql_read_only"),
 			path.MatchRoot("config").AtName("sql_restricted_tables"),
 			path.MatchRoot("config").AtName("toxicity"),
@@ -540,6 +551,33 @@ func aiEvaluationSQLHallucinationConfigAttribute() schema.SingleNestedAttribute 
 	return aiEvaluationEmptyConfigAttribute("Configuration for SQL Hallucination evaluation. This evaluation type has no fields.")
 }
 
+func aiEvaluationSQLLoadConfigAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"join_limit": schema.Int64Attribute{
+				Required: true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(0),
+				},
+				MarkdownDescription: "Maximum JOINs allowed in a query. Required: the backend stores a concrete value and reads an omitted one back as `0`. The API schema documents at most four digits.",
+			},
+			"cte_limit": schema.Int64Attribute{
+				Required: true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(0),
+				},
+				MarkdownDescription: "Maximum CTEs allowed in a query. Required: the backend stores a concrete value and reads an omitted one back as `0`. The API schema documents at most four digits.",
+			},
+			"allow_recursive_cte": schema.BoolAttribute{
+				Required:            true,
+				MarkdownDescription: "Whether recursive CTEs are allowed. Required: the backend stores a concrete value and reads an omitted one back as `false`.",
+			},
+		},
+		MarkdownDescription: "Configuration for SQL Load evaluation, capping SQL query complexity.",
+	}
+}
+
 func aiEvaluationSQLReadOnlyConfigAttribute() schema.SingleNestedAttribute {
 	return aiEvaluationEmptyConfigAttribute("Configuration for SQL Read Only evaluation. This evaluation type has no fields.")
 }
@@ -633,6 +671,8 @@ func extractAIEvaluationValuedConfig(ctx context.Context, model *AIEvaluationCon
 	case model.SQLAllowedTables != nil:
 		config, diags := extractAIEvaluationSQLAllowedTablesConfig(ctx, *model.SQLAllowedTables)
 		return config, diags, true
+	case model.SQLLoad != nil:
+		return extractAIEvaluationSQLLoadConfig(*model.SQLLoad), nil, true
 	case model.SQLRestrictedTables != nil:
 		config, diags := extractAIEvaluationSQLRestrictedTablesConfig(ctx, *model.SQLRestrictedTables)
 		return config, diags, true
@@ -795,6 +835,19 @@ func extractAIEvaluationSQLHallucinationConfig() *aievaluations.EvaluationConfig
 	return &aievaluations.EvaluationConfig{SqlHallucination: map[string]interface{}{}}
 }
 
+func extractAIEvaluationSQLLoadConfig(model AIEvaluationSQLLoadConfigModel) *aievaluations.EvaluationConfig {
+	// All three sub-fields go out on every request, including updates: a request carrying `config`
+	// replaces the previous config wholesale, and these sub-fields have no field presence, so any
+	// one left out of the body is stored as its zero value instead of keeping its current value.
+	return &aievaluations.EvaluationConfig{
+		SqlLoad: &aievaluations.SqlLoadConfig{
+			JoinLimit:         aiEvaluationDigitsFromInt64(model.JoinLimit),
+			CteLimit:          aiEvaluationDigitsFromInt64(model.CteLimit),
+			AllowRecursiveCte: aievaluations.PtrBool(model.AllowRecursiveCte.ValueBool()),
+		},
+	}
+}
+
 func extractAIEvaluationSQLReadOnlyConfig() *aievaluations.EvaluationConfig {
 	return &aievaluations.EvaluationConfig{SqlReadOnly: map[string]interface{}{}}
 }
@@ -846,7 +899,7 @@ func flattenAIEvaluationConfig(ctx context.Context, config aievaluations.Evaluat
 	}
 
 	var diags diag.Diagnostics
-	diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, SQL Allowed Tables, SQL Hallucination, SQL Read Only, SQL Restricted Tables, and Toxicity AI evaluation configs are currently supported by this resource.")
+	diags.AddError("Unsupported AI evaluation config", "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, SQL Allowed Tables, SQL Hallucination, SQL Load, SQL Read Only, SQL Restricted Tables, and Toxicity AI evaluation configs are currently supported by this resource.")
 	return AIEvaluationConfigModel{}, diags
 }
 
@@ -876,6 +929,10 @@ func flattenAIEvaluationValuedConfig(ctx context.Context, config aievaluations.E
 		tables, tableDiags := flattenAIEvaluationSQLAllowedTables(ctx, *config.SqlAllowedTables)
 		diags.Append(tableDiags...)
 		return AIEvaluationConfigModel{SQLAllowedTables: &AIEvaluationSQLAllowedTablesConfigModel{Tables: tables}}, diags, true
+	case config.SqlLoad != nil:
+		sqlLoad, sqlLoadDiags := flattenAIEvaluationSQLLoad(*config.SqlLoad)
+		diags.Append(sqlLoadDiags...)
+		return AIEvaluationConfigModel{SQLLoad: sqlLoad}, diags, true
 	case config.SqlRestrictedTables != nil:
 		tables, tableDiags := flattenAIEvaluationSQLRestrictedTables(ctx, *config.SqlRestrictedTables)
 		diags.Append(tableDiags...)
@@ -960,6 +1017,24 @@ func flattenAIEvaluationSQLAllowedTables(ctx context.Context, sqlAllowedTables a
 	return tablesSet, diags
 }
 
+func flattenAIEvaluationSQLLoad(sqlLoad aievaluations.SqlLoadConfig) (*AIEvaluationSQLLoadConfigModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	joinLimit, joinLimitDiags := aiEvaluationInt64FromDigits("join_limit", sqlLoad.JoinLimit)
+	diags.Append(joinLimitDiags...)
+	cteLimit, cteLimitDiags := aiEvaluationInt64FromDigits("cte_limit", sqlLoad.CteLimit)
+	diags.Append(cteLimitDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &AIEvaluationSQLLoadConfigModel{
+		JoinLimit:         joinLimit,
+		CteLimit:          cteLimit,
+		AllowRecursiveCte: types.BoolValue(sqlLoad.GetAllowRecursiveCte()),
+	}, diags
+}
+
 func flattenAIEvaluationSQLRestrictedTables(ctx context.Context, sqlRestrictedTables aievaluations.SqlRestrictedTablesConfig) (types.Set, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
@@ -983,4 +1058,29 @@ func flattenAIEvaluationPIICategories(ctx context.Context, pii aievaluations.Pii
 	categorySet, setDiags := types.SetValueFrom(ctx, types.StringType, categories)
 	diags.Append(setDiags...)
 	return categorySet, diags
+}
+
+// aiEvaluationDigitsFromInt64 renders a uint64 field that the API carries as a decimal JSON string.
+func aiEvaluationDigitsFromInt64(value types.Int64) *string {
+	return aievaluations.PtrString(strconv.FormatInt(value.ValueInt64(), 10))
+}
+
+// aiEvaluationInt64FromDigits parses a uint64 field that the API carries as a decimal JSON string.
+// An absent or empty value is the proto3 zero value, not a parse failure.
+func aiEvaluationInt64FromDigits(attributeName string, value *string) (types.Int64, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if value == nil || *value == "" {
+		return types.Int64Value(0), diags
+	}
+
+	parsed, err := strconv.ParseInt(*value, 10, 64)
+	if err != nil {
+		diags.AddError(
+			fmt.Sprintf("Invalid AI evaluation %s", attributeName),
+			fmt.Sprintf("Could not parse %s value %q to int64: %s", attributeName, *value, err),
+		)
+		return types.Int64Null(), diags
+	}
+
+	return types.Int64Value(parsed), diags
 }

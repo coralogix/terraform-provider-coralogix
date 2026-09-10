@@ -208,6 +208,22 @@ resource "coralogix_ai_evaluation" "example" {
 #   }
 # }
 #
+# resource "coralogix_ai_evaluation" "sql_load" {
+#   application = "my-chatbot"
+#   subsystem   = "production"
+#   target      = "response"
+#   threshold   = 0.8
+#   is_enabled  = true
+#
+#   config = {
+#     sql_load = {
+#       join_limit          = 5
+#       cte_limit           = 3
+#       allow_recursive_cte = true
+#     }
+#   }
+# }
+#
 # resource "coralogix_ai_evaluation" "sql_read_only" {
 #   application = "my-chatbot"
 #   subsystem   = "production"
@@ -288,6 +304,7 @@ Optional:
 - `sexism` (Attributes) Configuration for Sexism evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sexism))
 - `sql_allowed_tables` (Attributes) Configuration for SQL Allowed Tables evaluation. (see [below for nested schema](#nestedatt--config--sql_allowed_tables))
 - `sql_hallucination` (Attributes) Configuration for SQL Hallucination evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sql_hallucination))
+- `sql_load` (Attributes) Configuration for SQL Load evaluation, capping SQL query complexity. (see [below for nested schema](#nestedatt--config--sql_load))
 - `sql_read_only` (Attributes) Configuration for SQL Read Only evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sql_read_only))
 - `sql_restricted_tables` (Attributes) Configuration for SQL Restricted Tables evaluation. (see [below for nested schema](#nestedatt--config--sql_restricted_tables))
 - `toxicity` (Attributes) Configuration for Toxicity evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--toxicity))
@@ -370,6 +387,16 @@ Required:
 
 <a id="nestedatt--config--sql_hallucination"></a>
 ### Nested Schema for `config.sql_hallucination`
+
+
+<a id="nestedatt--config--sql_load"></a>
+### Nested Schema for `config.sql_load`
+
+Required:
+
+- `allow_recursive_cte` (Boolean) Whether recursive CTEs are allowed. Required: the backend stores a concrete value and reads an omitted one back as `false`.
+- `cte_limit` (Number) Maximum CTEs allowed in a query. Required: the backend stores a concrete value and reads an omitted one back as `0`. The API schema documents at most four digits.
+- `join_limit` (Number) Maximum JOINs allowed in a query. Required: the backend stores a concrete value and reads an omitted one back as `0`. The API schema documents at most four digits.
 
 
 <a id="nestedatt--config--sql_read_only"></a>

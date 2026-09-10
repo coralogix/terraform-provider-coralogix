@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_ai_evaluation
+- FEAT: Add support for the `sql_load` evaluation type in `config`, capping SQL query complexity with `join_limit`, `cte_limit`, and `allow_recursive_cte`. All three are required because the API stores a concrete value for each and reads an omitted one back as zero. Reading or importing an existing SQL Load evaluation no longer fails with an unsupported-config error.
+
 #### resource/coralogix_api_key
 - FIX: Destroy converges when the backend answers `404 Not Found`.
 
