@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+- FEAT: Add preview `ibm_region_config` and `all_region_config` alternatives to the dynamic `geomap` widget's `config`, for mapping IBM Cloud and provider-agnostic cloud region fields. Both take a single optional `region_field` and remain mutually exclusive with `coordinate_config` and `aws_region_config`.
+
 #### resource/coralogix_alert
 - FIX: Destroying an alert that was already deleted outside Terraform failed the apply. A delete that the backend answers with `404 Not Found` now converges instead of raising a blocking diagnostic. The delete error message also correctly reads "Error deleting alert" instead of "Error reading alert".
 

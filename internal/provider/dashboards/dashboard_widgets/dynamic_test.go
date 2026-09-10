@@ -1022,6 +1022,23 @@ func TestDynamicWidgetSpatialFullFidelityRoundTrip(t *testing.T) {
 				},
 			},
 		}},
+		// The two preview arms of the same field-config union.
+		"geomap_ibm_region_config": {Geomap: &DynamicGeomapModel{
+			Aggregation: &DynamicGeomapAggregationModel{Count: types.BoolValue(true)},
+			Config: &DynamicGeomapFieldConfigModel{
+				IbmRegionConfig: &DynamicGeomapIbmRegionConfigModel{
+					RegionField: observationFieldObject("ibm_region", "user_data"),
+				},
+			},
+		}},
+		"geomap_all_region_config": {Geomap: &DynamicGeomapModel{
+			Aggregation: &DynamicGeomapAggregationModel{Count: types.BoolValue(true)},
+			Config: &DynamicGeomapFieldConfigModel{
+				AllRegionConfig: &DynamicGeomapAllRegionConfigModel{
+					RegionField: observationFieldObject("cloud_region", "user_data"),
+				},
+			},
+		}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			assertDynamicRoundTrip(ctx, t, &DynamicModel{
@@ -1142,6 +1159,30 @@ func TestExpandDynamicSpatialUnionsRejectUnresolvedShapes(t *testing.T) {
 		})
 		if !diags.HasError() {
 			t.Error("a field config with both arms must be refused")
+		}
+	})
+
+	// The union grew from two arms to four, so a pair that does not involve the
+	// original two must be refused as well - the API rejects any second arm with
+	// `oneof ... is already set`.
+	t.Run("field config with two region arms", func(t *testing.T) {
+		_, diags := expandDynamicGeomapFieldConfig(ctx, &DynamicGeomapFieldConfigModel{
+			IbmRegionConfig: &DynamicGeomapIbmRegionConfigModel{RegionField: field},
+			AllRegionConfig: &DynamicGeomapAllRegionConfigModel{RegionField: field},
+		})
+		if !diags.HasError() {
+			t.Error("a field config with both region arms must be refused")
+		}
+	})
+
+	t.Run("field config with a single region arm", func(t *testing.T) {
+		for name, m := range map[string]*DynamicGeomapFieldConfigModel{
+			"ibm": {IbmRegionConfig: &DynamicGeomapIbmRegionConfigModel{RegionField: field}},
+			"all": {AllRegionConfig: &DynamicGeomapAllRegionConfigModel{RegionField: field}},
+		} {
+			if got, diags := expandDynamicGeomapFieldConfig(ctx, m); diags.HasError() || got == nil {
+				t.Errorf("the %s region arm must convert, got %v %v", name, got, diags)
+			}
 		}
 	})
 
@@ -1360,6 +1401,31 @@ func TestFlattenDynamicNormalisesEmptyUnionWrappers(t *testing.T) {
 		got, diags := flattenDynamicGeomapFieldConfig(ctx, &dashboardservice.GeomapFieldConfig{})
 		if diags.HasError() || got != nil {
 			t.Errorf("an arm-less field config must read back as absent, got %v %v", got, diags)
+		}
+	})
+
+	// An arm whose only field was omitted is still a selected arm: the API
+	// stores `{"ibmRegionConfig":{}}` and returns it unchanged, so dropping it
+	// on read would lose the arm the user chose and diff forever.
+	t.Run("geomap field config with an arm but no field", func(t *testing.T) {
+		got, diags := flattenDynamicGeomapFieldConfig(ctx, &dashboardservice.GeomapFieldConfig{
+			IbmRegionConfig: &dashboardservice.GeomapIbmRegionConfig{},
+		})
+		if diags.HasError() || got == nil || got.IbmRegionConfig == nil {
+			t.Fatalf("a field-less IBM region arm must read back as present, got %v %v", got, diags)
+		}
+		if !got.IbmRegionConfig.RegionField.IsNull() {
+			t.Errorf("an omitted region field must stay null, got %v", got.IbmRegionConfig.RegionField)
+		}
+
+		got, diags = flattenDynamicGeomapFieldConfig(ctx, &dashboardservice.GeomapFieldConfig{
+			AllRegionConfig: &dashboardservice.GeomapAllRegionConfig{},
+		})
+		if diags.HasError() || got == nil || got.AllRegionConfig == nil {
+			t.Fatalf("a field-less all-region arm must read back as present, got %v %v", got, diags)
+		}
+		if !got.AllRegionConfig.RegionField.IsNull() {
+			t.Errorf("an omitted region field must stay null, got %v", got.AllRegionConfig.RegionField)
 		}
 	})
 

@@ -39,13 +39,17 @@ func TestAccCoralogixResourceDashboardDynamicSpatialWidgets(t *testing.T) {
 	hexagon := "layout.sections.0.rows.0.widgets.0.definition.dynamic.visualization.hexagon_bins."
 	heatmap := "layout.sections.0.rows.0.widgets.1.definition.dynamic.visualization.heatmap."
 	geomap := "layout.sections.0.rows.1.widgets.0.definition.dynamic.visualization.geomap."
+	geomapIbm := "layout.sections.0.rows.1.widgets.2.definition.dynamic.visualization.geomap."
+	geomapAll := "layout.sections.0.rows.1.widgets.3.definition.dynamic.visualization.geomap."
 
-	backendCheck := func(state *terraform.State) error {
-		dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
-		if err != nil {
-			return err
+	backendCheck := func(allRegionConfigSet bool) resource.TestCheckFunc {
+		return func(state *terraform.State) error {
+			dashboard, err := dashboardOpenAPIFetchDashboard(ctx, client, state, dashboardResourceName, fixture)
+			if err != nil {
+				return err
+			}
+			return dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard, fixture, allRegionConfigSet)
 		}
-		return dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard, fixture)
 	}
 
 	steps := dashboardOpenAPIStructuredLifecycleSteps(
@@ -75,7 +79,13 @@ func TestAccCoralogixResourceDashboardDynamicSpatialWidgets(t *testing.T) {
 				resource.TestCheckResourceAttr(dashboardResourceName, geomap+"config.coordinate_config.latitude_field.keypath.0", "lat"),
 				resource.TestCheckResourceAttr(dashboardResourceName, geomap+"min_max.custom.max", "50"),
 
-				backendCheck,
+				// The two preview arms of the same union.
+				resource.TestCheckResourceAttr(dashboardResourceName, geomapIbm+"config.ibm_region_config.region_field.keypath.0", "ibm_region"),
+				resource.TestCheckResourceAttr(dashboardResourceName, geomapIbm+"config.ibm_region_config.region_field.scope", "user_data"),
+				resource.TestCheckResourceAttr(dashboardResourceName, geomapAll+"config.all_region_config.region_field.keypath.0", "cloud_region"),
+				resource.TestCheckResourceAttr(dashboardResourceName, geomapAll+"config.all_region_config.region_field.scope", "user_data"),
+
+				backendCheck(true),
 			),
 		},
 		[]dashboardOpenAPILifecyclePhase{
@@ -83,16 +93,19 @@ func TestAccCoralogixResourceDashboardDynamicSpatialWidgets(t *testing.T) {
 				Config: testAccCoralogixResourceDashboardDynamicSpatialConfig(name, "spatial updated", true),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "spatial updated"),
-					backendCheck,
+					backendCheck(true),
 				),
 			},
 			{
-				// Removing the optional enums must reset them rather than keep the old value.
+				// Removing the optional enums must reset them rather than keep the old value,
+				// and removing the whole `config` block must clear the region mapping.
 				Config: testAccCoralogixResourceDashboardDynamicSpatialConfig(name, "spatial updated", false),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(dashboardResourceName, hexagon+"threshold_type", "unspecified"),
 					resource.TestCheckResourceAttr(dashboardResourceName, heatmap+"scale_type", "unspecified"),
-					backendCheck,
+					resource.TestCheckNoResourceAttr(dashboardResourceName, geomapAll+"config.all_region_config.region_field.keypath.0"),
+					resource.TestCheckResourceAttr(dashboardResourceName, geomapIbm+"config.ibm_region_config.region_field.keypath.0", "ibm_region"),
+					backendCheck(false),
 				),
 			},
 		},
@@ -101,7 +114,9 @@ func TestAccCoralogixResourceDashboardDynamicSpatialWidgets(t *testing.T) {
 			ImportState:       true,
 			ImportStateVerify: true,
 			ImportStateCheck: dashboardOpenAPIImportDashboardCheck(ctx, &client, fixture, func(dashboard *dashboardservice.Dashboard) error {
-				return dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard, fixture)
+				// The import runs against the state the last apply left, which is
+				// the one with `all_region_config` removed.
+				return dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard, fixture, false)
 			}),
 		},
 	)
@@ -117,7 +132,10 @@ func TestAccCoralogixResourceDashboardDynamicSpatialWidgets(t *testing.T) {
 	})
 }
 
-func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Dashboard, fixture string) error {
+// allRegionConfigSet says whether the last applied configuration still carries
+// the `all_region_config` arm; the step that removes it asserts the block was
+// cleared rather than merged back by the full-replace PUT.
+func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Dashboard, fixture string, allRegionConfigSet bool) error {
 	expected := []struct {
 		row    int
 		widget int
@@ -127,6 +145,8 @@ func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Das
 		{row: 0, widget: 1, branch: "heatmap"},
 		{row: 1, widget: 0, branch: "geomap"},
 		{row: 1, widget: 1, branch: "geomap"},
+		{row: 1, widget: 2, branch: "geomap"},
+		{row: 1, widget: 3, branch: "geomap"},
 	}
 
 	sections := dashboard.Layout.Sections
@@ -171,8 +191,16 @@ func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Das
 	if second == nil {
 		return fmt.Errorf("dashboard fixture %q (dashboard %q): the second geomap was not stored", fixture, dashboard.GetId())
 	}
+	third := rows[1].GetWidgets()[2].Definition.Dynamic.Visualization.Geomap
+	if third == nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the third geomap was not stored", fixture, dashboard.GetId())
+	}
+	fourth := rows[1].GetWidgets()[3].Definition.Dynamic.Visualization.Geomap
+	if fourth == nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the fourth geomap was not stored", fixture, dashboard.GetId())
+	}
 
-	for _, want := range []struct {
+	arms := []struct {
 		widget string
 		union  string
 		arm    string
@@ -184,7 +212,23 @@ func dashboardOpenAPIAssertDynamicSpatialWidgets(dashboard *dashboardservice.Das
 		{"second", "aggregation", "sum", geomapAggregationArms(second.Aggregation)},
 		{"second", "config", "awsRegionConfig", geomapConfigArms(second.Config)},
 		{"second", "color", "colorRange", geomapColorArms(second.Color)},
-	} {
+		{"third", "aggregation", "count", geomapAggregationArms(third.Aggregation)},
+		{"third", "config", "ibmRegionConfig", geomapConfigArms(third.Config)},
+		{"fourth", "aggregation", "count", geomapAggregationArms(fourth.Aggregation)},
+	}
+	if allRegionConfigSet {
+		arms = append(arms, struct {
+			widget string
+			union  string
+			arm    string
+			arms   map[string]bool
+		}{"fourth", "config", "allRegionConfig", geomapConfigArms(fourth.Config)})
+	} else if fourth.Config != nil {
+		return fmt.Errorf("dashboard fixture %q (dashboard %q): the fourth geomap kept a config after it was removed from the configuration",
+			fixture, dashboard.GetId())
+	}
+
+	for _, want := range arms {
 		if err := dashboardOpenAPIAssertExactlyOneArm(want.widget, want.union, want.arm, want.arms, dashboard.GetId(), fixture); err != nil {
 			return err
 		}
@@ -245,6 +289,18 @@ func TestAccCoralogixResourceDashboardDynamicSpatialRejectsInvalidUnions(t *test
             }
           }
         }`,
+		// Both arms here are new, so this also proves the widened validator
+		// covers the pair the API rejects with `oneof ... is already set`.
+		"two region field config arms": `geomap = {
+          config = {
+            ibm_region_config = {
+              region_field = { keypath = ["ibm_region"], scope = "user_data" }
+            }
+            all_region_config = {
+              region_field = { keypath = ["cloud_region"], scope = "user_data" }
+            }
+          }
+        }`,
 		"two colour arms": `geomap = {
           color = {
             size        = "blue"
@@ -290,11 +346,21 @@ func testAccCoralogixResourceDashboardDynamicSpatialVisualizationConfig(name, vi
 
 func testAccCoralogixResourceDashboardDynamicSpatialConfig(name, title string, setOptionalEnums bool) string {
 	thresholdType, scaleType := "", ""
+	// The provider-agnostic region arm is the one dropped when the optional
+	// attributes are removed, so the lifecycle proves a full-replace PUT clears
+	// the whole `config` block rather than merging the previous mapping back.
+	allRegionConfig := ""
 	if setOptionalEnums {
 		thresholdType = `
                     threshold_type = "absolute"`
 		scaleType = `
                     scale_type = "linear"`
+		allRegionConfig = `
+                    config = {
+                      all_region_config = {
+                        region_field = { keypath = ["cloud_region"], scope = "user_data" }
+                      }
+                    }`
 	}
 
 	return fmt.Sprintf(`resource "coralogix_dashboard" "test" {
@@ -410,13 +476,41 @@ func testAccCoralogixResourceDashboardDynamicSpatialConfig(name, title string, s
                 }
               }}
             },
+            {
+              # The two preview arms of the field-config union.
+              title = "geomap ibm region"
+              definition = { dynamic = {
+                query_definitions = [{ name = "rows", query = { logs = { lucene_query = "*" } } }]
+                visualization = {
+                  geomap = {
+                    aggregation = { count = true }
+                    config = {
+                      ibm_region_config = {
+                        region_field = { keypath = ["ibm_region"], scope = "user_data" }
+                      }
+                    }
+                  }
+                }
+              }}
+            },
+            {
+              title = "geomap all region"
+              definition = { dynamic = {
+                query_definitions = [{ name = "rows", query = { logs = { lucene_query = "*" } } }]
+                visualization = {
+                  geomap = {
+                    aggregation = { count = true }%[5]s
+                  }
+                }
+              }}
+            },
           ]
         },
       ]
     }]
   }
 }
-`, name, title, thresholdType, scaleType)
+`, name, title, thresholdType, scaleType, allRegionConfig)
 }
 
 // The arms of each geomap union, keyed by their wire names, so the assertion
@@ -441,6 +535,8 @@ func geomapConfigArms(config *dashboardservice.GeomapFieldConfig) map[string]boo
 	return map[string]bool{
 		"coordinateConfig": config.CoordinateConfig != nil,
 		"awsRegionConfig":  config.AwsRegionConfig != nil,
+		"ibmRegionConfig":  config.IbmRegionConfig != nil,
+		"allRegionConfig":  config.AllRegionConfig != nil,
 	}
 }
 

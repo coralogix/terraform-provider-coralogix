@@ -1282,6 +1282,17 @@ resource "coralogix_dashboard" "widgets" {
                       decimal_precision = 1
                       aggregation       = { count = true }
                       color             = { size = "blue" }
+                      # The other alternatives read the location from a single
+                      # region field instead of a coordinate pair:
+                      # `aws_region_config` for AWS regions, and - as preview
+                      # alternatives - `ibm_region_config` for IBM Cloud regions
+                      # and `all_region_config` for regions of any cloud
+                      # provider, e.g.
+                      #   config = {
+                      #     ibm_region_config = {
+                      #       region_field = { keypath = ["ibm_region"], scope = "user_data" }
+                      #     }
+                      #   }
                       config = {
                         coordinate_config = {
                           latitude_field  = { keypath = ["latitude"], scope = "user_data" }

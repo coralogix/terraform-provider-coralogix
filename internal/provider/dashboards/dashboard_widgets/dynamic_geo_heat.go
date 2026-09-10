@@ -293,6 +293,16 @@ func dynamicGeomapSchema() schema.Attribute {
 			"config": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
+					"all_region_config": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"region_field": schema.SingleNestedAttribute{
+								Attributes: ObservationFieldSchema(),
+								Optional:   true,
+							},
+						},
+						MarkdownDescription: "Maps values of a provider-agnostic cloud region field onto the map. This is a preview alternative.",
+					},
 					"aws_region_config": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
@@ -315,9 +325,19 @@ func dynamicGeomapSchema() schema.Attribute {
 							},
 						},
 					},
+					"ibm_region_config": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"region_field": schema.SingleNestedAttribute{
+								Attributes: ObservationFieldSchema(),
+								Optional:   true,
+							},
+						},
+						MarkdownDescription: "Maps values of an IBM Cloud region field onto the map. This is a preview alternative.",
+					},
 				},
 				Validators: []validator.Object{
-					ExactlyOneOfChildren("aws_region_config", "coordinate_config"),
+					ExactlyOneOfChildren("all_region_config", "aws_region_config", "coordinate_config", "ibm_region_config"),
 				},
 			},
 			"custom_unit": schema.StringAttribute{
@@ -499,14 +519,28 @@ func dynamicGeomapColorModelAttr() map[string]attr.Type {
 
 func dynamicGeomapFieldConfigModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
+		"all_region_config": types.ObjectType{AttrTypes: dynamicGeomapAllRegionConfigModelAttr()},
 		"aws_region_config": types.ObjectType{AttrTypes: dynamicGeomapAwsRegionConfigModelAttr()},
 		"coordinate_config": types.ObjectType{AttrTypes: dynamicGeomapCoordinateConfigModelAttr()},
+		"ibm_region_config": types.ObjectType{AttrTypes: dynamicGeomapIbmRegionConfigModelAttr()},
 	}
 }
 
 func dynamicGeomapAwsRegionConfigModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"aws_region_field": ObservationFieldsObject(),
+	}
+}
+
+func dynamicGeomapIbmRegionConfigModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"region_field": ObservationFieldsObject(),
+	}
+}
+
+func dynamicGeomapAllRegionConfigModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"region_field": ObservationFieldsObject(),
 	}
 }
 
@@ -748,6 +782,10 @@ func expandDynamicGeomapFieldConfig(ctx context.Context, m *DynamicGeomapFieldCo
 		return nil, nil
 	}
 
+	allRegionConfig, diags := expandDynamicGeomapAllRegionConfig(ctx, m.AllRegionConfig)
+	if diags.HasError() {
+		return nil, diags
+	}
 	awsRegionConfig, diags := expandDynamicGeomapAwsRegionConfig(ctx, m.AwsRegionConfig)
 	if diags.HasError() {
 		return nil, diags
@@ -756,14 +794,26 @@ func expandDynamicGeomapFieldConfig(ctx context.Context, m *DynamicGeomapFieldCo
 	if diags.HasError() {
 		return nil, diags
 	}
+	ibmRegionConfig, diags := expandDynamicGeomapIbmRegionConfig(ctx, m.IbmRegionConfig)
+	if diags.HasError() {
+		return nil, diags
+	}
 
-	if (awsRegionConfig == nil) == (coordinateConfig == nil) {
-		return nil, dynamicUnionDiagnostic("config", "`coordinate_config` or `aws_region_config`")
+	set := 0
+	for _, selected := range []bool{allRegionConfig != nil, awsRegionConfig != nil, coordinateConfig != nil, ibmRegionConfig != nil} {
+		if selected {
+			set++
+		}
+	}
+	if set != 1 {
+		return nil, dynamicUnionDiagnostic("config", "`coordinate_config`, `aws_region_config`, `ibm_region_config` or `all_region_config`")
 	}
 
 	return &dashboardservice.GeomapFieldConfig{
+		AllRegionConfig:  allRegionConfig,
 		AwsRegionConfig:  awsRegionConfig,
 		CoordinateConfig: coordinateConfig,
+		IbmRegionConfig:  ibmRegionConfig,
 	}, nil
 }
 
@@ -776,6 +826,28 @@ func expandDynamicGeomapAwsRegionConfig(ctx context.Context, m *DynamicGeomapAws
 		return nil, diags
 	}
 	return &dashboardservice.GeomapAwsRegionConfig{AwsRegionField: field}, nil
+}
+
+func expandDynamicGeomapIbmRegionConfig(ctx context.Context, m *DynamicGeomapIbmRegionConfigModel) (*dashboardservice.GeomapIbmRegionConfig, diag.Diagnostics) {
+	if m == nil {
+		return nil, nil
+	}
+	field, diags := ExpandObservationFieldObject(ctx, m.RegionField)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardservice.GeomapIbmRegionConfig{RegionField: field}, nil
+}
+
+func expandDynamicGeomapAllRegionConfig(ctx context.Context, m *DynamicGeomapAllRegionConfigModel) (*dashboardservice.GeomapAllRegionConfig, diag.Diagnostics) {
+	if m == nil {
+		return nil, nil
+	}
+	field, diags := ExpandObservationFieldObject(ctx, m.RegionField)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardservice.GeomapAllRegionConfig{RegionField: field}, nil
 }
 
 func expandDynamicGeomapCoordinateConfig(ctx context.Context, m *DynamicGeomapCoordinateConfigModel) (*dashboardservice.GeomapCoordinateConfig, diag.Diagnostics) {
@@ -1037,6 +1109,10 @@ func flattenDynamicGeomapFieldConfig(ctx context.Context, m *dashboardservice.Ge
 		return nil, nil
 	}
 
+	allRegionConfig, diags := flattenDynamicGeomapAllRegionConfig(ctx, m.AllRegionConfig)
+	if diags.HasError() {
+		return nil, diags
+	}
 	awsRegionConfig, diags := flattenDynamicGeomapAwsRegionConfig(ctx, m.AwsRegionConfig)
 	if diags.HasError() {
 		return nil, diags
@@ -1045,14 +1121,20 @@ func flattenDynamicGeomapFieldConfig(ctx context.Context, m *dashboardservice.Ge
 	if diags.HasError() {
 		return nil, diags
 	}
+	ibmRegionConfig, diags := flattenDynamicGeomapIbmRegionConfig(ctx, m.IbmRegionConfig)
+	if diags.HasError() {
+		return nil, diags
+	}
 
-	if awsRegionConfig == nil && coordinateConfig == nil {
+	if allRegionConfig == nil && awsRegionConfig == nil && coordinateConfig == nil && ibmRegionConfig == nil {
 		return nil, nil
 	}
 
 	return &DynamicGeomapFieldConfigModel{
+		AllRegionConfig:  allRegionConfig,
 		AwsRegionConfig:  awsRegionConfig,
 		CoordinateConfig: coordinateConfig,
+		IbmRegionConfig:  ibmRegionConfig,
 	}, nil
 }
 
@@ -1065,6 +1147,31 @@ func flattenDynamicGeomapAwsRegionConfig(ctx context.Context, m *dashboardservic
 		return nil, diags
 	}
 	return &DynamicGeomapAwsRegionConfigModel{AwsRegionField: field}, nil
+}
+
+// The arm carries one optional field, so the API stores a selected but empty
+// object when it is omitted. That arm must still read back as present with a
+// null `region_field`, or the arm the user chose would vanish from state.
+func flattenDynamicGeomapIbmRegionConfig(ctx context.Context, m *dashboardservice.GeomapIbmRegionConfig) (*DynamicGeomapIbmRegionConfigModel, diag.Diagnostics) {
+	if m == nil {
+		return nil, nil
+	}
+	field, diags := FlattenObservationField(ctx, m.RegionField)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &DynamicGeomapIbmRegionConfigModel{RegionField: field}, nil
+}
+
+func flattenDynamicGeomapAllRegionConfig(ctx context.Context, m *dashboardservice.GeomapAllRegionConfig) (*DynamicGeomapAllRegionConfigModel, diag.Diagnostics) {
+	if m == nil {
+		return nil, nil
+	}
+	field, diags := FlattenObservationField(ctx, m.RegionField)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &DynamicGeomapAllRegionConfigModel{RegionField: field}, nil
 }
 
 func flattenDynamicGeomapCoordinateConfig(ctx context.Context, m *dashboardservice.GeomapCoordinateConfig) (*DynamicGeomapCoordinateConfigModel, diag.Diagnostics) {
