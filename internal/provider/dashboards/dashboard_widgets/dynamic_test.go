@@ -1022,6 +1022,29 @@ func TestDynamicWidgetSpatialFullFidelityRoundTrip(t *testing.T) {
 				},
 			},
 		}},
+		// The two preview region arms of the field config union, which name
+		// their observation field `region_field` rather than following the AWS
+		// arm's `aws_region_field`.
+		"geomap_ibm_region_config": {Geomap: &DynamicGeomapModel{
+			Aggregation: &DynamicGeomapAggregationModel{
+				Count: types.BoolValue(true),
+			},
+			Config: &DynamicGeomapFieldConfigModel{
+				IbmRegionConfig: &DynamicGeomapIbmRegionConfigModel{
+					RegionField: observationFieldObject("ibm_region", "user_data"),
+				},
+			},
+		}},
+		"geomap_all_region_config": {Geomap: &DynamicGeomapModel{
+			Aggregation: &DynamicGeomapAggregationModel{
+				Count: types.BoolValue(true),
+			},
+			Config: &DynamicGeomapFieldConfigModel{
+				AllRegionConfig: &DynamicGeomapAllRegionConfigModel{
+					RegionField: observationFieldObject("cloud_region", "user_data"),
+				},
+			},
+		}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			assertDynamicRoundTrip(ctx, t, &DynamicModel{
@@ -1142,6 +1165,26 @@ func TestExpandDynamicSpatialUnionsRejectUnresolvedShapes(t *testing.T) {
 		})
 		if !diags.HasError() {
 			t.Error("a field config with both arms must be refused")
+		}
+	})
+
+	// The union grew from two arms to four, so a pair drawn from the new arms
+	// has to be refused by the same count, not only the original pair.
+	t.Run("field config with two region arms", func(t *testing.T) {
+		_, diags := expandDynamicGeomapFieldConfig(ctx, &DynamicGeomapFieldConfigModel{
+			IbmRegionConfig: &DynamicGeomapIbmRegionConfigModel{RegionField: field},
+			AllRegionConfig: &DynamicGeomapAllRegionConfigModel{RegionField: field},
+		})
+		if !diags.HasError() {
+			t.Error("a field config setting both preview region arms must be refused")
+		}
+
+		_, diags = expandDynamicGeomapFieldConfig(ctx, &DynamicGeomapFieldConfigModel{
+			IbmRegionConfig: &DynamicGeomapIbmRegionConfigModel{RegionField: field},
+			AwsRegionConfig: &DynamicGeomapAwsRegionConfigModel{AwsRegionField: field},
+		})
+		if !diags.HasError() {
+			t.Error("a field config setting a preview region arm alongside the AWS arm must be refused")
 		}
 	})
 
@@ -1360,6 +1403,31 @@ func TestFlattenDynamicNormalisesEmptyUnionWrappers(t *testing.T) {
 		got, diags := flattenDynamicGeomapFieldConfig(ctx, &dashboardservice.GeomapFieldConfig{})
 		if diags.HasError() || got != nil {
 			t.Errorf("an arm-less field config must read back as absent, got %v %v", got, diags)
+		}
+	})
+
+	// A selected region arm carries the selection itself, so it stays present
+	// even with no region field. Dropping it would make the whole config read
+	// back as absent and diff against the config that asked for the arm.
+	t.Run("geomap region arm without a region field", func(t *testing.T) {
+		ibm, diags := flattenDynamicGeomapFieldConfig(ctx, &dashboardservice.GeomapFieldConfig{
+			IbmRegionConfig: &dashboardservice.GeomapIbmRegionConfig{},
+		})
+		if diags.HasError() || ibm == nil || ibm.IbmRegionConfig == nil {
+			t.Fatalf("a selected IBM region arm must read back present, got %v %v", ibm, diags)
+		}
+		if !ibm.IbmRegionConfig.RegionField.IsNull() {
+			t.Errorf("an omitted region field must read back null, got %v", ibm.IbmRegionConfig.RegionField)
+		}
+
+		all, diags := flattenDynamicGeomapFieldConfig(ctx, &dashboardservice.GeomapFieldConfig{
+			AllRegionConfig: &dashboardservice.GeomapAllRegionConfig{},
+		})
+		if diags.HasError() || all == nil || all.AllRegionConfig == nil {
+			t.Fatalf("a selected all-region arm must read back present, got %v %v", all, diags)
+		}
+		if !all.AllRegionConfig.RegionField.IsNull() {
+			t.Errorf("an omitted region field must read back null, got %v", all.AllRegionConfig.RegionField)
 		}
 	})
 

@@ -1261,7 +1261,11 @@ resource "coralogix_dashboard" "widgets" {
               # `geomap` plots clusters on a map. `config` says where the
               # coordinates come from, `aggregation` what each cluster shows,
               # and `color` how clusters are coloured - each picks exactly one
-              # alternative.
+              # alternative. Besides the `coordinate_config` used below,
+              # `config` can instead take a region field: `aws_region_config`
+              # with an `aws_region_field`, or - as a preview - the
+              # `ibm_region_config` / `all_region_config` alternatives, each
+              # with a `region_field`.
               title = "dynamic geomap - requests by location"
               definition = {
                 dynamic = {

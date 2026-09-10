@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+- FEAT: Add preview `ibm_region_config` and `all_region_config` alternatives to the dynamic `geomap` widget's `config`.
+
 #### resource/coralogix_api_key
 - FIX: Destroy converges when the backend answers `404 Not Found`.
 
