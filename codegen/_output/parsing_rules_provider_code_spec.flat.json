@@ -1,0 +1,1806 @@
+{
+	"datasources": [
+		{
+			"name": "rule_group",
+			"schema": {
+				"attributes": [
+					{
+						"name": "group_id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The unique identifier of the parsing rule group to retrieve.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.LengthAtLeast(0)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "rule_group",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "creator",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Creator."
+									}
+								},
+								{
+									"name": "description",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Human-readable description."
+									}
+								},
+								{
+									"name": "enabled",
+									"bool": {
+										"computed_optional_required": "computed",
+										"description": "Whether this resource is enabled."
+									}
+								},
+								{
+									"name": "hidden",
+									"bool": {
+										"computed_optional_required": "computed",
+										"description": "The hidden."
+									}
+								},
+								{
+									"name": "id",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Unique identifier."
+									}
+								},
+								{
+									"name": "name",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Display name."
+									}
+								},
+								{
+									"name": "order",
+									"int64": {
+										"computed_optional_required": "computed",
+										"description": "Sort order."
+									}
+								},
+								{
+									"name": "rule_matchers",
+									"list_nested": {
+										"computed_optional_required": "computed",
+										"nested_object": {
+											"attributes": [
+												{
+													"name": "application_name",
+													"single_nested": {
+														"computed_optional_required": "computed",
+														"attributes": [
+															{
+																"name": "value",
+																"string": {
+																	"computed_optional_required": "computed",
+																	"description": "The value."
+																}
+															}
+														],
+														"description": "Application name constraint."
+													}
+												},
+												{
+													"name": "severity",
+													"single_nested": {
+														"computed_optional_required": "computed",
+														"attributes": [
+															{
+																"name": "value",
+																"string": {
+																	"computed_optional_required": "computed",
+																	"description": "The value."
+																}
+															}
+														],
+														"description": "Severity constraint."
+													}
+												},
+												{
+													"name": "subsystem_name",
+													"single_nested": {
+														"computed_optional_required": "computed",
+														"attributes": [
+															{
+																"name": "value",
+																"string": {
+																	"computed_optional_required": "computed",
+																	"description": "The value."
+																}
+															}
+														],
+														"description": "Subsystem name constraint."
+													}
+												}
+											]
+										},
+										"description": "The rule matchers."
+									}
+								},
+								{
+									"name": "rule_subgroups",
+									"list_nested": {
+										"computed_optional_required": "computed",
+										"nested_object": {
+											"attributes": [
+												{
+													"name": "enabled",
+													"bool": {
+														"computed_optional_required": "computed",
+														"description": "Whether this resource is enabled."
+													}
+												},
+												{
+													"name": "id",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Unique identifier."
+													}
+												},
+												{
+													"name": "order",
+													"int64": {
+														"computed_optional_required": "computed",
+														"description": "Sort order."
+													}
+												},
+												{
+													"name": "rules",
+													"list_nested": {
+														"computed_optional_required": "computed",
+														"nested_object": {
+															"attributes": [
+																{
+																	"name": "description",
+																	"string": {
+																		"computed_optional_required": "computed",
+																		"description": "Human-readable description."
+																	}
+																},
+																{
+																	"name": "enabled",
+																	"bool": {
+																		"computed_optional_required": "computed",
+																		"description": "Whether this resource is enabled."
+																	}
+																},
+																{
+																	"name": "id",
+																	"string": {
+																		"computed_optional_required": "computed",
+																		"description": "Unique identifier."
+																	}
+																},
+																{
+																	"name": "name",
+																	"string": {
+																		"computed_optional_required": "computed",
+																		"description": "Display name."
+																	}
+																},
+																{
+																	"name": "order",
+																	"int64": {
+																		"computed_optional_required": "computed",
+																		"description": "Sort order."
+																	}
+																},
+																{
+																	"name": "parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed",
+																		"attributes": [
+																			{
+																				"name": "allow_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "keep_blocked_logs",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The keep blocked logs."
+																							}
+																						},
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Allow parameters."
+																				}
+																			},
+																			{
+																				"name": "block_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "keep_blocked_logs",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The keep blocked logs."
+																							}
+																						},
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Block parameters."
+																				}
+																			},
+																			{
+																				"name": "extract_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Extract parameters."
+																				}
+																			},
+																			{
+																				"name": "extract_timestamp_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "format",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The format."
+																							}
+																						},
+																						{
+																							"name": "standard",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Format standard."
+																							}
+																						}
+																					],
+																					"description": "Extract timestamp parameters."
+																				}
+																			},
+																			{
+																				"name": "json_extract_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "destination_field_text",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The destination field text."
+																							}
+																						},
+																						{
+																							"name": "destination_field_type",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Destination field."
+																							}
+																						},
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Json extract parameters."
+																				}
+																			},
+																			{
+																				"name": "json_parse_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "delete_source",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The delete source."
+																							}
+																						},
+																						{
+																							"name": "destination_field",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The destination field."
+																							}
+																						},
+																						{
+																							"name": "escaped_value",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The escaped value."
+																							}
+																						},
+																						{
+																							"name": "override_dest",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The override dest."
+																							}
+																						}
+																					],
+																					"description": "Json parse parameters."
+																				}
+																			},
+																			{
+																				"name": "json_stringify_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "delete_source",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The delete source."
+																							}
+																						},
+																						{
+																							"name": "destination_field",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The destination field."
+																							}
+																						}
+																					],
+																					"description": "Json stringify parameters."
+																				}
+																			},
+																			{
+																				"name": "parse_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "destination_field",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The destination field."
+																							}
+																						},
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Parse parameters."
+																				}
+																			},
+																			{
+																				"name": "remove_fields_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "fields",
+																							"list": {
+																								"computed_optional_required": "computed",
+																								"element_type": {
+																									"string": {}
+																								},
+																								"description": "List of fields."
+																							}
+																						}
+																					],
+																					"description": "Remove fields parameters."
+																				}
+																			},
+																			{
+																				"name": "replace_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "destination_field",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The destination field."
+																							}
+																						},
+																						{
+																							"name": "replace_new_val",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The replace new val."
+																							}
+																						},
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Replace parameters."
+																				}
+																			}
+																		],
+																		"description": "Rule parameters."
+																	}
+																},
+																{
+																	"name": "source_field",
+																	"string": {
+																		"computed_optional_required": "computed",
+																		"description": "The source field."
+																	}
+																}
+															]
+														},
+														"description": "List of rules."
+													}
+												}
+											]
+										},
+										"description": "The rule subgroups."
+									}
+								}
+							],
+							"description": "Rule group."
+						}
+					}
+				]
+			}
+		}
+	],
+	"provider": {
+		"name": "coralogix"
+	},
+	"resources": [
+		{
+			"name": "rule_group",
+			"schema": {
+				"attributes": [
+					{
+						"name": "creator",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Creator.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.LengthAtLeast(0)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "description",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Human-readable description.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.LengthAtLeast(0)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "enabled",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Whether this resource is enabled."
+						}
+					},
+					{
+						"name": "hidden",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "The hidden."
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Display name.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.LengthAtLeast(0)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "order",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"description": "Sort order.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+											}
+										],
+										"schema_definition": "int64validator.AtLeast(0)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "rule_matchers",
+						"list_nested": {
+							"computed_optional_required": "computed_optional",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "application_name",
+										"single_nested": {
+											"computed_optional_required": "computed_optional",
+											"attributes": [
+												{
+													"name": "value",
+													"string": {
+														"computed_optional_required": "computed_optional",
+														"description": "The value.",
+														"validators": [
+															{
+																"custom": {
+																	"imports": [
+																		{
+																			"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																		}
+																	],
+																	"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																}
+															}
+														]
+													}
+												}
+											],
+											"description": "Application name constraint."
+										}
+									},
+									{
+										"name": "severity",
+										"single_nested": {
+											"computed_optional_required": "computed_optional",
+											"attributes": [
+												{
+													"name": "value",
+													"string": {
+														"computed_optional_required": "computed_optional",
+														"description": "The value.",
+														"validators": [
+															{
+																"custom": {
+																	"imports": [
+																		{
+																			"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																		}
+																	],
+																	"schema_definition": "stringvalidator.OneOf(\n\"VALUE_DEBUG_OR_UNSPECIFIED\",\n\"VALUE_VERBOSE\",\n\"VALUE_INFO\",\n\"VALUE_WARNING\",\n\"VALUE_ERROR\",\n\"VALUE_CRITICAL\",\n)"
+																}
+															}
+														]
+													}
+												}
+											],
+											"description": "Severity constraint."
+										}
+									},
+									{
+										"name": "subsystem_name",
+										"single_nested": {
+											"computed_optional_required": "computed_optional",
+											"attributes": [
+												{
+													"name": "value",
+													"string": {
+														"computed_optional_required": "computed_optional",
+														"description": "The value.",
+														"validators": [
+															{
+																"custom": {
+																	"imports": [
+																		{
+																			"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																		}
+																	],
+																	"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																}
+															}
+														]
+													}
+												}
+											],
+											"description": "Subsystem name constraint."
+										}
+									}
+								]
+							},
+							"description": "The rule matchers.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+											}
+										],
+										"schema_definition": "listvalidator.SizeAtLeast(0)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "rule_subgroups",
+						"list_nested": {
+							"computed_optional_required": "computed_optional",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "enabled",
+										"bool": {
+											"computed_optional_required": "computed_optional",
+											"description": "Whether this resource is enabled."
+										}
+									},
+									{
+										"name": "order",
+										"int64": {
+											"computed_optional_required": "computed_optional",
+											"description": "Sort order.",
+											"validators": [
+												{
+													"custom": {
+														"imports": [
+															{
+																"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+															}
+														],
+														"schema_definition": "int64validator.AtLeast(0)"
+													}
+												}
+											]
+										}
+									},
+									{
+										"name": "rules",
+										"list_nested": {
+											"computed_optional_required": "computed_optional",
+											"nested_object": {
+												"attributes": [
+													{
+														"name": "description",
+														"string": {
+															"computed_optional_required": "computed_optional",
+															"description": "Human-readable description.",
+															"validators": [
+																{
+																	"custom": {
+																		"imports": [
+																			{
+																				"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																			}
+																		],
+																		"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																	}
+																}
+															]
+														}
+													},
+													{
+														"name": "enabled",
+														"bool": {
+															"computed_optional_required": "computed_optional",
+															"description": "Whether this resource is enabled."
+														}
+													},
+													{
+														"name": "name",
+														"string": {
+															"computed_optional_required": "computed_optional",
+															"description": "Display name.",
+															"validators": [
+																{
+																	"custom": {
+																		"imports": [
+																			{
+																				"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																			}
+																		],
+																		"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																	}
+																}
+															]
+														}
+													},
+													{
+														"name": "order",
+														"int64": {
+															"computed_optional_required": "computed_optional",
+															"description": "Sort order.",
+															"validators": [
+																{
+																	"custom": {
+																		"imports": [
+																			{
+																				"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+																			}
+																		],
+																		"schema_definition": "int64validator.AtLeast(0)"
+																	}
+																}
+															]
+														}
+													},
+													{
+														"name": "parameters",
+														"single_nested": {
+															"computed_optional_required": "computed_optional",
+															"attributes": [
+																{
+																	"name": "allow_parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed_optional",
+																		"attributes": [
+																			{
+																				"name": "keep_blocked_logs",
+																				"bool": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The keep blocked logs."
+																				}
+																			},
+																			{
+																				"name": "rule",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "Rule.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			}
+																		],
+																		"description": "Allow parameters."
+																	}
+																},
+																{
+																	"name": "block_parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed_optional",
+																		"attributes": [
+																			{
+																				"name": "keep_blocked_logs",
+																				"bool": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The keep blocked logs."
+																				}
+																			},
+																			{
+																				"name": "rule",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "Rule.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			}
+																		],
+																		"description": "Block parameters."
+																	}
+																},
+																{
+																	"name": "extract_parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed_optional",
+																		"attributes": [
+																			{
+																				"name": "rule",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "Rule.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			}
+																		],
+																		"description": "Extract parameters."
+																	}
+																},
+																{
+																	"name": "extract_timestamp_parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed_optional",
+																		"attributes": [
+																			{
+																				"name": "format",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The format.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			},
+																			{
+																				"name": "standard",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "Format standard.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.OneOf(\n\"FORMAT_STANDARD_STRFTIME_OR_UNSPECIFIED\",\n\"FORMAT_STANDARD_JAVASDF\",\n\"FORMAT_STANDARD_GOLANG\",\n\"FORMAT_STANDARD_SECONDSTS\",\n\"FORMAT_STANDARD_MILLITS\",\n\"FORMAT_STANDARD_MICROTS\",\n\"FORMAT_STANDARD_NANOTS\",\n)"
+																							}
+																						}
+																					]
+																				}
+																			}
+																		],
+																		"description": "Extract timestamp parameters."
+																	}
+																},
+																{
+																	"name": "json_extract_parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed_optional",
+																		"attributes": [
+																			{
+																				"name": "destination_field_text",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The destination field text.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			},
+																			{
+																				"name": "destination_field_type",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "Destination field.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.OneOf(\n\"DESTINATION_FIELD_CATEGORY_OR_UNSPECIFIED\",\n\"DESTINATION_FIELD_CLASSNAME\",\n\"DESTINATION_FIELD_METHODNAME\",\n\"DESTINATION_FIELD_THREADID\",\n\"DESTINATION_FIELD_SEVERITY\",\n\"DESTINATION_FIELD_TEXT\",\n)"
+																							}
+																						}
+																					]
+																				}
+																			},
+																			{
+																				"name": "rule",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "Rule.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			}
+																		],
+																		"description": "Json extract parameters."
+																	}
+																},
+																{
+																	"name": "json_parse_parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed_optional",
+																		"attributes": [
+																			{
+																				"name": "delete_source",
+																				"bool": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The delete source."
+																				}
+																			},
+																			{
+																				"name": "destination_field",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The destination field.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			},
+																			{
+																				"name": "escaped_value",
+																				"bool": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The escaped value."
+																				}
+																			},
+																			{
+																				"name": "override_dest",
+																				"bool": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The override dest."
+																				}
+																			}
+																		],
+																		"description": "Json parse parameters."
+																	}
+																},
+																{
+																	"name": "json_stringify_parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed_optional",
+																		"attributes": [
+																			{
+																				"name": "delete_source",
+																				"bool": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The delete source."
+																				}
+																			},
+																			{
+																				"name": "destination_field",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The destination field.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			}
+																		],
+																		"description": "Json stringify parameters."
+																	}
+																},
+																{
+																	"name": "parse_parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed_optional",
+																		"attributes": [
+																			{
+																				"name": "destination_field",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The destination field.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			},
+																			{
+																				"name": "rule",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "Rule.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			}
+																		],
+																		"description": "Parse parameters."
+																	}
+																},
+																{
+																	"name": "remove_fields_parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed_optional",
+																		"attributes": [
+																			{
+																				"name": "fields",
+																				"list": {
+																					"computed_optional_required": "computed_optional",
+																					"element_type": {
+																						"string": {}
+																					},
+																					"description": "List of fields.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+																									}
+																								],
+																								"schema_definition": "listvalidator.SizeAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			}
+																		],
+																		"description": "Remove fields parameters."
+																	}
+																},
+																{
+																	"name": "replace_parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed_optional",
+																		"attributes": [
+																			{
+																				"name": "destination_field",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The destination field.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			},
+																			{
+																				"name": "replace_new_val",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "The replace new val.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			},
+																			{
+																				"name": "rule",
+																				"string": {
+																					"computed_optional_required": "computed_optional",
+																					"description": "Rule.",
+																					"validators": [
+																						{
+																							"custom": {
+																								"imports": [
+																									{
+																										"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																									}
+																								],
+																								"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																							}
+																						}
+																					]
+																				}
+																			}
+																		],
+																		"description": "Replace parameters."
+																	}
+																}
+															],
+															"description": "Rule parameters."
+														}
+													},
+													{
+														"name": "source_field",
+														"string": {
+															"computed_optional_required": "computed_optional",
+															"description": "The source field.",
+															"validators": [
+																{
+																	"custom": {
+																		"imports": [
+																			{
+																				"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+																			}
+																		],
+																		"schema_definition": "stringvalidator.LengthAtLeast(0)"
+																	}
+																}
+															]
+														}
+													}
+												]
+											},
+											"description": "List of rules.",
+											"validators": [
+												{
+													"custom": {
+														"imports": [
+															{
+																"path": "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+															}
+														],
+														"schema_definition": "listvalidator.SizeAtLeast(0)"
+													}
+												}
+											]
+										}
+									}
+								]
+							},
+							"description": "The rule subgroups.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+											}
+										],
+										"schema_definition": "listvalidator.SizeAtLeast(0)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "team_id",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "id",
+									"int64": {
+										"computed_optional_required": "computed_optional",
+										"description": "Unique identifier.",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+														}
+													],
+													"schema_definition": "int64validator.AtLeast(0)"
+												}
+											}
+										]
+									}
+								}
+							],
+							"description": "Team id."
+						}
+					},
+					{
+						"name": "rule_group",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "creator",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Creator."
+									}
+								},
+								{
+									"name": "description",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Human-readable description."
+									}
+								},
+								{
+									"name": "enabled",
+									"bool": {
+										"computed_optional_required": "computed",
+										"description": "Whether this resource is enabled."
+									}
+								},
+								{
+									"name": "hidden",
+									"bool": {
+										"computed_optional_required": "computed",
+										"description": "The hidden."
+									}
+								},
+								{
+									"name": "id",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Unique identifier."
+									}
+								},
+								{
+									"name": "name",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Display name."
+									}
+								},
+								{
+									"name": "order",
+									"int64": {
+										"computed_optional_required": "computed",
+										"description": "Sort order."
+									}
+								},
+								{
+									"name": "rule_matchers",
+									"list_nested": {
+										"computed_optional_required": "computed",
+										"nested_object": {
+											"attributes": [
+												{
+													"name": "application_name",
+													"single_nested": {
+														"computed_optional_required": "computed",
+														"attributes": [
+															{
+																"name": "value",
+																"string": {
+																	"computed_optional_required": "computed",
+																	"description": "The value."
+																}
+															}
+														],
+														"description": "Application name constraint."
+													}
+												},
+												{
+													"name": "severity",
+													"single_nested": {
+														"computed_optional_required": "computed",
+														"attributes": [
+															{
+																"name": "value",
+																"string": {
+																	"computed_optional_required": "computed",
+																	"description": "The value."
+																}
+															}
+														],
+														"description": "Severity constraint."
+													}
+												},
+												{
+													"name": "subsystem_name",
+													"single_nested": {
+														"computed_optional_required": "computed",
+														"attributes": [
+															{
+																"name": "value",
+																"string": {
+																	"computed_optional_required": "computed",
+																	"description": "The value."
+																}
+															}
+														],
+														"description": "Subsystem name constraint."
+													}
+												}
+											]
+										},
+										"description": "The rule matchers."
+									}
+								},
+								{
+									"name": "rule_subgroups",
+									"list_nested": {
+										"computed_optional_required": "computed",
+										"nested_object": {
+											"attributes": [
+												{
+													"name": "enabled",
+													"bool": {
+														"computed_optional_required": "computed",
+														"description": "Whether this resource is enabled."
+													}
+												},
+												{
+													"name": "id",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Unique identifier."
+													}
+												},
+												{
+													"name": "order",
+													"int64": {
+														"computed_optional_required": "computed",
+														"description": "Sort order."
+													}
+												},
+												{
+													"name": "rules",
+													"list_nested": {
+														"computed_optional_required": "computed",
+														"nested_object": {
+															"attributes": [
+																{
+																	"name": "description",
+																	"string": {
+																		"computed_optional_required": "computed",
+																		"description": "Human-readable description."
+																	}
+																},
+																{
+																	"name": "enabled",
+																	"bool": {
+																		"computed_optional_required": "computed",
+																		"description": "Whether this resource is enabled."
+																	}
+																},
+																{
+																	"name": "id",
+																	"string": {
+																		"computed_optional_required": "computed",
+																		"description": "Unique identifier."
+																	}
+																},
+																{
+																	"name": "name",
+																	"string": {
+																		"computed_optional_required": "computed",
+																		"description": "Display name."
+																	}
+																},
+																{
+																	"name": "order",
+																	"int64": {
+																		"computed_optional_required": "computed",
+																		"description": "Sort order."
+																	}
+																},
+																{
+																	"name": "parameters",
+																	"single_nested": {
+																		"computed_optional_required": "computed",
+																		"attributes": [
+																			{
+																				"name": "allow_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "keep_blocked_logs",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The keep blocked logs."
+																							}
+																						},
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Allow parameters."
+																				}
+																			},
+																			{
+																				"name": "block_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "keep_blocked_logs",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The keep blocked logs."
+																							}
+																						},
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Block parameters."
+																				}
+																			},
+																			{
+																				"name": "extract_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Extract parameters."
+																				}
+																			},
+																			{
+																				"name": "extract_timestamp_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "format",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The format."
+																							}
+																						},
+																						{
+																							"name": "standard",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Format standard."
+																							}
+																						}
+																					],
+																					"description": "Extract timestamp parameters."
+																				}
+																			},
+																			{
+																				"name": "json_extract_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "destination_field_text",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The destination field text."
+																							}
+																						},
+																						{
+																							"name": "destination_field_type",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Destination field."
+																							}
+																						},
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Json extract parameters."
+																				}
+																			},
+																			{
+																				"name": "json_parse_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "delete_source",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The delete source."
+																							}
+																						},
+																						{
+																							"name": "destination_field",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The destination field."
+																							}
+																						},
+																						{
+																							"name": "escaped_value",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The escaped value."
+																							}
+																						},
+																						{
+																							"name": "override_dest",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The override dest."
+																							}
+																						}
+																					],
+																					"description": "Json parse parameters."
+																				}
+																			},
+																			{
+																				"name": "json_stringify_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "delete_source",
+																							"bool": {
+																								"computed_optional_required": "computed",
+																								"description": "The delete source."
+																							}
+																						},
+																						{
+																							"name": "destination_field",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The destination field."
+																							}
+																						}
+																					],
+																					"description": "Json stringify parameters."
+																				}
+																			},
+																			{
+																				"name": "parse_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "destination_field",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The destination field."
+																							}
+																						},
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Parse parameters."
+																				}
+																			},
+																			{
+																				"name": "remove_fields_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "fields",
+																							"list": {
+																								"computed_optional_required": "computed",
+																								"element_type": {
+																									"string": {}
+																								},
+																								"description": "List of fields."
+																							}
+																						}
+																					],
+																					"description": "Remove fields parameters."
+																				}
+																			},
+																			{
+																				"name": "replace_parameters",
+																				"single_nested": {
+																					"computed_optional_required": "computed",
+																					"attributes": [
+																						{
+																							"name": "destination_field",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The destination field."
+																							}
+																						},
+																						{
+																							"name": "replace_new_val",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "The replace new val."
+																							}
+																						},
+																						{
+																							"name": "rule",
+																							"string": {
+																								"computed_optional_required": "computed",
+																								"description": "Rule."
+																							}
+																						}
+																					],
+																					"description": "Replace parameters."
+																				}
+																			}
+																		],
+																		"description": "Rule parameters."
+																	}
+																},
+																{
+																	"name": "source_field",
+																	"string": {
+																		"computed_optional_required": "computed",
+																		"description": "The source field."
+																	}
+																}
+															]
+														},
+														"description": "List of rules."
+													}
+												}
+											]
+										},
+										"description": "The rule subgroups."
+									}
+								}
+							],
+							"description": "Rule group."
+						}
+					},
+					{
+						"name": "group_id",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The unique identifier of the parsing rule group to retrieve.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.LengthAtLeast(0)"
+									}
+								}
+							]
+						}
+					}
+				]
+			}
+		}
+	],
+	"version": "0.1"
+}
