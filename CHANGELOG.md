@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- FIX: Destroying an alert that was already deleted outside Terraform failed the apply. A delete that the backend answers with `404 Not Found` now converges instead of raising a blocking diagnostic. The delete error message also correctly reads "Error deleting alert" instead of "Error reading alert".
+
 #### resource/coralogix_fleet_configuration_group
 - FEAT: Add private preview (Beta) `coralogix_fleet_configuration_group` resource and data source for Fleet Manager configuration groups. Destroy deactivates the latest family and then archives the group. Omitting `family.collector_version` keeps the existing remote value.
 - DOC: Example loads collector YAML from files and includes agent plus cluster-collector remotes.

@@ -239,7 +239,10 @@ func (r *AlertResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		AlertDefsServiceDeleteAlertDef(ctx, id).
 		Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading alert",
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return
+		}
+		resp.Diagnostics.AddError("Error deleting alert",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", id),
 		)
 		return
