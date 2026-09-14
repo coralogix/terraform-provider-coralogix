@@ -300,7 +300,7 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	currentKeyId := result.GetKeyId()
-	key, diags := getKeyInfo(ctx, r.client, &currentKeyId, result.Value)
+	key, _, diags := getKeyInfo(ctx, r.client, &currentKeyId, result.Value)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -318,9 +318,12 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	key, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer())
+	key, httpResponse, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer())
 	if diags.HasError() {
-		resp.State.RemoveResource(ctx)
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.Append(diags...)
 		return
 	}
@@ -376,6 +379,15 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		rq.IsActive = desiredState.Active.ValueBoolPointer()
 	}
 
+	if !currentState.AccessPolicy.Equal(desiredState.AccessPolicy) {
+		if !desiredState.AccessPolicy.IsNull() && !desiredState.AccessPolicy.IsUnknown() {
+			rq.AccessPolicy = desiredState.AccessPolicy.ValueStringPointer()
+		} else if !currentState.AccessPolicy.IsNull() {
+			empty := ""
+			rq.AccessPolicy = &empty
+		}
+	}
+
 	if currentState.Hashed.ValueBool() != desiredState.Hashed.ValueBool() {
 		resp.Diagnostics.AddError(
 			"Error updating ApiKey",
@@ -390,7 +402,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_api_key %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -402,7 +414,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	key, diags := getKeyInfo(ctx, r.client, &id, currentState.Value.ValueStringPointer())
+	key, _, diags := getKeyInfo(ctx, r.client, &id, currentState.Value.ValueStringPointer())
 	if diags.HasError() {
 		return
 	}
@@ -441,7 +453,7 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 }
 
-func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
+func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string) (*ApiKeyModel, *http.Response, diag.Diagnostics) {
 
 	result, httpResponse, err := r.
 		ApiKeysServiceGetApiKey(ctx, *id).
@@ -452,14 +464,14 @@ func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *st
 		diags.AddError("Error reading coralogix_api_key",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
-		return nil, diags
+		return nil, httpResponse, diags
 	}
 
 	key, diags := flattenGetApiKeyResponse(ctx, id, result, keyValue)
 	if diags.HasError() {
-		return nil, diags
+		return nil, httpResponse, diags
 	}
-	return key, nil
+	return key, httpResponse, nil
 }
 
 func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *apiKeys.GetApiKeyResponse, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {

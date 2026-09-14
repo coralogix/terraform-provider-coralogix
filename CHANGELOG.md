@@ -17,6 +17,9 @@
 
 #### resource/coralogix_api_key
 - FIX: Destroy converges when the backend answers `404 Not Found`.
+- FIX: `coralogix_api_key` update now applies `access_policy` changes and clears
+- FIX: `coralogix_api_key` guard nil HTTP response on update
+- FIX: `coralogix_api_key` keep state when read fails with a transient error, only recreate on 404
 
 #### resource/coralogix_custom_role
 - FIX: Destroy converges when the backend answers `404 Not Found`.
