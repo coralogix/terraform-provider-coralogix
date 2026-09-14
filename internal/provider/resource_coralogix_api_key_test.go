@@ -15,10 +15,15 @@
 package provider
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 var (
@@ -62,83 +67,87 @@ func TestApiKeyResource(t *testing.T) {
 }
 
 func TestApiKeyResourceWithAccessPolicy(t *testing.T) {
-	t.Skip("Different Permissions Required")
+	name := acctest.RandomWithPrefix("tf-acc-api-key")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testApiKeyResourceWithAccessPolicy(),
+				Config: testApiKeyResourceWithAccessPolicy(name, testAccApiKeyAccessPolicy()),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 3"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "name", name),
 					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.team_id", teamID),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "true"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "access_policy", "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"data-ingest-api-keys:ReadAccessPolicy\": \"grant\", \"data-ingest-api-keys:Manage\": \"deny\", \"data-ingest-api-keys:UpdateAccessPolicy\": \"deny\", \"data-ingest-api-keys:ReadConfig\": \"grant\" } }, \"rules\": [] }"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
-					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "Alerts"),
-					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "APM"),
+					testAccCheckApiKeyAccessPolicy(apiKeyResourceName, testAccApiKeyAccessPolicy()),
 				),
 			},
 			{
-				ResourceName:      apiKeyResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            apiKeyResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"value", "access_policy"},
+				ImportStateCheck: func(states []*terraform.InstanceState) error {
+					if len(states) == 0 {
+						return fmt.Errorf("no imported state")
+					}
+					got := states[0].Attributes["access_policy"]
+					if !utils.JSONStringsEqual(got, testAccApiKeyAccessPolicy()) {
+						return fmt.Errorf("imported access_policy = %q, want JSON equivalent to %q", got, testAccApiKeyAccessPolicy())
+					}
+					return nil
+				},
 			},
-			// Update: change access_policy to a different value. The update
-			// request must carry the new policy so the backend applies it.
 			{
-				Config: updateApiKeyResourceWithAccessPolicy(),
+				Config: testApiKeyResourceWithAccessPolicy(name, testAccApiKeyAccessPolicyUpdated()),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 3"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.team_id", teamID),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "true"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "access_policy", "{ \"version\": \"v2025-01-01\", \"rules\": [], \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" }, \"additionalInfo\": null } }"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "name", name),
+					testAccCheckApiKeyAccessPolicy(apiKeyResourceName, testAccApiKeyAccessPolicyUpdated()),
 				),
 			},
-			// Clear: removing access_policy from config sends the empty string
-			// so the backend clears the previously-set policy.
 			{
-				Config: updateApiKeyResource(),
+				Config: testApiKeyResourceWithAccessPolicy(name, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 5"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.team_id", teamID),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "false"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "name", name),
 					resource.TestCheckResourceAttr(apiKeyResourceName, "access_policy", ""),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
-					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "Alerts"),
-					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "APM")),
+				),
 			},
 		},
 	})
 }
 
-func testApiKeyResourceWithAccessPolicy() string {
-	return strings.Replace(`resource "coralogix_api_key" "test" {
-  name  = "Test Key 3"
-  owner = {
-    team_id : "<TEAM_ID>"
-  }
-  active = true
-  permissions = []
-  presets = ["Alerts", "APM"]
-  access_policy = "{ \"version\": \"v2025-01-01\", \"rules\": [], \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"grant\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"grant\" }, \"additionalInfo\": null } }"
-}
-`, "<TEAM_ID>", teamID, 1)
+func testAccCheckApiKeyAccessPolicy(resourceName, expected string) resource.TestCheckFunc {
+	return func(state *terraform.State) error {
+		resourceState, ok := state.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource %s not found", resourceName)
+		}
+		got := resourceState.Primary.Attributes["access_policy"]
+		if !utils.JSONStringsEqual(got, expected) {
+			return fmt.Errorf("%s access_policy = %q, want JSON equivalent to %q", resourceName, got, expected)
+		}
+		return nil
+	}
 }
 
-func updateApiKeyResourceWithAccessPolicy() string {
-	return strings.Replace(`resource "coralogix_api_key" "test" {
-  name  = "Test Key 3"
+func testAccApiKeyAccessPolicy() string {
+	return `{ "version": "2025-01-01", "default": { "permissions": { "team-custom-api-keys:ReadConfig": "grant", "team-custom-api-keys:Manage": "grant", "team-custom-api-keys:ReadAccessPolicy": "grant", "team-custom-api-keys:UpdateAccessPolicy": "grant" } }, "rules": [] }`
+}
+
+func testAccApiKeyAccessPolicyUpdated() string {
+	return `{ "version": "2025-01-01", "default": { "permissions": { "team-custom-api-keys:ReadConfig": "grant", "team-custom-api-keys:Manage": "deny", "team-custom-api-keys:ReadAccessPolicy": "grant", "team-custom-api-keys:UpdateAccessPolicy": "grant" } }, "rules": [] }`
+}
+
+func testApiKeyResourceWithAccessPolicy(name, accessPolicy string) string {
+	return strings.Replace(fmt.Sprintf(`resource "coralogix_api_key" "test" {
+  name  = %q
   owner = {
     team_id : "<TEAM_ID>"
   }
   active = true
   permissions = []
   presets = ["Alerts", "APM"]
-  access_policy = "{ \"version\": \"v2025-01-01\", \"rules\": [], \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" }, \"additionalInfo\": null } }"
+  access_policy = %q
 }
-`, "<TEAM_ID>", teamID, 1)
+`, name, accessPolicy), "<TEAM_ID>", teamID, 1)
 }
 
 func testApiKeyResource() string {

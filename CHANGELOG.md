@@ -21,6 +21,7 @@
 #### resource/coralogix_api_key
 - FIX: Destroy converges when the backend answers `404 Not Found`.
 - FIX: Clearing `access_policy` now requires setting it explicitly to an empty string (`""`); omitting the attribute preserves the existing policy. The empty string is sent to the backend to clear the policy, and this contract is documented in the attribute description.
+- FIX: `access_policy` JSON that differs only in whitespace or key order no longer fails apply with "inconsistent result after apply". State keeps the configured text when it is JSON-equivalent to the backend value.
 - FIX: `Read` now emits a warning before removing the resource from state when the backend returns `404 Not Found`, so a silently-recreated key is surfaced to the user.
 - FIX: `coralogix_api_key` update now applies `access_policy` changes and clears a removed policy, while omitting the field (rather than clearing it) when the planned value is unknown.
 - FIX: `coralogix_api_key` guard nil HTTP response on update

@@ -168,6 +168,7 @@ func resourceSchemaV1() schema.Schema {
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
+					preserveAccessPolicyJSON{},
 					stringplanmodifier.UseStateForUnknown(),
 				},
 				MarkdownDescription: "Api Key Access Policy. To clear an existing policy, explicitly set this to an empty string (\"\"). Omitting the attribute will preserve the existing policy.",
@@ -300,7 +301,7 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	currentKeyId := result.GetKeyId()
-	key, _, diags := getKeyInfo(ctx, r.client, &currentKeyId, result.Value)
+	key, _, diags := getKeyInfo(ctx, r.client, &currentKeyId, result.Value, desiredState.AccessPolicy)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -318,7 +319,7 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	key, httpResponse, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer())
+	key, httpResponse, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer(), currentState.AccessPolicy)
 	if diags.HasError() {
 		if isNotFoundResponse(httpResponse) {
 			resp.Diagnostics.AddWarning(fmt.Sprintf("coralogix_api_key %q is in state, but no longer exists in Coralogix backend", currentState.ID.ValueString()), fmt.Sprintf("%s will be recreated when you apply", currentState.ID.ValueString()))
@@ -408,7 +409,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	key, _, diags := getKeyInfo(ctx, r.client, &id, currentState.Value.ValueStringPointer())
+	key, _, diags := getKeyInfo(ctx, r.client, &id, currentState.Value.ValueStringPointer(), desiredState.AccessPolicy)
 	if diags.HasError() {
 		return
 	}
@@ -479,7 +480,7 @@ func setAccessPolicyOnUpdate(currentState, desiredState *ApiKeyModel, rq *apiKey
 	rq.AccessPolicy = desiredState.AccessPolicy.ValueStringPointer()
 }
 
-func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string) (*ApiKeyModel, *http.Response, diag.Diagnostics) {
+func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string, configuredAccessPolicy types.String) (*ApiKeyModel, *http.Response, diag.Diagnostics) {
 
 	result, httpResponse, err := r.
 		ApiKeysServiceGetApiKey(ctx, *id).
@@ -493,14 +494,14 @@ func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *st
 		return nil, httpResponse, diags
 	}
 
-	key, diags := flattenGetApiKeyResponse(ctx, id, result, keyValue)
+	key, diags := flattenGetApiKeyResponse(ctx, id, result, keyValue, configuredAccessPolicy)
 	if diags.HasError() {
 		return nil, httpResponse, diags
 	}
 	return key, httpResponse, nil
 }
 
-func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *apiKeys.GetApiKeyResponse, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
+func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *apiKeys.GetApiKeyResponse, keyValue *string, configuredAccessPolicy types.String) (*ApiKeyModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	permissions := utils.StringSliceToTypeStringSet(response.KeyInfo.KeyPermissions.Permissions)
@@ -536,21 +537,57 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 
 	owner := flattenOwner(response.KeyInfo.Owner)
 	return &ApiKeyModel{
-		ID:          types.StringValue(*apiKeyId),
-		Value:       key,
-		Name:        types.StringPointerValue(response.KeyInfo.Name),
-		Active:      types.BoolValue(active),
-		Hashed:      types.BoolValue(hashedKey),
-		Permissions: permissions,
-		Presets:     presets,
-		Owner:       &owner,
-		AccessPolicy: func() types.String {
-			if response.KeyInfo.AccessPolicy == nil {
-				return types.StringValue("")
-			}
-			return types.StringValue(*response.KeyInfo.AccessPolicy)
-		}(),
+		ID:           types.StringValue(*apiKeyId),
+		Value:        key,
+		Name:         types.StringPointerValue(response.KeyInfo.Name),
+		Active:       types.BoolValue(active),
+		Hashed:       types.BoolValue(hashedKey),
+		Permissions:  permissions,
+		Presets:      presets,
+		Owner:        &owner,
+		AccessPolicy: flattenAccessPolicy(configuredAccessPolicy, response.KeyInfo.AccessPolicy),
 	}, nil
+}
+
+// flattenAccessPolicy stores the configured JSON text when it is equivalent to
+// the backend value. The API compact-encodes the policy and reorders object
+// keys, which would otherwise fail apply with "inconsistent result".
+func flattenAccessPolicy(configured types.String, apiPolicy *string) types.String {
+	if apiPolicy == nil || *apiPolicy == "" {
+		if !configured.IsNull() && !configured.IsUnknown() && configured.ValueString() == "" {
+			return configured
+		}
+		return types.StringValue("")
+	}
+	if !configured.IsNull() && !configured.IsUnknown() && utils.JSONStringsEqual(configured.ValueString(), *apiPolicy) {
+		return configured
+	}
+	canonical, err := utils.CanonicalJSON(*apiPolicy)
+	if err != nil {
+		return types.StringValue(*apiPolicy)
+	}
+	return types.StringValue(canonical)
+}
+
+// preserveAccessPolicyJSON keeps prior state when config JSON is equivalent, so
+// whitespace and key-order differences do not produce a plan.
+type preserveAccessPolicyJSON struct{}
+
+func (m preserveAccessPolicyJSON) Description(_ context.Context) string {
+	return "Keeps the prior access_policy text when the configured JSON is equivalent."
+}
+
+func (m preserveAccessPolicyJSON) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m preserveAccessPolicyJSON) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+		return
+	}
+	if utils.JSONStringsEqual(req.ConfigValue.ValueString(), req.StateValue.ValueString()) {
+		resp.PlanValue = req.StateValue
+	}
 }
 
 func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*apiKeys.CreateApiKeyRequest, diag.Diagnostics) {

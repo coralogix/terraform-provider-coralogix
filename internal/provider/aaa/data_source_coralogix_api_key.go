@@ -80,7 +80,7 @@ func (r *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	result, _, diags := getKeyInfo(ctx, r.client, &id, data.Value.ValueStringPointer())
+	result, _, diags := getKeyInfo(ctx, r.client, &id, data.Value.ValueStringPointer(), data.AccessPolicy)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

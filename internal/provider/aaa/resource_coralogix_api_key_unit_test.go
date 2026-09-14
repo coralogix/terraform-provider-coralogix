@@ -249,3 +249,34 @@ func TestApiKeyResourceRead(t *testing.T) {
 		})
 	}
 }
+
+func TestFlattenAccessPolicy(t *testing.T) {
+	configured := `{ "version": "2025-01-01", "default": { "permissions": { "team-custom-api-keys:ReadConfig": "grant" } }, "rules": [] }`
+	compact := `{"version":"2025-01-01","default":{"permissions":{"team-custom-api-keys:ReadConfig":"grant"}},"rules":[]}`
+	different := `{"version":"2025-01-01","default":{"permissions":{"team-custom-api-keys:ReadConfig":"deny"}},"rules":[]}`
+
+	t.Run("preserves_configured_text_when_json_equivalent", func(t *testing.T) {
+		got := flattenAccessPolicy(types.StringValue(configured), &compact)
+		if got.ValueString() != configured {
+			t.Fatalf("got %q, want configured text", got.ValueString())
+		}
+	})
+	t.Run("empty_api_policy_is_empty_string", func(t *testing.T) {
+		got := flattenAccessPolicy(types.StringNull(), nil)
+		if got.ValueString() != "" {
+			t.Fatalf("got %q, want empty string", got.ValueString())
+		}
+	})
+	t.Run("keeps_empty_configured_clear", func(t *testing.T) {
+		got := flattenAccessPolicy(types.StringValue(""), nil)
+		if got.ValueString() != "" {
+			t.Fatalf("got %q, want empty string", got.ValueString())
+		}
+	})
+	t.Run("stores_new_policy_when_not_equivalent", func(t *testing.T) {
+		got := flattenAccessPolicy(types.StringValue(configured), &different)
+		if got.ValueString() == configured {
+			t.Fatal("kept configured text for a different policy")
+		}
+	})
+}

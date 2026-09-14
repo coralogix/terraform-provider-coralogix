@@ -26,6 +26,7 @@ import (
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
@@ -108,22 +109,22 @@ func getApiKeyResponseBody(name, accessPolicy string) string {
 // asserts the JSON body captured on the PUT request for three plan shapes:
 // setting a new access_policy, clearing an existing access_policy, and a
 // name-only change (which must not touch access_policy).
+type apiKeyUpdateScenario struct {
+	name                string
+	stateName           string
+	stateAccessPolicy   *string
+	planName            string
+	planAccessPolicy    *string
+	wantNewName         *string
+	wantAccessPolicySet bool
+	wantAccessPolicy    string
+}
+
 func TestApiKeyResourceUpdate(t *testing.T) {
 	ctx := context.Background()
 	resourceSchema := apiKeyTestSchema(ctx)
 
-	type scenario struct {
-		name               string
-		stateName          string
-		stateAccessPolicy  *string
-		planName           string
-		planAccessPolicy   *string
-		wantNewName        *string
-		wantAccessPolicySet bool
-		wantAccessPolicy   string
-	}
-
-	scenarios := []scenario{
+	scenarios := []apiKeyUpdateScenario{
 		{
 			name:                "new_access_policy",
 			stateName:           "key-one",
@@ -157,92 +158,99 @@ func TestApiKeyResourceUpdate(t *testing.T) {
 
 	for _, tc := range scenarios {
 		t.Run(tc.name, func(t *testing.T) {
-			var captured apiKeys.UpdateApiKeyRequest
-			var updateCalled bool
-
-			mux := http.NewServeMux()
-			mux.HandleFunc("/aaa/api-keys/v3/"+apiKeyTestID, func(w http.ResponseWriter, r *http.Request) {
-				switch r.Method {
-				case http.MethodPut:
-					updateCalled = true
-					raw, err := io.ReadAll(r.Body)
-					if err != nil {
-						t.Fatalf("reading update body: %v", err)
-					}
-					if err := json.Unmarshal(raw, &captured); err != nil {
-						t.Fatalf("unmarshalling update body %q: %v", string(raw), err)
-					}
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusOK)
-					_, _ = w.Write([]byte(`{}`))
-				case http.MethodGet:
-					policy := tc.wantAccessPolicy
-					if !tc.wantAccessPolicySet {
-						policy = "policy-keep"
-					}
-					name := tc.planName
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusOK)
-					_, _ = w.Write([]byte(getApiKeyResponseBody(name, policy)))
-				default:
-					t.Fatalf("unexpected method %q", r.Method)
-				}
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
-
-			r := apiKeyResourceForServer(server.URL)
-
-			// Build state value.
-			terraformType, objectType, stateAttrs := apiKeyAttributes(ctx, resourceSchema)
-			apiKeyStringAttr(objectType, stateAttrs, "name", strptr(tc.stateName))
-			apiKeyStringAttr(objectType, stateAttrs, "access_policy", tc.stateAccessPolicy)
-			apiKeyStringAttr(objectType, stateAttrs, "value", strptr("the-secret-value"))
-			state := tfsdk.State{Raw: tftypes.NewValue(terraformType, stateAttrs), Schema: resourceSchema}
-
-			// Build plan value.
-			_, _, planAttrs := apiKeyAttributes(ctx, resourceSchema)
-			apiKeyStringAttr(objectType, planAttrs, "name", strptr(tc.planName))
-			apiKeyStringAttr(objectType, planAttrs, "access_policy", tc.planAccessPolicy)
-			apiKeyStringAttr(objectType, planAttrs, "value", strptr("the-secret-value"))
-			plan := tfsdk.Plan{Raw: tftypes.NewValue(terraformType, planAttrs), Schema: resourceSchema}
-
-			response := frameworkresource.UpdateResponse{State: state}
-			r.Update(ctx, frameworkresource.UpdateRequest{Plan: plan, State: state}, &response)
-
-			if response.Diagnostics.HasError() {
-				t.Fatalf("Update() diagnostics = %v, want none", response.Diagnostics)
-			}
-			if !updateCalled {
-				t.Fatal("Update() did not call the backend PUT endpoint")
-			}
-
-			// Assert NewName.
-			if tc.wantNewName == nil {
-				if captured.NewName != nil {
-					t.Fatalf("captured NewName = %q, want unset", *captured.NewName)
-				}
-			} else {
-				if captured.NewName == nil {
-					t.Fatalf("captured NewName = unset, want %q", *tc.wantNewName)
-				}
-				if *captured.NewName != *tc.wantNewName {
-					t.Fatalf("captured NewName = %q, want %q", *captured.NewName, *tc.wantNewName)
-				}
-			}
-
-			// Assert AccessPolicy.
-			if tc.wantAccessPolicySet {
-				if captured.AccessPolicy == nil {
-					t.Fatalf("captured AccessPolicy = unset, want %q", tc.wantAccessPolicy)
-				}
-				if *captured.AccessPolicy != tc.wantAccessPolicy {
-					t.Fatalf("captured AccessPolicy = %q, want %q", *captured.AccessPolicy, tc.wantAccessPolicy)
-				}
-			} else if captured.AccessPolicy != nil {
-				t.Fatalf("captured AccessPolicy = %q, want unset for a name-only update", *captured.AccessPolicy)
-			}
+			runApiKeyResourceUpdateScenario(t, ctx, resourceSchema, tc)
 		})
+	}
+}
+
+func runApiKeyResourceUpdateScenario(t *testing.T, ctx context.Context, resourceSchema schema.Schema, tc apiKeyUpdateScenario) {
+	t.Helper()
+	var captured apiKeys.UpdateApiKeyRequest
+	var updateCalled bool
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		serveApiKeyUpdateMock(t, w, r, tc, &captured, &updateCalled)
+	}))
+	defer server.Close()
+
+	r := apiKeyResourceForServer(server.URL)
+
+	terraformType, objectType, stateAttrs := apiKeyAttributes(ctx, resourceSchema)
+	apiKeyStringAttr(objectType, stateAttrs, "name", strptr(tc.stateName))
+	apiKeyStringAttr(objectType, stateAttrs, "access_policy", tc.stateAccessPolicy)
+	apiKeyStringAttr(objectType, stateAttrs, "value", strptr("the-secret-value"))
+	state := tfsdk.State{Raw: tftypes.NewValue(terraformType, stateAttrs), Schema: resourceSchema}
+
+	_, _, planAttrs := apiKeyAttributes(ctx, resourceSchema)
+	apiKeyStringAttr(objectType, planAttrs, "name", strptr(tc.planName))
+	apiKeyStringAttr(objectType, planAttrs, "access_policy", tc.planAccessPolicy)
+	apiKeyStringAttr(objectType, planAttrs, "value", strptr("the-secret-value"))
+	plan := tfsdk.Plan{Raw: tftypes.NewValue(terraformType, planAttrs), Schema: resourceSchema}
+
+	response := frameworkresource.UpdateResponse{State: state}
+	r.Update(ctx, frameworkresource.UpdateRequest{Plan: plan, State: state}, &response)
+
+	if response.Diagnostics.HasError() {
+		t.Fatalf("Update() diagnostics = %v, want none", response.Diagnostics)
+	}
+	if !updateCalled {
+		t.Fatal("Update() did not call the backend PUT endpoint")
+	}
+	assertApiKeyUpdateCapture(t, captured, tc)
+}
+
+func serveApiKeyUpdateMock(t *testing.T, w http.ResponseWriter, r *http.Request, tc apiKeyUpdateScenario, captured *apiKeys.UpdateApiKeyRequest, updateCalled *bool) {
+	t.Helper()
+	switch r.Method {
+	case http.MethodPut:
+		*updateCalled = true
+		raw, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("reading update body: %v", err)
+		}
+		if err := json.Unmarshal(raw, captured); err != nil {
+			t.Fatalf("unmarshalling update body %q: %v", string(raw), err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{}`))
+	case http.MethodGet:
+		policy := tc.wantAccessPolicy
+		if !tc.wantAccessPolicySet {
+			policy = "policy-keep"
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(getApiKeyResponseBody(tc.planName, policy)))
+	default:
+		t.Fatalf("unexpected method %q", r.Method)
+	}
+}
+
+func assertApiKeyUpdateCapture(t *testing.T, captured apiKeys.UpdateApiKeyRequest, tc apiKeyUpdateScenario) {
+	t.Helper()
+	if tc.wantNewName == nil {
+		if captured.NewName != nil {
+			t.Fatalf("captured NewName = %q, want unset", *captured.NewName)
+		}
+	} else {
+		if captured.NewName == nil {
+			t.Fatalf("captured NewName = unset, want %q", *tc.wantNewName)
+		}
+		if *captured.NewName != *tc.wantNewName {
+			t.Fatalf("captured NewName = %q, want %q", *captured.NewName, *tc.wantNewName)
+		}
+	}
+
+	if tc.wantAccessPolicySet {
+		if captured.AccessPolicy == nil {
+			t.Fatalf("captured AccessPolicy = unset, want %q", tc.wantAccessPolicy)
+		}
+		if *captured.AccessPolicy != tc.wantAccessPolicy {
+			t.Fatalf("captured AccessPolicy = %q, want %q", *captured.AccessPolicy, tc.wantAccessPolicy)
+		}
+	} else if captured.AccessPolicy != nil {
+		t.Fatalf("captured AccessPolicy = %q, want unset for a name-only update", *captured.AccessPolicy)
 	}
 }
 
@@ -262,7 +270,7 @@ func TestGetKeyInfoErrorResponses(t *testing.T) {
 		defer server.Close()
 
 		r := apiKeyResourceForServer(server.URL)
-		key, httpResponse, diags := getKeyInfo(ctx, r.client, &id, nil)
+		key, httpResponse, diags := getKeyInfo(ctx, r.client, &id, nil, types.StringNull())
 
 		if !diags.HasError() {
 			t.Fatal("getKeyInfo() diagnostics = none, want an error for a 404 response")
@@ -287,7 +295,7 @@ func TestGetKeyInfoErrorResponses(t *testing.T) {
 		defer server.Close()
 
 		r := apiKeyResourceForServer(server.URL)
-		key, httpResponse, diags := getKeyInfo(ctx, r.client, &id, nil)
+		key, httpResponse, diags := getKeyInfo(ctx, r.client, &id, nil, types.StringNull())
 
 		if !diags.HasError() {
 			t.Fatal("getKeyInfo() diagnostics = none, want an error for a 500 response")
@@ -311,7 +319,7 @@ func TestGetKeyInfoErrorResponses(t *testing.T) {
 		server.Close()
 
 		r := apiKeyResourceForServer(baseURL)
-		key, httpResponse, diags := getKeyInfo(ctx, r.client, &id, nil)
+		key, httpResponse, diags := getKeyInfo(ctx, r.client, &id, nil, types.StringNull())
 
 		if !diags.HasError() {
 			t.Fatal("getKeyInfo() diagnostics = none, want an error for a transport failure")
