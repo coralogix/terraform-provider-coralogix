@@ -27,6 +27,8 @@ import (
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -63,19 +65,20 @@ func (r *TCOPoliciesTracesResource) ImportState(ctx context.Context, request res
 }
 
 type TCOPolicyTracesModel struct {
-	ID                 types.String `tfsdk:"id"`
-	Name               types.String `tfsdk:"name"`
-	Description        types.String `tfsdk:"description"`
-	Enabled            types.Bool   `tfsdk:"enabled"`
-	Order              types.Int64  `tfsdk:"order"`
-	Priority           types.String `tfsdk:"priority"`
-	Applications       types.Object `tfsdk:"applications"` //TCORuleModel
-	Subsystems         types.Object `tfsdk:"subsystems"`   //TCORuleModel
-	ArchiveRetentionID types.String `tfsdk:"archive_retention_id"`
-	Services           types.Object `tfsdk:"services"` //TCORuleModel
-	Actions            types.Object `tfsdk:"actions"`  //TCORuleModel
-	Tags               types.Map    `tfsdk:"tags"`     //string -> TCORuleModel
-	DpxlExpression     types.String `tfsdk:"dpxl_expression"`
+	ID                         types.String `tfsdk:"id"`
+	Name                       types.String `tfsdk:"name"`
+	Description                types.String `tfsdk:"description"`
+	Enabled                    types.Bool   `tfsdk:"enabled"`
+	Order                      types.Int64  `tfsdk:"order"`
+	Priority                   types.String `tfsdk:"priority"`
+	Applications               types.Object `tfsdk:"applications"` //TCORuleModel
+	Subsystems                 types.Object `tfsdk:"subsystems"`   //TCORuleModel
+	ArchiveRetentionID         types.String `tfsdk:"archive_retention_id"`
+	Services                   types.Object `tfsdk:"services"` //TCORuleModel
+	Actions                    types.Object `tfsdk:"actions"`  //TCORuleModel
+	Tags                       types.Map    `tfsdk:"tags"`     //string -> TCORuleModel
+	DpxlExpression             types.String `tfsdk:"dpxl_expression"`
+	QuotaBasedPriorityOverride types.Object `tfsdk:"quota_based_priority_override"` // QuotaBasedPriorityOverrideModel
 }
 
 func (r *TCOPoliciesTracesResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -137,7 +140,7 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 							Validators: []validator.String{
 								stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 							},
-							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q.", tcoPoliciesValidPriorities),
+							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. When `quota_based_priority_override` is set, this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).", tcoPoliciesValidPriorities),
 						},
 						"order": schema.Int64Attribute{
 							Computed:            true,
@@ -209,6 +212,37 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 								),
 							},
 							MarkdownDescription: "DataPrime expression to match spans for this policy. Mutually exclusive with the structured matchers (`services`, `actions`, `tags`, `applications`, `subsystems`) — set either this or those. Omit the attribute to clear it; an empty string is rejected by the API. The expression must include a version prefix, e.g. `<v1> $d.status == 'ERROR'`.",
+						},
+						"quota_based_priority_override": schema.SingleNestedAttribute{
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"usage_tiers": schema.ListNestedAttribute{
+									Required: true,
+									Validators: []validator.List{
+										listvalidator.SizeAtLeast(1),
+									},
+									NestedObject: schema.NestedAttributeObject{
+										Attributes: map[string]schema.Attribute{
+											"daily_quota_percentage": schema.Float64Attribute{
+												Required: true,
+												Validators: []validator.Float64{
+													float64validator.Between(0, 100),
+												},
+												MarkdownDescription: "Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.",
+											},
+											"priority": schema.StringAttribute{
+												Required: true,
+												Validators: []validator.String{
+													stringvalidator.OneOf(tcoRumTierPriorities...),
+												},
+												MarkdownDescription: fmt.Sprintf("The priority to apply when this tier is active. Can be one of %q (`block` is not valid for a tier).", tcoRumTierPriorities),
+											},
+										},
+									},
+									MarkdownDescription: "Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. The API requires `daily_quota_percentage` to strictly increase and `priority` to strictly decrease across the list, with every tier's priority strictly above the policy's base `priority`; violations are rejected at apply time.",
+								},
+							},
+							MarkdownDescription: "Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback (\"Route the remaining quota to\" in the UI), which must be more restrictive than the last tier. Omit the attribute to clear it.",
 						},
 						"actions": schema.SingleNestedAttribute{
 							Optional: true,
@@ -494,6 +528,10 @@ func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*tc
 	if diags.HasError() {
 		return nil, diags
 	}
+	priorityOverride, diags := expandQuotaBasedPriorityOverride(ctx, plan.QuotaBasedPriorityOverride)
+	if diags.HasError() {
+		return nil, diags
+	}
 	enabled := !plan.Enabled.ValueBool()
 
 	// The API rejects a policy that carries both a DPXL expression and the structured span
@@ -517,6 +555,7 @@ func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*tc
 			SubsystemRule:    subsystemRule,
 			ArchiveRetention: archiveRetention,
 			Disabled:         &enabled,
+			PriorityOverride: priorityOverride,
 		},
 		SpanRules: spanRules,
 	}, nil
@@ -547,19 +586,20 @@ func flattenOverwriteTCOPoliciesTracesList(ctx context.Context, overwriteResp *t
 
 func policiesTracesAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"id":                   types.StringType,
-		"name":                 types.StringType,
-		"description":          types.StringType,
-		"enabled":              types.BoolType,
-		"order":                types.Int64Type,
-		"priority":             types.StringType,
-		"applications":         types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()},
-		"subsystems":           types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()},
-		"archive_retention_id": types.StringType,
-		"actions":              types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()},
-		"services":             types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()},
-		"tags":                 types.MapType{ElemType: types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()}},
-		"dpxl_expression":      types.StringType,
+		"id":                            types.StringType,
+		"name":                          types.StringType,
+		"description":                   types.StringType,
+		"enabled":                       types.BoolType,
+		"order":                         types.Int64Type,
+		"priority":                      types.StringType,
+		"applications":                  types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()},
+		"subsystems":                    types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()},
+		"archive_retention_id":          types.StringType,
+		"actions":                       types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()},
+		"services":                      types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()},
+		"tags":                          types.MapType{ElemType: types.ObjectType{AttrTypes: tcoPolicyRuleAttributes()}},
+		"dpxl_expression":               types.StringType,
+		"quota_based_priority_override": types.ObjectType{AttrTypes: quotaBasedPriorityOverrideAttributes()},
 	}
 }
 
@@ -608,21 +648,26 @@ func flattenTCOTracesPolicy(ctx context.Context, policy *tcoPolicys.Policy) (*TC
 	if diags.HasError() {
 		return nil, diags
 	}
+	quotaBased, diags := flattenQuotaBasedPriorityOverride(ctx, spanPolicy.PriorityOverride)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	return &TCOPolicyTracesModel{
-		ID:                 types.StringValue(spanPolicy.GetId()),
-		Name:               types.StringValue(spanPolicy.GetName()),
-		Description:        types.StringValue(spanPolicy.GetDescription()),
-		Enabled:            types.BoolValue(spanPolicy.GetEnabled()),
-		Order:              types.Int64Value(int64(spanPolicy.GetOrder())),
-		Priority:           types.StringValue(tcoPoliciesPriorityApiToSchema[spanPolicy.GetPriority()]),
-		Applications:       applications,
-		Subsystems:         subsystems,
-		ArchiveRetentionID: flattenArchiveRetention(spanPolicy.ArchiveRetention),
-		Services:           services,
-		Actions:            actions,
-		Tags:               flattenTCOPolicyTags(ctx, traceRules.TagRules),
-		DpxlExpression:     types.StringPointerValue(traceRules.DpxlExpression),
+		ID:                         types.StringValue(spanPolicy.GetId()),
+		Name:                       types.StringValue(spanPolicy.GetName()),
+		Description:                types.StringValue(spanPolicy.GetDescription()),
+		Enabled:                    types.BoolValue(spanPolicy.GetEnabled()),
+		Order:                      types.Int64Value(int64(spanPolicy.GetOrder())),
+		Priority:                   types.StringValue(tcoPoliciesPriorityApiToSchema[spanPolicy.GetPriority()]),
+		Applications:               applications,
+		Subsystems:                 subsystems,
+		ArchiveRetentionID:         flattenArchiveRetention(spanPolicy.ArchiveRetention),
+		Services:                   services,
+		Actions:                    actions,
+		Tags:                       flattenTCOPolicyTags(ctx, traceRules.TagRules),
+		DpxlExpression:             types.StringPointerValue(traceRules.DpxlExpression),
+		QuotaBasedPriorityOverride: quotaBased,
 	}, nil
 }
 

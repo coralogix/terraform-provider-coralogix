@@ -112,6 +112,24 @@ resource "coralogix_tco_policies_traces" "tco_policies" {
       description     = "Match spans via DataPrime expression instead of the structured matchers"
       priority        = "high"
       dpxl_expression = "<v1> $d.status == 'ERROR'"
+    },
+    # Quota-based priority override: dynamically reassign the policy's priority
+    # based on daily quota consumption tiers. `priority` here is the fallback
+    # applied once all tiers are exhausted, and must be more restrictive than the
+    # last tier (most to least restrictive: block, low, medium, high).
+    {
+      name        = "Example tco_policy with quota-based override"
+      description = "Drop priority as daily quota is consumed"
+      priority    = "low"
+      services = {
+        names = ["service-name"]
+      }
+      quota_based_priority_override = {
+        usage_tiers = [
+          { daily_quota_percentage = 30, priority = "high" },
+          { daily_quota_percentage = 60, priority = "medium" },
+        ]
+      }
     }
   ]
 }
@@ -134,7 +152,7 @@ resource "coralogix_tco_policies_traces" "tco_policies" {
 Required:
 
 - `name` (String) tco-policy name.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"].
+- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. When `quota_based_priority_override` is set, this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).
 
 Optional:
 
@@ -144,6 +162,7 @@ Optional:
 - `description` (String) The policy description
 - `dpxl_expression` (String) DataPrime expression to match spans for this policy. Mutually exclusive with the structured matchers (`services`, `actions`, `tags`, `applications`, `subsystems`) — set either this or those. Omit the attribute to clear it; an empty string is rejected by the API. The expression must include a version prefix, e.g. `<v1> $d.status == 'ERROR'`.
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
+- `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier. Omit the attribute to clear it. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
 - `services` (Attributes) The services to apply the policy on. Applies the policy on all the services by default. (see [below for nested schema](#nestedatt--policies--services))
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
 - `tags` (Attributes Map) The tags to apply the policy on. Applies the policy on all the tags by default. (see [below for nested schema](#nestedatt--policies--tags))
@@ -175,6 +194,23 @@ Required:
 Optional:
 
 - `rule_type` (String)
+
+
+<a id="nestedatt--policies--quota_based_priority_override"></a>
+### Nested Schema for `policies.quota_based_priority_override`
+
+Required:
+
+- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. The API requires `daily_quota_percentage` to strictly increase and `priority` to strictly decrease across the list, with every tier's priority strictly above the policy's base `priority`; violations are rejected at apply time. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override--usage_tiers))
+
+<a id="nestedatt--policies--quota_based_priority_override--usage_tiers"></a>
+### Nested Schema for `policies.quota_based_priority_override.usage_tiers`
+
+Required:
+
+- `daily_quota_percentage` (Number) Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
+- `priority` (String) The priority to apply when this tier is active. Can be one of ["high" "low" "medium"] (`block` is not valid for a tier).
+
 
 
 <a id="nestedatt--policies--services"></a>

@@ -40,7 +40,8 @@ Read-Only:
 - `id` (String) tco-policy ID.
 - `name` (String) tco-policy name.
 - `order` (Number) The policy's order between the other policies.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"].
+- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"]. When `quota_based_priority_override` is set, this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).
+- `quota_based_priority_override` (Attributes) Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier. Omit the attribute to clear it. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override))
 - `services` (Attributes) The services to apply the policy on. Applies the policy on all the services by default. (see [below for nested schema](#nestedatt--policies--services))
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
 - `tags` (Attributes Map) The tags to apply the policy on. Applies the policy on all the tags by default. (see [below for nested schema](#nestedatt--policies--tags))
@@ -61,6 +62,23 @@ Read-Only:
 
 - `names` (Set of String)
 - `rule_type` (String)
+
+
+<a id="nestedatt--policies--quota_based_priority_override"></a>
+### Nested Schema for `policies.quota_based_priority_override`
+
+Read-Only:
+
+- `usage_tiers` (Attributes List) Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. The API requires `daily_quota_percentage` to strictly increase and `priority` to strictly decrease across the list, with every tier's priority strictly above the policy's base `priority`; violations are rejected at apply time. (see [below for nested schema](#nestedatt--policies--quota_based_priority_override--usage_tiers))
+
+<a id="nestedatt--policies--quota_based_priority_override--usage_tiers"></a>
+### Nested Schema for `policies.quota_based_priority_override.usage_tiers`
+
+Read-Only:
+
+- `daily_quota_percentage` (Number) Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
+- `priority` (String) The priority to apply when this tier is active. Can be one of ["high" "low" "medium"] (`block` is not valid for a tier).
+
 
 
 <a id="nestedatt--policies--services"></a>
