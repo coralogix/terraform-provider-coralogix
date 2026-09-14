@@ -168,9 +168,10 @@ func resourceSchemaV1() schema.Schema {
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
+					preserveAccessPolicyJSON{},
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "Api Key Access Policy",
+				MarkdownDescription: "Api Key Access Policy. To clear an existing policy, explicitly set this to an empty string (\"\"). Omitting the attribute will preserve the existing policy.",
 			},
 		},
 		MarkdownDescription: "Coralogix Api keys. For more info please review - https://coralogix.com/docs/user-guides/account-management/api-keys/api-keys/.",
@@ -300,7 +301,7 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	currentKeyId := result.GetKeyId()
-	key, diags := getKeyInfo(ctx, r.client, &currentKeyId, result.Value)
+	key, _, diags := getKeyInfo(ctx, r.client, &currentKeyId, result.Value, desiredState.AccessPolicy)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -318,9 +319,13 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	key, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer())
+	key, httpResponse, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer(), currentState.AccessPolicy)
 	if diags.HasError() {
-		resp.State.RemoveResource(ctx)
+		if isNotFoundResponse(httpResponse) {
+			resp.Diagnostics.AddWarning(fmt.Sprintf("coralogix_api_key %q is in state, but no longer exists in Coralogix backend", currentState.ID.ValueString()), fmt.Sprintf("%s will be recreated when you apply", currentState.ID.ValueString()))
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.Append(diags...)
 		return
 	}
@@ -376,6 +381,8 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		rq.IsActive = desiredState.Active.ValueBoolPointer()
 	}
 
+	setAccessPolicyOnUpdate(currentState, desiredState, &rq)
+
 	if currentState.Hashed.ValueBool() != desiredState.Hashed.ValueBool() {
 		resp.Diagnostics.AddError(
 			"Error updating ApiKey",
@@ -390,7 +397,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if isNotFoundResponse(httpResponse) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_api_key %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -402,7 +409,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	key, diags := getKeyInfo(ctx, r.client, &id, currentState.Value.ValueStringPointer())
+	key, _, diags := getKeyInfo(ctx, r.client, &id, currentState.Value.ValueStringPointer(), desiredState.AccessPolicy)
 	if diags.HasError() {
 		return
 	}
@@ -431,7 +438,7 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		Execute()
 
 	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+		if isNotFoundResponse(httpResponse) {
 			return
 		}
 		resp.Diagnostics.AddError("Error deleting coralogix_api_key",
@@ -441,7 +448,39 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 }
 
-func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
+// isNotFoundResponse reports whether an HTTP response represents a confirmed
+// 404 Not Found. It guards against a nil *http.Response, which the OpenAPI
+// client may return when the request never reached the backend (transport
+// error, cancelled context); in that case the error is not a confirmed 404 and
+// the resource must not be removed from state.
+func isNotFoundResponse(httpResponse *http.Response) bool {
+	return httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound
+}
+
+// setAccessPolicyOnUpdate populates rq.AccessPolicy based on the difference
+// between the current and desired access_policy values. The desired value is
+// sent as-is, including an explicit empty string ("") which clears the policy
+// on the backend. When nothing changed, or when the desired value is unknown,
+// AccessPolicy is left nil so it is omitted from the request.
+func setAccessPolicyOnUpdate(currentState, desiredState *ApiKeyModel, rq *apiKeys.UpdateApiKeyRequest) {
+	// An unknown desired value means the plan could not resolve the attribute
+	// yet (e.g. it references another resource's computed output). Terraform
+	// semantics are to omit the field rather than clear it, so leave
+	// rq.AccessPolicy nil and return before considering any change.
+	if desiredState.AccessPolicy.IsUnknown() {
+		return
+	}
+	if currentState.AccessPolicy.Equal(desiredState.AccessPolicy) {
+		return
+	}
+	// SDK contract (model_update_api_key_request.go:25-26): AccessPolicy is a
+	// *string with omitempty; sending an empty string clears the policy on the
+	// backend, while nil omits the field. desiredState carries the empty-string
+	// sentinel for an explicit clear, so pass the pointer through verbatim.
+	rq.AccessPolicy = desiredState.AccessPolicy.ValueStringPointer()
+}
+
+func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string, configuredAccessPolicy types.String) (*ApiKeyModel, *http.Response, diag.Diagnostics) {
 
 	result, httpResponse, err := r.
 		ApiKeysServiceGetApiKey(ctx, *id).
@@ -452,17 +491,17 @@ func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *st
 		diags.AddError("Error reading coralogix_api_key",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
-		return nil, diags
+		return nil, httpResponse, diags
 	}
 
-	key, diags := flattenGetApiKeyResponse(ctx, id, result, keyValue)
+	key, diags := flattenGetApiKeyResponse(ctx, id, result, keyValue, configuredAccessPolicy)
 	if diags.HasError() {
-		return nil, diags
+		return nil, httpResponse, diags
 	}
-	return key, nil
+	return key, httpResponse, nil
 }
 
-func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *apiKeys.GetApiKeyResponse, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
+func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *apiKeys.GetApiKeyResponse, keyValue *string, configuredAccessPolicy types.String) (*ApiKeyModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	permissions := utils.StringSliceToTypeStringSet(response.KeyInfo.KeyPermissions.Permissions)
@@ -506,8 +545,49 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 		Permissions:  permissions,
 		Presets:      presets,
 		Owner:        &owner,
-		AccessPolicy: types.StringPointerValue(response.KeyInfo.AccessPolicy),
+		AccessPolicy: flattenAccessPolicy(configuredAccessPolicy, response.KeyInfo.AccessPolicy),
 	}, nil
+}
+
+// flattenAccessPolicy stores the configured JSON text when it is equivalent to
+// the backend value. The API compact-encodes the policy and reorders object
+// keys, which would otherwise fail apply with "inconsistent result".
+func flattenAccessPolicy(configured types.String, apiPolicy *string) types.String {
+	if apiPolicy == nil || *apiPolicy == "" {
+		if !configured.IsNull() && !configured.IsUnknown() && configured.ValueString() == "" {
+			return configured
+		}
+		return types.StringValue("")
+	}
+	if !configured.IsNull() && !configured.IsUnknown() && utils.JSONStringsEqual(configured.ValueString(), *apiPolicy) {
+		return configured
+	}
+	canonical, err := utils.CanonicalJSON(*apiPolicy)
+	if err != nil {
+		return types.StringValue(*apiPolicy)
+	}
+	return types.StringValue(canonical)
+}
+
+// preserveAccessPolicyJSON keeps prior state when config JSON is equivalent, so
+// whitespace and key-order differences do not produce a plan.
+type preserveAccessPolicyJSON struct{}
+
+func (m preserveAccessPolicyJSON) Description(_ context.Context) string {
+	return "Keeps the prior access_policy text when the configured JSON is equivalent."
+}
+
+func (m preserveAccessPolicyJSON) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m preserveAccessPolicyJSON) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+		return
+	}
+	if utils.JSONStringsEqual(req.ConfigValue.ValueString(), req.StateValue.ValueString()) {
+		resp.PlanValue = req.StateValue
+	}
 }
 
 func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*apiKeys.CreateApiKeyRequest, diag.Diagnostics) {

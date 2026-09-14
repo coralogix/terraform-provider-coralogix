@@ -24,6 +24,7 @@ import (
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
@@ -64,6 +65,10 @@ func (r *ApiKeyDataSource) Schema(ctx context.Context, _ datasource.SchemaReques
 	d.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	if accessPolicyAttr, ok := resp.Schema.Attributes["access_policy"].(schema.StringAttribute); ok {
+		accessPolicyAttr.MarkdownDescription = "Api Key Access Policy"
+		resp.Schema.Attributes["access_policy"] = accessPolicyAttr
+	}
 }
 
 func (r *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -75,7 +80,7 @@ func (r *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	result, diags := getKeyInfo(ctx, r.client, &id, data.Value.ValueStringPointer())
+	result, _, diags := getKeyInfo(ctx, r.client, &id, data.Value.ValueStringPointer(), data.AccessPolicy)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
