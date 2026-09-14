@@ -15,6 +15,9 @@
 #### resource/coralogix_tco_policies_rum
 - FIX: `policies[*].dpxl_expression` now conflicts with `applications` and `subsystems` at plan time, matching the API which rejects the combination.
 
+#### data-source/coralogix_api_key
+- FIX: `access_policy` docs no longer describe the resource-only empty-string clear contract.
+
 #### resource/coralogix_api_key
 - FIX: Destroy converges when the backend answers `404 Not Found`.
 - FIX: Clearing `access_policy` now requires setting it explicitly to an empty string (`""`); omitting the attribute preserves the existing policy. The empty string is sent to the backend to clear the policy, and this contract is documented in the attribute description.
