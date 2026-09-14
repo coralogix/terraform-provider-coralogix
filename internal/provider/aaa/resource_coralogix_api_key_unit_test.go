@@ -15,10 +15,15 @@
 package aaa
 
 import (
+	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -151,4 +156,96 @@ func TestIsNotFoundResponse(t *testing.T) {
 
 func strPtr(s string) *string {
 	return &s
+}
+
+// TestApiKeyResourceRead drives the framework Read method against an httptest
+// backend to verify state-reconciliation behaviour by HTTP status:
+//   - 404 Not Found: Read must emit a warning and remove the resource from
+//     state, so a silently-recreated key is surfaced to the user.
+//   - 500 Internal Server Error (transient): Read must NOT warn and must NOT
+//     remove the resource; the error propagates and state is preserved.
+func TestApiKeyResourceRead(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name             string
+		status           int
+		wantWarnings     int
+		wantErrors       bool
+		wantResourceGone bool
+	}{
+		{
+			name:             "404 emits warning and removes resource",
+			status:           http.StatusNotFound,
+			wantWarnings:     1,
+			wantErrors:       false,
+			wantResourceGone: true,
+		},
+		{
+			name:             "500 keeps resource with no warning",
+			status:           http.StatusInternalServerError,
+			wantWarnings:     0,
+			wantErrors:       true,
+			wantResourceGone: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tc.status)
+				_, _ = w.Write([]byte(`{"message":"boom"}`))
+			}))
+			defer srv.Close()
+
+			cfg := apiKeys.NewConfiguration()
+			cfg.Servers = apiKeys.ServerConfigurations{{URL: srv.URL}}
+			cfg.HTTPClient = srv.Client()
+			client := apiKeys.NewAPIClient(cfg).APIKeysServiceAPI
+
+			r := &ApiKeyResource{client: client}
+
+			// Build a fully-populated state from the resource schema.
+			schemaResp := &resource.SchemaResponse{}
+			r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
+
+			state := tfsdk.State{Schema: schemaResp.Schema}
+			model := &ApiKeyModel{
+				ID:           types.StringValue("key-123"),
+				Name:         types.StringValue("example"),
+				Owner:        nil,
+				Active:       types.BoolValue(true),
+				Hashed:       types.BoolValue(false),
+				Permissions:  types.SetValueMust(types.StringType, []attr.Value{}),
+				Presets:      types.SetValueMust(types.StringType, []attr.Value{}),
+				Value:        types.StringNull(),
+				AccessPolicy: types.StringNull(),
+			}
+			if diags := state.Set(ctx, model); diags.HasError() {
+				t.Fatalf("failed to seed state: %v", diags)
+			}
+
+			req := resource.ReadRequest{State: state}
+			resp := &resource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema}}
+			// Seed the response state with the current value so a no-op Read
+			// leaves the resource present.
+			if diags := resp.State.Set(ctx, model); diags.HasError() {
+				t.Fatalf("failed to seed response state: %v", diags)
+			}
+
+			r.Read(ctx, req, resp)
+
+			if got := resp.Diagnostics.WarningsCount(); got != tc.wantWarnings {
+				t.Errorf("warnings = %d, want %d (%v)", got, tc.wantWarnings, resp.Diagnostics.Warnings())
+			}
+			if got := resp.Diagnostics.HasError(); got != tc.wantErrors {
+				t.Errorf("hasError = %v, want %v (%v)", got, tc.wantErrors, resp.Diagnostics.Errors())
+			}
+			// RemoveResource sets the response state to a null object.
+			gone := resp.State.Raw.IsNull()
+			if gone != tc.wantResourceGone {
+				t.Errorf("resourceGone = %v, want %v", gone, tc.wantResourceGone)
+			}
+		})
+	}
 }

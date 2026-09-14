@@ -472,6 +472,10 @@ func setAccessPolicyOnUpdate(currentState, desiredState *ApiKeyModel, rq *apiKey
 	if currentState.AccessPolicy.Equal(desiredState.AccessPolicy) {
 		return
 	}
+	// SDK contract (model_update_api_key_request.go:25-26): AccessPolicy is a
+	// *string with omitempty; sending an empty string clears the policy on the
+	// backend, while nil omits the field. desiredState carries the empty-string
+	// sentinel for an explicit clear, so pass the pointer through verbatim.
 	rq.AccessPolicy = desiredState.AccessPolicy.ValueStringPointer()
 }
 
@@ -532,14 +536,14 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 
 	owner := flattenOwner(response.KeyInfo.Owner)
 	return &ApiKeyModel{
-		ID:           types.StringValue(*apiKeyId),
-		Value:        key,
-		Name:         types.StringPointerValue(response.KeyInfo.Name),
-		Active:       types.BoolValue(active),
-		Hashed:       types.BoolValue(hashedKey),
-		Permissions:  permissions,
-		Presets:      presets,
-		Owner:        &owner,
+		ID:          types.StringValue(*apiKeyId),
+		Value:       key,
+		Name:        types.StringPointerValue(response.KeyInfo.Name),
+		Active:      types.BoolValue(active),
+		Hashed:      types.BoolValue(hashedKey),
+		Permissions: permissions,
+		Presets:     presets,
+		Owner:       &owner,
 		AccessPolicy: func() types.String {
 			if response.KeyInfo.AccessPolicy == nil {
 				return types.StringValue("")
