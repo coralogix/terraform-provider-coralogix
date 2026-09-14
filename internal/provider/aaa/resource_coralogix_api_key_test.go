@@ -139,7 +139,7 @@ func TestApiKeyResourceUpdate(t *testing.T) {
 			stateName:           "key-one",
 			stateAccessPolicy:   strptr("policy-old"),
 			planName:            "key-one",
-			planAccessPolicy:    nil,
+			planAccessPolicy:    strptr(""),
 			wantNewName:         nil,
 			wantAccessPolicySet: true,
 			wantAccessPolicy:    "", // cleared -> empty string sent to backend

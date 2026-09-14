@@ -64,9 +64,9 @@ func TestSetAccessPolicyOnUpdate(t *testing.T) {
 			want:    strPtr(policyB),
 		},
 		{
-			name:    "cleared_to_null_sends_empty_string",
+			name:    "cleared_to_empty_string_sends_empty_string",
 			current: types.StringValue(policyA),
-			desired: types.StringNull(),
+			desired: types.StringValue(""),
 			want:    &emptyStr,
 		},
 		{

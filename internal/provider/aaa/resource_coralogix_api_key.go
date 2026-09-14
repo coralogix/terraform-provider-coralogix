@@ -170,7 +170,7 @@ func resourceSchemaV1() schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "Api Key Access Policy",
+				MarkdownDescription: "Api Key Access Policy. To clear an existing policy, explicitly set this to an empty string (\"\"). Omitting the attribute will preserve the existing policy.",
 			},
 		},
 		MarkdownDescription: "Coralogix Api keys. For more info please review - https://coralogix.com/docs/user-guides/account-management/api-keys/api-keys/.",
@@ -321,6 +321,7 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 	key, httpResponse, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer())
 	if diags.HasError() {
 		if isNotFoundResponse(httpResponse) {
+			resp.Diagnostics.AddWarning(fmt.Sprintf("coralogix_api_key %q is in state, but no longer exists in Coralogix backend", currentState.ID.ValueString()), fmt.Sprintf("%s will be recreated when you apply", currentState.ID.ValueString()))
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -456,11 +457,10 @@ func isNotFoundResponse(httpResponse *http.Response) bool {
 }
 
 // setAccessPolicyOnUpdate populates rq.AccessPolicy based on the difference
-// between the current and desired access_policy values. When the desired value
-// is set it is sent as-is; when a previously-set value is being removed the
-// empty string is sent so the backend clears it. When nothing changed, or when
-// the desired value is unknown, AccessPolicy is left nil so it is omitted from
-// the request.
+// between the current and desired access_policy values. The desired value is
+// sent as-is, including an explicit empty string ("") which clears the policy
+// on the backend. When nothing changed, or when the desired value is unknown,
+// AccessPolicy is left nil so it is omitted from the request.
 func setAccessPolicyOnUpdate(currentState, desiredState *ApiKeyModel, rq *apiKeys.UpdateApiKeyRequest) {
 	// An unknown desired value means the plan could not resolve the attribute
 	// yet (e.g. it references another resource's computed output). Terraform
@@ -472,12 +472,7 @@ func setAccessPolicyOnUpdate(currentState, desiredState *ApiKeyModel, rq *apiKey
 	if currentState.AccessPolicy.Equal(desiredState.AccessPolicy) {
 		return
 	}
-	if !desiredState.AccessPolicy.IsNull() {
-		rq.AccessPolicy = desiredState.AccessPolicy.ValueStringPointer()
-	} else if !currentState.AccessPolicy.IsNull() {
-		empty := ""
-		rq.AccessPolicy = &empty
-	}
+	rq.AccessPolicy = desiredState.AccessPolicy.ValueStringPointer()
 }
 
 func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string) (*ApiKeyModel, *http.Response, diag.Diagnostics) {
@@ -545,7 +540,12 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 		Permissions:  permissions,
 		Presets:      presets,
 		Owner:        &owner,
-		AccessPolicy: types.StringPointerValue(response.KeyInfo.AccessPolicy),
+		AccessPolicy: func() types.String {
+			if response.KeyInfo.AccessPolicy == nil {
+				return types.StringValue("")
+			}
+			return types.StringValue(*response.KeyInfo.AccessPolicy)
+		}(),
 	}, nil
 }
 
