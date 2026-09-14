@@ -22,6 +22,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -32,7 +33,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -911,11 +911,11 @@ func V3() schema.Schema {
 			},
 			"labels": schema.MapAttribute{
 				Optional:    true,
-				Computed:    true,
 				ElementType: types.StringType,
-				PlanModifiers: []planmodifier.Map{
-					mapplanmodifier.UseStateForUnknown(),
+				Validators: []validator.Map{
+					mapvalidator.SizeAtLeast(1),
 				},
+				MarkdownDescription: "Key-value labels on the alert definition. Use them to categorize the alert and to match Notification Center routers and alert-scheduler mute rules. Omit the attribute to clear all labels. An empty map is rejected.",
 			},
 			"data_sources": schema.ListNestedAttribute{
 				Optional: true,

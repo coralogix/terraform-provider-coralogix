@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- FIX: Omitting `labels` now clears them on update. The attribute was `Optional+Computed` with `UseStateForUnknown()`, so removing it from HCL copied the prior map into the plan and Replace kept the old labels. An explicit empty map (`labels = {}`) is rejected at plan; omit the attribute to clear.
+
 #### resource/coralogix_alerts_scheduler
 - FIX: `description` is now Optional+Computed with a default of `""`, so omitting or removing it produces a zero-diff plan instead of perpetual drift.
 

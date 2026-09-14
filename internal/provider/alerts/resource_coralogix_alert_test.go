@@ -22,6 +22,8 @@ import (
 	alertschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_schema"
 	alerttypes "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_types"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
@@ -95,6 +97,72 @@ func TestFlattenTracingSimpleFilter_InvalidLatency(t *testing.T) {
 	if !found {
 		t.Errorf("expected diagnostic summary 'Invalid Latency Threshold Ms', got: %v", diags.Errors())
 	}
+}
+
+func TestFlattenAlertLabels(t *testing.T) {
+	ctx := context.Background()
+	base := func(labels map[string]string) *alerts.AlertDefProperties {
+		return &alerts.AlertDefProperties{
+			LogsImmediate: &alerts.LogsImmediateType{},
+			EntityLabels:  labels,
+		}
+	}
+
+	t.Run("nil map is null", func(t *testing.T) {
+		got, diags := flattenAlertLabels(ctx, base(nil))
+		if diags.HasError() {
+			t.Fatalf("unexpected diagnostics: %v", diags)
+		}
+		if !got.IsNull() {
+			t.Fatalf("got %v, want null", got)
+		}
+	})
+
+	t.Run("empty map is null", func(t *testing.T) {
+		got, diags := flattenAlertLabels(ctx, base(map[string]string{}))
+		if diags.HasError() {
+			t.Fatalf("unexpected diagnostics: %v", diags)
+		}
+		if !got.IsNull() {
+			t.Fatalf("got %v, want null", got)
+		}
+	})
+
+	t.Run("empty map is rejected by schema", func(t *testing.T) {
+		labelsAttr, ok := alertschema.V3().Attributes["labels"].(schema.MapAttribute)
+		if !ok {
+			t.Fatal("labels is not a MapAttribute")
+		}
+		empty, diags := types.MapValue(types.StringType, map[string]attr.Value{})
+		if diags.HasError() {
+			t.Fatalf("MapValue: %v", diags)
+		}
+		req := validator.MapRequest{ConfigValue: empty}
+		resp := validator.MapResponse{}
+		for _, v := range labelsAttr.Validators {
+			v.ValidateMap(ctx, req, &resp)
+		}
+		if !resp.Diagnostics.HasError() {
+			t.Fatal("expected labels = {} to be rejected")
+		}
+	})
+
+	t.Run("populated map is kept", func(t *testing.T) {
+		got, diags := flattenAlertLabels(ctx, base(map[string]string{"team": "payments"}))
+		if diags.HasError() {
+			t.Fatalf("unexpected diagnostics: %v", diags)
+		}
+		if got.IsNull() {
+			t.Fatal("got null, want populated map")
+		}
+		var m map[string]string
+		if diags := got.ElementsAs(ctx, &m, false); diags.HasError() {
+			t.Fatalf("ElementsAs: %v", diags)
+		}
+		if m["team"] != "payments" {
+			t.Fatalf("got %#v, want team=payments", m)
+		}
+	})
 }
 
 func TestExtractCustomEvaluationDelay(t *testing.T) {
