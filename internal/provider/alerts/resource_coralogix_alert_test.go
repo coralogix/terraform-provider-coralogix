@@ -22,6 +22,8 @@ import (
 	alertschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_schema"
 	alerttypes "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_types"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
@@ -123,6 +125,25 @@ func TestFlattenAlertLabels(t *testing.T) {
 		}
 		if !got.IsNull() {
 			t.Fatalf("got %v, want null", got)
+		}
+	})
+
+	t.Run("empty map is rejected by schema", func(t *testing.T) {
+		labelsAttr, ok := alertschema.V3().Attributes["labels"].(schema.MapAttribute)
+		if !ok {
+			t.Fatal("labels is not a MapAttribute")
+		}
+		empty, diags := types.MapValue(types.StringType, map[string]attr.Value{})
+		if diags.HasError() {
+			t.Fatalf("MapValue: %v", diags)
+		}
+		req := validator.MapRequest{ConfigValue: empty}
+		resp := validator.MapResponse{}
+		for _, v := range labelsAttr.Validators {
+			v.ValidateMap(ctx, req, &resp)
+		}
+		if !resp.Diagnostics.HasError() {
+			t.Fatal("expected labels = {} to be rejected")
 		}
 	})
 
