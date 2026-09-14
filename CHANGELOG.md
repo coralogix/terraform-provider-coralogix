@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alerts_scheduler
+- FIX: `description` is now Optional+Computed with a default of `""`, so omitting or removing it produces a zero-diff plan instead of perpetual drift.
+
 #### resource/coralogix_api_key
 - FIX: Destroy converges when the backend answers `404 Not Found`.
 
