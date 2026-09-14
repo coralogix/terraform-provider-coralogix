@@ -320,7 +320,7 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	key, httpResponse, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer())
 	if diags.HasError() {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+		if isNotFoundResponse(httpResponse) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -379,14 +379,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		rq.IsActive = desiredState.Active.ValueBoolPointer()
 	}
 
-	if !currentState.AccessPolicy.Equal(desiredState.AccessPolicy) {
-		if !desiredState.AccessPolicy.IsNull() && !desiredState.AccessPolicy.IsUnknown() {
-			rq.AccessPolicy = desiredState.AccessPolicy.ValueStringPointer()
-		} else if !currentState.AccessPolicy.IsNull() {
-			empty := ""
-			rq.AccessPolicy = &empty
-		}
-	}
+	setAccessPolicyOnUpdate(currentState, desiredState, &rq)
 
 	if currentState.Hashed.ValueBool() != desiredState.Hashed.ValueBool() {
 		resp.Diagnostics.AddError(
@@ -402,7 +395,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		Execute()
 
 	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+		if isNotFoundResponse(httpResponse) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_api_key %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -443,13 +436,47 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		Execute()
 
 	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+		if isNotFoundResponse(httpResponse) {
 			return
 		}
 		resp.Diagnostics.AddError("Error deleting coralogix_api_key",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
+	}
+}
+
+// isNotFoundResponse reports whether an HTTP response represents a confirmed
+// 404 Not Found. It guards against a nil *http.Response, which the OpenAPI
+// client may return when the request never reached the backend (transport
+// error, cancelled context); in that case the error is not a confirmed 404 and
+// the resource must not be removed from state.
+func isNotFoundResponse(httpResponse *http.Response) bool {
+	return httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound
+}
+
+// setAccessPolicyOnUpdate populates rq.AccessPolicy based on the difference
+// between the current and desired access_policy values. When the desired value
+// is set it is sent as-is; when a previously-set value is being removed the
+// empty string is sent so the backend clears it. When nothing changed, or when
+// the desired value is unknown, AccessPolicy is left nil so it is omitted from
+// the request.
+func setAccessPolicyOnUpdate(currentState, desiredState *ApiKeyModel, rq *apiKeys.UpdateApiKeyRequest) {
+	// An unknown desired value means the plan could not resolve the attribute
+	// yet (e.g. it references another resource's computed output). Terraform
+	// semantics are to omit the field rather than clear it, so leave
+	// rq.AccessPolicy nil and return before considering any change.
+	if desiredState.AccessPolicy.IsUnknown() {
+		return
+	}
+	if currentState.AccessPolicy.Equal(desiredState.AccessPolicy) {
+		return
+	}
+	if !desiredState.AccessPolicy.IsNull() {
+		rq.AccessPolicy = desiredState.AccessPolicy.ValueStringPointer()
+	} else if !currentState.AccessPolicy.IsNull() {
+		empty := ""
+		rq.AccessPolicy = &empty
 	}
 }
 

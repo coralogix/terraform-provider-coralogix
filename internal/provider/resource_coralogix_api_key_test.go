@@ -84,6 +84,20 @@ func TestApiKeyResourceWithAccessPolicy(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Update: change access_policy to a different value. The update
+			// request must carry the new policy so the backend applies it.
+			{
+				Config: updateApiKeyResourceWithAccessPolicy(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 3"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.team_id", teamID),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "access_policy", "{ \"version\": \"v2025-01-01\", \"rules\": [], \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" }, \"additionalInfo\": null } }"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
+				),
+			},
+			// Clear: removing access_policy from config sends the empty string
+			// so the backend clears the previously-set policy.
 			{
 				Config: updateApiKeyResource(),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -109,6 +123,20 @@ func testApiKeyResourceWithAccessPolicy() string {
   permissions = []
   presets = ["Alerts", "APM"]
   access_policy = "{ \"version\": \"v2025-01-01\", \"rules\": [], \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"grant\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"grant\" }, \"additionalInfo\": null } }"
+}
+`, "<TEAM_ID>", teamID, 1)
+}
+
+func updateApiKeyResourceWithAccessPolicy() string {
+	return strings.Replace(`resource "coralogix_api_key" "test" {
+  name  = "Test Key 3"
+  owner = {
+    team_id : "<TEAM_ID>"
+  }
+  active = true
+  permissions = []
+  presets = ["Alerts", "APM"]
+  access_policy = "{ \"version\": \"v2025-01-01\", \"rules\": [], \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"deny\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"deny\" }, \"additionalInfo\": null } }"
 }
 `, "<TEAM_ID>", teamID, 1)
 }
