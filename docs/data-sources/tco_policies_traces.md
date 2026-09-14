@@ -35,6 +35,7 @@ Read-Only:
 - `applications` (Attributes) The applications to apply the policy on. Applies the policy on all the applications by default. (see [below for nested schema](#nestedatt--policies--applications))
 - `archive_retention_id` (String) Allowing logs with a specific retention to be tagged.
 - `description` (String) The policy description
+- `dpxl_expression` (String) DataPrime expression to match spans for this policy. Mutually exclusive with the structured matchers (`services`, `actions`, `tags`, `applications`, `subsystems`) — set either this or those. Omit the attribute to clear it; an empty string is rejected by the API. The expression must include a version prefix, e.g. `<v1> $d.status == 'ERROR'`.
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
 - `id` (String) tco-policy ID.
 - `name` (String) tco-policy name.

@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dataplans"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -91,7 +90,14 @@ func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
 }
 
 func testAccTCOPoliciesLogsCheckDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).TCOPolicies()
+	// These tests drive the framework provider through ProtoV6ProviderFactories, so the SDKv2
+	// testAccProvider is never configured and its Meta() is nil. Build a client the way the rum
+	// destroy-check does instead.
+	clients, err := testAccNewClientSet()
+	if err != nil {
+		return fmt.Errorf("failed to build acceptance client: %w", err)
+	}
+	client := clients.TCOPolicies()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "coralogix_tco_policies_logs" {

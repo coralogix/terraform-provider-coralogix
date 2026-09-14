@@ -17,9 +17,9 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dataplans"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -110,8 +110,106 @@ func TestAccCoralogixResourceTCOPoliciesTracesCreate(t *testing.T) {
 	})
 }
 
+// TestAccCoralogixResourceTCOPoliciesTraces_dpxl_expression covers a TCO span policy
+// whose matcher is a DataPrime expression instead of the structured span matchers. The
+// two are mutually exclusive at the API level, so this fixture omits services, actions
+// and tags entirely, and asserts they stay absent in state — the API materializes
+// `tagRules: []` on read, which must not surface as drift.
+func TestAccCoralogixResourceTCOPoliciesTraces_dpxl_expression(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesTracesCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesTracesDpxlExpression(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.name", "Example tco_policy with DPXL expression"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.priority", "high"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.dpxl_expression", "<v1> $d.status == 'ERROR'"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesTracesResourceName, "policies.0.services.rule_type"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesTracesResourceName, "policies.0.actions.rule_type"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesTracesResourceName, "policies.0.tags.%"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceTCOPoliciesTraces_dpxl_replaces_span_rules exercises the
+// either/or expand in both directions: the atomic overwrite replaces rather than
+// merges, so dropping one matcher style from config must clear it on the API side.
+func TestAccCoralogixResourceTCOPoliciesTraces_dpxl_replaces_span_rules(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesTracesCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesTracesSpanRulesOnly(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.services.names.#", "1"),
+					resource.TestCheckTypeSetElemAttr(tcoPoliciesTracesResourceName, "policies.0.services.names.*", "service-name"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.actions.names.#", "1"),
+					resource.TestCheckTypeSetElemAttr(tcoPoliciesTracesResourceName, "policies.0.actions.names.*", "action-name"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.tags.tags.http.method.names.#", "1"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesTracesResourceName, "policies.0.dpxl_expression"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceTCOPoliciesTracesDpxlOnly(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.dpxl_expression", "<v1> $d.status == 'ERROR'"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesTracesResourceName, "policies.0.services.rule_type"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesTracesResourceName, "policies.0.actions.rule_type"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesTracesResourceName, "policies.0.tags.%"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceTCOPoliciesTracesSpanRulesOnly(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.services.names.#", "1"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.actions.names.#", "1"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.tags.tags.http.method.names.#", "1"),
+					resource.TestCheckNoResourceAttr(tcoPoliciesTracesResourceName, "policies.0.dpxl_expression"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceTCOPoliciesTraces_dpxl_conflicts_with_span_rules asserts the
+// mutual exclusion is caught at plan time by ConflictsWith, so no API round-trip is needed.
+// The API rejects a DPXL expression alongside any of applicationRule, subsystemRule,
+// serviceRule, actionRule or tagRules, so both the span-level and policy-level matchers
+// are covered.
+func TestAccCoralogixResourceTCOPoliciesTraces_dpxl_conflicts_with_span_rules(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesTracesCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixResourceTCOPoliciesTracesDpxlAndSpanRules(),
+				ExpectError: regexp.MustCompile("Invalid Attribute Combination"),
+			},
+			{
+				Config:      testAccCoralogixResourceTCOPoliciesTracesDpxlAndApplications(),
+				ExpectError: regexp.MustCompile("Invalid Attribute Combination"),
+			},
+		},
+	})
+}
+
 func testAccTCOPoliciesTracesCheckDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).TCOPolicies()
+	// These tests drive the framework provider through ProtoV6ProviderFactories, so the SDKv2
+	// testAccProvider is never configured and its Meta() is nil. Build a client the way the rum
+	// destroy-check does instead.
+	clients, err := testAccNewClientSet()
+	if err != nil {
+		return fmt.Errorf("failed to build acceptance client: %w", err)
+	}
+	client := clients.TCOPolicies()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "coralogix_tco_policies_traces" {
@@ -210,4 +308,86 @@ func testAccCoralogixResourceTCOPoliciesTraces() string {
 				]
 			}
 	`
+}
+
+func testAccCoralogixResourceTCOPoliciesTracesDpxlExpression() string {
+	return `resource "coralogix_tco_policies_traces" "test" {
+  policies = [
+    {
+      name            = "Example tco_policy with DPXL expression"
+      description     = "DPXL-based matcher for the TCO policy"
+      priority        = "high"
+      dpxl_expression = "<v1> $d.status == 'ERROR'"
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesTracesSpanRulesOnly() string {
+	return `resource "coralogix_tco_policies_traces" "test" {
+  policies = [
+    {
+      name     = "Example tco_policy migration"
+      priority = "high"
+      services = {
+        names = ["service-name"]
+      }
+      actions = {
+        names = ["action-name"]
+      }
+      tags = {
+        "tags.http.method" = {
+          names = ["GET"]
+        }
+      }
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesTracesDpxlOnly() string {
+	return `resource "coralogix_tco_policies_traces" "test" {
+  policies = [
+    {
+      name            = "Example tco_policy migration"
+      priority        = "high"
+      dpxl_expression = "<v1> $d.status == 'ERROR'"
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesTracesDpxlAndSpanRules() string {
+	return `resource "coralogix_tco_policies_traces" "test" {
+  policies = [
+    {
+      name            = "Example tco_policy conflict"
+      priority        = "high"
+      dpxl_expression = "<v1> $d.status == 'ERROR'"
+      services = {
+        names = ["service-name"]
+      }
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesTracesDpxlAndApplications() string {
+	return `resource "coralogix_tco_policies_traces" "test" {
+  policies = [
+    {
+      name            = "Example tco_policy conflict"
+      priority        = "high"
+      dpxl_expression = "<v1> $d.status == 'ERROR'"
+      applications = {
+        names = ["prod"]
+      }
+    },
+  ]
+}
+`
 }

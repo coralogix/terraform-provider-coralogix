@@ -266,9 +266,13 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 							Optional: true,
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
-								stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("severities")),
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("severities"),
+									path.MatchRelative().AtParent().AtName("applications"),
+									path.MatchRelative().AtParent().AtName("subsystems"),
+								),
 							},
-							MarkdownDescription: "DataPrime expression to match logs for this policy. Mutually exclusive with `severities` — set exactly one. The expression must include a version prefix, e.g. `<v1> $d.severity == 'INFO'`.",
+							MarkdownDescription: "DataPrime expression to match logs for this policy. Mutually exclusive with the structured matchers (`severities`, `applications`, `subsystems`) — set either this or those. The expression must include a version prefix, e.g. `<v1> $d.severity == 'INFO'`.",
 						},
 						"quota_based_priority_override": schema.SingleNestedAttribute{
 							Optional: true,
