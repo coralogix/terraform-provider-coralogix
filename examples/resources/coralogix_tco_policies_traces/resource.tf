@@ -97,6 +97,24 @@ resource "coralogix_tco_policies_traces" "tco_policies" {
       description     = "Match spans via DataPrime expression instead of the structured matchers"
       priority        = "high"
       dpxl_expression = "<v1> $d.status == 'ERROR'"
+    },
+    # Quota-based priority override: dynamically reassign the policy's priority
+    # based on daily quota consumption tiers. `priority` here is the fallback
+    # applied once all tiers are exhausted, and must be more restrictive than the
+    # last tier (most to least restrictive: block, low, medium, high).
+    {
+      name        = "Example tco_policy with quota-based override"
+      description = "Drop priority as daily quota is consumed"
+      priority    = "low"
+      services = {
+        names = ["service-name"]
+      }
+      quota_based_priority_override = {
+        usage_tiers = [
+          { daily_quota_percentage = 30, priority = "high" },
+          { daily_quota_percentage = 60, priority = "medium" },
+        ]
+      }
     }
   ]
 }

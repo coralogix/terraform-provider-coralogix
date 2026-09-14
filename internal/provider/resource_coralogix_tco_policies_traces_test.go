@@ -201,6 +201,94 @@ func TestAccCoralogixResourceTCOPoliciesTraces_dpxl_conflicts_with_span_rules(t 
 	})
 }
 
+// TestAccCoralogixResourceTCOPoliciesTraces_quotaOverride covers a span policy driven by
+// `quota_based_priority_override`, where `priority` is the fallback applied once all tiers
+// are exhausted. The API preserves tier order verbatim, so the assertions are positional.
+// The second step re-applies the identical config to assert the newly added optional nested
+// block produces an empty plan.
+func TestAccCoralogixResourceTCOPoliciesTraces_quotaOverride(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesTracesCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesTracesQuotaOverride(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.priority", "low"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.quota_based_priority_override.usage_tiers.#", "2"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.quota_based_priority_override.usage_tiers.0.daily_quota_percentage", "30"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.quota_based_priority_override.usage_tiers.0.priority", "high"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.quota_based_priority_override.usage_tiers.1.daily_quota_percentage", "60"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.quota_based_priority_override.usage_tiers.1.priority", "medium"),
+				),
+			},
+			{
+				// Same config again must produce no diff.
+				Config:   testAccCoralogixResourceTCOPoliciesTracesQuotaOverride(),
+				PlanOnly: true,
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceTCOPoliciesTraces_quotaOverride_replace exercises the two write
+// paths an atomic-overwrite collection has for this block: rewriting `usage_tiers` replaces
+// the list rather than merging it, and dropping the block from config clears the override on
+// the API side instead of preserving the prior state.
+func TestAccCoralogixResourceTCOPoliciesTraces_quotaOverride_replace(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesTracesCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceTCOPoliciesTracesQuotaOverride(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.quota_based_priority_override.usage_tiers.#", "2"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceTCOPoliciesTracesQuotaOverrideSingleTier(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.quota_based_priority_override.usage_tiers.#", "1"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.quota_based_priority_override.usage_tiers.0.daily_quota_percentage", "50"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.quota_based_priority_override.usage_tiers.0.priority", "high"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceTCOPoliciesTracesQuotaOverrideNone(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr(tcoPoliciesTracesResourceName, "policies.0.quota_based_priority_override.usage_tiers.#"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceTCOPoliciesTraces_quotaOverride_invalid asserts the two bounds the
+// schema owns are caught at plan time, so neither needs an API round-trip: `block` is not a
+// legal tier priority, and `daily_quota_percentage` is capped at 100. The cross-tier rules
+// (strictly increasing percentages, strictly decreasing priorities, every tier above the base
+// priority) are deliberately left to the API's descriptive 400 and are not checked here.
+func TestAccCoralogixResourceTCOPoliciesTraces_quotaOverride_invalid(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPoliciesTracesCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixResourceTCOPoliciesTracesQuotaOverrideBlockTier(),
+				ExpectError: regexp.MustCompile("Invalid Attribute Value Match"),
+			},
+			{
+				Config:      testAccCoralogixResourceTCOPoliciesTracesQuotaOverrideOutOfRange(),
+				ExpectError: regexp.MustCompile("Invalid Attribute Value"),
+			},
+		},
+	})
+}
+
 func testAccTCOPoliciesTracesCheckDestroy(s *terraform.State) error {
 	// These tests drive the framework provider through ProtoV6ProviderFactories, so the SDKv2
 	// testAccProvider is never configured and its Meta() is nil. Build a client the way the rum
@@ -354,6 +442,96 @@ func testAccCoralogixResourceTCOPoliciesTracesDpxlOnly() string {
       name            = "Example tco_policy migration"
       priority        = "high"
       dpxl_expression = "<v1> $d.status == 'ERROR'"
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesTracesQuotaOverride() string {
+	return `resource "coralogix_tco_policies_traces" "test" {
+  policies = [
+    {
+      name     = "Example tco_policy with quota-based override"
+      priority = "low"
+      services = {
+        names = ["service-name"]
+      }
+      quota_based_priority_override = {
+        usage_tiers = [
+          { daily_quota_percentage = 30, priority = "high" },
+          { daily_quota_percentage = 60, priority = "medium" },
+        ]
+      }
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesTracesQuotaOverrideSingleTier() string {
+	return `resource "coralogix_tco_policies_traces" "test" {
+  policies = [
+    {
+      name     = "Example tco_policy with quota-based override"
+      priority = "low"
+      services = {
+        names = ["service-name"]
+      }
+      quota_based_priority_override = {
+        usage_tiers = [
+          { daily_quota_percentage = 50, priority = "high" },
+        ]
+      }
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesTracesQuotaOverrideNone() string {
+	return `resource "coralogix_tco_policies_traces" "test" {
+  policies = [
+    {
+      name     = "Example tco_policy with quota-based override"
+      priority = "low"
+      services = {
+        names = ["service-name"]
+      }
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesTracesQuotaOverrideBlockTier() string {
+	return `resource "coralogix_tco_policies_traces" "test" {
+  policies = [
+    {
+      name     = "Example tco_policy with invalid tier priority"
+      priority = "low"
+      quota_based_priority_override = {
+        usage_tiers = [
+          { daily_quota_percentage = 80, priority = "block" },
+        ]
+      }
+    },
+  ]
+}
+`
+}
+
+func testAccCoralogixResourceTCOPoliciesTracesQuotaOverrideOutOfRange() string {
+	return `resource "coralogix_tco_policies_traces" "test" {
+  policies = [
+    {
+      name     = "Example tco_policy with out-of-range tier quota"
+      priority = "low"
+      quota_based_priority_override = {
+        usage_tiers = [
+          { daily_quota_percentage = 150, priority = "high" },
+        ]
+      }
     },
   ]
 }
