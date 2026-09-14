@@ -506,7 +506,7 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.custom_evaluation_delay", "100"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.percentage_of_deviation", "25.5"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
-					resource.TestCheckResourceAttr(alertResourceName, "labels.#", "0"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "labels"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),

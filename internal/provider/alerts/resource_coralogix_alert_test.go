@@ -97,6 +97,53 @@ func TestFlattenTracingSimpleFilter_InvalidLatency(t *testing.T) {
 	}
 }
 
+func TestFlattenAlertLabels(t *testing.T) {
+	ctx := context.Background()
+	base := func(labels map[string]string) *alerts.AlertDefProperties {
+		return &alerts.AlertDefProperties{
+			LogsImmediate: &alerts.LogsImmediateType{},
+			EntityLabels:  labels,
+		}
+	}
+
+	t.Run("nil map is null", func(t *testing.T) {
+		got, diags := flattenAlertLabels(ctx, base(nil))
+		if diags.HasError() {
+			t.Fatalf("unexpected diagnostics: %v", diags)
+		}
+		if !got.IsNull() {
+			t.Fatalf("got %v, want null", got)
+		}
+	})
+
+	t.Run("empty map is null", func(t *testing.T) {
+		got, diags := flattenAlertLabels(ctx, base(map[string]string{}))
+		if diags.HasError() {
+			t.Fatalf("unexpected diagnostics: %v", diags)
+		}
+		if !got.IsNull() {
+			t.Fatalf("got %v, want null", got)
+		}
+	})
+
+	t.Run("populated map is kept", func(t *testing.T) {
+		got, diags := flattenAlertLabels(ctx, base(map[string]string{"team": "payments"}))
+		if diags.HasError() {
+			t.Fatalf("unexpected diagnostics: %v", diags)
+		}
+		if got.IsNull() {
+			t.Fatal("got null, want populated map")
+		}
+		var m map[string]string
+		if diags := got.ElementsAs(ctx, &m, false); diags.HasError() {
+			t.Fatalf("ElementsAs: %v", diags)
+		}
+		if m["team"] != "payments" {
+			t.Fatalf("got %#v, want team=payments", m)
+		}
+	})
+}
+
 func TestExtractCustomEvaluationDelay(t *testing.T) {
 	cases := []struct {
 		name string

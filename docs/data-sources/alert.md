@@ -27,7 +27,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 - `enabled` (Boolean) Alert enabled status. True by default.
 - `group_by` (List of String) Group by fields.
 - `incidents_settings` (Attributes) (see [below for nested schema](#nestedatt--incidents_settings))
-- `labels` (Map of String)
+- `labels` (Map of String) Key-value labels on the alert definition. Use them to categorize the alert and to match Notification Center routers and alert-scheduler mute rules. Omit the attribute to clear all labels.
 - `name` (String) Alert name.
 - `notification_group` (Attributes) (see [below for nested schema](#nestedatt--notification_group))
 - `phantom_mode` (Boolean)

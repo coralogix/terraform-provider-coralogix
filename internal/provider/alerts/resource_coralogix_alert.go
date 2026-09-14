@@ -2869,7 +2869,7 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 	if diags.HasError() {
 		return nil, diags
 	}
-	labels, diags := types.MapValueFrom(ctx, types.StringType, getAlertEntityLabels(alertProperties))
+	labels, diags := flattenAlertLabels(ctx, alertProperties)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3107,6 +3107,14 @@ func getAlertIncidentSettings(alertDefProperties *alerts.AlertDefProperties) *al
 	} else {
 		return nil
 	}
+}
+
+func flattenAlertLabels(ctx context.Context, alertProperties *alerts.AlertDefProperties) (types.Map, diag.Diagnostics) {
+	entityLabels := getAlertEntityLabels(alertProperties)
+	if len(entityLabels) == 0 {
+		return types.MapNull(types.StringType), nil
+	}
+	return types.MapValueFrom(ctx, types.StringType, entityLabels)
 }
 
 func getAlertEntityLabels(alertDefProperties *alerts.AlertDefProperties) map[string]string {
