@@ -25,6 +25,7 @@ import (
 	alertscheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -502,6 +503,79 @@ func testAccCoralogixResourceAlertsSchedulerAlwaysActive() string {
 	return `resource "coralogix_alerts_scheduler" "test" {
   name        = "permanent-suppression"
   description = "Permanent suppression rule - always active"
+  filter = {
+    what_expression = "source logs | filter true"
+  }
+  schedule = {
+    operation = "mute"
+    recurring = {
+      always_active = true
+    }
+  }
+}
+`
+}
+
+func TestAccCoralogixResourceAlertsSchedulerDescriptionDefaultNoDrift(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		CheckDestroy:             testAccCheckAlertsSchedulerDestroy,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Config omits description entirely: the Optional+Computed
+				// attribute must default to "" and produce no follow-up diff.
+				Config: testAccCoralogixResourceAlertsSchedulerNoDescription(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "name", "no-description"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "description", ""),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				// Now set a description explicitly.
+				Config: testAccCoralogixResourceAlertsSchedulerWithDescription(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "description", "temporary description"),
+				),
+			},
+			{
+				// Remove the previously-set description again: the value should
+				// fall back to the "" default with a zero-diff plan.
+				Config: testAccCoralogixResourceAlertsSchedulerNoDescription(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "description", ""),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertsSchedulerNoDescription() string {
+	return `resource "coralogix_alerts_scheduler" "test" {
+  name   = "no-description"
+  filter = {
+    what_expression = "source logs | filter true"
+  }
+  schedule = {
+    operation = "mute"
+    recurring = {
+      always_active = true
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertsSchedulerWithDescription() string {
+	return `resource "coralogix_alerts_scheduler" "test" {
+  name        = "no-description"
+  description = "temporary description"
   filter = {
     what_expression = "source logs | filter true"
   }

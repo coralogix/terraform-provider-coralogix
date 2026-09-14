@@ -189,6 +189,8 @@ func (r *AlertsSchedulerResource) Schema(_ context.Context, _ resource.SchemaReq
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(""),
 				MarkdownDescription: "Alert Scheduler description.",
 			},
 			"meta_labels": schema.SetNestedAttribute{
