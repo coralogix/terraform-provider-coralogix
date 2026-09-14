@@ -51,7 +51,7 @@ resource "coralogix_api_key" "example" {
 
 ### Optional
 
-- `access_policy` (String) Api Key Access Policy
+- `access_policy` (String) Api Key Access Policy. To clear an existing policy, explicitly set this to an empty string (""). Omitting the attribute will preserve the existing policy.
 - `active` (Boolean) Api Key Is Active.
 
 ### Read-Only
