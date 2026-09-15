@@ -48,13 +48,59 @@ resource "coralogix_slo_v2" "example_window_based_slo" {
       query = {
         query = "avg(avg_over_time(request_duration_seconds[1m]))"
       }
-      window              = "1_minute"
-      comparison_operator = "less_than"
-      threshold           = 0.232
+      window                = "1_minute"
+      comparison_operator   = "less_than"
+      threshold             = 0.232
+      missing_data_strategy = "good"
     }
   }
   window = {
     slo_time_frame = "28_days"
+  }
+  ownership_tags = {
+    environment = {
+      static_values = ["prod"]
+    }
+    team = {
+      label_keys = ["owning_team"]
+    }
+  }
+}
+
+# APM SLOs are generated from a service in the APM Service Catalog rather than
+# from PromQL. The service has to already exist in your tenant's catalog - the
+# API rejects unknown names - so it is read from a variable here.
+variable "apm_service_name" {
+  type        = string
+  description = "Name of an APM Service Catalog service in your Coralogix tenant. Replace the placeholder; the API rejects a name that is not in the catalog."
+  default     = "<your_apm_service_name>"
+}
+
+resource "coralogix_slo_v2" "example_apm_slo" {
+  name                        = "coralogix_apm_slo"
+  description                 = "Example APM SLO tracking a service's error rate"
+  target_threshold_percentage = 99
+  product_type                = "apm"
+  sli = {
+    apm_sli = {
+      services     = [var.apm_service_name]
+      error_config = {}
+      filters = [{
+        key    = "http.status_code"
+        values = ["500", "503"]
+      }]
+    }
+  }
+  window = {
+    slo_time_frame = "7_days"
+  }
+  ownership_tags = {
+    service = {
+      static_values = [var.apm_service_name]
+    }
+    team = {
+      static_values = ["sre"]
+    }
   }
 }
 

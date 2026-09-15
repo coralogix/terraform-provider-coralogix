@@ -3,6 +3,16 @@
 #### resource/coralogix_fleet_configuration_group
 - FIX: Keep `family.remote_configuration` in configuration order when the API returns remotes in a different order.
 
+#### resource/coralogix_slo_v2
+- FEAT: Add support for `sli.apm_sli`, a third SLI branch that builds the SLO from an APM Service Catalog service instead of PromQL, with `services`, `error_config`, `latency_config` (`time_window`, `threshold`, `quantile.percentile`, `average`), `filters` and `grouping_keys`. APM SLOs can now also be read and imported; a read used to fail outright.
+- FEAT: Add support for `product_type` (`unspecified`, `apm`). It is `Optional+Computed`, so removing it from the configuration keeps the last applied value - set `product_type = "unspecified"` to reset it.
+- FEAT: Add support for `ownership_tags`, with independent `service`, `environment` and `team` dimensions carrying `static_values` or `label_keys` plus the computed `resolved_values`. Removing the block clears the tags.
+- FEAT: Add support for `sli.window_based_metric_sli.missing_data_strategy` (`uncounted`, `good`, `bad`). It is `Optional+Computed`, so removing it from the configuration keeps the last applied value - set `missing_data_strategy = "uncounted"` to reset it.
+- FEAT: Add the computed `apm_sli_metadata`, the backend's read-only copy of `sli.apm_sli`.
+- FIX: Reject `unspecified` for `sli.window_based_metric_sli.window` and `sli.apm_sli.latency_config.time_window`. The backend has no implementation for that value and fails the create with an HTTP 500; the error now surfaces at plan time instead.
+- FIX: Require exactly one of `sli.apm_sli.latency_config.quantile` or `sli.apm_sli.latency_config.average`. Setting neither was rejected by the API with `Latency query type must be specified`, and setting both failed to serialize; both now fail at plan time.
+- FIX: Require exactly one of `sli.apm_sli.error_config` or `sli.apm_sli.latency_config`. Setting neither was rejected by the API with `Unsupported APM SLI type: undefined`, and setting both failed to serialize; both now fail at plan time.
+
 # Release 3.16.0
 
 #### resource/coralogix_archive_logs
