@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_archive_logs
+- FIX: Guard `httpResponse` against nil in `Read` and `Update` to prevent a nil pointer dereference panic when the API call returns a transport error.
+
+
 #### resource/coralogix_alert
 - FIX: Omitting `labels` now clears them on update. The attribute was `Optional+Computed` with `UseStateForUnknown()`, so removing it from HCL copied the prior map into the plan and Replace kept the old labels. An explicit empty map (`labels = {}`) is rejected at plan; omit the attribute to clear.
 
