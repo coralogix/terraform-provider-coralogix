@@ -395,9 +395,19 @@ func TestAccCoralogixResourceSLOV2APMLatency(t *testing.T) {
       values = ["500", "503"]
     }]`)
 
+	// quantile is present but empty: exactly one query type is required, while
+	// percentile stays omitted so the backend default is still what is tested.
 	withoutThresholds := testAccCoralogixSLOV2APMSLI(service, `
       latency_config = {
         time_window = "5_minutes"
+        quantile    = {}
+      }`, "")
+
+	withAverage := testAccCoralogixSLOV2APMSLI(service, `
+      latency_config = {
+        time_window = "5_minutes"
+        threshold   = 250
+        average     = {}
       }`, "")
 
 	resource.Test(t, resource.TestCase{
@@ -428,6 +438,20 @@ func TestAccCoralogixResourceSLOV2APMLatency(t *testing.T) {
 			},
 			{
 				Config:   withoutThresholds,
+				PlanOnly: true,
+			},
+			{
+				// The other latency query type. Switching to it must drop the
+				// quantile rather than send both, which the SDK refuses to encode.
+				Config: withAverage,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(sloV2ResourceName, "sli.apm_sli.latency_config.threshold", "250"),
+					resource.TestCheckResourceAttrSet(sloV2ResourceName, "sli.apm_sli.latency_config.average.%"),
+					resource.TestCheckNoResourceAttr(sloV2ResourceName, "sli.apm_sli.latency_config.quantile"),
+				),
+			},
+			{
+				Config:   withAverage,
 				PlanOnly: true,
 			},
 			{
