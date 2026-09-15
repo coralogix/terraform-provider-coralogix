@@ -262,6 +262,13 @@ func TestAccCoralogixResourceSLOV2Validation(t *testing.T) {
 				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 			{
+				// An apm_sli carrying neither branch is rejected by the API with
+				// "Unsupported APM SLI type: undefined".
+				Config:      testAccCoralogixSLOV2APMSLI("svc-does-not-matter", "", ""),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+			{
 				// A latency_config carrying neither quantile nor average is
 				// rejected by the API with "Latency query type must be specified".
 				Config: testAccCoralogixSLOV2APMSLI("svc-does-not-matter", `

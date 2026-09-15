@@ -148,10 +148,10 @@ Read-Only:
 
 Read-Only:
 
-- `error_config` (Attributes) Measure the service's error rate. Set it to the empty object `{}`; it carries no attributes. Conflicts with `latency_config`. (see [below for nested schema](#nestedatt--sli--apm_sli--error_config))
+- `error_config` (Attributes) Measure the service's error rate. Set it to the empty object `{}`; it carries no attributes. Exactly one of `error_config` or `latency_config` is required: the backend rejects an `apm_sli` with neither, and the SDK refuses to encode one with both. (see [below for nested schema](#nestedatt--sli--apm_sli--error_config))
 - `filters` (Attributes List) Additional label-based filters applied to the generated metrics. Omit the attribute for no filters; an explicit empty list is rejected. (see [below for nested schema](#nestedatt--sli--apm_sli--filters))
 - `grouping_keys` (List of String) Labels to group the SLO results by. Omit the attribute for no extra grouping keys; an explicit empty list is rejected. Distinct from the read-only top-level `grouping`, which the backend fixes to `service_name` for APM SLOs.
-- `latency_config` (Attributes) Measure the service's latency. Conflicts with `error_config`. (see [below for nested schema](#nestedatt--sli--apm_sli--latency_config))
+- `latency_config` (Attributes) Measure the service's latency. Exactly one of `error_config` or `latency_config` is required. (see [below for nested schema](#nestedatt--sli--apm_sli--latency_config))
 - `services` (List of String) Names of the APM Service Catalog services to monitor. The backend currently accepts exactly one service and rejects unknown service names.
 
 <a id="nestedatt--sli--apm_sli--error_config"></a>

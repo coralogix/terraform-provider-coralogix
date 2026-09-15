@@ -308,10 +308,12 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 								Optional:   true,
 								Attributes: map[string]schema.Attribute{},
 								Validators: []validator.Object{
-									objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("latency_config")),
+									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("latency_config")),
 								},
 								MarkdownDescription: "Measure the service's error rate. Set it to the empty object `{}`; " +
-									"it carries no attributes. Conflicts with `latency_config`.",
+									"it carries no attributes. Exactly one of `error_config` or `latency_config` is " +
+									"required: the backend rejects an `apm_sli` with neither, and the SDK refuses to " +
+									"encode one with both.",
 							},
 							"latency_config": schema.SingleNestedAttribute{
 								Optional: true,
@@ -365,9 +367,10 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 									},
 								},
 								Validators: []validator.Object{
-									objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("error_config")),
+									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("error_config")),
 								},
-								MarkdownDescription: "Measure the service's latency. Conflicts with `error_config`.",
+								MarkdownDescription: "Measure the service's latency. Exactly one of `error_config` or " +
+									"`latency_config` is required.",
 							},
 							"filters": schema.ListNestedAttribute{
 								Optional:   true,

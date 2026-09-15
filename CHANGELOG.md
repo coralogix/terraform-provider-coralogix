@@ -11,6 +11,7 @@
 - FEAT: Add the computed `apm_sli_metadata`, the backend's read-only copy of `sli.apm_sli`.
 - FIX: Reject `unspecified` for `sli.window_based_metric_sli.window` and `sli.apm_sli.latency_config.time_window`. The backend has no implementation for that value and fails the create with an HTTP 500; the error now surfaces at plan time instead.
 - FIX: Require exactly one of `sli.apm_sli.latency_config.quantile` or `sli.apm_sli.latency_config.average`. Setting neither was rejected by the API with `Latency query type must be specified`, and setting both failed to serialize; both now fail at plan time.
+- FIX: Require exactly one of `sli.apm_sli.error_config` or `sli.apm_sli.latency_config`. Setting neither was rejected by the API with `Unsupported APM SLI type: undefined`, and setting both failed to serialize; both now fail at plan time.
 
 # Release 3.16.0
 
