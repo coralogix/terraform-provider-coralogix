@@ -87,7 +87,8 @@ resource "coralogix_slo_v2" "example_window_based_slo" {
 # API rejects unknown names - so it is read from a variable here.
 variable "apm_service_name" {
   type        = string
-  description = "Name of an APM Service Catalog service in your Coralogix tenant."
+  description = "Name of an APM Service Catalog service in your Coralogix tenant. Replace the placeholder; the API rejects a name that is not in the catalog."
+  default     = "<your_apm_service_name>"
 }
 
 resource "coralogix_slo_v2" "example_apm_slo" {
@@ -285,7 +286,7 @@ Required:
 
 Required:
 
-- `time_window` (String) Time window for latency calculations. One of: 1_minute, 5_minutes, unspecified.
+- `time_window` (String) Time window for latency calculations. One of: 1_minute, 5_minutes.
 
 Optional:
 
@@ -340,7 +341,7 @@ Required:
 - `comparison_operator` (String) Comparison operator used to evaluate the threshold. One of: greater_than,greater_than_or_equals,less_than,less_than_or_equals,unspecified
 - `query` (Attributes) Query used for evaluating the time-window SLI. (see [below for nested schema](#nestedatt--sli--window_based_metric_sli--query))
 - `threshold` (Number) Threshold value for the comparison.
-- `window` (String) Time window type for evaluation. One of: 1_minute, 5_minutes, unspecified.
+- `window` (String) Time window type for evaluation. One of: 1_minute, 5_minutes.
 
 Optional:
 

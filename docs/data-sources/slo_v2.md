@@ -175,7 +175,7 @@ Read-Only:
 - `average` (Attributes) Mean-based latency measurement. Set it to the empty object `{}`; it carries no attributes. Conflicts with `quantile`. (see [below for nested schema](#nestedatt--sli--apm_sli--latency_config--average))
 - `quantile` (Attributes) Percentile-based latency measurement. Conflicts with `average`. (see [below for nested schema](#nestedatt--sli--apm_sli--latency_config--quantile))
 - `threshold` (Number) Latency threshold in milliseconds; a request is good when its latency is at or below it. The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `threshold = 0` to reset it.
-- `time_window` (String) Time window for latency calculations. One of: 1_minute, 5_minutes, unspecified.
+- `time_window` (String) Time window for latency calculations. One of: 1_minute, 5_minutes.
 
 <a id="nestedatt--sli--apm_sli--latency_config--average"></a>
 ### Nested Schema for `sli.apm_sli.latency_config.average`
@@ -225,7 +225,7 @@ Read-Only:
 - `missing_data_strategy` (String) How windows without data are counted. One of: bad, good, uncounted. The backend stores `uncounted` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `missing_data_strategy = "uncounted"` to reset it.
 - `query` (Attributes) Query used for evaluating the time-window SLI. (see [below for nested schema](#nestedatt--sli--window_based_metric_sli--query))
 - `threshold` (Number) Threshold value for the comparison.
-- `window` (String) Time window type for evaluation. One of: 1_minute, 5_minutes, unspecified.
+- `window` (String) Time window type for evaluation. One of: 1_minute, 5_minutes.
 
 <a id="nestedatt--sli--window_based_metric_sli--query"></a>
 ### Nested Schema for `sli.window_based_metric_sli.query`

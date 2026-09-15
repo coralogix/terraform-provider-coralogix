@@ -9,6 +9,7 @@
 - FEAT: Add support for `ownership_tags`, with independent `service`, `environment` and `team` dimensions carrying `static_values` or `label_keys` plus the computed `resolved_values`. Removing the block clears the tags.
 - FEAT: Add support for `sli.window_based_metric_sli.missing_data_strategy` (`uncounted`, `good`, `bad`). It is `Optional+Computed`, so removing it from the configuration keeps the last applied value - set `missing_data_strategy = "uncounted"` to reset it.
 - FEAT: Add the computed `apm_sli_metadata`, the backend's read-only copy of `sli.apm_sli`.
+- FIX: Reject `unspecified` for `sli.window_based_metric_sli.window` and `sli.apm_sli.latency_config.time_window`. The backend has no implementation for that value and fails the create with an HTTP 500; the error now surfaces at plan time instead.
 
 # Release 3.16.0
 

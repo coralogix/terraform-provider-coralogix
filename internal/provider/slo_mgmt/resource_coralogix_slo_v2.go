@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
 	"strings"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -62,8 +63,13 @@ var (
 		slos.WINDOWSLOWINDOW_WINDOW_SLO_WINDOW_1_MINUTE:    "1_minute",
 		slos.WINDOWSLOWINDOW_WINDOW_SLO_WINDOW_5_MINUTES:   "5_minutes",
 	}
-	schemaToProtoSLOWindow          = utils.ReverseMap(protoToSchemaSloWindow)
-	validWindows                    = utils.GetKeys(schemaToProtoSLOWindow)
+	schemaToProtoSLOWindow = utils.ReverseMap(protoToSchemaSloWindow)
+	// The backend has no implementation for WINDOW_SLO_WINDOW_UNSPECIFIED: a create
+	// that resolves to it fails with HTTP 500 "Not implemented yet", both when the
+	// window is sent explicitly and when it is omitted. So "unspecified" is not
+	// offered as a configurable value, while protoToSchemaSloWindow keeps the
+	// member for the read path.
+	validWindows                    = slices.DeleteFunc(utils.GetKeys(schemaToProtoSLOWindow), func(w string) bool { return w == utils.UNSPECIFIED })
 	protoToSchemaComparisonOperator = map[slos.ComparisonOperator]string{
 		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_UNSPECIFIED:            utils.UNSPECIFIED,
 		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_GREATER_THAN:           "greater_than",
