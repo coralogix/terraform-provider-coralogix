@@ -348,18 +348,20 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 											},
 										},
 										Validators: []validator.Object{
-											objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("average")),
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("average")),
 										},
-										MarkdownDescription: "Percentile-based latency measurement. Conflicts with `average`.",
+										MarkdownDescription: "Percentile-based latency measurement. Exactly one of " +
+											"`quantile` or `average` is required: the backend rejects a `latency_config` " +
+											"with neither, and the SDK refuses to encode one with both.",
 									},
 									"average": schema.SingleNestedAttribute{
 										Optional:   true,
 										Attributes: map[string]schema.Attribute{},
 										Validators: []validator.Object{
-											objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("quantile")),
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("quantile")),
 										},
 										MarkdownDescription: "Mean-based latency measurement. Set it to the empty object `{}`; " +
-											"it carries no attributes. Conflicts with `quantile`.",
+											"it carries no attributes. Exactly one of `quantile` or `average` is required.",
 									},
 								},
 								Validators: []validator.Object{

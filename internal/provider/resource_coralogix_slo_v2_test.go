@@ -261,8 +261,72 @@ func TestAccCoralogixResourceSLOV2Validation(t *testing.T) {
 				PlanOnly:    true,
 				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
+			{
+				// A latency_config carrying neither quantile nor average is
+				// rejected by the API with "Latency query type must be specified".
+				Config: testAccCoralogixSLOV2APMSLI("svc-does-not-matter", `
+      latency_config = {
+        time_window = "1_minute"
+        threshold   = 500
+      }`, ""),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+			{
+				// Both set never reaches the API: the SDK's MarshalJSON refuses
+				// with "at most one of [quantile, average] may be set".
+				Config: testAccCoralogixSLOV2APMSLI("svc-does-not-matter", `
+      latency_config = {
+        time_window = "1_minute"
+        quantile    = { percentile = 0.95 }
+        average     = {}
+      }`, ""),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+			{
+				// The backend has no implementation for the unspecified window and
+				// answers an HTTP 500, so it must not be offered as a value.
+				Config: testAccCoralogixSLOV2APMSLI("svc-does-not-matter", `
+      latency_config = {
+        time_window = "unspecified"
+        quantile    = { percentile = 0.95 }
+      }`, ""),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`(?s)time_window value must be one of.*got: "unspecified"`),
+			},
+			{
+				Config:      testAccCoralogixSLOV2WindowBasedWithWindow("unspecified"),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`(?s)window value must be one of.*got: "unspecified"`),
+			},
 		},
 	})
+}
+
+// testAccCoralogixSLOV2WindowBasedWithWindow varies the window of a window-based
+// SLI, which testAccCoralogixSLOV2WindowSLO hard-codes.
+func testAccCoralogixSLOV2WindowBasedWithWindow(window string) string {
+	return fmt.Sprintf(`
+resource "coralogix_slo_v2" "test" {
+  name                        = "coralogix_slo_v2_acc_window"
+  description                 = "Window based SLO used by the coralogix_slo_v2 acceptance tests"
+  target_threshold_percentage = 95.0
+  sli = {
+    window_based_metric_sli = {
+      query = {
+        query = "avg(avg_over_time(request_duration_seconds[1m]))"
+      }
+      window              = %q
+      comparison_operator = "less_than"
+      threshold           = 0.25
+    }
+  }
+  window = {
+    slo_time_frame = "7_days"
+  }
+}
+`, window)
 }
 
 // TestAccCoralogixResourceSLOV2APMError creates an APM error SLO. The second

@@ -290,8 +290,8 @@ Required:
 
 Optional:
 
-- `average` (Attributes) Mean-based latency measurement. Set it to the empty object `{}`; it carries no attributes. Conflicts with `quantile`. (see [below for nested schema](#nestedatt--sli--apm_sli--latency_config--average))
-- `quantile` (Attributes) Percentile-based latency measurement. Conflicts with `average`. (see [below for nested schema](#nestedatt--sli--apm_sli--latency_config--quantile))
+- `average` (Attributes) Mean-based latency measurement. Set it to the empty object `{}`; it carries no attributes. Exactly one of `quantile` or `average` is required. (see [below for nested schema](#nestedatt--sli--apm_sli--latency_config--average))
+- `quantile` (Attributes) Percentile-based latency measurement. Exactly one of `quantile` or `average` is required: the backend rejects a `latency_config` with neither, and the SDK refuses to encode one with both. (see [below for nested schema](#nestedatt--sli--apm_sli--latency_config--quantile))
 - `threshold` (Number) Latency threshold in milliseconds; a request is good when its latency is at or below it. The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `threshold = 0` to reset it.
 
 <a id="nestedatt--sli--apm_sli--latency_config--average"></a>
