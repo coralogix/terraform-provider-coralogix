@@ -377,8 +377,10 @@ func TestAccCoralogixResourceSLOV2APMError(t *testing.T) {
 }
 
 // TestAccCoralogixResourceSLOV2APMLatency covers the latency branch: the float
-// trim of 500.0 to 500, a filter carrying only `values`, and the omitted
-// threshold/percentile pair that the backend stores as 0.
+// trim of 500.0 to 500, a filter carrying only `values`, and the replay of
+// threshold and percentile once they have been set. Both are Optional+Computed,
+// so removing them keeps the last applied value; the create-time default lives
+// in TestAccCoralogixResourceSLOV2APMLatencyOmitted.
 func TestAccCoralogixResourceSLOV2APMLatency(t *testing.T) {
 	service := os.Getenv(sloV2APMServiceEnvVar)
 
@@ -396,11 +398,20 @@ func TestAccCoralogixResourceSLOV2APMLatency(t *testing.T) {
     }]`)
 
 	// quantile is present but empty: exactly one query type is required, while
-	// percentile stays omitted so the backend default is still what is tested.
-	withoutThresholds := testAccCoralogixSLOV2APMSLI(service, `
+	// percentile stays omitted so the replay is what is tested.
+	thresholdsRemoved := testAccCoralogixSLOV2APMSLI(service, `
       latency_config = {
         time_window = "5_minutes"
         quantile    = {}
+      }`, "")
+
+	thresholdsReset := testAccCoralogixSLOV2APMSLI(service, `
+      latency_config = {
+        time_window = "5_minutes"
+        threshold   = 0
+        quantile = {
+          percentile = 0
+        }
       }`, "")
 
 	withAverage := testAccCoralogixSLOV2APMSLI(service, `
@@ -430,14 +441,31 @@ func TestAccCoralogixResourceSLOV2APMLatency(t *testing.T) {
 				PlanOnly: true,
 			},
 			{
-				Config: withoutThresholds,
+				// threshold and percentile are Optional+Computed, so removing
+				// them replays the last applied value rather than clearing it.
+				// filters is plain Optional and does clear.
+				Config: thresholdsRemoved,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(sloV2ResourceName, "sli.apm_sli.latency_config.threshold", "0"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "sli.apm_sli.latency_config.threshold", "500"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "sli.apm_sli.latency_config.quantile.percentile", "0.95"),
 					resource.TestCheckNoResourceAttr(sloV2ResourceName, "sli.apm_sli.filters"),
 				),
 			},
 			{
-				Config:   withoutThresholds,
+				Config:   thresholdsRemoved,
+				PlanOnly: true,
+			},
+			{
+				// Clearing them takes an explicit zero, as the attribute
+				// descriptions state.
+				Config: thresholdsReset,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(sloV2ResourceName, "sli.apm_sli.latency_config.threshold", "0"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "sli.apm_sli.latency_config.quantile.percentile", "0"),
+				),
+			},
+			{
+				Config:   thresholdsReset,
 				PlanOnly: true,
 			},
 			{
@@ -459,6 +487,45 @@ func TestAccCoralogixResourceSLOV2APMLatency(t *testing.T) {
 				// representable: a value such as 0.95 is not, so state written
 				// from a plan and state rebuilt from a read render it
 				// differently and ImportStateVerify would compare unequal.
+				ResourceName:      sloV2ResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceSLOV2APMLatencyOmitted covers the create path where
+// threshold and percentile are absent from the start: the backend stores 0 for
+// both and the next plan has to be empty. Once either has been set, removing it
+// replays the prior value instead - TestAccCoralogixResourceSLOV2APMLatency
+// covers that.
+func TestAccCoralogixResourceSLOV2APMLatencyOmitted(t *testing.T) {
+	service := os.Getenv(sloV2APMServiceEnvVar)
+	config := testAccCoralogixSLOV2APMSLI(service, `
+      latency_config = {
+        time_window = "5_minutes"
+        quantile    = {}
+      }`, "")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccSLOV2APMPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccSLOV2CheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(sloV2ResourceName, "sli.apm_sli.latency_config.threshold", "0"),
+					resource.TestCheckResourceAttr(sloV2ResourceName, "sli.apm_sli.latency_config.quantile.percentile", "0"),
+					resource.TestCheckNoResourceAttr(sloV2ResourceName, "sli.apm_sli.latency_config.average"),
+				),
+			},
+			{
+				Config:   config,
+				PlanOnly: true,
+			},
+			{
 				ResourceName:      sloV2ResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
