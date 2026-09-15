@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.16.0
+
 #### resource/coralogix_archive_logs
 - FIX: Guard `httpResponse` against nil in `Read` and `Update` to prevent a nil pointer dereference panic when the API call returns a transport error.
 
