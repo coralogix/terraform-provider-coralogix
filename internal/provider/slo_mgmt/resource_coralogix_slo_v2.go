@@ -28,6 +28,7 @@ import (
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/float32validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -35,6 +36,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float32planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -71,6 +73,21 @@ var (
 	}
 	schemaToProtoComparisonOperator = utils.ReverseMap(protoToSchemaComparisonOperator)
 	validComparisonOperators        = utils.GetKeys(schemaToProtoComparisonOperator)
+	// MissingDataStrategy has no UNSPECIFIED member - the backend stores
+	// MISSING_DATA_STRATEGY_UNCOUNTED whenever the field is omitted.
+	protoToSchemaMissingDataStrategy = map[slos.MissingDataStrategy]string{
+		slos.MISSINGDATASTRATEGY_MISSING_DATA_STRATEGY_UNCOUNTED: "uncounted",
+		slos.MISSINGDATASTRATEGY_MISSING_DATA_STRATEGY_GOOD:      "good",
+		slos.MISSINGDATASTRATEGY_MISSING_DATA_STRATEGY_BAD:       "bad",
+	}
+	schemaToProtoMissingDataStrategy = utils.ReverseMap(protoToSchemaMissingDataStrategy)
+	validMissingDataStrategies       = utils.GetKeys(schemaToProtoMissingDataStrategy)
+	protoToSchemaSloProductType      = map[slos.SloProductType]string{
+		slos.SLOPRODUCTTYPE_SLO_PRODUCT_TYPE_UNSPECIFIED: utils.UNSPECIFIED,
+		slos.SLOPRODUCTTYPE_SLO_PRODUCT_TYPE_APM:         "apm",
+	}
+	schemaToProtoSloProductType = utils.ReverseMap(protoToSchemaSloProductType)
+	validSloProductTypes        = utils.GetKeys(schemaToProtoSloProductType)
 )
 
 func NewSLOV2Resource() resource.Resource {
@@ -141,7 +158,41 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 						MarkdownDescription: "List of labels to group SLO evaluations by.",
 					},
 				},
-				MarkdownDescription: "Grouping configuration for SLO evaluations.",
+				MarkdownDescription: "Grouping configuration for SLO evaluations. Read-only: the backend derives it from the " +
+					"SLI - the `by (...)` clause of a metric query, or `service_name` for an APM SLI - and rejects writes. " +
+					"It is unrelated to the writable `sli.apm_sli.grouping_keys`.",
+			},
+			"product_type": schema.StringAttribute{
+				Optional:   true,
+				Computed:   true,
+				Validators: []validator.String{stringvalidator.OneOf(validSloProductTypes...)},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseNonNullStateForUnknown(),
+				},
+				MarkdownDescription: fmt.Sprintf("Product type of the SLO. One of: %v. `apm` is only accepted together "+
+					"with `sli.apm_sli`; metric SLIs stay `unspecified`. The backend always returns a value, so this "+
+					"attribute is computed: removing it from the configuration keeps the last applied value - set "+
+					"`product_type = \"unspecified\"` to reset it.", strings.Join(validSloProductTypes, ", ")),
+			},
+			"ownership_tags": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"service": ownershipTagSchema(
+						"Service ownership. `static_values` must name services that exist in the APM Service Catalog.",
+						"environment", "team",
+					),
+					"environment": ownershipTagSchema("Environment ownership. Values are free-form strings."),
+					"team":        ownershipTagSchema("Team ownership. Values are free-form strings."),
+				},
+				MarkdownDescription: "Service, environment and team ownership of the SLO, used by the SLO hub's ownership " +
+					"filters. At least one dimension must be configured - the backend drops an ownership block that holds " +
+					"no values. Removing the block clears the tags on the next apply.",
+			},
+			"apm_sli_metadata": schema.SingleNestedAttribute{
+				Computed:   true,
+				Attributes: apmSliMetadataSchemaAttributes(),
+				MarkdownDescription: "Read-only copy of `sli.apm_sli` that the backend materializes for APM SLOs. " +
+					"Null for metric SLIs. It is never sent on create or replace.",
 			},
 			"target_threshold_percentage": schema.Float32Attribute{
 				Required:            true,
@@ -152,7 +203,7 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			},
 			"sli": schema.SingleNestedAttribute{
 				Required:            true,
-				MarkdownDescription: "SLI definition: exactly one of request_based_metric_sli or window_based_metric_sli must be provided.",
+				MarkdownDescription: "SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided.",
 				Attributes: map[string]schema.Attribute{
 					"request_based_metric_sli": schema.SingleNestedAttribute{
 						Optional:            true,
@@ -180,7 +231,10 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 							},
 						},
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("window_based_metric_sli")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("window_based_metric_sli"),
+								path.MatchRelative().AtParent().AtName("apm_sli"),
+							),
 						},
 					},
 					"window_based_metric_sli": schema.SingleNestedAttribute{
@@ -211,9 +265,136 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 								Required:            true,
 								MarkdownDescription: "Threshold value for the comparison.",
 							},
+							"missing_data_strategy": schema.StringAttribute{
+								Optional:   true,
+								Computed:   true,
+								Validators: []validator.String{stringvalidator.OneOf(validMissingDataStrategies...)},
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseNonNullStateForUnknown(),
+								},
+								MarkdownDescription: fmt.Sprintf("How windows without data are counted. One of: %v. "+
+									"The backend stores `uncounted` when the field is omitted and always returns a value, so "+
+									"this attribute is computed: removing it from the configuration keeps the last applied "+
+									"value - set `missing_data_strategy = \"uncounted\"` to reset it.",
+									strings.Join(validMissingDataStrategies, ", ")),
+							},
 						},
 						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("request_based_metric_sli")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("request_based_metric_sli"),
+								path.MatchRelative().AtParent().AtName("apm_sli"),
+							),
+						},
+					},
+					"apm_sli": schema.SingleNestedAttribute{
+						Optional: true,
+						MarkdownDescription: "SLI generated from an APM Service Catalog service instead of from PromQL. " +
+							"Requires `product_type = \"apm\"`.",
+						Attributes: map[string]schema.Attribute{
+							"services": schema.ListAttribute{
+								ElementType: types.StringType,
+								Required:    true,
+								Validators:  []validator.List{listvalidator.SizeAtLeast(1)},
+								MarkdownDescription: "Names of the APM Service Catalog services to monitor. The backend " +
+									"currently accepts exactly one service and rejects unknown service names.",
+							},
+							"error_config": schema.SingleNestedAttribute{
+								Optional:   true,
+								Attributes: map[string]schema.Attribute{},
+								Validators: []validator.Object{
+									objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("latency_config")),
+								},
+								MarkdownDescription: "Measure the service's error rate. Set it to the empty object `{}`; " +
+									"it carries no attributes. Conflicts with `latency_config`.",
+							},
+							"latency_config": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"time_window": schema.StringAttribute{
+										Required:            true,
+										Validators:          []validator.String{stringvalidator.OneOf(validWindows...)},
+										MarkdownDescription: fmt.Sprintf("Time window for latency calculations. One of: %v.", strings.Join(validWindows, ", ")),
+									},
+									"threshold": schema.Float32Attribute{
+										Optional: true,
+										Computed: true,
+										PlanModifiers: []planmodifier.Float32{
+											float32planmodifier.UseNonNullStateForUnknown(),
+										},
+										MarkdownDescription: "Latency threshold in milliseconds; a request is good when its " +
+											"latency is at or below it. The backend stores `0` when the field is omitted and " +
+											"always returns a value, so this attribute is computed: removing it from the " +
+											"configuration keeps the last applied value - set `threshold = 0` to reset it.",
+									},
+									"quantile": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"percentile": schema.Float32Attribute{
+												Optional: true,
+												Computed: true,
+												PlanModifiers: []planmodifier.Float32{
+													float32planmodifier.UseNonNullStateForUnknown(),
+												},
+												MarkdownDescription: "Percentile to measure, as a fraction (`0.95` = P95). The " +
+													"backend stores `0` when the field is omitted and always returns a value, so " +
+													"this attribute is computed: removing it from the configuration keeps the " +
+													"last applied value - set `percentile = 0` to reset it.",
+											},
+										},
+										Validators: []validator.Object{
+											objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("average")),
+										},
+										MarkdownDescription: "Percentile-based latency measurement. Conflicts with `average`.",
+									},
+									"average": schema.SingleNestedAttribute{
+										Optional:   true,
+										Attributes: map[string]schema.Attribute{},
+										Validators: []validator.Object{
+											objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("quantile")),
+										},
+										MarkdownDescription: "Mean-based latency measurement. Set it to the empty object `{}`; " +
+											"it carries no attributes. Conflicts with `quantile`.",
+									},
+								},
+								Validators: []validator.Object{
+									objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("error_config")),
+								},
+								MarkdownDescription: "Measure the service's latency. Conflicts with `error_config`.",
+							},
+							"filters": schema.ListNestedAttribute{
+								Optional:   true,
+								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: map[string]schema.Attribute{
+										"key": schema.StringAttribute{
+											Required:            true,
+											MarkdownDescription: "Label or tag name to filter on.",
+										},
+										"values": schema.ListAttribute{
+											ElementType:         types.StringType,
+											Required:            true,
+											Validators:          []validator.List{listvalidator.SizeAtLeast(1)},
+											MarkdownDescription: "Values to match, with OR semantics.",
+										},
+									},
+								},
+								MarkdownDescription: "Additional label-based filters applied to the generated metrics. " +
+									"Omit the attribute for no filters; an explicit empty list is rejected.",
+							},
+							"grouping_keys": schema.ListAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Validators:  []validator.List{listvalidator.SizeAtLeast(1)},
+								MarkdownDescription: "Labels to group the SLO results by. Omit the attribute for no extra " +
+									"grouping keys; an explicit empty list is rejected. Distinct from the read-only " +
+									"top-level `grouping`, which the backend fixes to `service_name` for APM SLOs.",
+							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("request_based_metric_sli"),
+								path.MatchRelative().AtParent().AtName("window_based_metric_sli"),
+							),
 						},
 					},
 				},
@@ -234,6 +415,128 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 	}
 }
 
+// ownershipTagSchema builds one ownership dimension. The backend rejects a
+// dimension that carries both static_values and label_keys, and silently drops
+// one that carries neither, so exactly one of the two has to be configured.
+// siblings names the other dimensions; pass them on a single dimension so the
+// "configure at least one dimension" check is reported once.
+func ownershipTagSchema(description string, siblings ...string) schema.SingleNestedAttribute {
+	staticValues := path.MatchRelative().AtParent().AtName("static_values")
+	labelKeys := path.MatchRelative().AtParent().AtName("label_keys")
+
+	attribute := schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"static_values": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+					listvalidator.ExactlyOneOf(labelKeys),
+				},
+				MarkdownDescription: "Static values that apply to the whole SLO. Conflicts with `label_keys`; " +
+					"an explicit empty list is rejected.",
+			},
+			"label_keys": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+					listvalidator.ExactlyOneOf(staticValues),
+				},
+				MarkdownDescription: "Metric label names whose values identify this dimension at query time. " +
+					"Conflicts with `static_values`; an explicit empty list is rejected.",
+			},
+			"resolved_values": schema.ListAttribute{
+				ElementType:         types.StringType,
+				Computed:            true,
+				MarkdownDescription: "Read-only union of `static_values` and the values resolved from `label_keys`.",
+			},
+		},
+		MarkdownDescription: description + " Exactly one of `static_values` or `label_keys` must be configured.",
+	}
+
+	if len(siblings) > 0 {
+		expressions := make([]path.Expression, 0, len(siblings))
+		for _, sibling := range siblings {
+			expressions = append(expressions, path.MatchRelative().AtParent().AtName(sibling))
+		}
+		attribute.Validators = []validator.Object{objectvalidator.AtLeastOneOf(expressions...)}
+	}
+
+	return attribute
+}
+
+// apmSliMetadataSchemaAttributes mirrors the apm_sli attributes as a read-only
+// block. It is a separate schema rather than a reuse of the writable one
+// because every attribute - including the ones that are required on write -
+// is computed here.
+func apmSliMetadataSchemaAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"services": schema.ListAttribute{
+			ElementType:         types.StringType,
+			Computed:            true,
+			MarkdownDescription: "Monitored APM Service Catalog services.",
+		},
+		"error_config": schema.SingleNestedAttribute{
+			Computed:            true,
+			Attributes:          map[string]schema.Attribute{},
+			MarkdownDescription: "Set when the SLO measures the service's error rate.",
+		},
+		"latency_config": schema.SingleNestedAttribute{
+			Computed: true,
+			Attributes: map[string]schema.Attribute{
+				"time_window": schema.StringAttribute{
+					Computed:            true,
+					MarkdownDescription: "Time window for latency calculations.",
+				},
+				"threshold": schema.Float32Attribute{
+					Computed:            true,
+					MarkdownDescription: "Latency threshold in milliseconds.",
+				},
+				"quantile": schema.SingleNestedAttribute{
+					Computed: true,
+					Attributes: map[string]schema.Attribute{
+						"percentile": schema.Float32Attribute{
+							Computed:            true,
+							MarkdownDescription: "Measured percentile, as a fraction.",
+						},
+					},
+					MarkdownDescription: "Percentile-based latency measurement.",
+				},
+				"average": schema.SingleNestedAttribute{
+					Computed:            true,
+					Attributes:          map[string]schema.Attribute{},
+					MarkdownDescription: "Set when the SLO measures mean latency.",
+				},
+			},
+			MarkdownDescription: "Set when the SLO measures the service's latency.",
+		},
+		"filters": schema.ListNestedAttribute{
+			Computed: true,
+			NestedObject: schema.NestedAttributeObject{
+				Attributes: map[string]schema.Attribute{
+					"key": schema.StringAttribute{
+						Computed:            true,
+						MarkdownDescription: "Label or tag name the filter matches on.",
+					},
+					"values": schema.ListAttribute{
+						ElementType:         types.StringType,
+						Computed:            true,
+						MarkdownDescription: "Matched values.",
+					},
+				},
+			},
+			MarkdownDescription: "Label-based filters applied to the generated metrics.",
+		},
+		"grouping_keys": schema.ListAttribute{
+			ElementType:         types.StringType,
+			Computed:            true,
+			MarkdownDescription: "Labels the SLO results are grouped by.",
+		},
+	}
+}
+
 type SLOV2ResourceModel struct {
 	ID                        types.String  `tfsdk:"id"`
 	Name                      types.String  `tfsdk:"name"`
@@ -243,6 +546,9 @@ type SLOV2ResourceModel struct {
 	TargetThresholdPercentage types.Float32 `tfsdk:"target_threshold_percentage"`
 	SLI                       types.Object  `tfsdk:"sli"`
 	Window                    types.Object  `tfsdk:"window"`
+	ProductType               types.String  `tfsdk:"product_type"`
+	OwnershipTags             types.Object  `tfsdk:"ownership_tags"`
+	ApmSliMetadata            types.Object  `tfsdk:"apm_sli_metadata"`
 }
 
 type GroupingModel struct {
@@ -252,6 +558,43 @@ type GroupingModel struct {
 type SLIModel struct {
 	RequestBasedMetricSli types.Object `tfsdk:"request_based_metric_sli"`
 	WindowBasedMetricSli  types.Object `tfsdk:"window_based_metric_sli"`
+	ApmSli                types.Object `tfsdk:"apm_sli"`
+}
+
+type ApmSliModel struct {
+	Services      types.List   `tfsdk:"services"`
+	ErrorConfig   types.Object `tfsdk:"error_config"`
+	LatencyConfig types.Object `tfsdk:"latency_config"`
+	Filters       types.List   `tfsdk:"filters"`
+	GroupingKeys  types.List   `tfsdk:"grouping_keys"`
+}
+
+type ApmLatencySliModel struct {
+	TimeWindow types.String  `tfsdk:"time_window"`
+	Threshold  types.Float32 `tfsdk:"threshold"`
+	Quantile   types.Object  `tfsdk:"quantile"`
+	Average    types.Object  `tfsdk:"average"`
+}
+
+type ApmLatencyQuantileModel struct {
+	Percentile types.Float32 `tfsdk:"percentile"`
+}
+
+type ApmFilterModel struct {
+	Key    types.String `tfsdk:"key"`
+	Values types.List   `tfsdk:"values"`
+}
+
+type OwnershipTagsModel struct {
+	Service     types.Object `tfsdk:"service"`
+	Environment types.Object `tfsdk:"environment"`
+	Team        types.Object `tfsdk:"team"`
+}
+
+type OwnershipTagModel struct {
+	StaticValues   types.List `tfsdk:"static_values"`
+	LabelKeys      types.List `tfsdk:"label_keys"`
+	ResolvedValues types.List `tfsdk:"resolved_values"`
 }
 
 type RequestBasedMetricSliModel struct {
@@ -260,10 +603,11 @@ type RequestBasedMetricSliModel struct {
 }
 
 type WindowBasedMetricSliModel struct {
-	Query              types.Object  `tfsdk:"query"`
-	Window             types.String  `tfsdk:"window"`
-	ComparisonOperator types.String  `tfsdk:"comparison_operator"`
-	Threshold          types.Float32 `tfsdk:"threshold"`
+	Query               types.Object  `tfsdk:"query"`
+	Window              types.String  `tfsdk:"window"`
+	ComparisonOperator  types.String  `tfsdk:"comparison_operator"`
+	Threshold           types.Float32 `tfsdk:"threshold"`
+	MissingDataStrategy types.String  `tfsdk:"missing_data_strategy"`
 }
 
 type SLOMetricQueryModel struct {
@@ -434,6 +778,11 @@ func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*slos.Slo, dia
 	if diags.HasError() {
 		return nil, diags
 	}
+	ownershipTags, diags := extractOwnershipTags(ctx, plan.OwnershipTags)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	slo := &slos.Slo{
 		Description:               description,
 		Id:                        id,
@@ -441,42 +790,72 @@ func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*slos.Slo, dia
 		Name:                      name,
 		SloTimeFrame:              timeFrame,
 		TargetThresholdPercentage: &targetThresholdPct,
+		OwnershipTags:             ownershipTags,
 	}
 
-	var sliModel SLIModel
-	if diags := plan.SLI.As(ctx, &sliModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+	// An unknown product_type means the attribute was omitted on create; let the
+	// backend pick its default rather than sending a guess.
+	if !(plan.ProductType.IsNull() || plan.ProductType.IsUnknown()) {
+		productType := schemaToProtoSloProductType[plan.ProductType.ValueString()]
+		slo.ProductType = &productType
+	}
+
+	if diags := extractSLI(ctx, plan.SLI, slo); diags.HasError() {
 		return nil, diags
-	}
-
-	if reqBased := sliModel.RequestBasedMetricSli; !(reqBased.IsNull() || reqBased.IsUnknown()) {
-
-		sli, diags := extractRequestBasedSLI(ctx, reqBased)
-		if diags.HasError() {
-			return nil, diags
-		}
-		slo.RequestBasedMetricSli = sli
-	} else if winBased := sliModel.WindowBasedMetricSli; !(winBased.IsNull() || winBased.IsUnknown()) {
-		sli, diags := extractWindowBasedSLI(ctx, winBased)
-		if diags.HasError() {
-			return nil, diags
-		}
-		slo.WindowBasedMetricSli = sli
-	} else {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
-			"Invalid SLI configuration",
-			"Exactly one of request_based_metric_sli or window_based_metric_sli must be provided.",
-		)}
 	}
 
 	return slo, nil
 }
 
+// extractSLI resolves the SLI oneof and sets the matching branch on slo.
+func extractSLI(ctx context.Context, sli types.Object, slo *slos.Slo) diag.Diagnostics {
+	var sliModel SLIModel
+	if diags := sli.As(ctx, &sliModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return diags
+	}
+
+	switch {
+	case !utils.ObjIsNullOrUnknown(sliModel.RequestBasedMetricSli):
+		requestBased, diags := extractRequestBasedSLI(ctx, sliModel.RequestBasedMetricSli)
+		if diags.HasError() {
+			return diags
+		}
+		slo.RequestBasedMetricSli = requestBased
+	case !utils.ObjIsNullOrUnknown(sliModel.WindowBasedMetricSli):
+		windowBased, diags := extractWindowBasedSLI(ctx, sliModel.WindowBasedMetricSli)
+		if diags.HasError() {
+			return diags
+		}
+		slo.WindowBasedMetricSli = windowBased
+	case !utils.ObjIsNullOrUnknown(sliModel.ApmSli):
+		apm, diags := extractApmSLI(ctx, sliModel.ApmSli)
+		if diags.HasError() {
+			return diags
+		}
+		slo.ApmSli = apm
+	default:
+		return diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Invalid SLI configuration",
+			"Exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided.",
+		)}
+	}
+
+	return nil
+}
+
+// extractSLOV2Payload copies the SLO into the request body type field by field.
+// Any field missing here is silently dropped from both create and replace, so
+// every new writable attribute has to be added to this list too. ApmSliMetadata
+// is deliberately absent: the backend rejects it on write.
 func extractSLOV2Payload(slo *slos.Slo) slos.Slo1 {
 	return slos.Slo1{
+		ApmSli:                    slo.ApmSli,
 		Description:               slo.Description,
 		Id:                        slo.Id,
 		Labels:                    slo.Labels,
 		Name:                      slo.Name,
+		OwnershipTags:             slo.OwnershipTags,
+		ProductType:               slo.ProductType,
 		RequestBasedMetricSli:     slo.RequestBasedMetricSli,
 		SloTimeFrame:              slo.SloTimeFrame,
 		TargetThresholdPercentage: slo.TargetThresholdPercentage,
@@ -526,14 +905,215 @@ func extractWindowBasedSLI(ctx context.Context, winBased types.Object) (*slos.Wi
 		return nil, diags
 	}
 
-	return &slos.WindowBasedMetricSli{
+	sli := &slos.WindowBasedMetricSli{
 		Query: &slos.Metric{
 			Query: queryModel.Query.ValueStringPointer(),
 		},
 		Window:             schemaToProtoSLOWindow[windowBasedModel.Window.ValueString()].Ptr(),
 		ComparisonOperator: schemaToProtoComparisonOperator[windowBasedModel.ComparisonOperator.ValueString()].Ptr(),
 		Threshold:          windowBasedModel.Threshold.ValueFloat32Pointer(),
+	}
+
+	// An unknown strategy means the attribute was omitted on create. Omitting it
+	// from the payload lets the backend apply its own default; on every other
+	// call the known value is sent, because a replace that leaves it out resets
+	// the stored strategy to uncounted.
+	if strategy := windowBasedModel.MissingDataStrategy; !(strategy.IsNull() || strategy.IsUnknown()) {
+		sli.MissingDataStrategy = schemaToProtoMissingDataStrategy[strategy.ValueString()].Ptr()
+	}
+
+	return sli, nil
+}
+
+func extractApmSLI(ctx context.Context, apm types.Object) (*slos.ApmSli, diag.Diagnostics) {
+	var apmModel ApmSliModel
+	diags := apm.As(ctx, &apmModel, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	services, diags := extractStringList(ctx, apmModel.Services)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	groupingKeys, diags := extractStringList(ctx, apmModel.GroupingKeys)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	sli := &slos.ApmSli{
+		Services:     services,
+		GroupingKeys: groupingKeys,
+	}
+
+	if !utils.ObjIsNullOrUnknown(apmModel.ErrorConfig) {
+		// An empty, non-nil map is what serializes to the `{}` the backend
+		// expects for the error branch.
+		sli.ErrorConfig = map[string]interface{}{}
+	}
+
+	if !utils.ObjIsNullOrUnknown(apmModel.LatencyConfig) {
+		latency, diags := extractApmLatencySLI(ctx, apmModel.LatencyConfig)
+		if diags.HasError() {
+			return nil, diags
+		}
+		sli.LatencyConfig = latency
+	}
+
+	if !(apmModel.Filters.IsNull() || apmModel.Filters.IsUnknown()) {
+		filters := make([]slos.ApmFilter, 0, len(apmModel.Filters.Elements()))
+		for _, element := range apmModel.Filters.Elements() {
+			filterObj, ok := element.(types.Object)
+			if !ok {
+				return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+					"Invalid APM filter",
+					fmt.Sprintf("Expected an object, got: %T.", element),
+				)}
+			}
+
+			var filterModel ApmFilterModel
+			if diags := filterObj.As(ctx, &filterModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+				return nil, diags
+			}
+
+			values, diags := extractStringList(ctx, filterModel.Values)
+			if diags.HasError() {
+				return nil, diags
+			}
+
+			// The deprecated singular `value` is never sent.
+			filters = append(filters, slos.ApmFilter{
+				Key:    filterModel.Key.ValueStringPointer(),
+				Values: values,
+			})
+		}
+		if len(filters) > 0 {
+			sli.Filters = filters
+		}
+	}
+
+	return sli, nil
+}
+
+func extractApmLatencySLI(ctx context.Context, latency types.Object) (*slos.ApmLatencySli, diag.Diagnostics) {
+	var latencyModel ApmLatencySliModel
+	diags := latency.As(ctx, &latencyModel, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	sli := &slos.ApmLatencySli{
+		TimeWindow: schemaToProtoSLOWindow[latencyModel.TimeWindow.ValueString()].Ptr(),
+	}
+
+	if threshold := latencyModel.Threshold; !(threshold.IsNull() || threshold.IsUnknown()) {
+		sli.Threshold = threshold.ValueFloat32Pointer()
+	}
+
+	if !utils.ObjIsNullOrUnknown(latencyModel.Quantile) {
+		var quantileModel ApmLatencyQuantileModel
+		if diags := latencyModel.Quantile.As(ctx, &quantileModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		quantile := &slos.ApmLatencyQuantile{}
+		if percentile := quantileModel.Percentile; !(percentile.IsNull() || percentile.IsUnknown()) {
+			quantile.Percentile = percentile.ValueFloat32Pointer()
+		}
+		sli.Quantile = quantile
+	}
+
+	if !utils.ObjIsNullOrUnknown(latencyModel.Average) {
+		sli.Average = map[string]interface{}{}
+	}
+
+	return sli, nil
+}
+
+func extractOwnershipTags(ctx context.Context, tags types.Object) (*slos.SloOwnershipTags, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(tags) {
+		return nil, nil
+	}
+
+	var tagsModel OwnershipTagsModel
+	diags := tags.As(ctx, &tagsModel, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	service, diags := extractOwnershipTag(ctx, tagsModel.Service)
+	if diags.HasError() {
+		return nil, diags
+	}
+	environment, diags := extractOwnershipTag(ctx, tagsModel.Environment)
+	if diags.HasError() {
+		return nil, diags
+	}
+	team, diags := extractOwnershipTag(ctx, tagsModel.Team)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	if service == nil && environment == nil && team == nil {
+		return nil, nil
+	}
+
+	return &slos.SloOwnershipTags{
+		Service:     service,
+		Environment: environment,
+		Team:        team,
 	}, nil
+}
+
+func extractOwnershipTag(ctx context.Context, tag types.Object) (*slos.SloOwnershipTag, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(tag) {
+		return nil, nil
+	}
+
+	var tagModel OwnershipTagModel
+	diags := tag.As(ctx, &tagModel, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	staticValues, diags := extractStringList(ctx, tagModel.StaticValues)
+	if diags.HasError() {
+		return nil, diags
+	}
+	labelKeys, diags := extractStringList(ctx, tagModel.LabelKeys)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	// A dimension carrying no values is dropped by the backend, which would
+	// show up as drift on the next read - omit it instead. resolved_values is
+	// computed and never sent.
+	if staticValues == nil && labelKeys == nil {
+		return nil, nil
+	}
+
+	return &slos.SloOwnershipTag{
+		StaticValues: staticValues,
+		LabelKeys:    labelKeys,
+	}, nil
+}
+
+// extractStringList returns nil - not an empty slice - for a null, unknown or
+// empty list, so the field is omitted from the request body rather than sent
+// as an empty array.
+func extractStringList(ctx context.Context, list types.List) ([]string, diag.Diagnostics) {
+	if list.IsNull() || list.IsUnknown() {
+		return nil, nil
+	}
+
+	values, diags := utils.TypeStringElementsToStringSlice(ctx, list.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+	if len(values) == 0 {
+		return nil, nil
+	}
+	return values, nil
 }
 
 func extractWindow(ctx context.Context, rule types.Object) (*slos.SloTimeFrame, diag.Diagnostics) {
@@ -550,36 +1130,103 @@ func extractWindow(ctx context.Context, rule types.Object) (*slos.SloTimeFrame, 
 	return &tf, nil
 }
 
+// flattenSLOV2 keys off the SLI oneof rather than off the response's sloType,
+// which is misleading: an APM error SLO reads SLO_TYPE_REQUEST and an APM
+// latency SLO reads SLO_TYPE_WINDOW.
 func flattenSLOV2(ctx context.Context, slo *slos.Slo) (*SLOV2ResourceModel, diag.Diagnostics) {
+	var sliModel SLIModel
+	var diags diag.Diagnostics
 
-	if slo.RequestBasedMetricSli != nil {
-		return flattenRequestBasedSLI(ctx, slo)
-	} else if slo.WindowBasedMetricSli != nil {
-		return flattenWindowBasedSLI(ctx, slo)
-	} else {
-		diags := diag.Diagnostics{}
-		log.Printf("[ERROR] Response was neither a request nor window based SLO; %s", utils.FormatJSON(slo))
+	switch {
+	case slo.RequestBasedMetricSli != nil:
+		sliModel, diags = flattenRequestBasedSLI(ctx, slo.RequestBasedMetricSli)
+	case slo.WindowBasedMetricSli != nil:
+		sliModel, diags = flattenWindowBasedSLI(ctx, slo.WindowBasedMetricSli)
+	case slo.ApmSli != nil:
+		sliModel, diags = flattenApmSLI(ctx, slo.ApmSli)
+	default:
+		log.Printf("[ERROR] Response was neither a request based, window based nor APM SLO; %s", utils.FormatJSON(slo))
+		diags = diag.Diagnostics{}
 		diags.AddError("Invalid response from server", utils.FormatJSON(slo))
 		return nil, diags
 	}
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	sliObj, diags := types.ObjectValueFrom(ctx, sliAttr(), sliModel)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	labels, diags := utils.StringMapToTypeMap(ctx, &slo.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	grouping, diags := flattenGrouping(ctx, slo.Grouping)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	window, diags := flattenWindow(ctx, slo.GetSloTimeFrame())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	ownershipTags, diags := flattenOwnershipTags(ctx, slo.OwnershipTags)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	// The backend always returns a product type, but an older record may not:
+	// fall back to the mapped zero value rather than writing "" into state.
+	productType, ok := protoToSchemaSloProductType[slo.GetProductType()]
+	if !ok {
+		productType = utils.UNSPECIFIED
+	}
+
+	apmSliMetadata := types.ObjectNull(apmSliAttr())
+	if slo.ApmSliMetadata != nil {
+		metadataModel, diags := flattenApmSli(ctx, slo.ApmSliMetadata)
+		if diags.HasError() {
+			return nil, diags
+		}
+		apmSliMetadata, diags = types.ObjectValueFrom(ctx, apmSliAttr(), metadataModel)
+		if diags.HasError() {
+			return nil, diags
+		}
+	}
+
+	return &SLOV2ResourceModel{
+		ID:                        types.StringPointerValue(slo.Id),
+		Name:                      types.StringPointerValue(slo.Name),
+		Description:               types.StringPointerValue(slo.Description),
+		Labels:                    labels,
+		Grouping:                  grouping,
+		TargetThresholdPercentage: types.Float32PointerValue(slo.TargetThresholdPercentage),
+		SLI:                       sliObj,
+		Window:                    window,
+		ProductType:               types.StringValue(productType),
+		OwnershipTags:             ownershipTags,
+		ApmSliMetadata:            apmSliMetadata,
+	}, nil
 }
 
 func flattenGrouping(ctx context.Context, grouping *slos.V1Grouping) (types.Object, diag.Diagnostics) {
 	if grouping == nil {
-		return types.ObjectNull(map[string]attr.Type{"labels": types.ListType{ElemType: types.StringType}}), nil
+		return types.ObjectNull(groupingAttr()), nil
 	}
 
 	labels, diags := types.ListValueFrom(ctx, types.StringType, grouping.GetLabels())
 	if diags.HasError() {
-		return types.ObjectNull(map[string]attr.Type{"labels": types.ListType{ElemType: types.StringType}}), diags
+		return types.ObjectNull(groupingAttr()), diags
 	}
 
 	groupingModel := GroupingModel{
 		Labels: labels,
 	}
-	return types.ObjectValueFrom(ctx, map[string]attr.Type{
-		"labels": types.ListType{ElemType: types.StringType},
-	}, groupingModel)
+	return types.ObjectValueFrom(ctx, groupingAttr(), groupingModel)
 }
 
 func flattenWindow(ctx context.Context, tf slos.SloTimeFrame) (types.Object, diag.Diagnostics) {
@@ -592,125 +1239,248 @@ func flattenWindow(ctx context.Context, tf slos.SloTimeFrame) (types.Object, dia
 	}, model)
 }
 
-func flattenRequestBasedSLI(ctx context.Context, slo *slos.Slo) (*SLOV2ResourceModel, diag.Diagnostics) {
-	sli := slo.RequestBasedMetricSli
-	goodEvents := SLOMetricQueryModel{
-		Query: types.StringPointerValue(sli.GoodEvents.Query),
-	}
-
-	totalEvents := SLOMetricQueryModel{
-		Query: types.StringPointerValue(sli.TotalEvents.Query),
-	}
-
-	goodObj, diags := types.ObjectValueFrom(ctx, sloMetricQueryAttr(), goodEvents)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	totalObj, diags := types.ObjectValueFrom(ctx, sloMetricQueryAttr(), totalEvents)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	requestSliModel := RequestBasedMetricSliModel{
-		GoodEvents:  goodObj,
-		TotalEvents: totalObj,
-	}
-
-	reqSliObj, diags := types.ObjectValueFrom(ctx, requestBasedMetricSliAttr(), requestSliModel)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	sliObj, diags := types.ObjectValueFrom(ctx, sliAttr(), SLIModel{
-		RequestBasedMetricSli: reqSliObj,
+// emptySLIModel returns the SLI oneof with every branch null, so each flatten
+// branch only has to fill in its own.
+func emptySLIModel() SLIModel {
+	return SLIModel{
+		RequestBasedMetricSli: types.ObjectNull(requestBasedMetricSliAttr()),
 		WindowBasedMetricSli:  types.ObjectNull(windowBasedMetricSliAttr()),
-	})
-	if diags.HasError() {
-		return nil, diags
+		ApmSli:                types.ObjectNull(apmSliAttr()),
 	}
-
-	labels, diags := utils.StringMapToTypeMap(ctx, &slo.Labels)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	grouping, diags := flattenGrouping(ctx, slo.Grouping)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	window, diags := flattenWindow(ctx, slo.GetSloTimeFrame())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &SLOV2ResourceModel{
-		ID:                        types.StringPointerValue(slo.Id),
-		Name:                      types.StringPointerValue(slo.Name),
-		Description:               types.StringPointerValue(slo.Description),
-		Labels:                    labels,
-		Grouping:                  grouping,
-		TargetThresholdPercentage: types.Float32PointerValue(slo.TargetThresholdPercentage),
-		SLI:                       sliObj,
-		Window:                    window,
-	}, diags
 }
 
-func flattenWindowBasedSLI(ctx context.Context, slo *slos.Slo) (*SLOV2ResourceModel, diag.Diagnostics) {
-	sli := slo.WindowBasedMetricSli
-	queryModel := SLOMetricQueryModel{
-		Query: types.StringPointerValue(sli.Query.Query),
-	}
-	queryObj, diags := types.ObjectValueFrom(ctx, sloMetricQueryAttr(), queryModel)
-	if diags.HasError() {
-		return nil, diags
-	}
+func flattenRequestBasedSLI(ctx context.Context, sli *slos.RequestBasedMetricSli) (SLIModel, diag.Diagnostics) {
+	model := emptySLIModel()
 
-	model := WindowBasedMetricSliModel{
-		Query:              queryObj,
-		Window:             types.StringValue(protoToSchemaSloWindow[sli.GetWindow()]),
-		ComparisonOperator: types.StringValue(protoToSchemaComparisonOperator[sli.GetComparisonOperator()]),
-		Threshold:          types.Float32Value(sli.GetThreshold()),
-	}
-	winObj, diags := types.ObjectValueFrom(ctx, windowBasedMetricSliAttr(), model)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	sliObj, diags := types.ObjectValueFrom(ctx, sliAttr(), SLIModel{
-		RequestBasedMetricSli: types.ObjectNull(requestBasedMetricSliAttr()),
-		WindowBasedMetricSli:  winObj,
+	goodObj, diags := types.ObjectValueFrom(ctx, sloMetricQueryAttr(), SLOMetricQueryModel{
+		Query: types.StringPointerValue(sli.GoodEvents.Query),
 	})
 	if diags.HasError() {
-		return nil, diags
+		return model, diags
 	}
 
-	grouping, diags := flattenGrouping(ctx, slo.Grouping)
+	totalObj, diags := types.ObjectValueFrom(ctx, sloMetricQueryAttr(), SLOMetricQueryModel{
+		Query: types.StringPointerValue(sli.TotalEvents.Query),
+	})
 	if diags.HasError() {
-		return nil, diags
+		return model, diags
 	}
 
-	window, diags := flattenWindow(ctx, slo.GetSloTimeFrame())
+	reqSliObj, diags := types.ObjectValueFrom(ctx, requestBasedMetricSliAttr(), RequestBasedMetricSliModel{
+		GoodEvents:  goodObj,
+		TotalEvents: totalObj,
+	})
 	if diags.HasError() {
-		return nil, diags
+		return model, diags
 	}
 
-	labels, diags := utils.StringMapToTypeMap(ctx, &slo.Labels)
+	model.RequestBasedMetricSli = reqSliObj
+	return model, nil
+}
+
+func flattenWindowBasedSLI(ctx context.Context, sli *slos.WindowBasedMetricSli) (SLIModel, diag.Diagnostics) {
+	model := emptySLIModel()
+
+	queryObj, diags := types.ObjectValueFrom(ctx, sloMetricQueryAttr(), SLOMetricQueryModel{
+		Query: types.StringPointerValue(sli.Query.Query),
+	})
 	if diags.HasError() {
-		return nil, diags
+		return model, diags
 	}
 
-	return &SLOV2ResourceModel{
-		ID:                        types.StringPointerValue(slo.Id),
-		Name:                      types.StringPointerValue(slo.Name),
-		Description:               types.StringPointerValue(slo.Description),
-		Grouping:                  grouping,
-		TargetThresholdPercentage: types.Float32PointerValue(slo.TargetThresholdPercentage),
-		SLI:                       sliObj,
-		Window:                    window,
-		Labels:                    labels,
-	}, diags
+	// MissingDataStrategy has no unspecified member; a response without it means
+	// the backend applied its uncounted default.
+	strategy, ok := protoToSchemaMissingDataStrategy[sli.GetMissingDataStrategy()]
+	if !ok {
+		strategy = protoToSchemaMissingDataStrategy[slos.MISSINGDATASTRATEGY_MISSING_DATA_STRATEGY_UNCOUNTED]
+	}
+
+	winObj, diags := types.ObjectValueFrom(ctx, windowBasedMetricSliAttr(), WindowBasedMetricSliModel{
+		Query:               queryObj,
+		Window:              types.StringValue(protoToSchemaSloWindow[sli.GetWindow()]),
+		ComparisonOperator:  types.StringValue(protoToSchemaComparisonOperator[sli.GetComparisonOperator()]),
+		Threshold:           types.Float32Value(sli.GetThreshold()),
+		MissingDataStrategy: types.StringValue(strategy),
+	})
+	if diags.HasError() {
+		return model, diags
+	}
+
+	model.WindowBasedMetricSli = winObj
+	return model, nil
+}
+
+func flattenApmSLI(ctx context.Context, sli *slos.ApmSli) (SLIModel, diag.Diagnostics) {
+	model := emptySLIModel()
+
+	apmModel, diags := flattenApmSli(ctx, sli)
+	if diags.HasError() {
+		return model, diags
+	}
+
+	apmObj, diags := types.ObjectValueFrom(ctx, apmSliAttr(), apmModel)
+	if diags.HasError() {
+		return model, diags
+	}
+
+	model.ApmSli = apmObj
+	return model, nil
+}
+
+// flattenApmSli converts one APM SLI payload. It backs both sli.apm_sli and the
+// read-only apm_sli_metadata mirror, which carry the same shape. The backend
+// injects empty filters and groupingKeys arrays on every APM SLO, so those are
+// normalized back to null to match an omitted configuration.
+func flattenApmSli(ctx context.Context, sli *slos.ApmSli) (ApmSliModel, diag.Diagnostics) {
+	model := ApmSliModel{
+		Services:      types.ListNull(types.StringType),
+		ErrorConfig:   types.ObjectNull(map[string]attr.Type{}),
+		LatencyConfig: types.ObjectNull(apmLatencySliAttr()),
+		Filters:       types.ListNull(types.ObjectType{AttrTypes: apmFilterAttr()}),
+		GroupingKeys:  types.ListNull(types.StringType),
+	}
+
+	services, diags := flattenStringList(ctx, sli.Services)
+	if diags.HasError() {
+		return model, diags
+	}
+	model.Services = services
+
+	groupingKeys, diags := flattenStringList(ctx, sli.GroupingKeys)
+	if diags.HasError() {
+		return model, diags
+	}
+	model.GroupingKeys = groupingKeys
+
+	if sli.ErrorConfig != nil {
+		model.ErrorConfig = types.ObjectValueMust(map[string]attr.Type{}, map[string]attr.Value{})
+	}
+
+	if sli.LatencyConfig != nil {
+		latency, diags := flattenApmLatencySli(ctx, sli.LatencyConfig)
+		if diags.HasError() {
+			return model, diags
+		}
+		model.LatencyConfig = latency
+	}
+
+	if len(sli.Filters) > 0 {
+		filters := make([]ApmFilterModel, 0, len(sli.Filters))
+		for _, filter := range sli.Filters {
+			values, diags := flattenStringList(ctx, filter.Values)
+			if diags.HasError() {
+				return model, diags
+			}
+			// A filter written before `values` existed carries only the
+			// deprecated singular `value`; normalize it to a one-element
+			// collection so the next replace preserves the filter's meaning.
+			if values.IsNull() && filter.GetValue() != "" {
+				values, diags = types.ListValueFrom(ctx, types.StringType, []string{filter.GetValue()})
+				if diags.HasError() {
+					return model, diags
+				}
+			}
+			filters = append(filters, ApmFilterModel{
+				Key:    types.StringPointerValue(filter.Key),
+				Values: values,
+			})
+		}
+
+		filtersList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: apmFilterAttr()}, filters)
+		if diags.HasError() {
+			return model, diags
+		}
+		model.Filters = filtersList
+	}
+
+	return model, nil
+}
+
+func flattenApmLatencySli(ctx context.Context, latency *slos.ApmLatencySli) (types.Object, diag.Diagnostics) {
+	model := ApmLatencySliModel{
+		TimeWindow: types.StringValue(protoToSchemaSloWindow[latency.GetTimeWindow()]),
+		Threshold:  types.Float32Value(latency.GetThreshold()),
+		Quantile:   types.ObjectNull(apmLatencyQuantileAttr()),
+		Average:    types.ObjectNull(map[string]attr.Type{}),
+	}
+
+	if latency.Quantile != nil {
+		quantile, diags := types.ObjectValueFrom(ctx, apmLatencyQuantileAttr(), ApmLatencyQuantileModel{
+			Percentile: types.Float32Value(latency.Quantile.GetPercentile()),
+		})
+		if diags.HasError() {
+			return types.ObjectNull(apmLatencySliAttr()), diags
+		}
+		model.Quantile = quantile
+	}
+
+	if latency.Average != nil {
+		model.Average = types.ObjectValueMust(map[string]attr.Type{}, map[string]attr.Value{})
+	}
+
+	return types.ObjectValueFrom(ctx, apmLatencySliAttr(), model)
+}
+
+func flattenOwnershipTags(ctx context.Context, tags *slos.SloOwnershipTags) (types.Object, diag.Diagnostics) {
+	if tags == nil {
+		return types.ObjectNull(ownershipTagsAttr()), nil
+	}
+
+	service, diags := flattenOwnershipTag(ctx, tags.Service)
+	if diags.HasError() {
+		return types.ObjectNull(ownershipTagsAttr()), diags
+	}
+	environment, diags := flattenOwnershipTag(ctx, tags.Environment)
+	if diags.HasError() {
+		return types.ObjectNull(ownershipTagsAttr()), diags
+	}
+	team, diags := flattenOwnershipTag(ctx, tags.Team)
+	if diags.HasError() {
+		return types.ObjectNull(ownershipTagsAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, ownershipTagsAttr(), OwnershipTagsModel{
+		Service:     service,
+		Environment: environment,
+		Team:        team,
+	})
+}
+
+// flattenOwnershipTag normalizes the empty arrays the backend injects into
+// every written dimension back to null, so a dimension configured with only
+// static_values does not show perpetual drift on label_keys.
+func flattenOwnershipTag(ctx context.Context, tag *slos.SloOwnershipTag) (types.Object, diag.Diagnostics) {
+	if tag == nil {
+		return types.ObjectNull(ownershipTagAttr()), nil
+	}
+
+	staticValues, diags := flattenStringList(ctx, tag.StaticValues)
+	if diags.HasError() {
+		return types.ObjectNull(ownershipTagAttr()), diags
+	}
+	labelKeys, diags := flattenStringList(ctx, tag.LabelKeys)
+	if diags.HasError() {
+		return types.ObjectNull(ownershipTagAttr()), diags
+	}
+	resolvedValues, diags := flattenStringList(ctx, tag.ResolvedValues)
+	if diags.HasError() {
+		return types.ObjectNull(ownershipTagAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, ownershipTagAttr(), OwnershipTagModel{
+		StaticValues:   staticValues,
+		LabelKeys:      labelKeys,
+		ResolvedValues: resolvedValues,
+	})
+}
+
+// flattenStringList maps both a missing and an injected-empty array to null, so
+// the single representation of "no values" is the one the configuration uses.
+func flattenStringList(ctx context.Context, values []string) (types.List, diag.Diagnostics) {
+	if len(values) == 0 {
+		return types.ListNull(types.StringType), nil
+	}
+	return types.ListValueFrom(ctx, types.StringType, values)
 }
 
 // ---------------------- Attribute Maps ----------------------
@@ -730,10 +1500,45 @@ func requestBasedMetricSliAttr() map[string]attr.Type {
 
 func windowBasedMetricSliAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"query":               types.ObjectType{AttrTypes: sloMetricQueryAttr()},
-		"window":              types.StringType,
-		"comparison_operator": types.StringType,
-		"threshold":           types.Float32Type,
+		"query":                 types.ObjectType{AttrTypes: sloMetricQueryAttr()},
+		"window":                types.StringType,
+		"comparison_operator":   types.StringType,
+		"threshold":             types.Float32Type,
+		"missing_data_strategy": types.StringType,
+	}
+}
+
+func apmLatencyQuantileAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"percentile": types.Float32Type,
+	}
+}
+
+func apmLatencySliAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"time_window": types.StringType,
+		"threshold":   types.Float32Type,
+		"quantile":    types.ObjectType{AttrTypes: apmLatencyQuantileAttr()},
+		// The average branch of the latency oneof carries no attributes.
+		"average": types.ObjectType{AttrTypes: map[string]attr.Type{}},
+	}
+}
+
+func apmFilterAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"key":    types.StringType,
+		"values": types.ListType{ElemType: types.StringType},
+	}
+}
+
+func apmSliAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"services": types.ListType{ElemType: types.StringType},
+		// The error branch of the APM oneof carries no attributes.
+		"error_config":   types.ObjectType{AttrTypes: map[string]attr.Type{}},
+		"latency_config": types.ObjectType{AttrTypes: apmLatencySliAttr()},
+		"filters":        types.ListType{ElemType: types.ObjectType{AttrTypes: apmFilterAttr()}},
+		"grouping_keys":  types.ListType{ElemType: types.StringType},
 	}
 }
 
@@ -741,5 +1546,28 @@ func sliAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"request_based_metric_sli": types.ObjectType{AttrTypes: requestBasedMetricSliAttr()},
 		"window_based_metric_sli":  types.ObjectType{AttrTypes: windowBasedMetricSliAttr()},
+		"apm_sli":                  types.ObjectType{AttrTypes: apmSliAttr()},
+	}
+}
+
+func groupingAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"labels": types.ListType{ElemType: types.StringType},
+	}
+}
+
+func ownershipTagAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"static_values":   types.ListType{ElemType: types.StringType},
+		"label_keys":      types.ListType{ElemType: types.StringType},
+		"resolved_values": types.ListType{ElemType: types.StringType},
+	}
+}
+
+func ownershipTagsAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"service":     types.ObjectType{AttrTypes: ownershipTagAttr()},
+		"environment": types.ObjectType{AttrTypes: ownershipTagAttr()},
+		"team":        types.ObjectType{AttrTypes: ownershipTagAttr()},
 	}
 }
