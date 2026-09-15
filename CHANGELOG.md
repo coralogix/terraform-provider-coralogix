@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_fleet_configuration_group
+- FIX: Keep `family.remote_configuration` in configuration order when the API returns remotes in a different order.
+
 # Release 3.16.0
 
 #### resource/coralogix_archive_logs

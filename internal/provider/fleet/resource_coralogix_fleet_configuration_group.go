@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"sort"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -697,28 +698,57 @@ func flattenFamily(ctx context.Context, plan *FleetConfigurationGroupFamilyModel
 }
 
 func flattenRemotes(ctx context.Context, plan []FleetRemoteConfigurationModel, remotes []cfggroups.RemoteConfiguration, collectorVersion string, dropInjectedSelector bool) ([]FleetRemoteConfigurationModel, diag.Diagnostics) {
-	byName := make(map[string]FleetRemoteConfigurationModel, len(plan))
-	for _, remote := range plan {
-		byName[remote.Name.ValueString()] = remote
+	apiByName := make(map[string]cfggroups.RemoteConfiguration, len(remotes))
+	for _, remote := range remotes {
+		apiByName[remote.GetName()] = remote
+	}
+	planByName := make(map[string]FleetRemoteConfigurationModel, len(plan))
+	for _, planned := range plan {
+		planByName[planned.Name.ValueString()] = planned
 	}
 
-	var diags diag.Diagnostics
-	out := make([]FleetRemoteConfigurationModel, 0, len(remotes))
-	for _, remote := range remotes {
-		planned, ok := byName[remote.GetName()]
-		var plannedYAML string
-		var plannedSelector types.Map
-		if ok {
-			plannedYAML = planned.RawConfiguration.ValueString()
-			plannedSelector = planned.AgentSelector
+	order := make([]string, 0, len(remotes))
+	seen := make(map[string]struct{}, len(remotes))
+	for _, planned := range plan {
+		name := planned.Name.ValueString()
+		if name == "" {
+			continue
 		}
-		selector, selectorDiags := flattenAgentSelector(ctx, remote.AgentSelector, plannedSelector, collectorVersion, dropInjectedSelector)
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		order = append(order, name)
+	}
+	extra := make([]string, 0, len(remotes))
+	for _, remote := range remotes {
+		name := remote.GetName()
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		extra = append(extra, name)
+	}
+	if len(plan) == 0 {
+		sort.Strings(extra)
+	}
+	order = append(order, extra...)
+
+	var diags diag.Diagnostics
+	out := make([]FleetRemoteConfigurationModel, 0, len(order))
+	for _, name := range order {
+		remote, ok := apiByName[name]
+		if !ok {
+			continue
+		}
+		planned := planByName[name]
+		selector, selectorDiags := flattenAgentSelector(ctx, remote.AgentSelector, planned.AgentSelector, collectorVersion, dropInjectedSelector)
 		diags.Append(selectorDiags...)
 		out = append(out, FleetRemoteConfigurationModel{
 			ID:               types.StringValue(remote.GetId()),
 			Hash:             types.StringValue(remote.GetHash()),
 			Name:             types.StringValue(remote.GetName()),
-			RawConfiguration: echoYAML(plannedYAML, remote.GetRawConfiguration()),
+			RawConfiguration: echoYAML(planned.RawConfiguration.ValueString(), remote.GetRawConfiguration()),
 			AgentSelector:    selector,
 		})
 	}
