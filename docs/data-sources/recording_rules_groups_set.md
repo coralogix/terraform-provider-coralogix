@@ -26,7 +26,7 @@ data "coralogix_recording_rules_groups_set" "imported_recording_rules_groups_set
 - `groups` (Attributes Set) (see [below for nested schema](#nestedatt--groups))
 - `id` (String) The ID of this resource.
 - `name` (String) The name of the rule group. Overrides the name specified in the YAML if provided.
-- `yaml_content` (String) YAML specification of rules. Cannot be used together with `groups`.
+- `yaml_content` (String) YAML specification of rules. Cannot be used together with `groups`. Keys must be the all-lowercase, unseparated field name, so a multi-word field is written as one word — `evaluationdelayms`, not `evaluationDelayMs` or `evaluation_delay_ms`. Matching is case-sensitive and unrecognized keys are ignored silently, so prefer `groups` if you want your attribute names validated.
 
 <a id="nestedatt--groups"></a>
 ### Nested Schema for `groups`
@@ -43,6 +43,7 @@ Read-Only:
 
 Read-Only:
 
+- `evaluation_delay_ms` (Number) Delays the rule's evaluation (in milliseconds) so late-arriving data is ingested first. Must be between 0 and 1800000 (30 minutes). When omitted, no delay is configured; an explicit 0 is a distinct, persisted value. Removing the attribute clears the delay.
 - `expr` (String) The PromQL expression to evaluate. Every evaluation cycle this is evaluated at the current time, and the result recorded as a new set of time series with the metric name as given by 'record'.
 - `labels` (Map of String) Labels to add or overwrite before storing the result.
 - `record` (String) The name of the time series to output to. Must be a valid metric name.

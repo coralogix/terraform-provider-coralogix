@@ -66,9 +66,10 @@ type RecordingRuleGroupModel struct {
 }
 
 type RecordingRuleModel struct {
-	Record types.String `tfsdk:"record"`
-	Expr   types.String `tfsdk:"expr"`
-	Labels types.Map    `tfsdk:"labels"`
+	Record            types.String `tfsdk:"record"`
+	Expr              types.String `tfsdk:"expr"`
+	Labels            types.Map    `tfsdk:"labels"`
+	EvaluationDelayMs types.Int64  `tfsdk:"evaluation_delay_ms"`
 }
 
 func NewRecordingRuleGroupSetResource() resource.Resource {
@@ -223,22 +224,32 @@ func upgradeRecordingRulesGroupsV0(ctx context.Context, groups types.Set) (types
 }
 
 func upgradeRecordingRulesV0(ctx context.Context, rule types.Set) (types.List, diag.Diagnostics) {
+	// Frozen shape of a V0 rule object. The current RecordingRuleModel has
+	// grown attributes that stored V0 state does not carry, so decoding into
+	// it would fail; decode into this and rebuild at the current type instead.
+	type RecordingRuleModelV0 struct {
+		Record types.String `tfsdk:"record"`
+		Expr   types.String `tfsdk:"expr"`
+		Labels types.Map    `tfsdk:"labels"`
+	}
+
 	var diags diag.Diagnostics
 	var priorRulesObjects []types.Object
 	var upgradedRules []RecordingRuleModel
 	rule.ElementsAs(ctx, &priorRulesObjects, true)
 
 	for _, ruleObject := range priorRulesObjects {
-		var priorRule RecordingRuleModel
+		var priorRule RecordingRuleModelV0
 		if dg := ruleObject.As(ctx, &priorRule, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
 		}
 
 		upgradedRule := RecordingRuleModel{
-			Record: priorRule.Record,
-			Expr:   priorRule.Expr,
-			Labels: priorRule.Labels,
+			Record:            priorRule.Record,
+			Expr:              priorRule.Expr,
+			Labels:            priorRule.Labels,
+			EvaluationDelayMs: types.Int64Null(),
 		}
 
 		upgradedRules = append(upgradedRules, upgradedRule)
@@ -297,7 +308,11 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplaceIf(utils.JSONStringsEqualPlanModifier, "", ""),
 				},
-				MarkdownDescription: "YAML specification of rules. Cannot be used together with `groups`.",
+				MarkdownDescription: "YAML specification of rules. Cannot be used together with `groups`." +
+					" Keys must be the all-lowercase, unseparated field name, so a multi-word field is" +
+					" written as one word — `evaluationdelayms`, not `evaluationDelayMs` or" +
+					" `evaluation_delay_ms`. Matching is case-sensitive and unrecognized keys are ignored" +
+					" silently, so prefer `groups` if you want your attribute names validated.",
 			},
 			"groups": schema.SetNestedAttribute{
 				Optional:     true,
@@ -383,6 +398,15 @@ func recordingRulesSchema() schema.NestedAttributeObject {
 					mapplanmodifier.UseStateForUnknown(),
 				},
 				Description: "Labels to add or overwrite before storing the result.",
+			},
+			"evaluation_delay_ms": schema.Int64Attribute{
+				Optional: true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, 1800000),
+				},
+				Description: "Delays the rule's evaluation (in milliseconds) so late-arriving data is ingested first." +
+					" Must be between 0 and 1800000 (30 minutes). When omitted, no delay is configured;" +
+					" an explicit 0 is a distinct, persisted value. Removing the attribute clears the delay.",
 			},
 		},
 	}
@@ -614,6 +638,7 @@ func recordingRuleAttributes() map[string]attr.Type {
 		"labels": types.MapType{
 			ElemType: types.StringType,
 		},
+		"evaluation_delay_ms": types.Int64Type,
 	}
 }
 
@@ -662,10 +687,19 @@ func flattenRecordingRule(ctx context.Context, rule *recRuless.OutRule) (*Record
 		return nil, diags
 	}
 
+	// An absent evaluationDelayMs must stay null: the backend distinguishes
+	// "no delay configured" from an explicit 0, so collapsing absent into the
+	// accessor's zero fallback would drift against a null config value.
+	evaluationDelayMs := types.Int64Null()
+	if delay, ok := rule.GetEvaluationDelayMsOk(); ok {
+		evaluationDelayMs = types.Int64Value(*delay)
+	}
+
 	return &RecordingRuleModel{
-		Record: types.StringValue(rule.GetRecord()),
-		Expr:   types.StringValue(rule.GetExpr()),
-		Labels: labels,
+		Record:            types.StringValue(rule.GetRecord()),
+		Expr:              types.StringValue(rule.GetExpr()),
+		Labels:            labels,
+		EvaluationDelayMs: evaluationDelayMs,
 	}, nil
 }
 
@@ -805,10 +839,18 @@ func expandRecordingRule(ctx context.Context, rule RecordingRuleModel) (*recRule
 		return nil, diags
 	}
 
+	// Send no evaluationDelayMs key at all when unconfigured. A zero pointer
+	// would persist 0, read back 0, and fail the apply against a null config.
+	var evaluationDelayMs *int64
+	if !(rule.EvaluationDelayMs.IsNull() || rule.EvaluationDelayMs.IsUnknown()) {
+		evaluationDelayMs = rule.EvaluationDelayMs.ValueInt64Pointer()
+	}
+
 	return &recRuless.InRule{
-		Record: rule.Record.ValueString(),
-		Expr:   rule.Expr.ValueString(),
-		Labels: labels,
+		Record:            rule.Record.ValueString(),
+		Expr:              rule.Expr.ValueString(),
+		Labels:            labels,
+		EvaluationDelayMs: evaluationDelayMs,
 	}, nil
 }
 
