@@ -210,6 +210,18 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		)
 		return
 	}
+
+	// The mutation succeeded, so the resource now exists in the backend. Persist
+	// a partial state carrying the resource ID before the follow-up read, so that
+	// if GetTenantConfig fails Terraform still tracks the resource and does not
+	// orphan it on the next apply.
+	plan.ID = types.StringValue(RESOURCE_ID_ARCHIVE_METRICS)
+	diags = resp.State.Set(ctx, plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	result, httpResponse, err := r.client.
 		MetricsConfiguratorPublicServiceGetTenantConfig(ctx).
 		Execute()
@@ -226,6 +238,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
+	// Replace the partial state with the complete flattened state.
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -341,6 +354,15 @@ func flattenRetentionPolicy(ctx context.Context, policy *ams.RetentionPolicyRequ
 }
 
 func flattenStorageConfig(ctx context.Context, metricConfig *ams.TenantConfigV2) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
+	if metricConfig == nil {
+		var diags diag.Diagnostics
+		diags.AddError(
+			"Error reading coralogix_archive_metrics",
+			"the Coralogix backend returned an empty tenant configuration",
+		)
+		return nil, diags
+	}
+
 	if metricConfig.Ibm != nil {
 		retentionPolicy, diags := flattenRetentionPolicy(ctx, metricConfig.RetentionPolicy)
 		if diags.HasError() {
@@ -385,7 +407,12 @@ func flattenStorageConfig(ctx context.Context, metricConfig *ams.TenantConfigV2)
 			IBM:             types.ObjectNull(ibmConfigModelAttr()),
 		}, diags
 	} else {
-		return nil, nil
+		var diags diag.Diagnostics
+		diags.AddError(
+			"Error reading coralogix_archive_metrics",
+			"the tenant configuration uses an unsupported storage backend; only IBM and S3 are supported",
+		)
+		return nil, diags
 	}
 }
 
