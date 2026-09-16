@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_archive_metrics
+- FIX: Prevent a nil pointer dereference panic in `Read`/`Create` when the backend returns an empty tenant configuration or one using an unsupported storage backend; both now surface an error diagnostic.
+- FIX: Persist a partial state carrying the resource ID after a successful create mutation before the follow-up read, so a failing read no longer orphans a resource that already exists in the backend.
+
 #### resource/coralogix_fleet_configuration_group
 - FIX: Keep `family.remote_configuration` in configuration order when the API returns remotes in a different order.
 
