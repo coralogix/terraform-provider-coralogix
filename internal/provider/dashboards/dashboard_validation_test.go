@@ -191,7 +191,7 @@ func TestAddDashboardIssueWarningsNeverAddsErrors(t *testing.T) {
 	addDashboardIssueWarnings(&diagnostics, []dashboardservice.Issue{
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, "/layout/sections/0", "section id is required"),
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_WARNING, "", "deprecated function"),
-	}, nil, schemaResolver(), false)
+	}, nil, schemaResolver(), dashboardConfigShape{})
 
 	if diagnostics.HasError() {
 		t.Fatalf("expected warnings only, got errors: %v", diagnostics.Errors())
@@ -227,7 +227,7 @@ func TestAddDashboardIssueWarningsKeepsUnmappedLocationInMessage(t *testing.T) {
 	var diagnostics diag.Diagnostics
 	addDashboardIssueWarnings(&diagnostics, []dashboardservice.Issue{
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_WARNING, "/layout//sections", "odd pointer"),
-	}, nil, schemaResolver(), false)
+	}, nil, schemaResolver(), dashboardConfigShape{})
 
 	if got := len(diagnostics.Warnings()); got != 1 {
 		t.Fatalf("warnings = %d, want 1", got)
@@ -287,7 +287,7 @@ func TestAddDashboardIssueWarningsDropsIssuesCoveringUnknownValues(t *testing.T)
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, widget0, "referenced dashboard does not exist"),
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, widget1, "duplicate widget id"),
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_WARNING, "", "dashboard level issue"),
-	}, unknown, schemaResolver(), false)
+	}, unknown, schemaResolver(), dashboardConfigShape{})
 
 	warnings := diagnostics.Warnings()
 	if len(warnings) != 1 {
@@ -308,7 +308,7 @@ func TestAddDashboardIssueWarningsDropsFolderIssueWhenFolderIDIsUnknown(t *testi
 	var diagnostics diag.Diagnostics
 	addDashboardIssueWarnings(&diagnostics, []dashboardservice.Issue{
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, "/folderId", "folder id is required"),
-	}, unknown, schemaResolver(), false)
+	}, unknown, schemaResolver(), dashboardConfigShape{})
 
 	if got := len(diagnostics.Warnings()); got != 0 {
 		t.Fatalf("warnings = %d, want 0: %v", got, diagnostics.Warnings())
@@ -323,7 +323,7 @@ func TestAddDashboardIssueWarningsRoutesContentJSONIssues(t *testing.T) {
 	addDashboardIssueWarnings(&diagnostics, []dashboardservice.Issue{
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, "/filters/0", "filter id is required"),
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, "/folderId", "folder id is required"),
-	}, nil, schemaResolver(), true)
+	}, nil, schemaResolver(), dashboardConfigShape{ContentJSON: true, FolderConfigured: true})
 
 	warnings := diagnostics.Warnings()
 	if len(warnings) != 2 {
@@ -355,12 +355,38 @@ func TestAddDashboardIssueWarningsRoutesContentJSONIssues(t *testing.T) {
 	}
 }
 
+// Without a folder attribute, expandOpenAPIDashboardFolder leaves the parsed
+// dashboard alone, so the folder in the request came from the JSON. Pointing at
+// folder.id would name something the user never wrote.
+func TestAddDashboardIssueWarningsRoutesJSONOwnedFolderToContentJSON(t *testing.T) {
+	var diagnostics diag.Diagnostics
+	addDashboardIssueWarnings(&diagnostics, []dashboardservice.Issue{
+		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, "/folderId", "folder id is required"),
+	}, nil, schemaResolver(), dashboardConfigShape{ContentJSON: true, FolderConfigured: false})
+
+	warnings := diagnostics.Warnings()
+	if len(warnings) != 1 {
+		t.Fatalf("warnings = %d, want 1", len(warnings))
+	}
+
+	warning, ok := warnings[0].(diag.DiagnosticWithPath)
+	if !ok {
+		t.Fatalf("expected an attribute diagnostic, got %T", warnings[0])
+	}
+	if got := warning.Path().String(); got != "content_json" {
+		t.Errorf("path = %s, want content_json", got)
+	}
+	if detail := warning.Detail(); !strings.Contains(detail, "/folderId") {
+		t.Errorf("detail = %q, want it to keep the pointer into the JSON", detail)
+	}
+}
+
 func TestAddDashboardIssueWarningsKeepsEverythingWhenNothingIsUnknown(t *testing.T) {
 	var diagnostics diag.Diagnostics
 	addDashboardIssueWarnings(&diagnostics, []dashboardservice.Issue{
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_WARNING, "", "dashboard level issue"),
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, "/layout/sections/0", "section issue"),
-	}, nil, schemaResolver(), false)
+	}, nil, schemaResolver(), dashboardConfigShape{})
 
 	if got := len(diagnostics.Warnings()); got != 2 {
 		t.Fatalf("warnings = %d, want 2", got)
@@ -378,7 +404,7 @@ func TestAddDashboardIssueWarningsCapsOutput(t *testing.T) {
 	}
 
 	var diagnostics diag.Diagnostics
-	addDashboardIssueWarnings(&diagnostics, issues, nil, schemaResolver(), false)
+	addDashboardIssueWarnings(&diagnostics, issues, nil, schemaResolver(), dashboardConfigShape{})
 
 	// Every reported issue, plus one warning saying the rest were omitted.
 	if got, want := len(diagnostics.Warnings()), dashboardValidationMaxReportedIssues+1; got != want {

@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
 
 const (
@@ -158,7 +159,11 @@ func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 	}
 
 	log.Printf("[DEBUG] Dashboard validation returned %d issue(s) for %q", len(issues), plan.Name.ValueString())
-	addDashboardIssueWarnings(&resp.Diagnostics, issues, unknownPaths, resolves, !plan.ContentJson.IsNull())
+	shape := dashboardConfigShape{
+		ContentJSON:      !plan.ContentJson.IsNull(),
+		FolderConfigured: !utils.ObjIsNullOrUnknown(plan.Folder),
+	}
+	addDashboardIssueWarnings(&resp.Diagnostics, issues, unknownPaths, resolves, shape)
 }
 
 // addDashboardIssueWarnings turns validation issues into plan warnings.
@@ -173,10 +178,9 @@ func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 // issue that touches one of them is dropped, because the value the backend
 // judged is not the value the user wrote.
 //
-// contentJSON is true when the dashboard body came from the content_json
-// attribute rather than from the structured attributes, which changes where a
-// warning has to point. See dashboardIssueTarget.
-func addDashboardIssueWarnings(diagnostics *diag.Diagnostics, issues []dashboardservice.Issue, unknownPaths []path.Path, resolves func(*tftypes.AttributePath) bool, contentJSON bool) {
+// shape says how the user wrote the dashboard, which changes where a warning
+// has to point. See dashboardIssueTarget.
+func addDashboardIssueWarnings(diagnostics *diag.Diagnostics, issues []dashboardservice.Issue, unknownPaths []path.Path, resolves func(*tftypes.AttributePath) bool, shape dashboardConfigShape) {
 	reported := 0
 	skipped := 0
 
@@ -204,7 +208,7 @@ func addDashboardIssueWarnings(diagnostics *diag.Diagnostics, issues []dashboard
 		reported++
 
 		summary := dashboardIssueSummary(issue.GetSeverity())
-		targetPath, targeted, keepLocation := dashboardIssueTarget(attributePath, mapped, contentJSON)
+		targetPath, targeted, keepLocation := dashboardIssueTarget(attributePath, mapped, shape)
 		if keepLocation && location != "" {
 			message = fmt.Sprintf("%s: %s", location, message)
 		}
@@ -217,6 +221,17 @@ func addDashboardIssueWarnings(diagnostics *diag.Diagnostics, issues []dashboard
 	}
 }
 
+// dashboardConfigShape records how the user wrote the dashboard, which decides
+// where a warning can usefully point.
+type dashboardConfigShape struct {
+	// ContentJSON is true when the body came from the content_json attribute.
+	ContentJSON bool
+	// FolderConfigured is true when the folder attribute holds a value. That is
+	// the condition expandOpenAPIDashboardFolder uses to merge the folder over
+	// the parsed JSON, so it is also what decides who owns a folder issue.
+	FolderConfigured bool
+}
+
 // dashboardIssueTarget decides which attribute a warning is attached to, and
 // whether the raw pointer has to stay in the message.
 //
@@ -227,13 +242,17 @@ func addDashboardIssueWarnings(diagnostics *diag.Diagnostics, issues []dashboard
 // warning goes on content_json instead and keeps the pointer, which is the only
 // way back to the offending part of the JSON.
 //
-// The folder is the exception. extractDashboard merges it from the folder
-// attribute even in content_json mode, so folder issues keep pointing there.
-func dashboardIssueTarget(attributePath path.Path, mapped, contentJSON bool) (target path.Path, targeted, keepLocation bool) {
+// The folder can come from either side. A configured folder attribute is merged
+// over the JSON, so its issues point at that attribute. A folder left to the
+// JSON stays with content_json like everything else in the file.
+func dashboardIssueTarget(attributePath path.Path, mapped bool, shape dashboardConfigShape) (target path.Path, targeted, keepLocation bool) {
 	if !mapped {
 		return path.Empty(), false, true
 	}
-	if !contentJSON || pathsOverlap(attributePath, path.Root("folder")) {
+	if !shape.ContentJSON {
+		return attributePath, true, false
+	}
+	if shape.FolderConfigured && pathsOverlap(attributePath, path.Root("folder")) {
 		return attributePath, true, false
 	}
 
