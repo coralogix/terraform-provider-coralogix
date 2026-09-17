@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_archive_retentions
+- FIX: Guard `httpResponse` against nil in `Read` to prevent a nil pointer dereference panic when the API call returns a transport error.
+- FIX: Prevent an index-out-of-range panic in `Create` when the backend returns fewer archive retentions than the configuration declares; the mismatch now surfaces an error diagnostic instead.
+
 # Release 3.17.0
 
 #### resource/coralogix_archive_metrics
