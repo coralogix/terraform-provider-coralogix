@@ -34,6 +34,7 @@ import (
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 	e2ms "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/events2metrics_service"
 	cfggroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/fleet_manager_configuration_groups"
+	viewsfolders "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/folders_for_views_service"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
@@ -64,6 +65,7 @@ type ClientSet struct {
 	events2Metrics *e2ms.Events2MetricsServiceAPIService
 
 	dahboardsFolders      *dbfs.DashboardFoldersServiceAPIService
+	viewsFolders          *viewsfolders.FoldersForViewsServiceAPIService
 	customDataEnrichments *cess.CustomEnrichmentsServiceAPIService
 	dataEnrichments       *ess.EnrichmentsServiceAPIService
 	parsingRuleGroups     *prgs.RuleGroupsServiceAPIService
@@ -192,6 +194,10 @@ func (c *ClientSet) DashboardsFolders() *dbfs.DashboardFoldersServiceAPIService 
 	return c.dahboardsFolders
 }
 
+func (c *ClientSet) ViewsFolders() *viewsfolders.FoldersForViewsServiceAPIService {
+	return c.viewsFolders
+}
+
 func (c *ClientSet) Groups() *GroupsClient {
 	return c.groups
 }
@@ -281,6 +287,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		events2Metrics: cs.Events2Metrics(),
 
 		dahboardsFolders:      cs.DashboardFolders(),
+		viewsFolders:          cs.ViewsFolders(),
 		parsingRuleGroups:     cs.RuleGroups(),
 		archiveMetrics:        cs.ArchiveMetrics(),
 		alerts:                cs.Alerts(),

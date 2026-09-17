@@ -40,6 +40,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/parsing_rules"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/recording_rules"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/slo_mgmt"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/views"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -389,6 +390,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		apm.NewSLODataSource,
 		slo_mgmt.NewSLOV2DataSource,
 		dashboards.NewDashboardsFoldersDataSource,
+		views.NewViewFolderDataSource,
 		aaa.NewApiKeyDataSource,
 		aaa.NewCustomRoleDataSource,
 		aaa.NewGroupDataSource,
@@ -426,6 +428,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		apm.NewSLOResource,
 		slo_mgmt.NewSLOV2Resource,
 		dashboards.NewDashboardsFolderResource,
+		views.NewViewFolderResource,
 		aaa.NewApiKeyResource,
 		aaa.NewCustomRoleSource,
 		aaa.NewGroupResource,
