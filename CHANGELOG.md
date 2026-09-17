@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+- FEAT: Report backend validation issues as warnings during `terraform plan`. The create API only validates structure, so problems such as stale variable references or duplicate widget ids used to surface only when the dashboard was rendered. Issues never fail a plan. Set `CORALOGIX_DASHBOARD_VALIDATION=false` to turn validation off, or `CORALOGIX_DASHBOARD_VALIDATION_TIMEOUT` to change the 5s call timeout.
+
 #### resource/coralogix_archive_retentions
 - FIX: Guard `httpResponse` against nil in `Read` to prevent a nil pointer dereference panic when the API call returns a transport error.
 - FIX: Prevent an index-out-of-range panic in `Create` when the backend returns fewer archive retentions than the configuration declares; the mismatch now surfaces an error diagnostic instead.

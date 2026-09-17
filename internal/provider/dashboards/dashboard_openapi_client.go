@@ -32,6 +32,7 @@ const (
 	dashboardOpenAPIOperationGet     = "Get"
 	dashboardOpenAPIOperationReplace = "Replace"
 	dashboardOpenAPIOperationDelete  = "Delete"
+	dashboardOpenAPIOperationCheck   = "Check"
 
 	dashboardOpenAPIRequestIDPrefix = "terraform-provider-coralogix-dashboard"
 )
@@ -121,6 +122,39 @@ func (c *dashboardOpenAPIClient) Delete(ctx context.Context, id string) error {
 	}
 
 	return nil
+}
+
+// Check asks the backend to report validation issues for a dashboard without
+// persisting anything. The create and replace endpoints only apply structural
+// validation, so this reports semantic problems - stale variable references,
+// duplicate widget ids, queries that do not compile - that a create would
+// accept and that only show up when the dashboard is rendered.
+func (c *dashboardOpenAPIClient) Check(ctx context.Context, dashboard *dashboardservice.Dashboard) ([]dashboardservice.Issue, error) {
+	if dashboard == nil {
+		return nil, fmt.Errorf("dashboard is required")
+	}
+
+	request := newDashboardOpenAPICheckRequest(*dashboard)
+	response, httpResponse, err := c.client.
+		DashboardsServiceCheckDashboard(ctx).
+		CheckDashboardRequestDataStructure(request).
+		Execute()
+	if err != nil {
+		return nil, errors.New(utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), dashboardOpenAPIOperationCheck, request))
+	}
+	if response == nil {
+		return nil, fmt.Errorf("check response is required")
+	}
+
+	return response.Issues, nil
+}
+
+func newDashboardOpenAPICheckRequest(dashboard dashboardservice.Dashboard) dashboardservice.CheckDashboardRequestDataStructure {
+	requestID := newDashboardOpenAPIRequestID(dashboardOpenAPIOperationCheck)
+	return dashboardservice.CheckDashboardRequestDataStructure{
+		Dashboard: &dashboard,
+		RequestId: &requestID,
+	}
 }
 
 func newDashboardOpenAPICreateRequest(dashboard dashboardservice.Dashboard, accessPolicy *string) dashboardservice.CreateDashboardRequestDataStructure {
