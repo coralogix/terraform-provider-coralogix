@@ -6,10 +6,8 @@ groups:
       - record: ts3db_live_ingester_write_latency:3m
         expr: sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL="staging",pod=~"ts3db-live-ingester.*"}[2m])) by (pod)
         # Delay evaluation so late-arriving data is ingested first (milliseconds, 0-1800000).
-        # In yaml_content the key must be all-lowercase and unseparated: `evaluationdelayms`,
-        # not `evaluationDelayMs` or `evaluation_delay_ms`. Unrecognized keys are ignored
-        # silently, so use the `groups` block instead if you want the name validated.
-        evaluationdelayms: 60000
+        # In yaml_content the key uses the API's camelCase spelling: `evaluationDelayMs`.
+        evaluationDelayMs: 60000
       - record: job:http_requests_total:sum
         expr: sum(rate(http_requests_total[5m])) by (job)
   - name: Bar

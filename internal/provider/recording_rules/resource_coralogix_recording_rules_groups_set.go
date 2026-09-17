@@ -309,10 +309,10 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 					stringplanmodifier.RequiresReplaceIf(utils.JSONStringsEqualPlanModifier, "", ""),
 				},
 				MarkdownDescription: "YAML specification of rules. Cannot be used together with `groups`." +
-					" Keys must be the all-lowercase, unseparated field name, so a multi-word field is" +
-					" written as one word — `evaluationdelayms`, not `evaluationDelayMs` or" +
-					" `evaluation_delay_ms`. Matching is case-sensitive and unrecognized keys are ignored" +
-					" silently, so prefer `groups` if you want your attribute names validated.",
+					" Keys use the API's camelCase field names — e.g. a rule's evaluation delay is" +
+					" `evaluationDelayMs`, matching the spelling the Coralogix API documents." +
+					" Unrecognized keys are ignored silently, so prefer `groups` if you want your" +
+					" attribute names validated.",
 			},
 			"groups": schema.SetNestedAttribute{
 				Optional:     true,
@@ -735,9 +735,70 @@ func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRul
 	}, nil
 }
 
+// The generated SDK structs carry JSON tags but no YAML tags, so decoding
+// yaml_content straight into them makes gopkg.in/yaml.v3 derive each key from
+// the lowercased Go field name — which silently diverges from the API spelling
+// for any multi-word field (e.g. evaluationDelayMs would only bind as
+// evaluationdelayms). These mirror structs give every field an explicit yaml
+// tag matching the API's JSON field name, so yaml_content uses the same
+// spelling the API documents while preserving yaml.v3's scalar coercion (such
+// as an unquoted numeric `limit` into the string field). Keep them in sync with
+// the recording_rules_service SDK types when new fields are wired.
+type yamlRuleGroupSet struct {
+	Name   *string         `yaml:"name"`
+	Groups []yamlRuleGroup `yaml:"groups"`
+}
+
+type yamlRuleGroup struct {
+	Id       *string    `yaml:"id"`
+	Name     string     `yaml:"name"`
+	Interval *int64     `yaml:"interval"`
+	Limit    *string    `yaml:"limit"`
+	Version  *int64     `yaml:"version"`
+	Rules    []yamlRule `yaml:"rules"`
+}
+
+type yamlRule struct {
+	Record            string            `yaml:"record"`
+	Expr              string            `yaml:"expr"`
+	Labels            map[string]string `yaml:"labels"`
+	EvaluationDelayMs *int64            `yaml:"evaluationDelayMs"`
+}
+
+func (y yamlRuleGroupSet) toSDK() recRuless.CreateRuleGroupSet {
+	set := recRuless.CreateRuleGroupSet{Name: y.Name}
+	for _, g := range y.Groups {
+		group := recRuless.InRuleGroup{
+			Id:       g.Id,
+			Name:     g.Name,
+			Interval: g.Interval,
+			Limit:    g.Limit,
+			Version:  g.Version,
+		}
+		for _, r := range g.Rules {
+			group.Rules = append(group.Rules, recRuless.InRule{
+				Record:            r.Record,
+				Expr:              r.Expr,
+				Labels:            r.Labels,
+				EvaluationDelayMs: r.EvaluationDelayMs,
+			})
+		}
+		set.Groups = append(set.Groups, group)
+	}
+	return set
+}
+
+func unmarshalRecordingRulesYaml(yamlContent string) (recRuless.CreateRuleGroupSet, error) {
+	var parsed yamlRuleGroupSet
+	if err := yaml.Unmarshal([]byte(yamlContent), &parsed); err != nil {
+		return recRuless.CreateRuleGroupSet{}, err
+	}
+	return parsed.toSDK(), nil
+}
+
 func expandRecordingRulesGroupsSetFromYaml(yamlContent string, setName string) (*recRuless.CreateRuleGroupSet, diag.Diagnostics) {
-	var result recRuless.CreateRuleGroupSet
-	if err := yaml.Unmarshal([]byte(yamlContent), &result); err != nil {
+	result, err := unmarshalRecordingRulesYaml(yamlContent)
+	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error on unmarshal yaml_content", err.Error())}
 	}
 	if len(setName) > 0 {
@@ -868,9 +929,8 @@ func (v recordingRulesGroupYamlContentValidator) ValidateString(_ context.Contex
 	if req.ConfigValue.IsNull() {
 		return
 	}
-	// TODO does this schema still work?
-	var set recRuless.CreateRuleGroupSet
-	if err := yaml.Unmarshal([]byte(req.ConfigValue.ValueString()), &set); err != nil {
+	set, err := unmarshalRecordingRulesYaml(req.ConfigValue.ValueString())
+	if err != nil {
 		resp.Diagnostics.AddError("error on validating yaml_content", err.Error())
 	}
 
