@@ -111,7 +111,7 @@
               },
               {
                 "id": {
-                  "value": "5f414b12-54af-43bc-a941-915f28e445f9"
+                  "value": "709997a5-3036-40ae-836b-a17ed970abc5"
                 },
                 "title": "Data Table",
                 "definition": {
@@ -1216,6 +1216,9 @@
   "variables": [],
   "filters": [
     {
+      "id": {
+        "value": "459410c0-3695-423c-8d49-5160b0937cc4"
+      },
       "source": {
         "metrics": {
           "label": "cx_subsystem_name",
@@ -1234,6 +1237,9 @@
       "collapsed": false
     },
     {
+      "id": {
+        "value": "0288e75b-2851-4d41-b866-b4fc4436f035"
+      },
       "source": {
         "metrics": {
           "label": "k8s_cluster_name",
@@ -1250,6 +1256,9 @@
       "collapsed": false
     },
     {
+      "id": {
+        "value": "6a8be31c-c9e8-4fc0-83d8-9b0c31aa3d35"
+      },
       "source": {
         "metrics": {
           "label": "k8s_pod_name",

@@ -603,7 +603,7 @@ resource "coralogix_dashboard" "dashboard" {
                     row_style        = "one_line"
                     query = {
                       data_prime = {
-                        query = "xxx"
+                        query = "source logs | limit 100"
                         filters = [
                           {
                             logs = {
