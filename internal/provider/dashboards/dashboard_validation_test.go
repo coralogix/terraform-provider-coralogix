@@ -61,18 +61,34 @@ func TestAttributePathFromPointer(t *testing.T) {
 			wantOK:  true,
 		},
 		{
-			name:    "escaped segment",
-			pointer: "/layout/~0odd~1name",
-			want:    path.Root("layout").AtName("~odd/name"),
+			// The API keeps the folder id at the root of the dashboard, the
+			// schema nests it. Without the alias this would map to the
+			// nonexistent "folder_id".
+			name:    "folder id is aliased onto the nested attribute",
+			pointer: "/folderId",
+			want:    path.Root("folder").AtName("id"),
+			wantOK:  true,
+		},
+		{
+			name:    "folder path is aliased onto the nested attribute",
+			pointer: "/folderPath",
+			want:    path.Root("folder").AtName("path"),
 			wantOK:  true,
 		},
 		{name: "root level issue", pointer: "", wantOK: false},
 		{name: "root pointer", pointer: "/", wantOK: false},
 		{name: "empty segment", pointer: "/layout//sections", wantOK: false},
 		{name: "negative index", pointer: "/layout/sections/-1", wantOK: false},
+		{name: "escaped name that is not in the schema", pointer: "/layout/~0odd~1name", wantOK: false},
+		// Terraform keeps these somewhere else entirely: dashboard level
+		// actions live on the widget that owns them, and the refresh interval
+		// is a single auto_refresh attribute rather than one field per value.
+		{name: "dashboard actions have no schema path", pointer: "/actions/0", wantOK: false},
+		{name: "auto refresh field has no schema path", pointer: "/twoMinutes", wantOK: false},
+		{name: "unknown field", pointer: "/nonexistent", wantOK: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, ok := attributePathFromPointer(tc.pointer)
+			got, ok := attributePathFromPointer(tc.pointer, schemaResolver())
 			if ok != tc.wantOK {
 				t.Fatalf("ok = %v, want %v", ok, tc.wantOK)
 			}
@@ -175,7 +191,7 @@ func TestAddDashboardIssueWarningsNeverAddsErrors(t *testing.T) {
 	addDashboardIssueWarnings(&diagnostics, []dashboardservice.Issue{
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, "/layout/sections/0", "section id is required"),
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_WARNING, "", "deprecated function"),
-	}, nil)
+	}, nil, schemaResolver())
 
 	if diagnostics.HasError() {
 		t.Fatalf("expected warnings only, got errors: %v", diagnostics.Errors())
@@ -211,7 +227,7 @@ func TestAddDashboardIssueWarningsKeepsUnmappedLocationInMessage(t *testing.T) {
 	var diagnostics diag.Diagnostics
 	addDashboardIssueWarnings(&diagnostics, []dashboardservice.Issue{
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_WARNING, "/layout//sections", "odd pointer"),
-	}, nil)
+	}, nil, schemaResolver())
 
 	if got := len(diagnostics.Warnings()); got != 1 {
 		t.Fatalf("warnings = %d, want 1", got)
@@ -271,7 +287,7 @@ func TestAddDashboardIssueWarningsDropsIssuesCoveringUnknownValues(t *testing.T)
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, widget0, "referenced dashboard does not exist"),
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, widget1, "duplicate widget id"),
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_WARNING, "", "dashboard level issue"),
-	}, unknown)
+	}, unknown, schemaResolver())
 
 	warnings := diagnostics.Warnings()
 	if len(warnings) != 1 {
@@ -282,12 +298,29 @@ func TestAddDashboardIssueWarningsDropsIssuesCoveringUnknownValues(t *testing.T)
 	}
 }
 
+// An unknown folder.id is the pattern the documentation recommends. The API
+// reports folder problems at /folderId, so without the alias the issue would
+// map to a path that matches neither the schema nor the unknown value, and the
+// warning would survive filtering and point at nothing.
+func TestAddDashboardIssueWarningsDropsFolderIssueWhenFolderIDIsUnknown(t *testing.T) {
+	unknown := []path.Path{path.Root("folder").AtName("id")}
+
+	var diagnostics diag.Diagnostics
+	addDashboardIssueWarnings(&diagnostics, []dashboardservice.Issue{
+		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, "/folderId", "folder id is required"),
+	}, unknown, schemaResolver())
+
+	if got := len(diagnostics.Warnings()); got != 0 {
+		t.Fatalf("warnings = %d, want 0: %v", got, diagnostics.Warnings())
+	}
+}
+
 func TestAddDashboardIssueWarningsKeepsEverythingWhenNothingIsUnknown(t *testing.T) {
 	var diagnostics diag.Diagnostics
 	addDashboardIssueWarnings(&diagnostics, []dashboardservice.Issue{
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_WARNING, "", "dashboard level issue"),
 		issueFixture(dashboardservice.ISSUESEVERITY_SEVERITY_ERROR, "/layout/sections/0", "section issue"),
-	}, nil)
+	}, nil, schemaResolver())
 
 	if got := len(diagnostics.Warnings()); got != 2 {
 		t.Fatalf("warnings = %d, want 2", got)
@@ -305,7 +338,7 @@ func TestAddDashboardIssueWarningsCapsOutput(t *testing.T) {
 	}
 
 	var diagnostics diag.Diagnostics
-	addDashboardIssueWarnings(&diagnostics, issues, nil)
+	addDashboardIssueWarnings(&diagnostics, issues, nil, schemaResolver())
 
 	// Every reported issue, plus one warning saying the rest were omitted.
 	if got, want := len(diagnostics.Warnings()), dashboardValidationMaxReportedIssues+1; got != want {
@@ -470,6 +503,16 @@ func emptyDashboardObject(t *testing.T) tftypes.Value {
 	}
 
 	return tftypes.NewValue(objectType, attributes)
+}
+
+// schemaResolver reports whether a path exists in the real dashboard schema,
+// the same check ModifyPlan performs.
+func schemaResolver() func(*tftypes.AttributePath) bool {
+	dashboardSchema := dashboardschema.V4()
+	return func(attributePath *tftypes.AttributePath) bool {
+		_, err := dashboardSchema.AttributeAtTerraformPath(context.Background(), attributePath)
+		return err == nil
+	}
 }
 
 func dashboardClientForTest(t *testing.T, handler http.HandlerFunc) *dashboardOpenAPIClient {

@@ -118,6 +118,10 @@ func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 		}
 		return attribute.IsComputed()
 	}
+	resolves := func(attributePath *tftypes.AttributePath) bool {
+		_, err := planSchema.AttributeAtTerraformPath(ctx, attributePath)
+		return err == nil
+	}
 	unknownPaths, convertible := unknownUserValuePaths(req.Plan.Raw, isComputed)
 	if !convertible {
 		log.Print("[DEBUG] Skipping Dashboard validation: an unknown value sits at a path issues cannot be matched against")
@@ -153,7 +157,7 @@ func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 		return
 	}
 
-	addDashboardIssueWarnings(&resp.Diagnostics, issues, unknownPaths)
+	addDashboardIssueWarnings(&resp.Diagnostics, issues, unknownPaths, resolves)
 }
 
 // addDashboardIssueWarnings turns validation issues into plan warnings.
@@ -167,7 +171,7 @@ func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 // unknownPaths lists attributes Terraform could not resolve at plan time. An
 // issue that touches one of them is dropped, because the value the backend
 // judged is not the value the user wrote.
-func addDashboardIssueWarnings(diagnostics *diag.Diagnostics, issues []dashboardservice.Issue, unknownPaths []path.Path) {
+func addDashboardIssueWarnings(diagnostics *diag.Diagnostics, issues []dashboardservice.Issue, unknownPaths []path.Path, resolves func(*tftypes.AttributePath) bool) {
 	reported := 0
 	skipped := 0
 
@@ -178,7 +182,7 @@ func addDashboardIssueWarnings(diagnostics *diag.Diagnostics, issues []dashboard
 		}
 
 		location := issue.GetLocation()
-		attributePath, mapped := attributePathFromPointer(location)
+		attributePath, mapped := attributePathFromPointer(location, resolves)
 		if issueTouchesUnknown(attributePath, mapped, unknownPaths) {
 			log.Printf("[DEBUG] Dropping Dashboard validation issue at %q: it covers a value that is not known yet", location)
 			skipped++
@@ -320,22 +324,47 @@ func pathsOverlap(left, right path.Path) bool {
 	}
 }
 
+// dashboardPointerAliases maps API field names onto the path the Terraform
+// schema uses, for the fields whose shape differs between the two. Only the
+// start of a pointer is aliased, which is where the reshaping happens.
+//
+// Anything else that diverges - dashboard level actions, which Terraform keeps
+// per widget, or the auto refresh interval, which the API spells as a set of
+// mutually exclusive fields - produces a path that is not in the schema and is
+// rejected by the resolver, so the issue becomes a resource level warning.
+var dashboardPointerAliases = map[string][]string{
+	"folderId":   {"folder", "id"},
+	"folderPath": {"folder", "path"},
+}
+
 // attributePathFromPointer converts an RFC 6901 JSON Pointer returned by the
 // validation endpoint into a Terraform attribute path, so a warning lands on
 // the offending block instead of on the resource as a whole.
 //
 //	/layout/sections/0/rows/0/widgets/1 -> layout.sections[0].rows[0].widgets[1]
 //
+// resolves reports whether a path exists in the resource schema. The API body
+// and the Terraform schema do not always agree on shape, and a path that only
+// looks plausible is worse than no path: it would neither point at anything a
+// user can edit nor match an unknown value the issue should have been filtered
+// against.
+//
 // It reports false for a pointer it cannot map, including the empty pointer the
 // API uses for dashboard-level issues. The caller then warns without a path.
-func attributePathFromPointer(pointer string) (path.Path, bool) {
+func attributePathFromPointer(pointer string, resolves func(*tftypes.AttributePath) bool) (path.Path, bool) {
 	trimmed := strings.TrimPrefix(pointer, "/")
 	if trimmed == "" {
 		return path.Empty(), false
 	}
 
+	segments := strings.Split(trimmed, "/")
+	if aliased, ok := dashboardPointerAliases[unescapePointerSegment(segments[0])]; ok {
+		segments = append(append([]string{}, aliased...), segments[1:]...)
+	}
+
 	attributePath := path.Empty()
-	for _, segment := range strings.Split(trimmed, "/") {
+	terraformPath := tftypes.NewAttributePath()
+	for _, segment := range segments {
 		segment = unescapePointerSegment(segment)
 		if segment == "" {
 			return path.Empty(), false
@@ -346,13 +375,35 @@ func attributePathFromPointer(pointer string) (path.Path, bool) {
 				return path.Empty(), false
 			}
 			attributePath = attributePath.AtListIndex(index)
+			terraformPath = terraformPath.WithElementKeyInt(index)
 			continue
 		}
 
-		attributePath = attributePath.AtName(camelToSnake(segment))
+		name := camelToSnake(segment)
+		attributePath = attributePath.AtName(name)
+		terraformPath = terraformPath.WithAttributeName(name)
+	}
+
+	if !resolves(trimTrailingElementKeys(terraformPath)) {
+		return path.Empty(), false
 	}
 
 	return attributePath, true
+}
+
+// trimTrailingElementKeys drops trailing collection keys from a path. A list
+// element has no schema of its own, so "layout.sections[0]" cannot be looked
+// up, while the "layout.sections" it belongs to can.
+func trimTrailingElementKeys(terraformPath *tftypes.AttributePath) *tftypes.AttributePath {
+	steps := terraformPath.Steps()
+	for len(steps) > 0 {
+		if _, ok := steps[len(steps)-1].(tftypes.AttributeName); ok {
+			break
+		}
+		steps = steps[:len(steps)-1]
+	}
+
+	return tftypes.NewAttributePathWithSteps(steps)
 }
 
 // unescapePointerSegment decodes the two escapes RFC 6901 defines, in the order
