@@ -157,7 +157,8 @@ func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 		return
 	}
 
-	addDashboardIssueWarnings(&resp.Diagnostics, issues, unknownPaths, resolves)
+	log.Printf("[DEBUG] Dashboard validation returned %d issue(s) for %q", len(issues), plan.Name.ValueString())
+	addDashboardIssueWarnings(&resp.Diagnostics, issues, unknownPaths, resolves, !plan.ContentJson.IsNull())
 }
 
 // addDashboardIssueWarnings turns validation issues into plan warnings.
@@ -171,7 +172,11 @@ func (r *DashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 // unknownPaths lists attributes Terraform could not resolve at plan time. An
 // issue that touches one of them is dropped, because the value the backend
 // judged is not the value the user wrote.
-func addDashboardIssueWarnings(diagnostics *diag.Diagnostics, issues []dashboardservice.Issue, unknownPaths []path.Path, resolves func(*tftypes.AttributePath) bool) {
+//
+// contentJSON is true when the dashboard body came from the content_json
+// attribute rather than from the structured attributes, which changes where a
+// warning has to point. See dashboardIssueTarget.
+func addDashboardIssueWarnings(diagnostics *diag.Diagnostics, issues []dashboardservice.Issue, unknownPaths []path.Path, resolves func(*tftypes.AttributePath) bool, contentJSON bool) {
 	reported := 0
 	skipped := 0
 
@@ -199,16 +204,40 @@ func addDashboardIssueWarnings(diagnostics *diag.Diagnostics, issues []dashboard
 		reported++
 
 		summary := dashboardIssueSummary(issue.GetSeverity())
-		if mapped {
-			diagnostics.AddAttributeWarning(attributePath, summary, message)
-			continue
+		targetPath, targeted, keepLocation := dashboardIssueTarget(attributePath, mapped, contentJSON)
+		if keepLocation && location != "" {
+			message = fmt.Sprintf("%s: %s", location, message)
 		}
 
-		if location != "" {
-			message = fmt.Sprintf("%s: %s", location, message)
+		if targeted {
+			diagnostics.AddAttributeWarning(targetPath, summary, message)
+			continue
 		}
 		diagnostics.AddWarning(summary, message)
 	}
+}
+
+// dashboardIssueTarget decides which attribute a warning is attached to, and
+// whether the raw pointer has to stay in the message.
+//
+// With the structured attributes the mapped path is the answer: it points at
+// the block the user wrote. With content_json those attributes are null,
+// because they conflict with it, so a path like layout.sections[0] names
+// nothing the user can edit and Terraform has no source range to print. The
+// warning goes on content_json instead and keeps the pointer, which is the only
+// way back to the offending part of the JSON.
+//
+// The folder is the exception. extractDashboard merges it from the folder
+// attribute even in content_json mode, so folder issues keep pointing there.
+func dashboardIssueTarget(attributePath path.Path, mapped, contentJSON bool) (target path.Path, targeted, keepLocation bool) {
+	if !mapped {
+		return path.Empty(), false, true
+	}
+	if !contentJSON || pathsOverlap(attributePath, path.Root("folder")) {
+		return attributePath, true, false
+	}
+
+	return path.Root("content_json"), true, true
 }
 
 func issueTouchesUnknown(attributePath path.Path, mapped bool, unknownPaths []path.Path) bool {
