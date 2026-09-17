@@ -16,6 +16,7 @@ package recording_rules
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -151,6 +152,62 @@ func TestRecordingRuleAttributesMatchSchema(t *testing.T) {
 		if _, ok := recordingRulesSchema().Attributes[name]; !ok {
 			t.Errorf("attribute %q is in recordingRuleAttributes() but missing from recordingRulesSchema()", name)
 		}
+	}
+}
+
+// yaml_content is decoded straight into the generated SDK struct, which
+// carries JSON tags but no YAML tags, so gopkg.in/yaml.v3 derives each key
+// from the lowercased Go field name. For a multi-word field that means the
+// only spelling that binds is the all-lowercase, unseparated one
+// (evaluationdelayms) — and yaml.v3 drops unrecognized keys silently, so a
+// camelCase or snake_case key sends no value with no diagnostic. This locks
+// the exact contract documented in the yaml_content description; if a future
+// SDK regen adds YAML tags, the documented key changes and this test fails
+// loudly instead of the docs going quietly wrong.
+func TestExpandRecordingRulesGroupsSetFromYamlEvaluationDelayKey(t *testing.T) {
+	yamlFor := func(key string) string {
+		return fmt.Sprintf(`name: Example
+groups:
+  - name: Foo
+    interval: 180
+    rules:
+      - record: job:http_requests_total:sum
+        expr: sum(rate(http_requests_total[5m])) by (job)
+        %s: 60000
+`, key)
+	}
+
+	for _, tc := range []struct {
+		key       string
+		wantBound bool
+	}{
+		{"evaluationdelayms", true},
+		{"evaluationDelayMs", false},
+		{"evaluation_delay_ms", false},
+		{"EvaluationDelayMs", false},
+		{"EVALUATIONDELAYMS", false},
+	} {
+		t.Run(tc.key, func(t *testing.T) {
+			result, diags := expandRecordingRulesGroupsSetFromYaml(yamlFor(tc.key), "")
+			if diags.HasError() {
+				t.Fatalf("unmarshal failed: %s", diags)
+			}
+			if len(result.Groups) != 1 || len(result.Groups[0].Rules) != 1 {
+				t.Fatalf("got %d groups / %d rules, want 1/1", len(result.Groups), len(result.Groups[0].Rules))
+			}
+
+			got, ok := result.Groups[0].Rules[0].GetEvaluationDelayMsOk()
+			if tc.wantBound {
+				if !ok || got == nil {
+					t.Fatalf("key %q: expected evaluationDelayMs to bind, but it was absent", tc.key)
+				}
+				if *got != 60000 {
+					t.Errorf("key %q: evaluationDelayMs = %d, want 60000", tc.key, *got)
+				}
+			} else if ok {
+				t.Errorf("key %q: expected the key to be dropped silently, but evaluationDelayMs bound to %d", tc.key, *got)
+			}
+		})
 	}
 }
 
