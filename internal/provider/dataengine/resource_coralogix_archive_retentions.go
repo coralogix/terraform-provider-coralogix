@@ -253,7 +253,19 @@ func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentions
 	var diags diag.Diagnostics
 	var retentions []retss.RetentionUpdateElement
 	var retentionsObjects []types.Object
-	plan.Retentions.ElementsAs(ctx, &retentionsObjects, true)
+	if dg := plan.Retentions.ElementsAs(ctx, &retentionsObjects, true); dg.HasError() {
+		diags.Append(dg...)
+		return nil, diags
+	}
+	if len(exitingRetentions) < len(retentionsObjects) {
+		diags.AddError(
+			"Error creating coralogix_archive_retentions",
+			fmt.Sprintf("the Coralogix backend returned %d archive retentions, but the configuration defines %d; "+
+				"archive retentions are created by Coralogix and can only be renamed, so the configuration cannot "+
+				"declare more retentions than the backend has", len(exitingRetentions), len(retentionsObjects)),
+		)
+		return nil, diags
+	}
 	for i, retentionObject := range retentionsObjects {
 		var retentionModel ArchiveRetentionResourceModel
 		if dg := retentionObject.As(ctx, &retentionModel, basetypes.ObjectAsOptions{}); dg.HasError() {
@@ -265,6 +277,16 @@ func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentions
 			Name: retentionModel.Name.ValueStringPointer(),
 		})
 
+	}
+	if diags.HasError() {
+		return nil, diags
+	}
+	if len(retentions) == 0 {
+		diags.AddError(
+			"Error creating coralogix_archive_retentions",
+			"no archive retentions could be extracted from the configuration",
+		)
+		return nil, diags
 	}
 	name := "Default"
 	retentions[0].Name = &name
@@ -313,7 +335,7 @@ func (r *ArchiveRetentionsResource) Read(ctx context.Context, req resource.ReadR
 	rq := r.client.RetentionsServiceGetRetentions(ctx)
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				"coralogix_archive_retentions is in state, but no longer exists in Coralogix backend",
 				"coralogix_archive_retentions will be recreated when you apply",
