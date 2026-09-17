@@ -24,14 +24,26 @@ import (
 var actionDataSourceName = "data." + actionResourceName
 
 func TestAccCoralogixDataSourceAction(t *testing.T) {
+	description := "runbook for disk pressure"
+	// The data source echoes the backend value, so dpxl_filter reads back with
+	// the `<v1> ` prefix the API stores rather than the configured form.
+	dpxlFilter := "<v1> $d.severity == 'ERROR'"
+	urlFields := []actionURLFieldTestParams{
+		{name: "env", required: true},
+		{name: "trace", required: false},
+	}
+
 	action := actionTestParams{
 		name:         acctest.RandomWithPrefix("tf-acc-test"),
-		url:          "https://www.google.com/",
+		url:          "https://www.google.com/search?q={{$p.selected_value}}",
 		sourceType:   "Log",
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    false,
 		isHidden:     false,
+		description:  &description,
+		dpxlFilter:   &dpxlFilter,
+		urlFields:    &urlFields,
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -44,6 +56,13 @@ func TestAccCoralogixDataSourceAction(t *testing.T) {
 					testAccCoralogixAction_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(actionDataSourceName, "name", action.name),
+					resource.TestCheckResourceAttr(actionDataSourceName, "description", description),
+					resource.TestCheckResourceAttr(actionDataSourceName, "dpxl_filter", dpxlFilter),
+					resource.TestCheckResourceAttr(actionDataSourceName, "url_fields.#", "2"),
+					resource.TestCheckResourceAttr(actionDataSourceName, "url_fields.0.name", "env"),
+					resource.TestCheckResourceAttr(actionDataSourceName, "url_fields.0.required", "true"),
+					resource.TestCheckResourceAttr(actionDataSourceName, "url_fields.1.name", "trace"),
+					resource.TestCheckResourceAttr(actionDataSourceName, "url_fields.1.required", "false"),
 				),
 			},
 		},

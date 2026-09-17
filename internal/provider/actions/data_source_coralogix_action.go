@@ -94,7 +94,13 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		}
 		return
 	}
-	state := flattenAction(result.Action)
+	// A read-only source echoes the backend values verbatim: an API [] stays [],
+	// an "" stays "" and dpxl_filter keeps its `<v1> ` prefixed form.
+	state, diags := flattenAction(ctx, nil, result.Action)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
