@@ -23,5 +23,5 @@ Coralogix group. Groups bind users to roles and scopes. For more info please rev
 ### Read-Only
 
 - `members` (Set of String) IDs of the users that make up the group.
-- `role` (String)
+- `role` (String) Role name as returned by the API. Create and update send this string. The SCIM name `Read Only` is not a role on this API. Use `Read-Only User` for the current viewer role, or `Legacy Read Only` to keep the previous assignment.
 - `scope_id` (String) Scope attached to the group.
