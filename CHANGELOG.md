@@ -1,14 +1,13 @@
 # Unreleased
 
 #### resource/coralogix_group
-- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
-- FEAT: Create and update send the configured role name. Read stores the name the API returns.
+- BREAKING: Use the Team Groups API instead of SCIM. `role = "Read Only"` is the old SCIM name for role id 3. Set `role = "Read-Only User"` (id 104, current viewer role). To keep id 3, set `role = "Legacy Read Only"`. Other role names are unchanged. Create and update send the configured name. Read stores the name the API returns.
 
 #### data-source/coralogix_group
-- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+- BREAKING: Use the Team Groups API instead of SCIM. `role` is the name the API returns (`Read-Only User` or `Legacy Read Only`, not the SCIM string `Read Only`).
 
 #### resource/coralogix_group_attachment
-- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+- CHORE: Use the Team Groups API instead of SCIM. Terraform attributes are unchanged.
 
 #### provider
 - CHORE: Bump `github.com/yuin/goldmark` to v1.7.17 to clear CVE-2026-5160. It is used only by the docs generator, not the provider binary. No change to provider behavior.

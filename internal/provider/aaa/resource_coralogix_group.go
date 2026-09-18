@@ -97,8 +97,10 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				MarkdownDescription: "IDs of the users that make up the group, as the complete member list. Omit the argument to leave membership unmanaged by this resource - Terraform then reads and stores the group's current members without changing them, which is what to do when membership is maintained in the Coralogix UI or by `coralogix_group_attachment`. Set `members = []` to remove every member. A single group's membership must be managed either here or by `coralogix_group_attachment`, never by both.",
 			},
 			"role": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Role assigned to the group. Create and update send this name. Read stores the name the API returns.",
+				Required: true,
+				MarkdownDescription: "Role name as returned by the API. Create and update send this string. " +
+					"The SCIM name `Read Only` is not a role on this API. Use `Read-Only User` for the current viewer role, " +
+					"or `Legacy Read Only` to keep the previous assignment.",
 			},
 			"scope_id": schema.StringAttribute{
 				Optional:            true,

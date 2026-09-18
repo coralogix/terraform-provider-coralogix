@@ -48,7 +48,7 @@ resource "coralogix_scope" "example" {
 
 resource "coralogix_group" "example" {
   display_name = "example"
-  role         = "Read Only"
+  role         = "Read-Only User"
   members      = [coralogix_user.example.id]
   scope_id     = coralogix_scope.example.id
 }
@@ -60,7 +60,7 @@ resource "coralogix_group" "example" {
 ### Required
 
 - `display_name` (String) Group display name.
-- `role` (String) Role assigned to the group. Create and update send this name. Read stores the name the API returns.
+- `role` (String) Role name as returned by the API. Create and update send this string. The SCIM name `Read Only` is not a role on this API. Use `Read-Only User` for the current viewer role, or `Legacy Read Only` to keep the previous assignment.
 
 ### Optional
 
