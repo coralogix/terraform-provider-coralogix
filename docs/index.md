@@ -37,6 +37,19 @@ Check out our examples for how to configure the various resources offered by the
 
 # Additional Notes
 
+## Dashboard validation during plan
+
+`coralogix_dashboard` asks Coralogix to check the dashboard while `terraform plan` runs, and reports anything it finds as warnings. The create API only validates structure, so problems such as a stale variable reference or a duplicate widget id are stored without complaint and only show up when the dashboard is rendered.
+
+Validation never fails a plan. If the check call fails, times out, or reports an issue, the plan continues unchanged. Two environment variables control it:
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `CORALOGIX_DASHBOARD_VALIDATION` | `true` | Set to `false` to stop validating dashboards. |
+| `CORALOGIX_DASHBOARD_VALIDATION_TIMEOUT` | `5s` | How long a single validation call may take. Accepts any Go duration, for example `10s`. |
+
+Validation is skipped for a dashboard that is not changing, and issues about values Terraform cannot resolve yet - such as a `folder.id` that references a `coralogix_dashboards_folder` resource - are left out rather than reported against a value the user did not write.
+
 ## Upgrading from V1.x.x to V2.x.x
 
 In this version upgrade we changed the schema of our alerts, which are now incompatible to previous versions. You can ease the transition process by using the importer tool mentioned above so your state is safely upgraded. Note that for existing Coralogix users an additional process is required for upgrading your account. Please reach out to customer support to receive more guidance.
