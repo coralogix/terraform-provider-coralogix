@@ -1,14 +1,13 @@
 # Unreleased
 
 #### resource/coralogix_group
-- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
-- FEAT: Create and update send the configured role name. Read stores the name the API returns.
+- BREAKING: Use the Team Groups API instead of SCIM. `role = "Read Only"` is the old SCIM name for role id 3. Set `role = "Read-Only User"` (id 104, current viewer role). To keep id 3, set `role = "Legacy Read Only"`. Other role names are unchanged. Create and update send the configured name. Read stores the name the API returns.
 
 #### data-source/coralogix_group
-- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+- BREAKING: Use the Team Groups API instead of SCIM. `role` is the name the API returns (`Read-Only User` or `Legacy Read Only`, not the SCIM string `Read Only`).
 
 #### resource/coralogix_group_attachment
-- CHORE: Use the public Team Groups API instead of SCIM. Terraform attributes are unchanged.
+- CHORE: Use the Team Groups API instead of SCIM. Terraform attributes are unchanged.
 
 #### resource/coralogix_dashboard
 - FEAT: Report backend validation issues as warnings during `terraform plan`. The create API only validates structure, so problems such as stale variable references or duplicate widget ids used to surface only when the dashboard was rendered. Issues never fail a plan. Set `CORALOGIX_DASHBOARD_VALIDATION=false` to turn validation off, or `CORALOGIX_DASHBOARD_VALIDATION_TIMEOUT` to change the 5s call timeout.

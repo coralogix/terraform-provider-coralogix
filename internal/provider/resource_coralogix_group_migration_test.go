@@ -38,6 +38,7 @@ func TestAccCoralogixResourceGroupMigrationFromSCIM(t *testing.T) {
 	updatedName := displayName + "-openapi"
 	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
 	initial := testAccCoralogixResourceGroupWithRole(userName, displayName, scopeName, "Read Only")
+	afterUpgrade := testAccCoralogixResourceGroupWithRole(userName, displayName, scopeName, "Read-Only User")
 	updated := testAccCoralogixResourceGroupUpdatedMembers(userName, userName2, updatedName, scopeName)
 
 	resource.Test(t, resource.TestCase{
@@ -51,21 +52,21 @@ func TestAccCoralogixResourceGroupMigrationFromSCIM(t *testing.T) {
 					resource.TestCheckResourceAttr(groupResourceName, "display_name", displayName),
 					resource.TestCheckResourceAttr(groupResourceName, "role", "Read Only"),
 					resource.TestCheckResourceAttr(groupResourceName, "members.#", "1"),
-					testAccCheckGroupRoleAssigned(groupResourceName, "Read Only"),
+					testAccCheckGroupRoleAssigned(groupResourceName, "Legacy Read Only"),
 				),
 			},
 			{
-				Config:                   initial,
+				Config:                   afterUpgrade,
 				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction(groupResourceName, plancheck.ResourceActionNoop),
+						plancheck.ExpectResourceAction(groupResourceName, plancheck.ResourceActionUpdate),
 					},
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(groupResourceName, "role", "Read Only"),
-					testAccCheckGroupRoleAssigned(groupResourceName, "Read Only"),
+					resource.TestCheckResourceAttr(groupResourceName, "role", "Read-Only User"),
+					testAccCheckGroupRoleAssigned(groupResourceName, "Read-Only User"),
 				),
 			},
 			{
@@ -79,9 +80,9 @@ func TestAccCoralogixResourceGroupMigrationFromSCIM(t *testing.T) {
 				},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(groupResourceName, "display_name", updatedName),
-					resource.TestCheckResourceAttr(groupResourceName, "role", "Read Only"),
+					resource.TestCheckResourceAttr(groupResourceName, "role", "Read-Only User"),
 					resource.TestCheckResourceAttr(groupResourceName, "members.#", "2"),
-					testAccCheckGroupRoleAssigned(groupResourceName, "Read Only"),
+					testAccCheckGroupRoleAssigned(groupResourceName, "Read-Only User"),
 				),
 			},
 			{
@@ -102,8 +103,9 @@ func TestAccCoralogixResourceGroupMigrationAttachmentFromSCIM(t *testing.T) {
 	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
 	updatedName := displayName + "-openapi"
 	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
-	initial := testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, displayName, scopeName)
-	updated := testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, updatedName, scopeName)
+	initial := testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, displayName, scopeName, "Read Only")
+	afterUpgrade := testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, displayName, scopeName, "Read-Only User")
+	updated := testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, updatedName, scopeName, "Read-Only User")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -116,22 +118,23 @@ func TestAccCoralogixResourceGroupMigrationAttachmentFromSCIM(t *testing.T) {
 					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "display_name", displayName),
 					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "role", "Read Only"),
 					testAccCheckGroupMemberCount(groupUnmanagedMembersResourceName, 2),
-					testAccCheckGroupRoleAssigned(groupUnmanagedMembersResourceName, "Read Only"),
+					testAccCheckGroupRoleAssigned(groupUnmanagedMembersResourceName, "Legacy Read Only"),
 				),
 			},
 			{
-				Config:                   initial,
+				Config:                   afterUpgrade,
 				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction(groupUnmanagedMembersResourceName, plancheck.ResourceActionNoop),
+						plancheck.ExpectResourceAction(groupUnmanagedMembersResourceName, plancheck.ResourceActionUpdate),
 						plancheck.ExpectResourceAction("coralogix_group_attachment.unmanaged_members", plancheck.ResourceActionNoop),
 					},
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "role", "Read Only"),
+					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "role", "Read-Only User"),
 					testAccCheckGroupMemberCount(groupUnmanagedMembersResourceName, 2),
+					testAccCheckGroupRoleAssigned(groupUnmanagedMembersResourceName, "Read-Only User"),
 				),
 			},
 			{
@@ -146,7 +149,7 @@ func TestAccCoralogixResourceGroupMigrationAttachmentFromSCIM(t *testing.T) {
 				},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "display_name", updatedName),
-					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "role", "Read Only"),
+					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "role", "Read-Only User"),
 					testAccCheckGroupMemberCount(groupUnmanagedMembersResourceName, 2),
 				),
 			},

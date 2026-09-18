@@ -134,7 +134,7 @@ func testAccCoralogixDataSourceGroupPrefixSibling(displayName string) string {
 	return fmt.Sprintf(`
 	resource "coralogix_group" "prefix_sibling" {
 		display_name = "%s-suffix"
-		role         = "Read Only"
+		role         = "Read-Only User"
 	}
 `, displayName)
 }

@@ -49,7 +49,7 @@ func TestAccCoralogixResourceGroup(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(groupResourceName, "id"),
 					resource.TestCheckResourceAttr(groupResourceName, "display_name", displayName),
-					resource.TestCheckResourceAttr(groupResourceName, "role", "Read Only"),
+					resource.TestCheckResourceAttr(groupResourceName, "role", "Read-Only User"),
 					resource.TestCheckResourceAttr(groupResourceName, "members.#", "1"),
 					resource.TestCheckResourceAttrPair(groupResourceName, "members.0", "coralogix_user.test", "id"),
 					resource.TestCheckResourceAttrPair(groupResourceName, "scope_id", "coralogix_scope.test", "id"),
@@ -98,14 +98,14 @@ func TestAccCoralogixResourceGroupMembersManagedByAttachment(t *testing.T) {
 		CheckDestroy:             testAccCheckGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, displayName, scopeName),
+				Config: testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, displayName, scopeName, "Read-Only User"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "display_name", displayName),
 					testAccCheckGroupMemberCount(groupUnmanagedMembersResourceName, 2),
 				),
 			},
 			{
-				Config: testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, displayName+"-renamed", scopeName),
+				Config: testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, displayName+"-renamed", scopeName, "Read-Only User"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "display_name", displayName+"-renamed"),
 					resource.TestCheckResourceAttr(groupUnmanagedMembersResourceName, "members.#", "2"),
@@ -169,7 +169,7 @@ func TestAccCoralogixResourceGroupMembersOmissionAndExplicitClear(t *testing.T) 
 }
 
 func TestAccCoralogixResourceGroupRoleByName(t *testing.T) {
-	for _, role := range []string{"Read Only", "Legacy Read Only"} {
+	for _, role := range []string{"Read-Only User", "Legacy Read Only"} {
 		role := role
 		t.Run(role, func(t *testing.T) {
 			userName := randUserName()
@@ -324,7 +324,7 @@ func testAccCoralogixResourceGroup(userName, displayName, scopeName string) stri
 	
 	resource "coralogix_group" "test" {
 		display_name = "%s"
-		role         = "Read Only"
+		role         = "Read-Only User"
 		members      = [coralogix_user.test.id]
 		scope_id     = coralogix_scope.test.id
 	}
@@ -380,7 +380,7 @@ func testAccCoralogixResourceGroupUpdatedMembers(userName, userName2, displayNam
 	
 	resource "coralogix_group" "test" {
 		display_name = "%s"
-		role         = "Read Only"
+		role         = "Read-Only User"
 		members      = [coralogix_user.test.id, coralogix_user.test2.id]
 		scope_id     = coralogix_scope.test.id
 	}
@@ -410,13 +410,13 @@ func testAccCoralogixResourceGroupNoScope(userName, userName2, displayName, scop
 	
 	resource "coralogix_group" "test" {
 		display_name = "%s"
-		role         = "Read Only"
+		role         = "Read-Only User"
 		members      = [coralogix_user.test.id, coralogix_user.test2.id]
 	}
 `, scopeName, userName, userName2, displayName)
 }
 
-func testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, displayName, scopeName string) string {
+func testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName, displayName, scopeName, role string) string {
 	return fmt.Sprintf(`
 	resource "coralogix_scope" "unmanaged_members" {
 		display_name       = "%s"
@@ -439,7 +439,7 @@ func testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName
 
 	resource "coralogix_group" "unmanaged_members" {
 		display_name = "%s"
-		role         = "Read Only"
+		role         = %q
 		scope_id     = coralogix_scope.unmanaged_members.id
 	}
 
@@ -450,7 +450,7 @@ func testAccCoralogixResourceGroupUnmanagedMembers(firstUserName, secondUserName
 			coralogix_user.unmanaged_members_second.id,
 		]
 	}
-`, scopeName, firstUserName, secondUserName, displayName)
+`, scopeName, firstUserName, secondUserName, displayName, role)
 }
 
 func testAccCoralogixResourceGroupWithMembers(userName, displayName, scopeName string) string {
@@ -472,7 +472,7 @@ func testAccCoralogixResourceGroupWithMembers(userName, displayName, scopeName s
 
 	resource "coralogix_group" "omitted_members" {
 		display_name = "%s"
-		role         = "Read Only"
+		role         = "Read-Only User"
 		members      = [coralogix_user.omitted_members.id]
 		scope_id     = coralogix_scope.omitted_members.id
 	}
@@ -498,7 +498,7 @@ func testAccCoralogixResourceGroupWithoutMembers(userName, displayName, scopeNam
 
 	resource "coralogix_group" "omitted_members" {
 		display_name = "%s"
-		role         = "Read Only"
+		role         = "Read-Only User"
 		scope_id     = coralogix_scope.omitted_members.id
 	}
 `, scopeName, userName, displayName)
@@ -523,7 +523,7 @@ func testAccCoralogixResourceGroupWithEmptyMembers(userName, displayName, scopeN
 
 	resource "coralogix_group" "omitted_members" {
 		display_name = "%s"
-		role         = "Read Only"
+		role         = "Read-Only User"
 		members      = []
 		scope_id     = coralogix_scope.omitted_members.id
 	}
