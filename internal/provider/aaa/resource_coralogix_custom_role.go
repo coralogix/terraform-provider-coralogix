@@ -137,6 +137,12 @@ func (r *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
+	if createResult == nil || createResult.Id == nil {
+		resp.Diagnostics.AddError("Error creating coralogix_custom_role",
+			"Coralogix API returned no role ID. The role may have been created; check the Coralogix UI.")
+		return
+	}
+
 	result, httpResponse, err := r.client.
 		RoleManagementServiceGetCustomRole(ctx, *createResult.Id).
 		Execute()
@@ -176,7 +182,7 @@ func (r *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_custom_role %v is in state, but no longer exists in Coralogix backend", *id),
 				fmt.Sprintf("%v will be recreated when you apply", *id),
@@ -223,7 +229,7 @@ func (r *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_custom_role %v is in state, but no longer exists in Coralogix backend", *id),
 				fmt.Sprintf("%v will be recreated when you apply", *id),
