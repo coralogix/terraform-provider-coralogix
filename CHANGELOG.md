@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_custom_role
+- FIX: Read no longer errors when the API returns a different set of permissions than the plan/state. Permissions are reconciled from the API response, so drift caused by UI edits or partial failures is surfaced in the plan and corrected on the next apply.
+
 #### resource/coralogix_dashboard
 - FEAT: Report backend validation issues as warnings during `terraform plan`. The create API only validates structure, so problems such as stale variable references or duplicate widget ids used to surface only when the dashboard was rendered. Issues never fail a plan. Set `CORALOGIX_DASHBOARD_VALIDATION=false` to turn validation off, or `CORALOGIX_DASHBOARD_VALIDATION_TIMEOUT` to change the 5s call timeout.
 
