@@ -14,6 +14,12 @@
 - FIX: Panic on transport errors during read and update.
 - FIX: Panic when the create response omits the role ID.
 
+#### resource/coralogix_view_folder
+- FEAT: New resource for View Folders, the containers that group saved views in the Explore screen. Supports `name` (required, 1-100 characters), the computed `id`, full CRUD with in-place rename, and import by ID.
+
+#### data-source/coralogix_view_folder
+- FEAT: New data source resolving a view folder by either `id` or `name`.
+
 # Release 3.17.0
 
 #### resource/coralogix_archive_metrics
