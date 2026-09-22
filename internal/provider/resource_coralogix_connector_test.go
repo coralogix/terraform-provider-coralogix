@@ -298,6 +298,10 @@ func TestAccCoralogixResourceEventbridgeConnector(t *testing.T) {
 						"field_name": "integrationId",
 						"value":      eventbridgeIntegrationId,
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "additionalDetail",
+						"value":      `{"pipeline_id":"p123"}`,
+					}),
 				),
 			},
 			{
@@ -576,6 +580,10 @@ func testAccResourceCoralogixEventbridgeConnector(name string) string {
        {
          field_name = "integrationId"
          value      = "%[2]v"
+       },
+       {
+         field_name = "additionalDetail"
+         value      = "{\"pipeline_id\":\"p123\"}"
        }
      ]
    }

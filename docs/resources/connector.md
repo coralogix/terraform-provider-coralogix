@@ -259,6 +259,10 @@ resource "coralogix_connector" "eventbridge_example" {
       {
         field_name = "integrationId"
         value      = "integrationId-example"
+      },
+      {
+        field_name = "additionalDetail"
+        value      = "{\"pipeline_id\":\"p123\"}"
       }
     ]
   }
