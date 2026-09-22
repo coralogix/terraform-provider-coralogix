@@ -12,6 +12,7 @@
 
 #### resource/coralogix_connector
 - FIX: Guard `httpResponse` against nil in `Read` and `Update` to prevent a nil pointer dereference panic when the API call returns a transport error. Mirrors the archive_retentions fix (#722).
+- DOCS: Document the optional `additionalDetail` connector_config field for the `eventbridge` connector type.
 
 #### resource/coralogix_custom_role
 - FIX: Panic on transport errors during read and update.
