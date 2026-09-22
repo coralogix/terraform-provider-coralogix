@@ -6,6 +6,12 @@
 #### data-source/coralogix_rules_group
 - DOCS: Document the new data-source type, output shape, field rename, and canonical enum values.
 
+#### resource/coralogix_parsing_rules
+- FIX: Preserve rule subgroup IDs in state.
+
+#### data-source/coralogix_parsing_rules
+- FIX: Preserve rule subgroup IDs in state.
+
 #### resource/coralogix_custom_role
 - FIX: Read no longer errors when the API returns a different set of permissions than the plan/state. Permissions are reconciled from the API response, so drift caused by UI edits or partial failures is surfaced in the plan and corrected on the next apply.
 
