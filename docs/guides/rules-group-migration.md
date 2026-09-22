@@ -50,7 +50,7 @@ resource "coralogix_rules_group" "example" {
       extract_timestamp {
         order                 = 2
         name                  = "Read timestamp"
-        source_field          = "timestamp"
+        source_field          = "text"
         field_format_standard = "Strftime"
         time_format           = "%Y-%m-%dT%H:%M:%S%z"
       }
@@ -79,7 +79,7 @@ resource "coralogix_parsing_rules" "example" {
       {
         extract_timestamp = {
           name                  = "Read timestamp"
-          source_field          = "timestamp"
+          source_field          = "text"
           field_format_standard = "strftime"
           time_format           = "%Y-%m-%dT%H:%M:%S%z"
         }
