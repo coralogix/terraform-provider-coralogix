@@ -247,36 +247,8 @@ func main() {
 		log.Print("Error listing global routers:", err)
 	}
 
-	// Users. The Users API has no delete, so cleanup deactivates instead. Only users the
-	// acceptance tests created are touched. PUT replaces the template, so every other
-	// field is sent back as read.
-	usersClient := cs.Users()
-	searchRes, _, err := usersClient.UsersMgmtServiceSearchUsers(ctx).PageSize(100).Execute()
-	if err == nil {
-		log.Println("Deactivating test users")
-		inactive := usersservice.USERSTATUS_USER_STATUS_INACTIVE
-		updates := []usersservice.UpdateUserRequest{}
-		for _, user := range searchRes.Users {
-			if !strings.HasPrefix(user.GetUsername(), "tf-acc-user") || user.GetStatus() == inactive {
-				continue
-			}
-			updates = append(updates, usersservice.UpdateUserRequest{
-				UserId: user.UserId,
-				UserTemplate: &usersservice.UserTemplate{
-					FirstName:        user.FirstName,
-					LastName:         user.LastName,
-					Status:           &inactive,
-					AllowedLoginMode: user.AllowedLoginMode,
-					AccessType:       user.AccessType,
-				},
-			})
-		}
-		if len(updates) > 0 {
-			usersClient.UsersMgmtServiceUpdateUsers(ctx).UpdateUserRequest(updates).Execute()
-		}
-	} else {
-		log.Print("Error searching users:", err)
-	}
+	// Users. The Users API has no delete, so cleanup deactivates instead.
+	deactivateTestUsers(ctx, cs.Users())
 
 	// Views
 	viewsClient := cxsdk.NewViewsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
@@ -336,5 +308,57 @@ func main() {
 		}
 	} else {
 		log.Print("Error listing SLOs:", err)
+	}
+}
+
+// deactivateTestUsers deactivates the active users the acceptance tests created. It
+// pages the whole team: deactivated users stay searchable, so the team keeps growing
+// and test users can sit on any page. PUT replaces the template, so every other field
+// is sent back as read.
+func deactivateTestUsers(ctx context.Context, usersClient *usersservice.UsersManagementServiceAPIService) {
+	inactive := usersservice.USERSTATUS_USER_STATUS_INACTIVE
+	updates := []usersservice.UpdateUserRequest{}
+	var pageToken int64
+
+	for {
+		req := usersClient.UsersMgmtServiceSearchUsers(ctx).PageSize(100)
+		if pageToken != 0 {
+			req = req.PageToken(pageToken)
+		}
+		searchRes, _, err := req.Execute()
+		if err != nil {
+			log.Print("Error searching users:", err)
+			return
+		}
+		for _, user := range searchRes.Users {
+			if !strings.HasPrefix(user.GetUsername(), "tf-acc-user") || user.GetStatus() == inactive {
+				continue
+			}
+			updates = append(updates, usersservice.UpdateUserRequest{
+				UserId: user.UserId,
+				UserTemplate: &usersservice.UserTemplate{
+					FirstName:        user.FirstName,
+					LastName:         user.LastName,
+					Status:           &inactive,
+					AllowedLoginMode: user.AllowedLoginMode,
+					AccessType:       user.AccessType,
+				},
+			})
+		}
+		// The token is an offset. A missing one, or one that does not move forward,
+		// means this was the last page.
+		next := searchRes.GetNextPageToken()
+		if len(searchRes.Users) == 0 || next <= pageToken {
+			break
+		}
+		pageToken = next
+	}
+
+	if len(updates) == 0 {
+		return
+	}
+	log.Printf("Deactivating %d test users", len(updates))
+	if _, _, err := usersClient.UsersMgmtServiceUpdateUsers(ctx).UpdateUserRequest(updates).Execute(); err != nil {
+		log.Print("Error deactivating users:", err)
 	}
 }
