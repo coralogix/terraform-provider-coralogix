@@ -48,7 +48,7 @@ resource "coralogix_scope" "example" {
 
 resource "coralogix_group" "example" {
   display_name = "example"
-  role         = "Read Only"
+  role         = "Read-Only User"
   members      = [coralogix_user.example.id]
   scope_id     = coralogix_scope.example.id
 }
@@ -60,12 +60,12 @@ resource "coralogix_group" "example" {
 ### Required
 
 - `display_name` (String) Group display name.
-- `role` (String)
+- `role` (String) Role name as returned by the API. Create and update send this string. This API names the two read-only roles differently from SCIM: role id 3 is `Legacy Read Only` and role id 104 is `Read-Only User`. There is no role named `Read Only`.
 
 ### Optional
 
 - `members` (Set of String) IDs of the users that make up the group, as the complete member list. Omit the argument to leave membership unmanaged by this resource - Terraform then reads and stores the group's current members without changing them, which is what to do when membership is maintained in the Coralogix UI or by `coralogix_group_attachment`. Set `members = []` to remove every member. A single group's membership must be managed either here or by `coralogix_group_attachment`, never by both.
-- `scope_id` (String) Scope attached to the group.
+- `scope_id` (String) Scope attached to the group. Set `scope_id = ""` to remove the scope. Deleting the argument keeps the group's current scope.
 
 ### Read-Only
 

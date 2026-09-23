@@ -1,5 +1,15 @@
 # Unreleased
 
+#### resource/coralogix_group
+- BREAKING: Use the Team Groups API instead of SCIM. If a group uses the SCIM role `Read Only` or `Legacy Read Only`, set `role = "Read-Only User"`.
+- FEAT: Set `scope_id = ""` to remove the group's scope. Deleting `scope_id` keeps the current scope.
+
+#### data-source/coralogix_group
+- BREAKING: Use the Team Groups API instead of SCIM.
+
+#### resource/coralogix_group_attachment
+- CHORE: Use the Team Groups API instead of SCIM. Terraform attributes are unchanged.
+
 #### resource/coralogix_recording_rules_groups_set
 - FEAT: Add support for `groups[*].rules[*].evaluation_delay_ms`, an optional delay (in milliseconds, `0`-`1800000`) that holds off a rule's evaluation so late-arriving data is ingested first. Removing it from the configuration clears the delay, and an explicit `0` is a real value distinct from unset. Also fixes a read-path gap: a delay set outside Terraform was previously dropped from state and silently stripped on the next apply.
 - DOCS: Note in `yaml_content` that keys must be all-lowercase and unseparated (`evaluationdelayms`), since unrecognized keys are ignored without a diagnostic.
