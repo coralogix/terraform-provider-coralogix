@@ -107,16 +107,7 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	memberIDs, httpResp, err := listGroupUserIDs(ctx, d.client, *group.GroupId)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading Group members",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "GetGroupUsers", *group.GroupId),
-		)
-		return
-	}
-
-	data, diags = flattenTeamGroup(group, memberIDs)
+	data, diags = flattenTeamGroup(group)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
