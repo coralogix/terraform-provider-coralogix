@@ -557,7 +557,7 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 			CustomEnrichmentServiceGetCustomEnrichment(ctx, *customEnrichmentId).
 			Execute()
 		if err != nil {
-			if httpResponse.StatusCode == http.StatusNotFound {
+			if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 				resp.Diagnostics.AddWarning(
 					"coralogix_data_enrichments is in state, but no longer exists in Coralogix backend",
 					"coralogix_data_enrichments will be recreated when you apply",
@@ -578,7 +578,7 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 			EnrichmentServiceGetEnrichments(ctx).
 			Execute()
 		if err != nil {
-			if httpResponse.StatusCode == http.StatusNotFound {
+			if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 				resp.Diagnostics.AddWarning(
 					"coralogix_data_enrichments is in state, but no longer exists in Coralogix backend",
 					"coralogix_data_enrichments will be recreated when you apply",

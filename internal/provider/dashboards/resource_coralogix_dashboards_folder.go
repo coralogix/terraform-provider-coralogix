@@ -159,7 +159,7 @@ func (r *DashboardsFolderResource) Read(ctx context.Context, req resource.ReadRe
 	result, httpResponse, err := r.client.DashboardFoldersServiceGetDashboardFolder(ctx, id).
 		Execute()
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_dashboard_folder %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),

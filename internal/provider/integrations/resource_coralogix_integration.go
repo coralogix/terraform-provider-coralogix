@@ -390,7 +390,7 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),

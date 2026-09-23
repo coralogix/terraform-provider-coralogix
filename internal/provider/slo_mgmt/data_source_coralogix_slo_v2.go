@@ -80,7 +80,7 @@ func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_slo_v2 %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),

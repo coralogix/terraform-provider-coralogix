@@ -471,7 +471,7 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 		RuleGroupSetsFetch(ctx, id).
 		Execute()
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				"coralogix_recording_rule_groups is in state, but no longer exists in Coralogix backend",
 				"coralogix_recording_rule_groups will be recreated when you apply",
@@ -515,7 +515,7 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_recording_rule_groups %v is in state, but no longer exists in Coralogix backend", rq),
 				fmt.Sprintf("%v will be recreated when you apply", rq),

@@ -1,5 +1,8 @@
 # Unreleased
 
+#### provider
+- FIX: Report an error instead of crashing when an API call returns no HTTP response, for example on a network error or an import with a malformed ID. Affects `coralogix_dashboards_folder`, `coralogix_scope`, `coralogix_ip_access`, `coralogix_action`, `coralogix_tco_policies_logs`, `coralogix_tco_policies_traces`, `coralogix_data_enrichments`, `coralogix_integration`, `coralogix_webhook`, `coralogix_archive_logs`, `coralogix_archive_metrics`, `coralogix_global_router`, `coralogix_preset`, `coralogix_parsing_rules`, `coralogix_recording_rules_groups_set`, and `coralogix_slo_v2` resources and data sources.
+
 #### resource/coralogix_recording_rules_groups_set
 - FEAT: Add support for `groups[*].rules[*].evaluation_delay_ms`, an optional delay (in milliseconds, `0`-`1800000`) that holds off a rule's evaluation so late-arriving data is ingested first. Removing it from the configuration clears the delay, and an explicit `0` is a real value distinct from unset. Also fixes a read-path gap: a delay set outside Terraform was previously dropped from state and silently stripped on the next apply.
 - DOCS: Note in `yaml_content` that keys must be all-lowercase and unseparated (`evaluationdelayms`), since unrecognized keys are ignored without a diagnostic.
