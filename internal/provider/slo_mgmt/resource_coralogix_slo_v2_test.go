@@ -19,11 +19,47 @@ import (
 	"testing"
 
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 func ptr[T any](v T) *T { return &v }
+
+func TestSLOV2APMServicesRequiresExactlyOne(t *testing.T) {
+	ctx := context.Background()
+	var schemaResponse frameworkresource.SchemaResponse
+	(&SLOV2Resource{}).Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResponse)
+
+	sli := schemaResponse.Schema.Attributes["sli"].(resourceschema.SingleNestedAttribute)
+	apm := sli.Attributes["apm_sli"].(resourceschema.SingleNestedAttribute)
+	services := apm.Attributes["services"].(resourceschema.ListAttribute)
+
+	for _, test := range []struct {
+		name      string
+		values    []attr.Value
+		wantError bool
+	}{
+		{name: "empty", values: nil, wantError: true},
+		{name: "one", values: []attr.Value{types.StringValue("checkout")}, wantError: false},
+		{name: "two", values: []attr.Value{types.StringValue("checkout"), types.StringValue("payments")}, wantError: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			request := validator.ListRequest{ConfigValue: types.ListValueMust(types.StringType, test.values)}
+			var response validator.ListResponse
+			for _, listValidator := range services.Validators {
+				listValidator.ValidateList(ctx, request, &response)
+			}
+
+			if got := response.Diagnostics.HasError(); got != test.wantError {
+				t.Fatalf("services validator has error = %v, want %v: %v", got, test.wantError, response.Diagnostics)
+			}
+		})
+	}
+}
 
 func baseSLO() *slos.Slo {
 	return &slos.Slo{

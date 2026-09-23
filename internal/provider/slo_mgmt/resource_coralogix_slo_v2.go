@@ -300,7 +300,7 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 							"services": schema.ListAttribute{
 								ElementType: types.StringType,
 								Required:    true,
-								Validators:  []validator.List{listvalidator.SizeAtLeast(1)},
+								Validators:  []validator.List{listvalidator.SizeBetween(1, 1)},
 								MarkdownDescription: "Names of the APM Service Catalog services to monitor. The backend " +
 									"currently accepts exactly one service and rejects unknown service names.",
 							},

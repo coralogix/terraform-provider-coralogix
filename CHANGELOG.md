@@ -1,5 +1,17 @@
 # Unreleased
 
+#### resource/coralogix_slo
+- DOCS: Add a complete guide to migrate to `coralogix_slo_v2` and identify SLO settings that require a behavior decision.
+
+#### data-source/coralogix_slo
+- DOCS: Document the new data-source type, output paths, unit change, and outputs with no equivalent.
+
+#### data-source/coralogix_slo_v2
+- FIX: Return a clear error when the ID does not exist in the V2 API. A missing ID previously removed the data-source state and caused Terraform to report `Provider produced null object`.
+
+#### resource/coralogix_slo_v2
+- FIX: Require exactly one APM service at plan time. The backend rejects more than one service.
+
 #### resource/coralogix_recording_rules_groups_set
 - FEAT: Add support for `groups[*].rules[*].evaluation_delay_ms`, an optional delay (in milliseconds, `0`-`1800000`) that holds off a rule's evaluation so late-arriving data is ingested first. Removing it from the configuration clears the delay, and an explicit `0` is a real value distinct from unset. Also fixes a read-path gap: a delay set outside Terraform was previously dropped from state and silently stripped on the next apply.
 - DOCS: Note in `yaml_content` that keys must be all-lowercase and unseparated (`evaluationdelayms`), since unrecognized keys are ignored without a diagnostic.

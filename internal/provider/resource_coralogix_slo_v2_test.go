@@ -253,6 +253,16 @@ func TestAccCoralogixResourceSLOV2Validation(t *testing.T) {
 				ExpectError: regexp.MustCompile(`(?s)grouping_keys.*at least\s+1 element`),
 			},
 			{
+				Config: strings.Replace(
+					testAccCoralogixSLOV2APMSLI("svc-does-not-matter", `error_config = {}`, ""),
+					`services = ["svc-does-not-matter"]`,
+					`services = ["service-a", "service-b"]`,
+					1,
+				),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`(?s)services.*at least\s+1 elements.*at\s+most\s+1 elements`),
+			},
+			{
 				Config: testAccCoralogixSLOV2APMSLI("svc-does-not-matter", `
       error_config   = {}
       latency_config = {
