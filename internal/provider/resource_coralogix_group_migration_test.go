@@ -32,13 +32,17 @@ const (
 func TestAccCoralogixResourceGroupMigrationFromSCIM(t *testing.T) {
 	requireGroupMigrationAcceptance(t)
 
+	// SCIM "Read Only" is role id 3, which this API calls "Legacy Read Only". Refresh stores
+	// the API name, so renaming the HCL string keeps the role and plans no change.
+	scimRole := "Read Only"
+	openAPIRole := "Legacy Read Only"
 	userName := randUserName()
 	userName2 := randUserName()
 	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
 	updatedName := displayName + "-openapi"
 	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
-	initial := testAccCoralogixResourceGroupWithRole(userName, displayName, scopeName, "Read Only")
-	afterUpgrade := testAccCoralogixResourceGroupWithRole(userName, displayName, scopeName, "Read-Only User")
+	initial := testAccCoralogixResourceGroupWithRole(userName, displayName, scopeName, scimRole)
+	afterUpgrade := testAccCoralogixResourceGroupWithRole(userName, displayName, scopeName, openAPIRole)
 	updated := testAccCoralogixResourceGroupUpdatedMembers(userName, userName2, updatedName, scopeName)
 
 	resource.Test(t, resource.TestCase{
@@ -50,9 +54,9 @@ func TestAccCoralogixResourceGroupMigrationFromSCIM(t *testing.T) {
 				ExternalProviders: groupMigrationExternalProvider(groupMigrationSCIMVersion),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(groupResourceName, "display_name", displayName),
-					resource.TestCheckResourceAttr(groupResourceName, "role", "Read Only"),
+					resource.TestCheckResourceAttr(groupResourceName, "role", scimRole),
 					resource.TestCheckResourceAttr(groupResourceName, "members.#", "1"),
-					testAccCheckGroupRoleAssigned(groupResourceName, "Legacy Read Only"),
+					testAccCheckGroupRoleAssigned(groupResourceName, openAPIRole),
 				),
 			},
 			{
@@ -60,13 +64,13 @@ func TestAccCoralogixResourceGroupMigrationFromSCIM(t *testing.T) {
 				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction(groupResourceName, plancheck.ResourceActionUpdate),
+						plancheck.ExpectResourceAction(groupResourceName, plancheck.ResourceActionNoop),
 					},
 					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(groupResourceName, "role", "Read-Only User"),
-					testAccCheckGroupRoleAssigned(groupResourceName, "Read-Only User"),
+					resource.TestCheckResourceAttr(groupResourceName, "role", openAPIRole),
+					testAccCheckGroupRoleAssigned(groupResourceName, openAPIRole),
 				),
 			},
 			{

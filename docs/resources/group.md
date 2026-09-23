@@ -60,7 +60,7 @@ resource "coralogix_group" "example" {
 ### Required
 
 - `display_name` (String) Group display name.
-- `role` (String) Role name as returned by the API. Create and update send this string. The SCIM name `Read Only` is not a role on this API. Use `Read-Only User` for the current viewer role, or `Legacy Read Only` to keep the previous assignment.
+- `role` (String) Role name as returned by the API. Create and update send this string. This API names the two read-only roles differently from SCIM: role id 3 is `Legacy Read Only` and role id 104 is `Read-Only User`. There is no role named `Read Only`.
 
 ### Optional
 
