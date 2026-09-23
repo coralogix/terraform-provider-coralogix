@@ -46,7 +46,7 @@
 - DOCS: Map every resource field to `coralogix_data_enrichments`, including both CSV input forms.
 
 #### data-source/coralogix_data_set
-- DOCS: Document the replacement data source and every output path.
+- DOCS: Document the replacement data source and every output path, and point the deprecation message to `coralogix_data_enrichments`.
 
 #### resource/coralogix_archive_retentions
 - FIX: Guard `httpResponse` against nil in `Read` to prevent a nil pointer dereference panic when the API call returns a transport error.
