@@ -19,9 +19,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
-	"github.com/cenkalti/backoff/v5"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	teamGroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/team_groups_management_service"
 
@@ -148,7 +146,7 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	state, diags := r.readFlattenedGroupToState(ctx, *createResp.Group.GroupId, plan.ScopeID)
+	state, diags := r.readFlattenedGroupToState(ctx, *createResp.Group.GroupId)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -175,7 +173,7 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	}
 
 	log.Printf("[INFO] Reading Group: %d", groupID)
-	flattened, err := r.readFlattenedGroup(ctx, groupID, types.StringNull())
+	flattened, err := r.readFlattenedGroup(ctx, groupID)
 	if err != nil {
 		if isGroupNotFoundErr(err) {
 			resp.Diagnostics.AddWarning(
@@ -244,7 +242,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	state, err := r.readFlattenedGroup(ctx, groupID, plan.ScopeID)
+	state, err := r.readFlattenedGroup(ctx, groupID)
 	if err != nil {
 		if isGroupNotFoundErr(err) {
 			resp.Diagnostics.AddWarning(
@@ -350,9 +348,9 @@ func scopeUpdateFromPlan(plan *GroupResourceModel) *teamGroups.ScopeUpdate {
 	return teamGroupScopeSet(plan.ScopeID.ValueString())
 }
 
-func (r *GroupResource) readFlattenedGroupToState(ctx context.Context, groupID int64, plannedScopeID types.String) (*GroupResourceModel, diag.Diagnostics) {
+func (r *GroupResource) readFlattenedGroupToState(ctx context.Context, groupID int64) (*GroupResourceModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	state, err := r.readFlattenedGroup(ctx, groupID, plannedScopeID)
+	state, err := r.readFlattenedGroup(ctx, groupID)
 	if err != nil {
 		diags.AddError("Error reading Group", err.Error())
 		return nil, diags
@@ -360,8 +358,8 @@ func (r *GroupResource) readFlattenedGroupToState(ctx context.Context, groupID i
 	return state, diags
 }
 
-func (r *GroupResource) readFlattenedGroup(ctx context.Context, groupID int64, plannedScopeID types.String) (*GroupResourceModel, error) {
-	group, err := r.getGroupWithScopeRetry(ctx, groupID, plannedScopeID)
+func (r *GroupResource) readFlattenedGroup(ctx context.Context, groupID int64) (*GroupResourceModel, error) {
+	group, err := r.getGroup(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
@@ -373,40 +371,15 @@ func (r *GroupResource) readFlattenedGroup(ctx context.Context, groupID int64, p
 	return state, nil
 }
 
-func (r *GroupResource) getGroupWithScopeRetry(ctx context.Context, groupID int64, plannedScopeID types.String) (*teamGroups.TeamGroup, error) {
-	expectedScopeID := ""
-	if !plannedScopeID.IsNull() && !plannedScopeID.IsUnknown() {
-		expectedScopeID = plannedScopeID.ValueString()
+func (r *GroupResource) getGroup(ctx context.Context, groupID int64) (*teamGroups.TeamGroup, error) {
+	resp, httpResp, err := r.client.GroupsMgmtServiceGetTeamGroup(ctx, groupID).Execute()
+	if err != nil {
+		return nil, formatGroupReadError(httpResp, err, groupID)
 	}
-
-	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = time.Second
-	b.MaxInterval = 3 * time.Second
-
-	op := func() (*teamGroups.TeamGroup, error) {
-		resp, httpResp, err := r.client.GroupsMgmtServiceGetTeamGroup(ctx, groupID).Execute()
-		if err != nil {
-			return nil, backoff.Permanent(formatGroupReadError(httpResp, err, groupID))
-		}
-		if resp == nil || resp.Group == nil {
-			return nil, fmt.Errorf("API returned an empty group")
-		}
-		if expectedScopeID != "" && (resp.Group.Scope == nil || resp.Group.Scope.GetScopeId() == "") {
-			log.Printf("[INFO] Group %d scope_id not yet visible (eventual consistency), retrying", groupID)
-			return nil, fmt.Errorf("scope_id not yet visible")
-		}
-		if scopeClearRequested(plannedScopeID) && resp.Group.Scope != nil && resp.Group.Scope.GetScopeId() != "" {
-			log.Printf("[INFO] Group %d scope_id not yet cleared (eventual consistency), retrying", groupID)
-			return nil, fmt.Errorf("scope_id not yet cleared")
-		}
-		return resp.Group, nil
+	if resp == nil || resp.Group == nil {
+		return nil, fmt.Errorf("API returned an empty group")
 	}
-
-	return backoff.Retry(ctx, op,
-		backoff.WithBackOff(b),
-		backoff.WithMaxTries(5),
-		backoff.WithMaxElapsedTime(10*time.Second),
-	)
+	return resp.Group, nil
 }
 
 func formatGroupReadError(httpResp *http.Response, err error, groupID int64) error {
