@@ -80,12 +80,11 @@ func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_slo_v2 %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddError(
+				"Error reading coralogix_slo_v2",
+				fmt.Sprintf("SLO %q was not found in the V2 API. Confirm that the ID belongs to a coralogix_slo_v2 object. A legacy coralogix_slo ID is not valid here.", id),
 			)
-			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError("Error reading coralogix_slo_v2",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
