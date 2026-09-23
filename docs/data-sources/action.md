@@ -29,9 +29,20 @@ data "coralogix_action" "imported_action" {
 
 - `applications` (Set of String) Applies the action for specific applications.
 - `created_by` (String) The user who created the action.
+- `description` (String) Free-text description of the action. Removing this line clears the description.
+- `dpxl_filter` (String) DPXL expression that scopes when the action is offered. The expression must include a version prefix, e.g. `<v1> $d.severity == 'ERROR'`. Removing this line clears the filter.
 - `is_hidden` (Boolean) Deprecated: `is_hidden` is a per-user UI preference, not a property of the action. It will be removed in a future version.
 - `is_private` (Boolean) Determines weather the action will be shared with the entire team. Can be set to false only by admin.
 - `name` (String) Action name.
 - `source_type` (String) By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of ["DataMap" "Log"]
 - `subsystems` (Set of String) Applies the action for specific subsystems.
 - `url` (String) URL for the external tool.
+- `url_fields` (Attributes List) Declarations for the `{{placeholder}}` slots in `url`, in the configured order. (see [below for nested schema](#nestedatt--url_fields))
+
+<a id="nestedatt--url_fields"></a>
+### Nested Schema for `url_fields`
+
+Read-Only:
+
+- `name` (String) URL field name. Must be unique within `url_fields`.
+- `required` (Boolean) Whether the field must be present for the action to be invokable.

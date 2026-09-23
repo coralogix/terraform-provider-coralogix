@@ -32,6 +32,13 @@ resource "coralogix_action" "action" {
   source_type = "Log"
   name        = "google search action"
   url         = "https://www.google.com/search?q={{$p.selected_value}}"
+  description = "Search the selected value on Google."
+  # DPXL expressions must include the `<v1> ` version prefix.
+  dpxl_filter = "<v1> $d.severity == 'ERROR'"
+  url_fields = [
+    { name = "selected_value", required = true },
+    { name = "region", required = false },
+  ]
 }
 ```
 
@@ -47,11 +54,22 @@ resource "coralogix_action" "action" {
 ### Optional
 
 - `applications` (Set of String) Applies the action for specific applications.
+- `description` (String) Free-text description of the action. Removing this line clears the description.
+- `dpxl_filter` (String) DPXL expression that scopes when the action is offered. The expression must include a version prefix, e.g. `<v1> $d.severity == 'ERROR'`. Removing this line clears the filter.
 - `is_hidden` (Boolean, Deprecated) Deprecated: `is_hidden` is a per-user UI preference, not a property of the action. It will be removed in a future version.
 - `is_private` (Boolean) Determines weather the action will be shared with the entire team. Can be set to false only by admin.
 - `subsystems` (Set of String) Applies the action for specific subsystems.
+- `url_fields` (Attributes List) Declarations for the `{{placeholder}}` slots in `url`, in the configured order. (see [below for nested schema](#nestedatt--url_fields))
 
 ### Read-Only
 
 - `created_by` (String) The user who created the action.
 - `id` (String) Action ID.
+
+<a id="nestedatt--url_fields"></a>
+### Nested Schema for `url_fields`
+
+Required:
+
+- `name` (String) URL field name. Must be unique within `url_fields`.
+- `required` (Boolean) Whether the field must be present for the action to be invokable.

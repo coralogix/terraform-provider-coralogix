@@ -17,4 +17,11 @@ resource "coralogix_action" "action" {
   source_type = "Log"
   name        = "google search action"
   url         = "https://www.google.com/search?q={{$p.selected_value}}"
+  description = "Search the selected value on Google."
+  # DPXL expressions must include the `<v1> ` version prefix.
+  dpxl_filter = "<v1> $d.severity == 'ERROR'"
+  url_fields = [
+    { name = "selected_value", required = true },
+    { name = "region", required = false },
+  ]
 }
