@@ -541,8 +541,7 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	id := state.ID.ValueString()
-	enrichmentTypes := enrichmentTypesFromID(id)
+	enrichmentTypes := enrichmentTypesFromModel(state)
 
 	customEnrichmentId := getCustomEnrichmentId(state)
 	if len(enrichmentTypes) == 0 && customEnrichmentId == nil {
@@ -930,8 +929,34 @@ func filterDataEnrichmentsForModel(enrichments []ess.Enrichment, model *DataEnri
 }
 
 func enrichmentTypesFromID(id string) []string {
+	if id == "" {
+		return nil
+	}
 	if _, err := strconv.ParseInt(id, 10, 64); err == nil {
 		return []string{CUSTOM_TYPE}
 	}
 	return strings.Split(id, ",")
+}
+
+func enrichmentTypesFromModel(model *DataEnrichmentsModel) []string {
+	if !model.ID.IsNull() && !model.ID.IsUnknown() {
+		if enrichmentTypes := enrichmentTypesFromID(model.ID.ValueString()); len(enrichmentTypes) > 0 {
+			return enrichmentTypes
+		}
+	}
+
+	enrichmentTypes := make([]string, 0, 4)
+	if model.Aws != nil {
+		enrichmentTypes = append(enrichmentTypes, AWS_TYPE)
+	}
+	if model.GeoIp != nil {
+		enrichmentTypes = append(enrichmentTypes, GEOIP_TYPE)
+	}
+	if model.SuspiciousIp != nil {
+		enrichmentTypes = append(enrichmentTypes, SUSIP_TYPE)
+	}
+	if model.Custom != nil {
+		enrichmentTypes = append(enrichmentTypes, CUSTOM_TYPE)
+	}
+	return enrichmentTypes
 }

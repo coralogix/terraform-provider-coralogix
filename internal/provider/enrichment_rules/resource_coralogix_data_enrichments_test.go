@@ -236,6 +236,46 @@ func TestEnrichmentTypesFromIDUsesCustomTypeForNumericID(t *testing.T) {
 	}
 }
 
+func TestEnrichmentTypesFromModelRecoversTypesWhenIDIsNull(t *testing.T) {
+	tests := map[string]struct {
+		model *DataEnrichmentsModel
+		want  []string
+	}{
+		"standard": {
+			model: &DataEnrichmentsModel{
+				ID:           types.StringNull(),
+				GeoIp:        &GeoIpEnrichmentFieldsModel{},
+				SuspiciousIp: &EnrichmentFieldsModel{},
+			},
+			want: []string{GEOIP_TYPE, SUSIP_TYPE},
+		},
+		"custom": {
+			model: &DataEnrichmentsModel{
+				ID: types.StringNull(),
+				Custom: &CustomEnrichmentFieldsModel{
+					CustomEnrichmentDataModel: &CustomEnrichmentDataModel{ID: types.Int64Value(42)},
+				},
+			},
+			want: []string{CUSTOM_TYPE},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := enrichmentTypesFromModel(tt.model)
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("enrichmentTypesFromModel() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEnrichmentTypesFromIDReturnsNoTypeForEmptyID(t *testing.T) {
+	if got := enrichmentTypesFromID(""); len(got) != 0 {
+		t.Errorf("enrichmentTypesFromID(\"\") = %v, want no types", got)
+	}
+}
+
 func TestFilterEnrichmentByTypeAndCustomIDReturnsOnlyRequestedCustomEnrichment(t *testing.T) {
 	requestedID := int64(42)
 	otherID := int64(99)
