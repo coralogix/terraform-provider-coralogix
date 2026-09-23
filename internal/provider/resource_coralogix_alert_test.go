@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -1602,6 +1603,241 @@ func TestAccCoralogixResourceAlert_sloBurnRate(t *testing.T) {
 			},
 		},
 	})
+}
+
+// testAccAnalyticsAlertsPreCheck gates the analytics alert tests. Every analytics
+// create is rejected with 412 Failed Precondition unless the tenant has the
+// `alerts-dataprime` feature enabled, so the tests skip rather than fail on a
+// tenant without it.
+func testAccAnalyticsAlertsPreCheck(t *testing.T) {
+	t.Helper()
+	testAccPreCheck(t)
+	if os.Getenv("CORALOGIX_ALERTS_DATAPRIME_ENABLED") == "" {
+		t.Skip("set CORALOGIX_ALERTS_DATAPRIME_ENABLED to run the analytics alert acceptance tests; " +
+			"they require the alerts-dataprime feature on the target tenant")
+	}
+}
+
+func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccAnalyticsAlertsPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			// Every optional leaf set, with the values the API evaluation probed.
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsImmediate(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "analytics immediate alert"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.dataprime_query.query", "source logs | filter severity == 'error' | count"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.use_rows_as_permutations", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.custom_evaluation_delay", "120000"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.timeframe_minutes", "45"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state", "ALERTING"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.auto_retire_seconds", "3600"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			// Removing the optionals must clear them: PUT is a full replace, and an
+			// accidental Computed/UseStateForUnknown would silently preserve them.
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsImmediateMinimal(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.dataprime_query.query", "source logs | count"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.use_rows_as_permutations"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.custom_evaluation_delay"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.timeframe_minutes"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state"),
+				),
+			},
+			// The minimal config must not drift: this is the claim that justifies
+			// plain Optional (rather than Optional+Computed) on every analytics leaf.
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsImmediateMinimal(),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_analytics_threshold(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccAnalyticsAlertsPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsThreshold(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "analytics threshold alert"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.dataprime_query.query", "source logs | filter severity == 'error' | count as error_count"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.operator", "LESS_THAN"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.target_column", "error_count"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.use_rows_as_permutations", "false"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.timeframe_minutes", "30"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.0.condition.threshold", "42.5"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.0.override.priority", "P1"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			// rules are positional and read back in submission order, so they are
+			// asserted by index. This is what would fail if rules were a Set.
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsThresholdOrderedRules(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.#", "3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.0.condition.threshold", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.0.override.priority", "P4"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.1.condition.threshold", "20"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.1.override.priority", "P3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.2.condition.threshold", "30"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.2.override.priority", "P2"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_threshold.timeframe_minutes"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsThresholdOrderedRules(),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			// An empty rules list is rejected by the schema validator, matching the
+			// API's own `minItems: 1`.
+			{
+				Config:      testAccCoralogixResourceAlertAnalyticsThresholdEmptyRules(),
+				ExpectError: regexp.MustCompile(`(?s)rules.*at least 1`),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertAnalyticsImmediate() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "analytics immediate alert"
+  description = "Example of analytics immediate alert from terraform"
+  priority    = "P3"
+
+  type_definition = {
+    analytics_immediate = {
+      dataprime_query = {
+        query = "source logs | filter severity == 'error' | count"
+      }
+      use_rows_as_permutations = true
+      custom_evaluation_delay  = 120000
+      timeframe_minutes        = 45
+      no_data_policy = {
+        state               = "ALERTING"
+        auto_retire_seconds = 3600
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertAnalyticsImmediateMinimal() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "analytics immediate alert"
+  description = "Example of analytics immediate alert from terraform"
+  priority    = "P3"
+
+  type_definition = {
+    analytics_immediate = {
+      dataprime_query = {
+        query = "source logs | count"
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertAnalyticsThreshold() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "analytics threshold alert"
+  description = "Example of analytics threshold alert from terraform"
+
+  type_definition = {
+    analytics_threshold = {
+      dataprime_query = {
+        query = "source logs | filter severity == 'error' | count as error_count"
+      }
+      rules = [{
+        condition = {
+          threshold = 42.5
+        }
+        override = {
+          priority = "P1"
+        }
+      }]
+      operator                 = "LESS_THAN"
+      target_column            = "error_count"
+      use_rows_as_permutations = false
+      timeframe_minutes        = 30
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertAnalyticsThresholdOrderedRules() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "analytics threshold alert"
+  description = "Example of analytics threshold alert from terraform"
+
+  type_definition = {
+    analytics_threshold = {
+      dataprime_query = {
+        query = "source logs | filter severity == 'error' | count as error_count"
+      }
+      rules = [
+        {
+          condition = { threshold = 10 }
+          override  = { priority = "P4" }
+        },
+        {
+          condition = { threshold = 20 }
+          override  = { priority = "P3" }
+        },
+        {
+          condition = { threshold = 30 }
+          override  = { priority = "P2" }
+        },
+      ]
+      operator      = "MORE_THAN"
+      target_column = "error_count"
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertAnalyticsThresholdEmptyRules() string {
+	return `resource "coralogix_alert" "test" {
+  name = "analytics threshold alert"
+
+  type_definition = {
+    analytics_threshold = {
+      dataprime_query = {
+        query = "source logs | count as c"
+      }
+      rules         = []
+      operator      = "MORE_THAN"
+      target_column = "c"
+    }
+  }
+}
+`
 }
 
 func testAccCheckAlertDestroy(t *testing.T) resource.TestCheckFunc {

@@ -30,7 +30,25 @@ var priorityValidatorTypeNames = []string{
 	"logs_immediate", "logs_threshold", "logs_anomaly", "logs_ratio_threshold",
 	"logs_new_value", "logs_unique_count", "logs_time_relative_threshold",
 	"metric_threshold", "metric_anomaly", "tracing_immediate", "tracing_threshold",
-	"flow", "slo_threshold",
+	"flow", "slo_threshold", "analytics_immediate", "analytics_threshold",
+}
+
+// TestPriorityValidatorTypeNamesCoversSchema keeps the hand-maintained list above
+// exhaustive over the type_definition arms in the current schema.
+func TestPriorityValidatorTypeNamesCoversSchema(t *testing.T) {
+	typeDefinition, ok := V3().Attributes["type_definition"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatal("type_definition is not a SingleNestedAttribute")
+	}
+	if len(typeDefinition.Attributes) != len(priorityValidatorTypeNames) {
+		t.Fatalf("type_definition has %d arms, priorityValidatorTypeNames has %d",
+			len(typeDefinition.Attributes), len(priorityValidatorTypeNames))
+	}
+	for _, name := range priorityValidatorTypeNames {
+		if _, ok := typeDefinition.Attributes[name]; !ok {
+			t.Errorf("priorityValidatorTypeNames lists %q, which is not a type_definition arm", name)
+		}
+	}
 }
 
 func priorityValidatorConfig(ctx context.Context, setType string, prioritySet bool) tfsdk.Config {
@@ -88,6 +106,8 @@ func TestPriorityDeprecationWarning(t *testing.T) {
 		{"logs_threshold warns", "logs_threshold", true, true},
 		{"logs_ratio_threshold warns", "logs_ratio_threshold", true, true},
 		{"logs_time_relative_threshold warns", "logs_time_relative_threshold", true, true},
+		{"analytics_threshold warns", "analytics_threshold", true, true},
+		{"analytics_immediate does not warn", "analytics_immediate", true, false},
 		{"metric_anomaly does not warn", "metric_anomaly", true, false},
 		{"logs_immediate does not warn", "logs_immediate", true, false},
 		{"tracing_threshold does not warn", "tracing_threshold", true, false},
