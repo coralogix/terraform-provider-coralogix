@@ -276,6 +276,15 @@ func TestEnrichmentTypesFromIDReturnsNoTypeForEmptyID(t *testing.T) {
 	}
 }
 
+func TestEnrichmentTypesFromIDDeduplicatesLegacyTypes(t *testing.T) {
+	got := enrichmentTypesFromID("geo_ip,geo_ip,suspicious_ip,geo_ip")
+	want := []string{GEOIP_TYPE, SUSIP_TYPE}
+
+	if !slices.Equal(got, want) {
+		t.Errorf("enrichmentTypesFromID() = %v, want %v", got, want)
+	}
+}
+
 func TestFilterEnrichmentByTypeAndCustomIDReturnsOnlyRequestedCustomEnrichment(t *testing.T) {
 	requestedID := int64(42)
 	otherID := int64(99)

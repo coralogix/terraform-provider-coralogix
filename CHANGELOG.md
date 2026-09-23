@@ -33,6 +33,7 @@
 - FIX: Recover the canonical resource ID after a failed update leaves a null ID in state.
 - FIX: Keep each Geo IP field's `with_asn` value independent when multiple fields are configured.
 - FIX: Recover enrichment types from state blocks when a failed update leaves a null resource ID.
+- FIX: Deduplicate legacy enrichment type IDs during read so repeated mappings do not duplicate state fields.
 
 #### data-source/coralogix_data_enrichments
 - FIX: Preserve the configured lookup ID, load only the requested custom field mappings for a numeric ID, and correct the example IDs.

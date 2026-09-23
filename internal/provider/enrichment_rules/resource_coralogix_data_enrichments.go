@@ -935,7 +935,13 @@ func enrichmentTypesFromID(id string) []string {
 	if _, err := strconv.ParseInt(id, 10, 64); err == nil {
 		return []string{CUSTOM_TYPE}
 	}
-	return strings.Split(id, ",")
+	enrichmentTypes := make([]string, 0, 4)
+	for _, enrichmentType := range strings.Split(id, ",") {
+		if !slices.Contains(enrichmentTypes, enrichmentType) {
+			enrichmentTypes = append(enrichmentTypes, enrichmentType)
+		}
+	}
+	return enrichmentTypes
 }
 
 func enrichmentTypesFromModel(model *DataEnrichmentsModel) []string {
