@@ -91,6 +91,11 @@ func (d *GroupDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest
 		membersAttr.MarkdownDescription = "IDs of the users that make up the group."
 		resp.Schema.Attributes["members"] = membersAttr
 	}
+
+	if scopeAttr, ok := resp.Schema.Attributes["scope_id"].(schema.StringAttribute); ok {
+		scopeAttr.MarkdownDescription = "Scope attached to the group."
+		resp.Schema.Attributes["scope_id"] = scopeAttr
+	}
 }
 
 func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

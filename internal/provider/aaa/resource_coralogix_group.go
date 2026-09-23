@@ -103,9 +103,10 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"and role id 104 is `Read-Only User`. There is no role named `Read Only`.",
 			},
 			"scope_id": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "Scope attached to the group.",
-				Computed:            true,
+				Optional: true,
+				MarkdownDescription: "Scope attached to the group. Set `scope_id = \"\"` to remove the scope. " +
+					"Deleting the argument keeps the group's current scope.",
+				Computed: true,
 			},
 		},
 		MarkdownDescription: "Coralogix group. Groups bind users to roles and scopes. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/assign-user-roles-and-scopes-via-groups/.",
@@ -147,12 +148,13 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	state, diags := r.readFlattenedGroupToState(ctx, *createResp.Group.GroupId, plan.ScopeID.ValueString())
+	state, diags := r.readFlattenedGroupToState(ctx, *createResp.Group.GroupId, plan.ScopeID)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	state.Members = membersForState(plan.Members, state.Members)
+	state.ScopeID = scopeIDForState(plan.ScopeID, state.ScopeID)
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -173,7 +175,7 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	}
 
 	log.Printf("[INFO] Reading Group: %d", groupID)
-	flattened, err := r.readFlattenedGroup(ctx, groupID, "")
+	flattened, err := r.readFlattenedGroup(ctx, groupID, types.StringNull())
 	if err != nil {
 		if isGroupNotFoundErr(err) {
 			resp.Diagnostics.AddWarning(
@@ -186,6 +188,8 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		resp.Diagnostics.AddError("Error reading Group", err.Error())
 		return
 	}
+
+	flattened.ScopeID = scopeIDForState(state.ScopeID, flattened.ScopeID)
 
 	diags = resp.State.Set(ctx, flattened)
 	resp.Diagnostics.Append(diags...)
@@ -240,7 +244,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	state, err := r.readFlattenedGroup(ctx, groupID, plan.ScopeID.ValueString())
+	state, err := r.readFlattenedGroup(ctx, groupID, plan.ScopeID)
 	if err != nil {
 		if isGroupNotFoundErr(err) {
 			resp.Diagnostics.AddWarning(
@@ -254,6 +258,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 	state.Members = membersForState(plan.Members, state.Members)
+	state.ScopeID = scopeIDForState(plan.ScopeID, state.ScopeID)
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -336,15 +341,18 @@ func (r *GroupResource) extractUpdateTeamGroupRequest(ctx context.Context, plan,
 }
 
 func scopeUpdateFromPlan(plan *GroupResourceModel) *teamGroups.ScopeUpdate {
-	if plan.ScopeID.IsUnknown() || plan.ScopeID.IsNull() || plan.ScopeID.ValueString() == "" {
+	if scopeClearRequested(plan.ScopeID) {
+		return teamGroupScopeClear()
+	}
+	if plan.ScopeID.IsUnknown() || plan.ScopeID.IsNull() {
 		return nil
 	}
 	return teamGroupScopeSet(plan.ScopeID.ValueString())
 }
 
-func (r *GroupResource) readFlattenedGroupToState(ctx context.Context, groupID int64, expectedScopeID string) (*GroupResourceModel, diag.Diagnostics) {
+func (r *GroupResource) readFlattenedGroupToState(ctx context.Context, groupID int64, plannedScopeID types.String) (*GroupResourceModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	state, err := r.readFlattenedGroup(ctx, groupID, expectedScopeID)
+	state, err := r.readFlattenedGroup(ctx, groupID, plannedScopeID)
 	if err != nil {
 		diags.AddError("Error reading Group", err.Error())
 		return nil, diags
@@ -352,8 +360,8 @@ func (r *GroupResource) readFlattenedGroupToState(ctx context.Context, groupID i
 	return state, diags
 }
 
-func (r *GroupResource) readFlattenedGroup(ctx context.Context, groupID int64, expectedScopeID string) (*GroupResourceModel, error) {
-	group, err := r.getGroupWithScopeRetry(ctx, groupID, expectedScopeID)
+func (r *GroupResource) readFlattenedGroup(ctx context.Context, groupID int64, plannedScopeID types.String) (*GroupResourceModel, error) {
+	group, err := r.getGroupWithScopeRetry(ctx, groupID, plannedScopeID)
 	if err != nil {
 		return nil, err
 	}
@@ -365,7 +373,12 @@ func (r *GroupResource) readFlattenedGroup(ctx context.Context, groupID int64, e
 	return state, nil
 }
 
-func (r *GroupResource) getGroupWithScopeRetry(ctx context.Context, groupID int64, expectedScopeID string) (*teamGroups.TeamGroup, error) {
+func (r *GroupResource) getGroupWithScopeRetry(ctx context.Context, groupID int64, plannedScopeID types.String) (*teamGroups.TeamGroup, error) {
+	expectedScopeID := ""
+	if !plannedScopeID.IsNull() && !plannedScopeID.IsUnknown() {
+		expectedScopeID = plannedScopeID.ValueString()
+	}
+
 	b := backoff.NewExponentialBackOff()
 	b.InitialInterval = time.Second
 	b.MaxInterval = 3 * time.Second
@@ -381,6 +394,10 @@ func (r *GroupResource) getGroupWithScopeRetry(ctx context.Context, groupID int6
 		if expectedScopeID != "" && (resp.Group.Scope == nil || resp.Group.Scope.GetScopeId() == "") {
 			log.Printf("[INFO] Group %d scope_id not yet visible (eventual consistency), retrying", groupID)
 			return nil, fmt.Errorf("scope_id not yet visible")
+		}
+		if scopeClearRequested(plannedScopeID) && resp.Group.Scope != nil && resp.Group.Scope.GetScopeId() != "" {
+			log.Printf("[INFO] Group %d scope_id not yet cleared (eventual consistency), retrying", groupID)
+			return nil, fmt.Errorf("scope_id not yet cleared")
 		}
 		return resp.Group, nil
 	}

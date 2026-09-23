@@ -2,6 +2,7 @@
 
 #### resource/coralogix_group
 - BREAKING: Use the Team Groups API instead of SCIM. If a group uses the SCIM role `Read Only` or `Legacy Read Only`, set `role = "Read-Only User"`.
+- FEAT: Set `scope_id = ""` to remove the group's scope. Deleting `scope_id` keeps the current scope.
 
 #### data-source/coralogix_group
 - BREAKING: Use the Team Groups API instead of SCIM.

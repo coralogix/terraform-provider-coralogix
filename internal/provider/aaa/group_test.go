@@ -186,8 +186,8 @@ func TestScopeUpdateFromPlan(t *testing.T) {
 	if got := scopeUpdateFromPlan(&GroupResourceModel{ScopeID: types.StringNull()}); got != nil {
 		t.Errorf("null: got %#v, want nil", got)
 	}
-	if got := scopeUpdateFromPlan(&GroupResourceModel{ScopeID: types.StringValue("")}); got != nil {
-		t.Errorf("empty: got %#v, want nil", got)
+	if got := scopeUpdateFromPlan(&GroupResourceModel{ScopeID: types.StringValue("")}); got == nil || got.Action == nil || got.Action.Clear == nil || !got.Action.Clear.GetClear() {
+		t.Errorf("empty: got %#v, want clear", got)
 	}
 	got := scopeUpdateFromPlan(&GroupResourceModel{ScopeID: types.StringValue("scope-1")})
 	if got == nil || got.Action == nil || got.Action.SetScopeId == nil || got.Action.SetScopeId.GetValue() != "scope-1" {
@@ -239,4 +239,28 @@ func sameStrings(got, want []string) bool {
 		}
 	}
 	return true
+}
+
+func TestScopeIDForState(t *testing.T) {
+	t.Parallel()
+
+	empty := types.StringValue("")
+	scope := types.StringValue("scope-1")
+	for _, tc := range []struct {
+		name       string
+		configured types.String
+		flattened  types.String
+		want       types.String
+	}{
+		{name: "empty string and no scope stays empty", configured: empty, flattened: types.StringNull(), want: empty},
+		{name: "empty string but a scope reports the scope", configured: empty, flattened: scope, want: scope},
+		{name: "null returns what the API has", configured: types.StringNull(), flattened: types.StringNull(), want: types.StringNull()},
+		{name: "value returns what the API has", configured: scope, flattened: scope, want: scope},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := scopeIDForState(tc.configured, tc.flattened); !got.Equal(tc.want) {
+				t.Errorf("got %s, want %s", got, tc.want)
+			}
+		})
+	}
 }
