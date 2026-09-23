@@ -129,7 +129,8 @@ func (p PriorityDeprecationWarning) ValidateString(ctx context.Context, req vali
 		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsRatioThreshold) ||
 		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsTimeRelativeThreshold) ||
 		!utils.ObjIsNullOrUnknown(typeDefinitionModel.MetricThreshold) ||
-		!utils.ObjIsNullOrUnknown(typeDefinitionModel.SloThreshold) {
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.SloThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.AnalyticsThreshold) {
 		resp.Diagnostics.AddAttributeWarning(req.Path, "Deprecated Attribute", priorityDeprecationMessage)
 	}
 }
@@ -633,6 +634,83 @@ func noDataPolicySchema() schema.SingleNestedAttribute {
 	}
 }
 
+// analyticsPreviewNote is appended to both analytics arms' descriptions. The
+// analytics alert types are published at preview stability and every create is
+// rejected with `412 Failed Precondition` on tenants without the feature flag.
+const analyticsPreviewNote = "**Note: analytics alerts are in preview.** They require the `alerts-dataprime` " +
+	"feature to be enabled for your team; without it the Coralogix API rejects every create with " +
+	"`412 Failed Precondition`. Contact Coralogix support to enable it."
+
+func dataprimeQuerySchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Required: true,
+		Attributes: map[string]schema.Attribute{
+			"query": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(1, 65535),
+				},
+				MarkdownDescription: "The DataPrime query to evaluate. Unlike the Coralogix expression " +
+					"languages (DPXL), a DataPrime query takes no `<v1>` version prefix.",
+			},
+		},
+		MarkdownDescription: "The DataPrime query that triggers the alert.",
+	}
+}
+
+// analyticsNoDataPolicySchema is deliberately a separate helper from
+// noDataPolicySchema(): the shared one is Optional+Computed with
+// UseStateForUnknown(), which is right for alert types whose backend echoes a
+// policy back, and it is also called from the frozen v1/v2 schemas. The
+// analytics API never materializes an omitted no_data_policy on read, so plain
+// Optional is correct here — and it keeps removing the block from HCL able to
+// clear the value, which Optional+Computed would silently prevent.
+func analyticsNoDataPolicySchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"auto_retire_seconds": schema.Int64Attribute{
+				Optional: true,
+				MarkdownDescription: "The timeframe in seconds for auto retiring values that were detected as no-data. " +
+					"Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`.",
+			},
+			"state": schema.StringAttribute{
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(alerttypes.AcceptedNoDataPolicyStates...),
+					NoDataPolicyUnspecifiedDeprecationWarning{},
+				},
+				MarkdownDescription: fmt.Sprintf(
+					"No-data policy state. Preferred values: %q. "+
+						"`UNSPECIFIED` is a deprecated protobuf sentinel (not a UI option); omit `no_data_policy` for the same legacy behavior. "+
+						"It remains accepted with a warning and will be rejected in a future provider release.",
+					alerttypes.ValidNoDataPolicyStates,
+				),
+			},
+		},
+		MarkdownDescription: "How to treat, and what state to give, an alert with no data. Omitted by default; " +
+			"removing the block clears the policy.",
+	}
+}
+
+func analyticsTimeframeMinutesSchema() schema.Int32Attribute {
+	return schema.Int32Attribute{
+		Optional: true,
+		Validators: []validator.Int32{
+			int32validator.AtLeast(1),
+		},
+		MarkdownDescription: "The evaluation window duration, in minutes. When omitted, the provider does not send a timeframe.",
+	}
+}
+
+func analyticsUseRowsAsPermutationsSchema() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		Optional: true,
+		MarkdownDescription: "Whether each row of the DataPrime result is treated as a separate permutation. " +
+			"When omitted, the provider does not send a value and the backend applies its own default.",
+	}
+}
+
 func WebhooksSettingsAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"notify_on": types.StringType,
@@ -698,6 +776,54 @@ func AlertTypeDefinitionAttr() map[string]attr.Type {
 		"slo_threshold": types.ObjectType{
 			AttrTypes: SloThresholdAttr(),
 		},
+		"analytics_immediate": types.ObjectType{
+			AttrTypes: AnalyticsImmediateAttr(),
+		},
+		"analytics_threshold": types.ObjectType{
+			AttrTypes: AnalyticsThresholdAttr(),
+		},
+	}
+}
+
+func AnalyticsImmediateAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"dataprime_query":          types.ObjectType{AttrTypes: DataprimeQueryAttr()},
+		"no_data_policy":           types.ObjectType{AttrTypes: NoDataPolicyAttr()},
+		"use_rows_as_permutations": types.BoolType,
+		"timeframe_minutes":        types.Int32Type,
+		"custom_evaluation_delay":  types.Int32Type,
+	}
+}
+
+func AnalyticsThresholdAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"dataprime_query":          types.ObjectType{AttrTypes: DataprimeQueryAttr()},
+		"rules":                    types.ListType{ElemType: types.ObjectType{AttrTypes: AnalyticsThresholdRuleAttr()}},
+		"operator":                 types.StringType,
+		"target_column":            types.StringType,
+		"no_data_policy":           types.ObjectType{AttrTypes: NoDataPolicyAttr()},
+		"use_rows_as_permutations": types.BoolType,
+		"timeframe_minutes":        types.Int32Type,
+		"custom_evaluation_delay":  types.Int32Type,
+	}
+}
+
+func AnalyticsThresholdRuleAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"condition": types.ObjectType{AttrTypes: AnalyticsThresholdConditionAttr()},
+		"override":  types.ObjectType{AttrTypes: AlertOverrideAttr()},
+	}
+}
+
+func AnalyticsThresholdConditionAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"threshold": types.Float64Type,
+	}
+}
+
+func DataprimeQueryAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"query": types.StringType,
 	}
 }
 

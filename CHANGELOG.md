@@ -15,6 +15,9 @@
 - FIX: A file read error in `uploaded_file` returns a diagnostic instead of crashing the provider.
 - FIX: Import rejects non-numeric IDs.
 
+#### resource/coralogix_alert
+- FEAT: Add support for the `type_definition.analytics_immediate` and `type_definition.analytics_threshold` alert types, which trigger off a DataPrime query. Both are in preview and require the `alerts-dataprime` feature to be enabled for your team. Also flows through to `data-source/coralogix_alert`.
+
 # Release 3.18.0
 
 #### provider
