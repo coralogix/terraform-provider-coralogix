@@ -18,8 +18,8 @@ resource "coralogix_action" "action" {
   name        = "google search action"
   url         = "https://www.google.com/search?q={{$p.selected_value}}"
   description = "Search the selected value on Google."
-  # The backend stores the expression with a `<v1> ` prefix; either form may be written.
-  dpxl_filter = "$d.severity == 'ERROR'"
+  # DPXL expressions must include the `<v1> ` version prefix.
+  dpxl_filter = "<v1> $d.severity == 'ERROR'"
   url_fields = [
     { name = "selected_value", required = true },
     { name = "region", required = false },

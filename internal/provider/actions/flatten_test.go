@@ -49,34 +49,6 @@ func TestFlattenConfiguredStringNullsAPIEmptyUnlessConfigured(t *testing.T) {
 	}
 }
 
-func TestFlattenDpxlFilterKeepsConfiguredFormAcrossVersionPrefix(t *testing.T) {
-	bare := "$d.severity == 'ERROR'"
-	prefixed := "<v1> $d.severity == 'ERROR'"
-	other := "<v1> $d.severity == 'INFO'"
-	empty := ""
-
-	for _, tc := range []struct {
-		name string
-		api  *string
-		plan types.String
-		want types.String
-	}{
-		{"bare config, prefixed api", &prefixed, types.StringValue(bare), types.StringValue(bare)},
-		{"prefixed config, prefixed api", &prefixed, types.StringValue(prefixed), types.StringValue(prefixed)},
-		{"null config, prefixed api", &prefixed, types.StringNull(), types.StringValue(prefixed)},
-		{"drifted api wins", &other, types.StringValue(bare), types.StringValue(other)},
-		{"empty api is never prefixed", &empty, types.StringNull(), types.StringNull()},
-		{"empty api, explicit empty config", &empty, types.StringValue(""), types.StringValue("")},
-		{"absent api, null config", nil, types.StringNull(), types.StringNull()},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := flattenDpxlFilter(tc.api, tc.plan); !got.Equal(tc.want) {
-				t.Fatalf("flattenDpxlFilter() = %v, want %v", got, tc.want)
-			}
-		})
-	}
-}
-
 func TestFlattenURLFieldsReconcilesAPIEmptyWithNullConfig(t *testing.T) {
 	ctx := context.Background()
 	emptyList := types.ListValueMust(actionURLFieldElementType(), []attr.Value{})
@@ -164,21 +136,21 @@ func TestFlattenActionWithPlanNormalizesUnsetOptionalScalars(t *testing.T) {
 	name := "example action"
 	url := "https://example.com/x"
 	empty := ""
-	bare := "$d.severity == 'ERROR'"
-	prefixed := "<v1> $d.severity == 'ERROR'"
 	sourceType := actionss.V2SOURCETYPE_SOURCE_TYPE_LOG
+	// An unset optional scalar reads back from the API as "" (the update path
+	// always sends "" to clear); the flatten must normalize that to null.
 	action := &actionss.V2Action{
 		Id:          &id,
 		Name:        &name,
 		Url:         &url,
 		Description: &empty,
-		DpxlFilter:  &prefixed,
+		DpxlFilter:  &empty,
 		SourceType:  &sourceType,
 		UrlFields:   []actionss.UrlField{},
 	}
 	plan := &ActionResourceModel{
 		Description: types.StringNull(),
-		DpxlFilter:  types.StringValue(bare),
+		DpxlFilter:  types.StringNull(),
 		URLFields:   types.ListNull(actionURLFieldElementType()),
 	}
 
@@ -189,8 +161,8 @@ func TestFlattenActionWithPlanNormalizesUnsetOptionalScalars(t *testing.T) {
 	if !got.Description.IsNull() {
 		t.Fatalf("description = %v, want null", got.Description)
 	}
-	if got.DpxlFilter.ValueString() != bare {
-		t.Fatalf("dpxl_filter = %v, want the configured %q", got.DpxlFilter, bare)
+	if !got.DpxlFilter.IsNull() {
+		t.Fatalf("dpxl_filter = %v, want null", got.DpxlFilter)
 	}
 	if !got.URLFields.IsNull() {
 		t.Fatalf("url_fields = %v, want null", got.URLFields)

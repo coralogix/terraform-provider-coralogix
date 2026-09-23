@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
+	"regexp"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -147,8 +147,14 @@ func (r *ActionResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"dpxl_filter": schema.StringAttribute{
 				Optional: true,
-				MarkdownDescription: "DPXL expression that scopes when the action is offered, e.g. `$d.severity == 'ERROR'`. " +
-					"The backend stores the expression with a `<v1> ` version prefix; either form may be written and state keeps the configured form. " +
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^(<v1>|$)`),
+						"must be empty or start with a version prefix, e.g. `<v1> $d.severity == 'ERROR'`",
+					),
+				},
+				MarkdownDescription: "DPXL expression that scopes when the action is offered. " +
+					"The expression must include a version prefix, e.g. `<v1> $d.severity == 'ERROR'`. " +
 					"Removing this line clears the filter.",
 			},
 			"url_fields": schema.ListNestedAttribute{
@@ -280,7 +286,7 @@ func flattenAction(ctx context.Context, plan *ActionResourceModel, action *actio
 		diags.Append(dgs...)
 	} else {
 		description = flattenConfiguredString(action.Description, plan.Description)
-		dpxlFilter = flattenDpxlFilter(action.DpxlFilter, plan.DpxlFilter)
+		dpxlFilter = flattenConfiguredString(action.DpxlFilter, plan.DpxlFilter)
 		var dgs diag.Diagnostics
 		urlFields, dgs = flattenURLFields(ctx, action.GetUrlFields(), plan.URLFields)
 		diags.Append(dgs...)
@@ -322,33 +328,6 @@ func flattenConfiguredString(api *string, plan types.String) types.String {
 		return plan
 	}
 	return types.StringNull()
-}
-
-const dpxlVersionPrefix = "<v1>"
-
-// stripDpxlVersionPrefix removes one leading "<v1>" and the whitespace after it.
-func stripDpxlVersionPrefix(expression string) string {
-	rest, found := strings.CutPrefix(expression, dpxlVersionPrefix)
-	if !found {
-		return expression
-	}
-	return strings.TrimLeft(rest, " \t\r\n")
-}
-
-// flattenDpxlFilter keeps the configured expression when it canonicalizes to the
-// stored one. The backend prepends a `<v1> ` version prefix, deterministically
-// and idempotently, so both a bare and an already-prefixed configuration must
-// stay as written or apply fails with "inconsistent result after apply". An
-// empty filter is never prefixed and follows flattenConfiguredString.
-func flattenDpxlFilter(api *string, plan types.String) types.String {
-	if api == nil || *api == "" {
-		return flattenConfiguredString(api, plan)
-	}
-	if !plan.IsNull() && !plan.IsUnknown() &&
-		stripDpxlVersionPrefix(plan.ValueString()) == stripDpxlVersionPrefix(*api) {
-		return plan
-	}
-	return types.StringValue(*api)
 }
 
 // flattenURLFields reconciles the API's concrete [] for an omitted url_fields

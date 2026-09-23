@@ -30,7 +30,7 @@ data "coralogix_action" "imported_action" {
 - `applications` (Set of String) Applies the action for specific applications.
 - `created_by` (String) The user who created the action.
 - `description` (String) Free-text description of the action. Removing this line clears the description.
-- `dpxl_filter` (String) DPXL expression that scopes when the action is offered, e.g. `$d.severity == 'ERROR'`. The backend stores the expression with a `<v1> ` version prefix; either form may be written and state keeps the configured form. Removing this line clears the filter.
+- `dpxl_filter` (String) DPXL expression that scopes when the action is offered. The expression must include a version prefix, e.g. `<v1> $d.severity == 'ERROR'`. Removing this line clears the filter.
 - `is_hidden` (Boolean) Deprecated: `is_hidden` is a per-user UI preference, not a property of the action. It will be removed in a future version.
 - `is_private` (Boolean) Determines weather the action will be shared with the entire team. Can be set to false only by admin.
 - `name` (String) Action name.

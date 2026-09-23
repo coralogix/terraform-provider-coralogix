@@ -33,8 +33,8 @@ resource "coralogix_action" "action" {
   name        = "google search action"
   url         = "https://www.google.com/search?q={{$p.selected_value}}"
   description = "Search the selected value on Google."
-  # The backend stores the expression with a `<v1> ` prefix; either form may be written.
-  dpxl_filter = "$d.severity == 'ERROR'"
+  # DPXL expressions must include the `<v1> ` version prefix.
+  dpxl_filter = "<v1> $d.severity == 'ERROR'"
   url_fields = [
     { name = "selected_value", required = true },
     { name = "region", required = false },
@@ -55,7 +55,7 @@ resource "coralogix_action" "action" {
 
 - `applications` (Set of String) Applies the action for specific applications.
 - `description` (String) Free-text description of the action. Removing this line clears the description.
-- `dpxl_filter` (String) DPXL expression that scopes when the action is offered, e.g. `$d.severity == 'ERROR'`. The backend stores the expression with a `<v1> ` version prefix; either form may be written and state keeps the configured form. Removing this line clears the filter.
+- `dpxl_filter` (String) DPXL expression that scopes when the action is offered. The expression must include a version prefix, e.g. `<v1> $d.severity == 'ERROR'`. Removing this line clears the filter.
 - `is_hidden` (Boolean, Deprecated) Deprecated: `is_hidden` is a per-user UI preference, not a property of the action. It will be removed in a future version.
 - `is_private` (Boolean) Determines weather the action will be shared with the entire team. Can be set to false only by admin.
 - `subsystems` (Set of String) Applies the action for specific subsystems.

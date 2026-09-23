@@ -68,7 +68,7 @@
 
 #### resource/coralogix_action
 - FEAT: Add support for `description`. Removing it from the configuration clears the value.
-- FEAT: Add support for `dpxl_filter`, a DPXL expression that scopes when the action is offered. The backend stores the expression with a `<v1> ` version prefix; either form may be written and state keeps the configured form. Removing it from the configuration clears the value.
+- FEAT: Add support for `dpxl_filter`, a DPXL expression that scopes when the action is offered. The expression must include a `<v1> ` version prefix (consistent with the other DPXL fields in the provider). Removing it from the configuration clears the value.
 - FEAT: Add support for `url_fields`, an ordered list of `{name, required}` declarations for the `{{placeholder}}` slots in `url`.
 
 #### data-source/coralogix_action

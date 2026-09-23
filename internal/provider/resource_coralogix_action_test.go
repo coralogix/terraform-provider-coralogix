@@ -131,15 +131,14 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 }
 
 // TestAccCoralogixResourceActionOptionalFields covers the convergence behavior
-// of description, dpxl_filter and url_fields: the server-side `<v1> ` prefix on
+// of description, dpxl_filter and url_fields: the required `<v1> ` prefix on
 // dpxl_filter, explicit empties, and url_fields ordering. It reuses
 // testAccPreCheck and testAccCheckActionDestroy.
 func TestAccCoralogixResourceActionOptionalFields(t *testing.T) {
-	bareFilter := "$d.severity == 'ERROR'"
 	prefixedFilter := "<v1> $d.severity == 'ERROR'"
 	description := "runbook for disk pressure"
 	changedDescription := "runbook for memory pressure"
-	changedFilter := "$d.severity == 'WARNING'"
+	changedFilter := "<v1> $d.severity == 'WARNING'"
 	emptyDescription := ""
 
 	roundTrip := []actionURLFieldTestParams{
@@ -176,28 +175,18 @@ func TestAccCoralogixResourceActionOptionalFields(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckActionDestroy,
 		Steps: []resource.TestStep{
-			// Round-trip a bare dpxl_filter: the backend stores it prefixed,
-			// state must keep the configured form.
+			// Round-trip a prefixed dpxl_filter: state keeps the configured form.
 			{
-				Config: testAccCoralogixResourceAction(withFields(&description, &bareFilter, &roundTrip)),
+				Config: testAccCoralogixResourceAction(withFields(&description, &prefixedFilter, &roundTrip)),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(actionResourceName, "description", description),
-					resource.TestCheckResourceAttr(actionResourceName, "dpxl_filter", bareFilter),
+					resource.TestCheckResourceAttr(actionResourceName, "dpxl_filter", prefixedFilter),
 					resource.TestCheckResourceAttr(actionResourceName, "url_fields.#", "2"),
 					resource.TestCheckResourceAttr(actionResourceName, "url_fields.0.name", "env"),
 					resource.TestCheckResourceAttr(actionResourceName, "url_fields.1.name", "trace"),
 				),
 			},
 			// The phantom-diff failure mode only shows on a second plan.
-			{
-				Config:   testAccCoralogixResourceAction(withFields(&description, &bareFilter, &roundTrip)),
-				PlanOnly: true,
-			},
-			// An already-prefixed configuration must stay prefixed in state.
-			{
-				Config: testAccCoralogixResourceAction(withFields(&description, &prefixedFilter, &roundTrip)),
-				Check:  resource.TestCheckResourceAttr(actionResourceName, "dpxl_filter", prefixedFilter),
-			},
 			{
 				Config:   testAccCoralogixResourceAction(withFields(&description, &prefixedFilter, &roundTrip)),
 				PlanOnly: true,
@@ -230,7 +219,7 @@ func TestAccCoralogixResourceActionOptionalFields(t *testing.T) {
 			},
 			// Set -> remove: the attributes must clear, not merge.
 			{
-				Config: testAccCoralogixResourceAction(withFields(&description, &bareFilter, &roundTrip)),
+				Config: testAccCoralogixResourceAction(withFields(&description, &prefixedFilter, &roundTrip)),
 				Check:  resource.TestCheckResourceAttr(actionResourceName, "url_fields.#", "2"),
 			},
 			{

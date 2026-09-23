@@ -93,7 +93,7 @@ func TestExtractUpdateActionAlwaysSendsClearableFields(t *testing.T) {
 func TestExtractUpdateActionSendsURLFieldsInConfiguredOrder(t *testing.T) {
 	plan := unsetActionPlan()
 	plan.Description = types.StringValue("runbook for disk pressure")
-	plan.DpxlFilter = types.StringValue("$d.severity == 'ERROR'")
+	plan.DpxlFilter = types.StringValue("<v1> $d.severity == 'ERROR'")
 	plan.URLFields = types.ListValueMust(actionURLFieldElementType(), []attr.Value{
 		types.ObjectValueMust(actionURLFieldAttributeTypes(), map[string]attr.Value{
 			"name":     types.StringValue("zeta"),
@@ -113,7 +113,7 @@ func TestExtractUpdateActionSendsURLFieldsInConfiguredOrder(t *testing.T) {
 		t.Fatalf("description = %q", *rq.Action.Description)
 	}
 	// The configured expression goes out as written; the API adds the `<v1> ` prefix.
-	if *rq.Action.DpxlFilter != "$d.severity == 'ERROR'" {
+	if *rq.Action.DpxlFilter != "<v1> $d.severity == 'ERROR'" {
 		t.Fatalf("dpxlFilter = %q", *rq.Action.DpxlFilter)
 	}
 	if len(rq.Action.UrlFields) != 2 {
