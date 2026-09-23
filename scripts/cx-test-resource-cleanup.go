@@ -247,31 +247,35 @@ func main() {
 		log.Print("Error listing global routers:", err)
 	}
 
-	// Users. The Users API has no delete, so cleanup deactivates instead.
+	// Users. The Users API has no delete, so cleanup deactivates instead. Only users the
+	// acceptance tests created are touched. PUT replaces the template, so every other
+	// field is sent back as read.
 	usersClient := cs.Users()
-	if teamID, err := cs.TeamID(ctx); err == nil {
-		searchRes, _, err := usersClient.UsersMgmtServiceSearchUsers(ctx, teamID).PageSize(100).Execute()
-		if err == nil {
-			log.Println("Deactivating all users")
-			accountIDs := []int64{}
-			for _, user := range searchRes.Users {
-				if user.UserAccountId != nil {
-					accountIDs = append(accountIDs, *user.UserAccountId)
-				}
+	searchRes, _, err := usersClient.UsersMgmtServiceSearchUsers(ctx).PageSize(100).Execute()
+	if err == nil {
+		log.Println("Deactivating test users")
+		inactive := usersservice.USERSTATUS_USER_STATUS_INACTIVE
+		updates := []usersservice.UpdateUserRequest{}
+		for _, user := range searchRes.Users {
+			if !strings.HasPrefix(user.GetUsername(), "tf-acc-user") || user.GetStatus() == inactive {
+				continue
 			}
-			if len(accountIDs) > 0 {
-				inactive := usersservice.USERSTATUS_USER_STATUS_INACTIVE
-				usersClient.UsersMgmtServiceUpdateUsersStatuses(ctx, teamID).
-					UpdateUserStatusRequest(usersservice.UpdateUserStatusRequest{
-						Status:         &inactive,
-						UserAccountIds: accountIDs,
-					}).Execute()
-			}
-		} else {
-			log.Print("Error searching users:", err)
+			updates = append(updates, usersservice.UpdateUserRequest{
+				UserId: user.UserId,
+				UserTemplate: &usersservice.UserTemplate{
+					FirstName:        user.FirstName,
+					LastName:         user.LastName,
+					Status:           &inactive,
+					AllowedLoginMode: user.AllowedLoginMode,
+					AccessType:       user.AccessType,
+				},
+			})
+		}
+		if len(updates) > 0 {
+			usersClient.UsersMgmtServiceUpdateUsers(ctx).UpdateUserRequest(updates).Execute()
 		}
 	} else {
-		log.Print("Error resolving team id:", err)
+		log.Print("Error searching users:", err)
 	}
 
 	// Views

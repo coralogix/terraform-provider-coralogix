@@ -23,6 +23,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	users "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
 	"github.com/hashicorp/terraform-plugin-framework-validators/datasourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -44,7 +45,7 @@ func NewUserDataSource() datasource.DataSource {
 }
 
 type UserDataSource struct {
-	clients *userClients
+	client *users.UsersManagementServiceAPIService
 }
 
 func (d *UserDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -65,7 +66,7 @@ func (d *UserDataSource) Configure(_ context.Context, req datasource.ConfigureRe
 		return
 	}
 
-	d.clients = newUserClients(clientSet)
+	d.client = clientSet.Users()
 }
 
 func (d *UserDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -146,14 +147,8 @@ func (d *UserDataSource) userByID(ctx context.Context, id string) (*UserResource
 	var diags diag.Diagnostics
 	log.Printf("[INFO] Reading User: %s", id)
 
-	teamID, err := d.clients.teamID(ctx)
-	if err != nil {
-		diags.AddError("Error reading User", teamIDErrorDetail(err))
-		return nil, diags
-	}
-
 	// The data source has no state, so there is no username to narrow the search with.
-	state, err := readUser(ctx, d.clients, teamID, id, "")
+	user, err := findUserByID(ctx, d.client, id, "")
 	if err != nil {
 		if isUserNotFoundErr(err) {
 			diags.AddError(fmt.Sprintf("User %q not found", id), "")
@@ -163,20 +158,14 @@ func (d *UserDataSource) userByID(ctx context.Context, id string) (*UserResource
 		return nil, diags
 	}
 
-	return state, diags
+	return d.flatten(ctx, user)
 }
 
 func (d *UserDataSource) userByUserName(ctx context.Context, userName string) (*UserResourceModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	log.Printf("[INFO] Searching Users to find by user name: %s", userName)
 
-	teamID, err := d.clients.teamID(ctx)
-	if err != nil {
-		diags.AddError("Error reading User", teamIDErrorDetail(err))
-		return nil, diags
-	}
-
-	matches, err := findUsersByUsername(ctx, d.clients.users, teamID, userName)
+	matches, err := findUsersByUsername(ctx, d.client, userName)
 	if err != nil {
 		diags.AddError("Error searching Users", err.Error())
 		return nil, diags
@@ -202,12 +191,16 @@ func (d *UserDataSource) userByUserName(ctx context.Context, userName string) (*
 		return nil, diags
 	}
 
-	state, err := flattenUserWithGroups(ctx, d.clients, teamID, &matches[0])
+	return d.flatten(ctx, &matches[0])
+}
+
+func (d *UserDataSource) flatten(ctx context.Context, user *users.RbacV2User) (*UserResourceModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	state, err := flattenUserToState(ctx, user)
 	if err != nil {
 		diags.AddError("Error reading User", err.Error())
 		return nil, diags
 	}
-
 	return state, diags
 }
 

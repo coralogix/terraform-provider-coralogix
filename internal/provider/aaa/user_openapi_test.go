@@ -16,10 +16,13 @@ package aaa
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"testing"
 
 	users "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -103,8 +106,8 @@ func TestFlattenUserName(t *testing.T) {
 		t.Errorf("name = %#v, want null", name)
 	}
 
-	// A user the API reports with blank names becomes an object with empty strings, not
-	// a null object, so the value round-trips.
+	// The API returns empty strings, not absent fields, for a user without a name.
+	// That has to read as null too, or every nameless user would drift.
 	blank := ""
 	blankNamed := testUser("id-c", "c@coralogix.com", "", "", users.USERSTATUS_USER_STATUS_ACTIVE)
 	blankNamed.FirstName = &blank
@@ -113,8 +116,8 @@ func TestFlattenUserName(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("flattenUserName diagnostics: %v", diags)
 	}
-	if name.IsNull() {
-		t.Error("name is null, want an object with empty strings")
+	if !name.IsNull() {
+		t.Errorf("name = %#v, want null for empty names", name)
 	}
 }
 
@@ -122,7 +125,8 @@ func TestFlattenUser(t *testing.T) {
 	t.Parallel()
 
 	user := testUser("id-a", "a@coralogix.com", "Given", "Family", users.USERSTATUS_USER_STATUS_ACTIVE)
-	state, diags := flattenUser(context.Background(), &user, []string{"1", "2"})
+	user.GroupIds = []int64{145282, 7}
+	state, diags := flattenUser(context.Background(), &user)
 	if diags.HasError() {
 		t.Fatalf("flattenUser diagnostics: %v", diags)
 	}
@@ -132,12 +136,15 @@ func TestFlattenUser(t *testing.T) {
 	if !state.Active.ValueBool() {
 		t.Error("active = false, want true for an ACTIVE user")
 	}
-	if len(state.Groups.Elements()) != 2 {
-		t.Errorf("groups = %#v, want two ids", state.Groups)
+	// SCIM returned groups[].value as decimal strings of the numeric group ids.
+	want := types.SetValueMust(types.StringType, []attr.Value{types.StringValue("145282"), types.StringValue("7")})
+	if !state.Groups.Equal(want) {
+		t.Errorf("groups = %s, want %s", state.Groups, want)
 	}
 
 	// A user with no group memberships gets a known empty set, never a null one.
-	state, diags = flattenUser(context.Background(), &user, nil)
+	user.GroupIds = nil
+	state, diags = flattenUser(context.Background(), &user)
 	if diags.HasError() {
 		t.Fatalf("flattenUser diagnostics: %v", diags)
 	}
@@ -153,7 +160,7 @@ func TestFlattenUserRejectsMissingUserID(t *testing.T) {
 	t.Parallel()
 
 	user := testUser("", "a@coralogix.com", "", "", users.USERSTATUS_USER_STATUS_ACTIVE)
-	if _, diags := flattenUser(context.Background(), &user, nil); !diags.HasError() {
+	if _, diags := flattenUser(context.Background(), &user); !diags.HasError() {
 		t.Error("flattenUser accepted a user without a userId")
 	}
 }
@@ -182,98 +189,216 @@ func TestIsUserActive(t *testing.T) {
 	}
 }
 
+// PUT replaces rather than merges. The template therefore always carries both names,
+// the status and whatever login modes and access type the last read returned, even
+// when those are empty.
 func TestUpdateUserTemplate(t *testing.T) {
 	t.Parallel()
 
-	template := updateUserTemplate("user@coralogix.com", &UserNameModel{
+	sso := userEcho{AllowedLoginMode: []users.AllowedLoginMode{users.ALLOWEDLOGINMODE_ALLOWED_LOGIN_MODE_SSO}, AccessType: users.NewAccessType("permanent")}
+	template := updateUserTemplate(&UserNameModel{
 		GivenName:  types.StringValue("Given"),
 		FamilyName: types.StringValue("Family"),
-	}, true)
+	}, true, sso)
 
-	if template.GetUsername() != "user@coralogix.com" {
-		t.Errorf("username = %q", template.GetUsername())
-	}
 	if template.GetFirstName() != "Given" || template.GetLastName() != "Family" {
 		t.Errorf("name = %q %q", template.GetFirstName(), template.GetLastName())
 	}
 	if template.GetStatus() != users.USERSTATUS_USER_STATUS_ACTIVE {
 		t.Errorf("status = %s", template.GetStatus())
 	}
-
-	// An update must not send a login mode or an access type. Both are writable but
-	// absent from every read, so a value the provider invents would overwrite whatever
-	// the user already has.
-	if template.AllowedLoginMode != nil {
-		t.Errorf("allowedLoginMode = %#v, want absent", template.AllowedLoginMode)
+	if len(template.AllowedLoginMode) != 1 || template.AllowedLoginMode[0] != users.ALLOWEDLOGINMODE_ALLOWED_LOGIN_MODE_SSO {
+		t.Errorf("allowedLoginMode = %v, want the echoed SSO", template.AllowedLoginMode)
 	}
-	if template.AccessType != nil {
-		t.Errorf("accessType = %#v, want absent", template.AccessType)
+	if template.AccessType.GetAccessType() != "permanent" {
+		t.Errorf("accessType = %#v, want the echoed value", template.AccessType)
+	}
+	if template.Username != nil {
+		t.Errorf("username = %q, want absent: the API ignores it on update", template.GetUsername())
 	}
 
-	// A configuration with no name block must not send empty names, which would clear
-	// a name the user already has.
-	template = updateUserTemplate("user@coralogix.com", nil, false)
-	if template.FirstName != nil || template.LastName != nil {
-		t.Errorf("name = %#v %#v, want both absent", template.FirstName, template.LastName)
+	// No name block still sends both names, as empty strings, so the request never
+	// depends on how the backend treats an omitted field.
+	template = updateUserTemplate(nil, false, userEcho{})
+	if template.FirstName == nil || template.LastName == nil || template.GetFirstName() != "" || template.GetLastName() != "" {
+		t.Errorf("name = %#v %#v, want two empty strings", template.FirstName, template.LastName)
 	}
 	if template.GetStatus() != users.USERSTATUS_USER_STATUS_INACTIVE {
 		t.Errorf("status = %s", template.GetStatus())
 	}
+	if len(template.AllowedLoginMode) != 0 {
+		t.Errorf("allowedLoginMode = %v, want empty when the read returned none", template.AllowedLoginMode)
+	}
 }
 
-// The create payload has to carry a login mode, because the API rejects a create
-// without one.
+// Create sends no login mode. SCIM created users without one, and the resource has no
+// attribute to choose one.
 func TestCreateUserTemplate(t *testing.T) {
 	t.Parallel()
 
-	template := createUserTemplate("user@coralogix.com", nil, true)
-	if len(template.AllowedLoginMode) == 0 {
-		t.Error("allowedLoginMode is empty, which the API rejects on create")
+	template := createUserTemplate("user@coralogix.com", nil, false)
+	if template.GetUsername() != "user@coralogix.com" {
+		t.Errorf("username = %q", template.GetUsername())
+	}
+	if template.AllowedLoginMode != nil {
+		t.Errorf("allowedLoginMode = %v, want absent", template.AllowedLoginMode)
 	}
 	if template.AccessType != nil {
 		t.Errorf("accessType = %#v, want absent", template.AccessType)
 	}
+	if template.GetStatus() != users.USERSTATUS_USER_STATUS_INACTIVE {
+		t.Errorf("status = %s, want the planned INACTIVE", template.GetStatus())
+	}
+	if template.FirstName != nil || template.LastName != nil {
+		t.Errorf("name = %#v %#v, want absent without a name block", template.FirstName, template.LastName)
+	}
 }
 
-func TestUserNameChanged(t *testing.T) {
+// The echo round-trips through private state as JSON. An empty login mode list must stay
+// empty, never turn into a default.
+func TestUserEchoRoundTrip(t *testing.T) {
 	t.Parallel()
 
-	user := testUser("id-a", "a@coralogix.com", "Given", "Family", users.USERSTATUS_USER_STATUS_ACTIVE)
+	for name, user := range map[string]users.RbacV2User{
+		"sso and local": {
+			AllowedLoginMode: []users.AllowedLoginMode{users.ALLOWEDLOGINMODE_ALLOWED_LOGIN_MODE_LOCAL, users.ALLOWEDLOGINMODE_ALLOWED_LOGIN_MODE_SSO},
+			AccessType:       &users.AccessType{AccessType: "permanent", PermanentAccess: map[string]any{}},
+		},
+		"none": {AllowedLoginMode: []users.AllowedLoginMode{}, AccessType: users.NewAccessType("permanent")},
+	} {
+		raw, err := encodeUserEcho(&user)
+		if err != nil {
+			t.Fatalf("%s: encode: %v", name, err)
+		}
+		echo, err := decodeUserEcho(raw)
+		if err != nil {
+			t.Fatalf("%s: decode: %v", name, err)
+		}
+		if len(echo.AllowedLoginMode) != len(user.AllowedLoginMode) {
+			t.Errorf("%s: allowedLoginMode = %v, want %v", name, echo.AllowedLoginMode, user.AllowedLoginMode)
+		}
+		if echo.AccessType.GetAccessType() != "permanent" {
+			t.Errorf("%s: accessType = %#v", name, echo.AccessType)
+		}
+	}
 
-	if userNameChanged(&user, nil) {
-		t.Error("a configuration with no name block asks for no change")
+	if echo, err := decodeUserEcho(nil); err != nil || echo != nil {
+		t.Errorf("decodeUserEcho(nil) = %v, %v, want nil, nil", echo, err)
 	}
-	if userNameChanged(&user, &UserNameModel{
-		GivenName:  types.StringValue("Given"),
-		FamilyName: types.StringValue("Family"),
-	}) {
-		t.Error("an unchanged name asks for no change")
+}
+
+// fakePrivateState stands in for the framework's private state in unit tests.
+type fakePrivateState map[string][]byte
+
+func (f fakePrivateState) GetKey(_ context.Context, key string) ([]byte, diag.Diagnostics) {
+	return f[key], nil
+}
+
+func (f fakePrivateState) SetKey(_ context.Context, key string, value []byte) diag.Diagnostics {
+	f[key] = value
+	return nil
+}
+
+// Update and Delete echo what private state holds and make no read. Only state written
+// by the SCIM provider, with no refresh since the upgrade, has nothing stored; that one
+// case searches for the user first.
+func TestUserResourceEchoSource(t *testing.T) {
+	t.Parallel()
+
+	var searches int
+	client := newUsersClient(t, func(w http.ResponseWriter, r *http.Request) {
+		searches++
+		writeJSON(t, w, map[string]any{"users": []map[string]any{{
+			"userId": "id-1", "username": "a@coralogix.com", "allowedLoginMode": []string{"ALLOWED_LOGIN_MODE_SSO"},
+		}}})
+	})
+	r := &UserResource{client: client}
+
+	stored := fakePrivateState{}
+	local := users.RbacV2User{AllowedLoginMode: []users.AllowedLoginMode{users.ALLOWEDLOGINMODE_ALLOWED_LOGIN_MODE_LOCAL}}
+	if diags := setUserEcho(context.Background(), stored, &local); diags.HasError() {
+		t.Fatalf("setUserEcho: %v", diags)
 	}
-	if !userNameChanged(&user, &UserNameModel{
-		GivenName:  types.StringValue("Other"),
-		FamilyName: types.StringValue("Family"),
-	}) {
-		t.Error("a changed given name asks for a change")
+	echo, err := r.userEcho(context.Background(), stored, "id-1", "a@coralogix.com")
+	if err != nil {
+		t.Fatalf("userEcho: %v", err)
+	}
+	if searches != 0 {
+		t.Errorf("searches = %d, want none when private state holds the echo", searches)
+	}
+	if len(echo.AllowedLoginMode) != 1 || echo.AllowedLoginMode[0] != users.ALLOWEDLOGINMODE_ALLOWED_LOGIN_MODE_LOCAL {
+		t.Errorf("allowedLoginMode = %v, want the stored LOCAL", echo.AllowedLoginMode)
+	}
+
+	echo, err = r.userEcho(context.Background(), fakePrivateState{}, "id-1", "a@coralogix.com")
+	if err != nil {
+		t.Fatalf("userEcho: %v", err)
+	}
+	if searches != 1 {
+		t.Errorf("searches = %d, want one when private state is empty", searches)
+	}
+	if len(echo.AllowedLoginMode) != 1 || echo.AllowedLoginMode[0] != users.ALLOWEDLOGINMODE_ALLOWED_LOGIN_MODE_SSO {
+		t.Errorf("allowedLoginMode = %v, want the SSO the search returned", echo.AllowedLoginMode)
+	}
+}
+
+// The API cannot tell a null name from an empty one. A prior value that says the same
+// thing as the API is kept, so partial or empty name blocks reach an empty plan.
+func TestPreserveUserName(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	nameObject := func(given, family types.String) types.Object {
+		return types.ObjectValueMust(userNameAttr(), map[string]attr.Value{"given_name": given, "family_name": family})
+	}
+	nullName := types.ObjectNull(userNameAttr())
+
+	for name, tc := range map[string]struct {
+		prior, fromAPI, want types.Object
+	}{
+		"only given name configured": {
+			prior:   nameObject(types.StringValue("Given"), types.StringNull()),
+			fromAPI: nameObject(types.StringValue("Given"), types.StringValue("")),
+			want:    nameObject(types.StringValue("Given"), types.StringNull()),
+		},
+		"empty names configured": {
+			prior:   nameObject(types.StringValue(""), types.StringValue("")),
+			fromAPI: nullName,
+			want:    nameObject(types.StringValue(""), types.StringValue("")),
+		},
+		"no name block, no name": {prior: nullName, fromAPI: nullName, want: nullName},
+		"changed out of band": {
+			prior:   nameObject(types.StringValue("Old"), types.StringValue("Name")),
+			fromAPI: nameObject(types.StringValue("New"), types.StringValue("Name")),
+			want:    nameObject(types.StringValue("New"), types.StringValue("Name")),
+		},
+		"import": {
+			prior:   types.ObjectUnknown(userNameAttr()),
+			fromAPI: nameObject(types.StringValue("A"), types.StringValue("B")),
+			want:    nameObject(types.StringValue("A"), types.StringValue("B")),
+		},
+	} {
+		if got := preserveUserName(ctx, tc.prior, tc.fromAPI); !got.Equal(tc.want) {
+			t.Errorf("%s: got %s, want %s", name, got, tc.want)
+		}
 	}
 }
 
 // HTTP success alone does not mean the user exists. The per-user status decides, and
-// only CREATED yields the ids Terraform stores.
-func TestCreatedUserIDs(t *testing.T) {
+// only CREATED with a user yields state.
+func TestCreatedUser(t *testing.T) {
 	t.Parallel()
 
-	userID := "id-a"
-	accountID := int64(7)
-	created := &users.CreateUserResult{Username: "a@coralogix.com", UserId: &userID, UserAccountId: &accountID}
 	status := users.CREATEUSERSTATUS_CREATE_USER_STATUS_CREATED
-	created.Status = &status
+	user := testUser("id-a", "a@coralogix.com", "", "", users.USERSTATUS_USER_STATUS_INACTIVE)
+	created := &users.CreateUserResult{Username: "a@coralogix.com", Status: &status, User: &user}
 
-	gotID, gotAccountID, err := createdUserIDs(created)
+	got, err := createdUser(created)
 	if err != nil {
-		t.Fatalf("createdUserIDs error: %v", err)
+		t.Fatalf("createdUser error: %v", err)
 	}
-	if gotID != userID || gotAccountID != accountID {
-		t.Errorf("ids = %q %d", gotID, gotAccountID)
+	if got.GetUserId() != "id-a" || got.GetStatus() != users.USERSTATUS_USER_STATUS_INACTIVE {
+		t.Errorf("user = %#v, want the user from the result", got)
 	}
 
 	for name, tc := range map[string]struct {
@@ -287,9 +412,9 @@ func TestCreatedUserIDs(t *testing.T) {
 		"unspecified":    {users.CREATEUSERSTATUS_CREATE_USER_STATUS_UNSPECIFIED, "not created"},
 	} {
 		result := &users.CreateUserResult{Username: "a@coralogix.com", Status: &tc.status}
-		_, _, err := createdUserIDs(result)
+		_, err := createdUser(result)
 		if err == nil {
-			t.Errorf("%s: createdUserIDs accepted status %s", name, tc.status)
+			t.Errorf("%s: createdUser accepted status %s", name, tc.status)
 			continue
 		}
 		if !strings.Contains(err.Error(), tc.wantWord) {
@@ -297,11 +422,11 @@ func TestCreatedUserIDs(t *testing.T) {
 		}
 	}
 
-	// A CREATED result without ids is still a failure, because Terraform cannot store
+	// A CREATED result without a user is still a failure, because Terraform cannot store
 	// an empty id.
-	noIDs := &users.CreateUserResult{Username: "a@coralogix.com", Status: &status}
-	if _, _, err := createdUserIDs(noIDs); err == nil {
-		t.Error("createdUserIDs accepted a CREATED result without ids")
+	noUser := &users.CreateUserResult{Username: "a@coralogix.com", Status: &status}
+	if _, err := createdUser(noUser); err == nil {
+		t.Error("createdUser accepted a CREATED result without a user")
 	}
 }
 

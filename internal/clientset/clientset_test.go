@@ -32,8 +32,8 @@ func TestNewClientSet_UsersClientNotNil(t *testing.T) {
 	if cs.Teams() == nil {
 		t.Fatal("Teams() must not be nil")
 	}
-	if cs.Identity() == nil {
-		t.Fatal("Identity() must not be nil")
+	if cs.Users() == nil {
+		t.Fatal("Users() must not be nil")
 	}
 
 	pl := NewClientSet("api.private.eu2.coralogix.com", "dummy-key", mustGrpcTargetFromDomain(t, "api.private.eu2.coralogix.com"))

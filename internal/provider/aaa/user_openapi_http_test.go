@@ -23,12 +23,9 @@ import (
 	"strings"
 	"testing"
 
-	teamGroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/team_groups_management_service"
 	users "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
-
-// testTeamID is an arbitrary team id. The tests only check that it reaches the URL.
-const testTeamID = int64(1)
 
 // newUsersClient points a generated Users client at a local test server, so the
 // pagination and matching loops run against real HTTP without touching a backend.
@@ -40,16 +37,6 @@ func newUsersClient(t *testing.T, handler http.HandlerFunc) *users.UsersManageme
 	cfg := users.NewConfiguration()
 	cfg.Servers = users.ServerConfigurations{{URL: server.URL}}
 	return users.NewAPIClient(cfg).UsersManagementServiceAPI
-}
-
-func newTeamGroupsClient(t *testing.T, handler http.HandlerFunc) *teamGroups.TeamGroupsManagementServiceAPIService {
-	t.Helper()
-	server := httptest.NewServer(handler)
-	t.Cleanup(server.Close)
-
-	cfg := teamGroups.NewConfiguration()
-	cfg.Servers = teamGroups.ServerConfigurations{{URL: server.URL}}
-	return teamGroups.NewAPIClient(cfg).TeamGroupsManagementServiceAPI
 }
 
 func writeJSON(t *testing.T, w http.ResponseWriter, body any) {
@@ -86,8 +73,12 @@ func TestSearchUsersFollowsEveryPage(t *testing.T) {
 
 	var seenTokens []string
 	client := newUsersClient(t, func(w http.ResponseWriter, r *http.Request) {
-		if got := r.URL.Path; got != fmt.Sprintf("/aaa/teams/v2/%d/search", testTeamID) {
+		// The team comes from the API key, so no team id may reach the request.
+		if got := r.URL.Path; got != "/aaa/users/v2" {
 			t.Errorf("path = %q", got)
+		}
+		if r.URL.Query().Has("team_id") {
+			t.Errorf("team_id = %q, want absent", r.URL.Query().Get("team_id"))
 		}
 		if got := r.URL.Query().Get("page_size"); got != "100" {
 			t.Errorf("page_size = %q, want 100", got)
@@ -107,7 +98,7 @@ func TestSearchUsersFollowsEveryPage(t *testing.T) {
 		}
 	})
 
-	found, err := searchUsers(context.Background(), client, testTeamID, "")
+	found, err := searchUsers(context.Background(), client, "")
 	if err != nil {
 		t.Fatalf("searchUsers error: %v", err)
 	}
@@ -138,7 +129,7 @@ func TestSearchUsersStopsWhenTheTokenDoesNotAdvance(t *testing.T) {
 		searchPage(t, w, []string{"id-2"}, 2)
 	})
 
-	found, err := searchUsers(context.Background(), client, testTeamID, "")
+	found, err := searchUsers(context.Background(), client, "")
 	if err != nil {
 		t.Fatalf("searchUsers error: %v", err)
 	}
@@ -161,7 +152,7 @@ func TestFindUserByIDUsesTheUsernameHintFirst(t *testing.T) {
 		searchPage(t, w, []string{"id-1"}, 0)
 	})
 
-	user, err := findUserByID(context.Background(), client, testTeamID, "id-1", "id-1@coralogix.com")
+	user, err := findUserByID(context.Background(), client, "id-1", "id-1@coralogix.com")
 	if err != nil {
 		t.Fatalf("findUserByID error: %v", err)
 	}
@@ -191,7 +182,7 @@ func TestFindUserByIDFallsBackToAFullScan(t *testing.T) {
 		searchPage(t, w, []string{"id-1"}, 0)
 	})
 
-	user, err := findUserByID(context.Background(), client, testTeamID, "id-1", "stale@coralogix.com")
+	user, err := findUserByID(context.Background(), client, "id-1", "stale@coralogix.com")
 	if err != nil {
 		t.Fatalf("findUserByID error: %v", err)
 	}
@@ -212,7 +203,7 @@ func TestFindUserByIDReportsNotFound(t *testing.T) {
 		searchPage(t, w, []string{"id-other"}, 0)
 	})
 
-	_, err := findUserByID(context.Background(), client, testTeamID, "id-gone", "")
+	_, err := findUserByID(context.Background(), client, "id-gone", "")
 	if !isUserNotFoundErr(err) {
 		t.Errorf("error = %v, want the not-found sentinel", err)
 	}
@@ -228,7 +219,7 @@ func TestSearchUsersSurfacesBackendErrors(t *testing.T) {
 		writeJSON(t, w, map[string]any{"code": 500, "message": "boom"})
 	})
 
-	_, err := findUserByID(context.Background(), client, testTeamID, "id-1", "")
+	_, err := findUserByID(context.Background(), client, "id-1", "")
 	if err == nil {
 		t.Fatal("findUserByID returned no error on a 500")
 	}
@@ -237,119 +228,135 @@ func TestSearchUsersSurfacesBackendErrors(t *testing.T) {
 	}
 }
 
-// The Users API does not report memberships, so `groups` is rebuilt by reading every
-// group's member list. Both the group list and each member list are paginated.
-func TestListUserGroupIDsPagesGroupsAndMembers(t *testing.T) {
+// decodeBody reads a JSON request body into a generic value, so the tests see exactly
+// what went over the wire, including fields the SDK leaves out.
+func decodeBody(t *testing.T, r *http.Request) []map[string]any {
+	t.Helper()
+	var body []map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		t.Fatalf("decoding request body: %v", err)
+	}
+	return body
+}
+
+// PUT replaces the whole template, so an update has to carry the names, the status and
+// the echoed login modes and access type, and address the user by userId only.
+func TestPutUserSendsTheFullTemplate(t *testing.T) {
 	t.Parallel()
 
-	memberRequests := map[string]int{}
-	client := newTeamGroupsClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.URL.Path == "/aaa/team-groups/v2":
-			if got := r.URL.Query().Get("team_id"); got != fmt.Sprintf("%d", testTeamID) {
-				t.Errorf("team_id = %q", got)
-			}
-			if r.URL.Query().Get("page_token") == "" {
-				writeJSON(t, w, map[string]any{
-					"groups":        []map[string]any{{"groupId": 1}, {"groupId": 2}},
-					"nextPageToken": "second",
-				})
-				return
-			}
-			writeJSON(t, w, map[string]any{"groups": []map[string]any{{"groupId": 3}}})
+	accessType := users.NewAccessType("permanent")
+	accessType.PermanentAccess = map[string]any{}
+	echo := userEcho{
+		AllowedLoginMode: []users.AllowedLoginMode{users.ALLOWEDLOGINMODE_ALLOWED_LOGIN_MODE_SSO},
+		AccessType:       accessType,
+	}
 
-		case strings.HasSuffix(r.URL.Path, "/users/list"):
-			groupID := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/aaa/team-groups/v2/"), "/users/list")
-			memberRequests[groupID]++
-			switch groupID {
-			case "1":
-				// Group 1 holds the user on its second member page.
-				if r.URL.Query().Get("page_token") == "" {
-					writeJSON(t, w, map[string]any{
-						"users":         []map[string]any{{"userId": "someone-else"}},
-						"nextPageToken": "more",
-					})
-					return
-				}
-				writeJSON(t, w, map[string]any{"users": []map[string]any{{"userId": "id-1"}}})
-			case "2":
-				writeJSON(t, w, map[string]any{"users": []map[string]any{{"userId": "someone-else"}}})
-			case "3":
-				writeJSON(t, w, map[string]any{"users": []map[string]any{{"userId": "id-1"}}})
-			default:
-				t.Errorf("unexpected group %q", groupID)
-			}
-
-		default:
-			t.Errorf("unexpected path %q", r.URL.Path)
+	var sent []map[string]any
+	client := newUsersClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut || r.URL.Path != "/aaa/users/v2" {
+			t.Errorf("request = %s %s, want PUT /aaa/users/v2", r.Method, r.URL.Path)
 		}
+		sent = decodeBody(t, r)
+		writeJSON(t, w, map[string]any{"users": []map[string]any{{
+			"userId": "id-1", "username": "a@coralogix.com", "status": "USER_STATUS_INACTIVE",
+		}}})
 	})
 
-	groupIDs, err := listUserGroupIDs(context.Background(), client, testTeamID, "id-1")
+	name := &UserNameModel{GivenName: types.StringValue("Given"), FamilyName: types.StringNull()}
+	user, err := putUser(context.Background(), client, "id-1", updateUserTemplate(name, false, echo))
 	if err != nil {
-		t.Fatalf("listUserGroupIDs error: %v", err)
+		t.Fatalf("putUser error: %v", err)
 	}
-	if strings.Join(groupIDs, ",") != "1,3" {
-		t.Errorf("groups = %v, want the two groups holding the user", groupIDs)
+	if user.GetUserId() != "id-1" {
+		t.Errorf("userId = %q", user.GetUserId())
 	}
-	// One request per group, plus the extra page group 1 needed. The cost must not
-	// grow with the number of users in the team.
-	if memberRequests["1"] != 2 || memberRequests["2"] != 1 || memberRequests["3"] != 1 {
-		t.Errorf("member requests = %v", memberRequests)
+
+	if len(sent) != 1 {
+		t.Fatalf("body = %v, want one update", sent)
+	}
+	if sent[0]["userId"] != "id-1" {
+		t.Errorf("userId = %v", sent[0]["userId"])
+	}
+	if _, ok := sent[0]["userAccountId"]; ok {
+		t.Error("userAccountId was sent, but it is mutually exclusive with userId")
+	}
+	template := sent[0]["userTemplate"].(map[string]any)
+	want := map[string]any{
+		"firstName":        "Given",
+		"lastName":         "",
+		"status":           "USER_STATUS_INACTIVE",
+		"allowedLoginMode": []any{"ALLOWED_LOGIN_MODE_SSO"},
+		"accessType":       map[string]any{"accessType": "permanent", "permanentAccess": map[string]any{}},
+	}
+	for key, value := range want {
+		if got, _ := json.Marshal(template[key]); string(got) != mustJSON(t, value) {
+			t.Errorf("userTemplate.%s = %s, want %s", key, got, mustJSON(t, value))
+		}
+	}
+	if _, ok := template["username"]; ok {
+		t.Error("username was sent, but the API ignores it on update")
 	}
 }
 
-// A user in no group gets an empty result, which flattenUser turns into a known empty
-// set rather than a null one.
-func TestListUserGroupIDsWithNoMemberships(t *testing.T) {
+// An unknown userId is a 404, which has to become the not-found sentinel so Update
+// drops the resource and Delete treats it as done.
+func TestPutUserMapsNotFound(t *testing.T) {
 	t.Parallel()
 
-	client := newTeamGroupsClient(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/aaa/team-groups/v2" {
-			writeJSON(t, w, map[string]any{"groups": []map[string]any{{"groupId": 1}}})
-			return
-		}
-		writeJSON(t, w, map[string]any{"users": []map[string]any{{"userId": "someone-else"}}})
+	client := newUsersClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		// The exact body EU2 returned for an unknown userId.
+		writeJSON(t, w, map[string]any{"code": 404, "message": "Not Found: user id-gone not found in team 1"})
 	})
 
-	groupIDs, err := listUserGroupIDs(context.Background(), client, testTeamID, "id-1")
-	if err != nil {
-		t.Fatalf("listUserGroupIDs error: %v", err)
-	}
-	if len(groupIDs) != 0 {
-		t.Errorf("groups = %v, want none", groupIDs)
-	}
-
-	state, diags := flattenUser(context.Background(), &users.RbacV2User{
-		UserId:   ptrTo("id-1"),
-		Username: ptrTo("id-1@coralogix.com"),
-		Status:   ptrTo(users.USERSTATUS_USER_STATUS_ACTIVE),
-	}, groupIDs)
-	if diags.HasError() {
-		t.Fatalf("flattenUser diagnostics: %v", diags)
-	}
-	if state.Groups.IsNull() {
-		t.Error("groups is null, want a known empty set")
+	_, err := putUser(context.Background(), client, "id-gone", updateUserTemplate(nil, false, userEcho{}))
+	if !isUserNotFoundErr(err) {
+		t.Errorf("error = %v, want the not-found sentinel", err)
 	}
 }
 
-// A failure while reading one group's members must not silently produce a short group
-// list, which would look like the user was removed from a group.
-func TestListUserGroupIDsSurfacesMemberReadErrors(t *testing.T) {
+// Create sends no login mode, so a new user gets none, and it sends the planned status
+// so `active = false` needs no second call.
+func TestCreateUsersRequestBody(t *testing.T) {
 	t.Parallel()
 
-	client := newTeamGroupsClient(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/aaa/team-groups/v2" {
-			writeJSON(t, w, map[string]any{"groups": []map[string]any{{"groupId": 1}}})
-			return
+	var sent []map[string]any
+	client := newUsersClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/aaa/users/v2" || r.URL.Query().Has("team_id") {
+			t.Errorf("request = %s %s, want POST /aaa/users/v2 without team_id", r.Method, r.URL)
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		writeJSON(t, w, map[string]any{"code": 500, "message": "boom"})
+		sent = decodeBody(t, r)
+		writeJSON(t, w, map[string]any{"results": []map[string]any{}})
 	})
 
-	if _, err := listUserGroupIDs(context.Background(), client, testTeamID, "id-1"); err == nil {
-		t.Error("listUserGroupIDs returned no error on a 500")
+	_, _, err := client.UsersMgmtServiceCreateUsers(context.Background()).
+		CreateUserRequest([]users.CreateUserRequest{{
+			OnboardingMode: ptrTo(users.ONBOARDINGMODE_ONBOARDING_MODE_NO_INVITE),
+			UserTemplate:   createUserTemplate("a@coralogix.com", nil, false),
+		}}).Execute()
+	if err != nil {
+		t.Fatalf("create error: %v", err)
 	}
+
+	if sent[0]["onboardingMode"] != "ONBOARDING_MODE_NO_INVITE" {
+		t.Errorf("onboardingMode = %v", sent[0]["onboardingMode"])
+	}
+	template := sent[0]["userTemplate"].(map[string]any)
+	if _, ok := template["allowedLoginMode"]; ok {
+		t.Errorf("allowedLoginMode = %v, want absent", template["allowedLoginMode"])
+	}
+	if template["status"] != "USER_STATUS_INACTIVE" {
+		t.Errorf("status = %v, want USER_STATUS_INACTIVE", template["status"])
+	}
+}
+
+func mustJSON(t *testing.T, value any) string {
+	t.Helper()
+	raw, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("encoding %v: %v", value, err)
+	}
+	return string(raw)
 }
 
 func ptrTo[T any](v T) *T { return &v }

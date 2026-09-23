@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -45,12 +46,105 @@ func TestAccCoralogixResourceUser(t *testing.T) {
 					resource.TestCheckResourceAttr(userResourceName, "user_name", userName),
 					resource.TestCheckResourceAttr(userResourceName, "name.given_name", "Test"),
 					resource.TestCheckResourceAttr(userResourceName, "name.family_name", "User"),
+					// SCIM created users without a login mode, and create still sends none.
+					testAccCheckUserLoginModes(userName),
 				),
 			},
 			{
 				ResourceName:      userResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceUserCreateInactive checks that one create call honours
+// `active = false`. The create template carries the status, and the resource makes no
+// second call, so a backend that ignores it fails the first apply.
+func TestAccCoralogixResourceUserCreateInactive(t *testing.T) {
+	userName := randUserName()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckUserDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceUserActive(userName, false),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(userResourceName, "active", "false"),
+					testAccCheckUserLoginModes(userName),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceUserActive(userName, true),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(userResourceName, plancheck.ResourceActionUpdate)},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.TestCheckResourceAttr(userResourceName, "active", "true"),
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceUserKeepsLoginModes checks the echo. PUT replaces the whole
+// template, so an update or a destroy that did not send back the login modes the user
+// already has would wipe them. Here they are set outside Terraform, the way an SSO
+// setup or the UI would set them.
+func TestAccCoralogixResourceUserKeepsLoginModes(t *testing.T) {
+	userName := randUserName()
+	sso := usersservice.ALLOWEDLOGINMODE_ALLOWED_LOGIN_MODE_SSO
+	local := usersservice.ALLOWEDLOGINMODE_ALLOWED_LOGIN_MODE_LOCAL
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccCheckUserDestroy,
+			testAccCheckUserLoginModes(userName, sso, local),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceUser(userName),
+				Check:  testAccCheckUserLoginModes(userName),
+			},
+			// The login modes change outside Terraform. They are not in the schema, so
+			// the plan stays empty.
+			{
+				PreConfig: func() {
+					testAccPutUserOutOfBand(t, userName, func(template *usersservice.UserTemplate) {
+						template.AllowedLoginMode = []usersservice.AllowedLoginMode{sso, local}
+					})
+				},
+				Config:   testAccCoralogixResourceUser(userName),
+				PlanOnly: true,
+			},
+			// A rename and a deactivation each send one PUT, and both have to carry the
+			// login modes through. Destroy is checked the same way in CheckDestroy.
+			{
+				Config: testAccCoralogixResourceUserNamed(userName, "Renamed", "Person"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(userResourceName, "name.given_name", "Renamed"),
+					testAccCheckUserLoginModes(userName, sso, local),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceUserActive(userName, false),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(userResourceName, "active", "false"),
+					testAccCheckUserLoginModes(userName, sso, local),
+				),
 			},
 		},
 	})
@@ -132,8 +226,8 @@ func TestAccCoralogixResourceUserBackwardsCompatibility(t *testing.T) {
 }
 
 // TestAccCoralogixResourceUserGroupMembership proves the computed groups set still
-// reports memberships, which the Users API does not return and the provider has to
-// rebuild from the Groups API.
+// reports memberships. The Users API returns them as numeric groupIds, which have to
+// match the group resource ids the way SCIM groups[].value did.
 func TestAccCoralogixResourceUserGroupMembership(t *testing.T) {
 	userName := randUserName()
 	groupName := acctest.RandomWithPrefix("tf-acc-user-group")
@@ -150,6 +244,10 @@ func TestAccCoralogixResourceUserGroupMembership(t *testing.T) {
 					// The group is created after the user, so the membership only appears on
 					// the refresh that follows. The data source reads the user again.
 					resource.TestCheckResourceAttr("data.coralogix_user.by_id", "groups.#", "1"),
+					// The value has to be the group id itself, as SCIM groups[].value was,
+					// or every migrated user would show a groups diff.
+					resource.TestCheckTypeSetElemAttrPair("data.coralogix_user.by_id", "groups.*", "coralogix_group.test", "id"),
+					resource.TestCheckTypeSetElemAttrPair("data.coralogix_user.by_name", "groups.*", "coralogix_group.test", "id"),
 					resource.TestCheckResourceAttr("data.coralogix_user.by_id", "emails.#", "1"),
 					resource.TestCheckResourceAttr("data.coralogix_user.by_name", "user_name", userName),
 					resource.TestCheckResourceAttrPair("data.coralogix_user.by_name", "id", userResourceName, "id"),
@@ -218,75 +316,100 @@ func TestAccCoralogixResourceUserDestroyWhenAlreadyInactive(t *testing.T) {
 	})
 }
 
-// testAccSetUserActiveOutOfBand changes a user's status behind Terraform's back.
-func testAccSetUserActiveOutOfBand(t *testing.T, userName string, active bool) {
-	t.Helper()
-
+// testAccFindUser searches for a user by username the way the provider does.
+func testAccFindUser(ctx context.Context, userName string) (*usersservice.RbacV2User, error) {
 	cs := testAccProvider.Meta().(*clientset.ClientSet)
-	ctx := context.TODO()
-
-	teamID, err := cs.TeamID(ctx)
-	if err != nil {
-		t.Fatalf("resolving team id: %s", err)
-	}
-
-	searchResp, _, err := cs.Users().UsersMgmtServiceSearchUsers(ctx, teamID).
+	searchResp, _, err := cs.Users().UsersMgmtServiceSearchUsers(ctx).
 		Username(userName).
 		PageSize(100).
 		Execute()
 	if err != nil {
-		t.Fatalf("searching for %s: %s", userName, err)
+		return nil, fmt.Errorf("searching for %s: %w", userName, err)
 	}
-
-	var accountID int64
-	for _, user := range searchResp.Users {
+	for i, user := range searchResp.Users {
 		if strings.EqualFold(user.GetUsername(), userName) {
-			accountID = user.GetUserAccountId()
-			break
+			return &searchResp.Users[i], nil
 		}
 	}
-	if accountID == 0 {
-		t.Fatalf("user %s not found, or returned without a userAccountId", userName)
+	return nil, nil
+}
+
+// testAccPutUserOutOfBand changes a user behind Terraform's back. PUT replaces the
+// template, so everything the change does not touch is sent back as read.
+func testAccPutUserOutOfBand(t *testing.T, userName string, change func(template *usersservice.UserTemplate)) {
+	t.Helper()
+	ctx := context.TODO()
+
+	user, err := testAccFindUser(ctx, userName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if user == nil {
+		t.Fatalf("user %s not found", userName)
 	}
 
+	template := &usersservice.UserTemplate{
+		FirstName:        user.FirstName,
+		LastName:         user.LastName,
+		Status:           user.Status,
+		AllowedLoginMode: user.AllowedLoginMode,
+		AccessType:       user.AccessType,
+	}
+	change(template)
+
+	cs := testAccProvider.Meta().(*clientset.ClientSet)
+	if _, _, err := cs.Users().UsersMgmtServiceUpdateUsers(ctx).
+		UpdateUserRequest([]usersservice.UpdateUserRequest{{UserId: user.UserId, UserTemplate: template}}).
+		Execute(); err != nil {
+		t.Fatalf("updating %s: %s", userName, err)
+	}
+}
+
+func testAccSetUserActiveOutOfBand(t *testing.T, userName string, active bool) {
+	t.Helper()
 	status := usersservice.USERSTATUS_USER_STATUS_INACTIVE
 	if active {
 		status = usersservice.USERSTATUS_USER_STATUS_ACTIVE
 	}
-	if _, _, err := cs.Users().UsersMgmtServiceUpdateUsersStatuses(ctx, teamID).
-		UpdateUserStatusRequest(usersservice.UpdateUserStatusRequest{
-			Status:         &status,
-			UserAccountIds: []int64{accountID},
-		}).Execute(); err != nil {
-		t.Fatalf("setting %s status to %s: %s", userName, status, err)
+	testAccPutUserOutOfBand(t, userName, func(template *usersservice.UserTemplate) {
+		template.Status = &status
+	})
+}
+
+// testAccCheckUserLoginModes checks the login modes the backend holds. The resource has
+// no attribute for them, so only the API can show them.
+func testAccCheckUserLoginModes(userName string, want ...usersservice.AllowedLoginMode) resource.TestCheckFunc {
+	return func(*terraform.State) error {
+		user, err := testAccFindUser(context.TODO(), userName)
+		if err != nil {
+			return err
+		}
+		if user == nil {
+			return fmt.Errorf("user %s not found", userName)
+		}
+		got := slices.Clone(user.AllowedLoginMode)
+		slices.Sort(got)
+		want = slices.Clone(want)
+		slices.Sort(want)
+		if !slices.Equal(got, want) {
+			return fmt.Errorf("user %s allowedLoginMode = %v, want %v", userName, got, want)
+		}
+		return nil
 	}
 }
 
 func testAccCheckUserDestroy(s *terraform.State) error {
-	cs := testAccProvider.Meta().(*clientset.ClientSet)
-	ctx := context.TODO()
-
-	teamID, err := cs.TeamID(ctx)
-	if err != nil {
-		return err
-	}
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "coralogix_user" {
 			continue
 		}
 
-		searchResp, _, err := cs.Users().UsersMgmtServiceSearchUsers(ctx, teamID).PageSize(100).Execute()
+		user, err := testAccFindUser(context.TODO(), rs.Primary.Attributes["user_name"])
 		if err != nil {
 			return err
 		}
-		for _, user := range searchResp.Users {
-			if user.GetUserId() != rs.Primary.ID {
-				continue
-			}
-			if user.GetStatus() == usersservice.USERSTATUS_USER_STATUS_ACTIVE {
-				return fmt.Errorf("user still exists and active: %s", rs.Primary.ID)
-			}
+		if user != nil && user.GetUserId() == rs.Primary.ID && user.GetStatus() == usersservice.USERSTATUS_USER_STATUS_ACTIVE {
+			return fmt.Errorf("user still exists and active: %s", rs.Primary.ID)
 		}
 	}
 

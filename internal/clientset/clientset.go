@@ -37,7 +37,6 @@ import (
 	viewsfolders "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/folders_for_views_service"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
-	identity "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/identity_service"
 	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	ams "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/metrics_data_archive_service"
@@ -98,8 +97,6 @@ type ClientSet struct {
 	teamGroups            *teamGroupss.TeamGroupsManagementServiceAPIService
 	teams                 *teamsservice.TeamsServiceAPIService
 	users                 *usersservice.UsersManagementServiceAPIService
-	identity              *identity.IdentityServiceAPIService
-	teamID                teamIDCache
 }
 
 func (c *ClientSet) ParsingRuleGroups() *prgs.RuleGroupsServiceAPIService {
@@ -208,10 +205,6 @@ func (c *ClientSet) Groups() *GroupsClient {
 
 func (c *ClientSet) Users() *usersservice.UsersManagementServiceAPIService {
 	return c.users
-}
-
-func (c *ClientSet) Identity() *identity.IdentityServiceAPIService {
-	return c.identity
 }
 
 func (c *ClientSet) Scopes() *scopess.ScopesServiceAPIService {
@@ -325,6 +318,5 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		teamGroups:            cs.Groups(),
 		teams:                 cs.Teams(),
 		users:                 cs.Users(),
-		identity:              cs.Identity(),
 	}
 }
