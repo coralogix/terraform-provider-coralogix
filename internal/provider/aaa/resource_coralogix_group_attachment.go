@@ -228,15 +228,18 @@ func (r *GroupAttachmentResource) Metadata(_ context.Context, req resource.Metad
 }
 
 func (r *GroupAttachmentResource) listMembers(ctx context.Context, groupID int64) ([]string, error) {
-	ids, httpResp, err := listGroupUserIDs(ctx, r.client, groupID)
+	resp, httpResp, err := r.client.GroupsMgmtServiceGetTeamGroup(ctx, groupID).Execute()
 	if err != nil {
 		apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
 		if cxsdkOpenapi.IsNotFound(apiErr) {
 			return nil, &groupNotFoundError{id: groupID}
 		}
-		return nil, fmt.Errorf("%s", utils.FormatOpenAPIErrors(apiErr, "GetGroupUsers", groupID))
+		return nil, fmt.Errorf("%s", utils.FormatOpenAPIErrors(apiErr, "GetTeamGroup", groupID))
 	}
-	return ids, nil
+	if resp == nil || resp.Group == nil {
+		return nil, fmt.Errorf("API returned an empty group %d", groupID)
+	}
+	return resp.Group.GetUserIds(), nil
 }
 
 func (r *GroupAttachmentResource) applyUserOp(ctx context.Context, groupID int64, operationType string, userIDs []string) error {

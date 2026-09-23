@@ -358,12 +358,7 @@ func (r *GroupResource) readFlattenedGroup(ctx context.Context, groupID int64, e
 		return nil, err
 	}
 
-	memberIDs, httpResp, err := listGroupUserIDs(ctx, r.client, groupID)
-	if err != nil {
-		return nil, formatGroupReadError(httpResp, err, groupID)
-	}
-
-	state, diags := flattenTeamGroup(group, memberIDs)
+	state, diags := flattenTeamGroup(group)
 	if diags.HasError() {
 		return nil, fmt.Errorf("%s", diags[0].Detail())
 	}

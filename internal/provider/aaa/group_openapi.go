@@ -48,39 +48,12 @@ func isGroupNotFoundErr(err error) bool {
 	return errors.As(err, &notFound)
 }
 
-func listGroupUserIDs(ctx context.Context, client *teamGroups.TeamGroupsManagementServiceAPIService, groupID int64) ([]string, *http.Response, error) {
-	var ids []string
-	var pageToken string
-	for {
-		req := client.GroupsMgmtServiceGetGroupUsers(ctx, groupID).PageSize(100)
-		if pageToken != "" {
-			req = req.PageToken(pageToken)
-		}
-		resp, httpResp, err := req.Execute()
-		if err != nil {
-			return nil, httpResp, err
-		}
-		if resp == nil {
-			return ids, httpResp, nil
-		}
-		for _, user := range resp.GetUsers() {
-			if user.UserId != nil && *user.UserId != "" {
-				ids = append(ids, *user.UserId)
-			}
-		}
-		if resp.NextPageToken == nil || *resp.NextPageToken == "" || *resp.NextPageToken == pageToken {
-			return ids, httpResp, nil
-		}
-		pageToken = *resp.NextPageToken
-	}
-}
-
-func flattenTeamGroup(group *teamGroups.TeamGroup, memberIDs []string) (*GroupResourceModel, diag.Diagnostics) {
+func flattenTeamGroup(group *teamGroups.TeamGroup) (*GroupResourceModel, diag.Diagnostics) {
 	if group == nil || group.GroupId == nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid group", "API returned an empty group")}
 	}
 
-	members, diags := flattenMemberIDs(memberIDs)
+	members, diags := flattenMemberIDs(group.GetUserIds())
 	if diags.HasError() {
 		return nil, diags
 	}

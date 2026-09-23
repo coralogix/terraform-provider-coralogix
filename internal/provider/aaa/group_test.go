@@ -35,9 +35,10 @@ func TestFlattenTeamGroup(t *testing.T) {
 		Name:    &name,
 		Role:    &teamGroups.Role{Name: &roleName},
 		Scope:   &teamGroups.V2Scope{ScopeId: &scopeID},
+		UserIds: []string{"user-a", "user-b"},
 	}
 
-	model, diags := flattenTeamGroup(group, []string{"user-a", "user-b"})
+	model, diags := flattenTeamGroup(group)
 	if diags.HasError() {
 		t.Fatalf("flattenTeamGroup diagnostics: %v", diags)
 	}
@@ -53,8 +54,8 @@ func TestFlattenTeamGroup(t *testing.T) {
 	if model.ScopeID.ValueString() != scopeID {
 		t.Errorf("ScopeID = %q", model.ScopeID.ValueString())
 	}
-	if model.Members.IsNull() {
-		t.Fatal("Members is null")
+	if len(model.Members.Elements()) != 2 {
+		t.Errorf("Members = %#v, want 2 elements", model.Members)
 	}
 }
 
@@ -68,7 +69,7 @@ func TestFlattenTeamGroupEmptyMembersAndScope(t *testing.T) {
 		Name:    &name,
 	}
 
-	model, diags := flattenTeamGroup(group, nil)
+	model, diags := flattenTeamGroup(group)
 	if diags.HasError() {
 		t.Fatalf("flattenTeamGroup diagnostics: %v", diags)
 	}
