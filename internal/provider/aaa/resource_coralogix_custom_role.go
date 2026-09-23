@@ -137,6 +137,12 @@ func (r *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
+	if createResult == nil || createResult.Id == nil {
+		resp.Diagnostics.AddError("Error creating coralogix_custom_role",
+			"Coralogix API returned no role ID. The role may have been created; check the Coralogix UI.")
+		return
+	}
+
 	result, httpResponse, err := r.client.
 		RoleManagementServiceGetCustomRole(ctx, *createResult.Id).
 		Execute()
@@ -145,9 +151,9 @@ func (r *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	state, err := flattenCustomRole(result.Role, plan)
-	if err != nil {
-		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after creation", err.Error())
+	state, diags := flattenCustomRole(result.Role, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -176,7 +182,7 @@ func (r *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_custom_role %v is in state, but no longer exists in Coralogix backend", *id),
 				fmt.Sprintf("%v will be recreated when you apply", *id),
@@ -187,9 +193,9 @@ func (r *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		}
 		return
 	}
-	state, err = flattenCustomRole(result.Role, state)
-	if err != nil {
-		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after read", err.Error())
+	state, diags = flattenCustomRole(result.Role, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -223,7 +229,7 @@ func (r *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_custom_role %v is in state, but no longer exists in Coralogix backend", *id),
 				fmt.Sprintf("%v will be recreated when you apply", *id),
@@ -243,9 +249,9 @@ func (r *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	state, err := flattenCustomRole(result.Role, plan)
-	if err != nil {
-		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after update", err.Error())
+	state, diags := flattenCustomRole(result.Role, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -301,52 +307,41 @@ func extractCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) 
 	}, nil
 }
 
-func flattenCustomRole(customRole *roless.CustomRole, plan *RolesModel) (*RolesModel, error) {
-	permissionsFromPlan := utils.TypeStringSetToStringSlice(context.Background(), plan.Permissions)
-	permissionsFromAPI := customRole.Permissions
-	// permissions are required, so if plan.Permissions is null, it must mean that we're importing
-	isImport := plan.Permissions.IsNull()
-
-	if isImport {
-		// Just take what the API gives us and return, because we're importing
-		apiPermsSet, diags := types.SetValueFrom(context.Background(), types.StringType, customRole.Permissions)
-		if diags.HasError() {
-			return nil, fmt.Errorf("failed to convert API permissions to set")
-		}
-
-		return &RolesModel{
-			ID:          utils.Int64ToStringValue(customRole.RoleId),
-			ParentRole:  types.StringPointerValue(customRole.ParentRoleName),
-			Permissions: apiPermsSet,
-			Description: types.StringPointerValue(customRole.Description),
-			Name:        types.StringPointerValue(customRole.Name),
-		}, nil
-	}
-	if len(permissionsFromAPI) != len(permissionsFromPlan) {
-		return nil, fmt.Errorf("the number of permissions specified in the plan (%d) does not match the number of permissions returned from the Coralogix API (%d).", len(permissionsFromPlan), len(permissionsFromAPI))
-	}
-	for _, perm := range permissionsFromPlan {
-		permissionWasReturnedFromAPI := false
-		for _, apiPerm := range permissionsFromAPI {
-			if strings.ToLower(perm) == strings.ToLower(apiPerm) {
-				permissionWasReturnedFromAPI = true
-				break
-			}
-		}
-		if !permissionWasReturnedFromAPI {
-			return nil, fmt.Errorf("permission %s was specified in the plan but was not returned from the Coralogix API.", perm)
-		}
+// flattenCustomRole maps an API role onto the Terraform model
+func flattenCustomRole(customRole *roless.CustomRole, tfModel *RolesModel) (*RolesModel, diag.Diagnostics) {
+	tfPermissions := utils.TypeStringSetToStringSlice(context.Background(), tfModel.Permissions)
+	permissions, diags := types.SetValueFrom(context.Background(), types.StringType, alignPermissionCasing(customRole.Permissions, tfPermissions))
+	if diags.HasError() {
+		return nil, diags
 	}
 
 	return &RolesModel{
-		ID:         utils.Int64ToStringValue(customRole.RoleId),
-		ParentRole: types.StringPointerValue(customRole.ParentRoleName),
-		// The reason we do this is that the API can return permissions with different casing than what was sent.
-		// In order to make sure that the output is correct, we perform the checks above.
-		Permissions: plan.Permissions,
+		ID:          utils.Int64ToStringValue(customRole.RoleId),
+		ParentRole:  types.StringPointerValue(customRole.ParentRoleName),
 		Description: types.StringPointerValue(customRole.Description),
 		Name:        types.StringPointerValue(customRole.Name),
-	}, nil
+		Permissions: permissions,
+	}, diags
+}
+
+// alignPermissionCasing returns apiPermissions using the casing found in
+// reference wherever the two match case-insensitively. The API may echo a
+// permission with different casing than the configuration used.
+func alignPermissionCasing(apiPermissions, reference []string) []string {
+	byLower := make(map[string]string, len(reference))
+	for _, permission := range reference {
+		byLower[strings.ToLower(permission)] = permission
+	}
+
+	aligned := make([]string, 0, len(apiPermissions))
+	for _, apiPermission := range apiPermissions {
+		if cased, ok := byLower[strings.ToLower(apiPermission)]; ok {
+			aligned = append(aligned, cased)
+			continue
+		}
+		aligned = append(aligned, apiPermission)
+	}
+	return aligned
 }
 
 func extractUpdateCustomRoleRequest(ctx context.Context, model *RolesModel) (*roless.RoleManagementServiceUpdateRoleRequest, diag.Diagnostics) {

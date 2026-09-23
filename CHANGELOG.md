@@ -4,6 +4,42 @@
 - FEAT: Add support for `groups[*].rules[*].evaluation_delay_ms`, an optional delay (in milliseconds, `0`-`1800000`) that holds off a rule's evaluation so late-arriving data is ingested first. Removing it from the configuration clears the delay, and an explicit `0` is a real value distinct from unset. Also fixes a read-path gap: a delay set outside Terraform was previously dropped from state and silently stripped on the next apply.
 - FEAT: `yaml_content` now decodes keys by the API's camelCase field names (e.g. `evaluationDelayMs`), so it accepts the same spelling the Coralogix API documents; existing single-word keys are unaffected. Unrecognized keys are still ignored silently, so prefer `groups` if you want attribute names validated.
 
+#### resource/coralogix_rules_group
+- DOCS: Add a complete guide to migrate to `coralogix_parsing_rules` without replacing the remote rule group.
+
+#### data-source/coralogix_rules_group
+- DOCS: Document the new data-source type, output shape, field rename, and canonical enum values.
+
+#### resource/coralogix_parsing_rules
+- FIX: Preserve rule subgroup IDs in state.
+
+#### data-source/coralogix_parsing_rules
+- FIX: Preserve rule subgroup IDs in state.
+
+#### resource/coralogix_custom_role
+- FIX: Read no longer errors when the API returns a different set of permissions than the plan/state. Permissions are reconciled from the API response, so drift caused by UI edits or partial failures is surfaced in the plan and corrected on the next apply.
+
+#### resource/coralogix_dashboard
+- FEAT: Report backend validation issues as warnings during `terraform plan`. The create API only validates structure, so problems such as stale variable references or duplicate widget ids used to surface only when the dashboard was rendered. Issues never fail a plan. Set `CORALOGIX_DASHBOARD_VALIDATION=false` to turn validation off, or `CORALOGIX_DASHBOARD_VALIDATION_TIMEOUT` to change the 5s call timeout.
+
+#### resource/coralogix_archive_retentions
+- FIX: Guard `httpResponse` against nil in `Read` to prevent a nil pointer dereference panic when the API call returns a transport error.
+- FIX: Prevent an index-out-of-range panic in `Create` when the backend returns fewer archive retentions than the configuration declares; the mismatch now surfaces an error diagnostic instead.
+
+#### resource/coralogix_connector
+- FIX: Guard `httpResponse` against nil in `Read` and `Update` to prevent a nil pointer dereference panic when the API call returns a transport error. Mirrors the archive_retentions fix (#722).
+- DOCS: Document the optional `additionalDetail` connector_config field for the `eventbridge` connector type.
+
+#### resource/coralogix_custom_role
+- FIX: Panic on transport errors during read and update.
+- FIX: Panic when the create response omits the role ID.
+
+#### resource/coralogix_view_folder
+- FEAT: New resource for View Folders, the containers that group saved views in the Explore screen. Supports `name` (required, 1-100 characters), the computed `id`, full CRUD with in-place rename, and import by ID.
+
+#### data-source/coralogix_view_folder
+- FEAT: New data source resolving a view folder by either `id` or `name`.
+
 # Release 3.17.0
 
 #### resource/coralogix_archive_metrics

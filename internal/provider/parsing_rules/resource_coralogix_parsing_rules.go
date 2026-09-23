@@ -1040,6 +1040,7 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 		rules := make([]RuleSubgroupModel, 0)
 
 		subgroupRules[g] = RuleSubgroupsModel{
+			ID:     types.StringPointerValue(groups.Id),
 			Active: types.BoolPointerValue(groups.Enabled),
 			Order:  types.Int64PointerValue(groups.Order),
 		}
