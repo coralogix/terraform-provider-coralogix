@@ -36,8 +36,10 @@ func TestAccCoralogixResourceCustomDataEnrichments(t *testing.T) {
 				),
 			},
 			{
-				ResourceName: dataEnrichmentResourceName,
-				ImportState:  true,
+				ResourceName:            dataEnrichmentResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"custom.custom_enrichment_data.contents"},
 			},
 		},
 	})
@@ -69,8 +71,10 @@ func TestAccCoralogixResourceCustomDataEnrichmentsWithUploadedFile(t *testing.T)
 				),
 			},
 			{
-				ResourceName: dataEnrichmentResourceName,
-				ImportState:  true,
+				ResourceName:            dataEnrichmentResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"custom.custom_enrichment_data.contents"},
 			},
 			{
 				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, updatedTestData),
@@ -271,8 +275,10 @@ func TestAccCoralogixResourceCustomDataEnrichment(t *testing.T) {
 				),
 			},
 			{
-				ResourceName: dataEnrichmentResourceName,
-				ImportState:  true,
+				ResourceName:            dataEnrichmentResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"custom.custom_enrichment_data.contents"},
 			},
 		},
 	})

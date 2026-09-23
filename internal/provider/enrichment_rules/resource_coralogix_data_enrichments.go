@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -176,6 +177,7 @@ Outer:
 		}
 
 		state := DataEnrichmentsModel{
+			ID: types.StringValue(req.ID),
 			Custom: &CustomEnrichmentFieldsModel{
 				CustomEnrichmentDataModel: &CustomEnrichmentDataModel{
 					ID: types.Int64Value(val),
@@ -216,7 +218,7 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 			"id": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.UseNonNullStateForUnknown(),
 				},
 			},
 			GEOIP_TYPE: schema.SingleNestedAttribute{
@@ -237,7 +239,7 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 									Required: true,
 								},
 								"enriched_field_name": schema.StringAttribute{
-									Required: true,
+									Optional: true,
 								},
 								"selected_columns": schema.SetAttribute{
 									ElementType: types.StringType,
@@ -292,7 +294,7 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 									Computed: true,
 								},
 								"enriched_field_name": schema.StringAttribute{
-									Required: true,
+									Optional: true,
 								},
 								"selected_columns": schema.SetAttribute{
 									ElementType: types.StringType,
@@ -361,7 +363,7 @@ func enrichmentFieldSchema() map[string]schema.Attribute {
 			Required: true,
 		},
 		"enriched_field_name": schema.StringAttribute{
-			Required: true,
+			Optional: true,
 		},
 		"selected_columns": schema.SetAttribute{
 			ElementType: types.StringType,
@@ -409,13 +411,21 @@ func (r *DataEnrichmentsResource) Create(ctx context.Context, req resource.Creat
 		Execute()
 
 	if err != nil {
+		cleanupMessage := ""
 		if customId != nil {
-			r.custom_enrichments_client.
+			_, cleanupHTTPResponse, cleanupErr := r.custom_enrichments_client.
 				CustomEnrichmentServiceDeleteCustomEnrichment(ctx, *customId).
 				Execute()
+			if cleanupErr != nil {
+				cleanupMessage = "\nCleanup also failed: " + utils.FormatOpenAPIErrors(
+					cxsdkOpenapi.NewAPIError(cleanupHTTPResponse, cleanupErr),
+					"Delete",
+					customId,
+				)
+			}
 		}
 		resp.Diagnostics.AddError("Error creating coralogix_data_enrichments",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq)+cleanupMessage,
 		)
 		return
 	}
@@ -423,7 +433,7 @@ func (r *DataEnrichmentsResource) Create(ctx context.Context, req resource.Creat
 	if plan.Custom != nil && plan.Custom.CustomEnrichmentDataModel != nil {
 		content = plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
 	}
-	state := flattenDataEnrichments(result.Enrichments,
+	state := flattenDataEnrichments(filterDataEnrichmentsForModel(result.Enrichments, plan),
 		uploadResult,
 		// the data isn't actually returned from the request, so we have to keep the state happy like that
 		content)
@@ -442,13 +452,13 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	var state *DataEnrichmentsModel
 	diags = req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	fieldsChanged := !dataEnrichmentFieldsEqual(plan, state)
 
 	// First, upload/update the custom enrichment (if provided)
 	upload := extractCustomEnrichmentsDataUpdate(plan)
@@ -466,6 +476,24 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 		}
 		// store result for "merged flattening"
 		uploadResult = result.CustomEnrichment
+	}
+	var content *string
+	if plan.Custom != nil && plan.Custom.CustomEnrichmentDataModel != nil {
+		content = plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
+	}
+
+	if !fieldsChanged {
+		if uploadResult != nil {
+			state.Custom.CustomEnrichmentDataModel = &CustomEnrichmentDataModel{
+				ID:          types.Int64PointerValue(uploadResult.Id),
+				Name:        types.StringPointerValue(uploadResult.Name),
+				Description: types.StringPointerValue(uploadResult.Description),
+				Version:     types.Int64PointerValue(uploadResult.Version),
+				Contents:    types.StringPointerValue(content),
+			}
+		}
+		resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+		return
 	}
 
 	ids := make([]int64, 0)
@@ -494,11 +522,7 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 		)
 		return
 	}
-	var content *string = nil
-	if plan.Custom != nil && plan.Custom.CustomEnrichmentDataModel != nil {
-		content = plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
-	}
-	state = flattenDataEnrichments(result.Enrichments,
+	state = flattenDataEnrichments(filterDataEnrichmentsForModel(result.Enrichments, plan),
 		uploadResult,
 		content)
 	if diags.HasError() {
@@ -517,11 +541,10 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	id := state.ID.ValueString()
-	types := strings.Split(id, ",")
+	enrichmentTypes := enrichmentTypesFromModel(state)
 
 	customEnrichmentId := getCustomEnrichmentId(state)
-	if len(types) == 0 && customEnrichmentId == nil {
+	if len(enrichmentTypes) == 0 && customEnrichmentId == nil {
 		resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
 			"No ids found",
 		)
@@ -550,7 +573,7 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 		customEnrichment = &result.CustomEnrichment
 	}
 	var enrichments []ess.Enrichment
-	if len(types) > 0 {
+	if len(enrichmentTypes) > 0 {
 		result, httpResponse, err := r.client.
 			EnrichmentServiceGetEnrichments(ctx).
 			Execute()
@@ -568,8 +591,8 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 			}
 			return
 		}
-		for _, t := range types {
-			enrichments = append(enrichments, FilterEnrichmentByTypes(result.Enrichments, t)...)
+		for _, t := range enrichmentTypes {
+			enrichments = append(enrichments, FilterEnrichmentByTypeAndCustomID(result.Enrichments, t, customEnrichmentId)...)
 		}
 	}
 
@@ -684,10 +707,10 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 	}
 
 	if plan.GeoIp != nil {
-		enrichmentType := ess.EnrichmentType{
-			GeoIp: ess.NewGeoIpType(),
-		}
 		for _, f := range plan.GeoIp.Fields {
+			enrichmentType := ess.EnrichmentType{
+				GeoIp: ess.NewGeoIpType(),
+			}
 			if !(f.Asn.IsNull() || f.Asn.IsUnknown()) {
 				enrichmentType.GeoIp.WithAsn = f.Asn.ValueBoolPointer()
 			}
@@ -734,6 +757,18 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 	return requestModels
 }
 
+func dataEnrichmentFieldsEqual(plan, state *DataEnrichmentsModel) bool {
+	plannedFields := extractDataEnrichments(plan)
+	stateFields := extractDataEnrichments(state)
+	for i := range plannedFields {
+		slices.Sort(plannedFields[i].SelectedColumns)
+	}
+	for i := range stateFields {
+		slices.Sort(stateFields[i].SelectedColumns)
+	}
+	return reflect.DeepEqual(plannedFields, stateFields)
+}
+
 func extractDataEnrichmentsCreate(plan *DataEnrichmentsModel) *ess.EnrichmentsCreationRequest {
 	req := &ess.EnrichmentsCreationRequest{
 		RequestEnrichments: extractDataEnrichments(plan),
@@ -742,7 +777,6 @@ func extractDataEnrichmentsCreate(plan *DataEnrichmentsModel) *ess.EnrichmentsCr
 }
 
 func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.CustomEnrichment, customEnrichmentContents *string) *DataEnrichmentsModel {
-	id := make([]string, 0)
 	model := &DataEnrichmentsModel{}
 
 	if uploadResp != nil {
@@ -756,63 +790,81 @@ func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.Custo
 			},
 			Fields: []EnrichmentFieldModel{},
 		}
-		model.ID = types.StringValue(strconv.FormatInt(*uploadResp.Id, 10))
 	}
 
 	for _, e := range enrichments {
-		if e.EnrichmentType.Aws != nil {
-			if model.Aws == nil {
-				model.Aws = &AwsEnrichmentFieldsModel{}
-			}
-			model.Aws.Fields = append(model.Aws.Fields, AwsEnrichmentFieldModel{
-				EnrichedFieldName: types.StringPointerValue(e.EnrichedFieldName),
-				SelectedColumns:   utils.StringSliceToTypeStringSet(e.SelectedColumns),
-				Name:              types.StringValue(e.FieldName),
-				Resource:          types.StringPointerValue(e.EnrichmentType.Aws.ResourceType),
-				ID:                types.Int64Value(e.Id),
-			})
-			id = append(id, AWS_TYPE)
-		} else if e.EnrichmentType.GeoIp != nil {
-			if model.GeoIp == nil {
-				model.GeoIp = &GeoIpEnrichmentFieldsModel{}
-			}
-			model.GeoIp.Fields = append(model.GeoIp.Fields, GeoIpEnrichmentFieldModel{
-				EnrichedFieldName: types.StringPointerValue(e.EnrichedFieldName),
-				SelectedColumns:   utils.StringSliceToTypeStringSet(e.SelectedColumns),
-				Name:              types.StringValue(e.FieldName),
-				ID:                types.Int64Value(e.Id),
-				Asn:               types.BoolPointerValue(e.EnrichmentType.GeoIp.WithAsn),
-			})
-			id = append(id, GEOIP_TYPE)
-		} else if e.EnrichmentType.SuspiciousIp != nil {
-			if model.SuspiciousIp == nil {
-				model.SuspiciousIp = &EnrichmentFieldsModel{}
-			}
-			model.SuspiciousIp.Fields = append(model.SuspiciousIp.Fields, EnrichmentFieldModel{
-				EnrichedFieldName: types.StringPointerValue(e.EnrichedFieldName),
-				SelectedColumns:   utils.StringSliceToTypeStringSet(e.SelectedColumns),
-				Name:              types.StringValue(e.FieldName),
-				ID:                types.Int64Value(e.Id),
-			})
-			id = append(id, SUSIP_TYPE)
-		} else if e.EnrichmentType.CustomEnrichment != nil {
-			if model.Custom == nil {
-				model.Custom = &CustomEnrichmentFieldsModel{}
-			}
+		appendFlattenedDataEnrichment(model, e)
+	}
+	model.ID = flattenedDataEnrichmentsID(model)
+	return model
+}
 
-			model.Custom.Fields = append(model.Custom.Fields, EnrichmentFieldModel{
-				EnrichedFieldName: types.StringPointerValue(e.EnrichedFieldName),
-				SelectedColumns:   utils.StringSliceToTypeStringSet(e.SelectedColumns),
-				Name:              types.StringValue(e.FieldName),
-				ID:                types.Int64Value(e.Id),
-			})
+func appendFlattenedDataEnrichment(model *DataEnrichmentsModel, enrichment ess.Enrichment) {
+	field := EnrichmentFieldModel{
+		EnrichedFieldName: types.StringPointerValue(enrichment.EnrichedFieldName),
+		SelectedColumns:   utils.StringSliceToTypeStringSet(enrichment.SelectedColumns),
+		Name:              types.StringValue(enrichment.FieldName),
+		ID:                types.Int64Value(enrichment.Id),
+	}
+
+	switch {
+	case enrichment.EnrichmentType.Aws != nil:
+		if model.Aws == nil {
+			model.Aws = &AwsEnrichmentFieldsModel{}
+		}
+		model.Aws.Fields = append(model.Aws.Fields, AwsEnrichmentFieldModel{
+			EnrichedFieldName: field.EnrichedFieldName,
+			SelectedColumns:   field.SelectedColumns,
+			Name:              field.Name,
+			Resource:          types.StringPointerValue(enrichment.EnrichmentType.Aws.ResourceType),
+			ID:                field.ID,
+		})
+	case enrichment.EnrichmentType.GeoIp != nil:
+		if model.GeoIp == nil {
+			model.GeoIp = &GeoIpEnrichmentFieldsModel{}
+		}
+		model.GeoIp.Fields = append(model.GeoIp.Fields, GeoIpEnrichmentFieldModel{
+			EnrichedFieldName: field.EnrichedFieldName,
+			SelectedColumns:   field.SelectedColumns,
+			Name:              field.Name,
+			ID:                field.ID,
+			Asn:               types.BoolPointerValue(enrichment.EnrichmentType.GeoIp.WithAsn),
+		})
+	case enrichment.EnrichmentType.SuspiciousIp != nil:
+		if model.SuspiciousIp == nil {
+			model.SuspiciousIp = &EnrichmentFieldsModel{}
+		}
+		model.SuspiciousIp.Fields = append(model.SuspiciousIp.Fields, field)
+	case enrichment.EnrichmentType.CustomEnrichment != nil:
+		if model.Custom == nil {
+			model.Custom = &CustomEnrichmentFieldsModel{}
+		}
+		model.Custom.Fields = append(model.Custom.Fields, field)
+	}
+}
+
+func flattenedDataEnrichmentsID(model *DataEnrichmentsModel) types.String {
+	id := make([]string, 0, 4)
+	if model.Aws != nil {
+		id = append(id, AWS_TYPE)
+	}
+	if model.GeoIp != nil {
+		id = append(id, GEOIP_TYPE)
+	}
+	if model.SuspiciousIp != nil {
+		id = append(id, SUSIP_TYPE)
+	}
+	if model.Custom != nil {
+		if len(id) == 0 && model.Custom.CustomEnrichmentDataModel != nil && !model.Custom.CustomEnrichmentDataModel.ID.IsNull() {
+			id = append(id, strconv.FormatInt(model.Custom.CustomEnrichmentDataModel.ID.ValueInt64(), 10))
+		} else {
 			id = append(id, CUSTOM_TYPE)
 		}
 	}
 	if len(id) > 0 {
-		model.ID = types.StringValue(strings.Join(id, ","))
+		return types.StringValue(strings.Join(id, ","))
 	}
-	return model
+	return types.StringNull()
 }
 
 func ExtractIdsFromEnrichment(fields []CoralogixEnrichment) []uint32 {
@@ -840,4 +892,77 @@ func FilterEnrichmentByTypes(enrichments []ess.Enrichment, t string) []ess.Enric
 		}
 	}
 	return results
+}
+
+func FilterEnrichmentByTypeAndCustomID(enrichments []ess.Enrichment, enrichmentType string, customEnrichmentID *int64) []ess.Enrichment {
+	filtered := FilterEnrichmentByTypes(enrichments, enrichmentType)
+	if enrichmentType != CUSTOM_TYPE || customEnrichmentID == nil {
+		return filtered
+	}
+
+	results := make([]ess.Enrichment, 0, len(filtered))
+	for _, enrichment := range filtered {
+		id := enrichment.EnrichmentType.CustomEnrichment.Id
+		if id != nil && *id == *customEnrichmentID {
+			results = append(results, enrichment)
+		}
+	}
+	return results
+}
+
+func filterDataEnrichmentsForModel(enrichments []ess.Enrichment, model *DataEnrichmentsModel) []ess.Enrichment {
+	customEnrichmentID := getCustomEnrichmentId(model)
+	results := make([]ess.Enrichment, 0, len(enrichments))
+	if model.Aws != nil {
+		results = append(results, FilterEnrichmentByTypeAndCustomID(enrichments, AWS_TYPE, customEnrichmentID)...)
+	}
+	if model.GeoIp != nil {
+		results = append(results, FilterEnrichmentByTypeAndCustomID(enrichments, GEOIP_TYPE, customEnrichmentID)...)
+	}
+	if model.SuspiciousIp != nil {
+		results = append(results, FilterEnrichmentByTypeAndCustomID(enrichments, SUSIP_TYPE, customEnrichmentID)...)
+	}
+	if model.Custom != nil {
+		results = append(results, FilterEnrichmentByTypeAndCustomID(enrichments, CUSTOM_TYPE, customEnrichmentID)...)
+	}
+	return results
+}
+
+func enrichmentTypesFromID(id string) []string {
+	if id == "" {
+		return nil
+	}
+	if _, err := strconv.ParseInt(id, 10, 64); err == nil {
+		return []string{CUSTOM_TYPE}
+	}
+	enrichmentTypes := make([]string, 0, 4)
+	for _, enrichmentType := range strings.Split(id, ",") {
+		if !slices.Contains(enrichmentTypes, enrichmentType) {
+			enrichmentTypes = append(enrichmentTypes, enrichmentType)
+		}
+	}
+	return enrichmentTypes
+}
+
+func enrichmentTypesFromModel(model *DataEnrichmentsModel) []string {
+	if !model.ID.IsNull() && !model.ID.IsUnknown() {
+		if enrichmentTypes := enrichmentTypesFromID(model.ID.ValueString()); len(enrichmentTypes) > 0 {
+			return enrichmentTypes
+		}
+	}
+
+	enrichmentTypes := make([]string, 0, 4)
+	if model.Aws != nil {
+		enrichmentTypes = append(enrichmentTypes, AWS_TYPE)
+	}
+	if model.GeoIp != nil {
+		enrichmentTypes = append(enrichmentTypes, GEOIP_TYPE)
+	}
+	if model.SuspiciousIp != nil {
+		enrichmentTypes = append(enrichmentTypes, SUSIP_TYPE)
+	}
+	if model.Custom != nil {
+		enrichmentTypes = append(enrichmentTypes, CUSTOM_TYPE)
+	}
+	return enrichmentTypes
 }

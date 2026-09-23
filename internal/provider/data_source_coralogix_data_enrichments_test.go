@@ -15,12 +15,8 @@
 package provider
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -50,24 +46,20 @@ func testAccCoralogixDataSourceDataEnrichments_read() string {
 }
 
 func TestAccCoralogixDataSourceDataEnrichmentsCustom_basic(t *testing.T) {
-	name := acctest.RandomWithPrefix("tf-acc-test")
-	description := acctest.RandomWithPrefix("tf-acc-test")
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	parent := filepath.Dir(filepath.Dir(wd))
-	filePath := parent + "/examples/resources/coralogix_data_enrichments/date-to-day-of-the-week.csv"
+	fieldName := "coralogix.metadata.sdkId"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, fmt.Sprintf("file(\"%v\")", filePath)) +
+				Config: testAccCoralogixResourceCustomDataEnrichment(fieldName) +
 					testAccCoralogixDataSourceDataEnrichments_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coralogix_data_enrichments.test", "custom.custom_enrichment_data.name", name),
+					resource.TestCheckResourceAttrPair("data.coralogix_data_enrichments.test", "id", dataEnrichmentResourceName, "id"),
+					resource.TestCheckResourceAttrSet("data.coralogix_data_enrichments.test", "custom.custom_enrichment_data.name"),
+					resource.TestCheckResourceAttr("data.coralogix_data_enrichments.test", "custom.fields.#", "1"),
+					resource.TestCheckResourceAttr("data.coralogix_data_enrichments.test", "custom.fields.0.name", fieldName),
 				),
 			},
 		},

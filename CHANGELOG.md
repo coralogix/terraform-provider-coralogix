@@ -22,6 +22,32 @@
 #### resource/coralogix_dashboard
 - FEAT: Report backend validation issues as warnings during `terraform plan`. The create API only validates structure, so problems such as stale variable references or duplicate widget ids used to surface only when the dashboard was rendered. Issues never fail a plan. Set `CORALOGIX_DASHBOARD_VALIDATION=false` to turn validation off, or `CORALOGIX_DASHBOARD_VALIDATION_TIMEOUT` to change the 5s call timeout.
 
+#### resource/coralogix_enrichment
+- DOCS: Add a complete guide to migrate to `coralogix_data_enrichments` without replacing the remote enrichment.
+- FIX: Send the public `aws.fields.resource` value when the legacy AWS enrichment resource creates or updates a field.
+
+#### data-source/coralogix_enrichment
+- DOCS: Document the new data-source type and output shape.
+
+#### resource/coralogix_data_enrichments
+- FIX: Keep imported enrichment type IDs unique and load only the requested custom field mappings after a numeric custom-enrichment import.
+- FIX: Allow `enriched_field_name` to be absent so legacy enrichments with a null API value can be migrated without changing them.
+- FIX: Preserve field mappings when an update changes only custom enrichment data or metadata.
+- FIX: Keep parallel custom enrichment create and update responses isolated by numeric custom-enrichment ID.
+- FIX: Recover the canonical resource ID after a failed update leaves a null ID in state.
+- FIX: Keep each Geo IP field's `with_asn` value independent when multiple fields are configured.
+- FIX: Recover enrichment types from state blocks when a failed update leaves a null resource ID.
+- FIX: Deduplicate legacy enrichment type IDs during read so repeated mappings do not duplicate state fields.
+
+#### data-source/coralogix_data_enrichments
+- FIX: Preserve the configured lookup ID, load only the requested custom field mappings for a numeric ID, and correct the example IDs.
+
+#### resource/coralogix_data_set
+- DOCS: Map every resource field to `coralogix_data_enrichments`, including both CSV input forms.
+
+#### data-source/coralogix_data_set
+- DOCS: Document the replacement data source and every output path.
+
 #### resource/coralogix_archive_retentions
 - FIX: Guard `httpResponse` against nil in `Read` to prevent a nil pointer dereference panic when the API call returns a transport error.
 - FIX: Prevent an index-out-of-range panic in `Create` when the backend returns fewer archive retentions than the configuration declares; the mismatch now surfaces an error diagnostic instead.

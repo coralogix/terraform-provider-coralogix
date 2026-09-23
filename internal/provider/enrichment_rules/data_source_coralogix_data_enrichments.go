@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -15,7 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var (
@@ -62,12 +61,6 @@ func (d *DataEnrichmentDataSource) Schema(ctx context.Context, _ datasource.Sche
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 
-	if idAttr, ok := resp.Schema.Attributes[CUSTOM_TYPE].(schema.StringAttribute); ok {
-		idAttr.Required = false
-		idAttr.Optional = true
-		resp.Schema.Attributes[CUSTOM_TYPE] = idAttr
-	}
-
 }
 
 func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -77,7 +70,7 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 	id := data.ID.ValueString()
-	types := strings.Split(id, ",")
+	enrichmentTypes := enrichmentTypesFromID(id)
 
 	customEnrichmentId := getCustomEnrichmentId(data)
 	val, isDataSet := strconv.ParseInt(id, 10, 64)
@@ -86,7 +79,7 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 		customEnrichmentId = &val
 	}
 
-	if len(types) == 0 && customEnrichmentId == nil && isDataSet != nil {
+	if len(enrichmentTypes) == 0 && customEnrichmentId == nil && isDataSet != nil {
 		resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
 			"No ids found",
 		)
@@ -108,7 +101,7 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 	}
 
 	var enrichments []ess.Enrichment
-	if len(types) > 0 {
+	if len(enrichmentTypes) > 0 {
 
 		result, httpResponse, err := d.client.
 			EnrichmentServiceGetEnrichments(ctx).
@@ -120,8 +113,8 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 			)
 			return
 		}
-		for _, t := range types {
-			enrichments = append(enrichments, FilterEnrichmentByTypes(result.Enrichments, t)...)
+		for _, t := range enrichmentTypes {
+			enrichments = append(enrichments, FilterEnrichmentByTypeAndCustomID(result.Enrichments, t, customEnrichmentId)...)
 		}
 	}
 
@@ -139,6 +132,7 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 	data = flattenDataEnrichments(enrichments,
 		customEnrichment,
 		content)
+	data.ID = types.StringValue(id)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

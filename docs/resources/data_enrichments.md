@@ -114,12 +114,12 @@ Required:
 
 Required:
 
-- `enriched_field_name` (String)
 - `name` (String)
 - `resource` (String)
 
 Optional:
 
+- `enriched_field_name` (String)
 - `id` (Number)
 - `selected_columns` (Set of String)
 
@@ -141,11 +141,11 @@ Optional:
 
 Required:
 
-- `enriched_field_name` (String)
 - `name` (String)
 
 Optional:
 
+- `enriched_field_name` (String)
 - `id` (Number)
 - `selected_columns` (Set of String)
 
@@ -181,11 +181,11 @@ Required:
 
 Required:
 
-- `enriched_field_name` (String)
 - `name` (String)
 
 Optional:
 
+- `enriched_field_name` (String)
 - `id` (Number)
 - `selected_columns` (Set of String)
 - `with_asn` (Boolean)
@@ -204,11 +204,11 @@ Required:
 
 Required:
 
-- `enriched_field_name` (String)
 - `name` (String)
 
 Optional:
 
+- `enriched_field_name` (String)
 - `id` (Number)
 - `selected_columns` (Set of String)
 
