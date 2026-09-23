@@ -260,7 +260,7 @@ func TestAccCoralogixResourceSLOV2Validation(t *testing.T) {
 					1,
 				),
 				PlanOnly:    true,
-				ExpectError: regexp.MustCompile(`(?s)services.*between 1 and 1 elements`),
+				ExpectError: regexp.MustCompile(`(?s)services.*at least\s+1 elements.*at\s+most\s+1 elements`),
 			},
 			{
 				Config: testAccCoralogixSLOV2APMSLI("svc-does-not-matter", `
