@@ -25,7 +25,11 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 var recordingRulesGroupsSetResourceName = "coralogix_recording_rules_groups_set.test"
@@ -224,6 +228,79 @@ func TestAccCoralogixRecordingRulesGroupsExplicit(t *testing.T) {
 	})
 }
 
+// evaluation_delay_ms is a plain Optional attribute: the backend never
+// materializes it, distinguishes unset from an explicit 0, and clears it when
+// the full-replace PUT omits it. Each apply is followed by an empty-plan check
+// so a wrong Computed flag or a zero pointer in the expand cannot hide.
+func TestAccCoralogixRecordingRulesGroupsSetEvaluationDelay(t *testing.T) {
+	name := acctest.RandomWithPrefix("tf-acc-rr-set")
+
+	// One group, two rules: the first carries the delay, the second omits it.
+	delayedAndOmitted := func(delay knownvalue.Check) statecheck.StateCheck {
+		return statecheck.ExpectKnownValue(
+			recordingRulesGroupsSetResourceName,
+			tfjsonpath.New("groups"),
+			knownvalue.SetExact([]knownvalue.Check{
+				knownvalue.ObjectPartial(map[string]knownvalue.Check{
+					"name": knownvalue.StringExact("Foo"),
+					"rules": knownvalue.ListExact([]knownvalue.Check{
+						knownvalue.ObjectPartial(map[string]knownvalue.Check{
+							"record":              knownvalue.StringExact("job:http_requests_total:sum"),
+							"evaluation_delay_ms": delay,
+						}),
+						knownvalue.ObjectPartial(map[string]knownvalue.Check{
+							"record":              knownvalue.StringExact("ts3db_live_ingester_write_latency:3m"),
+							"evaluation_delay_ms": knownvalue.Null(),
+						}),
+					}),
+				}),
+			}),
+		)
+	}
+	emptyPlan := resource.ConfigPlanChecks{
+		PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckRecordingRulesGroupDestroy,
+		Steps: []resource.TestStep{
+			// Set on one rule, omitted on its sibling. The omitted sibling is
+			// the assertion that matters: it must stay null, not become 0.
+			{
+				Config:            testAccCoralogixResourceRecordingRulesGroupsSetEvaluationDelay(name, "evaluation_delay_ms = 60000"),
+				ConfigStateChecks: []statecheck.StateCheck{delayedAndOmitted(knownvalue.Int64Exact(60000))},
+				ConfigPlanChecks:  emptyPlan,
+			},
+			// Change the value.
+			{
+				Config:            testAccCoralogixResourceRecordingRulesGroupsSetEvaluationDelay(name, "evaluation_delay_ms = 300000"),
+				ConfigStateChecks: []statecheck.StateCheck{delayedAndOmitted(knownvalue.Int64Exact(300000))},
+				ConfigPlanChecks:  emptyPlan,
+			},
+			// Remove it from config: the full-replace PUT clears the delay.
+			{
+				Config:            testAccCoralogixResourceRecordingRulesGroupsSetEvaluationDelay(name, ""),
+				ConfigStateChecks: []statecheck.StateCheck{delayedAndOmitted(knownvalue.Null())},
+				ConfigPlanChecks:  emptyPlan,
+			},
+			// An explicit 0 is a real value, distinct from unset. Regression
+			// guard against anyone later adding a Computed zero default.
+			{
+				Config:            testAccCoralogixResourceRecordingRulesGroupsSetEvaluationDelay(name, "evaluation_delay_ms = 0"),
+				ConfigStateChecks: []statecheck.StateCheck{delayedAndOmitted(knownvalue.Int64Exact(0))},
+				ConfigPlanChecks:  emptyPlan,
+			},
+			{
+				ResourceName:      recordingRulesGroupsSetResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckRecordingRulesGroupDestroy(s *terraform.State) error {
 	meta := testAccProvider.Meta()
 	if meta == nil {
@@ -311,4 +388,31 @@ func testAccCoralogixResourceRecordingRulesGroupsSetExplicit(name string) string
             ]
 		}
 `, name)
+}
+
+// firstRuleDelay is either an `evaluation_delay_ms = <n>` assignment or the
+// empty string, so the same config exercises set, change and remove.
+func testAccCoralogixResourceRecordingRulesGroupsSetEvaluationDelay(name, firstRuleDelay string) string {
+	return fmt.Sprintf(`resource "coralogix_recording_rules_groups_set" "test" {
+            name   = %q
+            groups = [
+              {
+                name     = "Foo"
+                interval = 180
+                limit    = 100
+                rules    = [
+                  {
+                    record = "job:http_requests_total:sum"
+                    expr   = "sum(rate(http_requests_total[5m])) by (job)"
+                    %s
+                  },
+                  {
+                    record = "ts3db_live_ingester_write_latency:3m"
+                    expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
+                  },
+                ]
+              },
+            ]
+		}
+`, name, firstRuleDelay)
 }

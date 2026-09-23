@@ -42,6 +42,8 @@ resource "coralogix_recording_rules_groups_set" "recording_rules_groups_set_expl
         {
           record = "ts3db_live_ingester_write_latency:3m"
           expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
+          # Wait a minute before evaluating, so late-arriving data is ingested first.
+          evaluation_delay_ms = 60000
         },
         {
           record = "job:http_requests_total:sum"
@@ -75,7 +77,7 @@ resource "coralogix_recording_rules_groups_set" "recording_rules_groups_set_expl
 
 - `groups` (Attributes Set) (see [below for nested schema](#nestedatt--groups))
 - `name` (String) The name of the rule group. Overrides the name specified in the YAML if provided.
-- `yaml_content` (String) YAML specification of rules. Cannot be used together with `groups`.
+- `yaml_content` (String) YAML specification of rules. Cannot be used together with `groups`. Keys are the lowercased field names (for example the evaluation delay is `evaluationdelayms`). Unrecognized keys are ignored silently, so prefer `groups` if you want your attribute names validated.
 
 ### Read-Only
 
@@ -104,4 +106,5 @@ Required:
 
 Optional:
 
+- `evaluation_delay_ms` (Number) Delays the rule's evaluation (in milliseconds) so late-arriving data is ingested first. Must be between 0 and 1800000 (30 minutes). When omitted, no delay is configured; an explicit 0 is a distinct, persisted value. Removing the attribute clears the delay.
 - `labels` (Map of String) Labels to add or overwrite before storing the result.
