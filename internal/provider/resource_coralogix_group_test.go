@@ -168,6 +168,84 @@ func TestAccCoralogixResourceGroupMembersOmissionAndExplicitClear(t *testing.T) 
 	})
 }
 
+func TestAccCoralogixResourceGroupScopeClear(t *testing.T) {
+	userName := randUserName()
+	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
+	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
+	withScope := testAccCoralogixResourceGroupScope(userName, displayName, scopeName, "scope_id = coralogix_scope.test.id")
+	cleared := testAccCoralogixResourceGroupScope(userName, displayName, scopeName, `scope_id = ""`)
+	omitted := testAccCoralogixResourceGroupScope(userName, displayName, scopeName, "")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: withScope,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPair(groupResourceName, "scope_id", "coralogix_scope.test", "id"),
+					testAccCheckGroupHasScope(groupResourceName, true),
+				),
+			},
+			{
+				// An empty string removes the scope.
+				Config: cleared,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(groupResourceName, plancheck.ResourceActionUpdate)},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupResourceName, "scope_id", ""),
+					testAccCheckGroupHasScope(groupResourceName, false),
+				),
+			},
+			{
+				// Deleting the argument keeps whatever the group has, here no scope.
+				Config: omitted,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: testAccCheckGroupHasScope(groupResourceName, false),
+			},
+			{
+				Config: withScope,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPair(groupResourceName, "scope_id", "coralogix_scope.test", "id"),
+					testAccCheckGroupHasScope(groupResourceName, true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceGroupCreateWithEmptyScope(t *testing.T) {
+	userName := randUserName()
+	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
+	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceGroupScope(userName, displayName, scopeName, `scope_id = ""`),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupResourceName, "scope_id", ""),
+					testAccCheckGroupHasScope(groupResourceName, false),
+				),
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceGroupRoleByName(t *testing.T) {
 	for _, role := range []string{"Read-Only User", "Legacy Read Only"} {
 		t.Run(role, func(t *testing.T) {
@@ -531,4 +609,61 @@ func testAccCoralogixResourceGroupWithEmptyMembers(userName, displayName, scopeN
 		scope_id     = coralogix_scope.omitted_members.id
 	}
 `, scopeName, userName, displayName)
+}
+
+func testAccCheckGroupHasScope(resourceAddress string, want bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceAddress]
+		if !ok {
+			return fmt.Errorf("%s not found in state", resourceAddress)
+		}
+
+		client, err := testAccTeamGroupsClient()
+		if err != nil {
+			return err
+		}
+
+		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		if err != nil {
+			return fmt.Errorf("parse group id %q: %w", rs.Primary.ID, err)
+		}
+
+		resp, httpResp, err := client.GroupsMgmtServiceGetTeamGroup(context.TODO(), id).Execute()
+		if err != nil {
+			return fmt.Errorf("get group: %s", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Get", rs.Primary.ID))
+		}
+		has := resp != nil && resp.Group != nil && resp.Group.Scope != nil && resp.Group.Scope.GetScopeId() != ""
+		if has != want {
+			return fmt.Errorf("group %s has scope = %t, want %t", rs.Primary.ID, has, want)
+		}
+		return nil
+	}
+}
+
+// testAccCoralogixResourceGroupScope takes the whole scope_id line, so a step can set it,
+// set it to "", or leave it out.
+func testAccCoralogixResourceGroupScope(userName, displayName, scopeName, scopeLine string) string {
+	return fmt.Sprintf(`
+	resource "coralogix_scope" "test" {
+		display_name       = "%s"
+		default_expression = "<v1>true"
+		filters            = [
+		{
+			entity_type = "logs"
+			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
+		}
+		]
+	}
+
+	resource "coralogix_user" "test" {
+		user_name = "%s"
+	}
+
+	resource "coralogix_group" "test" {
+		display_name = "%s"
+		role         = "Read-Only User"
+		members      = [coralogix_user.test.id]
+		%s
+	}
+`, scopeName, userName, displayName, scopeLine)
 }

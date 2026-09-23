@@ -150,6 +150,30 @@ func teamGroupScopeSet(scopeID string) *teamGroups.ScopeUpdate {
 	}
 }
 
+func teamGroupScopeClear() *teamGroups.ScopeUpdate {
+	return &teamGroups.ScopeUpdate{
+		Action: &teamGroups.ScopeUpdateAction{
+			ActionType: "clear",
+			Clear:      &teamGroups.ClearScope{Clear: teamGroups.PtrBool(true)},
+		},
+	}
+}
+
+// scopeClearRequested reports whether scope_id is set to "", which asks for no scope.
+// A null scope_id is different: it leaves the group's current scope unchanged.
+func scopeClearRequested(scopeID types.String) bool {
+	return !scopeID.IsNull() && !scopeID.IsUnknown() && scopeID.ValueString() == ""
+}
+
+// scopeIDForState keeps "" in state while the group has no scope, so a configured
+// scope_id = "" does not show a diff against the null that flatten returns.
+func scopeIDForState(configured, flattened types.String) types.String {
+	if scopeClearRequested(configured) && flattened.IsNull() {
+		return configured
+	}
+	return flattened
+}
+
 func userIDSet(ids []string) map[string]struct{} {
 	out := make(map[string]struct{}, len(ids))
 	for _, id := range ids {
