@@ -489,7 +489,7 @@ func expandAws(v interface{}) []*cxsdk.EnrichmentRequestModel {
 	for _, field := range fields {
 		m := field.(map[string]interface{})
 		fieldName := wrapperspb.String(m["name"].(string))
-		resourceType := wrapperspb.String(m["resource_type"].(string))
+		resourceType := wrapperspb.String(m["resource"].(string))
 
 		e := &cxsdk.EnrichmentRequestModel{
 			FieldName: fieldName,
