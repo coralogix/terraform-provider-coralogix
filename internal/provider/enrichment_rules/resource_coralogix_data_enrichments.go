@@ -708,10 +708,10 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 	}
 
 	if plan.GeoIp != nil {
-		enrichmentType := ess.EnrichmentType{
-			GeoIp: ess.NewGeoIpType(),
-		}
 		for _, f := range plan.GeoIp.Fields {
+			enrichmentType := ess.EnrichmentType{
+				GeoIp: ess.NewGeoIpType(),
+			}
 			if !(f.Asn.IsNull() || f.Asn.IsUnknown()) {
 				enrichmentType.GeoIp.WithAsn = f.Asn.ValueBoolPointer()
 			}

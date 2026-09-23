@@ -89,6 +89,48 @@ func TestExtractDataEnrichmentsPreservesNullEnrichedFieldName(t *testing.T) {
 	}
 }
 
+func TestExtractDataEnrichmentsKeepsGeoIpWithAsnPerField(t *testing.T) {
+	model := &DataEnrichmentsModel{
+		GeoIp: &GeoIpEnrichmentFieldsModel{Fields: []GeoIpEnrichmentFieldModel{
+			{Name: types.StringValue("first"), Asn: types.BoolValue(true)},
+			{Name: types.StringValue("second"), Asn: types.BoolValue(false)},
+		}},
+	}
+
+	got := extractDataEnrichments(model)
+	if len(got) != 2 {
+		t.Fatalf("request count = %d, want 2", len(got))
+	}
+	if got[0].EnrichmentType.GeoIp == got[1].EnrichmentType.GeoIp {
+		t.Fatal("Geo IP requests share one enrichment type pointer")
+	}
+	if withAsn := got[0].EnrichmentType.GeoIp.WithAsn; withAsn == nil || !*withAsn {
+		t.Errorf("first with_asn = %v, want true", withAsn)
+	}
+	if withAsn := got[1].EnrichmentType.GeoIp.WithAsn; withAsn == nil || *withAsn {
+		t.Errorf("second with_asn = %v, want false", withAsn)
+	}
+}
+
+func TestDataEnrichmentFieldsEqualDetectsGeoIpWithAsnChangeBeforeLastField(t *testing.T) {
+	plan := &DataEnrichmentsModel{
+		GeoIp: &GeoIpEnrichmentFieldsModel{Fields: []GeoIpEnrichmentFieldModel{
+			{Name: types.StringValue("first"), Asn: types.BoolValue(true)},
+			{Name: types.StringValue("second"), Asn: types.BoolValue(false)},
+		}},
+	}
+	state := &DataEnrichmentsModel{
+		GeoIp: &GeoIpEnrichmentFieldsModel{Fields: []GeoIpEnrichmentFieldModel{
+			{Name: types.StringValue("first"), Asn: types.BoolValue(false)},
+			{Name: types.StringValue("second"), Asn: types.BoolValue(false)},
+		}},
+	}
+
+	if dataEnrichmentFieldsEqual(plan, state) {
+		t.Fatal("fields with a changed non-last Geo IP with_asn value must not be equal")
+	}
+}
+
 func TestDataEnrichmentFieldsEqualIgnoresComputedFieldIDs(t *testing.T) {
 	customID := int64(42)
 	plan := &DataEnrichmentsModel{

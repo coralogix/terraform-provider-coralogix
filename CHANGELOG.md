@@ -31,6 +31,7 @@
 - FIX: Preserve field mappings when an update changes only custom enrichment data or metadata.
 - FIX: Keep parallel custom enrichment create and update responses isolated by numeric custom-enrichment ID.
 - FIX: Recover the canonical resource ID after a failed update leaves a null ID in state.
+- FIX: Keep each Geo IP field's `with_asn` value independent when multiple fields are configured.
 
 #### data-source/coralogix_data_enrichments
 - FIX: Preserve the configured lookup ID, load only the requested custom field mappings for a numeric ID, and correct the example IDs.
