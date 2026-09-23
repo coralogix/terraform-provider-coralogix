@@ -26,7 +26,7 @@ data "coralogix_recording_rules_groups_set" "imported_recording_rules_groups_set
 - `groups` (Attributes Set) (see [below for nested schema](#nestedatt--groups))
 - `id` (String) The ID of this resource.
 - `name` (String) The name of the rule group. Overrides the name specified in the YAML if provided.
-- `yaml_content` (String) YAML specification of rules. Cannot be used together with `groups`. Keys must be the all-lowercase, unseparated field name, so a multi-word field is written as one word — `evaluationdelayms`, not `evaluationDelayMs` or `evaluation_delay_ms`. Matching is case-sensitive and unrecognized keys are ignored silently, so prefer `groups` if you want your attribute names validated.
+- `yaml_content` (String) YAML specification of rules. Cannot be used together with `groups`. Keys are the lowercased field names (for example the evaluation delay is `evaluationdelayms`). Unrecognized keys are ignored silently, so prefer `groups` if you want your attribute names validated.
 
 <a id="nestedatt--groups"></a>
 ### Nested Schema for `groups`

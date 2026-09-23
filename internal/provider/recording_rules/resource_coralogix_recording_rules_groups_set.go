@@ -309,10 +309,9 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 					stringplanmodifier.RequiresReplaceIf(utils.JSONStringsEqualPlanModifier, "", ""),
 				},
 				MarkdownDescription: "YAML specification of rules. Cannot be used together with `groups`." +
-					" Keys must be the all-lowercase, unseparated field name, so a multi-word field is" +
-					" written as one word — `evaluationdelayms`, not `evaluationDelayMs` or" +
-					" `evaluation_delay_ms`. Matching is case-sensitive and unrecognized keys are ignored" +
-					" silently, so prefer `groups` if you want your attribute names validated.",
+					" Keys are the lowercased field names (for example the evaluation delay is" +
+					" `evaluationdelayms`). Unrecognized keys are ignored silently, so prefer `groups`" +
+					" if you want your attribute names validated.",
 			},
 			"groups": schema.SetNestedAttribute{
 				Optional:     true,
