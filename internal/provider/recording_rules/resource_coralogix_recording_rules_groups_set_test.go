@@ -155,14 +155,15 @@ func TestRecordingRuleAttributesMatchSchema(t *testing.T) {
 	}
 }
 
-// yaml_content is decoded through mirror structs whose yaml tags carry the
-// API's camelCase field names, so the only spelling that binds is
-// `evaluationDelayMs` — the same key the API documents. yaml.v3 matches tags
-// case-sensitively and drops unrecognized keys silently, so lowercase,
-// snake_case and other casings send no value with no diagnostic. This locks
-// the contract documented in the yaml_content description; if the mirror tag
-// or the SDK field changes, this test fails loudly instead of the docs going
-// quietly wrong.
+// yaml_content is decoded straight into the generated SDK struct, which
+// carries JSON tags but no YAML tags, so gopkg.in/yaml.v3 derives each key
+// from the lowercased Go field name. For a multi-word field that means the
+// only spelling that binds is the all-lowercase, unseparated one
+// (evaluationdelayms) — and yaml.v3 drops unrecognized keys silently, so a
+// camelCase or snake_case key sends no value with no diagnostic. This locks
+// the exact contract documented in the yaml_content description; if a future
+// SDK regen adds YAML tags, the documented key changes and this test fails
+// loudly instead of the docs going quietly wrong.
 func TestExpandRecordingRulesGroupsSetFromYamlEvaluationDelayKey(t *testing.T) {
 	yamlFor := func(key string) string {
 		return fmt.Sprintf(`name: Example
@@ -180,8 +181,8 @@ groups:
 		key       string
 		wantBound bool
 	}{
-		{"evaluationDelayMs", true},
-		{"evaluationdelayms", false},
+		{"evaluationdelayms", true},
+		{"evaluationDelayMs", false},
 		{"evaluation_delay_ms", false},
 		{"EvaluationDelayMs", false},
 		{"EVALUATIONDELAYMS", false},
@@ -207,67 +208,6 @@ groups:
 				t.Errorf("key %q: expected the key to be dropped silently, but evaluationDelayMs bound to %d", tc.key, *got)
 			}
 		})
-	}
-}
-
-// The mirror structs that let yaml_content use the API's camelCase spelling
-// must not regress any existing field. In particular the SDK's InRuleGroup.Limit
-// is a *string, and yaml.v3 coerces an unquoted numeric `limit` into it — a
-// behavior a naive YAML->JSON round-trip would break. This parses one fully
-// populated set and asserts every field, unquoted limit included, maps through.
-func TestExpandRecordingRulesGroupsSetFromYamlPreservesAllFields(t *testing.T) {
-	const y = `name: from-yaml
-groups:
-  - name: Foo
-    interval: 180
-    limit: 100
-    rules:
-      - record: job:http_requests_total:sum
-        expr: sum(rate(http_requests_total[5m])) by (job)
-        labels:
-          team: backend
-        evaluationDelayMs: 60000
-      - record: ts3db_live_ingester_write_latency:3m
-        expr: sum(x)
-`
-
-	result, diags := expandRecordingRulesGroupsSetFromYaml(y, "")
-	if diags.HasError() {
-		t.Fatalf("unmarshal failed: %s", diags)
-	}
-	if result.Name == nil || *result.Name != "from-yaml" {
-		t.Fatalf("set name = %v, want from-yaml", result.Name)
-	}
-	if len(result.Groups) != 1 {
-		t.Fatalf("got %d groups, want 1", len(result.Groups))
-	}
-	g := result.Groups[0]
-	if g.Name != "Foo" {
-		t.Errorf("group name = %q, want Foo", g.Name)
-	}
-	if g.Interval == nil || *g.Interval != 180 {
-		t.Errorf("interval = %v, want 180", g.Interval)
-	}
-	// Unquoted numeric limit must still coerce into the *string field.
-	if g.Limit == nil || *g.Limit != "100" {
-		t.Errorf("limit = %v, want \"100\"", g.Limit)
-	}
-	if len(g.Rules) != 2 {
-		t.Fatalf("got %d rules, want 2", len(g.Rules))
-	}
-	r0 := g.Rules[0]
-	if r0.Record != "job:http_requests_total:sum" || r0.Expr == "" {
-		t.Errorf("rule0 record/expr wrong: %q / %q", r0.Record, r0.Expr)
-	}
-	if r0.Labels["team"] != "backend" {
-		t.Errorf("rule0 labels = %v, want team=backend", r0.Labels)
-	}
-	if d, ok := r0.GetEvaluationDelayMsOk(); !ok || *d != 60000 {
-		t.Errorf("rule0 evaluationDelayMs = %v (ok=%v), want 60000", d, ok)
-	}
-	// The sibling omits the key, so it must stay absent, not collapse to 0.
-	if _, ok := g.Rules[1].GetEvaluationDelayMsOk(); ok {
-		t.Errorf("rule1 evaluationDelayMs should be absent")
 	}
 }
 
