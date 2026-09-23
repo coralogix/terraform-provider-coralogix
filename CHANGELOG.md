@@ -1,10 +1,10 @@
 # Unreleased
 
 #### resource/coralogix_group
-- BREAKING: Use the Team Groups API instead of SCIM. `role = "Read Only"` is the old SCIM name for role id 3. Set `role = "Read-Only User"` (id 104, current viewer role). To keep id 3, set `role = "Legacy Read Only"`. Other role names are unchanged. Create and update send the configured name. Read stores the name the API returns.
+- BREAKING: Use the Team Groups API instead of SCIM. If a group uses the SCIM role `Read Only` or `Legacy Read Only`, set `role = "Read-Only User"`.
 
 #### data-source/coralogix_group
-- BREAKING: Use the Team Groups API instead of SCIM. `role` is the name the API returns (`Read-Only User` or `Legacy Read Only`, not the SCIM string `Read Only`).
+- BREAKING: Use the Team Groups API instead of SCIM.
 
 #### resource/coralogix_group_attachment
 - CHORE: Use the Team Groups API instead of SCIM. Terraform attributes are unchanged.

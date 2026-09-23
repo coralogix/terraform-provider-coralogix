@@ -170,48 +170,51 @@ func TestAccCoralogixResourceGroupMembersOmissionAndExplicitClear(t *testing.T) 
 
 func TestAccCoralogixResourceGroupRoleByName(t *testing.T) {
 	for _, role := range []string{"Read-Only User", "Legacy Read Only"} {
-		role := role
 		t.Run(role, func(t *testing.T) {
-			userName := randUserName()
-			displayName := acctest.RandomWithPrefix("tf-acc-test-group")
-			updatedName := displayName + "-renamed"
-			scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
-			initial := testAccCoralogixResourceGroupWithRole(userName, displayName, scopeName, role)
-			updated := testAccCoralogixResourceGroupWithRole(userName, updatedName, scopeName, role)
-
-			resource.Test(t, resource.TestCase{
-				PreCheck:                 func() { testAccPreCheck(t) },
-				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-				CheckDestroy:             testAccCheckGroupDestroy,
-				Steps: []resource.TestStep{
-					{
-						Config: initial,
-						Check: resource.ComposeAggregateTestCheckFunc(
-							resource.TestCheckResourceAttrSet(groupResourceName, "id"),
-							resource.TestCheckResourceAttr(groupResourceName, "display_name", displayName),
-							resource.TestCheckResourceAttr(groupResourceName, "role", role),
-							testAccCheckGroupRoleAssigned(groupResourceName, role),
-						),
-					},
-					{
-						Config:   initial,
-						PlanOnly: true,
-					},
-					{
-						Config: updated,
-						Check: resource.ComposeAggregateTestCheckFunc(
-							resource.TestCheckResourceAttr(groupResourceName, "display_name", updatedName),
-							resource.TestCheckResourceAttr(groupResourceName, "role", role),
-							testAccCheckGroupRoleAssigned(groupResourceName, role),
-						),
-						ConfigPlanChecks: resource.ConfigPlanChecks{
-							PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
-						},
-					},
-				},
-			})
+			testAccGroupRoleByName(t, role)
 		})
 	}
+}
+
+func testAccGroupRoleByName(t *testing.T, role string) {
+	userName := randUserName()
+	displayName := acctest.RandomWithPrefix("tf-acc-test-group")
+	updatedName := displayName + "-renamed"
+	scopeName := acctest.RandomWithPrefix("tf-acc-test-scope")
+	initial := testAccCoralogixResourceGroupWithRole(userName, displayName, scopeName, role)
+	updated := testAccCoralogixResourceGroupWithRole(userName, updatedName, scopeName, role)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: initial,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(groupResourceName, "id"),
+					resource.TestCheckResourceAttr(groupResourceName, "display_name", displayName),
+					resource.TestCheckResourceAttr(groupResourceName, "role", role),
+					testAccCheckGroupRoleAssigned(groupResourceName, role),
+				),
+			},
+			{
+				Config:   initial,
+				PlanOnly: true,
+			},
+			{
+				Config: updated,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupResourceName, "display_name", updatedName),
+					resource.TestCheckResourceAttr(groupResourceName, "role", role),
+					testAccCheckGroupRoleAssigned(groupResourceName, role),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
 }
 
 func testAccCheckGroupMemberCount(resourceAddress string, expected int) resource.TestCheckFunc {

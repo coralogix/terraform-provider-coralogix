@@ -99,8 +99,8 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			"role": schema.StringAttribute{
 				Required: true,
 				MarkdownDescription: "Role name as returned by the API. Create and update send this string. " +
-					"The SCIM name `Read Only` is not a role on this API. Use `Read-Only User` for the current viewer role, " +
-					"or `Legacy Read Only` to keep the previous assignment.",
+					"This API names the two read-only roles differently from SCIM: role id 3 is `Legacy Read Only` " +
+					"and role id 104 is `Read-Only User`. There is no role named `Read Only`.",
 			},
 			"scope_id": schema.StringAttribute{
 				Optional:            true,
