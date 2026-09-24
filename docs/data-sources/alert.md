@@ -192,8 +192,8 @@ Read-Only:
 
 Read-Only:
 
-- `analytics_immediate` (Attributes) Analytics immediate alert type definition (preview) — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`, not `group_by`. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate))
-- `analytics_threshold` (Attributes) Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`, not `group_by`. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold))
+- `analytics_immediate` (Attributes) Analytics immediate alert type definition (preview) — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate))
+- `analytics_threshold` (Attributes) Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold))
 - `flow` (Attributes) (see [below for nested schema](#nestedatt--type_definition--flow))
 - `logs_anomaly` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly))
 - `logs_immediate` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_immediate))
