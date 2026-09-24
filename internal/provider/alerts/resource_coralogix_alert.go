@@ -825,6 +825,12 @@ func expandNonLogsAlertsTypeDefinition(ctx context.Context, alertProperties *ale
 	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.SloThreshold):
 		properties, diags := expandSloThresholdAlertTypeDefinition(ctx, alertProperties, alertDefinitionModel.SloThreshold, alertResourceModel)
 		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.AnalyticsImmediate):
+		properties, diags := expandAnalyticsImmediateTypeDefinition(ctx, alertProperties, alertDefinitionModel.AnalyticsImmediate, alertResourceModel)
+		return properties, true, diags
+	case !utils.ObjIsNullOrUnknown(alertDefinitionModel.AnalyticsThreshold):
+		properties, diags := expandAnalyticsThresholdTypeDefinition(ctx, alertProperties, alertDefinitionModel.AnalyticsThreshold, alertResourceModel)
+		return properties, true, diags
 	default:
 		return alertProperties, false, nil
 	}
@@ -2846,6 +2852,199 @@ func extractAlertDef(ctx context.Context, def types.Object) (*alerts.FlowStagesG
 
 }
 
+func expandAnalyticsImmediateTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, analyticsImmediateObject types.Object, alertResourceModel alerttypes.AlertResourceModel) (*alerts.AlertDefProperties, diag.Diagnostics) {
+	var immediateModel alerttypes.AnalyticsImmediateModel
+	if diags := analyticsImmediateObject.As(ctx, &immediateModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+	incidentsSettings, diags := extractIncidentsSettings(ctx, alertResourceModel.IncidentsSettings)
+	if diags.HasError() {
+		return nil, diags
+	}
+	notificationGroup, diags := extractNotificationGroup(ctx, alertResourceModel.NotificationGroup)
+	if diags.HasError() {
+		return nil, diags
+	}
+	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
+	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
+
+	dataprimeQuery, diags := extractDataprimeQuery(ctx, immediateModel.DataprimeQuery)
+	if diags.HasError() {
+		return nil, diags
+	}
+	noDataPolicy, diags := extractNoDataPolicy(ctx, immediateModel.NoDataPolicy)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.AnalyticsImmediate = &alerts.AnalyticsImmediateType{
+		DataprimeQuery:        dataprimeQuery,
+		NoDataPolicy:          noDataPolicy,
+		UseRowsAsPermutations: immediateModel.UseRowsAsPermutations.ValueBoolPointer(),
+		TimeframeMinutes:      immediateModel.TimeframeMinutes.ValueInt32Pointer(),
+		EvaluationDelayMs:     extractCustomEvaluationDelay(immediateModel.CustomEvaluationDelay),
+	}
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE.Ptr()
+	return properties, nil
+}
+
+func expandAnalyticsThresholdTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, analyticsThresholdObject types.Object, alertResourceModel alerttypes.AlertResourceModel) (*alerts.AlertDefProperties, diag.Diagnostics) {
+	var thresholdModel alerttypes.AnalyticsThresholdModel
+	if diags := analyticsThresholdObject.As(ctx, &thresholdModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+	incidentsSettings, diags := extractIncidentsSettings(ctx, alertResourceModel.IncidentsSettings)
+	if diags.HasError() {
+		return nil, diags
+	}
+	notificationGroup, diags := extractNotificationGroup(ctx, alertResourceModel.NotificationGroup)
+	if diags.HasError() {
+		return nil, diags
+	}
+	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
+	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
+	properties.GroupByKeys = groupBy
+	properties.IncidentsSettings = incidentsSettings
+	properties.NotificationGroup = notificationGroup
+	properties.EntityLabels = labels
+	properties.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.ActiveOn = schedule
+
+	dataprimeQuery, diags := extractDataprimeQuery(ctx, thresholdModel.DataprimeQuery)
+	if diags.HasError() {
+		return nil, diags
+	}
+	rules, diags := extractAnalyticsThresholdRules(ctx, thresholdModel.Rules)
+	if diags.HasError() {
+		return nil, diags
+	}
+	noDataPolicy, diags := extractNoDataPolicy(ctx, thresholdModel.NoDataPolicy)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.AnalyticsThreshold = &alerts.AnalyticsThresholdType{
+		DataprimeQuery:        dataprimeQuery,
+		Rules:                 rules,
+		Operator:              extractAnalyticsThresholdOperator(thresholdModel.Operator),
+		TargetColumn:          thresholdModel.TargetColumn.ValueStringPointer(),
+		NoDataPolicy:          noDataPolicy,
+		UseRowsAsPermutations: thresholdModel.UseRowsAsPermutations.ValueBoolPointer(),
+		TimeframeMinutes:      thresholdModel.TimeframeMinutes.ValueInt32Pointer(),
+		EvaluationDelayMs:     extractCustomEvaluationDelay(thresholdModel.CustomEvaluationDelay),
+	}
+	properties.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_ANALYTICS_THRESHOLD.Ptr()
+	return properties, nil
+}
+
+func extractDataprimeQuery(ctx context.Context, query types.Object) (*alerts.DataprimeAlertQuery, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(query) {
+		return nil, nil
+	}
+	var queryModel alerttypes.DataprimeQueryModel
+	if diags := query.As(ctx, &queryModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	return &alerts.DataprimeAlertQuery{
+		Query: queryModel.Query.ValueStringPointer(),
+	}, nil
+}
+
+func extractAnalyticsThresholdOperator(operator types.String) *alerts.AnalyticsThresholdOperator {
+	if operator.IsNull() || operator.IsUnknown() {
+		return nil
+	}
+	return alerttypes.AnalyticsThresholdOperatorSchemaToProtoMap[operator.ValueString()].Ptr()
+}
+
+func extractAnalyticsThresholdRules(ctx context.Context, elements types.List) ([]alerts.AnalyticsThresholdRule, diag.Diagnostics) {
+	if elements.IsNull() || elements.IsUnknown() {
+		return nil, nil
+	}
+
+	var diags diag.Diagnostics
+	var objs []types.Object
+	elements.ElementsAs(ctx, &objs, false)
+	rules := make([]alerts.AnalyticsThresholdRule, len(objs))
+	for i, r := range objs {
+		var rule alerttypes.AnalyticsThresholdRuleModel
+		if dg := r.As(ctx, &rule, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+
+		condition, dg := extractAnalyticsThresholdCondition(ctx, rule.Condition)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+
+		override, dg := extractAlertOverride(ctx, rule.Override)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+
+		rules[i] = alerts.AnalyticsThresholdRule{
+			Condition: condition,
+			Override:  override,
+		}
+	}
+	if diags.HasError() {
+		return nil, diags
+	}
+	return rules, nil
+}
+
+func extractAnalyticsThresholdCondition(ctx context.Context, condition types.Object) (*alerts.AnalyticsThresholdRuleCondition, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(condition) {
+		return nil, nil
+	}
+	var conditionModel alerttypes.AnalyticsThresholdConditionModel
+	if diags := condition.As(ctx, &conditionModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	return &alerts.AnalyticsThresholdRuleCondition{
+		Threshold: conditionModel.Threshold.ValueFloat64Pointer(),
+	}, nil
+}
+
 func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *types.Object, currentNotificationGroup *types.Object) (*alerttypes.AlertResourceModel, diag.Diagnostics) {
 	alertProperties := alert.AlertDefProperties
 
@@ -3009,6 +3208,10 @@ func getAlertName(alertDefProperties *alerts.AlertDefProperties) *string {
 		return alertDefProperties.Name
 	} else if alertDefProperties.TracingImmediate != nil {
 		return alertDefProperties.Name
+	} else if alertDefProperties.AnalyticsImmediate != nil {
+		return alertDefProperties.Name
+	} else if alertDefProperties.AnalyticsThreshold != nil {
+		return alertDefProperties.Name
 	} else {
 		return nil
 	}
@@ -3040,6 +3243,10 @@ func getAlertDescription(alertDefProperties *alerts.AlertDefProperties) *string 
 	} else if alertDefProperties.LogsAnomaly != nil {
 		return alertDefProperties.Description
 	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.AnalyticsImmediate != nil {
+		return alertDefProperties.Description
+	} else if alertDefProperties.AnalyticsThreshold != nil {
 		return alertDefProperties.Description
 	} else {
 		return nil
@@ -3073,6 +3280,10 @@ func getAlertEnabled(alertDefProperties *alerts.AlertDefProperties) *bool {
 		return alertDefProperties.Enabled
 	} else if alertDefProperties.TracingImmediate != nil {
 		return alertDefProperties.Enabled
+	} else if alertDefProperties.AnalyticsImmediate != nil {
+		return alertDefProperties.Enabled
+	} else if alertDefProperties.AnalyticsThreshold != nil {
+		return alertDefProperties.Enabled
 	} else {
 		return nil
 	}
@@ -3103,6 +3314,10 @@ func getAlertIncidentSettings(alertDefProperties *alerts.AlertDefProperties) *al
 	} else if alertDefProperties.LogsAnomaly != nil {
 		return alertDefProperties.IncidentsSettings
 	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.AnalyticsImmediate != nil {
+		return alertDefProperties.IncidentsSettings
+	} else if alertDefProperties.AnalyticsThreshold != nil {
 		return alertDefProperties.IncidentsSettings
 	} else {
 		return nil
@@ -3144,6 +3359,10 @@ func getAlertEntityLabels(alertDefProperties *alerts.AlertDefProperties) map[str
 		return alertDefProperties.EntityLabels
 	} else if alertDefProperties.TracingImmediate != nil {
 		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.AnalyticsImmediate != nil {
+		return alertDefProperties.EntityLabels
+	} else if alertDefProperties.AnalyticsThreshold != nil {
+		return alertDefProperties.EntityLabels
 	} else {
 		return nil
 	}
@@ -3176,6 +3395,10 @@ func getAlertNotificationGroup(alertDefProperties *alerts.AlertDefProperties) *a
 		return alertDefProperties.NotificationGroup
 	} else if alertDefProperties.TracingImmediate != nil {
 		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.AnalyticsImmediate != nil {
+		return alertDefProperties.NotificationGroup
+	} else if alertDefProperties.AnalyticsThreshold != nil {
+		return alertDefProperties.NotificationGroup
 	} else {
 		return nil
 	}
@@ -3207,6 +3430,10 @@ func getAlertPriority(alertDefProperties *alerts.AlertDefProperties) *alerts.Ale
 	} else if alertDefProperties.LogsAnomaly != nil {
 		return alertDefProperties.Priority
 	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.AnalyticsImmediate != nil {
+		return alertDefProperties.Priority
+	} else if alertDefProperties.AnalyticsThreshold != nil {
 		return alertDefProperties.Priority
 	} else {
 		return alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED.Ptr()
@@ -3263,6 +3490,10 @@ func getAlertGroupByKeys(alertDefProperties *alerts.AlertDefProperties) []string
 		return alertDefProperties.GroupByKeys
 	} else if alertDefProperties.TracingImmediate != nil {
 		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.AnalyticsImmediate != nil {
+		return alertDefProperties.GroupByKeys
+	} else if alertDefProperties.AnalyticsThreshold != nil {
+		return alertDefProperties.GroupByKeys
 	} else {
 		return nil
 	}
@@ -3295,6 +3526,10 @@ func getAlertPhantomMode(alertDefProperties *alerts.AlertDefProperties) *bool {
 		return alertDefProperties.PhantomMode
 	} else if alertDefProperties.TracingImmediate != nil {
 		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.AnalyticsImmediate != nil {
+		return alertDefProperties.PhantomMode
+	} else if alertDefProperties.AnalyticsThreshold != nil {
+		return alertDefProperties.PhantomMode
 	} else {
 		return nil
 	}
@@ -3326,6 +3561,10 @@ func getAlertDeleted(alertDefProperties *alerts.AlertDefProperties) *bool {
 	} else if alertDefProperties.LogsAnomaly != nil {
 		return alertDefProperties.Deleted
 	} else if alertDefProperties.TracingImmediate != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.AnalyticsImmediate != nil {
+		return alertDefProperties.Deleted
+	} else if alertDefProperties.AnalyticsThreshold != nil {
 		return alertDefProperties.Deleted
 	} else {
 		return nil
@@ -3587,6 +3826,8 @@ func emptyAlertTypeDefinitionModel() alerttypes.AlertTypeDefinitionModel {
 		TracingThreshold:          types.ObjectNull(alertschema.TracingThresholdAttr()),
 		Flow:                      types.ObjectNull(alertschema.FlowAttr()),
 		SloThreshold:              types.ObjectNull(alertschema.SloThresholdAttr()),
+		AnalyticsImmediate:        types.ObjectNull(alertschema.AnalyticsImmediateAttr()),
+		AnalyticsThreshold:        types.ObjectNull(alertschema.AnalyticsThresholdAttr()),
 	}
 }
 
@@ -3651,9 +3892,163 @@ func flattenNonLogsAlertTypeDefinition(ctx context.Context, properties *alerts.A
 		diags := diag.Diagnostics(nil)
 		model.SloThreshold, diags = flattenSloThreshold(ctx, properties.SloThreshold)
 		return diags, true
+	case properties.AnalyticsImmediate != nil:
+		diags := diag.Diagnostics(nil)
+		model.AnalyticsImmediate, diags = flattenAnalyticsImmediate(ctx, properties.AnalyticsImmediate)
+		return diags, true
+	case properties.AnalyticsThreshold != nil:
+		diags := diag.Diagnostics(nil)
+		model.AnalyticsThreshold, diags = flattenAnalyticsThreshold(ctx, properties.AnalyticsThreshold)
+		return diags, true
 	default:
 		return nil, false
 	}
+}
+
+// flattenAnalyticsTimeframeMinutes maps the API's read-back to state. The analytics
+// threshold API materializes an omitted timeframe_minutes as 0, but the schema forbids
+// a user-supplied 0 (int32validator.AtLeast(1)), so 0 unambiguously means "unset" and
+// must flatten to null. Returning types.Int32Value(0) for an omitted value instead
+// fails apply with "was null, but now cty.NumberIntVal(0)" and, on a Computed field,
+// would drift every plan. The immediate arm returns a nil pointer here, which this
+// handles identically.
+func flattenAnalyticsTimeframeMinutes(v *int32) types.Int32 {
+	if v == nil || *v == 0 {
+		return types.Int32Null()
+	}
+	return types.Int32PointerValue(v)
+}
+
+func flattenAnalyticsImmediate(ctx context.Context, immediate *alerts.AnalyticsImmediateType) (types.Object, diag.Diagnostics) {
+	if immediate == nil {
+		return types.ObjectNull(alertschema.AnalyticsImmediateAttr()), nil
+	}
+
+	dataprimeQuery, diags := flattenDataprimeQuery(ctx, immediate.DataprimeQuery)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.AnalyticsImmediateAttr()), diags
+	}
+
+	noDataPolicy, diags := flattenAnalyticsNoDataPolicy(ctx, immediate.NoDataPolicy)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.AnalyticsImmediateAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, alertschema.AnalyticsImmediateAttr(), alerttypes.AnalyticsImmediateModel{
+		DataprimeQuery:        dataprimeQuery,
+		NoDataPolicy:          noDataPolicy,
+		UseRowsAsPermutations: types.BoolPointerValue(immediate.UseRowsAsPermutations),
+		TimeframeMinutes:      flattenAnalyticsTimeframeMinutes(immediate.TimeframeMinutes),
+		CustomEvaluationDelay: types.Int32PointerValue(immediate.EvaluationDelayMs),
+	})
+}
+
+func flattenAnalyticsThreshold(ctx context.Context, threshold *alerts.AnalyticsThresholdType) (types.Object, diag.Diagnostics) {
+	if threshold == nil {
+		return types.ObjectNull(alertschema.AnalyticsThresholdAttr()), nil
+	}
+
+	dataprimeQuery, diags := flattenDataprimeQuery(ctx, threshold.DataprimeQuery)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.AnalyticsThresholdAttr()), diags
+	}
+
+	rules, diags := flattenAnalyticsThresholdRules(ctx, threshold.Rules)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.AnalyticsThresholdAttr()), diags
+	}
+
+	noDataPolicy, diags := flattenAnalyticsNoDataPolicy(ctx, threshold.NoDataPolicy)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.AnalyticsThresholdAttr()), diags
+	}
+
+	// The proto zero value is a real operator (MORE_THAN), not an UNSPECIFIED
+	// sentinel to leak into state, so an absent operator flattens to "MORE_THAN".
+	operator := alerts.ANALYTICSTHRESHOLDOPERATOR_ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED
+	if threshold.Operator != nil {
+		operator = *threshold.Operator
+	}
+
+	return types.ObjectValueFrom(ctx, alertschema.AnalyticsThresholdAttr(), alerttypes.AnalyticsThresholdModel{
+		DataprimeQuery:        dataprimeQuery,
+		Rules:                 rules,
+		Operator:              types.StringValue(alerttypes.AnalyticsThresholdOperatorProtoToSchemaMap[operator]),
+		TargetColumn:          types.StringPointerValue(threshold.TargetColumn),
+		NoDataPolicy:          noDataPolicy,
+		UseRowsAsPermutations: types.BoolPointerValue(threshold.UseRowsAsPermutations),
+		TimeframeMinutes:      flattenAnalyticsTimeframeMinutes(threshold.TimeframeMinutes),
+		CustomEvaluationDelay: types.Int32PointerValue(threshold.EvaluationDelayMs),
+	})
+}
+
+func flattenAnalyticsThresholdRules(ctx context.Context, rules []alerts.AnalyticsThresholdRule) (types.List, diag.Diagnostics) {
+	ruleObjectType := types.ObjectType{AttrTypes: alertschema.AnalyticsThresholdRuleAttr()}
+	if rules == nil {
+		return types.ListNull(ruleObjectType), nil
+	}
+
+	var diags diag.Diagnostics
+	// The API preserves submission order and the rules carry no per-item ID, so
+	// they are flattened positionally into a list.
+	convertedRules := make([]alerttypes.AnalyticsThresholdRuleModel, len(rules))
+	for i, rule := range rules {
+		condition, dgs := flattenAnalyticsThresholdRuleCondition(ctx, rule.Condition)
+		if dgs.HasError() {
+			diags.Append(dgs...)
+			continue
+		}
+
+		override, dgs := flattenAlertOverride(ctx, rule.Override)
+		if dgs.HasError() {
+			diags.Append(dgs...)
+			continue
+		}
+
+		convertedRules[i] = alerttypes.AnalyticsThresholdRuleModel{
+			Condition: condition,
+			Override:  override,
+		}
+	}
+	if diags.HasError() {
+		return types.ListNull(ruleObjectType), diags
+	}
+	return types.ListValueFrom(ctx, ruleObjectType, convertedRules)
+}
+
+func flattenAnalyticsThresholdRuleCondition(ctx context.Context, condition *alerts.AnalyticsThresholdRuleCondition) (types.Object, diag.Diagnostics) {
+	if condition == nil {
+		return types.ObjectNull(alertschema.AnalyticsThresholdConditionAttr()), nil
+	}
+	return types.ObjectValueFrom(ctx, alertschema.AnalyticsThresholdConditionAttr(), alerttypes.AnalyticsThresholdConditionModel{
+		Threshold: types.Float64PointerValue(condition.Threshold),
+	})
+}
+
+func flattenDataprimeQuery(ctx context.Context, query *alerts.DataprimeAlertQuery) (types.Object, diag.Diagnostics) {
+	if query == nil {
+		return types.ObjectNull(alertschema.DataprimeQueryAttr()), nil
+	}
+	return types.ObjectValueFrom(ctx, alertschema.DataprimeQueryAttr(), alerttypes.DataprimeQueryModel{
+		Query: types.StringPointerValue(query.Query),
+	})
+}
+
+// flattenAnalyticsNoDataPolicy differs from flattenNoDataPolicy: an absent policy
+// flattens to a null object rather than an object of null attributes. The analytics
+// no_data_policy is plain Optional, so a null in config has to stay null in state.
+func flattenAnalyticsNoDataPolicy(ctx context.Context, noDataPolicy *alerts.NoDataPolicy) (types.Object, diag.Diagnostics) {
+	if noDataPolicy == nil {
+		return types.ObjectNull(alertschema.NoDataPolicyAttr()), nil
+	}
+	var model alerttypes.NoDataPolicyModel
+	if autoRetireSeconds, ok := noDataPolicy.GetAutoRetireSecondsOk(); ok {
+		model.AutoRetireSeconds = types.Int64Value(int64(*autoRetireSeconds))
+	}
+	if noDataPolicy.State != nil {
+		model.State = types.StringValue(alerttypes.NoDataPolicyStateProtoToSchemaMap[*noDataPolicy.State])
+	}
+	return types.ObjectValueFrom(ctx, alertschema.NoDataPolicyAttr(), model)
 }
 
 func flattenLogsImmediate(ctx context.Context, immediate *alerts.LogsImmediateType) (types.Object, diag.Diagnostics) {
@@ -4282,6 +4677,10 @@ func getActiveOn(alertProperties alerts.AlertDefProperties) (*alerts.ActivitySch
 	} else if alertProperties.LogsImmediate != nil {
 		return alertProperties.ActiveOn, nil
 	} else if alertProperties.SloThreshold != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.AnalyticsImmediate != nil {
+		return alertProperties.ActiveOn, nil
+	} else if alertProperties.AnalyticsThreshold != nil {
 		return alertProperties.ActiveOn, nil
 	}
 	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Unsupported Alert Type", "Received an unsupported alert type from the server.")}

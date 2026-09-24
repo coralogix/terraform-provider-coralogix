@@ -33,7 +33,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 - `phantom_mode` (Boolean)
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"]. This field will be removed in the future in favor of the 'override' property where possible.
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
-- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold. (see [below for nested schema](#nestedatt--type_definition))
+- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate (preview), analytics_threshold (preview). (see [below for nested schema](#nestedatt--type_definition))
 
 <a id="nestedatt--data_sources"></a>
 ### Nested Schema for `data_sources`
@@ -192,6 +192,8 @@ Read-Only:
 
 Read-Only:
 
+- `analytics_immediate` (Attributes) Analytics immediate alert type definition (preview) — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate))
+- `analytics_threshold` (Attributes) Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold))
 - `flow` (Attributes) (see [below for nested schema](#nestedatt--type_definition--flow))
 - `logs_anomaly` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly))
 - `logs_immediate` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_immediate))
@@ -205,6 +207,92 @@ Read-Only:
 - `slo_threshold` (Attributes) SLO threshold alert type definition. (see [below for nested schema](#nestedatt--type_definition--slo_threshold))
 - `tracing_immediate` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate))
 - `tracing_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold))
+
+<a id="nestedatt--type_definition--analytics_immediate"></a>
+### Nested Schema for `type_definition.analytics_immediate`
+
+Read-Only:
+
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
+- `dataprime_query` (Attributes) The DataPrime query that triggers the alert. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--dataprime_query))
+- `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Omitted by default; removing the block clears the policy. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--no_data_policy))
+- `timeframe_minutes` (Number) The evaluation window duration, in minutes. When omitted, the provider does not send a timeframe.
+- `use_rows_as_permutations` (Boolean) Whether each row of the DataPrime result is treated as a separate permutation. When omitted, the provider does not send a value and the backend applies its own default.
+
+<a id="nestedatt--type_definition--analytics_immediate--dataprime_query"></a>
+### Nested Schema for `type_definition.analytics_immediate.dataprime_query`
+
+Read-Only:
+
+- `query` (String) The DataPrime query to evaluate. Unlike the Coralogix expression languages (DPXL), a DataPrime query takes no `<v1>` version prefix.
+
+
+<a id="nestedatt--type_definition--analytics_immediate--no_data_policy"></a>
+### Nested Schema for `type_definition.analytics_immediate.no_data_policy`
+
+Read-Only:
+
+- `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`.
+- `state` (String) No-data policy state. Preferred values: ["OK" "ALERTING" "KEEP_LAST" "NO_DATA"]. `UNSPECIFIED` is a deprecated protobuf sentinel (not a UI option); omit `no_data_policy` for the same legacy behavior. It remains accepted with a warning and will be rejected in a future provider release.
+
+
+
+<a id="nestedatt--type_definition--analytics_threshold"></a>
+### Nested Schema for `type_definition.analytics_threshold`
+
+Read-Only:
+
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
+- `dataprime_query` (Attributes) The DataPrime query that triggers the alert. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--dataprime_query))
+- `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Omitted by default; removing the block clears the policy. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--no_data_policy))
+- `operator` (String) The comparison operator applied to every threshold rule. Valid values: ["EQUALS" "LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS" "NOT_EQUALS"].
+- `rules` (Attributes List) The per-priority threshold rules, between 1 and 5. This is an ordered list: the API preserves and reads back the submitted order, and rules carry no server-side ID. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules))
+- `target_column` (String) The name of the numeric column in the DataPrime result to compare against the thresholds.
+- `timeframe_minutes` (Number) The evaluation window duration, in minutes. When omitted, the provider does not send a timeframe.
+- `use_rows_as_permutations` (Boolean) Whether each row of the DataPrime result is treated as a separate permutation. When omitted, the provider does not send a value and the backend applies its own default.
+
+<a id="nestedatt--type_definition--analytics_threshold--dataprime_query"></a>
+### Nested Schema for `type_definition.analytics_threshold.dataprime_query`
+
+Read-Only:
+
+- `query` (String) The DataPrime query to evaluate. Unlike the Coralogix expression languages (DPXL), a DataPrime query takes no `<v1>` version prefix.
+
+
+<a id="nestedatt--type_definition--analytics_threshold--no_data_policy"></a>
+### Nested Schema for `type_definition.analytics_threshold.no_data_policy`
+
+Read-Only:
+
+- `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`.
+- `state` (String) No-data policy state. Preferred values: ["OK" "ALERTING" "KEEP_LAST" "NO_DATA"]. `UNSPECIFIED` is a deprecated protobuf sentinel (not a UI option); omit `no_data_policy` for the same legacy behavior. It remains accepted with a warning and will be rejected in a future provider release.
+
+
+<a id="nestedatt--type_definition--analytics_threshold--rules"></a>
+### Nested Schema for `type_definition.analytics_threshold.rules`
+
+Read-Only:
+
+- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules--condition))
+- `override` (Attributes) (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules--override))
+
+<a id="nestedatt--type_definition--analytics_threshold--rules--condition"></a>
+### Nested Schema for `type_definition.analytics_threshold.rules.condition`
+
+Read-Only:
+
+- `threshold` (Number) The value `target_column` is compared against.
+
+
+<a id="nestedatt--type_definition--analytics_threshold--rules--override"></a>
+### Nested Schema for `type_definition.analytics_threshold.rules.override`
+
+Read-Only:
+
+- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+
+
+
 
 <a id="nestedatt--type_definition--flow"></a>
 ### Nested Schema for `type_definition.flow`

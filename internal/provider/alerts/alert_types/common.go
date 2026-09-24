@@ -311,6 +311,20 @@ var (
 	LogsAnomalyConditionSchemaToProtoMap = utils.ReverseMap(LogsAnomalyConditionMap)
 	// LogsAnomalyConditionValues           = utils.GetValues(LogsAnomalyConditionMap)
 
+	// AnalyticsThresholdOperatorProtoToSchemaMap collapses the protobuf
+	// MORE_THAN_OR_UNSPECIFIED sentinel into the user-facing "MORE_THAN", the same
+	// treatment AlertPriorityProtoToSchemaMap gives P5_OR_UNSPECIFIED.
+	AnalyticsThresholdOperatorProtoToSchemaMap = map[alerts.AnalyticsThresholdOperator]string{
+		alerts.ANALYTICSTHRESHOLDOPERATOR_ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED: "MORE_THAN",
+		alerts.ANALYTICSTHRESHOLDOPERATOR_ANALYTICS_THRESHOLD_OPERATOR_LESS_THAN:                "LESS_THAN",
+		alerts.ANALYTICSTHRESHOLDOPERATOR_ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_EQUALS:      "MORE_THAN_OR_EQUALS",
+		alerts.ANALYTICSTHRESHOLDOPERATOR_ANALYTICS_THRESHOLD_OPERATOR_LESS_THAN_OR_EQUALS:      "LESS_THAN_OR_EQUALS",
+		alerts.ANALYTICSTHRESHOLDOPERATOR_ANALYTICS_THRESHOLD_OPERATOR_EQUALS:                   "EQUALS",
+		alerts.ANALYTICSTHRESHOLDOPERATOR_ANALYTICS_THRESHOLD_OPERATOR_NOT_EQUALS:               "NOT_EQUALS",
+	}
+	AnalyticsThresholdOperatorSchemaToProtoMap = utils.ReverseMap(AnalyticsThresholdOperatorProtoToSchemaMap)
+	ValidAnalyticsThresholdOperators           = utils.GetKeys(AnalyticsThresholdOperatorSchemaToProtoMap)
+
 	DurationUnitProtoToSchemaMap = map[alerts.DurationUnit]string{
 		alerts.DURATIONUNIT_DURATION_UNIT_UNSPECIFIED: "UNSPECIFIED",
 		alerts.DURATIONUNIT_DURATION_UNIT_HOURS:       "HOURS",
@@ -359,6 +373,8 @@ type AlertTypeDefinitionModel struct {
 	TracingThreshold          types.Object `tfsdk:"tracing_threshold"`            // TracingThresholdModel
 	Flow                      types.Object `tfsdk:"flow"`                         // FlowModel
 	SloThreshold              types.Object `tfsdk:"slo_threshold"`                // SloThresholdModel
+	AnalyticsImmediate        types.Object `tfsdk:"analytics_immediate"`          // AnalyticsImmediateModel
+	AnalyticsThreshold        types.Object `tfsdk:"analytics_threshold"`          // AnalyticsThresholdModel
 }
 
 type IncidentsSettingsModel struct {
@@ -733,6 +749,38 @@ type SloThresholdDurationWrapperModel struct {
 type SloDurationModel struct {
 	Duration types.Int64  `tfsdk:"duration"`
 	Unit     types.String `tfsdk:"unit"`
+}
+
+type DataprimeQueryModel struct {
+	Query types.String `tfsdk:"query"`
+}
+
+type AnalyticsImmediateModel struct {
+	DataprimeQuery        types.Object `tfsdk:"dataprime_query"` // DataprimeQueryModel
+	NoDataPolicy          types.Object `tfsdk:"no_data_policy"`  // NoDataPolicyModel
+	UseRowsAsPermutations types.Bool   `tfsdk:"use_rows_as_permutations"`
+	TimeframeMinutes      types.Int32  `tfsdk:"timeframe_minutes"`
+	CustomEvaluationDelay types.Int32  `tfsdk:"custom_evaluation_delay"`
+}
+
+type AnalyticsThresholdModel struct {
+	DataprimeQuery        types.Object `tfsdk:"dataprime_query"` // DataprimeQueryModel
+	Rules                 types.List   `tfsdk:"rules"`           // []AnalyticsThresholdRuleModel
+	Operator              types.String `tfsdk:"operator"`
+	TargetColumn          types.String `tfsdk:"target_column"`
+	NoDataPolicy          types.Object `tfsdk:"no_data_policy"` // NoDataPolicyModel
+	UseRowsAsPermutations types.Bool   `tfsdk:"use_rows_as_permutations"`
+	TimeframeMinutes      types.Int32  `tfsdk:"timeframe_minutes"`
+	CustomEvaluationDelay types.Int32  `tfsdk:"custom_evaluation_delay"`
+}
+
+type AnalyticsThresholdRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // AnalyticsThresholdConditionModel
+	Override  types.Object `tfsdk:"override"`  // AlertOverrideModel
+}
+
+type AnalyticsThresholdConditionModel struct {
+	Threshold types.Float64 `tfsdk:"threshold"`
 }
 
 func ShiftDaysOfWeek(days []alerts.DayOfWeek, shift int) []alerts.DayOfWeek {

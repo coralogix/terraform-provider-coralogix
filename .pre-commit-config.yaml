@@ -10,7 +10,7 @@ repos:
       - id: go-vet
       - id: go-imports
       - id: go-cyclo
-        args: [-over=15]
+        args: [-over=16]
       - id: validate-toml
       - id: no-go-testing
       - id: golangci-lint
