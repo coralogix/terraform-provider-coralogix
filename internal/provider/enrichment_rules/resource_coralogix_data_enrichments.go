@@ -238,17 +238,35 @@ func (r *DataEnrichmentsResource) Configure(ctx context.Context, req resource.Co
 }
 
 func (r *DataEnrichmentsResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var config *DataEnrichmentsModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-	if resp.Diagnostics.HasError() || config == nil {
-		return
-	}
-
 	// custom_enrichment_data is required whenever the custom block is set. The
 	// nested attribute cannot be marked Required in the schema (that would make
 	// the whole custom block mandatory), so enforce the AlsoRequires-style
 	// dependency here to avoid a nil dereference in Create/Update.
-	if config.Custom != nil && config.Custom.CustomEnrichmentDataModel == nil {
+	//
+	// Read the nested attributes as types.Object rather than decoding the whole
+	// config into the pointer-backed model: when custom or custom_enrichment_data
+	// is unknown during planning (for example, sourced from another resource's
+	// output), a model decode emits a conversion error, which would make valid
+	// dynamic configurations unplannable. Defer validation until the values are
+	// known instead.
+	var custom types.Object
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(CUSTOM_TYPE), &custom)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if custom.IsNull() || custom.IsUnknown() {
+		return
+	}
+
+	var customEnrichmentData types.Object
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(CUSTOM_TYPE).AtName("custom_enrichment_data"), &customEnrichmentData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if customEnrichmentData.IsUnknown() {
+		return
+	}
+	if customEnrichmentData.IsNull() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root(CUSTOM_TYPE),
 			"Missing custom_enrichment_data",
