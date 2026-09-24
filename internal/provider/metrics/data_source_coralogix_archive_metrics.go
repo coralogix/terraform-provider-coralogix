@@ -82,7 +82,7 @@ func (d *ArchiveMetricsDataSource) Read(ctx context.Context, req datasource.Read
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				"coralogix_archive_metrics is in state, but no longer exists in Coralogix backend",
 				"coralogix_archive_metrics will be recreated when you apply",

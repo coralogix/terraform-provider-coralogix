@@ -83,7 +83,7 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_action %v is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%v will be recreated when you apply", id),

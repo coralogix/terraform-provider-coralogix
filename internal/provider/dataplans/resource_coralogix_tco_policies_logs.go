@@ -482,7 +482,7 @@ func (r *TCOPoliciesLogsResource) Read(ctx context.Context, _ resource.ReadReque
 
 	result, httpResponse, err := r.client.PoliciesServiceGetCompanyPolicies(ctx).SourceType(LogSource).Execute()
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				"coralogix_tco_policies_logs is in state, but no longer exists in Coralogix backend",
 				"coralogix_tco_policies_logs will be recreated when you apply",
@@ -527,7 +527,7 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_tco_policies_logs %v is in state, but no longer exists in Coralogix backend", rq),
 				fmt.Sprintf("%v will be recreated when you apply", rq),

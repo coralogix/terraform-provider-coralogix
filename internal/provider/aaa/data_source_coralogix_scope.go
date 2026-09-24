@@ -91,7 +91,7 @@ func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		Execute()
 
 	if err != nil && len(result.Scopes) == 0 {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),

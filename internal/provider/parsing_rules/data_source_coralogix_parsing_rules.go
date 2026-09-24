@@ -80,7 +80,7 @@ func (d *ParsingRulesDataSource) Read(ctx context.Context, req datasource.ReadRe
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				"coralogix_parsing_rules is in state, but no longer exists in Coralogix backend",
 				"coralogix_parsing_rules will be recreated when you apply",

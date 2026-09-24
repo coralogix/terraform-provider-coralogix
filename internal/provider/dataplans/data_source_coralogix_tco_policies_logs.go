@@ -82,7 +82,7 @@ func (d *TCOPoliciesLogsDataSource) Read(ctx context.Context, _ datasource.ReadR
 
 	result, httpResponse, err := d.client.PoliciesServiceGetCompanyPolicies(ctx).SourceType(LogSource).Execute()
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				"coralogix_tco_policies_logs is in state, but no longer exists in Coralogix backend",
 				"coralogix_tco_policies_logs will be recreated when you apply",

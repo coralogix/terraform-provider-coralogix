@@ -187,7 +187,7 @@ func (r *IpAccessResource) Update(ctx context.Context, req resource.UpdateReques
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				"coralogix_ip_access is in state, but no longer exists in Coralogix backend",
 				"it will be recreated when you apply",

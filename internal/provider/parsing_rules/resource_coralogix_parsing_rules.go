@@ -493,7 +493,7 @@ func (r *ParsingRulesResource) Read(ctx context.Context, req resource.ReadReques
 	rq := r.client.RuleGroupsServiceGetRuleGroup(ctx, id)
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				"coralogix_parsing_rules is in state, but no longer exists in Coralogix backend",
 				"coralogix_parsing_rules will be recreated when you apply",

@@ -87,7 +87,7 @@ func (d *TCOPoliciesTracesDataSource) Read(ctx context.Context, _ datasource.Rea
 		Execute()
 
 	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				"coralogix_tco_policies_traces is in state, but no longer exists in Coralogix backend",
 				"coralogix_tco_policies_traces will be recreated when you apply",
