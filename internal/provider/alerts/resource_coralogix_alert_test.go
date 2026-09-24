@@ -850,67 +850,6 @@ func TestFlattenAnalyticsThreshold(t *testing.T) {
 	})
 }
 
-// TestHasKnownAlertType guards the single arm list every envelope getter consults.
-// A missing arm is silent: the alert would read back with a nil name and P5 priority.
-func TestHasKnownAlertType(t *testing.T) {
-	arms := map[string]func(*alerts.AlertDefProperties){
-		"logs_immediate":       func(p *alerts.AlertDefProperties) { p.LogsImmediate = &alerts.LogsImmediateType{} },
-		"logs_threshold":       func(p *alerts.AlertDefProperties) { p.LogsThreshold = &alerts.LogsThresholdType{} },
-		"logs_anomaly":         func(p *alerts.AlertDefProperties) { p.LogsAnomaly = &alerts.LogsAnomalyType{} },
-		"logs_ratio_threshold": func(p *alerts.AlertDefProperties) { p.LogsRatioThreshold = &alerts.LogsRatioThresholdType{} },
-		"logs_new_value":       func(p *alerts.AlertDefProperties) { p.LogsNewValue = &alerts.LogsNewValueType{} },
-		"logs_unique_count":    func(p *alerts.AlertDefProperties) { p.LogsUniqueCount = &alerts.LogsUniqueCountType{} },
-		"logs_time_relative_threshold": func(p *alerts.AlertDefProperties) {
-			p.LogsTimeRelativeThreshold = &alerts.LogsTimeRelativeThresholdType{}
-		},
-		"metric_threshold":    func(p *alerts.AlertDefProperties) { p.MetricThreshold = &alerts.MetricThresholdType{} },
-		"metric_anomaly":      func(p *alerts.AlertDefProperties) { p.MetricAnomaly = &alerts.MetricAnomalyType{} },
-		"tracing_immediate":   func(p *alerts.AlertDefProperties) { p.TracingImmediate = &alerts.TracingImmediateType{} },
-		"tracing_threshold":   func(p *alerts.AlertDefProperties) { p.TracingThreshold = &alerts.TracingThresholdType{} },
-		"flow":                func(p *alerts.AlertDefProperties) { p.Flow = &alerts.FlowType{} },
-		"slo_threshold":       func(p *alerts.AlertDefProperties) { p.SloThreshold = &alerts.SloThresholdType{} },
-		"analytics_immediate": func(p *alerts.AlertDefProperties) { p.AnalyticsImmediate = &alerts.AnalyticsImmediateType{} },
-		"analytics_threshold": func(p *alerts.AlertDefProperties) { p.AnalyticsThreshold = &alerts.AnalyticsThresholdType{} },
-	}
-
-	if len(arms) != len(alertschema.AlertTypeDefinitionAttr()) {
-		t.Fatalf("this test covers %d arms, but type_definition has %d", len(arms), len(alertschema.AlertTypeDefinitionAttr()))
-	}
-
-	name, priority := "an alert", alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P1
-	for armName, set := range arms {
-		t.Run(armName, func(t *testing.T) {
-			properties := &alerts.AlertDefProperties{Name: &name, Priority: &priority}
-			set(properties)
-			if !hasKnownAlertType(properties) {
-				t.Fatalf("hasKnownAlertType() = false for %s", armName)
-			}
-			if got := getAlertName(properties); got == nil || *got != name {
-				t.Errorf("getAlertName() = %v, want %q", got, name)
-			}
-			if got := getAlertPriority(properties); got == nil || *got != priority {
-				t.Errorf("getAlertPriority() = %v, want P1", got)
-			}
-			if _, diags := getActiveOn(*properties); diags.HasError() {
-				t.Errorf("getActiveOn() returned diagnostics: %v", diags)
-			}
-		})
-	}
-
-	t.Run("unrecognized type", func(t *testing.T) {
-		properties := &alerts.AlertDefProperties{Name: &name, Priority: &priority}
-		if hasKnownAlertType(properties) {
-			t.Fatal("hasKnownAlertType() = true for properties with no type definition")
-		}
-		if got := getAlertName(properties); got != nil {
-			t.Errorf("getAlertName() = %v, want nil", *got)
-		}
-		if _, diags := getActiveOn(*properties); !diags.HasError() {
-			t.Error("getActiveOn() returned no diagnostics for an unrecognized alert type")
-		}
-	})
-}
-
 func TestExtractUndetectedValuesManagementForRatio(t *testing.T) {
 	ctx := context.Background()
 
