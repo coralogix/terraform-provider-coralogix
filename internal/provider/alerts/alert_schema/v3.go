@@ -650,8 +650,8 @@ func V3() schema.Schema {
 							"dataprime_query": dataprimeQuerySchema(),
 							"rules": schema.ListNestedAttribute{
 								Required: true,
-								// The API rejects an empty list.
-								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+								// The API rejects fewer than 1 or more than 5 rules.
+								Validators: []validator.List{listvalidator.SizeBetween(1, 5)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"condition": schema.SingleNestedAttribute{
