@@ -634,13 +634,6 @@ func noDataPolicySchema() schema.SingleNestedAttribute {
 	}
 }
 
-// analyticsPreviewNote is appended to both analytics arms' descriptions. The
-// analytics alert types are published at preview stability and every create is
-// rejected with `412 Failed Precondition` on tenants without the feature flag.
-const analyticsPreviewNote = "**Note: analytics alerts are in preview.** They require the `alerts-dataprime` " +
-	"feature to be enabled for your team; without it the Coralogix API rejects every create with " +
-	"`412 Failed Precondition`. Contact Coralogix support to enable it."
-
 func dataprimeQuerySchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Required: true,
