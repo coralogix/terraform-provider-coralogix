@@ -17,6 +17,7 @@ import (
 	cess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/custom_enrichments_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -30,8 +31,9 @@ import (
 )
 
 var (
-	_ resource.ResourceWithConfigure   = &DataEnrichmentsResource{}
-	_ resource.ResourceWithImportState = &DataEnrichmentsResource{}
+	_ resource.ResourceWithConfigure      = &DataEnrichmentsResource{}
+	_ resource.ResourceWithImportState    = &DataEnrichmentsResource{}
+	_ resource.ResourceWithValidateConfig = &DataEnrichmentsResource{}
 )
 
 const (
@@ -120,6 +122,28 @@ func NewDataEnrichmentsResource() resource.Resource {
 type DataEnrichmentsResource struct {
 	client                    *ess.EnrichmentsServiceAPIService
 	custom_enrichments_client *cess.CustomEnrichmentsServiceAPIService
+
+	// addEnrichmentsFn and removeEnrichmentsFn are unexported test seams: the
+	// generated SDK client is a concrete builder type with no interface, so
+	// unit tests substitute these to exercise the Update remove/add/rollback
+	// flow without a live backend. Configure wires them to the real builder
+	// calls, and Update falls back to the real calls when they are nil.
+	addEnrichmentsFn    func(ctx context.Context, rq *ess.EnrichmentsCreationRequest) (*ess.AddEnrichmentsResponse, *http.Response, error)
+	removeEnrichmentsFn func(ctx context.Context, ids []int64) (*ess.RemoveEnrichmentsResponse, *http.Response, error)
+}
+
+func (r *DataEnrichmentsResource) addEnrichments(ctx context.Context, rq *ess.EnrichmentsCreationRequest) (*ess.AddEnrichmentsResponse, *http.Response, error) {
+	if r.addEnrichmentsFn != nil {
+		return r.addEnrichmentsFn(ctx, rq)
+	}
+	return r.client.EnrichmentServiceAddEnrichments(ctx).EnrichmentsCreationRequest(*rq).Execute()
+}
+
+func (r *DataEnrichmentsResource) removeEnrichments(ctx context.Context, ids []int64) (*ess.RemoveEnrichmentsResponse, *http.Response, error) {
+	if r.removeEnrichmentsFn != nil {
+		return r.removeEnrichmentsFn(ctx, ids)
+	}
+	return r.client.EnrichmentServiceRemoveEnrichments(ctx).EnrichmentIds(ids).Execute()
 }
 
 func (e *DataEnrichmentsModel) GetFields() []CoralogixEnrichment {
@@ -205,6 +229,50 @@ func (r *DataEnrichmentsResource) Configure(ctx context.Context, req resource.Co
 	}
 
 	r.client, r.custom_enrichments_client = clientSet.DataEnrichments()
+	r.addEnrichmentsFn = func(ctx context.Context, rq *ess.EnrichmentsCreationRequest) (*ess.AddEnrichmentsResponse, *http.Response, error) {
+		return r.client.EnrichmentServiceAddEnrichments(ctx).EnrichmentsCreationRequest(*rq).Execute()
+	}
+	r.removeEnrichmentsFn = func(ctx context.Context, ids []int64) (*ess.RemoveEnrichmentsResponse, *http.Response, error) {
+		return r.client.EnrichmentServiceRemoveEnrichments(ctx).EnrichmentIds(ids).Execute()
+	}
+}
+
+func (r *DataEnrichmentsResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	// custom_enrichment_data is required whenever the custom block is set. The
+	// nested attribute cannot be marked Required in the schema (that would make
+	// the whole custom block mandatory), so enforce the AlsoRequires-style
+	// dependency here to avoid a nil dereference in Create/Update.
+	//
+	// Read the nested attributes as types.Object rather than decoding the whole
+	// config into the pointer-backed model: when custom or custom_enrichment_data
+	// is unknown during planning (for example, sourced from another resource's
+	// output), a model decode emits a conversion error, which would make valid
+	// dynamic configurations unplannable. Defer validation until the values are
+	// known instead.
+	var custom types.Object
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(CUSTOM_TYPE), &custom)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if custom.IsNull() || custom.IsUnknown() {
+		return
+	}
+
+	var customEnrichmentData types.Object
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(CUSTOM_TYPE).AtName("custom_enrichment_data"), &customEnrichmentData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if customEnrichmentData.IsUnknown() {
+		return
+	}
+	if customEnrichmentData.IsNull() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root(CUSTOM_TYPE),
+			"Missing custom_enrichment_data",
+			"custom_enrichment_data is required when custom is set.",
+		)
+	}
 }
 
 func (r *DataEnrichmentsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -500,8 +568,14 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 	for _, id := range ExtractIdsFromEnrichment(state.GetFields()) {
 		ids = append(ids, int64(id))
 	}
+	// removedRequest captures the exact enrichment set that is about to be
+	// removed, derived from the same source (state) the removed ids come from.
+	// If the subsequent AddEnrichments fails we best-effort re-add this set so
+	// the update is not left in a partially-applied (all enrichments deleted)
+	// state.
+	removedRequest := extractDataEnrichmentsCreate(state)
 	if len(ids) > 0 {
-		_, httpResponse, err := r.client.EnrichmentServiceRemoveEnrichments(ctx).EnrichmentIds(ids).Execute()
+		_, httpResponse, err := r.removeEnrichments(ctx, ids)
 		if err != nil {
 			resp.Diagnostics.AddError("Error replacing coralogix_data_enrichments",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", ids),
@@ -512,11 +586,21 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 
 	rq := extractDataEnrichmentsCreate(plan)
 
-	result, httpResponse, err := r.client.
-		EnrichmentServiceAddEnrichments(ctx).
-		EnrichmentsCreationRequest(*rq).
-		Execute()
+	result, httpResponse, err := r.addEnrichments(ctx, rq)
 	if err != nil {
+		// The add failed after the previous enrichments were already removed.
+		// Best-effort rollback: re-add the removed set so we do not leave the
+		// resource with all of its enrichments deleted. If the rollback itself
+		// fails we log it (without masking the original error) and still return
+		// the original error to the user.
+		if len(ids) > 0 {
+			if _, _, rollbackErr := r.addEnrichments(ctx, removedRequest); rollbackErr != nil {
+				tflog.Error(ctx, "failed to roll back removed enrichments after a failed enrichment update; the resource may have no enrichments configured until the next apply", map[string]any{
+					"rollback_error": rollbackErr.Error(),
+					"original_error": err.Error(),
+				})
+			}
+		}
 		resp.Diagnostics.AddError("Error replacing coralogix_data_enrichments. If custom enrichment data was updated, then this update was executed successfully.",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq),
 		)
@@ -655,7 +739,7 @@ func getCustomEnrichmentId(state *DataEnrichmentsModel) *int64 {
 }
 
 func extractCustomEnrichmentsDataCreate(plan *DataEnrichmentsModel) *cess.CreateCustomEnrichmentRequest {
-	if plan.Custom != nil {
+	if plan.Custom != nil && plan.Custom.CustomEnrichmentDataModel != nil {
 		ext := "csv"
 		return &cess.CreateCustomEnrichmentRequest{
 			Name:        plan.Custom.CustomEnrichmentDataModel.Name.ValueString(),
@@ -671,7 +755,7 @@ func extractCustomEnrichmentsDataCreate(plan *DataEnrichmentsModel) *cess.Create
 }
 
 func extractCustomEnrichmentsDataUpdate(plan *DataEnrichmentsModel) *cess.UpdateCustomEnrichmentRequest {
-	if plan.Custom != nil {
+	if plan.Custom != nil && plan.Custom.CustomEnrichmentDataModel != nil {
 		ext := "csv"
 		return &cess.UpdateCustomEnrichmentRequest{
 			CustomEnrichmentId: plan.Custom.CustomEnrichmentDataModel.ID.ValueInt64(),
@@ -737,7 +821,7 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 		}
 	}
 
-	if plan.Custom != nil {
+	if plan.Custom != nil && plan.Custom.CustomEnrichmentDataModel != nil {
 		id := plan.Custom.CustomEnrichmentDataModel.ID.ValueInt64Pointer()
 		for _, f := range plan.Custom.Fields {
 
