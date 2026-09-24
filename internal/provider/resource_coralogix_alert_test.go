@@ -1705,17 +1705,21 @@ func TestAccCoralogixResourceAlert_analytics_threshold(t *testing.T) {
 					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_threshold.timeframe_minutes"),
 				),
 			},
+			// An empty rules list is rejected by the schema validator, matching the
+			// API's own `minItems: 1`. This step plans and errors without applying, so
+			// it is kept ahead of a valid final step — a trailing invalid config would
+			// make the framework's post-test destroy plan against it and fail.
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsThresholdEmptyRules(),
+				// \s+ (not a literal space) because Terraform wraps the diagnostic
+				// detail, so "at least 1" can arrive as "at\nleast 1".
+				ExpectError: regexp.MustCompile(`(?s)rules.*at\s+least\s+1`),
+			},
 			{
 				Config: testAccCoralogixResourceAlertAnalyticsThresholdOrderedRules(),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
-			},
-			// An empty rules list is rejected by the schema validator, matching the
-			// API's own `minItems: 1`.
-			{
-				Config:      testAccCoralogixResourceAlertAnalyticsThresholdEmptyRules(),
-				ExpectError: regexp.MustCompile(`(?s)rules.*at least 1`),
 			},
 		},
 	})

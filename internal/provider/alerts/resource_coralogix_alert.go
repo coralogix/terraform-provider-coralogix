@@ -3630,6 +3630,20 @@ func flattenNonLogsAlertTypeDefinition(ctx context.Context, properties *alerts.A
 	}
 }
 
+// flattenAnalyticsTimeframeMinutes maps the API's read-back to state. The analytics
+// threshold API materializes an omitted timeframe_minutes as 0, but the schema forbids
+// a user-supplied 0 (int32validator.AtLeast(1)), so 0 unambiguously means "unset" and
+// must flatten to null. Returning types.Int32Value(0) for an omitted value instead
+// fails apply with "was null, but now cty.NumberIntVal(0)" and, on a Computed field,
+// would drift every plan. The immediate arm returns a nil pointer here, which this
+// handles identically.
+func flattenAnalyticsTimeframeMinutes(v *int32) types.Int32 {
+	if v == nil || *v == 0 {
+		return types.Int32Null()
+	}
+	return types.Int32PointerValue(v)
+}
+
 func flattenAnalyticsImmediate(ctx context.Context, immediate *alerts.AnalyticsImmediateType) (types.Object, diag.Diagnostics) {
 	if immediate == nil {
 		return types.ObjectNull(alertschema.AnalyticsImmediateAttr()), nil
@@ -3649,7 +3663,7 @@ func flattenAnalyticsImmediate(ctx context.Context, immediate *alerts.AnalyticsI
 		DataprimeQuery:        dataprimeQuery,
 		NoDataPolicy:          noDataPolicy,
 		UseRowsAsPermutations: types.BoolPointerValue(immediate.UseRowsAsPermutations),
-		TimeframeMinutes:      types.Int32PointerValue(immediate.TimeframeMinutes),
+		TimeframeMinutes:      flattenAnalyticsTimeframeMinutes(immediate.TimeframeMinutes),
 		CustomEvaluationDelay: types.Int32PointerValue(immediate.EvaluationDelayMs),
 	})
 }
@@ -3688,7 +3702,7 @@ func flattenAnalyticsThreshold(ctx context.Context, threshold *alerts.AnalyticsT
 		TargetColumn:          types.StringPointerValue(threshold.TargetColumn),
 		NoDataPolicy:          noDataPolicy,
 		UseRowsAsPermutations: types.BoolPointerValue(threshold.UseRowsAsPermutations),
-		TimeframeMinutes:      types.Int32PointerValue(threshold.TimeframeMinutes),
+		TimeframeMinutes:      flattenAnalyticsTimeframeMinutes(threshold.TimeframeMinutes),
 		CustomEvaluationDelay: types.Int32PointerValue(threshold.EvaluationDelayMs),
 	})
 }

@@ -824,6 +824,30 @@ func TestFlattenAnalyticsThreshold(t *testing.T) {
 			t.Errorf("no_data_policy = %v, want null", model.NoDataPolicy)
 		}
 	})
+
+	// The threshold API materializes an omitted timeframe_minutes as 0 on read.
+	// The schema forbids a user-supplied 0, so 0 means "unset" and must flatten to
+	// null; returning 0 instead fails apply with "was null, but now 0".
+	t.Run("timeframe_minutes of 0 flattens to null", func(t *testing.T) {
+		zero := int32(0)
+		got, diags := flattenAnalyticsThreshold(ctx, &alerts.AnalyticsThresholdType{
+			DataprimeQuery:   &alerts.DataprimeAlertQuery{Query: &query},
+			TargetColumn:     &targetColumn,
+			Operator:         alerts.ANALYTICSTHRESHOLDOPERATOR_ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED.Ptr(),
+			Rules:            []alerts.AnalyticsThresholdRule{rule(1, alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P2)},
+			TimeframeMinutes: &zero,
+		})
+		if diags.HasError() {
+			t.Fatalf("flattenAnalyticsThreshold returned diagnostics: %v", diags)
+		}
+		var model alerttypes.AnalyticsThresholdModel
+		if diags := got.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+			t.Fatalf("As() returned diagnostics: %v", diags)
+		}
+		if !model.TimeframeMinutes.IsNull() {
+			t.Errorf("timeframe_minutes = %v, want null", model.TimeframeMinutes)
+		}
+	})
 }
 
 // TestHasKnownAlertType guards the single arm list every envelope getter consults.
