@@ -1719,6 +1719,12 @@ func TestAccCoralogixResourceAlert_analytics_threshold(t *testing.T) {
 				// detail, so "at least 1" can arrive as "at\nleast 1".
 				ExpectError: regexp.MustCompile(`(?s)rules.*at\s+least\s+1`),
 			},
+			// More than five rules is rejected by the schema validator, matching the
+			// API's own `maxItems: 5` (a sixth rule is rejected 400 at apply otherwise).
+			{
+				Config:      testAccCoralogixResourceAlertAnalyticsThresholdSixRules(),
+				ExpectError: regexp.MustCompile(`(?s)rules.*at\s+most\s+5`),
+			},
 			{
 				Config: testAccCoralogixResourceAlertAnalyticsThresholdOrderedRules(),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -1825,6 +1831,31 @@ func testAccCoralogixResourceAlertAnalyticsThresholdOrderedRules() string {
       ]
       operator      = "MORE_THAN"
       target_column = "error_count"
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertAnalyticsThresholdSixRules() string {
+	return `resource "coralogix_alert" "test" {
+  name = "analytics threshold alert"
+
+  type_definition = {
+    analytics_threshold = {
+      dataprime_query = {
+        query = "source logs | count as c"
+      }
+      rules = [
+        { condition = { threshold = 1 }, override = { priority = "P1" } },
+        { condition = { threshold = 2 }, override = { priority = "P2" } },
+        { condition = { threshold = 3 }, override = { priority = "P3" } },
+        { condition = { threshold = 4 }, override = { priority = "P4" } },
+        { condition = { threshold = 5 }, override = { priority = "P5" } },
+        { condition = { threshold = 6 }, override = { priority = "P1" } },
+      ]
+      operator      = "MORE_THAN"
+      target_column = "c"
     }
   }
 }
