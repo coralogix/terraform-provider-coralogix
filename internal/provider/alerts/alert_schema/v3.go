@@ -136,7 +136,7 @@ func V3() schema.Schema {
 			// type is being inferred by the type_definition attribute
 			"type_definition": schema.SingleNestedAttribute{
 				Required:            true,
-				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate, analytics_threshold.",
+				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate (preview), analytics_threshold (preview).",
 				Attributes: map[string]schema.Attribute{
 					"logs_immediate": schema.SingleNestedAttribute{
 						Optional: true,
@@ -641,9 +641,8 @@ func V3() schema.Schema {
 							"timeframe_minutes":        analyticsTimeframeMinutesSchema(),
 							"custom_evaluation_delay":  evaluationDelaySchema(),
 						},
-						MarkdownDescription: "Analytics immediate alert type definition — fires as soon as the DataPrime " +
-							"query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`, not `group_by`. " +
-							analyticsPreviewNote,
+						MarkdownDescription: "Analytics immediate alert type definition (preview) — fires as soon as the DataPrime " +
+							"query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`, not `group_by`.",
 					},
 					"analytics_threshold": schema.SingleNestedAttribute{
 						Optional: true,
@@ -651,9 +650,7 @@ func V3() schema.Schema {
 							"dataprime_query": dataprimeQuerySchema(),
 							"rules": schema.ListNestedAttribute{
 								Required: true,
-								// The API rejects an empty list. The backend also documents an upper
-								// bound of 5 rules; it is described rather than validated here so a
-								// provider-side validator cannot block a config the API accepts.
+								// The API rejects an empty list.
 								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
@@ -691,9 +688,9 @@ func V3() schema.Schema {
 							"timeframe_minutes":        analyticsTimeframeMinutesSchema(),
 							"custom_evaluation_delay":  evaluationDelaySchema(),
 						},
-						MarkdownDescription: "Analytics threshold alert type definition — fires when a numeric column in the " +
+						MarkdownDescription: "Analytics threshold alert type definition (preview) — fires when a numeric column in the " +
 							"DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with " +
-							"`use_rows_as_permutations`, not `group_by`. " + analyticsPreviewNote,
+							"`use_rows_as_permutations`, not `group_by`.",
 					},
 				},
 			},

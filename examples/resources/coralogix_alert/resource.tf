@@ -770,8 +770,7 @@ resource "coralogix_alert" "test" {
 # }
 
 
-# Analytics alerts are in preview and require the `alerts-dataprime` feature to be
-# enabled for your team; without it the API rejects every create with 412.
+# Analytics alerts are in preview.
 
 # resource "coralogix_alert" "test" {
 #   name        = "analytics_immediate alert example"

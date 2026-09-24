@@ -33,7 +33,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 - `phantom_mode` (Boolean)
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"]. This field will be removed in the future in favor of the 'override' property where possible.
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
-- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate, analytics_threshold. (see [below for nested schema](#nestedatt--type_definition))
+- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate (preview), analytics_threshold (preview). (see [below for nested schema](#nestedatt--type_definition))
 
 <a id="nestedatt--data_sources"></a>
 ### Nested Schema for `data_sources`
@@ -192,8 +192,8 @@ Read-Only:
 
 Read-Only:
 
-- `analytics_immediate` (Attributes) Analytics immediate alert type definition — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`, not `group_by`. **Note: analytics alerts are in preview.** They require the `alerts-dataprime` feature to be enabled for your team; without it the Coralogix API rejects every create with `412 Failed Precondition`. Contact Coralogix support to enable it. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate))
-- `analytics_threshold` (Attributes) Analytics threshold alert type definition — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`, not `group_by`. **Note: analytics alerts are in preview.** They require the `alerts-dataprime` feature to be enabled for your team; without it the Coralogix API rejects every create with `412 Failed Precondition`. Contact Coralogix support to enable it. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold))
+- `analytics_immediate` (Attributes) Analytics immediate alert type definition (preview) — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`, not `group_by`. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate))
+- `analytics_threshold` (Attributes) Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`, not `group_by`. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold))
 - `flow` (Attributes) (see [below for nested schema](#nestedatt--type_definition--flow))
 - `logs_anomaly` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly))
 - `logs_immediate` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_immediate))
