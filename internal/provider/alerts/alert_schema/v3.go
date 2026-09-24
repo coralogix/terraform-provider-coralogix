@@ -642,7 +642,7 @@ func V3() schema.Schema {
 							"custom_evaluation_delay":  evaluationDelaySchema(),
 						},
 						MarkdownDescription: "Analytics immediate alert type definition (preview) — fires as soon as the DataPrime " +
-							"query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`, not `group_by`.",
+							"query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`.",
 					},
 					"analytics_threshold": schema.SingleNestedAttribute{
 						Optional: true,
@@ -690,7 +690,7 @@ func V3() schema.Schema {
 						},
 						MarkdownDescription: "Analytics threshold alert type definition (preview) — fires when a numeric column in the " +
 							"DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with " +
-							"`use_rows_as_permutations`, not `group_by`.",
+							"`use_rows_as_permutations`.",
 					},
 				},
 			},

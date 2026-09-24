@@ -1701,6 +1701,10 @@ func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "analytics immediate alert"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.dataprime_query.query", "source logs | filter severity == 'error' | count"),
+					// group_by is accepted for analytics and round-trips; it is not
+					// rejected the way it is for logs_immediate/tracing_immediate.
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.0", "coralogix.metadata.applicationName"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.use_rows_as_permutations", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.custom_evaluation_delay", "120000"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.timeframe_minutes", "45"),
@@ -1800,6 +1804,7 @@ func testAccCoralogixResourceAlertAnalyticsImmediate() string {
   name        = "analytics immediate alert"
   description = "Example of analytics immediate alert from terraform"
   priority    = "P3"
+  group_by    = ["coralogix.metadata.applicationName"]
 
   type_definition = {
     analytics_immediate = {

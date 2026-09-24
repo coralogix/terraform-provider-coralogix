@@ -658,9 +658,45 @@ func dataprimeQuerySchema() schema.SingleNestedAttribute {
 // analytics API never materializes an omitted no_data_policy on read, so plain
 // Optional is correct here — and it keeps removing the block from HCL able to
 // clear the value, which Optional+Computed would silently prevent.
+// analyticsNoDataPolicyNotEmpty rejects a no_data_policy block that sets none of
+// its (all-optional) children. Such a block would otherwise round-trip as null on
+// read — extractNoDataPolicy collapses an all-null policy to nil and the API omits
+// it — and fail apply with "inconsistent result after apply: object, but now null".
+// Removing the block entirely is the supported way to leave the policy unset.
+type analyticsNoDataPolicyNotEmpty struct{}
+
+func (v analyticsNoDataPolicyNotEmpty) Description(ctx context.Context) string {
+	return "no_data_policy must set at least one attribute; remove the block to leave the policy unset."
+}
+
+func (v analyticsNoDataPolicyNotEmpty) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v analyticsNoDataPolicyNotEmpty) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	var model alerttypes.NoDataPolicyModel
+	if diags := req.ConfigValue.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	// An unknown child (variable-derived) leaves IsNull() false, so this only
+	// fires when every child is explicitly absent.
+	if model.State.IsNull() && model.AutoRetireSeconds.IsNull() {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Empty no_data_policy",
+			"no_data_policy must set at least one of state or auto_retire_seconds; remove the block to leave the policy unset.",
+		)
+	}
+}
+
 func analyticsNoDataPolicySchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
-		Optional: true,
+		Optional:   true,
+		Validators: []validator.Object{analyticsNoDataPolicyNotEmpty{}},
 		Attributes: map[string]schema.Attribute{
 			"auto_retire_seconds": schema.Int64Attribute{
 				Optional: true,
