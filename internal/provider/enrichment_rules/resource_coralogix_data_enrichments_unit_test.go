@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // enrichmentSchema pulls the real resource schema, the same way the existing
@@ -377,4 +378,96 @@ func containsErr(errs []diag.Diagnostic, substr string) bool {
 		}
 	}
 	return false
+}
+
+// schemaTFType returns the root tftypes.Object type of the resource schema,
+// used to build Config Raw values that carry unknown attributes — a shape the
+// model-based fixtures (fully-known Go structs) cannot express.
+func schemaTFType(t *testing.T) tftypes.Object {
+	t.Helper()
+	ctx := context.Background()
+	var schemaResp resource.SchemaResponse
+	(&DataEnrichmentsResource{}).Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	if schemaResp.Diagnostics.HasError() {
+		t.Fatalf("schema diagnostics: %v", schemaResp.Diagnostics)
+	}
+	objType, ok := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	if !ok {
+		t.Fatalf("schema root type is not a tftypes.Object: %T", schemaResp.Schema.Type().TerraformType(ctx))
+	}
+	return objType
+}
+
+// nullRootAttributes returns a map of every root attribute set to a null value
+// of its own type, so a test only has to override the one attribute it cares
+// about (custom) with an unknown value.
+func nullRootAttributes(objType tftypes.Object) map[string]tftypes.Value {
+	attrs := make(map[string]tftypes.Value, len(objType.AttributeTypes))
+	for name, attrType := range objType.AttributeTypes {
+		attrs[name] = tftypes.NewValue(attrType, nil)
+	}
+	return attrs
+}
+
+// TestValidateConfig_UnknownCustomDefersValidation verifies that when the whole
+// custom attribute is unknown at plan time (for example, sourced from another
+// resource's output) ValidateConfig defers and raises no error diagnostics,
+// rather than emitting a value conversion error.
+func TestValidateConfig_UnknownCustomDefersValidation(t *testing.T) {
+	ctx := context.Background()
+	objType := schemaTFType(t)
+
+	attrs := nullRootAttributes(objType)
+	attrs[CUSTOM_TYPE] = tftypes.NewValue(objType.AttributeTypes[CUSTOM_TYPE], tftypes.UnknownValue)
+
+	cfg := tfsdk.Config{
+		Schema: enrichmentSchema(t),
+		Raw:    tftypes.NewValue(objType, attrs),
+	}
+
+	resp := &resource.ValidateConfigResponse{}
+	(&DataEnrichmentsResource{}).ValidateConfig(ctx, resource.ValidateConfigRequest{Config: cfg}, resp)
+
+	if errs := errorDiagnostics(resp.Diagnostics); len(errs) != 0 {
+		t.Fatalf("expected no error diagnostics for unknown custom, got: %v", errs)
+	}
+}
+
+// TestValidateConfig_UnknownCustomEnrichmentDataDefersValidation verifies that
+// when custom is a known object but its custom_enrichment_data member is unknown
+// at plan time ValidateConfig defers and raises no error diagnostics.
+func TestValidateConfig_UnknownCustomEnrichmentDataDefersValidation(t *testing.T) {
+	ctx := context.Background()
+	objType := schemaTFType(t)
+
+	customType, ok := objType.AttributeTypes[CUSTOM_TYPE].(tftypes.Object)
+	if !ok {
+		t.Fatalf("custom attribute is not a tftypes.Object: %T", objType.AttributeTypes[CUSTOM_TYPE])
+	}
+
+	// Build a known custom object whose members are all null except
+	// custom_enrichment_data, which is unknown.
+	customAttrs := make(map[string]tftypes.Value, len(customType.AttributeTypes))
+	for name, attrType := range customType.AttributeTypes {
+		if name == "custom_enrichment_data" {
+			customAttrs[name] = tftypes.NewValue(attrType, tftypes.UnknownValue)
+			continue
+		}
+		customAttrs[name] = tftypes.NewValue(attrType, nil)
+	}
+
+	attrs := nullRootAttributes(objType)
+	attrs[CUSTOM_TYPE] = tftypes.NewValue(customType, customAttrs)
+
+	cfg := tfsdk.Config{
+		Schema: enrichmentSchema(t),
+		Raw:    tftypes.NewValue(objType, attrs),
+	}
+
+	resp := &resource.ValidateConfigResponse{}
+	(&DataEnrichmentsResource{}).ValidateConfig(ctx, resource.ValidateConfigRequest{Config: cfg}, resp)
+
+	if errs := errorDiagnostics(resp.Diagnostics); len(errs) != 0 {
+		t.Fatalf("expected no error diagnostics for unknown custom_enrichment_data, got: %v", errs)
+	}
 }

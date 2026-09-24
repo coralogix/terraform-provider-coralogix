@@ -41,7 +41,7 @@
 - FIX: Keep each Geo IP field's `with_asn` value independent when multiple fields are configured.
 - FIX: Recover enrichment types from state blocks when a failed update leaves a null resource ID.
 - FIX: Deduplicate legacy enrichment type IDs during read so repeated mappings do not duplicate state fields.
-- FIX: Require `custom_enrichment_data` when a `custom` block is configured, and guard against nil pointer dereference panics in `Create` and `Update` when it is omitted.
+- FIX: Require `custom_enrichment_data` when a `custom` block is configured, and guard against nil pointer dereference panics in `Create` and `Update` when it is omitted; validation defers when `custom` or `custom_enrichment_data` is not yet known at plan time.
 - FIX: Restore the removed enrichments on a best-effort basis when `AddEnrichments` fails during an update, so a partial failure does not leave the enrichments deleted.
 
 #### data-source/coralogix_data_enrichments
