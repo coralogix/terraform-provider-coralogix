@@ -1,0 +1,67 @@
+# Contract facts that the source spec does not have yet. See README.md, "Overlay".
+# Apply with:
+#   go run ./cmd/overlay --overlay spec/overlay.yaml --out spec/openapi.patched.yaml
+
+# O1 (D4): required fields of the Create request.
+- path: paths./ai/evaluations/v3.post.requestBody.content.application/json.schema.required
+  set: [application, subsystem, config]
+
+# O2 (D4a): Create fields with presence (proto optional).
+- path: paths./ai/evaluations/v3.post.requestBody.content.application/json.schema.properties.target.x-coralogix-presence
+  set: true
+- path: paths./ai/evaluations/v3.post.requestBody.content.application/json.schema.properties.threshold.x-coralogix-presence
+  set: true
+
+# O3 (D4b): the server receives false when isEnabled is omitted.
+- path: paths./ai/evaluations/v3.post.requestBody.content.application/json.schema.properties.isEnabled.default
+  set: false
+
+# O4 (D9): immutable fields are not part of the Update request.
+- path: paths./ai/evaluations/v3/{id}.patch.requestBody.content.application/json.schema.properties.application
+  remove: true
+- path: paths./ai/evaluations/v3/{id}.patch.requestBody.content.application/json.schema.properties.subsystem
+  remove: true
+- path: paths./ai/evaluations/v3/{id}.patch.requestBody.content.application/json.schema.properties.target
+  remove: true
+
+# O5: Update fields with presence (proto optional).
+- path: paths./ai/evaluations/v3/{id}.patch.requestBody.content.application/json.schema.properties.config.x-coralogix-presence
+  set: true
+- path: paths./ai/evaluations/v3/{id}.patch.requestBody.content.application/json.schema.properties.isEnabled.x-coralogix-presence
+  set: true
+- path: paths./ai/evaluations/v3/{id}.patch.requestBody.content.application/json.schema.properties.threshold.x-coralogix-presence
+  set: true
+
+# O6 (D6): unordered lists.
+- path: components.schemas.AllowedTopicsConfig.properties.topics.uniqueItems
+  set: true
+- path: components.schemas.AllowedTopicsConfig.properties.topics.x-coralogix-collection
+  set: set
+- path: components.schemas.RestrictedTopicsConfig.properties.topics.uniqueItems
+  set: true
+- path: components.schemas.RestrictedTopicsConfig.properties.topics.x-coralogix-collection
+  set: set
+- path: components.schemas.CompetitionConfig.properties.competitors.uniqueItems
+  set: true
+- path: components.schemas.CompetitionConfig.properties.competitors.x-coralogix-collection
+  set: set
+- path: components.schemas.SqlAllowedTablesConfig.properties.tables.uniqueItems
+  set: true
+- path: components.schemas.SqlAllowedTablesConfig.properties.tables.x-coralogix-collection
+  set: set
+- path: components.schemas.SqlRestrictedTablesConfig.properties.tables.uniqueItems
+  set: true
+- path: components.schemas.SqlRestrictedTablesConfig.properties.tables.x-coralogix-collection
+  set: set
+- path: components.schemas.PiiConfig.properties.categories.uniqueItems
+  set: true
+- path: components.schemas.PiiConfig.properties.categories.x-coralogix-collection
+  set: set
+
+# O7 (D7): 64-bit numbers. Keep type: string; protobuf JSON sends them as strings.
+- path: components.schemas.SqlLoadConfig.properties.joinLimit.format
+  set: uint64
+- path: components.schemas.SqlLoadConfig.properties.cteLimit.format
+  set: uint64
+- path: components.schemas.CustomEvaluationExample.properties.score.format
+  set: uint64

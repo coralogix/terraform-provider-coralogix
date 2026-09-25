@@ -1,0 +1,116 @@
+
+package github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ai_evaluations_service
+  PATH                                                      KIND     RULE                   SDK NAME                                                                                        GO TYPE
+  resource                                                  package  tag                    ai_evaluations_service
+  resource                                                  type     tag                    AIEvaluationsServiceAPIService
+  create                                                    method   operationId            AIEvaluationsServiceAPIService.AiEvaluationsServiceCreateAiEvaluation                           func(ctx context.Context) ApiAiEvaluationsServiceCreateAiEvaluationRequest
+  create                                                    type     operationId            ApiAiEvaluationsServiceCreateAiEvaluationRequest
+  create.body                                               type     special: inline body   AiEvaluationsServiceCreateAiEvaluationRequest
+  create.body                                               method   special: inline body   ApiAiEvaluationsServiceCreateAiEvaluationRequest.AiEvaluationsServiceCreateAiEvaluationRequest  func(aiEvaluationsServiceCreateAiEvaluationRequest AiEvaluationsServiceCreateAiEvaluationRequest) ApiAiEvaluationsServiceCreateAiEvaluationRequest
+  create.response                                           type     component              CreateAiEvaluationResponse
+  create                                                    method   operationId            ApiAiEvaluationsServiceCreateAiEvaluationRequest.Execute                                        func() (*CreateAiEvaluationResponse, *http.Response, error)
+  create.response.aiEvaluation                              field    property               CreateAiEvaluationResponse.AiEvaluation                                                         *AiEvaluation
+  get                                                       method   operationId            AIEvaluationsServiceAPIService.AiEvaluationsServiceGetAiEvaluation                              func(ctx context.Context, id string) ApiAiEvaluationsServiceGetAiEvaluationRequest
+  get                                                       type     operationId            ApiAiEvaluationsServiceGetAiEvaluationRequest
+  get.response                                              type     component              GetAiEvaluationResponse
+  get                                                       method   operationId            ApiAiEvaluationsServiceGetAiEvaluationRequest.Execute                                           func() (*GetAiEvaluationResponse, *http.Response, error)
+  get.response.aiEvaluation                                 field    property               GetAiEvaluationResponse.AiEvaluation                                                            *AiEvaluation
+  update                                                    method   operationId            AIEvaluationsServiceAPIService.AiEvaluationsServiceUpdateAiEvaluation                           func(ctx context.Context, id string) ApiAiEvaluationsServiceUpdateAiEvaluationRequest
+  update                                                    type     operationId            ApiAiEvaluationsServiceUpdateAiEvaluationRequest
+  update.body                                               type     special: inline body   AiEvaluationsServiceUpdateAiEvaluationRequest
+  update.body                                               method   special: inline body   ApiAiEvaluationsServiceUpdateAiEvaluationRequest.AiEvaluationsServiceUpdateAiEvaluationRequest  func(aiEvaluationsServiceUpdateAiEvaluationRequest AiEvaluationsServiceUpdateAiEvaluationRequest) ApiAiEvaluationsServiceUpdateAiEvaluationRequest
+  update.response                                           type     component              UpdateAiEvaluationResponse
+  update                                                    method   operationId            ApiAiEvaluationsServiceUpdateAiEvaluationRequest.Execute                                        func() (*UpdateAiEvaluationResponse, *http.Response, error)
+  update.response.aiEvaluation                              field    property               UpdateAiEvaluationResponse.AiEvaluation                                                         *AiEvaluation
+  delete                                                    method   operationId            AIEvaluationsServiceAPIService.AiEvaluationsServiceDeleteAiEvaluation                           func(ctx context.Context, id string) ApiAiEvaluationsServiceDeleteAiEvaluationRequest
+  delete                                                    type     operationId            ApiAiEvaluationsServiceDeleteAiEvaluationRequest
+  delete.response                                           type     component              DeleteAiEvaluationResponse
+  delete                                                    method   operationId            ApiAiEvaluationsServiceDeleteAiEvaluationRequest.Execute                                        func() (*DeleteAiEvaluationResponse, *http.Response, error)
+  fields                                                    type     component              AiEvaluation
+  fields.application                                        field    property               AiEvaluation.Application                                                                        *string
+  fields.companyId                                          field    property               AiEvaluation.CompanyId                                                                          *string
+  fields.config                                             field    property               AiEvaluation.Config                                                                             *EvaluationConfig
+  fields.config                                             type     component              EvaluationConfig
+  fields.config.allowedTopics                               field    property               EvaluationConfig.AllowedTopics                                                                  *AllowedTopicsConfig
+  fields.config.allowedTopics                               type     component              AllowedTopicsConfig
+  fields.config.allowedTopics.topics                        field    property               AllowedTopicsConfig.Topics                                                                      []string
+  fields.config.competition                                 field    property               EvaluationConfig.Competition                                                                    *CompetitionConfig
+  fields.config.competition                                 type     component              CompetitionConfig
+  fields.config.competition.competitors                     field    property               CompetitionConfig.Competitors                                                                   []string
+  fields.config.customEvaluation                            field    property               EvaluationConfig.CustomEvaluation                                                               *CustomEvaluationConfig
+  fields.config.customEvaluation                            type     component              CustomEvaluationConfig
+  fields.config.customEvaluation.examples                   field    property               CustomEvaluationConfig.Examples                                                                 []CustomEvaluationExample
+  fields.config.customEvaluation.examples                   type     component              CustomEvaluationExample
+  fields.config.customEvaluation.examples.conversation      field    property               CustomEvaluationExample.Conversation                                                            *string
+  fields.config.customEvaluation.examples.score             field    property               CustomEvaluationExample.Score                                                                   *string
+  fields.config.customEvaluation.instructions               field    property               CustomEvaluationConfig.Instructions                                                             *string
+  fields.config.customEvaluation.policyType                 field    property               CustomEvaluationConfig.PolicyType                                                               *string
+  fields.config.customEvaluation.safe                       field    property               CustomEvaluationConfig.Safe                                                                     *string
+  fields.config.customEvaluation.shouldIncludeSystemPrompt  field    property               CustomEvaluationConfig.ShouldIncludeSystemPrompt                                                *bool
+  fields.config.customEvaluation.violates                   field    property               CustomEvaluationConfig.Violates                                                                 *string
+  fields.config.hallucinationCompleteness                   field    special: empty object  EvaluationConfig.HallucinationCompleteness                                                      map[string]interface{}
+  fields.config.hallucinationContextAdherence               field    special: empty object  EvaluationConfig.HallucinationContextAdherence                                                  map[string]interface{}
+  fields.config.hallucinationContextRelevance               field    special: empty object  EvaluationConfig.HallucinationContextRelevance                                                  map[string]interface{}
+  fields.config.hallucinationCorrectness                    field    special: empty object  EvaluationConfig.HallucinationCorrectness                                                       map[string]interface{}
+  fields.config.hallucinationTaskAdherence                  field    special: empty object  EvaluationConfig.HallucinationTaskAdherence                                                     map[string]interface{}
+  fields.config.languageMismatch                            field    special: empty object  EvaluationConfig.LanguageMismatch                                                               map[string]interface{}
+  fields.config.pii                                         field    property               EvaluationConfig.Pii                                                                            *PiiConfig
+  fields.config.pii                                         type     component              PiiConfig
+  fields.config.pii.categories                              field    property               PiiConfig.Categories                                                                            []PiiCategory
+  fields.config.pii.categories                              type     component              PiiCategory
+  fields.config.pii.categories.PHONE_NUMBER                 const    enum value             PIICATEGORY_PHONE_NUMBER
+  fields.config.pii.categories.EMAIL_ADDRESS                const    enum value             PIICATEGORY_EMAIL_ADDRESS
+  fields.config.pii.categories.CREDIT_CARD                  const    enum value             PIICATEGORY_CREDIT_CARD
+  fields.config.pii.categories.IBAN_CODE                    const    enum value             PIICATEGORY_IBAN_CODE
+  fields.config.pii.categories.US_SSN                       const    enum value             PIICATEGORY_US_SSN
+  fields.config.promptInjection                             field    property               EvaluationConfig.PromptInjection                                                                *PromptInjectionConfig
+  fields.config.promptInjection                             type     component              PromptInjectionConfig
+  fields.config.promptInjection.additionalContext           field    property               PromptInjectionConfig.AdditionalContext                                                         *string
+  fields.config.restrictedTopics                            field    property               EvaluationConfig.RestrictedTopics                                                               *RestrictedTopicsConfig
+  fields.config.restrictedTopics                            type     component              RestrictedTopicsConfig
+  fields.config.restrictedTopics.topics                     field    property               RestrictedTopicsConfig.Topics                                                                   []string
+  fields.config.sexism                                      field    special: empty object  EvaluationConfig.Sexism                                                                         map[string]interface{}
+  fields.config.sqlAllowedTables                            field    property               EvaluationConfig.SqlAllowedTables                                                               *SqlAllowedTablesConfig
+  fields.config.sqlAllowedTables                            type     component              SqlAllowedTablesConfig
+  fields.config.sqlAllowedTables.tables                     field    property               SqlAllowedTablesConfig.Tables                                                                   []string
+  fields.config.sqlHallucination                            field    special: empty object  EvaluationConfig.SqlHallucination                                                               map[string]interface{}
+  fields.config.sqlLoad                                     field    property               EvaluationConfig.SqlLoad                                                                        *SqlLoadConfig
+  fields.config.sqlLoad                                     type     component              SqlLoadConfig
+  fields.config.sqlLoad.allowRecursiveCte                   field    property               SqlLoadConfig.AllowRecursiveCte                                                                 *bool
+  fields.config.sqlLoad.cteLimit                            field    property               SqlLoadConfig.CteLimit                                                                          *string
+  fields.config.sqlLoad.joinLimit                           field    property               SqlLoadConfig.JoinLimit                                                                         *string
+  fields.config.sqlReadOnly                                 field    special: empty object  EvaluationConfig.SqlReadOnly                                                                    map[string]interface{}
+  fields.config.sqlRestrictedTables                         field    property               EvaluationConfig.SqlRestrictedTables                                                            *SqlRestrictedTablesConfig
+  fields.config.sqlRestrictedTables                         type     component              SqlRestrictedTablesConfig
+  fields.config.sqlRestrictedTables.tables                  field    property               SqlRestrictedTablesConfig.Tables                                                                []string
+  fields.config.toxicity                                    field    special: empty object  EvaluationConfig.Toxicity                                                                       map[string]interface{}
+  fields.createdAt                                          field    property               AiEvaluation.CreatedAt                                                                          *time.Time
+  fields.createdBy                                          field    property               AiEvaluation.CreatedBy                                                                          *string
+  fields.id                                                 field    property               AiEvaluation.Id                                                                                 *string
+  fields.isEnabled                                          field    property               AiEvaluation.IsEnabled                                                                          *bool
+  fields.subsystem                                          field    property               AiEvaluation.Subsystem                                                                          *string
+  fields.target                                             field    property               AiEvaluation.Target                                                                             *EvaluationTarget
+  fields.target                                             type     component              EvaluationTarget
+  fields.target.PROMPT                                      const    enum value             EVALUATIONTARGET_PROMPT
+  fields.target.RESPONSE                                    const    enum value             EVALUATIONTARGET_RESPONSE
+  fields.target.CONVERSATION                                const    enum value             EVALUATIONTARGET_CONVERSATION
+  fields.threshold                                          field    property               AiEvaluation.Threshold                                                                          *float64
+  fields.updatedAt                                          field    property               AiEvaluation.UpdatedAt                                                                          *time.Time
+  create.body.application                                   field    property               AiEvaluationsServiceCreateAiEvaluationRequest.Application                                       *string
+  create.body.config                                        field    property               AiEvaluationsServiceCreateAiEvaluationRequest.Config                                            *EvaluationConfig
+  create.body.isEnabled                                     field    property               AiEvaluationsServiceCreateAiEvaluationRequest.IsEnabled                                         *bool
+  create.body.subsystem                                     field    property               AiEvaluationsServiceCreateAiEvaluationRequest.Subsystem                                         *string
+  create.body.target                                        field    property               AiEvaluationsServiceCreateAiEvaluationRequest.Target                                            *EvaluationTarget
+  create.body.threshold                                     field    property               AiEvaluationsServiceCreateAiEvaluationRequest.Threshold                                         *float64
+  update.body.config                                        field    property               AiEvaluationsServiceUpdateAiEvaluationRequest.Config                                            *EvaluationConfig
+  update.body.isEnabled                                     field    property               AiEvaluationsServiceUpdateAiEvaluationRequest.IsEnabled                                         *bool
+  update.body.threshold                                     field    property               AiEvaluationsServiceUpdateAiEvaluationRequest.Threshold                                         *float64
+  update.body.updateMask                                    field    property               AiEvaluationsServiceUpdateAiEvaluationRequest.UpdateMask                                        *string
+
+package github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk
+  PATH          KIND     RULE            SDK NAME                 GO TYPE
+  cxsdk         package  special: cxsdk  cxsdk
+  cxsdk         type     special: cxsdk  ClientSet
+  resource      method   special: cxsdk  ClientSet.AIEvaluations  func() *ai_evaluations_service.AIEvaluationsServiceAPIService
+  cxsdk.errors  func     special: cxsdk  NewAPIError              func(resp *http.Response, err error) error
+  cxsdk.errors  func     special: cxsdk  Code                     func(err error) int

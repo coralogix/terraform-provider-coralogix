@@ -1,0 +1,61 @@
+(resource)  validator: Exactly one of these attributes must be configured: [config.allowed_topics,config.competition,config.hallucination_completeness,config.hallucination_context_adherence,config.hallucination_context_relevance,config.hallucination_correctness,config.hallucination_task_adherence,config.language_mismatch,config.pii,config.prompt_injection,config.restricted_topics,config.sexism,config.sql_allowed_tables,config.sql_hallucination,config.sql_read_only,config.sql_restricted_tables,config.toxicity]
+application  StringAttribute required
+    plan modifier: If the value of this attribute changes, Terraform will destroy and recreate the resource.
+    validator: string length must be between 1 and 256
+config  SingleNestedAttribute required
+config.allowed_topics  SingleNestedAttribute optional
+config.allowed_topics.topics  SetAttribute required elem=basetypes.StringType
+    validator: element value must satisfy all validations: string length must be between 1 and 256
+    validator: set must contain at least 1 elements
+    validator: set must contain at most 1024 elements
+config.competition  SingleNestedAttribute optional
+config.competition.competitors  SetAttribute required elem=basetypes.StringType
+    validator: element value must satisfy all validations: string length must be between 1 and 256
+    validator: set must contain at least 1 elements
+    validator: set must contain at most 1024 elements
+config.hallucination_completeness  SingleNestedAttribute optional
+config.hallucination_context_adherence  SingleNestedAttribute optional
+config.hallucination_context_relevance  SingleNestedAttribute optional
+config.hallucination_correctness  SingleNestedAttribute optional
+config.hallucination_task_adherence  SingleNestedAttribute optional
+config.language_mismatch  SingleNestedAttribute optional
+config.pii  SingleNestedAttribute optional
+config.pii.categories  SetAttribute required elem=basetypes.StringType
+    validator: element value must satisfy all validations: value must be one of: ["CREDIT_CARD" "EMAIL_ADDRESS" "IBAN_CODE" "PHONE_NUMBER" "US_SSN"]
+    validator: set must contain at least 1 elements
+    validator: set must contain at most 1024 elements
+config.prompt_injection  SingleNestedAttribute optional
+config.prompt_injection.additional_context  StringAttribute optional computed
+    default: value defaults to 
+    validator: string length must be between 0 and 65536
+config.restricted_topics  SingleNestedAttribute optional
+config.restricted_topics.topics  SetAttribute required elem=basetypes.StringType
+    validator: element value must satisfy all validations: string length must be between 1 and 256
+    validator: set must contain at least 1 elements
+    validator: set must contain at most 1024 elements
+config.sexism  SingleNestedAttribute optional
+config.sql_allowed_tables  SingleNestedAttribute optional
+config.sql_allowed_tables.tables  SetAttribute required elem=basetypes.StringType
+    validator: element value must satisfy all validations: string length must be between 1 and 256
+    validator: set must contain at least 1 elements
+    validator: set must contain at most 1024 elements
+config.sql_hallucination  SingleNestedAttribute optional
+config.sql_read_only  SingleNestedAttribute optional
+config.sql_restricted_tables  SingleNestedAttribute optional
+config.sql_restricted_tables.tables  SetAttribute required elem=basetypes.StringType
+    validator: element value must satisfy all validations: string length must be between 1 and 256
+    validator: set must contain at least 1 elements
+    validator: set must contain at most 1024 elements
+config.toxicity  SingleNestedAttribute optional
+id  StringAttribute computed
+    plan modifier: Once set, the value of this attribute in state will not change.
+is_enabled  BoolAttribute optional computed
+    default: value defaults to true
+subsystem  StringAttribute required
+    plan modifier: If the value of this attribute changes, Terraform will destroy and recreate the resource.
+    validator: string length must be between 1 and 256
+target  StringAttribute required
+    plan modifier: If the value of this attribute changes, Terraform will destroy and recreate the resource.
+    validator: value must be one of: ["prompt" "response"]
+threshold  Float64Attribute required
+    validator: value must be between 0.000000 and 1.000000

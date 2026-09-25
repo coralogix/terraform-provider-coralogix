@@ -1,0 +1,53 @@
+~ (resource)
+    - validator: Exactly one of these attributes must be configured: [config.allowed_topics,config.competition,config.hallucination_completeness,config.hallucination_context_adherence,config.hallucination_context_relevance,config.hallucination_correctness,config.hallucination_task_adherence,config.language_mismatch,config.pii,config.prompt_injection,config.restricted_topics,config.sexism,config.sql_allowed_tables,config.sql_hallucination,config.sql_read_only,config.sql_restricted_tables,config.toxicity]
+    + validator: These attributes cannot be configured together: [config.allowed_topics,config.competition,config.custom_evaluation,config.hallucination_completeness,config.hallucination_context_adherence,config.hallucination_context_relevance,config.hallucination_correctness,config.hallucination_task_adherence,config.language_mismatch,config.pii,config.prompt_injection,config.restricted_topics,config.sexism,config.sql_allowed_tables,config.sql_hallucination,config.sql_load,config.sql_read_only,config.sql_restricted_tables,config.toxicity]
++ company_id  StringAttribute computed
+~ config.allowed_topics.topics
+    - SetAttribute required elem=basetypes.StringType
+    + SetAttribute optional elem=basetypes.StringType
+~ config.competition.competitors
+    - SetAttribute required elem=basetypes.StringType
+    + SetAttribute optional elem=basetypes.StringType
++ config.custom_evaluation  SingleNestedAttribute optional
++ config.custom_evaluation.examples  ListNestedAttribute optional
++ config.custom_evaluation.examples[].conversation  StringAttribute optional
++ config.custom_evaluation.examples[].score  Int64Attribute optional
++ config.custom_evaluation.instructions  StringAttribute optional
++ config.custom_evaluation.policy_type  StringAttribute optional
++ config.custom_evaluation.safe  StringAttribute optional
++ config.custom_evaluation.should_include_system_prompt  BoolAttribute optional
++ config.custom_evaluation.violates  StringAttribute optional
+~ config.pii.categories
+    - SetAttribute required elem=basetypes.StringType
+    + SetAttribute optional elem=basetypes.StringType
+~ config.prompt_injection.additional_context
+    - StringAttribute optional computed
+    - default: value defaults to 
+    + StringAttribute optional
+~ config.restricted_topics.topics
+    - SetAttribute required elem=basetypes.StringType
+    + SetAttribute optional elem=basetypes.StringType
+~ config.sql_allowed_tables.tables
+    - SetAttribute required elem=basetypes.StringType
+    + SetAttribute optional elem=basetypes.StringType
++ config.sql_load  SingleNestedAttribute optional
++ config.sql_load.allow_recursive_cte  BoolAttribute optional
++ config.sql_load.cte_limit  Int64Attribute optional
++ config.sql_load.join_limit  Int64Attribute optional
+~ config.sql_restricted_tables.tables
+    - SetAttribute required elem=basetypes.StringType
+    + SetAttribute optional elem=basetypes.StringType
++ created_at  StringAttribute computed
++ created_by  StringAttribute computed
+~ is_enabled
+    - default: value defaults to true
+    + default: value defaults to false
+~ target
+    - StringAttribute required
+    - validator: value must be one of: ["prompt" "response"]
+    + StringAttribute optional
+    + validator: value must be one of: ["CONVERSATION" "PROMPT" "RESPONSE"]
+~ threshold
+    - Float64Attribute required
+    + Float64Attribute optional
++ updated_at  StringAttribute computed
