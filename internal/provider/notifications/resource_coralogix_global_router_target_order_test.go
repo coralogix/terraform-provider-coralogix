@@ -34,10 +34,21 @@ func target(connector, preset string) globalRouters.RoutingTarget {
 	return t
 }
 
+// targetWithDetails builds a routing target whose custom details hold k=v.
+func targetWithDetails(connector, preset, v string) globalRouters.RoutingTarget {
+	t := target(connector, preset)
+	t.CustomDetails = map[string]string{"k": v}
+	return t
+}
+
 func targetKeys(targets []globalRouters.RoutingTarget) []string {
 	keys := make([]string, 0, len(targets))
 	for _, t := range targets {
-		keys = append(keys, t.GetConnectorId()+"/"+t.GetPresetId())
+		key := t.GetConnectorId() + "/" + t.GetPresetId()
+		if v, ok := t.GetCustomDetails()["k"]; ok {
+			key += "{k=" + v + "}"
+		}
+		keys = append(keys, key)
 	}
 	return keys
 }
@@ -78,6 +89,33 @@ func TestOrderTargetsLike(t *testing.T) {
 			api:    []globalRouters.RoutingTarget{target("pd", ""), target("http", ""), target("pd", "")},
 			prior:  []globalRouters.RoutingTarget{target("pd", ""), target("pd", ""), target("http", "")},
 			expect: []string{"pd/", "pd/", "http/"},
+		},
+		{
+			// Probe on eu2: the API accepts this pair and can return it in any order.
+			name:   "same connector and preset with different custom details",
+			api:    []globalRouters.RoutingTarget{targetWithDetails("http", "", "2"), targetWithDetails("http", "", "1")},
+			prior:  []globalRouters.RoutingTarget{targetWithDetails("http", "", "1"), targetWithDetails("http", "", "2")},
+			expect: []string{"http/{k=1}", "http/{k=2}"},
+		},
+		{
+			// An exact match must not take a slot that an earlier key-only match would take.
+			name:   "exact match wins over an earlier key-only match",
+			api:    []globalRouters.RoutingTarget{targetWithDetails("http", "", "1"), targetWithDetails("http", "", "changed")},
+			prior:  []globalRouters.RoutingTarget{targetWithDetails("http", "", "2"), targetWithDetails("http", "", "1")},
+			expect: []string{"http/{k=changed}", "http/{k=1}"},
+		},
+		{
+			name:   "custom details changed outside terraform keeps position",
+			api:    []globalRouters.RoutingTarget{target("pd", ""), targetWithDetails("http", "", "new")},
+			prior:  []globalRouters.RoutingTarget{targetWithDetails("http", "", "old"), target("pd", "")},
+			expect: []string{"http/{k=new}", "pd/"},
+		},
+		{
+			// Probe on eu2: 1 of 10 creates with mixed connector types came back rotated.
+			name:   "api rotated mixed connector types",
+			api:    []globalRouters.RoutingTarget{target("http-b", ""), target("http-a", ""), target("pd", "")},
+			prior:  []globalRouters.RoutingTarget{target("http-a", ""), target("pd", ""), target("http-b", "")},
+			expect: []string{"http-a/", "pd/", "http-b/"},
 		},
 		{
 			name:   "no prior keeps the api order",

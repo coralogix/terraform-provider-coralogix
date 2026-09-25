@@ -17,6 +17,7 @@ package notifications
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -669,21 +670,46 @@ func alignRuleTargets(rules, prior []globalRouters.RoutingRule) {
 	}
 }
 
-// orderTargetsLike returns targets in the order of prior, matching on connector
-// and preset IDs. Targets that are not in prior keep their API order at the end.
+// orderTargetsLike returns targets in the order of prior. The API accepts
+// several targets with the same connector and preset, so exact matches on
+// connector, preset and custom details claim their position first. Matching on
+// connector and preset alone then places targets whose custom details changed.
+// Targets that are not in prior keep their API order at the end.
 func orderTargetsLike(targets, prior []globalRouters.RoutingTarget) []globalRouters.RoutingTarget {
 	if len(targets) == 0 {
 		return targets
 	}
+	sameKey := func(t, p globalRouters.RoutingTarget) bool {
+		return t.GetConnectorId() == p.GetConnectorId() && t.GetPresetId() == p.GetPresetId()
+	}
+	sameContent := func(t, p globalRouters.RoutingTarget) bool {
+		return sameKey(t, p) && maps.Equal(t.GetCustomDetails(), p.GetCustomDetails())
+	}
+
 	used := make([]bool, len(targets))
-	ordered := make([]globalRouters.RoutingTarget, 0, len(targets))
-	for _, p := range prior {
-		for j, t := range targets {
-			if !used[j] && t.GetConnectorId() == p.GetConnectorId() && t.GetPresetId() == p.GetPresetId() {
-				used[j] = true
-				ordered = append(ordered, t)
-				break
+	slots := make([]int, len(prior))
+	for i := range slots {
+		slots[i] = -1
+	}
+	for _, match := range []func(t, p globalRouters.RoutingTarget) bool{sameContent, sameKey} {
+		for i, p := range prior {
+			if slots[i] != -1 {
+				continue
 			}
+			for j, t := range targets {
+				if !used[j] && match(t, p) {
+					used[j] = true
+					slots[i] = j
+					break
+				}
+			}
+		}
+	}
+
+	ordered := make([]globalRouters.RoutingTarget, 0, len(targets))
+	for _, j := range slots {
+		if j != -1 {
+			ordered = append(ordered, targets[j])
 		}
 	}
 	for j, t := range targets {
