@@ -183,6 +183,7 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
 		)
 		return
 	}
+	alignRuleTargets(result.Router.GetRules(), router.Rules)
 	plan, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -220,6 +221,12 @@ func (r *GlobalRouterResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
+	priorRules, diags := extractGlobalRouterRules(ctx, state.Rules)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	alignRuleTargets(result.Router.GetRules(), priorRules)
 	state, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -263,6 +270,7 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
 		}
 		return
 	}
+	alignRuleTargets(result.Router.GetRules(), router.Rules)
 	plan, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -646,6 +654,44 @@ func flattenCustomDetails(ctx context.Context, details map[string]string) (types
 	}
 
 	return types.MapValueFrom(ctx, types.StringType, detailsMap)
+}
+
+// alignRuleTargets reorders the targets of each rule to follow the order of the
+// rule at the same index in prior. The API can return targets in a different
+// order than it received them. Target order has no meaning, because a matching
+// rule notifies all of its targets.
+func alignRuleTargets(rules, prior []globalRouters.RoutingRule) {
+	for i := range rules {
+		if i >= len(prior) {
+			return
+		}
+		rules[i].Targets = orderTargetsLike(rules[i].Targets, prior[i].Targets)
+	}
+}
+
+// orderTargetsLike returns targets in the order of prior, matching on connector
+// and preset IDs. Targets that are not in prior keep their API order at the end.
+func orderTargetsLike(targets, prior []globalRouters.RoutingTarget) []globalRouters.RoutingTarget {
+	if len(targets) == 0 {
+		return targets
+	}
+	used := make([]bool, len(targets))
+	ordered := make([]globalRouters.RoutingTarget, 0, len(targets))
+	for _, p := range prior {
+		for j, t := range targets {
+			if !used[j] && t.GetConnectorId() == p.GetConnectorId() && t.GetPresetId() == p.GetPresetId() {
+				used[j] = true
+				ordered = append(ordered, t)
+				break
+			}
+		}
+	}
+	for j, t := range targets {
+		if !used[j] {
+			ordered = append(ordered, t)
+		}
+	}
+	return ordered
 }
 
 func flattenRoutingTargets(ctx context.Context, targets []globalRouters.RoutingTarget) (types.List, diag.Diagnostics) {
