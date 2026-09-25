@@ -26,8 +26,10 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 var alertResourceName = "coralogix_alert.test"
@@ -336,6 +338,30 @@ func TestAccCoralogixResourceAlert_router_id(t *testing.T) {
 				Config:           testAccCoralogixResourceAlertRouterId("router id alert", `{ id = "router_default" }`),
 				Check:            resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.id", "router_default"),
 				ConfigPlanChecks: emptyPlan,
+			},
+			// Import an alert that uses router_default with router = {}.
+			// The plan must show the id change instead of hiding it.
+			{
+				Config:             testAccCoralogixResourceAlertRouterId("router id alert", "{}"),
+				ResourceName:       alertResourceName,
+				ImportState:        true,
+				ImportStateKind:    resource.ImportBlockWithID,
+				ExpectNonEmptyPlan: true,
+				ImportPlanChecks: resource.ImportPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(alertResourceName, plancheck.ResourceActionUpdate),
+						plancheck.ExpectKnownValue(alertResourceName,
+							tfjsonpath.New("notification_group").AtMapKey("router").AtMapKey("id"),
+							knownvalue.StringExact("")),
+					},
+				},
+			},
+			// The same import with the id in HCL keeps the router and plans no changes.
+			{
+				Config:          testAccCoralogixResourceAlertRouterId("router id alert", `{ id = "router_default" }`),
+				ResourceName:    alertResourceName,
+				ImportState:     true,
+				ImportStateKind: resource.ImportBlockWithID,
 			},
 			{
 				Config:           testAccCoralogixResourceAlertRouterId("router id alert updated", `{ id = "router_default" }`),
