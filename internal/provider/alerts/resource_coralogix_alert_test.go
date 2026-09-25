@@ -405,7 +405,7 @@ func TestPreserveDestinationRetriggeringNulls(t *testing.T) {
 				types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV3Attr()},
 				[]attr.Value{destinationObject(retriggeringPeriodMinutes)},
 			),
-			"router": types.ObjectNull(alertschema.NotificationRouterAttr()),
+			"router": types.ObjectNull(alertschema.NotificationRouterV3Attr()),
 		})
 	}
 
@@ -541,6 +541,70 @@ func TestExtractUndetectedValuesManagementForRatio(t *testing.T) {
 		}
 		if got.AutoRetireTimeframe == nil || *got.AutoRetireTimeframe != alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_HOUR_1 {
 			t.Errorf("AutoRetireTimeframe = %v, want HOUR_1", got.AutoRetireTimeframe)
+		}
+	})
+}
+
+// TestNotificationRouterIdRoundTrip ensures the router id read from the API is
+// sent back on the next write. Before the fix, flatten dropped the id and every
+// update silently moved an alert from its router to label-based matching.
+func TestNotificationRouterIdRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	for _, id := range []string{"router_default", ""} {
+		t.Run("id "+`"`+id+`"`, func(t *testing.T) {
+			flattened, diags := flattenNotificationRouter(ctx, &alerts.NotificationRouter{
+				Id:       &id,
+				NotifyOn: alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED.Ptr(),
+			})
+			if diags.HasError() {
+				t.Fatalf("flattenNotificationRouter returned diagnostics: %v", diags)
+			}
+			got, diags := extractNotificationRouter(ctx, flattened)
+			if diags.HasError() {
+				t.Fatalf("extractNotificationRouter returned diagnostics: %v", diags)
+			}
+			if got.Id == nil || *got.Id != id {
+				t.Fatalf("Id = %v, want %q", got.Id, id)
+			}
+		})
+	}
+
+	t.Run("missing id is flattened to empty string", func(t *testing.T) {
+		flattened, diags := flattenNotificationRouter(ctx, &alerts.NotificationRouter{})
+		if diags.HasError() {
+			t.Fatalf("flattenNotificationRouter returned diagnostics: %v", diags)
+		}
+		var model alerttypes.NotificationRouterModel
+		if diags := flattened.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+			t.Fatalf("As returned diagnostics: %v", diags)
+		}
+		if model.Id.IsNull() || model.Id.IsUnknown() || model.Id.ValueString() != "" {
+			t.Fatalf("Id = %v, want known empty string", model.Id)
+		}
+	})
+
+	t.Run("nil router is flattened to null", func(t *testing.T) {
+		flattened, diags := flattenNotificationRouter(ctx, nil)
+		if diags.HasError() {
+			t.Fatalf("flattenNotificationRouter returned diagnostics: %v", diags)
+		}
+		if !flattened.IsNull() {
+			t.Fatalf("flattenNotificationRouter(nil) = %v, want null", flattened)
+		}
+	})
+
+	t.Run("unknown id is not sent", func(t *testing.T) {
+		object := types.ObjectValueMust(alertschema.NotificationRouterV3Attr(), map[string]attr.Value{
+			"notify_on": types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED]),
+			"id":        types.StringUnknown(),
+		})
+		got, diags := extractNotificationRouter(ctx, object)
+		if diags.HasError() {
+			t.Fatalf("extractNotificationRouter returned diagnostics: %v", diags)
+		}
+		if got.Id != nil {
+			t.Fatalf("Id = %q, want nil", *got.Id)
 		}
 	})
 }

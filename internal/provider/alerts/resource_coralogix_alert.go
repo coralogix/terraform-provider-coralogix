@@ -590,6 +590,12 @@ func extractNotificationRouter(ctx context.Context, routerObject types.Object) (
 
 	router := &alerts.NotificationRouter{}
 
+	// "" is sent as is: the API stores it the same as a missing id, which
+	// means label-based Global Router matching.
+	if !routerModel.Id.IsNull() && !routerModel.Id.IsUnknown() {
+		router.Id = routerModel.Id.ValueStringPointer()
+	}
+
 	if !routerModel.NotifyOn.IsNull() && !routerModel.NotifyOn.IsUnknown() {
 		router.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[routerModel.NotifyOn.ValueString()].Ptr()
 	} else {
@@ -3493,7 +3499,7 @@ func flattenRoutingOverrides(ctx context.Context, overrides *alerts.V3SourceOver
 
 func flattenNotificationRouter(ctx context.Context, notificationRouter *alerts.NotificationRouter) (types.Object, diag.Diagnostics) {
 	if notificationRouter == nil {
-		return types.ObjectNull(alertschema.NotificationRouterAttr()), nil
+		return types.ObjectNull(alertschema.NotificationRouterV3Attr()), nil
 	}
 
 	var notifyOn alerts.NotifyOn
@@ -3504,8 +3510,9 @@ func flattenNotificationRouter(ctx context.Context, notificationRouter *alerts.N
 	}
 	notificationRouterModel := alerttypes.NotificationRouterModel{
 		NotifyOn: types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[notifyOn]),
+		Id:       types.StringValue(notificationRouter.GetId()),
 	}
-	return types.ObjectValueFrom(ctx, alertschema.NotificationRouterAttr(), notificationRouterModel)
+	return types.ObjectValueFrom(ctx, alertschema.NotificationRouterV3Attr(), notificationRouterModel)
 }
 
 func flattenRetriggeringPeriod(ctx context.Context, notifications *alerts.AlertDefWebhooksSettings) (types.Object, diag.Diagnostics) {

@@ -315,6 +315,50 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 
 }
 
+// TestAccCoralogixResourceAlert_router_id covers set -> keep on unrelated update
+// -> import -> remove for notification_group.router.id. Before the fix, the id
+// was not in the schema and every update silently cleared it.
+func TestAccCoralogixResourceAlert_router_id(t *testing.T) {
+	emptyPlan := resource.ConfigPlanChecks{
+		PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+	}
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config:           testAccCoralogixResourceAlertRouterId("router id alert", "{}"),
+				Check:            resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.id", ""),
+				ConfigPlanChecks: emptyPlan,
+			},
+			{
+				Config:           testAccCoralogixResourceAlertRouterId("router id alert", `{ id = "router_default" }`),
+				Check:            resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.id", "router_default"),
+				ConfigPlanChecks: emptyPlan,
+			},
+			{
+				Config:           testAccCoralogixResourceAlertRouterId("router id alert updated", `{ id = "router_default" }`),
+				Check:            resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.id", "router_default"),
+				ConfigPlanChecks: emptyPlan,
+			},
+			{
+				ResourceName:      alertResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertRouterId("router id alert updated", "{}"),
+				Check:  resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.id", ""),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(alertResourceName, plancheck.ResourceActionUpdate)},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceAlert_custom_evaluation_delay_omitted_and_explicit(t *testing.T) {
 	name := uuid.NewString()
 	resource.ParallelTest(t, resource.TestCase{
@@ -4896,4 +4940,27 @@ func testAccCoralogixResourceAlertDataSources(dataSpace, dataSet string) string 
 
 func testAccCoralogixResourceAlertDataSourcesRemoved() string {
 	return testAccCoralogixResourceAlertDataSourcesBase("")
+}
+
+func testAccCoralogixResourceAlertRouterId(description, router string) string {
+	return fmt.Sprintf(`resource "coralogix_alert" "test" {
+  name        = "router id alert"
+  description = "%s"
+  priority    = "P5"
+
+  notification_group = {
+    router = %s
+  }
+
+  type_definition = {
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
+    }
+  }
+}
+`, description, router)
 }

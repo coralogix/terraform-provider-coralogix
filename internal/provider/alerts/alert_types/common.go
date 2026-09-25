@@ -375,6 +375,7 @@ type NotificationGroupModel struct {
 
 type NotificationRouterModel struct {
 	NotifyOn types.String `tfsdk:"notify_on"`
+	Id       types.String `tfsdk:"id"`
 }
 
 type NotificationDestinationModel struct {
