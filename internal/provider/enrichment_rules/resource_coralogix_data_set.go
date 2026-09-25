@@ -318,6 +318,7 @@ func expandFileContent(d *schema.ResourceData) (fileContent string, modification
 		if err != nil {
 			return "", "", err
 		}
+		defer f.Close()
 		bf := bufio.NewReader(f)
 
 		buf := make([]byte, MAX_READ_BUFF)
