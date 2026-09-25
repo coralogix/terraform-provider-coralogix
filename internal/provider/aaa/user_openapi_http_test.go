@@ -24,7 +24,11 @@ import (
 	"testing"
 
 	users "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // newUsersClient points a generated Users client at a local test server, so the
@@ -347,6 +351,92 @@ func TestCreateUsersRequestBody(t *testing.T) {
 	}
 	if template["status"] != "USER_STATUS_INACTIVE" {
 		t.Errorf("status = %v, want USER_STATUS_INACTIVE", template["status"])
+	}
+}
+
+// importUser runs ImportState on an empty state, the way Terraform starts an import.
+func importUser(t *testing.T, r *UserResource, id string) *resource.ImportStateResponse {
+	t.Helper()
+	ctx := context.Background()
+
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	resp := &resource.ImportStateResponse{State: tfsdk.State{
+		Schema: schemaResp.Schema,
+		Raw:    tftypes.NewValue(schemaResp.Schema.Type().TerraformType(ctx), nil),
+	}}
+	r.ImportState(ctx, resource.ImportStateRequest{ID: id}, resp)
+	return resp
+}
+
+func importedString(t *testing.T, resp *resource.ImportStateResponse, attribute string) string {
+	t.Helper()
+	var value types.String
+	if diags := resp.State.GetAttribute(context.Background(), path.Root(attribute), &value); diags.HasError() {
+		t.Fatalf("reading %s: %v", attribute, diags)
+	}
+	return value.ValueString()
+}
+
+// An email is resolved with one filtered search, and state gets the UUID as id, the
+// same as an import by id.
+func TestUserImportStateByEmail(t *testing.T) {
+	t.Parallel()
+
+	var filters []string
+	client := newUsersClient(t, func(w http.ResponseWriter, r *http.Request) {
+		filters = append(filters, r.URL.Query().Get("username"))
+		writeJSON(t, w, map[string]any{"users": []map[string]any{{
+			"userId": "476b96bc-0f2e-42dd-b038-186bc1121b73", "username": "A@coralogix.com",
+		}}})
+	})
+
+	resp := importUser(t, &UserResource{client: client}, "a@coralogix.com")
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("ImportState diagnostics: %v", resp.Diagnostics)
+	}
+	if len(filters) != 1 || filters[0] != "a@coralogix.com" {
+		t.Errorf("requests = %v, want one search filtered by the email", filters)
+	}
+	if got := importedString(t, resp, "id"); got != "476b96bc-0f2e-42dd-b038-186bc1121b73" {
+		t.Errorf("id = %q, want the UUID", got)
+	}
+	if got := importedString(t, resp, "user_name"); got != "A@coralogix.com" {
+		t.Errorf("user_name = %q, want the backend spelling", got)
+	}
+}
+
+// A UUID is passed through unchanged and makes no call. Read resolves it later.
+func TestUserImportStateByID(t *testing.T) {
+	t.Parallel()
+
+	client := newUsersClient(t, func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("unexpected request %s %s", r.Method, r.URL)
+	})
+
+	resp := importUser(t, &UserResource{client: client}, "476b96bc-0f2e-42dd-b038-186bc1121b73")
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("ImportState diagnostics: %v", resp.Diagnostics)
+	}
+	if got := importedString(t, resp, "id"); got != "476b96bc-0f2e-42dd-b038-186bc1121b73" {
+		t.Errorf("id = %q", got)
+	}
+}
+
+// An email that matches nobody fails the import instead of writing an empty id.
+func TestUserImportStateByEmailNotFound(t *testing.T) {
+	t.Parallel()
+
+	client := newUsersClient(t, func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(t, w, map[string]any{"users": []map[string]any{}})
+	})
+
+	resp := importUser(t, &UserResource{client: client}, "gone@coralogix.com")
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("ImportState accepted an email that matches no user")
+	}
+	if got := resp.Diagnostics.Errors()[0].Summary(); !strings.Contains(got, "not found") {
+		t.Errorf("error = %q, want not found", got)
 	}
 }
 

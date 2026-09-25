@@ -159,6 +159,31 @@ func findUsersByUsername(ctx context.Context, client *users.UsersManagementServi
 	return matchUsersByUsername(candidates, username), nil
 }
 
+// singleUserByUsername picks the one user an email lookup must resolve to. The data
+// source and import by email share it, so both reject the same ambiguous results.
+func singleUserByUsername(matches []users.RbacV2User, username string) (*users.RbacV2User, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	switch len(matches) {
+	case 0:
+		diags.AddError(fmt.Sprintf("User with user_name %q not found", username), "")
+	case 1:
+		if matches[0].GetUserId() == "" {
+			diags.AddError(
+				fmt.Sprintf("User with user_name %q was returned without an id", username),
+				"Use the user id instead, or report this to the provider developers.",
+			)
+			break
+		}
+		return &matches[0], nil
+	default:
+		diags.AddError(
+			fmt.Sprintf("Multiple Users found with user_name %q", username),
+			fmt.Sprintf("Matched user ids: %s. Use the user id instead.", strings.Join(userIDs(matches), ", ")),
+		)
+	}
+	return nil, diags
+}
+
 func matchUserByID(candidates []users.RbacV2User, userID string) *users.RbacV2User {
 	for i := range candidates {
 		if candidates[i].GetUserId() == userID {

@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -171,27 +170,12 @@ func (d *UserDataSource) userByUserName(ctx context.Context, userName string) (*
 		return nil, diags
 	}
 
-	switch len(matches) {
-	case 0:
-		diags.AddError(fmt.Sprintf("User with user_name %q not found", userName), "")
-		return nil, diags
-	case 1:
-		if matches[0].GetUserId() == "" {
-			diags.AddError(
-				fmt.Sprintf("User with user_name %q was returned without an id", userName),
-				"Look the user up by id instead, or report this to the provider developers.",
-			)
-			return nil, diags
-		}
-	default:
-		diags.AddError(
-			fmt.Sprintf("Multiple Users found with user_name %q", userName),
-			fmt.Sprintf("Matched user ids: %s. Look the user up by id instead.", strings.Join(userIDs(matches), ", ")),
-		)
+	user, diags := singleUserByUsername(matches, userName)
+	if diags.HasError() {
 		return nil, diags
 	}
 
-	return d.flatten(ctx, &matches[0])
+	return d.flatten(ctx, user)
 }
 
 func (d *UserDataSource) flatten(ctx context.Context, user *users.RbacV2User) (*UserResourceModel, diag.Diagnostics) {

@@ -150,8 +150,28 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 	}
 }
 
+// ImportState accepts the user id or the user's email. A UUID never contains "@" and an
+// email always does, so the two cannot be confused. The email form costs one search;
+// the id form lists the team, because the API cannot read a user by id.
 func (r *UserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	if !strings.Contains(req.ID, "@") {
+		resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+		return
+	}
+
+	matches, err := findUsersByUsername(ctx, r.client, req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Error importing User", err.Error())
+		return
+	}
+	user, diags := singleUserByUsername(matches, req.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), user.GetUserId())...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("user_name"), user.GetUsername())...)
 }
 
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

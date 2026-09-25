@@ -53,6 +53,13 @@ func TestAccCoralogixResourceUser(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Import by email resolves to the same state as import by id.
+			{
+				ResourceName:      userResourceName,
+				ImportState:       true,
+				ImportStateId:     userName,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

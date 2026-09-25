@@ -487,3 +487,36 @@ func TestIsUserNotFoundErr(t *testing.T) {
 		t.Error("isUserNotFoundErr matched an unrelated error")
 	}
 }
+
+// An email lookup must resolve to exactly one user with an id. The data source and import
+// by email share this rule.
+func TestSingleUserByUsername(t *testing.T) {
+	t.Parallel()
+
+	one := testUser("id-a", "a@coralogix.com", "", "", users.USERSTATUS_USER_STATUS_ACTIVE)
+	other := testUser("id-b", "a@coralogix.com", "", "", users.USERSTATUS_USER_STATUS_ACTIVE)
+	noID := testUser("", "a@coralogix.com", "", "", users.USERSTATUS_USER_STATUS_ACTIVE)
+
+	user, diags := singleUserByUsername([]users.RbacV2User{one}, "a@coralogix.com")
+	if diags.HasError() || user.GetUserId() != "id-a" {
+		t.Errorf("one match: user = %#v, diags = %v", user, diags)
+	}
+
+	for name, tc := range map[string]struct {
+		matches  []users.RbacV2User
+		wantWord string
+	}{
+		"none":       {nil, "not found"},
+		"several":    {[]users.RbacV2User{one, other}, "Multiple"},
+		"without id": {[]users.RbacV2User{noID}, "without an id"},
+	} {
+		user, diags := singleUserByUsername(tc.matches, "a@coralogix.com")
+		if !diags.HasError() || user != nil {
+			t.Errorf("%s: user = %#v, want an error", name, user)
+			continue
+		}
+		if got := diags.Errors()[0].Summary(); !strings.Contains(got, tc.wantWord) {
+			t.Errorf("%s: error = %q, want it to mention %q", name, got, tc.wantWord)
+		}
+	}
+}
