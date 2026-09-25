@@ -21,8 +21,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-
 	usersservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -317,8 +315,13 @@ func TestAccCoralogixResourceUserDestroyWhenAlreadyInactive(t *testing.T) {
 }
 
 // testAccFindUser searches for a user by username the way the provider does.
+// It builds its own client: testAccProvider is only configured once another test has
+// run, and the migration test runs on its own.
 func testAccFindUser(ctx context.Context, userName string) (*usersservice.RbacV2User, error) {
-	cs := testAccProvider.Meta().(*clientset.ClientSet)
+	cs, err := testAccNewClientSet()
+	if err != nil {
+		return nil, err
+	}
 	searchResp, _, err := cs.Users().UsersMgmtServiceSearchUsers(ctx).
 		Username(userName).
 		PageSize(100).
@@ -357,7 +360,10 @@ func testAccPutUserOutOfBand(t *testing.T, userName string, change func(template
 	}
 	change(template)
 
-	cs := testAccProvider.Meta().(*clientset.ClientSet)
+	cs, err := testAccNewClientSet()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, _, err := cs.Users().UsersMgmtServiceUpdateUsers(ctx).
 		UpdateUserRequest([]usersservice.UpdateUserRequest{{UserId: user.UserId, UserTemplate: template}}).
 		Execute(); err != nil {
