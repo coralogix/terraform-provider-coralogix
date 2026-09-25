@@ -16,16 +16,13 @@ package aaa
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
+	users "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -36,10 +33,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func NewUserResource() resource.Resource {
@@ -47,7 +43,7 @@ func NewUserResource() resource.Resource {
 }
 
 type UserResource struct {
-	client *clientset.UsersClient
+	client *users.UsersManagementServiceAPIService
 }
 
 func (r *UserResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -154,8 +150,28 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 	}
 }
 
+// ImportState accepts the user id or the user's email. A UUID never contains "@" and an
+// email always does, so the two cannot be confused. The email form costs one search;
+// the id form lists the team, because the API cannot read a user by id.
 func (r *UserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	if !strings.Contains(req.ID, "@") {
+		resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+		return
+	}
+
+	matches, err := findUsersByUsername(ctx, r.client, req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Error importing User", err.Error())
+		return
+	}
+	user, diags := singleUserByUsername(matches, req.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), user.GetUserId())...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("user_name"), user.GetUsername())...)
 }
 
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -166,105 +182,42 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	createUserRequest, diags := extractCreateUser(ctx, plan)
+	name, diags := extractUserName(ctx, plan.Name)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	userStr, _ := json.Marshal(createUserRequest)
-	log.Printf("[INFO] Creating new User: %s", string(userStr))
-	createResp, err := r.client.Create(ctx, createUserRequest)
+
+	userName := plan.UserName.ValueString()
+	onboardingMode := users.ONBOARDINGMODE_ONBOARDING_MODE_NO_INVITE
+	createReq := []users.CreateUserRequest{{
+		OnboardingMode: &onboardingMode,
+		UserTemplate:   createUserTemplate(userName, name, plan.Active.ValueBool()),
+	}}
+
+	log.Printf("[INFO] Creating new User: %s", userName)
+	createResp, httpResp, err := r.client.
+		UsersMgmtServiceCreateUsers(ctx).
+		CreateUserRequest(createReq).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error creating User",
-			utils.FormatRpcErrors(err, r.client.BaseURL(), string(userStr)),
-		)
-		return
-	}
-	userStr, _ = json.Marshal(createResp)
-	log.Printf("[INFO] Submitted new User: %s", userStr)
-
-	state, diags := flattenSCIMUser(ctx, createResp)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+		resp.Diagnostics.AddError("Error creating User", formatUserAPIError(httpResp, err, "CreateUsers", userName).Error())
 		return
 	}
 
-	diags = resp.State.Set(ctx, state)
-	resp.Diagnostics.Append(diags...)
-}
-
-func flattenSCIMUser(ctx context.Context, user *cxsdk.SCIMUser) (*UserResourceModel, diag.Diagnostics) {
-	name, diags := flattenSCIMUserName(ctx, user.Name)
-	if diags.HasError() {
-		return nil, diags
+	result, err := createUserResultFor(createResp, userName)
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating User", err.Error())
+		return
 	}
-
-	emails, diags := flattenSCIMUserEmails(ctx, user.Emails)
-	if diags.HasError() {
-		return nil, diags
+	user, err := createdUser(result)
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating User", err.Error())
+		return
 	}
+	log.Printf("[INFO] Created new User %s", user.GetUserId())
 
-	groups, diags := flattenSCIMUserGroups(ctx, user.Groups)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &UserResourceModel{
-		ID:       types.StringValue(*user.ID),
-		UserName: types.StringValue(user.UserName),
-		Name:     name,
-		Active:   types.BoolValue(user.Active),
-		Emails:   emails,
-		Groups:   groups,
-	}, nil
-}
-
-func flattenSCIMUserEmails(ctx context.Context, emails []cxsdk.SCIMUserEmail) (types.Set, diag.Diagnostics) {
-	emailsIDs := make([]UserEmailModel, 0, len(emails))
-	for _, email := range emails {
-		emailModel := UserEmailModel{
-			Primary: types.BoolValue(email.Primary),
-			Value:   types.StringValue(email.Value),
-			Type:    types.StringValue(email.Type),
-		}
-		emailsIDs = append(emailsIDs, emailModel)
-	}
-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: SCIMUserEmailAttr()}, emailsIDs)
-}
-
-func SCIMUserEmailAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"primary": types.BoolType,
-		"value":   types.StringType,
-		"type":    types.StringType,
-	}
-}
-
-func flattenSCIMUserName(ctx context.Context, name *cxsdk.SCIMUserName) (types.Object, diag.Diagnostics) {
-	if name == nil {
-		return types.ObjectNull(sCIMUserNameAttr()), nil
-	}
-	return types.ObjectValueFrom(ctx, sCIMUserNameAttr(), &UserNameModel{
-		GivenName:  types.StringValue(name.GivenName),
-		FamilyName: types.StringValue(name.FamilyName),
-	})
-}
-
-func sCIMUserNameAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"given_name":  types.StringType,
-		"family_name": types.StringType,
-	}
-}
-
-func flattenSCIMUserGroups(ctx context.Context, groups []cxsdk.SCIMUserGroup) (types.Set, diag.Diagnostics) {
-	groupsIDs := make([]string, 0, len(groups))
-	for _, group := range groups {
-		groupsIDs = append(groupsIDs, group.Value)
-	}
-	return types.SetValueFrom(ctx, types.StringType, groupsIDs)
+	r.setUserState(ctx, plan, user, &resp.State, resp.Private, &resp.Diagnostics)
 }
 
 func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -275,40 +228,43 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	//Get refreshed User value from Coralogix
 	id := state.ID.ValueString()
-	getUserResp, err := r.client.Get(ctx, id)
+	log.Printf("[INFO] Reading User: %s", id)
+	user, err := findUserByID(ctx, r.client, id, state.UserName.ValueString())
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if isUserNotFoundErr(err) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("User %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading User",
-				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), ""),
-			)
+			return
 		}
-		return
-	}
-	respStr, _ := json.Marshal(getUserResp)
-	log.Printf("[INFO] Received User: %s", string(respStr))
-
-	state, diags = flattenSCIMUser(ctx, getUserResp)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+		resp.Diagnostics.AddError("Error reading User", err.Error())
 		return
 	}
 
-	diags = resp.State.Set(ctx, &state)
+	refreshed, err := flattenUserToState(ctx, user)
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading User", err.Error())
+		return
+	}
+	refreshed.Name = preserveUserName(ctx, state.Name, refreshed.Name)
+
+	resp.Diagnostics.Append(setUserEcho(ctx, resp.Private, user)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// The username is stored exactly as the backend spells it, which is what the SCIM
+	// read did. The plan modifier absorbs a case-only difference from the configuration,
+	// so this cannot produce a diff, and it keeps `user_name` and `emails[].value` in
+	// agreement.
+	diags = resp.State.Set(ctx, refreshed)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
 	var plan, state *UserResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	if diags.HasError() {
@@ -316,7 +272,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 	diags = req.State.Get(ctx, &state)
-	if resp.Diagnostics.HasError() {
+	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
@@ -334,57 +290,43 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	userUpdateReq, diags := extractCreateUser(ctx, plan)
+	name, diags := extractUserName(ctx, plan.Name)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	userStr, _ := json.Marshal(userUpdateReq)
-	log.Printf("[INFO] Updating User: %s", string(userStr))
-	userID := plan.ID.ValueString()
-	userUpdateResp, err := r.client.Update(ctx, userID, userUpdateReq)
+	userID := state.ID.ValueString()
+	echo, err := r.userEcho(ctx, req.Private, userID, state.UserName.ValueString())
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error updating User",
-			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), userID), string(userStr)),
-		)
-		return
-	}
-	userStr, _ = json.Marshal(userUpdateResp)
-	log.Printf("[INFO] Submitted updated User: %s", string(userStr))
-
-	// Get refreshed User value from Coralogix
-	id := plan.ID.ValueString()
-	getUserResp, err := r.client.Get(ctx, id)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if isUserNotFoundErr(err) {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("User %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				fmt.Sprintf("User %q is in state, but no longer exists in Coralogix backend", userID),
+				fmt.Sprintf("%s will be recreated when you apply", userID),
 			)
 			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading User",
-				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), string(userStr)),
-			)
+			return
 		}
-		return
-	}
-	userStr, _ = json.Marshal(getUserResp)
-	log.Printf("[INFO] Received User: %s", string(userStr))
-
-	state, diags = flattenSCIMUser(ctx, getUserResp)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+		resp.Diagnostics.AddError("Error updating User", err.Error())
 		return
 	}
 
-	diags = resp.State.Set(ctx, state)
-	resp.Diagnostics.Append(diags...)
+	log.Printf("[INFO] Updating User %s", userID)
+	user, err := putUser(ctx, r.client, userID, updateUserTemplate(name, plan.Active.ValueBool(), echo))
+	if err != nil {
+		if isUserNotFoundErr(err) {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("User %q is in state, but no longer exists in Coralogix backend", userID),
+				fmt.Sprintf("%s will be recreated when you apply", userID),
+			)
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError("Error updating User", err.Error())
+		return
+	}
+
+	r.setUserState(ctx, plan, user, &resp.State, resp.Private, &resp.Diagnostics)
 }
 
 func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -397,17 +339,93 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting User %s", id)
-	if err := r.client.Delete(ctx, id); err != nil {
-		if status.Code(err) == codes.NotFound {
-			return
-		}
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting User %s", id),
-			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), ""),
-		)
+
+	name, diags := extractUserName(ctx, state.Name)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] User %s deleted", id)
+
+	echo, err := r.userEcho(ctx, req.Private, id, state.UserName.ValueString())
+	if err != nil {
+		if isUserNotFoundErr(err) {
+			log.Printf("[INFO] User %s is already gone", id)
+			return
+		}
+		resp.Diagnostics.AddError(fmt.Sprintf("Error Deleting User %s", id), err.Error())
+		return
+	}
+
+	// The Users API has no delete. Deactivating matches what the SCIM delete did: it
+	// was always a soft delete that left the user readable with an inactive status.
+	// Deactivating a user that is already inactive succeeds, so no read is needed first.
+	if _, err := putUser(ctx, r.client, id, updateUserTemplate(name, false, echo)); err != nil {
+		if isUserNotFoundErr(err) {
+			log.Printf("[INFO] User %s is already gone", id)
+			return
+		}
+		resp.Diagnostics.AddError(fmt.Sprintf("Error Deleting User %s", id), err.Error())
+		return
+	}
+	log.Printf("[INFO] User %s deactivated", id)
+}
+
+// setUserState writes the user a create or an update returned. Both responses carry the
+// full user, so no read follows.
+func (r *UserResource) setUserState(ctx context.Context, plan *UserResourceModel, user *users.RbacV2User, state *tfsdk.State, private userPrivateState, diags *diag.Diagnostics) {
+	applied, err := flattenUserToState(ctx, user)
+	if err != nil {
+		diags.AddError("Error reading User", err.Error())
+		return
+	}
+	applied.UserName = preserveUserNameCase(plan.UserName, applied.UserName)
+	applied.Name = preserveUserName(ctx, plan.Name, applied.Name)
+
+	diags.Append(setUserEcho(ctx, private, user)...)
+	if diags.HasError() {
+		return
+	}
+	diags.Append(state.Set(ctx, applied)...)
+}
+
+// userEcho returns the fields an update has to send back unchanged. They come from
+// private state, which every read and write refreshes. Private state is empty only when
+// no read has run since the upgrade from the SCIM provider, for example on
+// `apply -refresh=false`. Only then does this search for the user.
+func (r *UserResource) userEcho(ctx context.Context, private userPrivateState, userID, userName string) (userEcho, error) {
+	raw, diags := private.GetKey(ctx, userEchoPrivateKey)
+	if diags.HasError() {
+		first := diags.Errors()[0]
+		return userEcho{}, fmt.Errorf("%s: %s", first.Summary(), first.Detail())
+	}
+	echo, err := decodeUserEcho(raw)
+	if err != nil {
+		return userEcho{}, err
+	}
+	if echo != nil {
+		return *echo, nil
+	}
+
+	log.Printf("[INFO] No stored login modes for User %s, reading them first", userID)
+	user, err := findUserByID(ctx, r.client, userID, userName)
+	if err != nil {
+		return userEcho{}, err
+	}
+	return userEchoFrom(user), nil
+}
+
+// userPrivateState is the part of the framework's private state the user resource uses.
+type userPrivateState interface {
+	GetKey(ctx context.Context, key string) ([]byte, diag.Diagnostics)
+	SetKey(ctx context.Context, key string, value []byte) diag.Diagnostics
+}
+
+func setUserEcho(ctx context.Context, private userPrivateState, user *users.RbacV2User) diag.Diagnostics {
+	raw, err := encodeUserEcho(user)
+	if err != nil {
+		return diag.Diagnostics{diag.NewErrorDiagnostic("Error storing User login modes", err.Error())}
+	}
+	return private.SetKey(ctx, userEchoPrivateKey, raw)
 }
 
 type UserResourceModel struct {
@@ -430,91 +448,27 @@ type UserEmailModel struct {
 	Type    types.String `tfsdk:"type"`
 }
 
-func extractCreateUser(ctx context.Context, plan *UserResourceModel) (*cxsdk.SCIMUser, diag.Diagnostics) {
-	name, diags := extractUserSCIMName(ctx, plan.Name)
-	if diags.HasError() {
-		return nil, diags
-	}
-	emails, diags := extractUserEmails(ctx, plan.Emails)
-	if diags.HasError() {
-		return nil, diags
-	}
-	groups, diags := extractUserGroups(ctx, plan.Groups)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.SCIMUser{
-		Schemas:  []string{},
-		UserName: plan.UserName.ValueString(),
-		Name:     name,
-		Active:   plan.Active.ValueBool(),
-		Emails:   emails,
-		Groups:   groups,
-	}, nil
-}
-
-func extractUserGroups(ctx context.Context, groups types.Set) ([]cxsdk.SCIMUserGroup, diag.Diagnostics) {
-	groupsElements := groups.Elements()
-	userGroups := make([]cxsdk.SCIMUserGroup, 0, len(groupsElements))
-	var diags diag.Diagnostics
-	for _, group := range groupsElements {
-		val, err := group.ToTerraformValue(ctx)
-		if err != nil {
-			diags.AddError("Failed to convert value to Terraform", err.Error())
-			continue
-		}
-
-		var str string
-		if err = val.As(&str); err != nil {
-			diags.AddError("Failed to convert value to string", err.Error())
-			continue
-		}
-		userGroups = append(userGroups, cxsdk.SCIMUserGroup{Value: str})
-	}
-	if diags.HasError() {
-		return nil, diags
-	}
-	return userGroups, nil
-}
-
-func extractUserSCIMName(ctx context.Context, name types.Object) (*cxsdk.SCIMUserName, diag.Diagnostics) {
+func extractUserName(ctx context.Context, name types.Object) (*UserNameModel, diag.Diagnostics) {
 	if name.IsNull() || name.IsUnknown() {
 		return nil, nil
 	}
 	var nameModel UserNameModel
-	diags := name.As(ctx, &nameModel, basetypes.ObjectAsOptions{})
-	if diags.HasError() {
+	if diags := name.As(ctx, &nameModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
 	}
-
-	return &cxsdk.SCIMUserName{
-		GivenName:  nameModel.GivenName.ValueString(),
-		FamilyName: nameModel.FamilyName.ValueString(),
-	}, nil
+	return &nameModel, nil
 }
 
-func extractUserEmails(ctx context.Context, emails types.Set) ([]cxsdk.SCIMUserEmail, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	var emailsObjects []types.Object
-	var expandedEmails []cxsdk.SCIMUserEmail
-	emails.ElementsAs(ctx, &emailsObjects, true)
-
-	for _, eo := range emailsObjects {
-		var email UserEmailModel
-		if dg := eo.As(ctx, &email, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedEmail := cxsdk.SCIMUserEmail{
-			Value:   email.Value.ValueString(),
-			Primary: email.Primary.ValueBool(),
-			Type:    email.Type.ValueString(),
-		}
-		expandedEmails = append(expandedEmails, expandedEmail)
+// preserveUserNameCase keeps the username the configuration wrote, so a backend that
+// normalizes letter case does not produce an inconsistent-result error or a diff.
+func preserveUserNameCase(configured, fromAPI types.String) types.String {
+	if configured.IsNull() || configured.IsUnknown() {
+		return fromAPI
 	}
-
-	return expandedEmails, diags
+	if strings.EqualFold(configured.ValueString(), fromAPI.ValueString()) {
+		return configured
+	}
+	return fromAPI
 }
 
 type caseInsensitiveStringPlanModifier struct{}

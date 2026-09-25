@@ -52,6 +52,7 @@ import (
 	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
 	teamGroupss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/team_groups_management_service"
 	teamsservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/teams_service"
+	usersservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
 
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
@@ -61,7 +62,6 @@ type ClientSet struct {
 	dataSet        *cxsdk.DataSetClient
 	legacySlos     *cxsdk.LegacySLOsClient
 	ruleGroups     *cxsdk.RuleGroupsClient
-	users          *UsersClient
 	events2Metrics *e2ms.Events2MetricsServiceAPIService
 
 	dahboardsFolders      *dbfs.DashboardFoldersServiceAPIService
@@ -96,6 +96,7 @@ type ClientSet struct {
 	groups                *GroupsClient
 	teamGroups            *teamGroupss.TeamGroupsManagementServiceAPIService
 	teams                 *teamsservice.TeamsServiceAPIService
+	users                 *usersservice.UsersManagementServiceAPIService
 }
 
 func (c *ClientSet) ParsingRuleGroups() *prgs.RuleGroupsServiceAPIService {
@@ -202,7 +203,7 @@ func (c *ClientSet) Groups() *GroupsClient {
 	return c.groups
 }
 
-func (c *ClientSet) Users() *UsersClient {
+func (c *ClientSet) Users() *usersservice.UsersManagementServiceAPIService {
 	return c.users
 }
 
@@ -282,8 +283,6 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		legacySlos:  cxsdk.NewLegacySLOsClient(grpcCreator),
 		ruleGroups:  cxsdk.NewRuleGroupsClient(grpcCreator),
 
-		users: NewUsersClient(region, apiKey),
-
 		events2Metrics: cs.Events2Metrics(),
 
 		dahboardsFolders:      cs.DashboardFolders(),
@@ -318,5 +317,6 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		groups:                NewGroupsClient(region, apiKey),
 		teamGroups:            cs.Groups(),
 		teams:                 cs.Teams(),
+		users:                 cs.Users(),
 	}
 }

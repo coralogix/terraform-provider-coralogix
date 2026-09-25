@@ -1,5 +1,16 @@
 # Unreleased
 
+#### resource/coralogix_user
+- CHORE: Migrate off SCIM to the Users OpenAPI (`/aaa/users/v2`). HCL is unchanged: same attributes, and `id` stays the user UUID, so existing state refreshes without a migration and import by id still works.
+- CHORE: `emails` is derived from `user_name` as one primary `work` entry, which is what SCIM returned. `groups` comes from the user's group ids.
+- CHORE: Create sends no login mode. Update and destroy send back the login modes and access type the user already has, so they are never wiped.
+- CHORE: Destroy deactivates the user, as the SCIM delete did.
+- CHORE: API-key permissions are unchanged. The Users API checks `team-members:ReadConfig` and `team-members:Manage`, the same permissions SCIM user provisioning needed.
+- FEAT: Import by email as well as by user id: `terraform import coralogix_user.example someone@example.com`. Import by email takes one lookup.
+
+#### data-source/coralogix_user
+- CHORE: Read users through the Users OpenAPI instead of SCIM. Lookup by `id` or by `user_name` is unchanged, and `user_name` matching stays exact and case-insensitive.
+
 #### resource/coralogix_data_set
 - FIX: A file read error in `uploaded_file` returns a diagnostic instead of crashing the provider.
 - FIX: Import rejects non-numeric IDs.

@@ -23,6 +23,7 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
+	usersservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
 	clientset "github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -246,19 +247,8 @@ func main() {
 		log.Print("Error listing global routers:", err)
 	}
 
-	// Users
-	usersClient := cs.Users()
-	users, err := usersClient.List(ctx)
-	if err == nil {
-		log.Println("Deleting all users")
-		for _, user := range users {
-			if user.ID != nil {
-				usersClient.Delete(ctx, *user.ID)
-			}
-		}
-	} else {
-		log.Print("Error listing users:", err)
-	}
+	// Users. The Users API has no delete, so cleanup deactivates instead.
+	deactivateTestUsers(ctx, cs.Users())
 
 	// Views
 	viewsClient := cxsdk.NewViewsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
@@ -318,5 +308,57 @@ func main() {
 		}
 	} else {
 		log.Print("Error listing SLOs:", err)
+	}
+}
+
+// deactivateTestUsers deactivates the active users the acceptance tests created. It
+// pages the whole team: deactivated users stay searchable, so the team keeps growing
+// and test users can sit on any page. PUT replaces the template, so every other field
+// is sent back as read.
+func deactivateTestUsers(ctx context.Context, usersClient *usersservice.UsersManagementServiceAPIService) {
+	inactive := usersservice.USERSTATUS_USER_STATUS_INACTIVE
+	updates := []usersservice.UpdateUserRequest{}
+	var pageToken int64
+
+	for {
+		req := usersClient.UsersMgmtServiceSearchUsers(ctx).PageSize(100)
+		if pageToken != 0 {
+			req = req.PageToken(pageToken)
+		}
+		searchRes, _, err := req.Execute()
+		if err != nil {
+			log.Print("Error searching users:", err)
+			return
+		}
+		for _, user := range searchRes.Users {
+			if !strings.HasPrefix(user.GetUsername(), "tf-acc-user") || user.GetStatus() == inactive {
+				continue
+			}
+			updates = append(updates, usersservice.UpdateUserRequest{
+				UserId: user.UserId,
+				UserTemplate: &usersservice.UserTemplate{
+					FirstName:        user.FirstName,
+					LastName:         user.LastName,
+					Status:           &inactive,
+					AllowedLoginMode: user.AllowedLoginMode,
+					AccessType:       user.AccessType,
+				},
+			})
+		}
+		// The token is an offset. A missing one, or one that does not move forward,
+		// means this was the last page.
+		next := searchRes.GetNextPageToken()
+		if len(searchRes.Users) == 0 || next <= pageToken {
+			break
+		}
+		pageToken = next
+	}
+
+	if len(updates) == 0 {
+		return
+	}
+	log.Printf("Deactivating %d test users", len(updates))
+	if _, _, err := usersClient.UsersMgmtServiceUpdateUsers(ctx).UpdateUserRequest(updates).Execute(); err != nil {
+		log.Print("Error deactivating users:", err)
 	}
 }
