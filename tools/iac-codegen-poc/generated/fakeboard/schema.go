@@ -71,6 +71,10 @@ func Schema() schema.Schema {
 				ElementType:         types.BoolType,
 				MarkdownDescription: "Feature flags. A map of bools.",
 			},
+			"icon": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Board icon, base64 (format byte), as in the custom enrichments API.",
+			},
 			"labels": schema.MapAttribute{
 				Optional:            true,
 				ElementType:         types.StringType,
@@ -86,6 +90,40 @@ func Schema() schema.Schema {
 								stringvalidator.LengthAtLeast(1),
 							},
 							MarkdownDescription: "The panel query.",
+						},
+						"sort": schema.SingleNestedAttribute{
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"by_name": schema.SingleNestedAttribute{
+									Optional: true,
+									Validators: []validator.Object{
+										objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("by_value")),
+									},
+									Attributes:          map[string]schema.Attribute{},
+									MarkdownDescription: "Sort by name.",
+								},
+								"by_value": schema.SingleNestedAttribute{
+									Optional: true,
+									Validators: []validator.Object{
+										objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("by_name")),
+									},
+									Attributes: map[string]schema.Attribute{
+										"minutes": schema.Int32Attribute{
+											Optional:            true,
+											MarkdownDescription: "Minutes.",
+										},
+									},
+									MarkdownDescription: "Sort by value.",
+								},
+								"strategy_type": schema.StringAttribute{
+									Optional: true,
+									Validators: []validator.String{
+										stringvalidator.LengthBetween(1, 128),
+									},
+									MarkdownDescription: "Discriminator field - BY_NAME or BY_VALUE.",
+								},
+							},
+							MarkdownDescription: "Sort order. A oneOf with a discriminator field, as in the dashboards API.",
 						},
 						"precision": schema.Int32Attribute{
 							Optional: true,

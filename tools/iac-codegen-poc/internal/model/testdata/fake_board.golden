@@ -18,9 +18,15 @@ fields
   name          immutable  required           -                  yes  string len 1..64
   description   normal     optional presence  optional presence  yes  string len ..256
   flags         normal     optional presence  optional presence  yes  map<bool>
+  icon          normal     optional presence  optional presence  yes  string byte
   labels        normal     optional presence  optional presence  yes  map<string>
   panels        normal     optional presence  optional presence  yes  map<object Panel>
       query       required  string len 1..
+      sort        optional  object SortStrategy oneOf(byName|byValue, none allowed) discriminator=strategyType
+        byName        optional  object BoldStyle {}
+        byValue       optional  object Every
+          minutes  optional  integer int32
+        strategyType  optional  string len 1..128
       precision   optional  integer int32 0..10
       thresholds  optional  map<number double>
       unit        optional  enum Unit [PERCENT BYTES]

@@ -46,6 +46,11 @@ paths:
                     - $ref: '#/components/schemas/PrivateShare'
                   description: Share with a team. A oneOf arm at the resource root.
                   x-coralogix-presence: true
+                icon:
+                  description: Board icon, base64 (format byte), as in the custom enrichments API.
+                  format: byte
+                  type: string
+                  x-coralogix-presence: true
                 labels:
                   additionalProperties:
                     type: string
@@ -123,6 +128,11 @@ paths:
                   allOf:
                     - $ref: '#/components/schemas/PrivateShare'
                   description: Share with a team. A oneOf arm at the resource root.
+                  x-coralogix-presence: true
+                icon:
+                  description: Board icon, base64 (format byte), as in the custom enrichments API.
+                  format: byte
+                  type: string
                   x-coralogix-presence: true
                 labels:
                   additionalProperties:
@@ -212,6 +222,10 @@ components:
             type: boolean
           description: Feature flags. A map of bools.
           type: object
+        icon:
+          description: Board icon, base64 (format byte), as in the custom enrichments API.
+          format: byte
+          type: string
         labels:
           additionalProperties:
             type: string
@@ -409,6 +423,37 @@ components:
           format: uint64
           pattern: ^[0-9]+$
           type: string
+    SortStrategy:
+      description: A sort order. The arms byName and byValue, and the discriminator field strategyType.
+      type: object
+      discriminator:
+        propertyName: strategyType
+      properties:
+        byName:
+          allOf:
+            - $ref: '#/components/schemas/BoldStyle'
+          description: Sort by name.
+        byValue:
+          allOf:
+            - $ref: '#/components/schemas/Every'
+          description: Sort by value.
+        strategyType:
+          description: Discriminator field - BY_NAME or BY_VALUE.
+          maxLength: 128
+          minLength: 1
+          type: string
+      oneOf:
+        - required: [byName]
+          type: object
+        - required: [byValue]
+          type: object
+        - not:
+            anyOf:
+              - required: [byName]
+                type: object
+              - required: [byValue]
+                type: object
+          type: object
     Interval:
       description: A time bucket. The arms auto and manual (one is required), and the normal field useLimit.
       type: object
@@ -469,6 +514,10 @@ components:
           description: The panel query.
           minLength: 1
           type: string
+        sort:
+          allOf:
+            - $ref: '#/components/schemas/SortStrategy'
+          description: Sort order. A oneOf with a discriminator field, as in the dashboards API.
         precision:
           description: Digits after the point. A 32-bit integer (int32).
           format: int32

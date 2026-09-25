@@ -1,7 +1,6 @@
-43 resources, 41 with no issue
+43 resources, 42 with no issue
 
 RESOURCES  PLACES  SHAPE                                          EXAMPLE
-1          2       model: discriminator is not supported          Dashboard.layout.sections[].rows[].widgets[].definition.dynamic.visualization.horizontalBarsMulti.sortOrder.strategy
 1          2       model: enum with only the *_UNSPECIFIED value  AlertDef.alertDefProperties.logsAnomaly.rules[].condition.conditionType
 
 RESOURCE                          ISSUES  SHAPES
@@ -22,7 +21,7 @@ Connector                         0
 ConnectorSchema                   0       
 CustomEnrichment                  0       
 CustomRole                        0       
-Dashboard                         2       discriminator is not supported
+Dashboard                         0       
 DashboardFolder                   0       
 DeployedIntegrationInformation    0       
 E2M                               0       

@@ -27,6 +27,8 @@ type FakeBoardsServiceCreateFakeBoardRequest struct {
 	Description *string `json:"description,omitempty"`
 	// Feature flags. A map of bools.
 	Flags map[string]bool `json:"flags,omitempty"`
+	// Board icon, base64 (format byte), as in the custom enrichments API.
+	Icon *string `json:"icon,omitempty"`
 	// Labels of the board. A map of strings.
 	Labels map[string]string `json:"labels,omitempty"`
 	// How the board looks.
@@ -126,6 +128,38 @@ func (o *FakeBoardsServiceCreateFakeBoardRequest) HasFlags() bool {
 // SetFlags gets a reference to the given map[string]bool and assigns it to the Flags field.
 func (o *FakeBoardsServiceCreateFakeBoardRequest) SetFlags(v map[string]bool) {
 	o.Flags = v
+}
+
+// GetIcon returns the Icon field value if set, zero value otherwise.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) GetIcon() string {
+	if o == nil || IsNil(o.Icon) {
+		var ret string
+		return ret
+	}
+	return *o.Icon
+}
+
+// GetIconOk returns a tuple with the Icon field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) GetIconOk() (*string, bool) {
+	if o == nil || IsNil(o.Icon) {
+		return nil, false
+	}
+	return o.Icon, true
+}
+
+// HasIcon returns a boolean if a field has been set.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) HasIcon() bool {
+	if o != nil && !IsNil(o.Icon) {
+		return true
+	}
+
+	return false
+}
+
+// SetIcon gets a reference to the given string and assigns it to the Icon field.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) SetIcon(v string) {
+	o.Icon = &v
 }
 
 // GetLabels returns the Labels field value if set, zero value otherwise.
@@ -320,6 +354,9 @@ func (o FakeBoardsServiceCreateFakeBoardRequest) ToMap() (map[string]interface{}
 	if !IsNil(o.Flags) {
 		toSerialize["flags"] = o.Flags
 	}
+	if !IsNil(o.Icon) {
+		toSerialize["icon"] = o.Icon
+	}
 	if !IsNil(o.Labels) {
 		toSerialize["labels"] = o.Labels
 	}
@@ -381,6 +418,7 @@ func (o *FakeBoardsServiceCreateFakeBoardRequest) UnmarshalJSON(data []byte) (er
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
 		delete(additionalProperties, "description")
 		delete(additionalProperties, "flags")
+		delete(additionalProperties, "icon")
 		delete(additionalProperties, "labels")
 		delete(additionalProperties, "layout")
 		delete(additionalProperties, "name")

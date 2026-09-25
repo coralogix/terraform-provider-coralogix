@@ -148,6 +148,8 @@ No server implements it; the tests use a fake HTTP server.
   `Float64`), so a float keeps its digits (0.1 stays 0.1). Lists and maps of numbers and bools.
 - **oneOf groups:** a `oneOf` with normal fields beside the arms, an object with several `oneOf` groups (`allOf` of `oneOf`), and a
   group at the resource root. A group in an object gets its validator on each arm, so it runs only when the object is set.
+- **Real shapes from the API:** a `oneOf` with a `discriminator` field (as dashboards `SortStrategy`), and a base64 string with
+  `format: byte` (as custom enrichments `File.binary`).
 - **Leaf masks:** the fake mask pattern accepts dotted paths, so the generator names the changed leaves:
 
 | Change | Mask |
@@ -168,8 +170,8 @@ only top-level names, so its `mask.go` has top-level masks.
 `go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey` measures, for the resource schema of every Get operation in the
 spec, the shapes that the model or the generator cannot generate. It ignores the operations (it assumes `PATCH` with a mask).
 The model reports every problem, not only the first. The last output is in
-[`cmd/tfgen/testdata/survey.txt`](cmd/tfgen/testdata/survey.txt): 41 of 43 resources have no issue. Left: `discriminator`
-(Dashboard) and an enum with only the `*_UNSPECIFIED` value (F33).
+[`cmd/tfgen/testdata/survey.txt`](cmd/tfgen/testdata/survey.txt): 42 of 43 resources have no issue. Left: AlertDef, which
+has an enum with only the `*_UNSPECIFIED` value (F33, an API gap).
 
 ## Decisions
 

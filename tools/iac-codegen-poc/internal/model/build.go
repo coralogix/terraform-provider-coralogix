@@ -644,10 +644,26 @@ func checkSupported(s *base.Schema) error {
 		return errors.New("patternProperties is not supported")
 	case len(s.PrefixItems) != 0:
 		return errors.New("prefixItems is not supported")
-	case s.Discriminator != nil:
-		return errors.New("discriminator is not supported")
+	case s.Discriminator != nil && !discriminatorField(s):
+		return errors.New("discriminator is supported only as a string field beside a oneOf, with no mapping")
 	}
 	return nil
+}
+
+// discriminatorField reports whether the discriminator of s names a string
+// field of s beside a oneOf, with no mapping. Then it is only a label: the
+// model keeps the field as a normal field (F36).
+func discriminatorField(s *base.Schema) bool {
+	d := s.Discriminator
+	if d.Mapping != nil && d.Mapping.Len() != 0 || s.Properties == nil || len(s.OneOf) == 0 {
+		return false
+	}
+	p := s.Properties.GetOrZero(d.PropertyName)
+	if p == nil {
+		return false
+	}
+	ps, err := schemaOf(p)
+	return err == nil && slices.Equal(ps.Type, []string{"string"})
 }
 
 func objectType(t *Type, s *base.Schema, path string, w walk) error {
@@ -676,6 +692,9 @@ func objectType(t *Type, s *base.Schema, path string, w walk) error {
 	}
 	// One group with every field as an arm is a oneOf. Else the object has
 	// normal fields and groups.
+	if s.Discriminator != nil {
+		t.Discriminator = s.Discriminator.PropertyName
+	}
 	if len(groups) == 1 && sameSet(groups[0].Arms, propertyNames(s)) {
 		t.Kind, t.AllowNone = OneOf, groups[0].AllowNone
 		return nil

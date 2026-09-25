@@ -27,6 +27,8 @@ type Panel struct {
 	Precision *int32 `json:"precision,omitempty"`
 	// The panel query.
 	Query string `json:"query"`
+	// Sort order. A oneOf with a discriminator field, as in the dashboards API.
+	Sort *SortStrategy `json:"sort,omitempty"`
 	// Style of the panel title. A oneOf inside a map value.
 	Style *TextStyle `json:"style,omitempty"`
 	// Thresholds by name. A map of numbers.
@@ -111,6 +113,38 @@ func (o *Panel) GetQueryOk() (*string, bool) {
 // SetQuery sets field value
 func (o *Panel) SetQuery(v string) {
 	o.Query = v
+}
+
+// GetSort returns the Sort field value if set, zero value otherwise.
+func (o *Panel) GetSort() SortStrategy {
+	if o == nil || IsNil(o.Sort) {
+		var ret SortStrategy
+		return ret
+	}
+	return *o.Sort
+}
+
+// GetSortOk returns a tuple with the Sort field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Panel) GetSortOk() (*SortStrategy, bool) {
+	if o == nil || IsNil(o.Sort) {
+		return nil, false
+	}
+	return o.Sort, true
+}
+
+// HasSort returns a boolean if a field has been set.
+func (o *Panel) HasSort() bool {
+	if o != nil && !IsNil(o.Sort) {
+		return true
+	}
+
+	return false
+}
+
+// SetSort gets a reference to the given SortStrategy and assigns it to the Sort field.
+func (o *Panel) SetSort(v SortStrategy) {
+	o.Sort = &v
 }
 
 // GetStyle returns the Style field value if set, zero value otherwise.
@@ -223,6 +257,9 @@ func (o Panel) ToMap() (map[string]interface{}, error) {
 		toSerialize["precision"] = o.Precision
 	}
 	toSerialize["query"] = o.Query
+	if !IsNil(o.Sort) {
+		toSerialize["sort"] = o.Sort
+	}
 	if !IsNil(o.Style) {
 		toSerialize["style"] = o.Style
 	}
@@ -278,6 +315,7 @@ func (o *Panel) UnmarshalJSON(data []byte) (err error) {
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
 		delete(additionalProperties, "precision")
 		delete(additionalProperties, "query")
+		delete(additionalProperties, "sort")
 		delete(additionalProperties, "style")
 		delete(additionalProperties, "thresholds")
 		delete(additionalProperties, "unit")

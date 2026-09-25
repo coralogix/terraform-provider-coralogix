@@ -13,6 +13,7 @@ type FakeBoardModel struct {
 	Name         types.String       `tfsdk:"name"`
 	Description  types.String       `tfsdk:"description"`
 	Flags        types.Map          `tfsdk:"flags"`
+	Icon         types.String       `tfsdk:"icon"`
 	Labels       types.Map          `tfsdk:"labels"`
 	Panels       types.Map          `tfsdk:"panels"`
 	Layout       *LayoutModel       `tfsdk:"layout"`
@@ -30,6 +31,16 @@ type PrivateShareModel struct {
 type BoldStyleModel struct {
 }
 
+type EveryModel struct {
+	Minutes types.Int32 `tfsdk:"minutes"`
+}
+
+type SortStrategyModel struct {
+	ByName       *BoldStyleModel `tfsdk:"by_name"`
+	ByValue      *EveryModel     `tfsdk:"by_value"`
+	StrategyType types.String    `tfsdk:"strategy_type"`
+}
+
 type FontStyleModel struct {
 	Family types.String  `tfsdk:"family"`
 	Scale  types.Float32 `tfsdk:"scale"`
@@ -42,15 +53,12 @@ type TextStyleModel struct {
 }
 
 type PanelModel struct {
-	Query      types.String    `tfsdk:"query"`
-	Precision  types.Int32     `tfsdk:"precision"`
-	Thresholds types.Map       `tfsdk:"thresholds"`
-	Unit       types.String    `tfsdk:"unit"`
-	Style      *TextStyleModel `tfsdk:"style"`
-}
-
-type EveryModel struct {
-	Minutes types.Int32 `tfsdk:"minutes"`
+	Query      types.String       `tfsdk:"query"`
+	Sort       *SortStrategyModel `tfsdk:"sort"`
+	Precision  types.Int32        `tfsdk:"precision"`
+	Thresholds types.Map          `tfsdk:"thresholds"`
+	Unit       types.String       `tfsdk:"unit"`
+	Style      *TextStyleModel    `tfsdk:"style"`
 }
 
 type AbsoluteTimeModel struct {

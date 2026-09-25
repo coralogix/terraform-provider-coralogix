@@ -150,6 +150,9 @@ func typeString(t *Type) string {
 		for _, g := range t.Groups {
 			parts = append(parts, groupString(g))
 		}
+		if t.Discriminator != "" {
+			parts = append(parts, "discriminator="+t.Discriminator)
+		}
 	case OneOf:
 		arms := fmt.Sprintf("(%d arms", len(t.Fields))
 		if t.AllowNone {

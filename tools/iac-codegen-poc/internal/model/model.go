@@ -114,6 +114,9 @@ type Type struct {
 	// Groups are the oneOf groups of an Object that also has normal fields,
 	// or has more than one group. Each arm is one of Fields.
 	Groups []OneOfGroup
+	// Discriminator is the string field that names the set arm (an OpenAPI
+	// discriminator with no mapping). It is also a normal field (F36).
+	Discriminator string
 
 	MinLength, MaxLength *int64
 	Minimum, Maximum     *float64

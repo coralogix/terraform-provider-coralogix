@@ -43,6 +43,7 @@ var maskFields = []*maskNode{
 	}},
 	{attr: "description", api: "description"},
 	{attr: "flags", api: "flags"},
+	{attr: "icon", api: "icon"},
 	{attr: "labels", api: "labels"},
 	{attr: "panels", api: "panels"},
 	{attr: "layout", api: "layout", groups: [][]string{{"refresh_off", "refresh_every"}, {"absolute_time", "relative_time"}}, children: []*maskNode{
