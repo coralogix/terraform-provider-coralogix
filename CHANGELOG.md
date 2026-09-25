@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_data_set
+- FIX: A file read error in `uploaded_file` returns a diagnostic instead of crashing the provider.
+- FIX: Import rejects non-numeric IDs.
+
 # Release 3.18.0
 
 #### provider
