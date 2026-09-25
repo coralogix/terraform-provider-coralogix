@@ -22,6 +22,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,6 +44,13 @@ const MAX_READ_BUFF = 10_000
 
 var fileContentLimit = int(1e6)
 
+func importDataSet(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	if _, err := strconv.ParseUint(d.Id(), 10, 32); err != nil {
+		return nil, fmt.Errorf("invalid data set id %q: must be a numeric id", d.Id())
+	}
+	return []*schema.ResourceData{d}, nil
+}
+
 func ResourceCoralogixDataSet() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceCoralogixDataSetCreate,
@@ -51,7 +59,7 @@ func ResourceCoralogixDataSet() *schema.Resource {
 		DeleteContext: resourceCoralogixDataSetDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: importDataSet,
 		},
 
 		Timeouts: &schema.ResourceTimeout{
@@ -322,7 +330,7 @@ func expandFileContent(d *schema.ResourceData) (fileContent string, modification
 					break outer
 				}
 			default:
-				log.Fatal(err)
+				return "", "", err
 			}
 		}
 
