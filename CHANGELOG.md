@@ -11,6 +11,9 @@
 #### data-source/coralogix_alert
 - FEAT: Expose `notification_group.router.id`.
 
+#### resource/coralogix_global_router
+- FIX: Keep `rules[*].targets` in configuration order. The API can return targets in a different order, which failed applies with "Provider produced inconsistent result" and showed reorder-only diffs on the next plan. Targets with the same `connector_id` and `preset_id` are told apart by `custom_details`.
+
 #### resource/coralogix_recording_rules_groups_set
 - FEAT: Add support for `groups[*].rules[*].evaluation_delay_ms`, an optional delay (in milliseconds, `0`-`1800000`) that holds off a rule's evaluation so late-arriving data is ingested first. Removing it from the configuration clears the delay, and an explicit `0` is a real value distinct from unset. Also fixes a read-path gap: a delay set outside Terraform was previously dropped from state and silently stripped on the next apply.
 - DOCS: Note in `yaml_content` that keys must be all-lowercase and unseparated (`evaluationdelayms`), since unrecognized keys are ignored without a diagnostic.
