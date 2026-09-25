@@ -10,37 +10,42 @@ import (
 
 var update = flag.Bool("update", false, "rewrite the golden files")
 
-const (
-	patchedSpec = "../../spec/openapi.patched.yaml"
-	golden      = "testdata/ai_evaluation.golden"
-)
+// dumpCases are the resources with a golden dump.
+var dumpCases = []struct{ spec, resource, golden string }{
+	{"../../spec/openapi.patched.yaml", "AiEvaluation", "testdata/ai_evaluation.golden"},
+	{"../../spec/fake/openapi.yaml", "FakeBoard", "testdata/fake_board.golden"},
+}
 
-// TestDump compares the AiEvaluation model with the golden file. To rewrite
-// the file, run: go test ./internal/model -run TestDump -update
+// TestDump compares each model with its golden file. To rewrite the files,
+// run: go test ./internal/model -run TestDump -update
 func TestDump(t *testing.T) {
-	data, err := os.ReadFile(patchedSpec)
-	if err != nil {
-		t.Fatal(err)
-	}
-	doc, err := model.Load(data)
-	if err != nil {
-		t.Fatal(err)
-	}
-	r, err := model.Build(doc, "AiEvaluation")
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := model.Dump(r)
-	if *update {
-		if err := os.WriteFile(golden, []byte(got), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-	want, err := os.ReadFile(golden)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != string(want) {
-		t.Errorf("dump differs from %s. Run with -update and check the diff.\ngot:\n%s", golden, got)
+	for _, c := range dumpCases {
+		t.Run(c.resource, func(t *testing.T) {
+			data, err := os.ReadFile(c.spec)
+			if err != nil {
+				t.Fatal(err)
+			}
+			doc, err := model.Load(data)
+			if err != nil {
+				t.Fatal(err)
+			}
+			r, err := model.Build(doc, c.resource)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := model.Dump(r)
+			if *update {
+				if err := os.WriteFile(c.golden, []byte(got), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			want, err := os.ReadFile(c.golden)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != string(want) {
+				t.Errorf("dump differs from %s. Run with -update and check the diff.\ngot:\n%s", c.golden, got)
+			}
+		})
 	}
 }

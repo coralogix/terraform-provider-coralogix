@@ -6,17 +6,18 @@ It generates one resource, `ai_evaluation`, from the AI Evaluations API.
 This folder is a separate Go module. It does not change the provider build. The generated resource is
 not registered in the provider. The handwritten `coralogix_ai_evaluation` resource stays as it is.
 
-**The generated files:** [`generated/aievaluation/`](generated/aievaluation/)
+**The generated files:** [`generated/aievaluation/`](generated/aievaluation/) (the real API) and
+[`generated/fakeboard/`](generated/fakeboard/) (a fake API, see "Fake resource").
 
 | File | Content |
 |---|---|
-| [`schema.go`](generated/aievaluation/schema.go) | Schema: attributes, types, validators, defaults, plan modifiers |
-| [`model.go`](generated/aievaluation/model.go) | Model: Go structs for the plan and the state |
-| [`convert.go`](generated/aievaluation/convert.go) | Expand (plan → SDK request) and flatten (SDK response → state) |
-| [`mask.go`](generated/aievaluation/mask.go) | Update mask: the top-level fields that changed between the plan and the state |
-| [`resource.go`](generated/aievaluation/resource.go) | Create, Read, Update, Delete, Import |
+| `schema.go` ([ai](generated/aievaluation/schema.go), [fake](generated/fakeboard/schema.go)) | Schema: attributes, types, validators, defaults, plan modifiers |
+| `model.go` ([ai](generated/aievaluation/model.go), [fake](generated/fakeboard/model.go)) | Model: Go structs for the plan and the state |
+| `convert.go` ([ai](generated/aievaluation/convert.go), [fake](generated/fakeboard/convert.go)) | Expand (plan → SDK request) and flatten (SDK response → state) |
+| `mask.go` ([ai](generated/aievaluation/mask.go), [fake](generated/fakeboard/mask.go)) | Update mask: the fields that changed between the plan and the state. Top-level names for `ai_evaluation`, leaf paths for the fake. |
+| `resource.go` ([ai](generated/aievaluation/resource.go), [fake](generated/fakeboard/resource.go)) | Create, Read, Update, Delete, Import |
 
-The `*_test.go` files in that folder are handwritten. They test the generated code.
+The `*_test.go` files in these folders are handwritten. They test the generated code.
 
 ## Architecture
 
@@ -78,6 +79,9 @@ Run them in this folder.
 go run ./cmd/overlay --overlay spec/overlay.yaml --out spec/openapi.patched.yaml
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --out generated/aievaluation
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --sdk-names   # print the SDK names
+fakesdk/generate.sh                              # regenerate the fake SDK (needs Docker)
+go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard \
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeboard
 go test ./...                                    # the acceptance test skips without TF_ACC
 go test ./internal/model -run TestDump -update   # rewrite internal/model/testdata/ai_evaluation.golden
 go test ./cmd/tfgen -run TestSDKNames -update    # rewrite cmd/tfgen/testdata/sdk_names.golden
@@ -117,6 +121,32 @@ registers only the generated resource.
 printf 'Coralogix API key: '; read -rs CORALOGIX_API_KEY; echo; export CORALOGIX_API_KEY
 CORALOGIX_ENV=EU2 TF_ACC=1 go test ./provider -run TestAccAiEvaluation -v -count=1 -timeout 30m
 ```
+
+## Fake resource
+
+`ai_evaluation` has no maps, only two levels of nesting, and an API that accepts only top-level mask names.
+[`spec/fake/openapi.yaml`](spec/fake/openapi.yaml) is a fake API that follows the full contract. It tests the other shapes.
+No server implements it; the tests use a fake HTTP server.
+
+- **Fake SDK:** [`fakesdk/generate.sh`](fakesdk/generate.sh) runs the same steps as the pinned real SDK: its sanitizer,
+  `openapi-generator` 7.17.0 in Docker with the SDK templates and options, and its regex fix. Only
+  [`fakesdk/go/openapi/cxsdk`](fakesdk/go/openapi/cxsdk/cxsdk.go) is handwritten. `--sdk-module` selects it.
+- **Nested objects:** three levels, a `oneOf` at level 1, level 3, in a list item, and in a map value, a list of objects,
+  nested required fields.
+- **Maps:** a map of strings, a map of objects, a map of 64-bit numbers inside a nested object. null is not sent; `{}` is sent.
+- **Leaf masks:** the fake mask pattern accepts dotted paths, so the generator names the changed leaves:
+
+| Change | Mask |
+|---|---|
+| `header.text` | `layout.section.header.text` |
+| Clear `header.color` | `layout.section.header.color`, with no value in the body |
+| Font size inside the same `oneOf` arm | `layout.section.header.style.font.size` |
+| `font` → `bold` | `layout.section.header.style.bold` (a new arm replaces the old one) |
+| Remove `style` | `layout.section.header.style.font` (the old arm, with no value) |
+| A value in a list item or a map | `layout.section.rows`, `layout.section.widths`, `labels` (replaced whole) |
+
+The generator reads the mask pattern from the spec, and checks every mask path against it. `ai_evaluation`'s pattern accepts
+only top-level names, so its `mask.go` has top-level masks.
 
 ## Decisions
 
@@ -167,6 +197,11 @@ Gaps in the API, the contract, or the tools.
 | F20 | `EvaluationConfig` allows "no arm" (the `not: anyOf` entry). So `config = {}` is valid in the spec. The handwritten resource requires exactly one arm. If the API rejects an empty config, the proto oneof must be marked required. | API proto |
 | F21 | Response presence is not in the contract. Flatten maps a missing value to null. If the server omits a zero value (for example `isEnabled: false`, `topics: []`), or sends a zero value for an unset field, the state differs from the plan, and Terraform fails with "inconsistent result after apply". The contract must say: a response has a value exactly when the request had one. The acceptance test on EU2 found no mismatch for set values, a cleared `threshold`, or a changed `config` arm. `isEnabled: false` was not checked, because Update cannot mask it (F25). | Contract / Backend |
 | F22 | A uint64 value above 9223372036854775807 does not fit Terraform `Int64`. Flatten returns an error for it. A real range in the spec (F19) would let the schema reject it earlier. | API proto |
-| F23 | The model does not keep the `updateMask` pattern. The generator checks each mask entry with its own copy of the contract rule (top-level name, no `*`). If the contract later allows nested paths, the generator must read the pattern from the spec. | Tooling |
+| F23 | The model does not keep the `updateMask` pattern. The generator checks each mask entry with its own copy of the contract rule (top-level name, no `*`). If the contract later allows nested paths, the generator must read the pattern from the spec. Since E3, the model keeps the pattern (`UpdateMaskPattern`), and the generator checks every mask path against it. | Tooling |
 | F24 | "Not found" has no machine-readable form. The SDK's `cxsdk.IsNotFound` parses the message text (`Not Found: <msg>`) to tell a missing resource from a missing route. The generated Read and Delete use only the status 404, like the handwritten resource. So a wrong route would remove the resource from the state. The contract should define a not-found reason. | Contract / Backend |
 | F25 | The Update mask rejects `isEnabled`. The generator sends the API (JSON) name `isEnabled`. The gateway turns it into the proto path `is_enabled` (proto field `is_enabled = 6` in `UpdateAiEvaluationRequest`). The server answers 400 `Unknown field path "is_enabled" in update_mask`. So a documented Update field cannot be masked. No other client masks it: the SDK example masks only `config`, and the handwritten resource sends no mask. The contract must say: every field in the Update body is a valid mask path. A probe must check each one. | Backend / Contract |
+| F26 | Dashboards (dry run with an assumed `PATCH` + mask): the Create body wraps the resource (`{dashboard, requestId}`), not flat fields. | API proto |
+| F27 | Dashboards: Create returns only `dashboardId`, not the resource. | API proto |
+| F28 | Dashboards: Get puts metadata beside the resource (`{dashboard, createdAt, authorId, isLocked, ...}`). The contract needs the resource only, with metadata as its fields. | API proto |
+| F29 | Dashboards: an object has a `oneOf` and normal fields beside it (`IntervalResolution`: `auto` or `manual`, plus `useAdvancedLimit`). The model assumes that every field of a `oneOf` object is an arm. Generator limit. | Tooling |
+| F30 | The SDK uses a value type (`string`, `Layout`), not a pointer, for a field that its source spec marks `required` (F18). The patched spec cannot tell which: `ai_evaluation` has `required` only in the overlay, so its SDK still has pointers. The generator now accepts `*T` or `T` and follows the SDK. | Tooling |

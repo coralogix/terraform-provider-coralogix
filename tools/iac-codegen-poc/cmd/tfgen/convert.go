@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/internal/model"
 )
@@ -21,17 +22,25 @@ type convData struct {
 	UpdateMask string
 	// MaskFields are the Update fields, in model order. The update mask
 	// lists the API names of the fields that changed (D8).
-	MaskFields []maskField
+	MaskFields []*maskField
+	// LeafMask is true when the spec pattern of the update mask accepts
+	// dotted paths. Then the mask names the changed leaves (contract 2.1).
+	LeafMask bool
 }
 
-// maskField is one top-level Update field.
+// maskField is one top-level Update field. With leaf masks, it is also a
+// node of the mask tree: Children are the fields of an object or the arms of
+// a oneOf. A node without children is compared as a whole: a scalar, a list,
+// a set, a map, or an object with no fields.
 type maskField struct {
-	TFName string // Terraform attribute name, to read the plan and the state
-	API    string // API property name, the update mask entry
+	TFName   string // Terraform attribute name, to read the plan and the state
+	API      string // API property name, the update mask entry
+	OneOf    bool
+	Children []*maskField
 }
 
-// maskEntry is one entry of the update mask pattern: a top-level name. The
-// contract allows no nested paths and no "*".
+// maskEntry is one entry of the update mask when the spec has no pattern
+// (F23): a top-level name. The contract allows no "*".
 var maskEntry = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 // convObject is one pair of Terraform model struct and SDK struct.
@@ -65,6 +74,10 @@ const (
 	convEmpty   = "empty"   // *<Model> ↔ map[string]interface{} (F16)
 	convStrings = "strings" // types.Set/List ↔ []string or []<enum type>
 	convObjects = "objects" // types.List ↔ []<SDK type>
+
+	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
+	convUint64Map = "uint64map" // types.Map of Int64 ↔ map[string]string (D7)
+	convObjectMap = "objectmap" // types.Map ↔ map[string]<SDK type>
 )
 
 // convField is one field of a convObject.
@@ -78,6 +91,36 @@ type convField struct {
 	// strings, objects: the element type.
 	SDKType string
 	Object  *convObject // object, empty, objects: the nested object
+	// Value is true when the SDK field is a value, not a pointer. The SDK
+	// does that for a required field (F18). Expand sends the zero value for
+	// null; the schema requires the attribute, so it is not null.
+	Value bool
+}
+
+// Uses reports whether a field uses the conversion kind conv. The template
+// emits the helpers of a kind only when it is used.
+func (d *convData) Uses(conv string) bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.Conv == conv {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// HasValue reports whether an expanded SDK field is a value, not a pointer.
+// The template then emits the valueOf helper.
+func (d *convData) HasValue() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if obj.Expand && f.Value {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // buildConv maps the model and its SDK names to the conversion data. Rules:
@@ -154,17 +197,73 @@ func buildMask(r *model.Resource, ix *refIndex, out *convData) error {
 		return fmt.Errorf("SDK field %s has type %s, the update mask needs *string", ref.sdkName(), ref.Want)
 	}
 	out.UpdateMask = ref.Name
+	valid, leaf, err := maskRule(r.UpdateMaskPattern)
+	if err != nil {
+		return err
+	}
+	out.LeafMask = leaf
 	for _, f := range r.Fields {
 		if f.Update == nil {
 			continue
 		}
-		if !maskEntry.MatchString(f.Name) {
-			return fmt.Errorf("update.body.%s: the name is not a valid update mask entry", f.Name)
+		mf := &maskField{TFName: tfName(f.Name), API: f.Name}
+		if leaf {
+			mf = maskTree(f.Name, f.Type)
 		}
-		out.MaskFields = append(out.MaskFields, maskField{TFName: tfName(f.Name), API: f.Name})
+		if err := checkMaskPaths(mf, "", valid); err != nil {
+			return err
+		}
+		out.MaskFields = append(out.MaskFields, mf)
 	}
 	if len(out.MaskFields) == 0 {
 		return fmt.Errorf("update.body: no Update fields for the update mask")
+	}
+	return nil
+}
+
+// maskRule returns the check for one mask path, and whether the API accepts
+// dotted paths. With a pattern, a path is valid when the pattern accepts it
+// as a whole mask. Without one, only a top-level name is valid (F23).
+func maskRule(pattern string) (valid func(string) bool, leaf bool, err error) {
+	if pattern == "" {
+		return maskEntry.MatchString, false, nil
+	}
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, false, fmt.Errorf("update mask pattern %q: %w", pattern, err)
+	}
+	if !re.MatchString("a") || re.MatchString("*") {
+		return nil, false, fmt.Errorf("update mask pattern %q must accept a field name and reject *", pattern)
+	}
+	return re.MatchString, re.MatchString("a.b"), nil
+}
+
+// maskTree returns the mask node of the Update field name of type t.
+func maskTree(name string, t *model.Type) *maskField {
+	n := &maskField{TFName: tfName(name), API: name, OneOf: t.Kind == model.OneOf}
+	if t.Kind != model.Object && t.Kind != model.OneOf {
+		return n
+	}
+	for _, f := range t.Fields {
+		n.Children = append(n.Children, maskTree(f.Name, f.Type))
+	}
+	return n
+}
+
+// checkMaskPaths checks that the spec pattern accepts the path of n and of
+// every node below it.
+func checkMaskPaths(n *maskField, prefix string, valid func(string) bool) error {
+	p := n.API
+	if prefix != "" {
+		p = prefix + "." + n.API
+	}
+	if !valid(p) {
+		return fmt.Errorf("update.body.%s: the path is not a valid update mask entry", p)
+	}
+	for _, c := range n.Children {
+		if err := checkMaskPaths(c, p, valid); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -196,8 +295,12 @@ func (b *convBuilder) field(owner, name string, t *model.Type) (*convField, erro
 	if err != nil {
 		return nil, err
 	}
-	// The SDK type must be the one the conversion writes.
-	if ref.Want != want {
+	// The SDK type must be the one the conversion writes, or its value type.
+	switch {
+	case ref.Want == want:
+	case strings.HasPrefix(want, "*") && ref.Want == want[1:]:
+		cf.Value = true
+	default:
 		return nil, fmt.Errorf("SDK field %s has type %s, the %s conversion needs %s", ref.sdkName(), ref.Want, cf.Conv, want)
 	}
 	return cf, nil
@@ -229,6 +332,8 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type) (string, error) {
 		return "*" + obj.SDK, nil
 	case model.Set, model.List:
 		return b.collectionConv(cf, t)
+	case model.Map:
+		return b.mapConv(cf, t)
 	}
 	return "", fmt.Errorf("kind %s is not supported", t.Kind)
 }
@@ -330,7 +435,7 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 		switch {
 		case f.Conv == convTime && expand:
 			return fmt.Errorf("%s: date-time in a request is not supported", f.TFName)
-		case f.Conv == convObj || f.Conv == convObjects:
+		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
 			}
@@ -361,13 +466,20 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 			expr = "types." + f.Collection + "Type{ElemType: types.StringType}"
 		case convEmpty:
 			expr = "types.ObjectType{AttrTypes: map[string]attr.Type{}}"
-		case convObj, convObjects:
+		case convStringMap:
+			expr = "types.MapType{ElemType: types.StringType}"
+		case convUint64Map:
+			expr = "types.MapType{ElemType: types.Int64Type}"
+		case convObj, convObjects, convObjectMap:
 			if err := b.attrTypes(f.Object); err != nil {
 				return err
 			}
 			expr = "types.ObjectType{AttrTypes: " + f.Object.AttrTypesFunc + "()}"
-			if f.Conv == convObjects {
+			switch f.Conv {
+			case convObjects:
 				expr = "types.ListType{ElemType: " + expr + "}"
+			case convObjectMap:
+				expr = "types.MapType{ElemType: " + expr + "}"
 			}
 		default:
 			return fmt.Errorf("%s: no attribute type for %s", obj.Model, f.Conv)
@@ -375,6 +487,46 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 		obj.AttrTypes = append(obj.AttrTypes, convAttrType{TFName: f.TFName, Expr: expr})
 	}
 	return nil
+}
+
+// mapConv sets the conversion of cf for a map t. It returns the SDK Go type
+// that the conversion needs.
+func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
+	cf.Collection = "Map"
+	switch e := t.Elem; {
+	case e.Kind == model.String && e.Format == "":
+		cf.Conv, cf.SDKType = convStringMap, "string"
+		return "map[string]string", nil
+	case e.Kind == model.Enum:
+		enum, err := b.ix.schemaRef(e.Schema)
+		if err != nil {
+			return "", err
+		}
+		cf.Conv, cf.SDKType = convStringMap, b.qualify(enum.Name)
+		return "map[string]" + enum.Name, nil
+	case e.Kind == model.Integer && e.WireString && e.Format == "uint64":
+		cf.Conv = convUint64Map
+		return "map[string]string", nil
+	case e.Kind == model.Object && len(e.Fields) != 0:
+		obj, err := b.nested(e)
+		if err != nil {
+			return "", err
+		}
+		if !contains(b.listed, obj) {
+			b.listed = append(b.listed, obj)
+		}
+		cf.Conv, cf.Object, cf.SDKType = convObjectMap, obj, b.qualify(obj.SDK)
+		return "map[string]" + obj.SDK, nil
+	}
+	return "", fmt.Errorf("map of %s is not supported", typeName(t.Elem))
+}
+
+// typeName is a short name of a model type for errors.
+func typeName(t *model.Type) string {
+	if t.Format != "" {
+		return string(t.Kind) + " " + t.Format
+	}
+	return string(t.Kind)
 }
 
 // qualify writes an SDK type name with its package name.

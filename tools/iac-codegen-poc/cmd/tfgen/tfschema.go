@@ -99,12 +99,26 @@ type tfBuilder struct {
 	validators []string        // resource config validators
 }
 
-// attrPath is a Terraform attribute path: "root", then the names.
+// attrPath is a Terraform attribute path: "root", then the names. The step
+// anyListItem is any element of a list, and anyMapValue any value of a map.
 type attrPath []string
+
+const (
+	anyListItem = "[]"
+	anyMapValue = "{}"
+)
 
 func (p attrPath) expr() string {
 	s := fmt.Sprintf("path.MatchRoot(%q)", p[1])
 	for _, n := range p[2:] {
+		switch n {
+		case anyListItem:
+			s += ".AtAnyListIndex()"
+			continue
+		case anyMapValue:
+			s += ".AtAnyMapKey()"
+			continue
+		}
 		s += fmt.Sprintf(".AtName(%q)", n)
 	}
 	return s
@@ -133,7 +147,7 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
 			return err
 		}
 		a.Kind, a.ValueKind, a.Validators = kind, kind, vals
-	case model.Set, model.List:
+	case model.Set, model.List, model.Map:
 		return b.collection(a, p, t)
 	case model.Object, model.OneOf:
 		a.Kind, a.ValueKind = "SingleNested", "Object"
@@ -149,9 +163,12 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
 }
 
 func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
-	kind := "Set"
-	if t.Kind == model.List {
+	kind, step := "Set", anyListItem
+	switch t.Kind {
+	case model.List:
 		kind = "List"
+	case model.Map:
+		kind, step = "Map", anyMapValue
 	}
 	a.ValueKind = kind
 	pkg := strings.ToLower(kind) + "validator"
@@ -159,7 +176,8 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	switch t.Elem.Kind {
 	case model.Object:
 		a.Kind = kind + "Nested"
-		attrs, err := b.objectAttributes(p, t.Elem)
+		// buildConv rejects a set of objects, so a Set never gets here.
+		attrs, err := b.objectAttributes(append(append(attrPath{}, p...), step), t.Elem)
 		if err != nil {
 			return err
 		}
@@ -227,6 +245,8 @@ func (b *tfBuilder) modelField(name string, t *model.Type) tfModelField {
 		goType = "types.Set"
 	case model.List:
 		goType = "types.List"
+	case model.Map:
+		goType = "types.Map"
 	case model.Object, model.OneOf:
 		goType = "*" + modelTypeName(t.Schema)
 	}

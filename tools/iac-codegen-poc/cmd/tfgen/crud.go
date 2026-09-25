@@ -13,6 +13,7 @@ type crudData struct {
 	Model    string // Terraform model struct of the resource
 	IDAttr   string // Terraform attribute of the id
 	IDField  string // SDK field of the id in the resource
+	IDValue  bool   // the id field is a string, not a *string (F18)
 	SDKName  string // package name of the resource SDK package
 	Client   string // SDK client type
 	Resource string // SDK type of the resource
@@ -54,14 +55,15 @@ func buildCRUD(r *model.Resource, refs []sdkRef) (*crudData, error) {
 	if err != nil {
 		return nil, err
 	}
-	if id.Want != "*string" {
-		return nil, fmt.Errorf("SDK field %s has type %s, the id needs *string", id.sdkName(), id.Want)
+	if id.Want != "*string" && id.Want != "string" {
+		return nil, fmt.Errorf("SDK field %s has type %s, the id needs *string or string", id.sdkName(), id.Want)
 	}
 	out := &crudData{
 		TypeName: tfName(r.Name),
 		Model:    modelTypeName(r.Name),
 		IDAttr:   tfName(r.IDParam),
 		IDField:  id.Name,
+		IDValue:  id.Want == "string",
 		SDKName:  ix.pkg.Name,
 		Client:   client.Name,
 		Resource: resource.Name,

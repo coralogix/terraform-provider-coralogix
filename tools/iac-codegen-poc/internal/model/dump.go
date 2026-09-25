@@ -46,7 +46,7 @@ func Dump(r *Resource) string {
 }
 
 // dumpChildren writes the fields of an object, the arms of a oneOf, or the
-// fields of a list or set of objects.
+// fields of the objects in a list, set, or map.
 func dumpChildren(b *strings.Builder, t *Type, indent int) {
 	if t.Elem != nil {
 		t = t.Elem
@@ -132,7 +132,7 @@ func attrsString(a Attrs) string {
 func typeString(t *Type) string {
 	parts := []string{string(t.Kind)}
 	switch t.Kind {
-	case List, Set:
+	case List, Set, Map:
 		parts[0] = fmt.Sprintf("%s<%s>", t.Kind, typeString(t.Elem))
 	case Enum:
 		parts = append(parts, t.Schema, "["+strings.Join(t.Values, " ")+"]")

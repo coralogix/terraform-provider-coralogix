@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -75,7 +76,7 @@ schema.{{.Kind}}Attribute{
 {{- end}}
 {{- if eq .Kind "SingleNested"}}
 	Attributes: {{template "attributes" .Attributes}},
-{{- else if or (eq .Kind "ListNested") (eq .Kind "SetNested")}}
+{{- else if or (eq .Kind "ListNested") (eq .Kind "SetNested") (eq .Kind "MapNested")}}
 	NestedObject: schema.NestedAttributeObject{
 		Attributes: {{template "attributes" .Attributes}},
 	},

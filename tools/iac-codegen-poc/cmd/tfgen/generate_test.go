@@ -7,37 +7,48 @@ import (
 	"testing"
 )
 
-const generatedDir = "../../generated/aievaluation"
+// fakeSDK is the fake SDK module (fakesdk/generate.sh).
+const fakeSDK = "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk"
 
-// TestGeneratedUpToDate checks that generated/aievaluation is the output of
-// the generator for the patched spec. To rewrite it, run the --out command in
+// generatedCases are the generated resources and their inputs.
+var generatedCases = []struct{ dir, spec, resource, sdk string }{
+	{"../../generated/aievaluation", patchedSpec, "AiEvaluation", realSDK},
+	{"../../generated/fakeboard", "../../spec/fake/openapi.yaml", "FakeBoard", fakeSDK},
+}
+
+// TestGeneratedUpToDate checks that each generated directory is the output
+// of the generator for its spec. To rewrite it, run the --out command in
 // README.md, "Commands".
 func TestGeneratedUpToDate(t *testing.T) {
-	r, refs, err := checkedSDKNames(patchedSpec, "AiEvaluation")
-	if err != nil {
-		t.Fatal(err)
-	}
-	files, err := generate(r, refs, filepath.Base(generatedDir))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for name, got := range files {
-		want, err := os.ReadFile(filepath.Join(generatedDir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(got, want) {
-			t.Errorf("%s is not up to date. Run go run ./cmd/tfgen ... --out generated/aievaluation", name)
-		}
-	}
-	again, err := generate(r, refs, filepath.Base(generatedDir))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for name := range files {
-		if !bytes.Equal(files[name], again[name]) {
-			t.Errorf("%s: two runs give different output", name)
-		}
+	for _, c := range generatedCases {
+		t.Run(c.resource, func(t *testing.T) {
+			r, refs, err := checkedSDKNames(c.spec, c.resource, c.sdk)
+			if err != nil {
+				t.Fatal(err)
+			}
+			files, err := generate(r, refs, filepath.Base(c.dir))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for name, got := range files {
+				want, err := os.ReadFile(filepath.Join(c.dir, name))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(got, want) {
+					t.Errorf("%s is not up to date. Run go run ./cmd/tfgen ... --out %s", name, c.dir)
+				}
+			}
+			again, err := generate(r, refs, filepath.Base(c.dir))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for name := range files {
+				if !bytes.Equal(files[name], again[name]) {
+					t.Errorf("%s: two runs give different output", name)
+				}
+			}
+		})
 	}
 }
 

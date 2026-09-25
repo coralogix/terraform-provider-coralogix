@@ -27,7 +27,7 @@ const (
 // with the golden file. To rewrite the file, run:
 // go test ./cmd/tfgen -run TestSDKNames -update
 func TestSDKNames(t *testing.T) {
-	_, refs, err := checkedSDKNames(patchedSpec, "AiEvaluation")
+	_, refs, err := checkedSDKNames(patchedSpec, "AiEvaluation", realSDK)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestSDKNamesMissing(t *testing.T) {
 				t.Fatal(err)
 			}
 			c.change(r)
-			refs, err := resolveSDKNames(r, "AI Evaluations Service")
+			refs, err := resolveSDKNames(r, "AI Evaluations Service", realSDK)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -148,7 +148,7 @@ var pkgsOnce = sync.OnceValues(func() (map[string]*packages.Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	refs, err := resolveSDKNames(r, "AI Evaluations Service")
+	refs, err := resolveSDKNames(r, "AI Evaluations Service", realSDK)
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,50 @@
+resource FakeBoard
+  id param:     id
+  update mask:  updateMask
+
+operations
+  create  POST    /fake/boards/v1       FakeBoardsService_CreateFakeBoard  body inline  response CreateFakeBoardResponse.fakeBoard
+  get     GET     /fake/boards/v1/{id}  FakeBoardsService_GetFakeBoard     body -       response GetFakeBoardResponse.fakeBoard
+  update  PATCH   /fake/boards/v1/{id}  FakeBoardsService_UpdateFakeBoard  body inline  response UpdateFakeBoardResponse.fakeBoard
+  delete  DELETE  /fake/boards/v1/{id}  FakeBoardsService_DeleteFakeBoard  body -       response DeleteFakeBoardResponse
+
+fields
+  NAME         BEHAVIOR   CREATE             UPDATE             GET  TYPE
+  id           computed   -                  -                  yes  string
+  name         immutable  required           -                  yes  string len 1..64
+  description  normal     optional presence  optional presence  yes  string len ..256
+  labels       normal     optional presence  optional presence  yes  map<string>
+  panels       normal     optional presence  optional presence  yes  map<object Panel>
+      query  required  string len 1..
+      unit   optional  enum Unit [PERCENT BYTES]
+      style  optional  oneOf TextStyle (2 arms, no arm allowed)
+        bold  arm  object BoldStyle {}
+        font  arm  object FontStyle
+          family  optional  string
+          size    optional  integer uint64 (wire: string)
+  layout       normal     required           optional presence  yes  object Layout
+      title       required  string
+      titleStyle  optional  oneOf TextStyle (2 arms, no arm allowed)
+        bold  arm  object BoldStyle {}
+        font  arm  object FontStyle
+          family  optional  string
+          size    optional  integer uint64 (wire: string)
+      section     optional  object Section
+        header  optional  object Header
+          text   required  string len 1..
+          color  optional  enum Color [RED GREEN BLUE]
+          style  optional  oneOf TextStyle (2 arms, no arm allowed)
+            bold  arm  object BoldStyle {}
+            font  arm  object FontStyle
+              family  optional  string
+              size    optional  integer uint64 (wire: string)
+        widths  optional  map<integer uint64 (wire: string)>
+        rows    optional  list<object Row>
+          height  required  integer uint64 (wire: string)
+          label   optional  string
+          style   optional  oneOf TextStyle (2 arms, no arm allowed)
+            bold  arm  object BoldStyle {}
+            font  arm  object FontStyle
+              family  optional  string
+              size    optional  integer uint64 (wire: string)
+  updatedAt    computed   -                  -                  yes  string date-time

@@ -15,6 +15,9 @@ type Resource struct {
 	// UpdateMask is the Update body property that holds the update mask.
 	// It is not a resource field.
 	UpdateMask string
+	// UpdateMaskPattern is the "pattern" of the update mask string, "" when
+	// the spec has none. It shows which mask paths the API accepts.
+	UpdateMaskPattern string
 	// Fields are the top-level resource fields: the Get fields in spec order,
 	// then Create-only and Update-only fields (Build rejects those).
 	Fields []*ResourceField
@@ -85,6 +88,7 @@ const (
 	OneOf   Kind = "oneOf" // an object with exactly one arm set
 	List    Kind = "list"  // ordered
 	Set     Kind = "set"   // unordered, unique items
+	Map     Kind = "map"   // string keys; Elem is the value type
 )
 
 // Type is the type of a field.
@@ -96,7 +100,7 @@ type Type struct {
 	// (protobuf 64-bit numbers).
 	WireString bool
 	Values     []string // Enum: the values, without *_UNSPECIFIED
-	Elem       *Type    // List, Set
+	Elem       *Type    // List, Set, Map
 	Fields     []*Field // Object: the properties; OneOf: the arms
 	AllowNone  bool     // OneOf: the value can have no arm set
 

@@ -2,6 +2,7 @@
 //
 //	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --out generated/aievaluation
 //	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --sdk-names
+//	go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeboard
 //
 // Both check that the pinned SDK has every name the generated code uses.
 // --out writes the generated files. The package name is the last element of
@@ -27,22 +28,23 @@ func main() {
 	resource := flag.String("resource", "", "component name of the resource schema, for example AiEvaluation")
 	out := flag.String("out", "", "output directory of the generated resource")
 	sdkNames := flag.Bool("sdk-names", false, "check the SDK names and print them")
+	sdkModule := flag.String("sdk-module", realSDK, "Go module of the SDK")
 	flag.Parse()
 
-	if err := run(*spec, *resource, *out, *sdkNames); err != nil {
+	if err := run(*spec, *resource, *out, *sdkModule, *sdkNames); err != nil {
 		fmt.Fprintln(os.Stderr, "tfgen:", err)
 		os.Exit(1)
 	}
 }
 
-func run(spec, resource, out string, sdkNames bool) error {
+func run(spec, resource, out, sdkModule string, sdkNames bool) error {
 	if spec == "" || resource == "" {
 		return errors.New("--spec and --resource are required")
 	}
 	if (out == "") == !sdkNames {
 		return errors.New("use exactly one of --out and --sdk-names")
 	}
-	r, refs, err := checkedSDKNames(spec, resource)
+	r, refs, err := checkedSDKNames(spec, resource, sdkModule)
 	if err != nil {
 		return err
 	}
@@ -67,7 +69,7 @@ func run(spec, resource, out string, sdkNames bool) error {
 // checkedSDKNames builds the model and returns it with its SDK names. It
 // fails when the pinned SDK does not have one of the names. The generated
 // code uses only these names.
-func checkedSDKNames(spec, resource string) (*model.Resource, []sdkRef, error) {
+func checkedSDKNames(spec, resource, sdkModule string) (*model.Resource, []sdkRef, error) {
 	data, err := os.ReadFile(spec)
 	if err != nil {
 		return nil, nil, err
@@ -84,7 +86,7 @@ func checkedSDKNames(spec, resource string) (*model.Resource, []sdkRef, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	refs, err := resolveSDKNames(r, tag)
+	refs, err := resolveSDKNames(r, tag, sdkModule)
 	if err != nil {
 		return nil, nil, err
 	}

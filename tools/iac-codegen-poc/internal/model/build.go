@@ -338,9 +338,11 @@ func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema) e
 	if mask == nil {
 		return fmt.Errorf("update body: no %s property", updateMaskField)
 	}
-	if s, err := schemaOf(mask); err != nil || !slices.Equal(s.Type, []string{"string"}) {
+	ms, err := schemaOf(mask)
+	if err != nil || !slices.Equal(ms.Type, []string{"string"}) {
 		return fmt.Errorf("update body: %s must be a string", updateMaskField)
 	}
+	r.UpdateMaskPattern = ms.Pattern
 	for _, loc := range []location{{"create body", createBody}, {r.Name, getSchema}} {
 		if loc.schema.Properties.GetOrZero(updateMaskField) != nil {
 			return fmt.Errorf("%s: unexpected %s property", loc.name, updateMaskField)
@@ -559,7 +561,7 @@ func checkSupported(s *base.Schema) error {
 
 func objectType(t *Type, s *base.Schema, path string, stack []string) error {
 	if ap := s.AdditionalProperties; ap != nil && (ap.IsA() || ap.B) {
-		return fmt.Errorf("%s: maps (additionalProperties) are not supported", path)
+		return mapType(t, s, path, stack)
 	}
 	if err := checkRequired(s); err != nil {
 		return fmt.Errorf("%s: %w", path, err)
@@ -670,6 +672,26 @@ func noArmList(not *base.SchemaProxy) ([]string, error) {
 func sameSet(a, b []string) bool {
 	a, b = slices.Sorted(slices.Values(a)), slices.Sorted(slices.Values(b))
 	return len(slices.Compact(slices.Clone(a))) == len(a) && slices.Equal(a, b)
+}
+
+// mapType builds a map: an object with only additionalProperties. The keys
+// are strings. A free-form map (additionalProperties: true) has no value type,
+// and an object with both properties and additionalProperties has two shapes,
+// so both are rejected.
+func mapType(t *Type, s *base.Schema, path string, stack []string) error {
+	ap := s.AdditionalProperties
+	if !ap.IsA() || ap.A == nil {
+		return fmt.Errorf("%s: a map without a value schema (additionalProperties: true) is not supported", path)
+	}
+	if s.Properties != nil && s.Properties.Len() != 0 || len(s.OneOf) != 0 {
+		return fmt.Errorf("%s: an object with both properties and additionalProperties is not supported", path)
+	}
+	elem, err := typeOf(ap.A, path+"{}", stack)
+	if err != nil {
+		return err
+	}
+	t.Kind, t.Elem = Map, elem
+	return nil
 }
 
 func arrayType(t *Type, s *base.Schema, path string, stack []string) error {

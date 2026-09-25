@@ -10,12 +10,17 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/internal/model"
 )
 
-// The SDK packages. go.mod pins the SDK version, and go/packages loads that
-// version (README.md, "Pinned versions").
-const (
-	sdkGenRoot   = "github.com/coralogix/coralogix-management-sdk/go/openapi/gen"
-	sdkClientSet = "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-)
+// realSDK is the default SDK module. go.mod pins its version, and
+// go/packages loads that version (README.md, "Pinned versions").
+// --sdk-module selects another module with the same layout, for example the
+// fake SDK.
+const realSDK = "github.com/coralogix/coralogix-management-sdk"
+
+// sdkGenRoot is the parent of the generated SDK packages of module.
+func sdkGenRoot(module string) string { return module + "/go/openapi/gen" }
+
+// sdkClientSet is the handwritten cxsdk package of module.
+func sdkClientSet(module string) string { return module + "/go/openapi/cxsdk" }
 
 // refKind is the kind of Go object an sdkRef names.
 type refKind string
@@ -55,7 +60,10 @@ type sdkRef struct {
 	// Want is the Go type of a field or the signature of a method, written
 	// relative to Pkg. It is "" for the other kinds.
 	Want string
-	Rule rule
+	// WantValue is the value type that a field may have instead of the
+	// pointer type Want. checkSDKNames sets Want to it when the SDK has it.
+	WantValue string
+	Rule      rule
 	// Schema is the component name of a type ref that comes from the spec.
 	// The generator uses it to find the SDK type of a model type.
 	Schema string
@@ -96,9 +104,9 @@ func resourceTag(doc *v3.Document, r *model.Resource) (string, error) {
 // resolveSDKNames lists the SDK names that the generated code uses for the
 // resource. It only applies the naming rules. checkSDKNames confirms that
 // the names exist.
-func resolveSDKNames(r *model.Resource, tag string) ([]sdkRef, error) {
+func resolveSDKNames(r *model.Resource, tag, module string) ([]sdkRef, error) {
 	pkgName := strings.ToLower(strings.ReplaceAll(tag, " ", "_"))
-	s := &resolver{pkg: sdkGenRoot + "/" + pkgName, seen: map[string]bool{}, bodies: map[string]string{}}
+	s := &resolver{pkg: sdkGenRoot(module) + "/" + pkgName, seen: map[string]bool{}, bodies: map[string]string{}}
 	client := camelize(tag) + "APIService"
 	s.add(sdkRef{Path: "resource", Kind: kindPackage, Name: pkgName, Rule: ruleTag})
 	s.add(sdkRef{Path: "resource", Kind: kindType, Name: client, Rule: ruleTag})
@@ -161,7 +169,7 @@ func resolveSDKNames(r *model.Resource, tag string) ([]sdkRef, error) {
 		{Path: "cxsdk.errors", Kind: kindFunc, Name: "NewAPIError", Want: "func(resp *http.Response, err error) error"},
 		{Path: "cxsdk.errors", Kind: kindFunc, Name: "Code", Want: "func(err error) int"},
 	} {
-		ref.Pkg, ref.Rule = sdkClientSet, ruleClientSet
+		ref.Pkg, ref.Rule = sdkClientSet(module), ruleClientSet
 		s.refs = append(s.refs, ref)
 	}
 	return s.refs, nil
@@ -225,7 +233,14 @@ func (s *resolver) field(path, owner, name string, t *model.Type) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", path, err)
 	}
-	s.add(sdkRef{Path: path, Kind: kindField, Owner: owner, Name: goFieldName(name), Want: goType, Rule: r})
+	ref := sdkRef{Path: path, Kind: kindField, Owner: owner, Name: goFieldName(name), Want: goType, Rule: r}
+	// openapi-generator uses a value, not a pointer, for a required field.
+	// Only the SDK knows which spec it was generated from (F18), so the
+	// check accepts both and keeps the one that the SDK has.
+	if strings.HasPrefix(goType, "*") {
+		ref.WantValue = goType[1:]
+	}
+	s.add(ref)
 	return nil
 }
 
@@ -233,7 +248,7 @@ func (s *resolver) field(path, owner, name string, t *model.Type) error {
 // component schema once, so a path shows the first place that uses it.
 func (s *resolver) nested(path string, t *model.Type) error {
 	switch t.Kind {
-	case model.List, model.Set:
+	case model.List, model.Set, model.Map:
 		return s.nested(path, t.Elem)
 	case model.Enum:
 		if s.seen[t.Schema] {
@@ -266,19 +281,22 @@ func (s *resolver) nested(path string, t *model.Type) error {
 	return nil
 }
 
-// fieldType is the Go type of an SDK struct field. The SDK was generated
-// from the source spec, so every field is a pointer, also a required one (F18).
+// fieldType is the Go type of an optional SDK struct field. A required field
+// can also be the value type (see field).
 func fieldType(t *model.Type) (string, rule, error) {
 	if (t.Kind == model.Object || t.Kind == model.OneOf) && len(t.Fields) == 0 {
 		return "map[string]interface{}", ruleEmptyObject, nil
 	}
-	if t.Kind == model.List || t.Kind == model.Set {
+	if t.Kind == model.List || t.Kind == model.Set || t.Kind == model.Map {
 		elem, _, err := fieldType(t.Elem)
 		if err != nil {
 			return "", "", err
 		}
 		if !strings.HasPrefix(elem, "*") {
 			return "", "", fmt.Errorf("%s of %s is not supported", t.Kind, elem)
+		}
+		if t.Kind == model.Map {
+			return "map[string]" + elem[1:], ruleProperty, nil
 		}
 		return "[]" + elem[1:], ruleProperty, nil
 	}

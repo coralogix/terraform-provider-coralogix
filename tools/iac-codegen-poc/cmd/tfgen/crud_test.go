@@ -57,7 +57,7 @@ func TestBuildCRUDRejects(t *testing.T) {
 			if c.change != nil {
 				c.change(r)
 			}
-			refs, err := resolveSDKNames(r, "AI Evaluations Service")
+			refs, err := resolveSDKNames(r, "AI Evaluations Service", realSDK)
 			if err != nil {
 				t.Fatal(err)
 			}

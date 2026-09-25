@@ -1,0 +1,352 @@
+openapi: 3.1.0
+info:
+  title: Fake Boards API
+  version: "1"
+  description: >-
+    A fake API that follows the full IaC contract. It exists only to test the
+    generator on shapes that the real API does not have. No server implements it.
+tags:
+  - name: Fake Boards Service
+paths:
+  /fake/boards/v1:
+    post:
+      description: Creates a board.
+      operationId: FakeBoardsService_CreateFakeBoard
+      tags:
+        - Fake Boards Service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to create a board.
+              properties:
+                name:
+                  description: Name of the board.
+                  maxLength: 64
+                  minLength: 1
+                  type: string
+                description:
+                  description: Free text about the board.
+                  maxLength: 256
+                  type: string
+                  x-coralogix-presence: true
+                labels:
+                  additionalProperties:
+                    type: string
+                  description: Labels of the board. A map of strings.
+                  type: object
+                  x-coralogix-presence: true
+                panels:
+                  additionalProperties:
+                    $ref: '#/components/schemas/Panel'
+                  description: Panels by id. A map of objects.
+                  type: object
+                  x-coralogix-presence: true
+                layout:
+                  allOf:
+                    - $ref: '#/components/schemas/Layout'
+                  description: How the board looks.
+              type: object
+              required:
+                - name
+                - layout
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateFakeBoardResponse'
+          description: ''
+  /fake/boards/v1/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      description: Gets a board.
+      operationId: FakeBoardsService_GetFakeBoard
+      tags:
+        - Fake Boards Service
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetFakeBoardResponse'
+          description: ''
+    patch:
+      description: Updates a board.
+      operationId: FakeBoardsService_UpdateFakeBoard
+      tags:
+        - Fake Boards Service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to update a board.
+              properties:
+                description:
+                  description: Free text about the board.
+                  maxLength: 256
+                  type: string
+                  x-coralogix-presence: true
+                labels:
+                  additionalProperties:
+                    type: string
+                  description: Labels of the board. A map of strings.
+                  type: object
+                  x-coralogix-presence: true
+                panels:
+                  additionalProperties:
+                    $ref: '#/components/schemas/Panel'
+                  description: Panels by id. A map of objects.
+                  type: object
+                  x-coralogix-presence: true
+                layout:
+                  allOf:
+                    - $ref: '#/components/schemas/Layout'
+                  description: How the board looks.
+                  x-coralogix-presence: true
+                updateMask:
+                  description: >-
+                    Comma-separated list of field paths to update. A path can
+                    name a nested field, for example layout.section.header.text.
+                  maxLength: 1024
+                  minLength: 1
+                  pattern: ^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*(,[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*)*$
+                  type: string
+              type: object
+              required: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateFakeBoardResponse'
+          description: ''
+    delete:
+      description: Deletes a board.
+      operationId: FakeBoardsService_DeleteFakeBoard
+      tags:
+        - Fake Boards Service
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteFakeBoardResponse'
+          description: ''
+components:
+  schemas:
+    FakeBoard:
+      type: object
+      properties:
+        id:
+          description: Unique identifier of the board.
+          type: string
+        name:
+          description: Name of the board.
+          maxLength: 64
+          minLength: 1
+          type: string
+        description:
+          description: Free text about the board.
+          maxLength: 256
+          type: string
+        labels:
+          additionalProperties:
+            type: string
+          description: Labels of the board. A map of strings.
+          type: object
+        panels:
+          additionalProperties:
+            $ref: '#/components/schemas/Panel'
+          description: Panels by id. A map of objects.
+          type: object
+        layout:
+          allOf:
+            - $ref: '#/components/schemas/Layout'
+          description: How the board looks.
+        updatedAt:
+          description: RFC3339 timestamp of the last update.
+          format: date-time
+          type: string
+      required:
+        - id
+        - name
+    Layout:
+      description: How the board looks. Level 1.
+      type: object
+      properties:
+        title:
+          description: Title of the board.
+          type: string
+        titleStyle:
+          allOf:
+            - $ref: '#/components/schemas/TextStyle'
+          description: Style of the title. The same type as the header style.
+        section:
+          allOf:
+            - $ref: '#/components/schemas/Section'
+          description: The main section.
+      required:
+        - title
+    Section:
+      description: A section of the board. Level 2.
+      type: object
+      properties:
+        header:
+          allOf:
+            - $ref: '#/components/schemas/Header'
+          description: The section header.
+        widths:
+          additionalProperties:
+            format: uint64
+            pattern: ^[0-9]+$
+            type: string
+          description: Column widths by column name. A map of 64-bit numbers inside a nested object.
+          type: object
+        rows:
+          description: The rows of the section, in order.
+          items:
+            $ref: '#/components/schemas/Row'
+          type: array
+    Header:
+      description: A section header. Level 3.
+      type: object
+      properties:
+        text:
+          description: Header text.
+          minLength: 1
+          type: string
+        color:
+          allOf:
+            - $ref: '#/components/schemas/Color'
+          description: Header color.
+        style:
+          allOf:
+            - $ref: '#/components/schemas/TextStyle'
+          description: Style of the header text.
+      required:
+        - text
+    Row:
+      description: One row of a section.
+      type: object
+      properties:
+        height:
+          description: Height in grid units.
+          format: uint64
+          pattern: ^[0-9]+$
+          type: string
+        label:
+          description: Row label.
+          type: string
+        style:
+          allOf:
+            - $ref: '#/components/schemas/TextStyle'
+          description: Style of the row label. A oneOf inside a list item.
+      required:
+        - height
+    TextStyle:
+      description: Text style (oneof).
+      type: object
+      properties:
+        bold:
+          allOf:
+            - $ref: '#/components/schemas/BoldStyle'
+          description: Bold text (no fields).
+        font:
+          allOf:
+            - $ref: '#/components/schemas/FontStyle'
+          description: A font.
+      oneOf:
+        - required:
+            - bold
+          type: object
+        - required:
+            - font
+          type: object
+        - not:
+            anyOf:
+              - required:
+                  - bold
+                type: object
+              - required:
+                  - font
+                type: object
+          type: object
+    BoldStyle:
+      description: Bold text. It has no fields.
+      type: object
+    FontStyle:
+      description: A font.
+      type: object
+      properties:
+        family:
+          description: Font family.
+          type: string
+        size:
+          description: Font size in points.
+          format: uint64
+          pattern: ^[0-9]+$
+          type: string
+    Panel:
+      description: A panel. A value of the panels map.
+      type: object
+      properties:
+        query:
+          description: The panel query.
+          minLength: 1
+          type: string
+        unit:
+          allOf:
+            - $ref: '#/components/schemas/Unit'
+          description: The unit of the values.
+        style:
+          allOf:
+            - $ref: '#/components/schemas/TextStyle'
+          description: Style of the panel title. A oneOf inside a map value.
+      required:
+        - query
+    Unit:
+      enum:
+        - PERCENT
+        - BYTES
+      type: string
+      description: A unit.
+    Color:
+      enum:
+        - RED
+        - GREEN
+        - BLUE
+      type: string
+      description: A color.
+    CreateFakeBoardResponse:
+      type: object
+      properties:
+        fakeBoard:
+          allOf:
+            - $ref: '#/components/schemas/FakeBoard'
+          description: The created board.
+    GetFakeBoardResponse:
+      type: object
+      properties:
+        fakeBoard:
+          allOf:
+            - $ref: '#/components/schemas/FakeBoard'
+          description: The board.
+    UpdateFakeBoardResponse:
+      type: object
+      properties:
+        fakeBoard:
+          allOf:
+            - $ref: '#/components/schemas/FakeBoard'
+          description: The updated board.
+    DeleteFakeBoardResponse:
+      type: object
+      properties:
+        id:
+          description: Identifier of the deleted board.
+          type: string

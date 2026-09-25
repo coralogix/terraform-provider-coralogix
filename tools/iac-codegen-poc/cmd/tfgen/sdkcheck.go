@@ -38,10 +38,12 @@ func loadSDK(refs []sdkRef) (map[string]*packages.Package, error) {
 }
 
 // checkSDKNames returns one error for each ref that the SDK does not have.
-// Each error names the model path and the expected SDK name.
+// Each error names the model path and the expected SDK name. For a field
+// that has the value type WantValue, it sets Want to WantValue.
 func checkSDKNames(refs []sdkRef, pkgs map[string]*packages.Package) error {
 	var errs []error
-	for _, ref := range refs {
+	for i := range refs {
+		ref := &refs[i]
 		if err := checkRef(ref, pkgs[ref.Pkg]); err != nil {
 			errs = append(errs, fmt.Errorf("%s: SDK %s %s: %w", ref.Path, ref.Kind, ref.sdkName(), err))
 		}
@@ -49,7 +51,7 @@ func checkSDKNames(refs []sdkRef, pkgs map[string]*packages.Package) error {
 	return errors.Join(errs...)
 }
 
-func checkRef(ref sdkRef, pkg *packages.Package) error {
+func checkRef(ref *sdkRef, pkg *packages.Package) error {
 	if pkg == nil {
 		return fmt.Errorf("package %s not loaded", ref.Pkg)
 	}
@@ -66,7 +68,7 @@ func checkRef(ref sdkRef, pkg *packages.Package) error {
 }
 
 // checkTopLevel checks a package, or a type, const, or func of the package.
-func checkTopLevel(ref sdkRef, pkg *packages.Package, qualifier types.Qualifier) error {
+func checkTopLevel(ref *sdkRef, pkg *packages.Package, qualifier types.Qualifier) error {
 	scope := pkg.Types.Scope()
 	switch ref.Kind {
 	case kindPackage:
@@ -98,7 +100,7 @@ func checkTopLevel(ref sdkRef, pkg *packages.Package, qualifier types.Qualifier)
 }
 
 // checkMember checks a field or a method of the type ref.Owner.
-func checkMember(ref sdkRef, pkg *packages.Package, qualifier types.Qualifier) error {
+func checkMember(ref *sdkRef, pkg *packages.Package, qualifier types.Qualifier) error {
 	owner, ok := pkg.Types.Scope().Lookup(ref.Owner).(*types.TypeName)
 	if !ok {
 		return fmt.Errorf("type %s not found", ref.Owner)
@@ -120,7 +122,11 @@ func checkMember(ref sdkRef, pkg *packages.Package, qualifier types.Qualifier) e
 	if got == nil {
 		return errors.New("not found")
 	}
-	if s := types.TypeString(got, qualifier); s != ref.Want {
+	switch s := types.TypeString(got, qualifier); {
+	case s == ref.Want:
+	case ref.WantValue != "" && s == ref.WantValue:
+		ref.Want = s
+	default:
 		return fmt.Errorf("type is %s, want %s", s, ref.Want)
 	}
 	return nil
