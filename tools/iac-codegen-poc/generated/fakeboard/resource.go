@@ -160,7 +160,7 @@ func (r *Resource) create(ctx context.Context, body *fake_boards_service.FakeBoa
 	if out == nil {
 		return nil, nil
 	}
-	return out.FakeBoard, nil
+	return out, nil
 }
 
 func (r *Resource) get(ctx context.Context, id string) (*fake_boards_service.FakeBoard, error) {
@@ -171,7 +171,7 @@ func (r *Resource) get(ctx context.Context, id string) (*fake_boards_service.Fak
 	if out == nil {
 		return nil, nil
 	}
-	return out.FakeBoard, nil
+	return out, nil
 }
 
 func (r *Resource) update(ctx context.Context, id string, body *fake_boards_service.FakeBoardsServiceUpdateFakeBoardRequest) (*fake_boards_service.FakeBoard, error) {
@@ -182,7 +182,7 @@ func (r *Resource) update(ctx context.Context, id string, body *fake_boards_serv
 	if out == nil {
 		return nil, nil
 	}
-	return out.FakeBoard, nil
+	return out, nil
 }
 
 func (r *Resource) delete(ctx context.Context, id string) error {

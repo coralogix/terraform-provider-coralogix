@@ -1,0 +1,163 @@
+openapi: 3.1.0
+info:
+  title: Fake Settings API
+  version: "1"
+  description: >-
+    A fake singleton API: one settings resource per company, with no id in the
+    path. It has the shape of the real CompanyIpAccessSettings API: Create,
+    Get, Update, and Delete on one path, the resource in a wrapper field, and an
+    empty Delete response. No server implements it.
+tags:
+  - name: Fake Settings Service
+paths:
+  /fake/settings/v1:
+    post:
+      description: Creates the settings.
+      operationId: FakeSettingsService_CreateFakeSettings
+      tags:
+        - Fake Settings Service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to create the settings.
+              properties:
+                enabled:
+                  description: Whether the settings are active.
+                  type: boolean
+                allowList:
+                  description: Allowed addresses, in order.
+                  items:
+                    type: string
+                  type: array
+                mode:
+                  allOf:
+                    - $ref: '#/components/schemas/SettingsMode'
+                  description: The mode.
+                  x-coralogix-presence: true
+              type: object
+              required:
+                - enabled
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateFakeSettingsResponse'
+          description: ''
+    get:
+      description: Gets the settings.
+      operationId: FakeSettingsService_GetFakeSettings
+      tags:
+        - Fake Settings Service
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetFakeSettingsResponse'
+          description: ''
+    patch:
+      description: Updates the settings.
+      operationId: FakeSettingsService_UpdateFakeSettings
+      tags:
+        - Fake Settings Service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to update the settings.
+              properties:
+                enabled:
+                  description: Whether the settings are active.
+                  type: boolean
+                  x-coralogix-presence: true
+                allowList:
+                  description: Allowed addresses, in order.
+                  items:
+                    type: string
+                  type: array
+                  x-coralogix-presence: true
+                mode:
+                  allOf:
+                    - $ref: '#/components/schemas/SettingsMode'
+                  description: The mode.
+                  x-coralogix-presence: true
+                updateMask:
+                  description: Comma-separated list of field paths to update.
+                  maxLength: 1024
+                  minLength: 1
+                  pattern: ^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$
+                  type: string
+              type: object
+              required: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateFakeSettingsResponse'
+          description: ''
+    delete:
+      description: Deletes the settings.
+      operationId: FakeSettingsService_DeleteFakeSettings
+      tags:
+        - Fake Settings Service
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteFakeSettingsResponse'
+          description: ''
+components:
+  schemas:
+    FakeSettings:
+      type: object
+      properties:
+        enabled:
+          description: Whether the settings are active.
+          type: boolean
+        allowList:
+          description: Allowed addresses, in order.
+          items:
+            type: string
+          type: array
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/SettingsMode'
+          description: The mode.
+        updatedAt:
+          description: RFC3339 timestamp of the last update.
+          format: date-time
+          type: string
+    SettingsMode:
+      enum:
+        - STRICT
+        - OPEN
+      type: string
+      description: A mode.
+    CreateFakeSettingsResponse:
+      type: object
+      properties:
+        settings:
+          allOf:
+            - $ref: '#/components/schemas/FakeSettings'
+          description: The created settings.
+    GetFakeSettingsResponse:
+      type: object
+      properties:
+        settings:
+          allOf:
+            - $ref: '#/components/schemas/FakeSettings'
+          description: The settings.
+    UpdateFakeSettingsResponse:
+      type: object
+      properties:
+        settings:
+          allOf:
+            - $ref: '#/components/schemas/FakeSettings'
+          description: The updated settings.
+    DeleteFakeSettingsResponse:
+      type: object
+      description: Response of Delete. It has no fields, like the real DeleteCompanyIpAccessSettingsResponse.

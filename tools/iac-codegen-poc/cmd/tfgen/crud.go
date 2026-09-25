@@ -14,9 +14,12 @@ type crudData struct {
 	IDAttr   string // Terraform attribute of the id
 	IDField  string // SDK field of the id in the resource
 	IDValue  bool   // the id field is a string, not a *string (F18)
-	SDKName  string // package name of the resource SDK package
-	Client   string // SDK client type
-	Resource string // SDK type of the resource
+	// Singleton: no id in the path (D18). The id attribute is the fixed value
+	// TypeName, and the API calls take no id.
+	Singleton bool
+	SDKName   string // package name of the resource SDK package
+	Client    string // SDK client type
+	Resource  string // SDK type of the resource
 	// The cxsdk package: the provider data type, the accessor of the client,
 	// and the error helpers.
 	CXPkg, CXName        string
@@ -32,7 +35,7 @@ type crudData struct {
 type crudOp struct {
 	Method   string
 	Body     string // request builder method that sets the body; "" when there is no body
-	Response string // response field that holds the resource; "" when there is none
+	Response string // response field that holds the resource; "" when there is none, or the response is the resource
 }
 
 // buildCRUD maps the operations and their SDK names to the template data.
@@ -51,22 +54,24 @@ func buildCRUD(r *model.Resource, refs []sdkRef) (*crudData, error) {
 	if err != nil {
 		return nil, err
 	}
-	id, err := ix.fieldRef("fields." + r.IDParam)
-	if err != nil {
-		return nil, err
-	}
-	if id.Want != "*string" && id.Want != "string" {
-		return nil, fmt.Errorf("SDK field %s has type %s, the id needs *string or string", id.sdkName(), id.Want)
-	}
 	out := &crudData{
-		TypeName: tfName(r.Name),
-		Model:    modelTypeName(r.Name),
-		IDAttr:   tfName(r.IDParam),
-		IDField:  id.Name,
-		IDValue:  id.Want == "string",
-		SDKName:  ix.pkg.Name,
-		Client:   client.Name,
-		Resource: resource.Name,
+		TypeName:  tfName(r.Name),
+		Model:     modelTypeName(r.Name),
+		IDAttr:    "id",
+		Singleton: r.Singleton,
+		SDKName:   ix.pkg.Name,
+		Client:    client.Name,
+		Resource:  resource.Name,
+	}
+	if !r.Singleton {
+		id, err := ix.fieldRef("fields." + r.IDParam)
+		if err != nil {
+			return nil, err
+		}
+		if id.Want != "*string" && id.Want != "string" {
+			return nil, fmt.Errorf("SDK field %s has type %s, the id needs *string or string", id.sdkName(), id.Want)
+		}
+		out.IDAttr, out.IDField, out.IDValue = tfName(r.IDParam), id.Name, id.Want == "string"
 	}
 	if err := cxsdkNames(ix, client.Name, out); err != nil {
 		return nil, err
@@ -102,7 +107,7 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 	if (o.op.Body != "") != o.body {
 		return out, fmt.Errorf("%s: request body %q is not supported", o.name, o.op.Body)
 	}
-	if (o.op.Response.Field != "") != o.resource {
+	if (o.op.Response.Field != "" || o.op.Response.Direct) != o.resource {
 		return out, fmt.Errorf("%s: response field %q is not supported", o.name, o.op.Response.Field)
 	}
 	method, err := ix.methodRef(o.name, client)
@@ -121,7 +126,7 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 		}
 		out.Body = body.Name
 	}
-	if o.resource {
+	if o.resource && !o.op.Response.Direct {
 		field, err := ix.fieldRef(o.name + ".response." + o.op.Response.Field)
 		if err != nil {
 			return out, err

@@ -134,7 +134,7 @@ func accCheckDestroy(cs *{{$crud.CXName}}.{{$crud.ClientSet}}, typeName string) 
 			if rs.Type != typeName {
 				continue
 			}
-			_, httpResp, err := cs.{{$crud.Accessor}}().{{$crud.Get.Method}}(context.Background(), rs.Primary.ID).Execute()
+			_, httpResp, err := cs.{{$crud.Accessor}}().{{$crud.Get.Method}}(context.Background(){{if not $crud.Singleton}}, rs.Primary.ID{{end}}).Execute()
 			if err == nil {
 				return fmt.Errorf("%s %s still exists", typeName, rs.Primary.ID)
 			}

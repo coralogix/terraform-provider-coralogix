@@ -5,6 +5,7 @@ info:
   description: >-
     A fake API that follows the full IaC contract. It exists only to test the
     generator on shapes that the real API does not have. No server implements it.
+    Create, Get, and Update return the board itself, not inside a wrapper field.
 tags:
   - name: Fake Boards Service
 paths:
@@ -76,7 +77,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateFakeBoardResponse'
+                $ref: '#/components/schemas/FakeBoard'
           description: ''
   /fake/boards/v1/{id}:
     parameters:
@@ -95,7 +96,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetFakeBoardResponse'
+                $ref: '#/components/schemas/FakeBoard'
           description: ''
     patch:
       description: Updates a board.
@@ -166,7 +167,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UpdateFakeBoardResponse'
+                $ref: '#/components/schemas/FakeBoard'
           description: ''
     delete:
       description: Deletes a board.
@@ -553,27 +554,6 @@ components:
         - BLUE
       type: string
       description: A color.
-    CreateFakeBoardResponse:
-      type: object
-      properties:
-        fakeBoard:
-          allOf:
-            - $ref: '#/components/schemas/FakeBoard'
-          description: The created board.
-    GetFakeBoardResponse:
-      type: object
-      properties:
-        fakeBoard:
-          allOf:
-            - $ref: '#/components/schemas/FakeBoard'
-          description: The board.
-    UpdateFakeBoardResponse:
-      type: object
-      properties:
-        fakeBoard:
-          allOf:
-            - $ref: '#/components/schemas/FakeBoard'
-          description: The updated board.
     DeleteFakeBoardResponse:
       type: object
       properties:

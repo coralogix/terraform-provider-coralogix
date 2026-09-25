@@ -62,6 +62,17 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 	out := &tfResource{Package: pkg, Model: r.Name + "Model"}
 	root := &tfModel{Name: out.Model}
 	b.models = append(b.models, root)
+	if r.Singleton {
+		for _, f := range r.Fields {
+			if tfName(f.Name) == "id" {
+				return nil, fmt.Errorf("%s: a singleton with an id field is not supported: the id attribute is fixed", f.Name)
+			}
+		}
+		out.Attributes = append(out.Attributes, &tfAttr{Name: "id", Kind: "String", ValueKind: "String", Computed: true,
+			Description: "The fixed id of this singleton: there is one per company.",
+			Modifiers:   []string{"stringplanmodifier.UseStateForUnknown()"}})
+		root.Fields = append(root.Fields, tfModelField{Name: "Id", Type: "types.String", TFName: "id"})
+	}
 	for _, f := range r.Fields {
 		a, err := b.attribute(attrPath{"root", tfName(f.Name)}, f.Name, f.Description, f.Type, fieldAttrs(f))
 		if err != nil {

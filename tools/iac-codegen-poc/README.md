@@ -6,8 +6,9 @@ It generates one resource, `ai_evaluation`, from the AI Evaluations API.
 This folder is a separate Go module. It does not change the provider build. The generated resource is
 not registered in the provider. The handwritten `coralogix_ai_evaluation` resource stays as it is.
 
-**The generated files:** [`generated/aievaluation/`](generated/aievaluation/) (the real API) and
-[`generated/fakeboard/`](generated/fakeboard/) (a fake API, see "Fake resource").
+**The generated files:** [`generated/aievaluation/`](generated/aievaluation/) (the real API),
+[`generated/fakeboard/`](generated/fakeboard/) (a fake API, see "Fake resource"), and
+[`generated/fakesettings/`](generated/fakesettings/) (a fake singleton, see "Singletons").
 
 | File | Content |
 |---|---|
@@ -82,6 +83,9 @@ go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --ac
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --sdk-names   # print the SDK names
 fakesdk/generate.sh                              # regenerate the fake SDK (needs Docker)
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey   # shapes that cannot be generated, for all Get resources
+go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey-resources   # operations, ids, bodies, responses of writable resources
+go run ./cmd/tfgen --spec spec/fake/settings.yaml --resource FakeSettings \
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakesettings
 go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard \
   --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeboard
 go test ./...                                    # the acceptance test skips without TF_ACC
@@ -173,6 +177,24 @@ The model reports every problem, not only the first. The last output is in
 [`cmd/tfgen/testdata/survey.txt`](cmd/tfgen/testdata/survey.txt): 42 of 43 resources have no issue. Left: AlertDef, which
 has an enum with only the `*_UNSPECIFIED` value (F33, an API gap).
 
+## Resource shapes
+
+`go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey-resources` groups the operations of each writable resource (a Get
+and a Create or Update) and lists how its ids, request bodies, and responses look. The last output is in
+[`cmd/tfgen/testdata/resource_survey.txt`](cmd/tfgen/testdata/resource_survey.txt). Most shapes that the generator does not
+support are better prevented in the API, so they are linter rules, not generator features (F37–F41).
+
+What the generator reads from OpenAPI:
+
+- **Response form:** the 200 response `$ref` is the resource itself (for example with `response_body` in the proto), or a type
+  with one field that points to the resource (`{aiEvaluation: {...}}`). Both work. Fields beside the resource are an error.
+- **Empty responses:** a response object with no fields (many Delete responses) is a map in the SDK, and is accepted (F43).
+- **Singletons:** a resource whose Get has no path parameter is a singleton: one per company, like
+  `CompanyIpAccessSettings`. It is generated only when Create, Get, Update, and Delete are on one path. The API calls take
+  no id, the Terraform `id` is a fixed, read-only value, and import accepts any id. A singleton with only Get and Update is
+  not a Terraform resource, and generation stops with an error. [`spec/fake/settings.yaml`](spec/fake/settings.yaml) is the
+  fake singleton; [`generated/fakesettings/resource_test.go`](generated/fakesettings/resource_test.go) tests its CRUD.
+
 ## Decisions
 
 | # | Topic | Decision | Reason |
@@ -196,6 +218,7 @@ has an enum with only the `*_UNSPECIFIED` value (F33, an API gap).
 | D15 | Acceptance test values | Handwritten. The generator cannot know live values (for example a real AI application). Later, the API owner (backend developer) fills them in. | A spec example cannot know the environment. |
 | D16 | Acceptance test value format | A YAML file (`spec/acc/<Resource>.yaml`) with `${name}` placeholders. A small handwritten Go hook fills the placeholders from the environment. | A backend developer edits only data. The generator checks the file. |
 | D17 | Names and shapes in that YAML | The API JSON shape (`camelCase`, request-body values). The generator converts it to HCL. | Backend developers know the API, not Terraform. The same file can serve the Operator and other tools later. |
+| D18 | Singletons | A singleton is a resource whose Get has no path parameter (one per company). Only a singleton with Create, Get, Update, and Delete on one path is generated. A singleton with only Get and Update is not a Terraform resource: not generated for now. | Terraform needs a real create and delete. (2026-09-25) |
 
 ## Findings
 
@@ -238,3 +261,11 @@ Gaps in the API, the contract, or the tools.
 | F34 | Latent generator risk: a required pure `oneOf` (no "no arm") inside an optional object gets a resource-level `ExactlyOneOf`. When the parent object is null, that validator finds no arm and fails. `ai_evaluation` is not affected (its `config` allows no arm). oneOf groups put the validator on each arm instead, which runs only when the parent is set. Pure `oneOf` should do the same; that changes the `ai_evaluation` schema.go. | Tooling |
 | F35 | Server timestamps in request bodies: SLO Create, Replace, and ValidateReplace send `createTime` and `updateTime` (`date-time`). They are server-generated, so by the contract they exist only in responses. These are the only `date-time` fields in any request body. | API proto |
 | F36 | A `discriminator` names a string field beside a `oneOf` (for example dashboards `SortStrategy.strategyType`: `STRATEGY_TYPE_CATEGORY` or `STRATEGY_TYPE_QUERY_VALUE`), with no mapping. The spec does not say who sets it: must a Terraform user send a value that matches the arm, or does the server derive it? The field is redundant with the arm. The contract should drop it, or mark it server-set. | API proto / Contract |
+| F37 | A request body that reuses the resource message (`{connector: {...}}`) cannot show which fields are server-set, so the generator cannot classify fields. This is already linted: `cx-management-apis/scripts/lint_payload_reuse.py` runs in CI (`openapi-lint.yml`) and blocks new cases, with `.payload-reuse-baseline.txt` for existing ones. The generator does not support this shape, on purpose. | Contract (covered) |
+| F38 | The id path parameter can have another name than the id field of the resource (`{key_id}` and `id`, 6 writable resources). Contract rule: the same name. | Linter |
+| F39 | A response can have fields beside the resource (`{dashboard, createdAt, authorId, isLocked}`, 6 writable resources; also F28). Anti-pattern: metadata and settings belong inside the resource. Contract rule: no fields beside the resource. | Linter |
+| F40 | Most responses wrap the resource in one field (`{aiEvaluation: {...}}`, 20 of 28 writable resources); only View and ViewFolder return the resource itself. The wrapper comes from gRPC (a response message per call); REST gains nothing from it. Contract rule: a resource Create, Get, or Update sets `google.api.http` `response_body` to the resource field, so REST returns the resource itself and gRPC keeps its message. The generator supports both forms. | Linter |
+| F41 | Create returns only an id in 4 of 28 writable resources (`{dashboardId}`, `{folderId}`, `{id}`, `{keyId, name, value}`). Terraform needs the full resource after Create. Contract rule: Create returns the complete resource, like PATCH (rule 5.1). It extends the linter rule that PATCH returns the same resource as Get. The generator does not call Get after Create, on purpose. | Linter |
+| F42 | Later: `ApiKey` returns its secret `value` only in the Create response; Get never shows it. A valid pattern (a secret seen once), but neither the contract nor the generator covers it. Terraform would need a sensitive attribute set only from the Create response. | Contract / Tooling |
+| F43 | 23 of 43 Delete operations return an empty response object (for example `DeleteCompanyIpAccessSettingsResponse`). openapi-generator then returns `map[string]interface{}` from `Execute`, not a response type, and the generator stopped on it. The surveys did not show it, because they do not check SDK names. Fixed in E10: an empty response is expected as a map. | Tooling |
+| F44 | `PolicySettings` (a singleton): Get is on `/dataplans/policy-settings/v1`, but Replace is on `/dataplans/policiy-settings/v1` (a typo). A singleton linter rule, all operations on one path, would catch it. | API proto |

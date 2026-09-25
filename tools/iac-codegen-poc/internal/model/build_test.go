@@ -224,3 +224,113 @@ components:
 		t.Errorf("type = %+v, want the 3 fields", typ)
 	}
 }
+
+// TestResponseForms checks how Build reads the resource from a response: the
+// resource itself (form B), one field that wraps it (form A), or an error for
+// fields beside the resource.
+func TestResponseForms(t *testing.T) {
+	base := thing{create: "{name: {type: string}}", update: "{name: {type: string}}", get: "{id: {type: string}, name: {type: string}}"}
+	build := func(from, to string) (*model.Resource, error) {
+		s := base
+		spec := strings.ReplaceAll(thingSpec, from, to)
+		spec = strings.NewReplacer("CREATE", s.create, "UPDATE", "{updateMask: {type: string}, name: {type: string}}", "GET", s.get, "EXTRA", "").Replace(spec)
+		doc, err := model.Load([]byte(spec))
+		if err != nil {
+			t.Fatalf("load: %v", err)
+		}
+		return model.Build(doc, "Thing")
+	}
+
+	r, err := build("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := r.Get.Response; got.Field != "thing" || got.Direct {
+		t.Errorf("form A: response = %+v, want field thing", got)
+	}
+
+	r, err = build("'#/components/schemas/GetThingResponse'", "'#/components/schemas/Thing'")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := r.Get.Response; !got.Direct || got.Field != "" {
+		t.Errorf("form B: response = %+v, want the resource itself", got)
+	}
+
+	_, err = build("GetThingResponse: {type: object, properties: {thing:", "GetThingResponse: {type: object, properties: {createdAt: {type: string}, thing:")
+	if err == nil || !strings.Contains(err.Error(), "want one that wraps Thing") {
+		t.Errorf("fields beside the resource: error = %v", err)
+	}
+}
+
+// singletonSpec is a singleton Settings: all operations on /settings, with no
+// path parameter. VERBS lists the extra operations after get.
+const singletonSpec = `openapi: 3.1.0
+info: {title: t, version: "1"}
+paths:
+  /settings:
+    get:
+      operationId: S_GetSettings
+      responses: {"200": {content: {application/json: {schema: {$ref: '#/components/schemas/Wrap'}}}}}
+VERBS
+components:
+  schemas:
+    Settings: {type: object, properties: {on: {type: boolean}}}
+    Wrap: {type: object, properties: {settings: {$ref: '#/components/schemas/Settings'}}}
+    Empty: {type: object}
+`
+
+const (
+	singletonCreate = `    post:
+      operationId: S_CreateSettings
+      requestBody: {content: {application/json: {schema: {type: object, properties: {on: {type: boolean}}}}}}
+      responses: {"200": {content: {application/json: {schema: {$ref: '#/components/schemas/Wrap'}}}}}
+`
+	singletonUpdate = `    patch:
+      operationId: S_UpdateSettings
+      requestBody: {content: {application/json: {schema: {type: object, properties: {on: {type: boolean}, updateMask: {type: string}}}}}}
+      responses: {"200": {content: {application/json: {schema: {$ref: '#/components/schemas/Wrap'}}}}}
+`
+	singletonDelete = `    delete:
+      operationId: S_DeleteSettings
+      responses: {"200": {content: {application/json: {schema: {$ref: '#/components/schemas/Empty'}}}}}
+`
+)
+
+func buildSingleton(t *testing.T, verbs string) (*model.Resource, error) {
+	t.Helper()
+	doc, err := model.Load([]byte(strings.Replace(singletonSpec, "VERBS", verbs, 1)))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	return model.Build(doc, "Settings")
+}
+
+// TestSingleton checks that a Get with no path parameter is a singleton, and
+// that only the Create, Get, Update, and Delete kind on one path builds (D18).
+func TestSingleton(t *testing.T) {
+	r, err := buildSingleton(t, singletonCreate+singletonUpdate+singletonDelete)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.Singleton || r.IDParam != "" {
+		t.Errorf("singleton = %t, id param = %q; want true, none", r.Singleton, r.IDParam)
+	}
+	if !r.Delete.Response.Empty {
+		t.Error("the Delete response has no fields, want Empty")
+	}
+
+	cases := []struct{ name, verbs, want string }{
+		{"Get and Update only", singletonUpdate, "a singleton (Get has no path parameter) needs Create, Get, Update, and Delete"},
+		{"no Delete", singletonCreate + singletonUpdate, "needs Create, Get, Update, and Delete"},
+		{"Delete on another path", singletonCreate + singletonUpdate + "  /other:\n" + singletonDelete, "a singleton has one path"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := buildSingleton(t, c.verbs)
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("error = %v, want it to contain %q", err, c.want)
+			}
+		})
+	}
+}

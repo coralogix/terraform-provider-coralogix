@@ -10,7 +10,11 @@ import (
 func Dump(r *Resource) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "resource %s\n", r.Name)
-	fmt.Fprintf(&b, "  id param:     %s\n", r.IDParam)
+	if r.Singleton {
+		b.WriteString("  singleton:    yes (no id in the path)\n")
+	} else {
+		fmt.Fprintf(&b, "  id param:     %s\n", r.IDParam)
+	}
 	fmt.Fprintf(&b, "  update mask:  %s\n", r.UpdateMask)
 
 	b.WriteString("\noperations\n")
@@ -108,6 +112,9 @@ func orDash(s string) string {
 }
 
 func responseString(r Response) string {
+	if r.Direct {
+		return r.Schema + " (the resource itself)"
+	}
 	if r.Field == "" {
 		return r.Schema
 	}

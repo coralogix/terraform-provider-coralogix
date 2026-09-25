@@ -14,6 +14,7 @@ var update = flag.Bool("update", false, "rewrite the golden files")
 var dumpCases = []struct{ spec, resource, golden string }{
 	{"../../spec/openapi.patched.yaml", "AiEvaluation", "testdata/ai_evaluation.golden"},
 	{"../../spec/fake/openapi.yaml", "FakeBoard", "testdata/fake_board.golden"},
+	{"../../spec/fake/settings.yaml", "FakeSettings", "testdata/fake_settings.golden"},
 }
 
 // TestDump compares each model with its golden file. To rewrite the files,

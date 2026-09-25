@@ -10,8 +10,12 @@ type Resource struct {
 	Update Operation
 	Delete Operation
 	// IDParam is the path parameter of Get, Update, and Delete. The Get
-	// response has a field with the same name.
+	// response has a field with the same name. It is "" for a singleton.
 	IDParam string
+	// Singleton is true when Get has no path parameter: there is one
+	// resource per company (D18). Create, Get, Update, and Delete use one
+	// path.
+	Singleton bool
 	// UpdateMask is the Update body property that holds the update mask.
 	// It is not a resource field.
 	UpdateMask string
@@ -38,8 +42,15 @@ type Operation struct {
 type Response struct {
 	Schema string // component name
 	// Field is the property that wraps the resource, for example "aiEvaluation".
-	// It is empty when the response does not return the resource.
+	// It is empty when the response does not return the resource, or is the
+	// resource itself (Direct).
 	Field string
+	// Direct is true when the response is the resource itself, with no
+	// wrapper (proto google.api.http response_body).
+	Direct bool
+	// Empty is true when the response schema has no fields, for example many
+	// Delete responses. The SDK then returns map[string]interface{}.
+	Empty bool
 }
 
 // Behavior is how a top-level field is managed. See Classify.

@@ -111,20 +111,8 @@ func resolveSDKNames(r *model.Resource, tag, module string) ([]sdkRef, error) {
 	s.add(sdkRef{Path: "resource", Kind: kindPackage, Name: pkgName, Rule: ruleTag})
 	s.add(sdkRef{Path: "resource", Kind: kindType, Name: client, Rule: ruleTag})
 
-	ops := []struct {
-		name string
-		op   model.Operation
-		id   bool // the method takes the id path parameter
-	}{
-		{"create", r.Create, false},
-		{"get", r.Get, true},
-		{"update", r.Update, true},
-		{"delete", r.Delete, true},
-	}
-	for _, o := range ops {
-		if err := s.operation(r, o.name, o.op, client, o.id); err != nil {
-			return nil, err
-		}
+	if err := s.operations(r, client); err != nil {
+		return nil, err
 	}
 
 	resource := goTypeName(r.Name)
@@ -175,6 +163,28 @@ func resolveSDKNames(r *model.Resource, tag, module string) ([]sdkRef, error) {
 	return s.refs, nil
 }
 
+// operations adds the SDK names of the four operations.
+func (s *resolver) operations(r *model.Resource, client string) error {
+	ops := []struct {
+		name string
+		op   model.Operation
+		id   bool // the method takes the id path parameter
+	}{
+		{"create", r.Create, false},
+		{"get", r.Get, true},
+		{"update", r.Update, true},
+		{"delete", r.Delete, true},
+	}
+	for _, o := range ops {
+		// A singleton has no id in the path (D18).
+		if err := s.operation(r, o.name, o.op, client, o.id && !r.Singleton); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 type resolver struct {
 	pkg    string
 	refs   []sdkRef
@@ -217,6 +227,12 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 	}
 
 	resp := goTypeName(op.Response.Schema)
+	if op.Response.Empty {
+		// An object with no fields has no SDK type (F16).
+		s.add(sdkRef{Path: path, Kind: kindMethod, Owner: builder, Name: "Execute",
+			Want: "func() (map[string]interface{}, *http.Response, error)", Rule: ruleEmptyObject})
+		return nil
+	}
 	s.add(sdkRef{Path: path + ".response", Kind: kindType, Name: resp, Rule: ruleComponent})
 	s.add(sdkRef{Path: path, Kind: kindMethod, Owner: builder, Name: "Execute",
 		Want: "func() (*" + resp + ", *http.Response, error)", Rule: ruleOperationID})

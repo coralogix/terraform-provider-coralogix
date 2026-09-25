@@ -116,8 +116,13 @@ func findOperations(doc *v3.Document, name string) (map[verb]foundOp, error) {
 			}
 		}
 	}
+	get, singleton := found[opGet]
+	singleton = singleton && len(pathParams(get)) == 0
 	for _, v := range verbs {
 		f, ok := found[v]
+		if !ok && singleton {
+			return nil, fmt.Errorf("%s: a singleton (Get has no path parameter) needs Create, Get, Update, and Delete on one path; no operation with operationId suffix _%s%s", v, v, name)
+		}
 		if !ok {
 			return nil, fmt.Errorf("%s: no operation with operationId suffix _%s%s", v, v, name)
 		}
@@ -129,6 +134,13 @@ func findOperations(doc *v3.Document, name string) (map[verb]foundOp, error) {
 }
 
 func (r *Resource) readOperations(ops map[verb]foundOp) error {
+	if len(pathParams(ops[opGet])) == 0 {
+		if err := checkSingleton(ops); err != nil {
+			return err
+		}
+		r.Singleton = true
+		return r.readTargets(ops)
+	}
 	id, err := idParam(ops[opGet])
 	if err != nil {
 		return fmt.Errorf("get: %w", err)
@@ -156,6 +168,27 @@ func (r *Resource) readOperations(ops map[verb]foundOp) error {
 		}
 	}
 
+	return r.readTargets(ops)
+}
+
+// checkSingleton checks a singleton (D18): Create, Get, Update, and Delete on
+// one path, with no path parameters.
+func checkSingleton(ops map[verb]foundOp) error {
+	path := ops[opGet].path
+	for _, v := range verbs {
+		if ops[v].path != path {
+			return fmt.Errorf("%s: a singleton has one path; %s is not %s (as in get)", v, ops[v].path, path)
+		}
+		if n := len(pathParams(ops[v])); n != 0 {
+			return fmt.Errorf("%s: a singleton has no path parameters, this one has %d", v, n)
+		}
+	}
+	return nil
+}
+
+// readTargets reads the method, path, body, and response of each operation.
+func (r *Resource) readTargets(ops map[verb]foundOp) error {
+	var err error
 	targets := map[verb]*Operation{opCreate: &r.Create, opGet: &r.Get, opUpdate: &r.Update, opDelete: &r.Delete}
 	for _, v := range verbs {
 		f := ops[v]
@@ -222,8 +255,20 @@ func bodyName(op *v3.Operation) (string, error) {
 	return "inline", nil
 }
 
+// emptyResponse sets Empty when the response schema has no fields.
+func emptyResponse(out Response, proxy *base.SchemaProxy) (Response, error) {
+	rs, err := schemaOf(proxy)
+	if err != nil {
+		return Response{}, err
+	}
+	out.Empty = rs.Properties == nil || rs.Properties.Len() == 0
+	return out, nil
+}
+
 // response reads the 200 response. When wrapped is true, the response must
 // have exactly one property, and that property must be the resource.
+// response reads the 200 response. With wrapped, it must return the resource:
+// the resource itself (Direct), or one field that wraps it.
 func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 	if op.Responses == nil || op.Responses.Codes == nil {
 		return Response{}, errors.New("no responses")
@@ -242,6 +287,10 @@ func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 	}
 	out := Response{Schema: name}
 	if !wrapped {
+		return emptyResponse(out, proxy)
+	}
+	if name == r.Name {
+		out.Direct = true
 		return out, nil
 	}
 	s, err := schemaOf(proxy)
@@ -417,7 +466,7 @@ func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema) e
 			return fmt.Errorf("%s: unexpected %s property", loc.name, updateMaskField)
 		}
 	}
-	if getSchema.Properties.GetOrZero(r.IDParam) == nil {
+	if !r.Singleton && getSchema.Properties.GetOrZero(r.IDParam) == nil {
 		return fmt.Errorf("%s: no field %q for the id path parameter", r.Name, r.IDParam)
 	}
 	for _, loc := range []location{{"create body", createBody}, {"update body", updateBody}, {r.Name, getSchema}} {

@@ -9,18 +9,30 @@ import (
 	"net/http"
 
 	fakeboards "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_boards_service"
+	fakesettings "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_settings_service"
 )
 
 // ClientSet holds one client for each service.
 type ClientSet struct {
-	fakeBoards *fakeboards.FakeBoardsServiceAPIService
+	fakeBoards   *fakeboards.FakeBoardsServiceAPIService
+	fakeSettings *fakesettings.FakeSettingsServiceAPIService
 }
 
 // NewClientSet returns a ClientSet whose clients send requests to url.
 func NewClientSet(url string) *ClientSet {
-	cfg := fakeboards.NewConfiguration()
-	cfg.Servers = fakeboards.ServerConfigurations{{URL: url}}
-	return &ClientSet{fakeBoards: fakeboards.NewAPIClient(cfg).FakeBoardsServiceAPI}
+	boards := fakeboards.NewConfiguration()
+	boards.Servers = fakeboards.ServerConfigurations{{URL: url}}
+	settings := fakesettings.NewConfiguration()
+	settings.Servers = fakesettings.ServerConfigurations{{URL: url}}
+	return &ClientSet{
+		fakeBoards:   fakeboards.NewAPIClient(boards).FakeBoardsServiceAPI,
+		fakeSettings: fakesettings.NewAPIClient(settings).FakeSettingsServiceAPI,
+	}
+}
+
+// FakeSettings returns the FakeSettingsServiceAPIService client.
+func (c *ClientSet) FakeSettings() *fakesettings.FakeSettingsServiceAPIService {
+	return c.fakeSettings
 }
 
 // FakeBoards returns the FakeBoardsServiceAPIService client.

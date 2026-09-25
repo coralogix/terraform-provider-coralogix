@@ -3,9 +3,9 @@ resource FakeBoard
   update mask:  updateMask
 
 operations
-  create  POST    /fake/boards/v1       FakeBoardsService_CreateFakeBoard  body inline  response CreateFakeBoardResponse.fakeBoard
-  get     GET     /fake/boards/v1/{id}  FakeBoardsService_GetFakeBoard     body -       response GetFakeBoardResponse.fakeBoard
-  update  PATCH   /fake/boards/v1/{id}  FakeBoardsService_UpdateFakeBoard  body inline  response UpdateFakeBoardResponse.fakeBoard
+  create  POST    /fake/boards/v1       FakeBoardsService_CreateFakeBoard  body inline  response FakeBoard (the resource itself)
+  get     GET     /fake/boards/v1/{id}  FakeBoardsService_GetFakeBoard     body -       response FakeBoard (the resource itself)
+  update  PATCH   /fake/boards/v1/{id}  FakeBoardsService_UpdateFakeBoard  body inline  response FakeBoard (the resource itself)
   delete  DELETE  /fake/boards/v1/{id}  FakeBoardsService_DeleteFakeBoard  body -       response DeleteFakeBoardResponse
 
 fields

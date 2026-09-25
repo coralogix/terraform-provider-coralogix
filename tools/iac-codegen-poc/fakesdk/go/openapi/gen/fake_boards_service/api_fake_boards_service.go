@@ -1,7 +1,7 @@
 /*
 Fake Boards API
 
-A fake API that follows the full IaC contract. It exists only to test the generator on shapes that the real API does not have. No server implements it.
+A fake API that follows the full IaC contract. It exists only to test the generator on shapes that the real API does not have. No server implements it. Create, Get, and Update return the board itself, not inside a wrapper field.
 
 API version: 1
 */
@@ -34,7 +34,7 @@ func (r ApiFakeBoardsServiceCreateFakeBoardRequest) FakeBoardsServiceCreateFakeB
 	return r
 }
 
-func (r ApiFakeBoardsServiceCreateFakeBoardRequest) Execute() (*CreateFakeBoardResponse, *http.Response, error) {
+func (r ApiFakeBoardsServiceCreateFakeBoardRequest) Execute() (*FakeBoard, *http.Response, error) {
 	return r.ApiService.FakeBoardsServiceCreateFakeBoardExecute(r)
 }
 
@@ -54,13 +54,13 @@ func (a *FakeBoardsServiceAPIService) FakeBoardsServiceCreateFakeBoard(ctx conte
 }
 
 // Execute executes the request
-//  @return CreateFakeBoardResponse
-func (a *FakeBoardsServiceAPIService) FakeBoardsServiceCreateFakeBoardExecute(r ApiFakeBoardsServiceCreateFakeBoardRequest) (*CreateFakeBoardResponse, *http.Response, error) {
+//  @return FakeBoard
+func (a *FakeBoardsServiceAPIService) FakeBoardsServiceCreateFakeBoardExecute(r ApiFakeBoardsServiceCreateFakeBoardRequest) (*FakeBoard, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *CreateFakeBoardResponse
+		localVarReturnValue  *FakeBoard
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FakeBoardsServiceAPIService.FakeBoardsServiceCreateFakeBoard")
@@ -239,7 +239,7 @@ type ApiFakeBoardsServiceGetFakeBoardRequest struct {
 	id string
 }
 
-func (r ApiFakeBoardsServiceGetFakeBoardRequest) Execute() (*GetFakeBoardResponse, *http.Response, error) {
+func (r ApiFakeBoardsServiceGetFakeBoardRequest) Execute() (*FakeBoard, *http.Response, error) {
 	return r.ApiService.FakeBoardsServiceGetFakeBoardExecute(r)
 }
 
@@ -261,13 +261,13 @@ func (a *FakeBoardsServiceAPIService) FakeBoardsServiceGetFakeBoard(ctx context.
 }
 
 // Execute executes the request
-//  @return GetFakeBoardResponse
-func (a *FakeBoardsServiceAPIService) FakeBoardsServiceGetFakeBoardExecute(r ApiFakeBoardsServiceGetFakeBoardRequest) (*GetFakeBoardResponse, *http.Response, error) {
+//  @return FakeBoard
+func (a *FakeBoardsServiceAPIService) FakeBoardsServiceGetFakeBoardExecute(r ApiFakeBoardsServiceGetFakeBoardRequest) (*FakeBoard, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *GetFakeBoardResponse
+		localVarReturnValue  *FakeBoard
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FakeBoardsServiceAPIService.FakeBoardsServiceGetFakeBoard")
@@ -348,7 +348,7 @@ func (r ApiFakeBoardsServiceUpdateFakeBoardRequest) FakeBoardsServiceUpdateFakeB
 	return r
 }
 
-func (r ApiFakeBoardsServiceUpdateFakeBoardRequest) Execute() (*UpdateFakeBoardResponse, *http.Response, error) {
+func (r ApiFakeBoardsServiceUpdateFakeBoardRequest) Execute() (*FakeBoard, *http.Response, error) {
 	return r.ApiService.FakeBoardsServiceUpdateFakeBoardExecute(r)
 }
 
@@ -370,13 +370,13 @@ func (a *FakeBoardsServiceAPIService) FakeBoardsServiceUpdateFakeBoard(ctx conte
 }
 
 // Execute executes the request
-//  @return UpdateFakeBoardResponse
-func (a *FakeBoardsServiceAPIService) FakeBoardsServiceUpdateFakeBoardExecute(r ApiFakeBoardsServiceUpdateFakeBoardRequest) (*UpdateFakeBoardResponse, *http.Response, error) {
+//  @return FakeBoard
+func (a *FakeBoardsServiceAPIService) FakeBoardsServiceUpdateFakeBoardExecute(r ApiFakeBoardsServiceUpdateFakeBoardRequest) (*FakeBoard, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPatch
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *UpdateFakeBoardResponse
+		localVarReturnValue  *FakeBoard
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "FakeBoardsServiceAPIService.FakeBoardsServiceUpdateFakeBoard")

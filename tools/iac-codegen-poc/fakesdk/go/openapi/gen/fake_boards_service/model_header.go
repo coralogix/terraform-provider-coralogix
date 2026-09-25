@@ -1,7 +1,7 @@
 /*
 Fake Boards API
 
-A fake API that follows the full IaC contract. It exists only to test the generator on shapes that the real API does not have. No server implements it.
+A fake API that follows the full IaC contract. It exists only to test the generator on shapes that the real API does not have. No server implements it. Create, Get, and Update return the board itself, not inside a wrapper field.
 
 API version: 1
 */

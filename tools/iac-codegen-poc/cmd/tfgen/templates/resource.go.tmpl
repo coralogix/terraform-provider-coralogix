@@ -86,11 +86,19 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	}
 	diags = setState(ctx, v, &resp.State)
 	resp.Diagnostics.Append(diags...)
+{{- if .Singleton}}
+	if diags.HasError() {
+		// The singleton exists, but the state is not complete. Keep the id, so
+		// Terraform marks the resource as tainted and can delete it.
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), TypeName)...)
+	}
+{{- else}}
 	if diags.HasError() && v != nil && {{if .IDValue}}v.{{.IDField}} != ""{{else}}v.{{.IDField}} != nil{{end}} {
 		// The resource exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), {{if not .IDValue}}*{{end}}v.{{.IDField}})...)
 	}
+{{- end}}
 }
 
 // Read removes the resource from the state when the API does not find it.
@@ -162,33 +170,33 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.Create.SD
 	if out == nil {
 		return nil, nil
 	}
-	return out.{{.Create.Response}}, nil
+	return {{if .Create.Response}}out.{{.Create.Response}}{{else}}out{{end}}, nil
 }
 
 func (r *Resource) get(ctx context.Context, id string) (*{{$sdk}}.{{.Resource}}, error) {
-	out, httpResp, err := r.client.{{.Get.Method}}(ctx, id).Execute()
+	out, httpResp, err := r.client.{{.Get.Method}}(ctx{{if not .Singleton}}, id{{end}}).Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
 	if out == nil {
 		return nil, nil
 	}
-	return out.{{.Get.Response}}, nil
+	return {{if .Get.Response}}out.{{.Get.Response}}{{else}}out{{end}}, nil
 }
 
 func (r *Resource) update(ctx context.Context, id string, body *{{$sdk}}.{{$.Conv.Update.SDK}}) (*{{$sdk}}.{{.Resource}}, error) {
-	out, httpResp, err := r.client.{{.Update.Method}}(ctx, id).{{.Update.Body}}(*body).Execute()
+	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if not .Singleton}}, id{{end}}).{{.Update.Body}}(*body).Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
 	if out == nil {
 		return nil, nil
 	}
-	return out.{{.Update.Response}}, nil
+	return {{if .Update.Response}}out.{{.Update.Response}}{{else}}out{{end}}, nil
 }
 
 func (r *Resource) delete(ctx context.Context, id string) error {
-	_, httpResp, err := r.client.{{.Delete.Method}}(ctx, id).Execute()
+	_, httpResp, err := r.client.{{.Delete.Method}}(ctx{{if not .Singleton}}, id{{end}}).Execute()
 	return {{$cx}}.{{.NewAPIError}}(httpResp, err)
 }
 
@@ -199,6 +207,9 @@ func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, state *tfsdk.State
 	if diags.HasError() {
 		return diags
 	}
+{{- if .Singleton}}
+	m.Id = types.StringValue(TypeName) // a singleton has a fixed id (D18)
+{{- end}}
 	diags.Append(state.Set(ctx, m)...)
 	return diags
 }

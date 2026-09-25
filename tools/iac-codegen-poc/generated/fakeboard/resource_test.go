@@ -64,7 +64,8 @@ func toPlan(t *testing.T, m *FakeBoardModel) tfsdk.Plan {
 	return tfsdk.Plan{Schema: s.Schema, Raw: s.Raw}
 }
 
-// response returns the API JSON of the board m, with id b1.
+// response returns the API JSON of the board m, with id b1. The fake API
+// returns the board itself, not inside a wrapper field.
 func response(t *testing.T, m *FakeBoardModel) string {
 	t.Helper()
 	body, diags := expandCreate(context.Background(), m)
@@ -73,7 +74,7 @@ func response(t *testing.T, m *FakeBoardModel) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return `{"fakeBoard":{"id":"b1",` + string(b[1:]) + `}`
+	return `{"id":"b1",` + string(b[1:])
 }
 
 func TestCreate(t *testing.T) {
