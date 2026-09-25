@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.18.0
+
 #### provider
 - FIX: Report an error instead of crashing when an API call returns no HTTP response, for example on a network error or an import with a malformed ID. Affects `coralogix_dashboards_folder`, `coralogix_scope`, `coralogix_ip_access`, `coralogix_action`, `coralogix_tco_policies_logs`, `coralogix_tco_policies_traces`, `coralogix_data_enrichments`, `coralogix_integration`, `coralogix_webhook`, `coralogix_archive_logs`, `coralogix_archive_metrics`, `coralogix_global_router`, `coralogix_preset`, `coralogix_parsing_rules`, `coralogix_recording_rules_groups_set`, and `coralogix_slo_v2` resources and data sources.
 
