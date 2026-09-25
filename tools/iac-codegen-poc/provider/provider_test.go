@@ -4,13 +4,14 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 )
 
 // TestProviderSchema starts the provider server and checks that it serves
 // only the generated resource, with no errors. It needs no network access.
 func TestProviderSchema(t *testing.T) {
-	srv, err := factories[TypeName]()
+	srv, err := providerserver.NewProtocol6WithError(New())()
 	if err != nil {
 		t.Fatal(err)
 	}

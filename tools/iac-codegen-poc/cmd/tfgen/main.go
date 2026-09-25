@@ -1,6 +1,6 @@
 // Command tfgen generates a Terraform resource from an OpenAPI spec.
 //
-//	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --out generated/aievaluation
+//	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --acc spec/acc/AiEvaluation.yaml --out generated/aievaluation
 //	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --sdk-names
 //	go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeboard
 //
@@ -29,15 +29,16 @@ func main() {
 	out := flag.String("out", "", "output directory of the generated resource")
 	sdkNames := flag.Bool("sdk-names", false, "check the SDK names and print them")
 	sdkModule := flag.String("sdk-module", realSDK, "Go module of the SDK")
+	acc := flag.String("acc", "", "acceptance test values file (API shape); with --out, also writes acc_test.go")
 	flag.Parse()
 
-	if err := run(*spec, *resource, *out, *sdkModule, *sdkNames); err != nil {
+	if err := run(*spec, *resource, *out, *sdkModule, *acc, *sdkNames); err != nil {
 		fmt.Fprintln(os.Stderr, "tfgen:", err)
 		os.Exit(1)
 	}
 }
 
-func run(spec, resource, out, sdkModule string, sdkNames bool) error {
+func run(spec, resource, out, sdkModule, accPath string, sdkNames bool) error {
 	if spec == "" || resource == "" {
 		return errors.New("--spec and --resource are required")
 	}
@@ -51,7 +52,13 @@ func run(spec, resource, out, sdkModule string, sdkNames bool) error {
 	if sdkNames {
 		return writeSDKNames(os.Stdout, refs)
 	}
-	files, err := generate(r, refs, filepath.Base(out))
+	var acc *accValues
+	if accPath != "" {
+		if acc, err = loadAccValues(accPath); err != nil {
+			return err
+		}
+	}
+	files, err := generate(r, refs, filepath.Base(out), acc)
 	if err != nil {
 		return err
 	}

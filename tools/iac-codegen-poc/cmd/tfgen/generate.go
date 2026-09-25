@@ -7,6 +7,7 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
+	"maps"
 	"strconv"
 	"text/template"
 
@@ -30,8 +31,9 @@ var generatedFiles = map[string]string{
 }
 
 // generate returns the generated files of the resource, by file name. refs
-// are the checked SDK names of the resource.
-func generate(r *model.Resource, refs []sdkRef, pkg string) (map[string][]byte, error) {
+// are the checked SDK names of the resource. With acc values, it also writes
+// the acceptance test.
+func generate(r *model.Resource, refs []sdkRef, pkg string, acc *accValues) (map[string][]byte, error) {
 	data, err := buildTFResource(r, pkg)
 	if err != nil {
 		return nil, err
@@ -42,8 +44,15 @@ func generate(r *model.Resource, refs []sdkRef, pkg string) (map[string][]byte, 
 	if data.CRUD, err = buildCRUD(r, refs); err != nil {
 		return nil, err
 	}
+	files := maps.Clone(generatedFiles)
+	if acc != nil {
+		if data.Acc, err = buildAcc(r, acc); err != nil {
+			return nil, fmt.Errorf("acceptance test values: %w", err)
+		}
+		files["acc_test.go"] = "acc_test.go.tmpl"
+	}
 	out := map[string][]byte{}
-	for file, tmpl := range generatedFiles {
+	for file, tmpl := range files {
 		var buf bytes.Buffer
 		if err := templates.ExecuteTemplate(&buf, tmpl, data); err != nil {
 			return nil, fmt.Errorf("%s: %w", file, err)

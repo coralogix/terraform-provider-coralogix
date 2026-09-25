@@ -41,7 +41,7 @@ func (p *Provider) Schema(_ context.Context, _ provider.SchemaRequest, resp *pro
 }
 
 func (p *Provider) Configure(_ context.Context, _ provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	cs, err := newClientSet()
+	cs, err := ClientSetFromEnv()
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to configure the provider", err.Error())
 		return
@@ -57,8 +57,9 @@ func (p *Provider) DataSources(context.Context) []func() datasource.DataSource {
 	return nil
 }
 
-// newClientSet builds the SDK client set from the environment.
-func newClientSet() (*cxsdk.ClientSet, error) {
+// ClientSetFromEnv builds the SDK client set from CORALOGIX_API_KEY and
+// CORALOGIX_ENV.
+func ClientSetFromEnv() (*cxsdk.ClientSet, error) {
 	key := os.Getenv("CORALOGIX_API_KEY")
 	if key == "" {
 		return nil, errors.New("CORALOGIX_API_KEY is not set")

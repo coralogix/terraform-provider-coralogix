@@ -16,8 +16,9 @@ not registered in the provider. The handwritten `coralogix_ai_evaluation` resour
 | `convert.go` ([ai](generated/aievaluation/convert.go), [fake](generated/fakeboard/convert.go)) | Expand (plan → SDK request) and flatten (SDK response → state) |
 | `mask.go` ([ai](generated/aievaluation/mask.go), [fake](generated/fakeboard/mask.go)) | Update mask: the fields that changed between the plan and the state. Top-level names for `ai_evaluation`, leaf paths for the fake. |
 | `resource.go` ([ai](generated/aievaluation/resource.go), [fake](generated/fakeboard/resource.go)) | Create, Read, Update, Delete, Import |
+| `acc_test.go` ([ai](generated/aievaluation/acc_test.go)) | The acceptance test, from the model and a values file (see "Acceptance test") |
 
-The `*_test.go` files in these folders are handwritten. They test the generated code.
+The other `*_test.go` files in these folders are handwritten. They test the generated code.
 
 ## Architecture
 
@@ -77,7 +78,7 @@ Run them in this folder.
 
 ```sh
 go run ./cmd/overlay --overlay spec/overlay.yaml --out spec/openapi.patched.yaml
-go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --out generated/aievaluation
+go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --acc spec/acc/AiEvaluation.yaml --out generated/aievaluation
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --sdk-names   # print the SDK names
 fakesdk/generate.sh                              # regenerate the fake SDK (needs Docker)
 go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard \
@@ -106,20 +107,28 @@ A second generator run must give no diff.
 
 ## Acceptance test
 
-[`provider/acc_test.go`](provider/acc_test.go) uses a small test provider (`provider/provider.go`) that
-registers only the generated resource.
+The acceptance test is generated: [`generated/aievaluation/acc_test.go`](generated/aievaluation/acc_test.go). Its inputs:
 
-- Steps: Create (PII) → Import (verify) → Update (`config`, `threshold`) → change the `config` arm
-  (PII → allowed topics) → clear `threshold` → Delete. Each update is in place and keeps the id.
-  After each step, Terraform checks that a new plan is empty.
-- `is_enabled` stays `true`, because the server rejects `isEnabled` in the update mask (F25).
-- The test uses the first AI application with a name and a subsystem, and a target that is not in use.
-  It deletes what it creates, also on failure.
+- [`spec/acc/AiEvaluation.yaml`](spec/acc/AiEvaluation.yaml): the test values. The API owner fills it in, with the **API** names
+  and value shapes (as in a request body), not the Terraform ones. `${name}` placeholders come from the environment.
+  `skip` lists an Update field that cannot be tested, with the reason.
+- [`generated/aievaluation/acc_env_test.go`](generated/aievaluation/acc_env_test.go) (handwritten): finds where the test can
+  create an evaluation (the first AI application with a subsystem, and a free target), fills the placeholders, and deletes
+  leftovers after the test.
+
+The generator checks the values file against the spec: unknown fields, wrong types, enum values, `oneOf` arms, missing
+required fields, and an Update field with no update value and no skip reason all fail generation. It converts the values
+to HCL (`joinLimit: "10"` → `join_limit = 10`).
+
+- Steps: Create → Import (verify) → one update step for each Update field → one clear step for each field that can be
+  cleared (`threshold`) → Delete. Each update is in place and keeps the id. After each step, Terraform checks that a new
+  plan is empty. At the end, the test checks that Get returns 404.
+- `is_enabled` is skipped, because the server rejects `isEnabled` in the update mask (F25).
 - Result on EU2: all steps pass.
 
 ```zsh
 printf 'Coralogix API key: '; read -rs CORALOGIX_API_KEY; echo; export CORALOGIX_API_KEY
-CORALOGIX_ENV=EU2 TF_ACC=1 go test ./provider -run TestAccAiEvaluation -v -count=1 -timeout 30m
+CORALOGIX_ENV=EU2 TF_ACC=1 go test ./generated/aievaluation -run TestAccAiEvaluation -v -count=1 -timeout 30m
 ```
 
 ## Fake resource
@@ -168,6 +177,9 @@ only top-level names, so its `mask.go` has top-level masks.
 | D12 | Enum values | Use the API values as they are (`"RESPONSE"`, `"EMAIL_ADDRESS"`). No lowercase mapping. | No conversion code. Same values as the API docs. |
 | D13 | `target` values | Allow all 3 (`PROMPT`, `RESPONSE`, `CONVERSATION`), as the spec says. | OpenAPI is the only input. The POC is not merged into the provider. |
 | D14 | No Update field changed | Send no `PATCH`. `updateRequest` returns nil. Update then reads the resource with Get to fill the state. | The mask has `minLength: 1`, so an empty mask is invalid. `*` is not allowed. F6: no mask means "update what is in the body", which is not what we want. |
+| D15 | Acceptance test values | Handwritten. The generator cannot know live values (for example a real AI application). Later, the API owner (backend developer) fills them in. | A spec example cannot know the environment. |
+| D16 | Acceptance test value format | A YAML file (`spec/acc/<Resource>.yaml`) with `${name}` placeholders. A small handwritten Go hook fills the placeholders from the environment. | A backend developer edits only data. The generator checks the file. |
+| D17 | Names and shapes in that YAML | The API JSON shape (`camelCase`, request-body values). The generator converts it to HCL. | Backend developers know the API, not Terraform. The same file can serve the Operator and other tools later. |
 
 ## Findings
 
@@ -197,7 +209,7 @@ Gaps in the API, the contract, or the tools.
 | F20 | `EvaluationConfig` allows "no arm" (the `not: anyOf` entry). So `config = {}` is valid in the spec. The handwritten resource requires exactly one arm. If the API rejects an empty config, the proto oneof must be marked required. | API proto |
 | F21 | Response presence is not in the contract. Flatten maps a missing value to null. If the server omits a zero value (for example `isEnabled: false`, `topics: []`), or sends a zero value for an unset field, the state differs from the plan, and Terraform fails with "inconsistent result after apply". The contract must say: a response has a value exactly when the request had one. The acceptance test on EU2 found no mismatch for set values, a cleared `threshold`, or a changed `config` arm. `isEnabled: false` was not checked, because Update cannot mask it (F25). | Contract / Backend |
 | F22 | A uint64 value above 9223372036854775807 does not fit Terraform `Int64`. Flatten returns an error for it. A real range in the spec (F19) would let the schema reject it earlier. | API proto |
-| F23 | The model does not keep the `updateMask` pattern. The generator checks each mask entry with its own copy of the contract rule (top-level name, no `*`). If the contract later allows nested paths, the generator must read the pattern from the spec. Since E3, the model keeps the pattern (`UpdateMaskPattern`), and the generator checks every mask path against it. | Tooling |
+| F23 | The model does not keep the `updateMask` pattern. The generator checks each mask entry with its own copy of the contract rule (top-level name, no `*`). If the contract later allows nested paths, the generator must read the pattern from the spec. the model keeps the pattern (`UpdateMaskPattern`), and the generator checks every mask path against it. | Tooling |
 | F24 | "Not found" has no machine-readable form. The SDK's `cxsdk.IsNotFound` parses the message text (`Not Found: <msg>`) to tell a missing resource from a missing route. The generated Read and Delete use only the status 404, like the handwritten resource. So a wrong route would remove the resource from the state. The contract should define a not-found reason. | Contract / Backend |
 | F25 | The Update mask rejects `isEnabled`. The generator sends the API (JSON) name `isEnabled`. The gateway turns it into the proto path `is_enabled` (proto field `is_enabled = 6` in `UpdateAiEvaluationRequest`). The server answers 400 `Unknown field path "is_enabled" in update_mask`. So a documented Update field cannot be masked. No other client masks it: the SDK example masks only `config`, and the handwritten resource sends no mask. The contract must say: every field in the Update body is a valid mask path. A probe must check each one. | Backend / Contract |
 | F26 | Dashboards (dry run with an assumed `PATCH` + mask): the Create body wraps the resource (`{dashboard, requestId}`), not flat fields. | API proto |
@@ -205,3 +217,4 @@ Gaps in the API, the contract, or the tools.
 | F28 | Dashboards: Get puts metadata beside the resource (`{dashboard, createdAt, authorId, isLocked, ...}`). The contract needs the resource only, with metadata as its fields. | API proto |
 | F29 | Dashboards: an object has a `oneOf` and normal fields beside it (`IntervalResolution`: `auto` or `manual`, plus `useAdvancedLimit`). The model assumes that every field of a `oneOf` object is an arm. Generator limit. | Tooling |
 | F30 | The SDK uses a value type (`string`, `Layout`), not a pointer, for a field that its source spec marks `required` (F18). The patched spec cannot tell which: `ai_evaluation` has `required` only in the overlay, so its SDK still has pointers. The generator now accepts `*T` or `T` and follows the SDK. | Tooling |
+| F31 | A test needs a valid value for each field, and a second one for updates. The spec has `example` for few fields, and none can know the environment (a real AI application). The contract could require an `example` on every writable field; then the values file keeps only the environment placeholders. | Contract |

@@ -18,6 +18,7 @@ type tfResource struct {
 	Models           []*tfModel
 	Conv             *convData // expand and flatten
 	CRUD             *crudData // CRUD, import, and the provider data
+	Acc              *accData  // the acceptance test; nil without a values file
 }
 
 // tfAttr is one Terraform schema attribute.

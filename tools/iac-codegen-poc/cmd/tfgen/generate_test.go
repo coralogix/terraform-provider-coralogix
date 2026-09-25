@@ -11,9 +11,9 @@ import (
 const fakeSDK = "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk"
 
 // generatedCases are the generated resources and their inputs.
-var generatedCases = []struct{ dir, spec, resource, sdk string }{
-	{"../../generated/aievaluation", patchedSpec, "AiEvaluation", realSDK},
-	{"../../generated/fakeboard", "../../spec/fake/openapi.yaml", "FakeBoard", fakeSDK},
+var generatedCases = []struct{ dir, spec, resource, sdk, acc string }{
+	{"../../generated/aievaluation", patchedSpec, "AiEvaluation", realSDK, "../../spec/acc/AiEvaluation.yaml"},
+	{"../../generated/fakeboard", "../../spec/fake/openapi.yaml", "FakeBoard", fakeSDK, ""},
 }
 
 // TestGeneratedUpToDate checks that each generated directory is the output
@@ -26,7 +26,13 @@ func TestGeneratedUpToDate(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			files, err := generate(r, refs, filepath.Base(c.dir))
+			var acc *accValues
+			if c.acc != "" {
+				if acc, err = loadAccValues(c.acc); err != nil {
+					t.Fatal(err)
+				}
+			}
+			files, err := generate(r, refs, filepath.Base(c.dir), acc)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -39,7 +45,7 @@ func TestGeneratedUpToDate(t *testing.T) {
 					t.Errorf("%s is not up to date. Run go run ./cmd/tfgen ... --out %s", name, c.dir)
 				}
 			}
-			again, err := generate(r, refs, filepath.Base(c.dir))
+			again, err := generate(r, refs, filepath.Base(c.dir), acc)
 			if err != nil {
 				t.Fatal(err)
 			}

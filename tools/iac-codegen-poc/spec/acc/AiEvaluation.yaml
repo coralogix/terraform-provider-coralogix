@@ -1,0 +1,32 @@
+# Acceptance test values for AiEvaluation. The API owner fills this file in.
+#
+# Write values as in an API request body: the API field names (camelCase)
+# and the API value shapes (a uint64 is a string, a oneOf is an object with
+# one arm). The generator checks every key and value against the spec, and
+# converts them for each tool.
+#
+# ${name} is filled from the environment by the handwritten Go hook
+# (generated/aievaluation/acc_env_test.go).
+
+# create: the body of Create. It must have every required Create field.
+create:
+  application: ${application}
+  subsystem: ${subsystem}
+  target: ${target}
+  isEnabled: true
+  threshold: 0.8
+  config:
+    pii:
+      categories: [EMAIL_ADDRESS, CREDIT_CARD]
+
+# update: a second valid value for each Update field. The test changes one
+# field per step, in spec order.
+update:
+  config:
+    allowedTopics:
+      topics: [billing, observability]
+  threshold: 0.9
+
+# skip: an Update field that the test cannot change, and why.
+skip:
+  isEnabled: "F25: the server rejects isEnabled in the update mask"
