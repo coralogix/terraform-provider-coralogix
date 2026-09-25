@@ -285,7 +285,7 @@ resource "coralogix_alert" "test" {
 #       recipients = ["example@coralogix.com", "example2@coralogix.com"]
 #       notify_on  = "Triggered and Resolved"
 #     }]
-#     router = {}
+#     router = {}  # label-based Global Router matching; use { id = "router_default" } to pin a router
 #   }
 
 #   incidents_settings = {
@@ -2162,6 +2162,7 @@ Required:
 
 Optional:
 
+- `id` (String) ID of the notification router. The default `""` uses label-based Global Router matching. Set `"router_default"` or another router ID to send notifications to that router. Removing this attribute sets it back to `""`.
 - `notify_on` (String)
 
 

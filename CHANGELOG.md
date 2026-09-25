@@ -3,6 +3,14 @@
 #### provider
 - FIX: Report an error instead of crashing when an API call returns no HTTP response, for example on a network error or an import with a malformed ID. Affects `coralogix_dashboards_folder`, `coralogix_scope`, `coralogix_ip_access`, `coralogix_action`, `coralogix_tco_policies_logs`, `coralogix_tco_policies_traces`, `coralogix_data_enrichments`, `coralogix_integration`, `coralogix_webhook`, `coralogix_archive_logs`, `coralogix_archive_metrics`, `coralogix_global_router`, `coralogix_preset`, `coralogix_parsing_rules`, `coralogix_recording_rules_groups_set`, and `coralogix_slo_v2` resources and data sources.
 
+#### resource/coralogix_alert
+- FIX: Add `notification_group.router.id`. Import and refresh now read the router ID, and a change to it shows in the plan. Before, every update silently set the ID to `""`, which moved the alert to label-based Global Router matching.
+- NOTE: `router = {}` still means label-based matching (`id = ""`), as in 3.5.0. After the upgrade, an alert that still uses `router_default` plans `id: "router_default" -> ""`. To keep that router, set `id = "router_default"`. This affects alerts last applied with 2.0.18 to 3.4.2, and alerts whose router was set outside Terraform.
+- NOTE: This fix does not restore router IDs that an earlier apply already set to `""`. Set `id` again where the alert must use a specific router.
+
+#### data-source/coralogix_alert
+- FEAT: Expose `notification_group.router.id`.
+
 #### resource/coralogix_recording_rules_groups_set
 - FEAT: Add support for `groups[*].rules[*].evaluation_delay_ms`, an optional delay (in milliseconds, `0`-`1800000`) that holds off a rule's evaluation so late-arriving data is ingested first. Removing it from the configuration clears the delay, and an explicit `0` is a real value distinct from unset. Also fixes a read-path gap: a delay set outside Terraform was previously dropped from state and silently stripped on the next apply.
 - DOCS: Note in `yaml_content` that keys must be all-lowercase and unseparated (`evaluationdelayms`), since unrecognized keys are ignored without a diagnostic.

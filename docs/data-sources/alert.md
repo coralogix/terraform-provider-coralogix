@@ -145,6 +145,7 @@ Read-Only:
 
 Read-Only:
 
+- `id` (String) ID of the notification router. The default `""` uses label-based Global Router matching. Set `"router_default"` or another router ID to send notifications to that router. Removing this attribute sets it back to `""`.
 - `notify_on` (String)
 
 

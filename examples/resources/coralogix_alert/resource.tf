@@ -270,7 +270,7 @@ resource "coralogix_alert" "test" {
 #       recipients = ["example@coralogix.com", "example2@coralogix.com"]
 #       notify_on  = "Triggered and Resolved"
 #     }]
-#     router = {}
+#     router = {}  # label-based Global Router matching; use { id = "router_default" } to pin a router
 #   }
 
 #   incidents_settings = {

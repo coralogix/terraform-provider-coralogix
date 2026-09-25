@@ -722,9 +722,7 @@ func V3() schema.Schema {
 						}},
 						"retriggering_period_minutes": types.Int64Type,
 					}}),
-					"router": types.ObjectNull(map[string]attr.Type{
-						"notify_on": types.StringType,
-					}),
+					"router": types.ObjectNull(NotificationRouterV3Attr()),
 				})),
 				Attributes: map[string]schema.Attribute{
 					"group_by_keys": schema.ListAttribute{
@@ -905,6 +903,12 @@ func V3() schema.Schema {
 									stringvalidator.OneOf(alerttypes.ValidNotifyOn...),
 								},
 							},
+							"id": schema.StringAttribute{
+								Optional:            true,
+								Computed:            true,
+								Default:             stringdefault.StaticString(""),
+								MarkdownDescription: "ID of the notification router. The default `\"\"` uses label-based Global Router matching. Set `\"router_default\"` or another router ID to send notifications to that router. Removing this attribute sets it back to `\"\"`.",
+							},
 						},
 					},
 				},
@@ -969,8 +973,17 @@ func NotificationGroupV3Attr() map[string]attr.Type {
 			},
 		},
 		"router": types.ObjectType{
-			AttrTypes: NotificationRouterAttr(),
+			AttrTypes: NotificationRouterV3Attr(),
 		},
+	}
+}
+
+// NotificationRouterV3Attr adds "id" to the router shape. The v1 and v2
+// schemas keep NotificationRouterAttr so that their prior state stays readable.
+func NotificationRouterV3Attr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"notify_on": types.StringType,
+		"id":        types.StringType,
 	}
 }
 
