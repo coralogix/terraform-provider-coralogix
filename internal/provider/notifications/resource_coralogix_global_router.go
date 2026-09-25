@@ -670,54 +670,37 @@ func alignRuleTargets(rules, prior []globalRouters.RoutingRule) {
 	}
 }
 
-// orderTargetsLike returns targets in the order of prior. The API accepts
-// several targets with the same connector and preset, so exact matches on
-// connector, preset and custom details claim their position first. Matching on
-// connector and preset alone then places targets whose custom details changed.
-// Targets that are not in prior keep their API order at the end.
+// orderTargetsLike returns prior when it holds the same targets as the API
+// response in a different order. Otherwise the targets really changed, and the
+// API order is kept so the plan shows the change.
 func orderTargetsLike(targets, prior []globalRouters.RoutingTarget) []globalRouters.RoutingTarget {
-	if len(targets) == 0 {
-		return targets
+	if sameTargetsIgnoringOrder(targets, prior) {
+		return prior
 	}
-	sameKey := func(t, p globalRouters.RoutingTarget) bool {
-		return t.GetConnectorId() == p.GetConnectorId() && t.GetPresetId() == p.GetPresetId()
-	}
-	sameContent := func(t, p globalRouters.RoutingTarget) bool {
-		return sameKey(t, p) && maps.Equal(t.GetCustomDetails(), p.GetCustomDetails())
-	}
+	return targets
+}
 
-	used := make([]bool, len(targets))
-	slots := make([]int, len(prior))
-	for i := range slots {
-		slots[i] = -1
+// sameTargetsIgnoringOrder compares a and b as multisets: each target in a must
+// match a different target in b.
+func sameTargetsIgnoringOrder(a, b []globalRouters.RoutingTarget) bool {
+	if len(a) != len(b) {
+		return false
 	}
-	for _, match := range []func(t, p globalRouters.RoutingTarget) bool{sameContent, sameKey} {
-		for i, p := range prior {
-			if slots[i] != -1 {
-				continue
-			}
-			for j, t := range targets {
-				if !used[j] && match(t, p) {
-					used[j] = true
-					slots[i] = j
-					break
-				}
+	used := make([]bool, len(b))
+	for _, x := range a {
+		found := false
+		for j, y := range b {
+			if !used[j] && x.GetConnectorId() == y.GetConnectorId() && x.GetPresetId() == y.GetPresetId() &&
+				maps.Equal(x.GetCustomDetails(), y.GetCustomDetails()) {
+				used[j], found = true, true
+				break
 			}
 		}
-	}
-
-	ordered := make([]globalRouters.RoutingTarget, 0, len(targets))
-	for _, j := range slots {
-		if j != -1 {
-			ordered = append(ordered, targets[j])
+		if !found {
+			return false
 		}
 	}
-	for j, t := range targets {
-		if !used[j] {
-			ordered = append(ordered, t)
-		}
-	}
-	return ordered
+	return true
 }
 
 func flattenRoutingTargets(ctx context.Context, targets []globalRouters.RoutingTarget) (types.List, diag.Diagnostics) {

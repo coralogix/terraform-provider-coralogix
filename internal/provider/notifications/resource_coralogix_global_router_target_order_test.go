@@ -67,13 +67,13 @@ func TestOrderTargetsLike(t *testing.T) {
 			expect: []string{"http/http", "slack/slack", "pd/pd"},
 		},
 		{
-			name:   "target added outside terraform goes last",
+			name:   "target added outside terraform keeps the api order",
 			api:    []globalRouters.RoutingTarget{target("new", ""), target("pd", "pd"), target("http", "http")},
 			prior:  []globalRouters.RoutingTarget{target("http", "http"), target("pd", "pd")},
-			expect: []string{"http/http", "pd/pd", "new/"},
+			expect: []string{"new/", "pd/pd", "http/http"},
 		},
 		{
-			name:   "target removed outside terraform is dropped",
+			name:   "target removed outside terraform keeps the api order",
 			api:    []globalRouters.RoutingTarget{target("pd", "pd")},
 			prior:  []globalRouters.RoutingTarget{target("http", "http"), target("pd", "pd")},
 			expect: []string{"pd/pd"},
@@ -98,17 +98,10 @@ func TestOrderTargetsLike(t *testing.T) {
 			expect: []string{"http/{k=1}", "http/{k=2}"},
 		},
 		{
-			// An exact match must not take a slot that an earlier key-only match would take.
-			name:   "exact match wins over an earlier key-only match",
-			api:    []globalRouters.RoutingTarget{targetWithDetails("http", "", "1"), targetWithDetails("http", "", "changed")},
-			prior:  []globalRouters.RoutingTarget{targetWithDetails("http", "", "2"), targetWithDetails("http", "", "1")},
-			expect: []string{"http/{k=changed}", "http/{k=1}"},
-		},
-		{
-			name:   "custom details changed outside terraform keeps position",
+			name:   "custom details changed outside terraform keeps the api order",
 			api:    []globalRouters.RoutingTarget{target("pd", ""), targetWithDetails("http", "", "new")},
 			prior:  []globalRouters.RoutingTarget{targetWithDetails("http", "", "old"), target("pd", "")},
-			expect: []string{"http/{k=new}", "pd/"},
+			expect: []string{"pd/", "http/{k=new}"},
 		},
 		{
 			// Probe on eu2: 1 of 10 creates with mixed connector types came back rotated.
