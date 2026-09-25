@@ -24,8 +24,16 @@ func labels(kv ...string) types.Map {
 	return types.MapValueMust(types.StringType, elems)
 }
 
+// panels returns a map of panels. A panel without thresholds gets a typed
+// null map: a zero types.Map has no element type.
 func panels(t *testing.T, ps map[string]PanelModel) types.Map {
 	t.Helper()
+	for k, p := range ps {
+		if p.Thresholds.ElementType(context.Background()) == nil {
+			p.Thresholds = types.MapNull(types.Float64Type)
+			ps[k] = p
+		}
+	}
 	m, diags := types.MapValueFrom(context.Background(), types.ObjectType{AttrTypes: panelAttrTypes()}, ps)
 	assertNoDiags(t, diags)
 	return m
@@ -86,7 +94,7 @@ func TestExpandMapNullAndEmpty(t *testing.T) {
 func TestRoundTripMaps(t *testing.T) {
 	const resp = `{"id":"b1","name":"ops","labels":{"team":"infra"},
 		"panels":{"cpu":{"query":"q","style":{"font":{"size":"8"}}}},
-		"layout":{"title":"T","section":{"widths":{"a":"3"}}}}`
+		"layout":{"relativeTime":{},"title":"T","section":{"widths":{"a":"3"}}}}`
 	m, diags := flatten(context.Background(), unmarshalBoard(t, resp))
 	assertNoDiags(t, diags)
 	body, diags := expandUpdate(context.Background(), m)
@@ -99,12 +107,12 @@ func TestRoundTripMaps(t *testing.T) {
 // TestFlattenMapNullAndEmpty checks that a missing map is null, and that {}
 // is an empty map, not null.
 func TestFlattenMapNullAndEmpty(t *testing.T) {
-	m, diags := flatten(context.Background(), unmarshalBoard(t, `{"id":"b1","name":"ops","layout":{"title":"T","section":{}}}`))
+	m, diags := flatten(context.Background(), unmarshalBoard(t, `{"id":"b1","name":"ops","layout":{"relativeTime":{},"title":"T","section":{}}}`))
 	assertNoDiags(t, diags)
 	if !m.Labels.IsNull() || !m.Panels.IsNull() || !m.Layout.Section.Widths.IsNull() {
 		t.Errorf("labels, panels, widths = %v, %v, %v, want null", m.Labels, m.Panels, m.Layout.Section.Widths)
 	}
-	m, diags = flatten(context.Background(), unmarshalBoard(t, `{"id":"b1","name":"ops","labels":{},"panels":{},"layout":{"title":"T","section":{"widths":{}}}}`))
+	m, diags = flatten(context.Background(), unmarshalBoard(t, `{"id":"b1","name":"ops","labels":{},"panels":{},"layout":{"relativeTime":{},"title":"T","section":{"widths":{}}}}`))
 	assertNoDiags(t, diags)
 	for name, v := range map[string]types.Map{"labels": m.Labels, "panels": m.Panels, "widths": m.Layout.Section.Widths} {
 		if v.IsNull() || len(v.Elements()) != 0 {

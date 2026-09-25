@@ -80,9 +80,54 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 		out.Attributes = append(out.Attributes, a)
 		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type))
 	}
+	for _, g := range r.Groups {
+		var arms []string
+		for _, arm := range g.Arms {
+			arms = append(arms, attrPath{"root", tfName(arm)}.expr())
+		}
+		b.validators = append(b.validators, groupValidator("resourcevalidator", g, true)+"(\n"+strings.Join(arms, ",\n")+",\n)")
+	}
 	out.ConfigValidators = b.validators
 	out.Models = b.models
 	return out, nil
+}
+
+// addGroupValidators adds a validator to each arm of the oneOf groups of an
+// object: ExactlyOneOf, or ConflictsWith when no arm is allowed, with the
+// other arms. On the arm, Terraform runs it only when the object is set. A
+// resource validator would also run when the object is null, and then
+// "exactly one" fails.
+func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup) {
+	byName := map[string]*tfAttr{}
+	for _, a := range attrs {
+		byName[a.Name] = a
+	}
+	for _, g := range groups {
+		for _, arm := range g.Arms {
+			a := byName[tfName(arm)]
+			var others []string
+			for _, o := range g.Arms {
+				if o != arm {
+					others = append(others, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", tfName(o)))
+				}
+			}
+			pkg := strings.ToLower(a.ValueKind) + "validator"
+			a.Validators = append(a.Validators, groupValidator(pkg, g, false)+"("+strings.Join(others, ", ")+")")
+		}
+	}
+}
+
+// groupValidator is the validator function of a oneOf group: exactly one arm,
+// or at most one when no arm is allowed. The resource validator is named
+// Conflicting, the attribute validator ConflictsWith.
+func groupValidator(pkg string, g model.OneOfGroup, resource bool) string {
+	switch {
+	case !g.AllowNone:
+		return pkg + ".ExactlyOneOf"
+	case resource:
+		return pkg + ".Conflicting"
+	}
+	return pkg + ".ConflictsWith"
 }
 
 // fieldAttrs are the attributes that decide Required and Default. Create
@@ -224,6 +269,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		}
 		b.validators = append(b.validators, v+"(\n"+strings.Join(arms, ",\n")+",\n)")
 	}
+	addGroupValidators(attrs, t.Groups)
 	if name := modelTypeName(t.Schema); !b.seen[name] {
 		b.seen[name] = true
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
@@ -240,8 +286,14 @@ func (b *tfBuilder) modelField(name string, t *model.Type) tfModelField {
 		goType = "types.Bool"
 	case model.Number:
 		goType = "types.Float64"
+		if t.Format == "float" {
+			goType = "types.Float32"
+		}
 	case model.Integer:
 		goType = "types.Int64"
+		if t.Format == "int32" {
+			goType = "types.Int32"
+		}
 	case model.Set:
 		goType = "types.Set"
 	case model.List:
@@ -275,20 +327,27 @@ func scalar(t *model.Type) (string, []string, error) {
 	case model.Bool:
 		return "Bool", nil, nil
 	case model.Number:
-		if t.Format != "double" {
-			return "", nil, fmt.Errorf("number format %q is not supported", t.Format)
+		// float is a Float32 attribute. In a Float64 attribute, a float32
+		// value would read back with other digits (0.1 → 0.10000000149).
+		switch t.Format {
+		case "double":
+			return "Float64", rangeValidator("float64validator", t.Minimum, t.Maximum, formatFloat), nil
+		case "float":
+			return "Float32", rangeValidator("float32validator", t.Minimum, t.Maximum, formatFloat), nil
 		}
-		return "Float64", rangeValidator("float64validator", t.Minimum, t.Maximum, formatFloat), nil
+		return "", nil, fmt.Errorf("number format %q is not supported", t.Format)
 	case model.Integer:
-		// uint64 is sent as a string. Its length limit is on the string, so
-		// it is not a range. Only the sign is known (F19).
-		if t.Format == "uint64" {
+		switch t.Format {
+		case "uint64":
+			// uint64 is sent as a string. Its length limit is on the string, so
+			// it is not a range. Only the sign is known (F19).
 			return "Int64", []string{"int64validator.AtLeast(0)"}, nil
+		case "int64":
+			return "Int64", rangeValidator("int64validator", t.Minimum, t.Maximum, formatInt), nil
+		case "int32":
+			return "Int32", rangeValidator("int32validator", t.Minimum, t.Maximum, formatInt), nil
 		}
-		if t.Format != "int64" && t.Format != "int32" {
-			return "", nil, fmt.Errorf("integer format %q is not supported", t.Format)
-		}
-		return "Int64", rangeValidator("int64validator", t.Minimum, t.Maximum, formatInt), nil
+		return "", nil, fmt.Errorf("integer format %q is not supported", t.Format)
 	}
 	return "", nil, fmt.Errorf("kind %s is not a scalar", t.Kind)
 }
@@ -351,12 +410,18 @@ func defaultExpr(kind, value string) (string, error) {
 			return "", fmt.Errorf("default %q: %w", value, err)
 		}
 		return fmt.Sprintf("float64default.StaticFloat64(%s)", formatFloat(v)), nil
-	case "Int64":
-		v, err := strconv.ParseInt(value, 10, 64)
+	case "Float32":
+		v, err := strconv.ParseFloat(value, 32)
 		if err != nil {
 			return "", fmt.Errorf("default %q: %w", value, err)
 		}
-		return fmt.Sprintf("int64default.StaticInt64(%d)", v), nil
+		return fmt.Sprintf("float32default.StaticFloat32(%s)", formatFloat(v)), nil
+	case "Int64", "Int32":
+		v, err := strconv.ParseInt(value, 10, map[string]int{"Int64": 64, "Int32": 32}[kind])
+		if err != nil {
+			return "", fmt.Errorf("default %q: %w", value, err)
+		}
+		return fmt.Sprintf("%sdefault.Static%s(%d)", strings.ToLower(kind), kind, v), nil
 	}
 	return "", fmt.Errorf("default for %s is not supported", kind)
 }

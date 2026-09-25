@@ -1,0 +1,50 @@
+43 resources, 41 with no issue
+
+RESOURCES  PLACES  SHAPE                                          EXAMPLE
+1          2       model: discriminator is not supported          Dashboard.layout.sections[].rows[].widgets[].definition.dynamic.visualization.horizontalBarsMulti.sortOrder.strategy
+1          2       model: enum with only the *_UNSPECIFIED value  AlertDef.alertDefProperties.logsAnomaly.rules[].condition.conditionType
+
+RESOURCE                          ISSUES  SHAPES
+AiApplication                     0       
+AiEvaluation                      0       
+AlertDef                          2       enum with only the *_UNSPECIFIED value
+AlertEvent                        0       
+AlertSchedulerRule                0       
+Case                              0       
+CaseDeepLinks                     0       
+CaseEvent                         0       
+CaseSettings                      0       
+CompanyEnrichmentSettings         0       
+CompanyIpAccessSettings           0       
+CompanyModelPricing               0       
+ConfigurationGroup                0       
+Connector                         0       
+ConnectorSchema                   0       
+CustomEnrichment                  0       
+CustomRole                        0       
+Dashboard                         2       discriminator is not supported
+DashboardFolder                   0       
+DeployedIntegrationInformation    0       
+E2M                               0       
+GlobalRouter                      0       
+Incident                          0       
+IntegrationDefinition             0       
+IntegrationDetails                0       
+KeyInfo                           0       
+OutgoingWebhook                   0       
+OutgoingWebhookDetails            0       
+Policy                            0       
+Preset                            0       
+PresetSummary                     0       
+QuotaAllocationEntityTypeRuleSet  0       
+RuleGroup                         0       
+RumVersionData                    0       
+SPParameters                      0       
+Slo                               0       
+TeamGroup                         0       
+TenantConfigV2                    0       
+View                              0       
+ViewFolder                        0       
+rbac.v2.User                      0       
+v2.Action                         0       
+v2.Target                         0       

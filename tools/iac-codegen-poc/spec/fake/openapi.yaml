@@ -30,6 +30,22 @@ paths:
                   maxLength: 256
                   type: string
                   x-coralogix-presence: true
+                flags:
+                  additionalProperties:
+                    type: boolean
+                  description: Feature flags. A map of bools.
+                  type: object
+                  x-coralogix-presence: true
+                publicLink:
+                  allOf:
+                    - $ref: '#/components/schemas/PublicLink'
+                  description: Share by a public link. A oneOf arm at the resource root.
+                  x-coralogix-presence: true
+                privateShare:
+                  allOf:
+                    - $ref: '#/components/schemas/PrivateShare'
+                  description: Share with a team. A oneOf arm at the resource root.
+                  x-coralogix-presence: true
                 labels:
                   additionalProperties:
                     type: string
@@ -92,6 +108,22 @@ paths:
                   maxLength: 256
                   type: string
                   x-coralogix-presence: true
+                flags:
+                  additionalProperties:
+                    type: boolean
+                  description: Feature flags. A map of bools.
+                  type: object
+                  x-coralogix-presence: true
+                publicLink:
+                  allOf:
+                    - $ref: '#/components/schemas/PublicLink'
+                  description: Share by a public link. A oneOf arm at the resource root.
+                  x-coralogix-presence: true
+                privateShare:
+                  allOf:
+                    - $ref: '#/components/schemas/PrivateShare'
+                  description: Share with a team. A oneOf arm at the resource root.
+                  x-coralogix-presence: true
                 labels:
                   additionalProperties:
                     type: string
@@ -142,7 +174,27 @@ components:
   schemas:
     FakeBoard:
       type: object
+      oneOf:
+        - required: [publicLink]
+          type: object
+        - required: [privateShare]
+          type: object
+        - not:
+            anyOf:
+              - required: [publicLink]
+                type: object
+              - required: [privateShare]
+                type: object
+          type: object
       properties:
+        publicLink:
+          allOf:
+            - $ref: '#/components/schemas/PublicLink'
+          description: Share by a public link. A oneOf arm at the resource root.
+        privateShare:
+          allOf:
+            - $ref: '#/components/schemas/PrivateShare'
+          description: Share with a team. A oneOf arm at the resource root.
         id:
           description: Unique identifier of the board.
           type: string
@@ -155,6 +207,11 @@ components:
           description: Free text about the board.
           maxLength: 256
           type: string
+        flags:
+          additionalProperties:
+            type: boolean
+          description: Feature flags. A map of bools.
+          type: object
         labels:
           additionalProperties:
             type: string
@@ -177,9 +234,43 @@ components:
         - id
         - name
     Layout:
-      description: How the board looks. Level 1.
+      description: How the board looks. Level 1. It has two oneOf groups.
       type: object
+      allOf:
+        - oneOf:
+            - required: [refreshOff]
+              type: object
+            - required: [refreshEvery]
+              type: object
+            - not:
+                anyOf:
+                  - required: [refreshOff]
+                    type: object
+                  - required: [refreshEvery]
+                    type: object
+              type: object
+        - oneOf:
+            - required: [absoluteTime]
+              type: object
+            - required: [relativeTime]
+              type: object
       properties:
+        refreshOff:
+          allOf:
+            - $ref: '#/components/schemas/BoldStyle'
+          description: No auto refresh. Group 1 (none allowed).
+        refreshEvery:
+          allOf:
+            - $ref: '#/components/schemas/Every'
+          description: Refresh every n minutes. Group 1.
+        absoluteTime:
+          allOf:
+            - $ref: '#/components/schemas/AbsoluteTime'
+          description: A fixed time range. Group 2 (one arm required).
+        relativeTime:
+          allOf:
+            - $ref: '#/components/schemas/Every'
+          description: The last n minutes. Group 2.
         title:
           description: Title of the board.
           type: string
@@ -208,6 +299,22 @@ components:
             type: string
           description: Column widths by column name. A map of 64-bit numbers inside a nested object.
           type: object
+        interval:
+          allOf:
+            - $ref: '#/components/schemas/Interval'
+          description: Time bucket. A oneOf with a normal field beside the arms.
+        columns:
+          description: Column numbers. A list of int32.
+          items:
+            format: int32
+            type: integer
+          type: array
+        ratios:
+          description: Column ratios. A list of 32-bit floats.
+          items:
+            format: float
+            type: number
+          type: array
         rows:
           description: The rows of the section, in order.
           items:
@@ -243,6 +350,12 @@ components:
         label:
           description: Row label.
           type: string
+        offset:
+          description: Vertical offset. A signed 64-bit number (int64).
+          format: int64
+          maximum: 100
+          minimum: -100
+          type: integer
         style:
           allOf:
             - $ref: '#/components/schemas/TextStyle'
@@ -287,10 +400,66 @@ components:
         family:
           description: Font family.
           type: string
+        scale:
+          description: Font scale. A 32-bit float.
+          format: float
+          type: number
         size:
           description: Font size in points.
           format: uint64
           pattern: ^[0-9]+$
+          type: string
+    Interval:
+      description: A time bucket. The arms auto and manual (one is required), and the normal field useLimit.
+      type: object
+      properties:
+        auto:
+          allOf:
+            - $ref: '#/components/schemas/BoldStyle'
+          description: Pick the bucket automatically.
+        manual:
+          allOf:
+            - $ref: '#/components/schemas/Every'
+          description: A fixed bucket.
+        useLimit:
+          description: A normal field beside the arms.
+          type: boolean
+      oneOf:
+        - required: [auto]
+          type: object
+        - required: [manual]
+          type: object
+    Every:
+      description: A number of minutes.
+      type: object
+      properties:
+        minutes:
+          description: Minutes.
+          format: int32
+          type: integer
+    AbsoluteTime:
+      description: A fixed time range.
+      type: object
+      properties:
+        from:
+          description: Start, RFC3339.
+          type: string
+        to:
+          description: End, RFC3339.
+          type: string
+    PublicLink:
+      description: A public link.
+      type: object
+      properties:
+        url:
+          description: The link.
+          type: string
+    PrivateShare:
+      description: Shared with a team.
+      type: object
+      properties:
+        team:
+          description: The team.
           type: string
     Panel:
       description: A panel. A value of the panels map.
@@ -300,6 +469,18 @@ components:
           description: The panel query.
           minLength: 1
           type: string
+        precision:
+          description: Digits after the point. A 32-bit integer (int32).
+          format: int32
+          maximum: 10
+          minimum: 0
+          type: integer
+        thresholds:
+          additionalProperties:
+            format: double
+            type: number
+          description: Thresholds by name. A map of numbers.
+          type: object
         unit:
           allOf:
             - $ref: '#/components/schemas/Unit'

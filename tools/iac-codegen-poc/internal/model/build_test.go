@@ -156,9 +156,18 @@ func TestBuildRejects(t *testing.T) {
 		{"set marker without uniqueItems", withField("{type: array, x-coralogix-collection: set, items: {type: string}}", ""), "must agree"},
 		{"recursive", withField("{$ref: '#/components/schemas/R'}",
 			"    R: {type: object, properties: {child: {$ref: '#/components/schemas/R'}}}\n"), "recursive"},
-		{"oneOf arm missing", withField("{$ref: '#/components/schemas/O'}",
-			"    O: {type: object, oneOf: [{required: [a]}], properties: {a: {type: object}, b: {type: object}}}\n"),
-			"do not match"},
+		{"oneOf arm is not a field", withField("{$ref: '#/components/schemas/O'}",
+			"    O: {type: object, oneOf: [{required: [a]}, {required: [c]}], properties: {a: {type: object}, b: {type: object}}}\n"),
+			"oneOf arm c is not a field"},
+		{"oneOf arm in two groups", withField("{$ref: '#/components/schemas/O'}",
+			"    O: {type: object, oneOf: [{required: [a]}], allOf: [{oneOf: [{required: [a]}, {required: [b]}]}], properties: {a: {type: object}, b: {type: object}}}\n"),
+			"oneOf arm a is in two groups"},
+		{"oneOf arm is required", withField("{$ref: '#/components/schemas/O'}",
+			"    O: {type: object, required: [a], oneOf: [{required: [a]}, {required: [b]}], properties: {a: {type: object}, b: {type: object}, c: {type: string}}}\n"),
+			"oneOf arm a has attributes"},
+		{"no-arm entry lists other arms", withField("{$ref: '#/components/schemas/O'}",
+			"    O: {type: object, oneOf: [{required: [a]}, {not: {anyOf: [{required: [b]}]}}], properties: {a: {type: object}, b: {type: object}}}\n"),
+			"not.anyOf lists [b], want the arms [a]"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := c.spec.build(t)
@@ -167,5 +176,42 @@ func TestBuildRejects(t *testing.T) {
 				t.Errorf("error = %v, want it to contain %q", err, c.wantErr)
 			}
 		})
+	}
+}
+
+// TestSurveyCollectsAll checks that Survey reports every unsupported shape,
+// not only the first, and goes on into the other fields.
+func TestSurveyCollectsAll(t *testing.T) {
+	const spec = `openapi: 3.1.0
+info: {title: t, version: "1"}
+paths: {}
+components:
+  schemas:
+    R:
+      type: object
+      properties:
+        a: {anyOf: [{type: string}, {type: number}]}
+        b:
+          type: object
+          properties:
+            c: {not: {type: string}}
+            d: {type: string}
+        e: {type: string}
+`
+	doc, err := model.Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	typ, errs := model.Survey(doc, "R")
+	if len(errs) != 2 {
+		t.Fatalf("errors = %v, want 2", errs)
+	}
+	for i, want := range []string{"R.a: anyOf", "R.b.c: not"} {
+		if !strings.HasPrefix(errs[i].Error(), want) {
+			t.Errorf("error %d = %v, want it to start with %q", i, errs[i], want)
+		}
+	}
+	if typ == nil || len(typ.Fields) != 3 || typ.Fields[2].Name != "e" {
+		t.Errorf("type = %+v, want the 3 fields", typ)
 	}
 }

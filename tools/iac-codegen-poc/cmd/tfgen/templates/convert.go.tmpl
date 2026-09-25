@@ -239,7 +239,7 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	return l
 }
 
-{{- if or (.Conv.Uses "stringmap") (.Conv.Uses "uint64map") (.Conv.Uses "objectmap")}}
+{{- if or (.Conv.Uses "stringmap") (.Conv.Uses "uint64map") (.Conv.Uses "objectmap") (.Conv.Uses "scalarmap")}}
 
 // expandMap returns the values of v. It returns nil for a null value, and a
 // non-nil map for an empty value.
@@ -317,6 +317,62 @@ func flattenUint64Map(ctx context.Context, p path.Path, v map[string]string, dia
 }
 {{- end}}
 
+{{- if .Conv.Uses "int32"}}
+
+func expandInt32(v types.Int32) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n := v.ValueInt32()
+	return &n
+}
+{{- end}}
+{{- if .Conv.Uses "int64"}}
+
+func expandInt64(v types.Int64) *int64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n := v.ValueInt64()
+	return &n
+}
+{{- end}}
+{{- if .Conv.Uses "float32"}}
+
+func expandFloat32(v types.Float32) *float32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f := v.ValueFloat32()
+	return &f
+}
+{{- end}}
+{{- if .Conv.Uses "scalars"}}
+
+func flattenScalarsList[T any](ctx context.Context, elem attr.Type, v []T, diags *diag.Diagnostics) types.List {
+	if v == nil {
+		return types.ListNull(elem)
+	}
+	return flattenList(ctx, elem, v, diags)
+}
+
+func flattenScalarsSet[T any](ctx context.Context, elem attr.Type, v []T, diags *diag.Diagnostics) types.Set {
+	if v == nil {
+		return types.SetNull(elem)
+	}
+	return flattenSet(ctx, elem, v, diags)
+}
+{{- end}}
+{{- if .Conv.Uses "scalarmap"}}
+
+func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T, diags *diag.Diagnostics) types.Map {
+	if v == nil {
+		return types.MapNull(elem)
+	}
+	return flattenMap(ctx, elem, v, diags)
+}
+{{- end}}
+
 {{- define "expandField"}}
 {{- $p := printf "p.AtName(%q)" .TFName}}
 {{- $l := ""}}{{$r := ""}}{{if .Value}}{{$l = "valueOf("}}{{$r = ")"}}{{end}}
@@ -326,6 +382,16 @@ func flattenUint64Map(ctx context.Context, p path.Path, v map[string]string, dia
 	out.{{.SDK}} = {{$l}}expandBool(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "float64"}}
 	out.{{.SDK}} = {{$l}}expandFloat64(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "int32"}}
+	out.{{.SDK}} = {{$l}}expandInt32(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "int64"}}
+	out.{{.SDK}} = {{$l}}expandInt64(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "float32"}}
+	out.{{.SDK}} = {{$l}}expandFloat32(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "scalars"}}
+	out.{{.SDK}} = expandElements[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
+{{- else if eq .Conv "scalarmap"}}
+	out.{{.SDK}} = expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
 {{- else if eq .Conv "uint64"}}
 	out.{{.SDK}} = {{$l}}expandUint64({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "enum"}}
@@ -369,6 +435,16 @@ func flattenUint64Map(ctx context.Context, p path.Path, v map[string]string, dia
 	out.{{.Model}} = types.BoolPointerValue({{$v}})
 {{- else if eq .Conv "float64"}}
 	out.{{.Model}} = types.Float64PointerValue({{$v}})
+{{- else if eq .Conv "int32"}}
+	out.{{.Model}} = types.Int32PointerValue({{$v}})
+{{- else if eq .Conv "int64"}}
+	out.{{.Model}} = types.Int64PointerValue({{$v}})
+{{- else if eq .Conv "float32"}}
+	out.{{.Model}} = types.Float32PointerValue({{$v}})
+{{- else if eq .Conv "scalars"}}
+	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, {{.ElemType}}, v.{{.SDK}}, diags)
+{{- else if eq .Conv "scalarmap"}}
+	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, v.{{.SDK}}, diags)
 {{- else if eq .Conv "uint64"}}
 	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "time"}}

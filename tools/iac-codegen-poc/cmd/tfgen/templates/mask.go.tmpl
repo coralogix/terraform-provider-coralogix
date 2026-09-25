@@ -4,6 +4,7 @@ package {{.Package}}
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -28,7 +29,12 @@ type maskNode struct {
 	attr, api string
 	oneOf     bool
 	children  []*maskNode
+	groups    [][]string // oneOf groups among children, by attr
 }
+{{- if .HasGroups}}
+
+func (n *maskNode) names() (string, string) { return n.attr, n.api }
+{{- end}}
 
 // maskFields are the Update fields, in model order.
 var maskFields = []*maskNode{
@@ -47,6 +53,9 @@ var maskFields = []*maskNode{
 func updateMask(ctx context.Context, plan, state tfData) ([]string, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var mask []string
+{{- if .HasGroups}}
+	planValues, stateValues := map[string]attr.Value{}, map[string]attr.Value{}
+{{- end}}
 	for _, f := range maskFields {
 		var p, s attr.Value
 		diags.Append(plan.GetAttribute(ctx, path.Root(f.attr), &p)...)
@@ -55,7 +64,13 @@ func updateMask(ctx context.Context, plan, state tfData) ([]string, diag.Diagnos
 			return nil, diags
 		}
 		mask = maskPaths(mask, "", f, p, s)
+{{- if .HasGroups}}
+		planValues[f.attr], stateValues[f.attr] = p, s
+{{- end}}
 	}
+{{- if .HasGroups}}
+	mask = dropSwitchedArms(mask, "", maskFields, maskGroups, planValues, stateValues)
+{{- end}}
 	return mask, diags
 }
 
@@ -82,6 +97,9 @@ func maskPaths(mask []string, prefix string, n *maskNode, p, s attr.Value) []str
 	for _, c := range n.children {
 		mask = maskPaths(mask, at, c, pa[c.attr], sa[c.attr])
 	}
+{{- if .HasGroups}}
+	mask = dropSwitchedArms(mask, at, n.children, n.groups, pa, sa)
+{{- end}}
 	return mask
 }
 
@@ -115,7 +133,15 @@ func activeArm(n *maskNode, o types.Object) *maskNode {
 {{- else}}
 // maskFields are the Update fields, in model order: the Terraform attribute
 // and the API name in the update mask.
+{{- if .HasGroups}}
+type maskField struct{ attr, api string }
+
+func (f maskField) names() (string, string) { return f.attr, f.api }
+
+var maskFields = []maskField{
+{{- else}}
 var maskFields = []struct{ attr, api string }{
+{{- end}}
 {{- range .MaskFields}}
 	{ {{- printf "%q" .TFName}}, {{printf "%q" .API -}} },
 {{- end}}
@@ -130,6 +156,9 @@ var maskFields = []struct{ attr, api string }{
 func updateMask(ctx context.Context, plan, state tfData) ([]string, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var mask []string
+{{- if .HasGroups}}
+	planValues, stateValues := map[string]attr.Value{}, map[string]attr.Value{}
+{{- end}}
 	for _, f := range maskFields {
 		var p, s attr.Value
 		diags.Append(plan.GetAttribute(ctx, path.Root(f.attr), &p)...)
@@ -140,8 +169,57 @@ func updateMask(ctx context.Context, plan, state tfData) ([]string, diag.Diagnos
 		if !p.Equal(s) {
 			mask = append(mask, f.api)
 		}
+{{- if .HasGroups}}
+		planValues[f.attr], stateValues[f.attr] = p, s
+{{- end}}
 	}
+{{- if .HasGroups}}
+	mask = dropSwitchedArms(mask, "", maskFields, maskGroups, planValues, stateValues)
+{{- end}}
 	return mask, diags
+}
+{{- end}}
+
+{{- if .HasGroups}}
+
+// maskGroups are the oneOf groups among the Update fields, by attr.
+var maskGroups = [][]string{
+{{- range .MaskGroups}}
+	{ {{- range $i, $a := .}}{{if $i}}, {{end}}{{printf "%q" $a}}{{end -}} },
+{{- end}}
+}
+
+// dropSwitchedArms removes the old arm of each oneOf group that changed to
+// another arm: the mask names only the new arm, and the server replaces the
+// old one (contract 2.6). A removed oneOf keeps the old arm (2.7).
+func dropSwitchedArms[F interface{ names() (string, string) }](mask []string, prefix string, fields []F, groups [][]string, p, s map[string]attr.Value) []string {
+	api := map[string]string{}
+	for _, f := range fields {
+		a, n := f.names()
+		api[a] = n
+	}
+	for _, g := range groups {
+		pArm, sArm := setArm(g, p), setArm(g, s)
+		if pArm == "" || sArm == "" || pArm == sArm {
+			continue
+		}
+		old := api[sArm]
+		if prefix != "" {
+			old = prefix + "." + old
+		}
+		mask = slices.DeleteFunc(mask, func(m string) bool { return m == old })
+	}
+	return mask
+}
+
+// setArm returns the arm of group g that v sets, or "".
+func setArm(g []string, v map[string]attr.Value) string {
+	for _, a := range g {
+		if x, ok := v[a]; ok && x != nil && !x.IsNull() {
+			return a
+		}
+	}
+	return ""
 }
 {{- end}}
 
@@ -174,6 +252,7 @@ func updateRequest(ctx context.Context, plan, state tfData) (*{{.SDKName}}.{{.Up
 {{- define "maskNode" -}}
 {attr: {{printf "%q" .TFName}}, api: {{printf "%q" .API}}
 {{- if .OneOf}}, oneOf: true{{end}}
+{{- if .Groups}}, groups: [][]string{ {{- range $gi, $g := .Groups}}{{if $gi}}, {{end}}{ {{- range $i, $a := $g}}{{if $i}}, {{end}}{{printf "%q" $a}}{{end -}} }{{end -}} }{{end}}
 {{- if .Children}}, children: []*maskNode{
 {{- range .Children}}
 	{{template "maskNode" .}},

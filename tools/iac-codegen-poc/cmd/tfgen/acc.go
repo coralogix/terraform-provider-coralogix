@@ -134,6 +134,9 @@ func checkAccKeys(r *model.Resource, v *accValues) error {
 	for _, f := range r.Fields {
 		errs = append(errs, checkCovered(f, v)...)
 	}
+	if err := checkGroups("create", r.Groups, v.Create); err != nil {
+		errs = append(errs, err)
+	}
 	return errors.Join(errs...)
 }
 
@@ -212,14 +215,27 @@ func hclScalar(path string, t *model.Type, v any) (string, error) {
 		}
 		return fail("a number")
 	case model.Integer:
-		// A 64-bit number is a string in the API (D7), a number in Terraform.
+		return hclInteger(path, t, v)
+	}
+	return "", fmt.Errorf("%s: kind %s is not supported", path, t.Kind)
+}
+
+// hclInteger converts an integer. A uint64 is a decimal string in the API
+// (D7); int32 and int64 are JSON numbers.
+func hclInteger(path string, t *model.Type, v any) (string, error) {
+	if t.WireString {
 		s, ok := v.(string)
 		if _, err := strconv.ParseUint(s, 10, 63); !ok || err != nil {
-			return fail("a decimal string up to the Int64 maximum")
+			return "", fmt.Errorf("%s: %v (%T) is not a decimal string up to the Int64 maximum", path, v, v)
 		}
 		return s, nil
 	}
-	return "", fmt.Errorf("%s: kind %s is not supported", path, t.Kind)
+	n, ok := v.(int)
+	bits := map[string]int{"int32": 32, "int64": 64}[t.Format]
+	if !ok || bits == 0 || int64(n) != int64(n)<<(64-bits)>>(64-bits) {
+		return "", fmt.Errorf("%s: %v (%T) is not an %s number", path, v, v, t.Format)
+	}
+	return strconv.Itoa(n), nil
 }
 
 func hclList(path string, t *model.Type, v any) (string, error) {
@@ -286,10 +302,30 @@ func hclObject(path string, t *model.Type, v any) (string, error) {
 	if t.Kind == model.OneOf && len(out) != 1 {
 		return "", fmt.Errorf("%s: a oneOf needs exactly one arm, it has %d", path, len(out))
 	}
+	if err := checkGroups(path, t.Groups, m); err != nil {
+		return "", err
+	}
 	if len(out) == 0 {
 		return "{}", nil
 	}
 	return "{ " + strings.Join(out, ", ") + " }", nil
+}
+
+// checkGroups checks that the values set at most one arm of each oneOf group,
+// and one when the group allows no "no arm".
+func checkGroups(path string, groups []model.OneOfGroup, values map[string]any) error {
+	for _, g := range groups {
+		var set []string
+		for _, arm := range g.Arms {
+			if _, ok := values[arm]; ok {
+				set = append(set, arm)
+			}
+		}
+		if len(set) > 1 || (len(set) == 0 && !g.AllowNone) {
+			return fmt.Errorf("%s: oneOf %v needs %s arm, it has %v", path, g.Arms, map[bool]string{true: "at most one", false: "exactly one"}[g.AllowNone], set)
+		}
+	}
+	return nil
 }
 
 // hclBody writes the attributes in spec order, one per line.

@@ -41,14 +41,19 @@ func font(family string, size int64) *TextStyleModel {
 func full(t *testing.T) *FakeBoardModel {
 	return &FakeBoardModel{
 		Name:   types.StringValue("ops"),
+		Flags:  types.MapNull(types.BoolType),
 		Labels: types.MapNull(types.StringType),
 		Panels: types.MapNull(types.ObjectType{AttrTypes: panelAttrTypes()}),
 		Layout: &LayoutModel{
-			Title:      types.StringValue("Ops"),
-			TitleStyle: bold(),
+			// The time group needs exactly one arm.
+			RelativeTime: &EveryModel{Minutes: types.Int32Value(15)},
+			Title:        types.StringValue("Ops"),
+			TitleStyle:   bold(),
 			Section: &SectionModel{
-				Widths: types.MapNull(types.Int64Type),
-				Header: &HeaderModel{Text: types.StringValue("CPU"), Color: types.StringValue("RED"), Style: font("mono", 12)},
+				Widths:  types.MapNull(types.Int64Type),
+				Columns: types.ListNull(types.Int32Type),
+				Ratios:  types.ListNull(types.Float32Type),
+				Header:  &HeaderModel{Text: types.StringValue("CPU"), Color: types.StringValue("RED"), Style: font("mono", 12)},
 				Rows: rows(t,
 					RowModel{Height: types.Int64Value(3), Label: types.StringValue("a")},
 					RowModel{Height: types.Int64Value(1), Style: bold()},
@@ -58,7 +63,7 @@ func full(t *testing.T) *FakeBoardModel {
 	}
 }
 
-const fullJSON = `{"name":"ops","layout":{"title":"Ops","titleStyle":{"bold":{}},"section":{
+const fullJSON = `{"name":"ops","layout":{"relativeTime":{"minutes":15},"title":"Ops","titleStyle":{"bold":{}},"section":{
 	"header":{"text":"CPU","color":"RED","style":{"font":{"family":"mono","size":"12"}}},
 	"rows":[{"height":"3","label":"a"},{"height":"1","style":{"bold":{}}}]}}}`
 
@@ -111,10 +116,10 @@ func TestExpandNullLevels(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			m := &FakeBoardModel{Layout: &LayoutModel{Title: types.StringValue("T"), Section: c.section}}
+			m := &FakeBoardModel{Layout: &LayoutModel{Title: types.StringValue("T"), Section: c.section, RelativeTime: &EveryModel{}}}
 			body, diags := expandUpdate(context.Background(), m)
 			assertNoDiags(t, diags)
-			assertJSON(t, body.Layout, c.want)
+			assertJSON(t, body.Layout, strings.Replace(c.want, `{"title":"T"`, `{"relativeTime":{},"title":"T"`, 1))
 		})
 	}
 }
@@ -131,7 +136,7 @@ func unmarshalBoard(t *testing.T, s string) *fake_boards_service.FakeBoard {
 // TestRoundTripNested reads a response, and sends it back. The layout must
 // not change on the way.
 func TestRoundTripNested(t *testing.T) {
-	const layout = `{"title":"Ops","titleStyle":{"font":{"size":"9"}},"section":{
+	const layout = `{"absoluteTime":{"from":"a"},"title":"Ops","titleStyle":{"font":{"size":"9"}},"section":{
 		"header":{"text":"CPU","style":{"bold":{}}},
 		"rows":[{"height":"2","style":{"font":{"family":"mono"}}}]}}`
 	v := unmarshalBoard(t, `{"id":"b1","name":"ops","description":"","layout":`+layout+`}`)

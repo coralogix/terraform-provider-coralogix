@@ -26,6 +26,9 @@ type convData struct {
 	// LeafMask is true when the spec pattern of the update mask accepts
 	// dotted paths. Then the mask names the changed leaves (contract 2.1).
 	LeafMask bool
+	// MaskGroups are the oneOf groups among the Update fields, as Terraform
+	// names.
+	MaskGroups [][]string
 }
 
 // maskField is one top-level Update field. With leaf masks, it is also a
@@ -37,6 +40,8 @@ type maskField struct {
 	API      string // API property name, the update mask entry
 	OneOf    bool
 	Children []*maskField
+	// Groups are the oneOf groups among Children, as Terraform names.
+	Groups [][]string
 }
 
 // maskEntry is one entry of the update mask when the spec has no pattern
@@ -75,7 +80,13 @@ const (
 	convStrings = "strings" // types.Set/List ↔ []string or []<enum type>
 	convObjects = "objects" // types.List ↔ []<SDK type>
 
+	convInt32   = "int32"   // types.Int32 ↔ *int32
+	convInt64   = "int64"   // types.Int64 ↔ *int64 (signed, a JSON number)
+	convFloat32 = "float32" // types.Float32 ↔ *float32
+	convScalars = "scalars" // types.List/Set ↔ []bool, []int32, []int64, []float32, []float64
+
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
+	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
 	convUint64Map = "uint64map" // types.Map of Int64 ↔ map[string]string (D7)
 	convObjectMap = "objectmap" // types.Map ↔ map[string]<SDK type>
 )
@@ -91,6 +102,9 @@ type convField struct {
 	// strings, objects: the element type.
 	SDKType string
 	Object  *convObject // object, empty, objects: the nested object
+	// ElemType is the Terraform element type of scalars and scalarmap, for
+	// example "types.Int32Type".
+	ElemType string
 	// Value is true when the SDK field is a value, not a pointer. The SDK
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
@@ -218,7 +232,35 @@ func buildMask(r *model.Resource, ix *refIndex, out *convData) error {
 	if len(out.MaskFields) == 0 {
 		return fmt.Errorf("update.body: no Update fields for the update mask")
 	}
+	out.MaskGroups = groupNames(r.Groups)
 	return nil
+}
+
+// groupNames returns the arms of each group as Terraform names.
+func groupNames(groups []model.OneOfGroup) [][]string {
+	var out [][]string
+	for _, g := range groups {
+		var arms []string
+		for _, a := range g.Arms {
+			arms = append(arms, tfName(a))
+		}
+		out = append(out, arms)
+	}
+	return out
+}
+
+// HasGroups reports whether the update mask has oneOf groups to handle.
+func (d *convData) HasGroups() bool {
+	var has func(fs []*maskField) bool
+	has = func(fs []*maskField) bool {
+		for _, f := range fs {
+			if len(f.Groups) != 0 || has(f.Children) {
+				return true
+			}
+		}
+		return false
+	}
+	return len(d.MaskGroups) != 0 || has(d.MaskFields)
 }
 
 // maskRule returns the check for one mask path, and whether the API accepts
@@ -247,6 +289,7 @@ func maskTree(name string, t *model.Type) *maskField {
 	for _, f := range t.Fields {
 		n.Children = append(n.Children, maskTree(f.Name, f.Type))
 	}
+	n.Groups = groupNames(t.Groups)
 	return n
 }
 
@@ -351,14 +394,23 @@ func scalarConv(cf *convField, t *model.Type) (string, error) {
 	case t.Kind == model.Bool:
 		cf.Conv = convBool
 		return "*bool", nil
-	case t.Kind == model.Number:
+	case t.Kind == model.Number && t.Format == "double":
 		cf.Conv = convFloat64
 		return "*float64", nil
+	case t.Kind == model.Number && t.Format == "float":
+		cf.Conv = convFloat32
+		return "*float32", nil
 	case t.WireString && t.Format == "uint64":
 		cf.Conv = convUint64
 		return "*string", nil
+	case !t.WireString && t.Format == "int64":
+		cf.Conv = convInt64
+		return "*int64", nil
+	case !t.WireString && t.Format == "int32":
+		cf.Conv = convInt32
+		return "*int32", nil
 	}
-	return "", fmt.Errorf("integer format %q is not supported", t.Format)
+	return "", fmt.Errorf("%s format %q is not supported", t.Kind, t.Format)
 }
 
 // collectionConv sets the conversion of cf for a Set or List t. It returns
@@ -379,6 +431,13 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		}
 		cf.Conv, cf.SDKType = convStrings, b.qualify(enum.Name)
 		return "[]" + enum.Name, nil
+	case model.Bool, model.Number, model.Integer:
+		goType, elem, ok := scalarElem(t.Elem)
+		if !ok {
+			break
+		}
+		cf.Conv, cf.SDKType, cf.ElemType = convScalars, goType, elem
+		return "[]" + goType, nil
 	case model.Object:
 		// A set of objects needs path.AtSetValue for diagnostics. No
 		// resource uses it yet.
@@ -452,47 +511,63 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 	}
 	obj.AttrTypes = []convAttrType{}
 	for _, f := range obj.Fields {
-		var expr string
-		switch f.Conv {
-		case convString, convTime, convEnum:
-			expr = "types.StringType"
-		case convBool:
-			expr = "types.BoolType"
-		case convFloat64:
-			expr = "types.Float64Type"
-		case convUint64:
-			expr = "types.Int64Type"
-		case convStrings:
-			expr = "types." + f.Collection + "Type{ElemType: types.StringType}"
-		case convEmpty:
-			expr = "types.ObjectType{AttrTypes: map[string]attr.Type{}}"
-		case convStringMap:
-			expr = "types.MapType{ElemType: types.StringType}"
-		case convUint64Map:
-			expr = "types.MapType{ElemType: types.Int64Type}"
-		case convObj, convObjects, convObjectMap:
-			if err := b.attrTypes(f.Object); err != nil {
-				return err
-			}
-			expr = "types.ObjectType{AttrTypes: " + f.Object.AttrTypesFunc + "()}"
-			switch f.Conv {
-			case convObjects:
-				expr = "types.ListType{ElemType: " + expr + "}"
-			case convObjectMap:
-				expr = "types.MapType{ElemType: " + expr + "}"
-			}
-		default:
-			return fmt.Errorf("%s: no attribute type for %s", obj.Model, f.Conv)
+		expr, err := b.attrType(obj, f)
+		if err != nil {
+			return err
 		}
 		obj.AttrTypes = append(obj.AttrTypes, convAttrType{TFName: f.TFName, Expr: expr})
 	}
 	return nil
 }
 
+// scalarAttrTypes are the Terraform attribute types of the scalar kinds.
+var scalarAttrTypes = map[string]string{
+	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType",
+	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
+	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type",
+	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}",
+}
+
+// attrType returns the Terraform attribute type expression of field f.
+func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
+	if expr, ok := scalarAttrTypes[f.Conv]; ok {
+		return expr, nil
+	}
+	switch f.Conv {
+	case convStrings:
+		return "types." + f.Collection + "Type{ElemType: types.StringType}", nil
+	case convScalars:
+		return "types." + f.Collection + "Type{ElemType: " + f.ElemType + "}", nil
+	case convScalarMap:
+		return "types.MapType{ElemType: " + f.ElemType + "}", nil
+	case convStringMap:
+		return "types.MapType{ElemType: types.StringType}", nil
+	case convUint64Map:
+		return "types.MapType{ElemType: types.Int64Type}", nil
+	case convObj, convObjects, convObjectMap:
+		if err := b.attrTypes(f.Object); err != nil {
+			return "", err
+		}
+		expr := "types.ObjectType{AttrTypes: " + f.Object.AttrTypesFunc + "()}"
+		switch f.Conv {
+		case convObjects:
+			expr = "types.ListType{ElemType: " + expr + "}"
+		case convObjectMap:
+			expr = "types.MapType{ElemType: " + expr + "}"
+		}
+		return expr, nil
+	}
+	return "", fmt.Errorf("%s: no attribute type for %s", obj.Model, f.Conv)
+}
+
 // mapConv sets the conversion of cf for a map t. It returns the SDK Go type
 // that the conversion needs.
 func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 	cf.Collection = "Map"
+	if goType, elem, ok := scalarElem(t.Elem); ok {
+		cf.Conv, cf.SDKType, cf.ElemType = convScalarMap, goType, elem
+		return "map[string]" + goType, nil
+	}
 	switch e := t.Elem; {
 	case e.Kind == model.String && e.Format == "":
 		cf.Conv, cf.SDKType = convStringMap, "string"
@@ -507,6 +582,7 @@ func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 	case e.Kind == model.Integer && e.WireString && e.Format == "uint64":
 		cf.Conv = convUint64Map
 		return "map[string]string", nil
+
 	case e.Kind == model.Object && len(e.Fields) != 0:
 		obj, err := b.nested(e)
 		if err != nil {
@@ -519,6 +595,24 @@ func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 		return "map[string]" + obj.SDK, nil
 	}
 	return "", fmt.Errorf("map of %s is not supported", typeName(t.Elem))
+}
+
+// scalarElem returns the Go type and the Terraform element type of a bool or
+// number element of a list, set, or map. A uint64 (a JSON string) is not one.
+func scalarElem(t *model.Type) (goType, elem string, ok bool) {
+	switch {
+	case t.Kind == model.Bool:
+		return "bool", "types.BoolType", true
+	case t.Kind == model.Number && t.Format == "double":
+		return "float64", "types.Float64Type", true
+	case t.Kind == model.Number && t.Format == "float":
+		return "float32", "types.Float32Type", true
+	case t.Kind == model.Integer && !t.WireString && t.Format == "int64":
+		return "int64", "types.Int64Type", true
+	case t.Kind == model.Integer && !t.WireString && t.Format == "int32":
+		return "int32", "types.Int32Type", true
+	}
+	return "", "", false
 }
 
 // typeName is a short name of a model type for errors.

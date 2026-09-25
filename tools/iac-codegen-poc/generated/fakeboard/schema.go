@@ -3,8 +3,10 @@
 package fakeboard
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -20,6 +22,26 @@ import (
 func Schema() schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"public_link": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"url": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "The link.",
+					},
+				},
+				MarkdownDescription: "Share by a public link. A oneOf arm at the resource root.",
+			},
+			"private_share": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"team": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "The team.",
+					},
+				},
+				MarkdownDescription: "Share with a team. A oneOf arm at the resource root.",
+			},
 			"id": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
@@ -44,6 +66,11 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "Free text about the board.",
 			},
+			"flags": schema.MapAttribute{
+				Optional:            true,
+				ElementType:         types.BoolType,
+				MarkdownDescription: "Feature flags. A map of bools.",
+			},
 			"labels": schema.MapAttribute{
 				Optional:            true,
 				ElementType:         types.StringType,
@@ -59,6 +86,18 @@ func Schema() schema.Schema {
 								stringvalidator.LengthAtLeast(1),
 							},
 							MarkdownDescription: "The panel query.",
+						},
+						"precision": schema.Int32Attribute{
+							Optional: true,
+							Validators: []validator.Int32{
+								int32validator.Between(0, 10),
+							},
+							MarkdownDescription: "Digits after the point. A 32-bit integer (int32).",
+						},
+						"thresholds": schema.MapAttribute{
+							Optional:            true,
+							ElementType:         types.Float64Type,
+							MarkdownDescription: "Thresholds by name. A map of numbers.",
 						},
 						"unit": schema.StringAttribute{
 							Optional: true,
@@ -82,6 +121,10 @@ func Schema() schema.Schema {
 											Optional:            true,
 											MarkdownDescription: "Font family.",
 										},
+										"scale": schema.Float32Attribute{
+											Optional:            true,
+											MarkdownDescription: "Font scale. A 32-bit float.",
+										},
 										"size": schema.Int64Attribute{
 											Optional: true,
 											Validators: []validator.Int64{
@@ -102,6 +145,57 @@ func Schema() schema.Schema {
 			"layout": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
+					"refresh_off": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("refresh_every")),
+						},
+						Attributes:          map[string]schema.Attribute{},
+						MarkdownDescription: "No auto refresh. Group 1 (none allowed).",
+					},
+					"refresh_every": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("refresh_off")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"minutes": schema.Int32Attribute{
+								Optional:            true,
+								MarkdownDescription: "Minutes.",
+							},
+						},
+						MarkdownDescription: "Refresh every n minutes. Group 1.",
+					},
+					"absolute_time": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative_time")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"from": schema.StringAttribute{
+								Optional:            true,
+								MarkdownDescription: "Start, RFC3339.",
+							},
+							"to": schema.StringAttribute{
+								Optional:            true,
+								MarkdownDescription: "End, RFC3339.",
+							},
+						},
+						MarkdownDescription: "A fixed time range. Group 2 (one arm required).",
+					},
+					"relative_time": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute_time")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"minutes": schema.Int32Attribute{
+								Optional:            true,
+								MarkdownDescription: "Minutes.",
+							},
+						},
+						MarkdownDescription: "The last n minutes. Group 2.",
+					},
 					"title": schema.StringAttribute{
 						Required:            true,
 						MarkdownDescription: "Title of the board.",
@@ -120,6 +214,10 @@ func Schema() schema.Schema {
 									"family": schema.StringAttribute{
 										Optional:            true,
 										MarkdownDescription: "Font family.",
+									},
+									"scale": schema.Float32Attribute{
+										Optional:            true,
+										MarkdownDescription: "Font scale. A 32-bit float.",
 									},
 									"size": schema.Int64Attribute{
 										Optional: true,
@@ -169,6 +267,10 @@ func Schema() schema.Schema {
 														Optional:            true,
 														MarkdownDescription: "Font family.",
 													},
+													"scale": schema.Float32Attribute{
+														Optional:            true,
+														MarkdownDescription: "Font scale. A 32-bit float.",
+													},
 													"size": schema.Int64Attribute{
 														Optional: true,
 														Validators: []validator.Int64{
@@ -193,6 +295,47 @@ func Schema() schema.Schema {
 								},
 								MarkdownDescription: "Column widths by column name. A map of 64-bit numbers inside a nested object.",
 							},
+							"interval": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"auto": schema.SingleNestedAttribute{
+										Optional: true,
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("manual")),
+										},
+										Attributes:          map[string]schema.Attribute{},
+										MarkdownDescription: "Pick the bucket automatically.",
+									},
+									"manual": schema.SingleNestedAttribute{
+										Optional: true,
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("auto")),
+										},
+										Attributes: map[string]schema.Attribute{
+											"minutes": schema.Int32Attribute{
+												Optional:            true,
+												MarkdownDescription: "Minutes.",
+											},
+										},
+										MarkdownDescription: "A fixed bucket.",
+									},
+									"use_limit": schema.BoolAttribute{
+										Optional:            true,
+										MarkdownDescription: "A normal field beside the arms.",
+									},
+								},
+								MarkdownDescription: "Time bucket. A oneOf with a normal field beside the arms.",
+							},
+							"columns": schema.ListAttribute{
+								Optional:            true,
+								ElementType:         types.Int32Type,
+								MarkdownDescription: "Column numbers. A list of int32.",
+							},
+							"ratios": schema.ListAttribute{
+								Optional:            true,
+								ElementType:         types.Float32Type,
+								MarkdownDescription: "Column ratios. A list of 32-bit floats.",
+							},
 							"rows": schema.ListNestedAttribute{
 								Optional: true,
 								NestedObject: schema.NestedAttributeObject{
@@ -208,6 +351,13 @@ func Schema() schema.Schema {
 											Optional:            true,
 											MarkdownDescription: "Row label.",
 										},
+										"offset": schema.Int64Attribute{
+											Optional: true,
+											Validators: []validator.Int64{
+												int64validator.Between(-100, 100),
+											},
+											MarkdownDescription: "Vertical offset. A signed 64-bit number (int64).",
+										},
 										"style": schema.SingleNestedAttribute{
 											Optional: true,
 											Attributes: map[string]schema.Attribute{
@@ -222,6 +372,10 @@ func Schema() schema.Schema {
 														"family": schema.StringAttribute{
 															Optional:            true,
 															MarkdownDescription: "Font family.",
+														},
+														"scale": schema.Float32Attribute{
+															Optional:            true,
+															MarkdownDescription: "Font scale. A 32-bit float.",
 														},
 														"size": schema.Int64Attribute{
 															Optional: true,
@@ -272,6 +426,10 @@ func ConfigValidators() []resource.ConfigValidator {
 		resourcevalidator.Conflicting(
 			path.MatchRoot("layout").AtName("section").AtName("rows").AtAnyListIndex().AtName("style").AtName("bold"),
 			path.MatchRoot("layout").AtName("section").AtName("rows").AtAnyListIndex().AtName("style").AtName("font"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("public_link"),
+			path.MatchRoot("private_share"),
 		),
 	}
 }

@@ -23,10 +23,14 @@ var _ MappedNullable = &Panel{}
 
 // Panel A panel. A value of the panels map.
 type Panel struct {
+	// Digits after the point. A 32-bit integer (int32).
+	Precision *int32 `json:"precision,omitempty"`
 	// The panel query.
 	Query string `json:"query"`
 	// Style of the panel title. A oneOf inside a map value.
 	Style *TextStyle `json:"style,omitempty"`
+	// Thresholds by name. A map of numbers.
+	Thresholds map[string]float64 `json:"thresholds,omitempty"`
 	// The unit of the values.
 	Unit *Unit `json:"unit,omitempty"`
 	AdditionalProperties map[string]interface{}
@@ -51,6 +55,38 @@ func NewPanel(query string) *Panel {
 func NewPanelWithDefaults() *Panel {
 	this := Panel{}
 	return &this
+}
+
+// GetPrecision returns the Precision field value if set, zero value otherwise.
+func (o *Panel) GetPrecision() int32 {
+	if o == nil || IsNil(o.Precision) {
+		var ret int32
+		return ret
+	}
+	return *o.Precision
+}
+
+// GetPrecisionOk returns a tuple with the Precision field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Panel) GetPrecisionOk() (*int32, bool) {
+	if o == nil || IsNil(o.Precision) {
+		return nil, false
+	}
+	return o.Precision, true
+}
+
+// HasPrecision returns a boolean if a field has been set.
+func (o *Panel) HasPrecision() bool {
+	if o != nil && !IsNil(o.Precision) {
+		return true
+	}
+
+	return false
+}
+
+// SetPrecision gets a reference to the given int32 and assigns it to the Precision field.
+func (o *Panel) SetPrecision(v int32) {
+	o.Precision = &v
 }
 
 // GetQuery returns the Query field value
@@ -109,6 +145,38 @@ func (o *Panel) SetStyle(v TextStyle) {
 	o.Style = &v
 }
 
+// GetThresholds returns the Thresholds field value if set, zero value otherwise.
+func (o *Panel) GetThresholds() map[string]float64 {
+	if o == nil || IsNil(o.Thresholds) {
+		var ret map[string]float64
+		return ret
+	}
+	return o.Thresholds
+}
+
+// GetThresholdsOk returns a tuple with the Thresholds field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Panel) GetThresholdsOk() (map[string]float64, bool) {
+	if o == nil || IsNil(o.Thresholds) {
+		return map[string]float64{}, false
+	}
+	return o.Thresholds, true
+}
+
+// HasThresholds returns a boolean if a field has been set.
+func (o *Panel) HasThresholds() bool {
+	if o != nil && !IsNil(o.Thresholds) {
+		return true
+	}
+
+	return false
+}
+
+// SetThresholds gets a reference to the given map[string]float64 and assigns it to the Thresholds field.
+func (o *Panel) SetThresholds(v map[string]float64) {
+	o.Thresholds = v
+}
+
 // GetUnit returns the Unit field value if set, zero value otherwise.
 func (o *Panel) GetUnit() Unit {
 	if o == nil || IsNil(o.Unit) {
@@ -151,9 +219,15 @@ func (o Panel) MarshalJSON() ([]byte, error) {
 
 func (o Panel) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.Precision) {
+		toSerialize["precision"] = o.Precision
+	}
 	toSerialize["query"] = o.Query
 	if !IsNil(o.Style) {
 		toSerialize["style"] = o.Style
+	}
+	if !IsNil(o.Thresholds) {
+		toSerialize["thresholds"] = o.Thresholds
 	}
 	if !IsNil(o.Unit) {
 		toSerialize["unit"] = o.Unit
@@ -202,8 +276,10 @@ func (o *Panel) UnmarshalJSON(data []byte) (err error) {
 	additionalProperties := make(map[string]interface{})
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
+		delete(additionalProperties, "precision")
 		delete(additionalProperties, "query")
 		delete(additionalProperties, "style")
+		delete(additionalProperties, "thresholds")
 		delete(additionalProperties, "unit")
 		o.AdditionalProperties = additionalProperties
 		o.additionalPropertiesFromUnmarshal = len(additionalProperties) > 0

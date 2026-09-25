@@ -27,6 +27,8 @@ type Row struct {
 	Height string `json:"height" validate:"regexp=^[0-9]+$"`
 	// Row label.
 	Label *string `json:"label,omitempty"`
+	// Vertical offset. A signed 64-bit number (int64).
+	Offset *int64 `json:"offset,omitempty"`
 	// Style of the row label. A oneOf inside a list item.
 	Style *TextStyle `json:"style,omitempty"`
 	AdditionalProperties map[string]interface{}
@@ -109,6 +111,38 @@ func (o *Row) SetLabel(v string) {
 	o.Label = &v
 }
 
+// GetOffset returns the Offset field value if set, zero value otherwise.
+func (o *Row) GetOffset() int64 {
+	if o == nil || IsNil(o.Offset) {
+		var ret int64
+		return ret
+	}
+	return *o.Offset
+}
+
+// GetOffsetOk returns a tuple with the Offset field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Row) GetOffsetOk() (*int64, bool) {
+	if o == nil || IsNil(o.Offset) {
+		return nil, false
+	}
+	return o.Offset, true
+}
+
+// HasOffset returns a boolean if a field has been set.
+func (o *Row) HasOffset() bool {
+	if o != nil && !IsNil(o.Offset) {
+		return true
+	}
+
+	return false
+}
+
+// SetOffset gets a reference to the given int64 and assigns it to the Offset field.
+func (o *Row) SetOffset(v int64) {
+	o.Offset = &v
+}
+
 // GetStyle returns the Style field value if set, zero value otherwise.
 func (o *Row) GetStyle() TextStyle {
 	if o == nil || IsNil(o.Style) {
@@ -154,6 +188,9 @@ func (o Row) ToMap() (map[string]interface{}, error) {
 	toSerialize["height"] = o.Height
 	if !IsNil(o.Label) {
 		toSerialize["label"] = o.Label
+	}
+	if !IsNil(o.Offset) {
+		toSerialize["offset"] = o.Offset
 	}
 	if !IsNil(o.Style) {
 		toSerialize["style"] = o.Style
@@ -204,6 +241,7 @@ func (o *Row) UnmarshalJSON(data []byte) (err error) {
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
 		delete(additionalProperties, "height")
 		delete(additionalProperties, "label")
+		delete(additionalProperties, "offset")
 		delete(additionalProperties, "style")
 		o.AdditionalProperties = additionalProperties
 		o.additionalPropertiesFromUnmarshal = len(additionalProperties) > 0

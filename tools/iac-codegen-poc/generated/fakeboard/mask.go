@@ -4,6 +4,7 @@ package fakeboard
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -27,19 +28,41 @@ type maskNode struct {
 	attr, api string
 	oneOf     bool
 	children  []*maskNode
+	groups    [][]string // oneOf groups among children, by attr
 }
+
+func (n *maskNode) names() (string, string) { return n.attr, n.api }
 
 // maskFields are the Update fields, in model order.
 var maskFields = []*maskNode{
+	{attr: "public_link", api: "publicLink", children: []*maskNode{
+		{attr: "url", api: "url"},
+	}},
+	{attr: "private_share", api: "privateShare", children: []*maskNode{
+		{attr: "team", api: "team"},
+	}},
 	{attr: "description", api: "description"},
+	{attr: "flags", api: "flags"},
 	{attr: "labels", api: "labels"},
 	{attr: "panels", api: "panels"},
-	{attr: "layout", api: "layout", children: []*maskNode{
+	{attr: "layout", api: "layout", groups: [][]string{{"refresh_off", "refresh_every"}, {"absolute_time", "relative_time"}}, children: []*maskNode{
+		{attr: "refresh_off", api: "refreshOff"},
+		{attr: "refresh_every", api: "refreshEvery", children: []*maskNode{
+			{attr: "minutes", api: "minutes"},
+		}},
+		{attr: "absolute_time", api: "absoluteTime", children: []*maskNode{
+			{attr: "from", api: "from"},
+			{attr: "to", api: "to"},
+		}},
+		{attr: "relative_time", api: "relativeTime", children: []*maskNode{
+			{attr: "minutes", api: "minutes"},
+		}},
 		{attr: "title", api: "title"},
 		{attr: "title_style", api: "titleStyle", oneOf: true, children: []*maskNode{
 			{attr: "bold", api: "bold"},
 			{attr: "font", api: "font", children: []*maskNode{
 				{attr: "family", api: "family"},
+				{attr: "scale", api: "scale"},
 				{attr: "size", api: "size"},
 			}},
 		}},
@@ -51,11 +74,21 @@ var maskFields = []*maskNode{
 					{attr: "bold", api: "bold"},
 					{attr: "font", api: "font", children: []*maskNode{
 						{attr: "family", api: "family"},
+						{attr: "scale", api: "scale"},
 						{attr: "size", api: "size"},
 					}},
 				}},
 			}},
 			{attr: "widths", api: "widths"},
+			{attr: "interval", api: "interval", groups: [][]string{{"auto", "manual"}}, children: []*maskNode{
+				{attr: "auto", api: "auto"},
+				{attr: "manual", api: "manual", children: []*maskNode{
+					{attr: "minutes", api: "minutes"},
+				}},
+				{attr: "use_limit", api: "useLimit"},
+			}},
+			{attr: "columns", api: "columns"},
+			{attr: "ratios", api: "ratios"},
 			{attr: "rows", api: "rows"},
 		}},
 	}},
@@ -71,6 +104,7 @@ var maskFields = []*maskNode{
 func updateMask(ctx context.Context, plan, state tfData) ([]string, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var mask []string
+	planValues, stateValues := map[string]attr.Value{}, map[string]attr.Value{}
 	for _, f := range maskFields {
 		var p, s attr.Value
 		diags.Append(plan.GetAttribute(ctx, path.Root(f.attr), &p)...)
@@ -79,7 +113,9 @@ func updateMask(ctx context.Context, plan, state tfData) ([]string, diag.Diagnos
 			return nil, diags
 		}
 		mask = maskPaths(mask, "", f, p, s)
+		planValues[f.attr], stateValues[f.attr] = p, s
 	}
+	mask = dropSwitchedArms(mask, "", maskFields, maskGroups, planValues, stateValues)
 	return mask, diags
 }
 
@@ -106,6 +142,7 @@ func maskPaths(mask []string, prefix string, n *maskNode, p, s attr.Value) []str
 	for _, c := range n.children {
 		mask = maskPaths(mask, at, c, pa[c.attr], sa[c.attr])
 	}
+	mask = dropSwitchedArms(mask, at, n.children, n.groups, pa, sa)
 	return mask
 }
 
@@ -135,6 +172,44 @@ func activeArm(n *maskNode, o types.Object) *maskNode {
 		}
 	}
 	return nil
+}
+
+// maskGroups are the oneOf groups among the Update fields, by attr.
+var maskGroups = [][]string{
+	{"public_link", "private_share"},
+}
+
+// dropSwitchedArms removes the old arm of each oneOf group that changed to
+// another arm: the mask names only the new arm, and the server replaces the
+// old one (contract 2.6). A removed oneOf keeps the old arm (2.7).
+func dropSwitchedArms[F interface{ names() (string, string) }](mask []string, prefix string, fields []F, groups [][]string, p, s map[string]attr.Value) []string {
+	api := map[string]string{}
+	for _, f := range fields {
+		a, n := f.names()
+		api[a] = n
+	}
+	for _, g := range groups {
+		pArm, sArm := setArm(g, p), setArm(g, s)
+		if pArm == "" || sArm == "" || pArm == sArm {
+			continue
+		}
+		old := api[sArm]
+		if prefix != "" {
+			old = prefix + "." + old
+		}
+		mask = slices.DeleteFunc(mask, func(m string) bool { return m == old })
+	}
+	return mask
+}
+
+// setArm returns the arm of group g that v sets, or "".
+func setArm(g []string, v map[string]attr.Value) string {
+	for _, a := range g {
+		if x, ok := v[a]; ok && x != nil && !x.IsNull() {
+			return a
+		}
+	}
+	return ""
 }
 
 // updateRequest returns the Update body of the plan, with the update mask.

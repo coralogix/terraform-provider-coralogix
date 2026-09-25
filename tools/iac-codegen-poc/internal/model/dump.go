@@ -42,6 +42,12 @@ func Dump(r *Resource) string {
 			dumpChildren(&b, r.Fields[i-1].Type, 6)
 		}
 	}
+	if len(r.Groups) != 0 {
+		b.WriteString("\noneOf groups\n")
+		for _, g := range r.Groups {
+			fmt.Fprintf(&b, "  %s\n", groupString(g))
+		}
+	}
 	return b.String()
 }
 
@@ -141,6 +147,9 @@ func typeString(t *Type) string {
 		if len(t.Fields) == 0 {
 			parts = append(parts, "{}")
 		}
+		for _, g := range t.Groups {
+			parts = append(parts, groupString(g))
+		}
 	case OneOf:
 		arms := fmt.Sprintf("(%d arms", len(t.Fields))
 		if t.AllowNone {
@@ -185,4 +194,13 @@ func floatString(v *float64) string {
 		return ""
 	}
 	return strconv.FormatFloat(*v, 'g', -1, 64)
+}
+
+// groupString writes a oneOf group, for example "oneOf(auto|manual, none allowed)".
+func groupString(g OneOfGroup) string {
+	s := "oneOf(" + strings.Join(g.Arms, "|")
+	if g.AllowNone {
+		s += ", none allowed"
+	}
+	return s + ")"
 }

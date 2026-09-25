@@ -81,6 +81,7 @@ go run ./cmd/overlay --overlay spec/overlay.yaml --out spec/openapi.patched.yaml
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --acc spec/acc/AiEvaluation.yaml --out generated/aievaluation
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --sdk-names   # print the SDK names
 fakesdk/generate.sh                              # regenerate the fake SDK (needs Docker)
+go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey   # shapes that cannot be generated, for all Get resources
 go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard \
   --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeboard
 go test ./...                                    # the acceptance test skips without TF_ACC
@@ -143,6 +144,10 @@ No server implements it; the tests use a fake HTTP server.
 - **Nested objects:** three levels, a `oneOf` at level 1, level 3, in a list item, and in a map value, a list of objects,
   nested required fields.
 - **Maps:** a map of strings, a map of objects, a map of 64-bit numbers inside a nested object. null is not sent; `{}` is sent.
+- **Numbers:** `int32`, `int64` (signed), `float`, and `double` each get their own Terraform type (`Int32`, `Int64`, `Float32`,
+  `Float64`), so a float keeps its digits (0.1 stays 0.1). Lists and maps of numbers and bools.
+- **oneOf groups:** a `oneOf` with normal fields beside the arms, an object with several `oneOf` groups (`allOf` of `oneOf`), and a
+  group at the resource root. A group in an object gets its validator on each arm, so it runs only when the object is set.
 - **Leaf masks:** the fake mask pattern accepts dotted paths, so the generator names the changed leaves:
 
 | Change | Mask |
@@ -153,9 +158,18 @@ No server implements it; the tests use a fake HTTP server.
 | `font` → `bold` | `layout.section.header.style.bold` (a new arm replaces the old one) |
 | Remove `style` | `layout.section.header.style.font` (the old arm, with no value) |
 | A value in a list item or a map | `layout.section.rows`, `layout.section.widths`, `labels` (replaced whole) |
+| A oneOf group arm `auto` → `manual` | `layout.section.interval.manual` (only the new arm) |
 
 The generator reads the mask pattern from the spec, and checks every mask path against it. `ai_evaluation`'s pattern accepts
 only top-level names, so its `mask.go` has top-level masks.
+
+## Survey
+
+`go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey` measures, for the resource schema of every Get operation in the
+spec, the shapes that the model or the generator cannot generate. It ignores the operations (it assumes `PATCH` with a mask).
+The model reports every problem, not only the first. The last output is in
+[`cmd/tfgen/testdata/survey.txt`](cmd/tfgen/testdata/survey.txt): 41 of 43 resources have no issue. Left: `discriminator`
+(Dashboard) and an enum with only the `*_UNSPECIFIED` value (F33).
 
 ## Decisions
 
@@ -218,3 +232,5 @@ Gaps in the API, the contract, or the tools.
 | F29 | Dashboards: an object has a `oneOf` and normal fields beside it (`IntervalResolution`: `auto` or `manual`, plus `useAdvancedLimit`). The model assumes that every field of a `oneOf` object is an arm. Generator limit. | Tooling |
 | F30 | The SDK uses a value type (`string`, `Layout`), not a pointer, for a field that its source spec marks `required` (F18). The patched spec cannot tell which: `ai_evaluation` has `required` only in the overlay, so its SDK still has pointers. The generator now accepts `*T` or `T` and follows the SDK. | Tooling |
 | F31 | A test needs a valid value for each field, and a second one for updates. The spec has `example` for few fields, and none can know the environment (a real AI application). The contract could require an `example` on every writable field; then the values file keeps only the environment placeholders. | Contract |
+| F33 | Survey: 3 enums have only the `*_UNSPECIFIED` value (for example `LogsAnomalyConditionType`). No valid value can be sent. | API proto |
+| F34 | Latent generator risk: a required pure `oneOf` (no "no arm") inside an optional object gets a resource-level `ExactlyOneOf`. When the parent object is null, that validator finds no arm and fails. `ai_evaluation` is not affected (its `config` allows no arm). oneOf groups put the validator on each arm instead, which runs only when the parent is set. Pure `oneOf` should do the same; that changes the `ai_evaluation` schema.go. | Tooling |

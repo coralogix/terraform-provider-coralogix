@@ -25,6 +25,8 @@ var _ MappedNullable = &FakeBoardsServiceCreateFakeBoardRequest{}
 type FakeBoardsServiceCreateFakeBoardRequest struct {
 	// Free text about the board.
 	Description *string `json:"description,omitempty"`
+	// Feature flags. A map of bools.
+	Flags map[string]bool `json:"flags,omitempty"`
 	// Labels of the board. A map of strings.
 	Labels map[string]string `json:"labels,omitempty"`
 	// How the board looks.
@@ -33,6 +35,10 @@ type FakeBoardsServiceCreateFakeBoardRequest struct {
 	Name string `json:"name"`
 	// Panels by id. A map of objects.
 	Panels map[string]Panel `json:"panels,omitempty"`
+	// Share with a team. A oneOf arm at the resource root.
+	PrivateShare *PrivateShare `json:"privateShare,omitempty"`
+	// Share by a public link. A oneOf arm at the resource root.
+	PublicLink *PublicLink `json:"publicLink,omitempty"`
 	AdditionalProperties map[string]interface{}
 	additionalPropertiesFromUnmarshal bool
 }
@@ -88,6 +94,38 @@ func (o *FakeBoardsServiceCreateFakeBoardRequest) HasDescription() bool {
 // SetDescription gets a reference to the given string and assigns it to the Description field.
 func (o *FakeBoardsServiceCreateFakeBoardRequest) SetDescription(v string) {
 	o.Description = &v
+}
+
+// GetFlags returns the Flags field value if set, zero value otherwise.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) GetFlags() map[string]bool {
+	if o == nil || IsNil(o.Flags) {
+		var ret map[string]bool
+		return ret
+	}
+	return o.Flags
+}
+
+// GetFlagsOk returns a tuple with the Flags field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) GetFlagsOk() (map[string]bool, bool) {
+	if o == nil || IsNil(o.Flags) {
+		return map[string]bool{}, false
+	}
+	return o.Flags, true
+}
+
+// HasFlags returns a boolean if a field has been set.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) HasFlags() bool {
+	if o != nil && !IsNil(o.Flags) {
+		return true
+	}
+
+	return false
+}
+
+// SetFlags gets a reference to the given map[string]bool and assigns it to the Flags field.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) SetFlags(v map[string]bool) {
+	o.Flags = v
 }
 
 // GetLabels returns the Labels field value if set, zero value otherwise.
@@ -202,6 +240,70 @@ func (o *FakeBoardsServiceCreateFakeBoardRequest) SetPanels(v map[string]Panel) 
 	o.Panels = v
 }
 
+// GetPrivateShare returns the PrivateShare field value if set, zero value otherwise.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) GetPrivateShare() PrivateShare {
+	if o == nil || IsNil(o.PrivateShare) {
+		var ret PrivateShare
+		return ret
+	}
+	return *o.PrivateShare
+}
+
+// GetPrivateShareOk returns a tuple with the PrivateShare field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) GetPrivateShareOk() (*PrivateShare, bool) {
+	if o == nil || IsNil(o.PrivateShare) {
+		return nil, false
+	}
+	return o.PrivateShare, true
+}
+
+// HasPrivateShare returns a boolean if a field has been set.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) HasPrivateShare() bool {
+	if o != nil && !IsNil(o.PrivateShare) {
+		return true
+	}
+
+	return false
+}
+
+// SetPrivateShare gets a reference to the given PrivateShare and assigns it to the PrivateShare field.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) SetPrivateShare(v PrivateShare) {
+	o.PrivateShare = &v
+}
+
+// GetPublicLink returns the PublicLink field value if set, zero value otherwise.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) GetPublicLink() PublicLink {
+	if o == nil || IsNil(o.PublicLink) {
+		var ret PublicLink
+		return ret
+	}
+	return *o.PublicLink
+}
+
+// GetPublicLinkOk returns a tuple with the PublicLink field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) GetPublicLinkOk() (*PublicLink, bool) {
+	if o == nil || IsNil(o.PublicLink) {
+		return nil, false
+	}
+	return o.PublicLink, true
+}
+
+// HasPublicLink returns a boolean if a field has been set.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) HasPublicLink() bool {
+	if o != nil && !IsNil(o.PublicLink) {
+		return true
+	}
+
+	return false
+}
+
+// SetPublicLink gets a reference to the given PublicLink and assigns it to the PublicLink field.
+func (o *FakeBoardsServiceCreateFakeBoardRequest) SetPublicLink(v PublicLink) {
+	o.PublicLink = &v
+}
+
 func (o FakeBoardsServiceCreateFakeBoardRequest) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -215,6 +317,9 @@ func (o FakeBoardsServiceCreateFakeBoardRequest) ToMap() (map[string]interface{}
 	if !IsNil(o.Description) {
 		toSerialize["description"] = o.Description
 	}
+	if !IsNil(o.Flags) {
+		toSerialize["flags"] = o.Flags
+	}
 	if !IsNil(o.Labels) {
 		toSerialize["labels"] = o.Labels
 	}
@@ -222,6 +327,12 @@ func (o FakeBoardsServiceCreateFakeBoardRequest) ToMap() (map[string]interface{}
 	toSerialize["name"] = o.Name
 	if !IsNil(o.Panels) {
 		toSerialize["panels"] = o.Panels
+	}
+	if !IsNil(o.PrivateShare) {
+		toSerialize["privateShare"] = o.PrivateShare
+	}
+	if !IsNil(o.PublicLink) {
+		toSerialize["publicLink"] = o.PublicLink
 	}
 
 	for key, value := range o.AdditionalProperties {
@@ -269,10 +380,13 @@ func (o *FakeBoardsServiceCreateFakeBoardRequest) UnmarshalJSON(data []byte) (er
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
 		delete(additionalProperties, "description")
+		delete(additionalProperties, "flags")
 		delete(additionalProperties, "labels")
 		delete(additionalProperties, "layout")
 		delete(additionalProperties, "name")
 		delete(additionalProperties, "panels")
+		delete(additionalProperties, "privateShare")
+		delete(additionalProperties, "publicLink")
 		o.AdditionalProperties = additionalProperties
 		o.additionalPropertiesFromUnmarshal = len(additionalProperties) > 0
 	}

@@ -21,8 +21,16 @@ var _ = bytes.MinRead
 // checks if the Layout type satisfies the MappedNullable interface at compile time
 var _ MappedNullable = &Layout{}
 
-// Layout How the board looks. Level 1.
+// Layout How the board looks. Level 1. It has two oneOf groups.
 type Layout struct {
+	// A fixed time range. Group 2 (one arm required).
+	AbsoluteTime *AbsoluteTime `json:"absoluteTime,omitempty"`
+	// Refresh every n minutes. Group 1.
+	RefreshEvery *Every `json:"refreshEvery,omitempty"`
+	// No auto refresh. Group 1 (none allowed).
+	RefreshOff map[string]interface{} `json:"refreshOff,omitempty"`
+	// The last n minutes. Group 2.
+	RelativeTime *Every `json:"relativeTime,omitempty"`
 	// The main section.
 	Section *Section `json:"section,omitempty"`
 	// Title of the board.
@@ -31,6 +39,7 @@ type Layout struct {
 	TitleStyle *TextStyle `json:"titleStyle,omitempty"`
 	AdditionalProperties map[string]interface{}
 	additionalPropertiesFromUnmarshal bool
+	requiredOneOfGroup0FromUnmarshalWithoutKnownArm bool
 }
 
 type _Layout Layout
@@ -51,6 +60,134 @@ func NewLayout(title string) *Layout {
 func NewLayoutWithDefaults() *Layout {
 	this := Layout{}
 	return &this
+}
+
+// GetAbsoluteTime returns the AbsoluteTime field value if set, zero value otherwise.
+func (o *Layout) GetAbsoluteTime() AbsoluteTime {
+	if o == nil || IsNil(o.AbsoluteTime) {
+		var ret AbsoluteTime
+		return ret
+	}
+	return *o.AbsoluteTime
+}
+
+// GetAbsoluteTimeOk returns a tuple with the AbsoluteTime field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Layout) GetAbsoluteTimeOk() (*AbsoluteTime, bool) {
+	if o == nil || IsNil(o.AbsoluteTime) {
+		return nil, false
+	}
+	return o.AbsoluteTime, true
+}
+
+// HasAbsoluteTime returns a boolean if a field has been set.
+func (o *Layout) HasAbsoluteTime() bool {
+	if o != nil && !IsNil(o.AbsoluteTime) {
+		return true
+	}
+
+	return false
+}
+
+// SetAbsoluteTime gets a reference to the given AbsoluteTime and assigns it to the AbsoluteTime field.
+func (o *Layout) SetAbsoluteTime(v AbsoluteTime) {
+	o.AbsoluteTime = &v
+}
+
+// GetRefreshEvery returns the RefreshEvery field value if set, zero value otherwise.
+func (o *Layout) GetRefreshEvery() Every {
+	if o == nil || IsNil(o.RefreshEvery) {
+		var ret Every
+		return ret
+	}
+	return *o.RefreshEvery
+}
+
+// GetRefreshEveryOk returns a tuple with the RefreshEvery field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Layout) GetRefreshEveryOk() (*Every, bool) {
+	if o == nil || IsNil(o.RefreshEvery) {
+		return nil, false
+	}
+	return o.RefreshEvery, true
+}
+
+// HasRefreshEvery returns a boolean if a field has been set.
+func (o *Layout) HasRefreshEvery() bool {
+	if o != nil && !IsNil(o.RefreshEvery) {
+		return true
+	}
+
+	return false
+}
+
+// SetRefreshEvery gets a reference to the given Every and assigns it to the RefreshEvery field.
+func (o *Layout) SetRefreshEvery(v Every) {
+	o.RefreshEvery = &v
+}
+
+// GetRefreshOff returns the RefreshOff field value if set, zero value otherwise.
+func (o *Layout) GetRefreshOff() map[string]interface{} {
+	if o == nil || IsNil(o.RefreshOff) {
+		var ret map[string]interface{}
+		return ret
+	}
+	return o.RefreshOff
+}
+
+// GetRefreshOffOk returns a tuple with the RefreshOff field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Layout) GetRefreshOffOk() (map[string]interface{}, bool) {
+	if o == nil || IsNil(o.RefreshOff) {
+		return map[string]interface{}{}, false
+	}
+	return o.RefreshOff, true
+}
+
+// HasRefreshOff returns a boolean if a field has been set.
+func (o *Layout) HasRefreshOff() bool {
+	if o != nil && !IsNil(o.RefreshOff) {
+		return true
+	}
+
+	return false
+}
+
+// SetRefreshOff gets a reference to the given map[string]interface{} and assigns it to the RefreshOff field.
+func (o *Layout) SetRefreshOff(v map[string]interface{}) {
+	o.RefreshOff = v
+}
+
+// GetRelativeTime returns the RelativeTime field value if set, zero value otherwise.
+func (o *Layout) GetRelativeTime() Every {
+	if o == nil || IsNil(o.RelativeTime) {
+		var ret Every
+		return ret
+	}
+	return *o.RelativeTime
+}
+
+// GetRelativeTimeOk returns a tuple with the RelativeTime field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Layout) GetRelativeTimeOk() (*Every, bool) {
+	if o == nil || IsNil(o.RelativeTime) {
+		return nil, false
+	}
+	return o.RelativeTime, true
+}
+
+// HasRelativeTime returns a boolean if a field has been set.
+func (o *Layout) HasRelativeTime() bool {
+	if o != nil && !IsNil(o.RelativeTime) {
+		return true
+	}
+
+	return false
+}
+
+// SetRelativeTime gets a reference to the given Every and assigns it to the RelativeTime field.
+func (o *Layout) SetRelativeTime(v Every) {
+	o.RelativeTime = &v
 }
 
 // GetSection returns the Section field value if set, zero value otherwise.
@@ -151,12 +288,63 @@ func (o Layout) MarshalJSON() ([]byte, error) {
 
 func (o Layout) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.AbsoluteTime) {
+		toSerialize["absoluteTime"] = o.AbsoluteTime
+	}
+	if !IsNil(o.RefreshEvery) {
+		toSerialize["refreshEvery"] = o.RefreshEvery
+	}
+	if !IsNil(o.RefreshOff) {
+		toSerialize["refreshOff"] = o.RefreshOff
+	}
+	if !IsNil(o.RelativeTime) {
+		toSerialize["relativeTime"] = o.RelativeTime
+	}
 	if !IsNil(o.Section) {
 		toSerialize["section"] = o.Section
 	}
 	toSerialize["title"] = o.Title
 	if !IsNil(o.TitleStyle) {
 		toSerialize["titleStyle"] = o.TitleStyle
+	}
+	requiredOneOfGroup0Matches := 0
+	if _, exists := toSerialize["absoluteTime"]; exists {
+		requiredOneOfGroup0Matches++
+	}
+	if _, exists := toSerialize["relativeTime"]; exists {
+		requiredOneOfGroup0Matches++
+	}
+	if requiredOneOfGroup0Matches == 0 {
+		if !o.requiredOneOfGroup0FromUnmarshalWithoutKnownArm || len(o.AdditionalProperties) == 0 {
+			return map[string]interface{}{}, GenericOpenAPIError{error: "exactly one of [absoluteTime, relativeTime] must be set"}
+		}
+	}
+	if requiredOneOfGroup0Matches > 1 {
+		return map[string]interface{}{}, GenericOpenAPIError{error: "exactly one of [absoluteTime, relativeTime] must be set"}
+	}
+
+	optionalOneOfGroup0Matches := 0
+	if _, exists := toSerialize["refreshOff"]; exists {
+		optionalOneOfGroup0Matches++
+	}
+	if _, exists := toSerialize["refreshEvery"]; exists {
+		optionalOneOfGroup0Matches++
+	}
+	if optionalOneOfGroup0Matches > 1 {
+		return map[string]interface{}{}, GenericOpenAPIError{error: "at most one of [refreshOff, refreshEvery] may be set"}
+	}
+
+	if _, exists := o.AdditionalProperties["absoluteTime"]; exists {
+		return map[string]interface{}{}, GenericOpenAPIError{error: "oneOf field absoluteTime must be set through the typed field, not AdditionalProperties"}
+	}
+	if _, exists := o.AdditionalProperties["relativeTime"]; exists {
+		return map[string]interface{}{}, GenericOpenAPIError{error: "oneOf field relativeTime must be set through the typed field, not AdditionalProperties"}
+	}
+	if _, exists := o.AdditionalProperties["refreshOff"]; exists {
+		return map[string]interface{}{}, GenericOpenAPIError{error: "oneOf field refreshOff must be set through the typed field, not AdditionalProperties"}
+	}
+	if _, exists := o.AdditionalProperties["refreshEvery"]; exists {
+		return map[string]interface{}{}, GenericOpenAPIError{error: "oneOf field refreshEvery must be set through the typed field, not AdditionalProperties"}
 	}
 
 	for key, value := range o.AdditionalProperties {
@@ -188,6 +376,28 @@ func (o *Layout) UnmarshalJSON(data []byte) (err error) {
 		}
 	}
 
+	requiredOneOfGroup0Matches := 0
+	if _, exists := allProperties["absoluteTime"]; exists {
+		requiredOneOfGroup0Matches++
+	}
+	if _, exists := allProperties["relativeTime"]; exists {
+		requiredOneOfGroup0Matches++
+	}
+	if requiredOneOfGroup0Matches > 1 {
+		return GenericOpenAPIError{error: "at most one of [absoluteTime, relativeTime] may be set"}
+	}
+
+	optionalOneOfGroup0Matches := 0
+	if _, exists := allProperties["refreshOff"]; exists {
+		optionalOneOfGroup0Matches++
+	}
+	if _, exists := allProperties["refreshEvery"]; exists {
+		optionalOneOfGroup0Matches++
+	}
+	if optionalOneOfGroup0Matches > 1 {
+		return GenericOpenAPIError{error: "at most one of [refreshOff, refreshEvery] may be set"}
+	}
+
 	varLayout := _Layout{}
 
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -202,11 +412,38 @@ func (o *Layout) UnmarshalJSON(data []byte) (err error) {
 	additionalProperties := make(map[string]interface{})
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
+		requiredOneOfGroup0MatchesInPayload := 0
+		if _, exists := additionalProperties["absoluteTime"]; exists {
+			requiredOneOfGroup0MatchesInPayload++
+		}
+		if _, exists := additionalProperties["relativeTime"]; exists {
+			requiredOneOfGroup0MatchesInPayload++
+		}
+		if requiredOneOfGroup0MatchesInPayload > 1 {
+			return GenericOpenAPIError{error: "at most one of [absoluteTime, relativeTime] may be set"}
+		}
+
+		optionalOneOfGroup0MatchesInPayload := 0
+		if _, exists := additionalProperties["refreshOff"]; exists {
+			optionalOneOfGroup0MatchesInPayload++
+		}
+		if _, exists := additionalProperties["refreshEvery"]; exists {
+			optionalOneOfGroup0MatchesInPayload++
+		}
+		if optionalOneOfGroup0MatchesInPayload > 1 {
+			return GenericOpenAPIError{error: "at most one of [refreshOff, refreshEvery] may be set"}
+		}
+
+		delete(additionalProperties, "absoluteTime")
+		delete(additionalProperties, "refreshEvery")
+		delete(additionalProperties, "refreshOff")
+		delete(additionalProperties, "relativeTime")
 		delete(additionalProperties, "section")
 		delete(additionalProperties, "title")
 		delete(additionalProperties, "titleStyle")
 		o.AdditionalProperties = additionalProperties
 		o.additionalPropertiesFromUnmarshal = len(additionalProperties) > 0
+		o.requiredOneOfGroup0FromUnmarshalWithoutKnownArm = requiredOneOfGroup0MatchesInPayload == 0 && len(additionalProperties) > 0
 	}
 
 	return err

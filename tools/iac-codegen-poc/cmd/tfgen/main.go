@@ -2,6 +2,7 @@
 //
 //	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --acc spec/acc/AiEvaluation.yaml --out generated/aievaluation
 //	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --sdk-names
+//	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey
 //	go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeboard
 //
 // Both check that the pinned SDK has every name the generated code uses.
@@ -29,8 +30,17 @@ func main() {
 	out := flag.String("out", "", "output directory of the generated resource")
 	sdkNames := flag.Bool("sdk-names", false, "check the SDK names and print them")
 	sdkModule := flag.String("sdk-module", realSDK, "Go module of the SDK")
+	survey := flag.Bool("survey", false, "measure the schema shapes of all Get resources that cannot be generated")
 	acc := flag.String("acc", "", "acceptance test values file (API shape); with --out, also writes acc_test.go")
 	flag.Parse()
+
+	if *survey {
+		if err := runSurvey(*spec, os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, "tfgen:", err)
+			os.Exit(1)
+		}
+		return
+	}
 
 	if err := run(*spec, *resource, *out, *sdkModule, *acc, *sdkNames); err != nil {
 		fmt.Fprintln(os.Stderr, "tfgen:", err)

@@ -26,6 +26,8 @@ var _ MappedNullable = &FakeBoard{}
 type FakeBoard struct {
 	// Free text about the board.
 	Description *string `json:"description,omitempty"`
+	// Feature flags. A map of bools.
+	Flags map[string]bool `json:"flags,omitempty"`
 	// Unique identifier of the board.
 	Id string `json:"id"`
 	// Labels of the board. A map of strings.
@@ -36,6 +38,10 @@ type FakeBoard struct {
 	Name string `json:"name"`
 	// Panels by id. A map of objects.
 	Panels map[string]Panel `json:"panels,omitempty"`
+	// Share with a team. A oneOf arm at the resource root.
+	PrivateShare *PrivateShare `json:"privateShare,omitempty"`
+	// Share by a public link. A oneOf arm at the resource root.
+	PublicLink *PublicLink `json:"publicLink,omitempty"`
 	// RFC3339 timestamp of the last update.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 	AdditionalProperties map[string]interface{}
@@ -93,6 +99,38 @@ func (o *FakeBoard) HasDescription() bool {
 // SetDescription gets a reference to the given string and assigns it to the Description field.
 func (o *FakeBoard) SetDescription(v string) {
 	o.Description = &v
+}
+
+// GetFlags returns the Flags field value if set, zero value otherwise.
+func (o *FakeBoard) GetFlags() map[string]bool {
+	if o == nil || IsNil(o.Flags) {
+		var ret map[string]bool
+		return ret
+	}
+	return o.Flags
+}
+
+// GetFlagsOk returns a tuple with the Flags field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FakeBoard) GetFlagsOk() (map[string]bool, bool) {
+	if o == nil || IsNil(o.Flags) {
+		return map[string]bool{}, false
+	}
+	return o.Flags, true
+}
+
+// HasFlags returns a boolean if a field has been set.
+func (o *FakeBoard) HasFlags() bool {
+	if o != nil && !IsNil(o.Flags) {
+		return true
+	}
+
+	return false
+}
+
+// SetFlags gets a reference to the given map[string]bool and assigns it to the Flags field.
+func (o *FakeBoard) SetFlags(v map[string]bool) {
+	o.Flags = v
 }
 
 // GetId returns the Id field value
@@ -239,6 +277,70 @@ func (o *FakeBoard) SetPanels(v map[string]Panel) {
 	o.Panels = v
 }
 
+// GetPrivateShare returns the PrivateShare field value if set, zero value otherwise.
+func (o *FakeBoard) GetPrivateShare() PrivateShare {
+	if o == nil || IsNil(o.PrivateShare) {
+		var ret PrivateShare
+		return ret
+	}
+	return *o.PrivateShare
+}
+
+// GetPrivateShareOk returns a tuple with the PrivateShare field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FakeBoard) GetPrivateShareOk() (*PrivateShare, bool) {
+	if o == nil || IsNil(o.PrivateShare) {
+		return nil, false
+	}
+	return o.PrivateShare, true
+}
+
+// HasPrivateShare returns a boolean if a field has been set.
+func (o *FakeBoard) HasPrivateShare() bool {
+	if o != nil && !IsNil(o.PrivateShare) {
+		return true
+	}
+
+	return false
+}
+
+// SetPrivateShare gets a reference to the given PrivateShare and assigns it to the PrivateShare field.
+func (o *FakeBoard) SetPrivateShare(v PrivateShare) {
+	o.PrivateShare = &v
+}
+
+// GetPublicLink returns the PublicLink field value if set, zero value otherwise.
+func (o *FakeBoard) GetPublicLink() PublicLink {
+	if o == nil || IsNil(o.PublicLink) {
+		var ret PublicLink
+		return ret
+	}
+	return *o.PublicLink
+}
+
+// GetPublicLinkOk returns a tuple with the PublicLink field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FakeBoard) GetPublicLinkOk() (*PublicLink, bool) {
+	if o == nil || IsNil(o.PublicLink) {
+		return nil, false
+	}
+	return o.PublicLink, true
+}
+
+// HasPublicLink returns a boolean if a field has been set.
+func (o *FakeBoard) HasPublicLink() bool {
+	if o != nil && !IsNil(o.PublicLink) {
+		return true
+	}
+
+	return false
+}
+
+// SetPublicLink gets a reference to the given PublicLink and assigns it to the PublicLink field.
+func (o *FakeBoard) SetPublicLink(v PublicLink) {
+	o.PublicLink = &v
+}
+
 // GetUpdatedAt returns the UpdatedAt field value if set, zero value otherwise.
 func (o *FakeBoard) GetUpdatedAt() time.Time {
 	if o == nil || IsNil(o.UpdatedAt) {
@@ -284,6 +386,9 @@ func (o FakeBoard) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.Description) {
 		toSerialize["description"] = o.Description
 	}
+	if !IsNil(o.Flags) {
+		toSerialize["flags"] = o.Flags
+	}
 	toSerialize["id"] = o.Id
 	if !IsNil(o.Labels) {
 		toSerialize["labels"] = o.Labels
@@ -295,8 +400,31 @@ func (o FakeBoard) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.Panels) {
 		toSerialize["panels"] = o.Panels
 	}
+	if !IsNil(o.PrivateShare) {
+		toSerialize["privateShare"] = o.PrivateShare
+	}
+	if !IsNil(o.PublicLink) {
+		toSerialize["publicLink"] = o.PublicLink
+	}
 	if !IsNil(o.UpdatedAt) {
 		toSerialize["updatedAt"] = o.UpdatedAt
+	}
+	optionalOneOfGroup0Matches := 0
+	if _, exists := toSerialize["publicLink"]; exists {
+		optionalOneOfGroup0Matches++
+	}
+	if _, exists := toSerialize["privateShare"]; exists {
+		optionalOneOfGroup0Matches++
+	}
+	if optionalOneOfGroup0Matches > 1 {
+		return map[string]interface{}{}, GenericOpenAPIError{error: "at most one of [publicLink, privateShare] may be set"}
+	}
+
+	if _, exists := o.AdditionalProperties["publicLink"]; exists {
+		return map[string]interface{}{}, GenericOpenAPIError{error: "oneOf field publicLink must be set through the typed field, not AdditionalProperties"}
+	}
+	if _, exists := o.AdditionalProperties["privateShare"]; exists {
+		return map[string]interface{}{}, GenericOpenAPIError{error: "oneOf field privateShare must be set through the typed field, not AdditionalProperties"}
 	}
 
 	for key, value := range o.AdditionalProperties {
@@ -329,6 +457,17 @@ func (o *FakeBoard) UnmarshalJSON(data []byte) (err error) {
 		}
 	}
 
+	optionalOneOfGroup0Matches := 0
+	if _, exists := allProperties["publicLink"]; exists {
+		optionalOneOfGroup0Matches++
+	}
+	if _, exists := allProperties["privateShare"]; exists {
+		optionalOneOfGroup0Matches++
+	}
+	if optionalOneOfGroup0Matches > 1 {
+		return GenericOpenAPIError{error: "at most one of [publicLink, privateShare] may be set"}
+	}
+
 	varFakeBoard := _FakeBoard{}
 
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -343,12 +482,26 @@ func (o *FakeBoard) UnmarshalJSON(data []byte) (err error) {
 	additionalProperties := make(map[string]interface{})
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
+		optionalOneOfGroup0MatchesInPayload := 0
+		if _, exists := additionalProperties["publicLink"]; exists {
+			optionalOneOfGroup0MatchesInPayload++
+		}
+		if _, exists := additionalProperties["privateShare"]; exists {
+			optionalOneOfGroup0MatchesInPayload++
+		}
+		if optionalOneOfGroup0MatchesInPayload > 1 {
+			return GenericOpenAPIError{error: "at most one of [publicLink, privateShare] may be set"}
+		}
+
 		delete(additionalProperties, "description")
+		delete(additionalProperties, "flags")
 		delete(additionalProperties, "id")
 		delete(additionalProperties, "labels")
 		delete(additionalProperties, "layout")
 		delete(additionalProperties, "name")
 		delete(additionalProperties, "panels")
+		delete(additionalProperties, "privateShare")
+		delete(additionalProperties, "publicLink")
 		delete(additionalProperties, "updatedAt")
 		o.AdditionalProperties = additionalProperties
 		o.additionalPropertiesFromUnmarshal = len(additionalProperties) > 0

@@ -18,6 +18,8 @@ type Resource struct {
 	// UpdateMaskPattern is the "pattern" of the update mask string, "" when
 	// the spec has none. It shows which mask paths the API accepts.
 	UpdateMaskPattern string
+	// Groups are the oneOf groups among the top-level fields.
+	Groups []OneOfGroup
 	// Fields are the top-level resource fields: the Get fields in spec order,
 	// then Create-only and Update-only fields (Build rejects those).
 	Fields []*ResourceField
@@ -91,6 +93,12 @@ const (
 	Map     Kind = "map"   // string keys; Elem is the value type
 )
 
+// OneOfGroup is a set of fields of an object of which at most one is set.
+type OneOfGroup struct {
+	Arms      []string // field names
+	AllowNone bool     // the value can have no arm set
+}
+
 // Type is the type of a field.
 type Type struct {
 	Kind   Kind
@@ -103,6 +111,9 @@ type Type struct {
 	Elem       *Type    // List, Set, Map
 	Fields     []*Field // Object: the properties; OneOf: the arms
 	AllowNone  bool     // OneOf: the value can have no arm set
+	// Groups are the oneOf groups of an Object that also has normal fields,
+	// or has more than one group. Each arm is one of Fields.
+	Groups []OneOfGroup
 
 	MinLength, MaxLength *int64
 	Minimum, Maximum     *float64

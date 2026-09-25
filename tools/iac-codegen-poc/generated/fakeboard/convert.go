@@ -49,8 +49,11 @@ func expandFakeBoardsServiceCreateFakeBoardRequest(ctx context.Context, p path.P
 		return nil
 	}
 	out := &fake_boards_service.FakeBoardsServiceCreateFakeBoardRequest{}
+	out.PublicLink = expandPublicLink(ctx, p.AtName("public_link"), m.PublicLink, diags)
+	out.PrivateShare = expandPrivateShare(ctx, p.AtName("private_share"), m.PrivateShare, diags)
 	out.Name = valueOf(expandString(m.Name))
 	out.Description = expandString(m.Description)
+	out.Flags = expandMap[bool](ctx, p.AtName("flags"), m.Flags, diags)
 	out.Labels = expandStringMap[string](ctx, p.AtName("labels"), m.Labels, diags)
 	if items := expandMap[PanelModel](ctx, p.AtName("panels"), m.Panels, diags); items != nil {
 		out.Panels = make(map[string]fake_boards_service.Panel, len(items))
@@ -63,12 +66,50 @@ func expandFakeBoardsServiceCreateFakeBoardRequest(ctx context.Context, p path.P
 	return out
 }
 
+func expandPublicLink(ctx context.Context, p path.Path, m *PublicLinkModel, diags *diag.Diagnostics) *fake_boards_service.PublicLink {
+	if m == nil {
+		return nil
+	}
+	out := &fake_boards_service.PublicLink{}
+	out.Url = expandString(m.Url)
+	return out
+}
+
+func flattenPublicLink(ctx context.Context, p path.Path, v *fake_boards_service.PublicLink, diags *diag.Diagnostics) *PublicLinkModel {
+	if v == nil {
+		return nil
+	}
+	out := &PublicLinkModel{}
+	out.Url = types.StringPointerValue(v.Url)
+	return out
+}
+
+func expandPrivateShare(ctx context.Context, p path.Path, m *PrivateShareModel, diags *diag.Diagnostics) *fake_boards_service.PrivateShare {
+	if m == nil {
+		return nil
+	}
+	out := &fake_boards_service.PrivateShare{}
+	out.Team = expandString(m.Team)
+	return out
+}
+
+func flattenPrivateShare(ctx context.Context, p path.Path, v *fake_boards_service.PrivateShare, diags *diag.Diagnostics) *PrivateShareModel {
+	if v == nil {
+		return nil
+	}
+	out := &PrivateShareModel{}
+	out.Team = types.StringPointerValue(v.Team)
+	return out
+}
+
 func expandPanel(ctx context.Context, p path.Path, m *PanelModel, diags *diag.Diagnostics) *fake_boards_service.Panel {
 	if m == nil {
 		return nil
 	}
 	out := &fake_boards_service.Panel{}
 	out.Query = valueOf(expandString(m.Query))
+	out.Precision = expandInt32(m.Precision)
+	out.Thresholds = expandMap[float64](ctx, p.AtName("thresholds"), m.Thresholds, diags)
 	out.Unit = expandEnum[fake_boards_service.Unit](m.Unit)
 	out.Style = expandTextStyle(ctx, p.AtName("style"), m.Style, diags)
 	return out
@@ -80,6 +121,8 @@ func flattenPanel(ctx context.Context, p path.Path, v *fake_boards_service.Panel
 	}
 	out := &PanelModel{}
 	out.Query = types.StringPointerValue(&v.Query)
+	out.Precision = types.Int32PointerValue(v.Precision)
+	out.Thresholds = flattenScalarMap(ctx, types.Float64Type, v.Thresholds, diags)
 	out.Unit = flattenEnum(v.Unit)
 	out.Style = flattenTextStyle(ctx, p.AtName("style"), v.Style, diags)
 	return out
@@ -87,9 +130,11 @@ func flattenPanel(ctx context.Context, p path.Path, v *fake_boards_service.Panel
 
 func panelAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"query": types.StringType,
-		"unit":  types.StringType,
-		"style": types.ObjectType{AttrTypes: textStyleAttrTypes()},
+		"query":      types.StringType,
+		"precision":  types.Int32Type,
+		"thresholds": types.MapType{ElemType: types.Float64Type},
+		"unit":       types.StringType,
+		"style":      types.ObjectType{AttrTypes: textStyleAttrTypes()},
 	}
 }
 
@@ -130,6 +175,7 @@ func expandFontStyle(ctx context.Context, p path.Path, m *FontStyleModel, diags 
 	}
 	out := &fake_boards_service.FontStyle{}
 	out.Family = expandString(m.Family)
+	out.Scale = expandFloat32(m.Scale)
 	out.Size = expandUint64(p.AtName("size"), m.Size, diags)
 	return out
 }
@@ -140,6 +186,7 @@ func flattenFontStyle(ctx context.Context, p path.Path, v *fake_boards_service.F
 	}
 	out := &FontStyleModel{}
 	out.Family = types.StringPointerValue(v.Family)
+	out.Scale = types.Float32PointerValue(v.Scale)
 	out.Size = flattenUint64(p.AtName("size"), v.Size, diags)
 	return out
 }
@@ -147,6 +194,7 @@ func flattenFontStyle(ctx context.Context, p path.Path, v *fake_boards_service.F
 func fontStyleAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"family": types.StringType,
+		"scale":  types.Float32Type,
 		"size":   types.Int64Type,
 	}
 }
@@ -156,6 +204,12 @@ func expandLayout(ctx context.Context, p path.Path, m *LayoutModel, diags *diag.
 		return nil
 	}
 	out := &fake_boards_service.Layout{}
+	if m.RefreshOff != nil {
+		out.RefreshOff = map[string]interface{}{}
+	}
+	out.RefreshEvery = expandEvery(ctx, p.AtName("refresh_every"), m.RefreshEvery, diags)
+	out.AbsoluteTime = expandAbsoluteTime(ctx, p.AtName("absolute_time"), m.AbsoluteTime, diags)
+	out.RelativeTime = expandEvery(ctx, p.AtName("relative_time"), m.RelativeTime, diags)
 	out.Title = valueOf(expandString(m.Title))
 	out.TitleStyle = expandTextStyle(ctx, p.AtName("title_style"), m.TitleStyle, diags)
 	out.Section = expandSection(ctx, p.AtName("section"), m.Section, diags)
@@ -167,9 +221,53 @@ func flattenLayout(ctx context.Context, p path.Path, v *fake_boards_service.Layo
 		return nil
 	}
 	out := &LayoutModel{}
+	if v.RefreshOff != nil {
+		out.RefreshOff = &BoldStyleModel{}
+	}
+	out.RefreshEvery = flattenEvery(ctx, p.AtName("refresh_every"), v.RefreshEvery, diags)
+	out.AbsoluteTime = flattenAbsoluteTime(ctx, p.AtName("absolute_time"), v.AbsoluteTime, diags)
+	out.RelativeTime = flattenEvery(ctx, p.AtName("relative_time"), v.RelativeTime, diags)
 	out.Title = types.StringPointerValue(&v.Title)
 	out.TitleStyle = flattenTextStyle(ctx, p.AtName("title_style"), v.TitleStyle, diags)
 	out.Section = flattenSection(ctx, p.AtName("section"), v.Section, diags)
+	return out
+}
+
+func expandEvery(ctx context.Context, p path.Path, m *EveryModel, diags *diag.Diagnostics) *fake_boards_service.Every {
+	if m == nil {
+		return nil
+	}
+	out := &fake_boards_service.Every{}
+	out.Minutes = expandInt32(m.Minutes)
+	return out
+}
+
+func flattenEvery(ctx context.Context, p path.Path, v *fake_boards_service.Every, diags *diag.Diagnostics) *EveryModel {
+	if v == nil {
+		return nil
+	}
+	out := &EveryModel{}
+	out.Minutes = types.Int32PointerValue(v.Minutes)
+	return out
+}
+
+func expandAbsoluteTime(ctx context.Context, p path.Path, m *AbsoluteTimeModel, diags *diag.Diagnostics) *fake_boards_service.AbsoluteTime {
+	if m == nil {
+		return nil
+	}
+	out := &fake_boards_service.AbsoluteTime{}
+	out.From = expandString(m.From)
+	out.To = expandString(m.To)
+	return out
+}
+
+func flattenAbsoluteTime(ctx context.Context, p path.Path, v *fake_boards_service.AbsoluteTime, diags *diag.Diagnostics) *AbsoluteTimeModel {
+	if v == nil {
+		return nil
+	}
+	out := &AbsoluteTimeModel{}
+	out.From = types.StringPointerValue(v.From)
+	out.To = types.StringPointerValue(v.To)
 	return out
 }
 
@@ -180,6 +278,9 @@ func expandSection(ctx context.Context, p path.Path, m *SectionModel, diags *dia
 	out := &fake_boards_service.Section{}
 	out.Header = expandHeader(ctx, p.AtName("header"), m.Header, diags)
 	out.Widths = expandUint64Map(ctx, p.AtName("widths"), m.Widths, diags)
+	out.Interval = expandInterval(ctx, p.AtName("interval"), m.Interval, diags)
+	out.Columns = expandElements[int32](ctx, p.AtName("columns"), m.Columns, diags)
+	out.Ratios = expandElements[float32](ctx, p.AtName("ratios"), m.Ratios, diags)
 	if items := expandElements[RowModel](ctx, p.AtName("rows"), m.Rows, diags); items != nil {
 		out.Rows = make([]fake_boards_service.Row, 0, len(items))
 		for i := range items {
@@ -196,6 +297,9 @@ func flattenSection(ctx context.Context, p path.Path, v *fake_boards_service.Sec
 	out := &SectionModel{}
 	out.Header = flattenHeader(ctx, p.AtName("header"), v.Header, diags)
 	out.Widths = flattenUint64Map(ctx, p.AtName("widths"), v.Widths, diags)
+	out.Interval = flattenInterval(ctx, p.AtName("interval"), v.Interval, diags)
+	out.Columns = flattenScalarsList(ctx, types.Int32Type, v.Columns, diags)
+	out.Ratios = flattenScalarsList(ctx, types.Float32Type, v.Ratios, diags)
 	out.Rows = types.ListNull(types.ObjectType{AttrTypes: rowAttrTypes()})
 	if v.Rows != nil {
 		items := make([]RowModel, 0, len(v.Rows))
@@ -229,6 +333,32 @@ func flattenHeader(ctx context.Context, p path.Path, v *fake_boards_service.Head
 	return out
 }
 
+func expandInterval(ctx context.Context, p path.Path, m *IntervalModel, diags *diag.Diagnostics) *fake_boards_service.Interval {
+	if m == nil {
+		return nil
+	}
+	out := &fake_boards_service.Interval{}
+	if m.Auto != nil {
+		out.Auto = map[string]interface{}{}
+	}
+	out.Manual = expandEvery(ctx, p.AtName("manual"), m.Manual, diags)
+	out.UseLimit = expandBool(m.UseLimit)
+	return out
+}
+
+func flattenInterval(ctx context.Context, p path.Path, v *fake_boards_service.Interval, diags *diag.Diagnostics) *IntervalModel {
+	if v == nil {
+		return nil
+	}
+	out := &IntervalModel{}
+	if v.Auto != nil {
+		out.Auto = &BoldStyleModel{}
+	}
+	out.Manual = flattenEvery(ctx, p.AtName("manual"), v.Manual, diags)
+	out.UseLimit = types.BoolPointerValue(v.UseLimit)
+	return out
+}
+
 func expandRow(ctx context.Context, p path.Path, m *RowModel, diags *diag.Diagnostics) *fake_boards_service.Row {
 	if m == nil {
 		return nil
@@ -236,6 +366,7 @@ func expandRow(ctx context.Context, p path.Path, m *RowModel, diags *diag.Diagno
 	out := &fake_boards_service.Row{}
 	out.Height = valueOf(expandUint64(p.AtName("height"), m.Height, diags))
 	out.Label = expandString(m.Label)
+	out.Offset = expandInt64(m.Offset)
 	out.Style = expandTextStyle(ctx, p.AtName("style"), m.Style, diags)
 	return out
 }
@@ -247,6 +378,7 @@ func flattenRow(ctx context.Context, p path.Path, v *fake_boards_service.Row, di
 	out := &RowModel{}
 	out.Height = flattenUint64(p.AtName("height"), &v.Height, diags)
 	out.Label = types.StringPointerValue(v.Label)
+	out.Offset = types.Int64PointerValue(v.Offset)
 	out.Style = flattenTextStyle(ctx, p.AtName("style"), v.Style, diags)
 	return out
 }
@@ -255,6 +387,7 @@ func rowAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"height": types.Int64Type,
 		"label":  types.StringType,
+		"offset": types.Int64Type,
 		"style":  types.ObjectType{AttrTypes: textStyleAttrTypes()},
 	}
 }
@@ -264,7 +397,10 @@ func expandFakeBoardsServiceUpdateFakeBoardRequest(ctx context.Context, p path.P
 		return nil
 	}
 	out := &fake_boards_service.FakeBoardsServiceUpdateFakeBoardRequest{}
+	out.PublicLink = expandPublicLink(ctx, p.AtName("public_link"), m.PublicLink, diags)
+	out.PrivateShare = expandPrivateShare(ctx, p.AtName("private_share"), m.PrivateShare, diags)
 	out.Description = expandString(m.Description)
+	out.Flags = expandMap[bool](ctx, p.AtName("flags"), m.Flags, diags)
 	out.Labels = expandStringMap[string](ctx, p.AtName("labels"), m.Labels, diags)
 	if items := expandMap[PanelModel](ctx, p.AtName("panels"), m.Panels, diags); items != nil {
 		out.Panels = make(map[string]fake_boards_service.Panel, len(items))
@@ -282,9 +418,12 @@ func flattenFakeBoard(ctx context.Context, p path.Path, v *fake_boards_service.F
 		return nil
 	}
 	out := &FakeBoardModel{}
+	out.PublicLink = flattenPublicLink(ctx, p.AtName("public_link"), v.PublicLink, diags)
+	out.PrivateShare = flattenPrivateShare(ctx, p.AtName("private_share"), v.PrivateShare, diags)
 	out.Id = types.StringPointerValue(&v.Id)
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Description = types.StringPointerValue(v.Description)
+	out.Flags = flattenScalarMap(ctx, types.BoolType, v.Flags, diags)
 	out.Labels = flattenStringMap(ctx, v.Labels, diags)
 	out.Panels = types.MapNull(types.ObjectType{AttrTypes: panelAttrTypes()})
 	if v.Panels != nil {
@@ -527,4 +666,49 @@ func flattenUint64Map(ctx context.Context, p path.Path, v map[string]string, dia
 		items[k] = flattenUint64(p.AtMapKey(k), &s, diags)
 	}
 	return flattenMap(ctx, types.Int64Type, items, diags)
+}
+
+func expandInt32(v types.Int32) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n := v.ValueInt32()
+	return &n
+}
+
+func expandInt64(v types.Int64) *int64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n := v.ValueInt64()
+	return &n
+}
+
+func expandFloat32(v types.Float32) *float32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f := v.ValueFloat32()
+	return &f
+}
+
+func flattenScalarsList[T any](ctx context.Context, elem attr.Type, v []T, diags *diag.Diagnostics) types.List {
+	if v == nil {
+		return types.ListNull(elem)
+	}
+	return flattenList(ctx, elem, v, diags)
+}
+
+func flattenScalarsSet[T any](ctx context.Context, elem attr.Type, v []T, diags *diag.Diagnostics) types.Set {
+	if v == nil {
+		return types.SetNull(elem)
+	}
+	return flattenSet(ctx, elem, v, diags)
+}
+
+func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T, diags *diag.Diagnostics) types.Map {
+	if v == nil {
+		return types.MapNull(elem)
+	}
+	return flattenMap(ctx, elem, v, diags)
 }

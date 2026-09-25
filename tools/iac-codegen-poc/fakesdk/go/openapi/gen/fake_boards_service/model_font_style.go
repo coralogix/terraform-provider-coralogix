@@ -24,6 +24,8 @@ var _ MappedNullable = &FontStyle{}
 type FontStyle struct {
 	// Font family.
 	Family *string `json:"family,omitempty"`
+	// Font scale. A 32-bit float.
+	Scale *float32 `json:"scale,omitempty"`
 	// Font size in points.
 	Size *string `json:"size,omitempty" validate:"regexp=^[0-9]+$"`
 	AdditionalProperties map[string]interface{}
@@ -81,6 +83,38 @@ func (o *FontStyle) SetFamily(v string) {
 	o.Family = &v
 }
 
+// GetScale returns the Scale field value if set, zero value otherwise.
+func (o *FontStyle) GetScale() float32 {
+	if o == nil || IsNil(o.Scale) {
+		var ret float32
+		return ret
+	}
+	return *o.Scale
+}
+
+// GetScaleOk returns a tuple with the Scale field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FontStyle) GetScaleOk() (*float32, bool) {
+	if o == nil || IsNil(o.Scale) {
+		return nil, false
+	}
+	return o.Scale, true
+}
+
+// HasScale returns a boolean if a field has been set.
+func (o *FontStyle) HasScale() bool {
+	if o != nil && !IsNil(o.Scale) {
+		return true
+	}
+
+	return false
+}
+
+// SetScale gets a reference to the given float32 and assigns it to the Scale field.
+func (o *FontStyle) SetScale(v float32) {
+	o.Scale = &v
+}
+
 // GetSize returns the Size field value if set, zero value otherwise.
 func (o *FontStyle) GetSize() string {
 	if o == nil || IsNil(o.Size) {
@@ -126,6 +160,9 @@ func (o FontStyle) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.Family) {
 		toSerialize["family"] = o.Family
 	}
+	if !IsNil(o.Scale) {
+		toSerialize["scale"] = o.Scale
+	}
 	if !IsNil(o.Size) {
 		toSerialize["size"] = o.Size
 	}
@@ -153,6 +190,7 @@ func (o *FontStyle) UnmarshalJSON(data []byte) (err error) {
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
 		delete(additionalProperties, "family")
+		delete(additionalProperties, "scale")
 		delete(additionalProperties, "size")
 		o.AdditionalProperties = additionalProperties
 		o.additionalPropertiesFromUnmarshal = len(additionalProperties) > 0

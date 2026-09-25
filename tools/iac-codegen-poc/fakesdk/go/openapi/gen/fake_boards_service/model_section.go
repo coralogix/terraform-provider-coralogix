@@ -22,8 +22,14 @@ var _ MappedNullable = &Section{}
 
 // Section A section of the board. Level 2.
 type Section struct {
+	// Column numbers. A list of int32.
+	Columns []int32 `json:"columns,omitempty"`
 	// The section header.
 	Header *Header `json:"header,omitempty"`
+	// Time bucket. A oneOf with a normal field beside the arms.
+	Interval *Interval `json:"interval,omitempty"`
+	// Column ratios. A list of 32-bit floats.
+	Ratios []float32 `json:"ratios,omitempty"`
 	// The rows of the section, in order.
 	Rows []Row `json:"rows,omitempty"`
 	// Column widths by column name. A map of 64-bit numbers inside a nested object.
@@ -49,6 +55,38 @@ func NewSection() *Section {
 func NewSectionWithDefaults() *Section {
 	this := Section{}
 	return &this
+}
+
+// GetColumns returns the Columns field value if set, zero value otherwise.
+func (o *Section) GetColumns() []int32 {
+	if o == nil || IsNil(o.Columns) {
+		var ret []int32
+		return ret
+	}
+	return o.Columns
+}
+
+// GetColumnsOk returns a tuple with the Columns field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Section) GetColumnsOk() ([]int32, bool) {
+	if o == nil || IsNil(o.Columns) {
+		return nil, false
+	}
+	return o.Columns, true
+}
+
+// HasColumns returns a boolean if a field has been set.
+func (o *Section) HasColumns() bool {
+	if o != nil && !IsNil(o.Columns) {
+		return true
+	}
+
+	return false
+}
+
+// SetColumns gets a reference to the given []int32 and assigns it to the Columns field.
+func (o *Section) SetColumns(v []int32) {
+	o.Columns = v
 }
 
 // GetHeader returns the Header field value if set, zero value otherwise.
@@ -81,6 +119,70 @@ func (o *Section) HasHeader() bool {
 // SetHeader gets a reference to the given Header and assigns it to the Header field.
 func (o *Section) SetHeader(v Header) {
 	o.Header = &v
+}
+
+// GetInterval returns the Interval field value if set, zero value otherwise.
+func (o *Section) GetInterval() Interval {
+	if o == nil || IsNil(o.Interval) {
+		var ret Interval
+		return ret
+	}
+	return *o.Interval
+}
+
+// GetIntervalOk returns a tuple with the Interval field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Section) GetIntervalOk() (*Interval, bool) {
+	if o == nil || IsNil(o.Interval) {
+		return nil, false
+	}
+	return o.Interval, true
+}
+
+// HasInterval returns a boolean if a field has been set.
+func (o *Section) HasInterval() bool {
+	if o != nil && !IsNil(o.Interval) {
+		return true
+	}
+
+	return false
+}
+
+// SetInterval gets a reference to the given Interval and assigns it to the Interval field.
+func (o *Section) SetInterval(v Interval) {
+	o.Interval = &v
+}
+
+// GetRatios returns the Ratios field value if set, zero value otherwise.
+func (o *Section) GetRatios() []float32 {
+	if o == nil || IsNil(o.Ratios) {
+		var ret []float32
+		return ret
+	}
+	return o.Ratios
+}
+
+// GetRatiosOk returns a tuple with the Ratios field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Section) GetRatiosOk() ([]float32, bool) {
+	if o == nil || IsNil(o.Ratios) {
+		return nil, false
+	}
+	return o.Ratios, true
+}
+
+// HasRatios returns a boolean if a field has been set.
+func (o *Section) HasRatios() bool {
+	if o != nil && !IsNil(o.Ratios) {
+		return true
+	}
+
+	return false
+}
+
+// SetRatios gets a reference to the given []float32 and assigns it to the Ratios field.
+func (o *Section) SetRatios(v []float32) {
+	o.Ratios = v
 }
 
 // GetRows returns the Rows field value if set, zero value otherwise.
@@ -157,8 +259,17 @@ func (o Section) MarshalJSON() ([]byte, error) {
 
 func (o Section) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.Columns) {
+		toSerialize["columns"] = o.Columns
+	}
 	if !IsNil(o.Header) {
 		toSerialize["header"] = o.Header
+	}
+	if !IsNil(o.Interval) {
+		toSerialize["interval"] = o.Interval
+	}
+	if !IsNil(o.Ratios) {
+		toSerialize["ratios"] = o.Ratios
 	}
 	if !IsNil(o.Rows) {
 		toSerialize["rows"] = o.Rows
@@ -189,7 +300,10 @@ func (o *Section) UnmarshalJSON(data []byte) (err error) {
 	additionalProperties := make(map[string]interface{})
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
+		delete(additionalProperties, "columns")
 		delete(additionalProperties, "header")
+		delete(additionalProperties, "interval")
+		delete(additionalProperties, "ratios")
 		delete(additionalProperties, "rows")
 		delete(additionalProperties, "widths")
 		o.AdditionalProperties = additionalProperties

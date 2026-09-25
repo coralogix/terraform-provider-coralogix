@@ -24,12 +24,18 @@ var _ MappedNullable = &FakeBoardsServiceUpdateFakeBoardRequest{}
 type FakeBoardsServiceUpdateFakeBoardRequest struct {
 	// Free text about the board.
 	Description *string `json:"description,omitempty"`
+	// Feature flags. A map of bools.
+	Flags map[string]bool `json:"flags,omitempty"`
 	// Labels of the board. A map of strings.
 	Labels map[string]string `json:"labels,omitempty"`
 	// How the board looks.
 	Layout *Layout `json:"layout,omitempty"`
 	// Panels by id. A map of objects.
 	Panels map[string]Panel `json:"panels,omitempty"`
+	// Share with a team. A oneOf arm at the resource root.
+	PrivateShare *PrivateShare `json:"privateShare,omitempty"`
+	// Share by a public link. A oneOf arm at the resource root.
+	PublicLink *PublicLink `json:"publicLink,omitempty"`
 	// Comma-separated list of field paths to update. A path can name a nested field, for example layout.section.header.text.
 	UpdateMask *string `json:"updateMask,omitempty" validate:"regexp=^[a-zA-Z_][a-zA-Z0-9_]*(\\\\.[a-zA-Z_][a-zA-Z0-9_]*)*(,[a-zA-Z_][a-zA-Z0-9_]*(\\\\.[a-zA-Z_][a-zA-Z0-9_]*)*)*$"`
 	AdditionalProperties map[string]interface{}
@@ -85,6 +91,38 @@ func (o *FakeBoardsServiceUpdateFakeBoardRequest) HasDescription() bool {
 // SetDescription gets a reference to the given string and assigns it to the Description field.
 func (o *FakeBoardsServiceUpdateFakeBoardRequest) SetDescription(v string) {
 	o.Description = &v
+}
+
+// GetFlags returns the Flags field value if set, zero value otherwise.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) GetFlags() map[string]bool {
+	if o == nil || IsNil(o.Flags) {
+		var ret map[string]bool
+		return ret
+	}
+	return o.Flags
+}
+
+// GetFlagsOk returns a tuple with the Flags field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) GetFlagsOk() (map[string]bool, bool) {
+	if o == nil || IsNil(o.Flags) {
+		return map[string]bool{}, false
+	}
+	return o.Flags, true
+}
+
+// HasFlags returns a boolean if a field has been set.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) HasFlags() bool {
+	if o != nil && !IsNil(o.Flags) {
+		return true
+	}
+
+	return false
+}
+
+// SetFlags gets a reference to the given map[string]bool and assigns it to the Flags field.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) SetFlags(v map[string]bool) {
+	o.Flags = v
 }
 
 // GetLabels returns the Labels field value if set, zero value otherwise.
@@ -183,6 +221,70 @@ func (o *FakeBoardsServiceUpdateFakeBoardRequest) SetPanels(v map[string]Panel) 
 	o.Panels = v
 }
 
+// GetPrivateShare returns the PrivateShare field value if set, zero value otherwise.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) GetPrivateShare() PrivateShare {
+	if o == nil || IsNil(o.PrivateShare) {
+		var ret PrivateShare
+		return ret
+	}
+	return *o.PrivateShare
+}
+
+// GetPrivateShareOk returns a tuple with the PrivateShare field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) GetPrivateShareOk() (*PrivateShare, bool) {
+	if o == nil || IsNil(o.PrivateShare) {
+		return nil, false
+	}
+	return o.PrivateShare, true
+}
+
+// HasPrivateShare returns a boolean if a field has been set.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) HasPrivateShare() bool {
+	if o != nil && !IsNil(o.PrivateShare) {
+		return true
+	}
+
+	return false
+}
+
+// SetPrivateShare gets a reference to the given PrivateShare and assigns it to the PrivateShare field.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) SetPrivateShare(v PrivateShare) {
+	o.PrivateShare = &v
+}
+
+// GetPublicLink returns the PublicLink field value if set, zero value otherwise.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) GetPublicLink() PublicLink {
+	if o == nil || IsNil(o.PublicLink) {
+		var ret PublicLink
+		return ret
+	}
+	return *o.PublicLink
+}
+
+// GetPublicLinkOk returns a tuple with the PublicLink field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) GetPublicLinkOk() (*PublicLink, bool) {
+	if o == nil || IsNil(o.PublicLink) {
+		return nil, false
+	}
+	return o.PublicLink, true
+}
+
+// HasPublicLink returns a boolean if a field has been set.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) HasPublicLink() bool {
+	if o != nil && !IsNil(o.PublicLink) {
+		return true
+	}
+
+	return false
+}
+
+// SetPublicLink gets a reference to the given PublicLink and assigns it to the PublicLink field.
+func (o *FakeBoardsServiceUpdateFakeBoardRequest) SetPublicLink(v PublicLink) {
+	o.PublicLink = &v
+}
+
 // GetUpdateMask returns the UpdateMask field value if set, zero value otherwise.
 func (o *FakeBoardsServiceUpdateFakeBoardRequest) GetUpdateMask() string {
 	if o == nil || IsNil(o.UpdateMask) {
@@ -228,6 +330,9 @@ func (o FakeBoardsServiceUpdateFakeBoardRequest) ToMap() (map[string]interface{}
 	if !IsNil(o.Description) {
 		toSerialize["description"] = o.Description
 	}
+	if !IsNil(o.Flags) {
+		toSerialize["flags"] = o.Flags
+	}
 	if !IsNil(o.Labels) {
 		toSerialize["labels"] = o.Labels
 	}
@@ -236,6 +341,12 @@ func (o FakeBoardsServiceUpdateFakeBoardRequest) ToMap() (map[string]interface{}
 	}
 	if !IsNil(o.Panels) {
 		toSerialize["panels"] = o.Panels
+	}
+	if !IsNil(o.PrivateShare) {
+		toSerialize["privateShare"] = o.PrivateShare
+	}
+	if !IsNil(o.PublicLink) {
+		toSerialize["publicLink"] = o.PublicLink
 	}
 	if !IsNil(o.UpdateMask) {
 		toSerialize["updateMask"] = o.UpdateMask
@@ -264,9 +375,12 @@ func (o *FakeBoardsServiceUpdateFakeBoardRequest) UnmarshalJSON(data []byte) (er
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
 		delete(additionalProperties, "description")
+		delete(additionalProperties, "flags")
 		delete(additionalProperties, "labels")
 		delete(additionalProperties, "layout")
 		delete(additionalProperties, "panels")
+		delete(additionalProperties, "privateShare")
+		delete(additionalProperties, "publicLink")
 		delete(additionalProperties, "updateMask")
 		o.AdditionalProperties = additionalProperties
 		o.additionalPropertiesFromUnmarshal = len(additionalProperties) > 0

@@ -7,21 +7,33 @@ import (
 )
 
 type FakeBoardModel struct {
-	Id          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Labels      types.Map    `tfsdk:"labels"`
-	Panels      types.Map    `tfsdk:"panels"`
-	Layout      *LayoutModel `tfsdk:"layout"`
-	UpdatedAt   types.String `tfsdk:"updated_at"`
+	PublicLink   *PublicLinkModel   `tfsdk:"public_link"`
+	PrivateShare *PrivateShareModel `tfsdk:"private_share"`
+	Id           types.String       `tfsdk:"id"`
+	Name         types.String       `tfsdk:"name"`
+	Description  types.String       `tfsdk:"description"`
+	Flags        types.Map          `tfsdk:"flags"`
+	Labels       types.Map          `tfsdk:"labels"`
+	Panels       types.Map          `tfsdk:"panels"`
+	Layout       *LayoutModel       `tfsdk:"layout"`
+	UpdatedAt    types.String       `tfsdk:"updated_at"`
+}
+
+type PublicLinkModel struct {
+	Url types.String `tfsdk:"url"`
+}
+
+type PrivateShareModel struct {
+	Team types.String `tfsdk:"team"`
 }
 
 type BoldStyleModel struct {
 }
 
 type FontStyleModel struct {
-	Family types.String `tfsdk:"family"`
-	Size   types.Int64  `tfsdk:"size"`
+	Family types.String  `tfsdk:"family"`
+	Scale  types.Float32 `tfsdk:"scale"`
+	Size   types.Int64   `tfsdk:"size"`
 }
 
 type TextStyleModel struct {
@@ -30,9 +42,20 @@ type TextStyleModel struct {
 }
 
 type PanelModel struct {
-	Query types.String    `tfsdk:"query"`
-	Unit  types.String    `tfsdk:"unit"`
-	Style *TextStyleModel `tfsdk:"style"`
+	Query      types.String    `tfsdk:"query"`
+	Precision  types.Int32     `tfsdk:"precision"`
+	Thresholds types.Map       `tfsdk:"thresholds"`
+	Unit       types.String    `tfsdk:"unit"`
+	Style      *TextStyleModel `tfsdk:"style"`
+}
+
+type EveryModel struct {
+	Minutes types.Int32 `tfsdk:"minutes"`
+}
+
+type AbsoluteTimeModel struct {
+	From types.String `tfsdk:"from"`
+	To   types.String `tfsdk:"to"`
 }
 
 type HeaderModel struct {
@@ -41,20 +64,34 @@ type HeaderModel struct {
 	Style *TextStyleModel `tfsdk:"style"`
 }
 
+type IntervalModel struct {
+	Auto     *BoldStyleModel `tfsdk:"auto"`
+	Manual   *EveryModel     `tfsdk:"manual"`
+	UseLimit types.Bool      `tfsdk:"use_limit"`
+}
+
 type RowModel struct {
 	Height types.Int64     `tfsdk:"height"`
 	Label  types.String    `tfsdk:"label"`
+	Offset types.Int64     `tfsdk:"offset"`
 	Style  *TextStyleModel `tfsdk:"style"`
 }
 
 type SectionModel struct {
-	Header *HeaderModel `tfsdk:"header"`
-	Widths types.Map    `tfsdk:"widths"`
-	Rows   types.List   `tfsdk:"rows"`
+	Header   *HeaderModel   `tfsdk:"header"`
+	Widths   types.Map      `tfsdk:"widths"`
+	Interval *IntervalModel `tfsdk:"interval"`
+	Columns  types.List     `tfsdk:"columns"`
+	Ratios   types.List     `tfsdk:"ratios"`
+	Rows     types.List     `tfsdk:"rows"`
 }
 
 type LayoutModel struct {
-	Title      types.String    `tfsdk:"title"`
-	TitleStyle *TextStyleModel `tfsdk:"title_style"`
-	Section    *SectionModel   `tfsdk:"section"`
+	RefreshOff   *BoldStyleModel    `tfsdk:"refresh_off"`
+	RefreshEvery *EveryModel        `tfsdk:"refresh_every"`
+	AbsoluteTime *AbsoluteTimeModel `tfsdk:"absolute_time"`
+	RelativeTime *EveryModel        `tfsdk:"relative_time"`
+	Title        types.String       `tfsdk:"title"`
+	TitleStyle   *TextStyleModel    `tfsdk:"title_style"`
+	Section      *SectionModel      `tfsdk:"section"`
 }

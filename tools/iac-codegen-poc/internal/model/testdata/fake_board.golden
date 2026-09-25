@@ -9,42 +9,72 @@ operations
   delete  DELETE  /fake/boards/v1/{id}  FakeBoardsService_DeleteFakeBoard  body -       response DeleteFakeBoardResponse
 
 fields
-  NAME         BEHAVIOR   CREATE             UPDATE             GET  TYPE
-  id           computed   -                  -                  yes  string
-  name         immutable  required           -                  yes  string len 1..64
-  description  normal     optional presence  optional presence  yes  string len ..256
-  labels       normal     optional presence  optional presence  yes  map<string>
-  panels       normal     optional presence  optional presence  yes  map<object Panel>
-      query  required  string len 1..
-      unit   optional  enum Unit [PERCENT BYTES]
-      style  optional  oneOf TextStyle (2 arms, no arm allowed)
+  NAME          BEHAVIOR   CREATE             UPDATE             GET  TYPE
+  publicLink    normal     optional presence  optional presence  yes  object PublicLink
+      url  optional  string
+  privateShare  normal     optional presence  optional presence  yes  object PrivateShare
+      team  optional  string
+  id            computed   -                  -                  yes  string
+  name          immutable  required           -                  yes  string len 1..64
+  description   normal     optional presence  optional presence  yes  string len ..256
+  flags         normal     optional presence  optional presence  yes  map<bool>
+  labels        normal     optional presence  optional presence  yes  map<string>
+  panels        normal     optional presence  optional presence  yes  map<object Panel>
+      query       required  string len 1..
+      precision   optional  integer int32 0..10
+      thresholds  optional  map<number double>
+      unit        optional  enum Unit [PERCENT BYTES]
+      style       optional  oneOf TextStyle (2 arms, no arm allowed)
         bold  arm  object BoldStyle {}
         font  arm  object FontStyle
           family  optional  string
+          scale   optional  number float
           size    optional  integer uint64 (wire: string)
-  layout       normal     required           optional presence  yes  object Layout
-      title       required  string
-      titleStyle  optional  oneOf TextStyle (2 arms, no arm allowed)
+  layout        normal     required           optional presence  yes  object Layout oneOf(refreshOff|refreshEvery, none allowed) oneOf(absoluteTime|relativeTime)
+      refreshOff    optional  object BoldStyle {}
+      refreshEvery  optional  object Every
+        minutes  optional  integer int32
+      absoluteTime  optional  object AbsoluteTime
+        from  optional  string
+        to    optional  string
+      relativeTime  optional  object Every
+        minutes  optional  integer int32
+      title         required  string
+      titleStyle    optional  oneOf TextStyle (2 arms, no arm allowed)
         bold  arm  object BoldStyle {}
         font  arm  object FontStyle
           family  optional  string
+          scale   optional  number float
           size    optional  integer uint64 (wire: string)
-      section     optional  object Section
-        header  optional  object Header
+      section       optional  object Section
+        header    optional  object Header
           text   required  string len 1..
           color  optional  enum Color [RED GREEN BLUE]
           style  optional  oneOf TextStyle (2 arms, no arm allowed)
             bold  arm  object BoldStyle {}
             font  arm  object FontStyle
               family  optional  string
+              scale   optional  number float
               size    optional  integer uint64 (wire: string)
-        widths  optional  map<integer uint64 (wire: string)>
-        rows    optional  list<object Row>
+        widths    optional  map<integer uint64 (wire: string)>
+        interval  optional  object Interval oneOf(auto|manual)
+          auto      optional  object BoldStyle {}
+          manual    optional  object Every
+            minutes  optional  integer int32
+          useLimit  optional  bool
+        columns   optional  list<integer int32>
+        ratios    optional  list<number float>
+        rows      optional  list<object Row>
           height  required  integer uint64 (wire: string)
           label   optional  string
+          offset  optional  integer int64 -100..100
           style   optional  oneOf TextStyle (2 arms, no arm allowed)
             bold  arm  object BoldStyle {}
             font  arm  object FontStyle
               family  optional  string
+              scale   optional  number float
               size    optional  integer uint64 (wire: string)
-  updatedAt    computed   -                  -                  yes  string date-time
+  updatedAt     computed   -                  -                  yes  string date-time
+
+oneOf groups
+  oneOf(publicLink|privateShare, none allowed)

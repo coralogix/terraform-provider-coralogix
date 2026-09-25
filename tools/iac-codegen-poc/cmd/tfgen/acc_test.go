@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -107,5 +108,67 @@ func TestAccUnknownSection(t *testing.T) {
 	}
 	if _, err := loadAccValues(p); err == nil {
 		t.Error("no error for an unknown section")
+	}
+}
+
+// TestAccIntegers checks the integer rules: a uint64 is a decimal string, an
+// int32 or int64 is a JSON number in its range.
+func TestAccIntegers(t *testing.T) {
+	cases := []struct {
+		typ     model.Type
+		value   any
+		want    string
+		wantErr bool
+	}{
+		{model.Type{Kind: model.Integer, Format: "uint64", WireString: true}, "10", "10", false},
+		{model.Type{Kind: model.Integer, Format: "uint64", WireString: true}, 10, "", true},
+		{model.Type{Kind: model.Integer, Format: "int32"}, -5, "-5", false},
+		{model.Type{Kind: model.Integer, Format: "int32"}, 1 << 31, "", true},
+		{model.Type{Kind: model.Integer, Format: "int32"}, "5", "", true},
+		{model.Type{Kind: model.Integer, Format: "int64"}, -1 << 40, "-1099511627776", false},
+		{model.Type{Kind: model.Number, Format: "float"}, 0.1, "0.1", false},
+	}
+	for _, c := range cases {
+		got, err := hclValue("x", &c.typ, c.value)
+		if (err != nil) != c.wantErr || got != c.want {
+			t.Errorf("%s %s %v: got %q, %v; want %q, error %t", c.typ.Kind, c.typ.Format, c.value, got, err, c.want, c.wantErr)
+		}
+	}
+}
+
+// TestAccGroups checks the oneOf group rule of the values file on the fake
+// resource: at most one arm, and exactly one when the group has no "no arm".
+func TestAccGroups(t *testing.T) {
+	data, err := os.ReadFile("../../spec/fake/openapi.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := model.Load(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := model.Build(doc, "FakeBoard")
+	if err != nil {
+		t.Fatal(err)
+	}
+	layout := r.Fields[slices.IndexFunc(r.Fields, func(f *model.ResourceField) bool { return f.Name == "layout" })].Type
+	cases := []struct {
+		name  string
+		value map[string]any
+		want  string // "" for no error
+	}{
+		{"one arm in each group", map[string]any{"title": "t", "refreshOff": map[string]any{}, "absoluteTime": map[string]any{}}, ""},
+		{"no arm where none is allowed", map[string]any{"title": "t", "relativeTime": map[string]any{}}, ""},
+		{"two arms", map[string]any{"title": "t", "refreshOff": map[string]any{}, "refreshEvery": map[string]any{}, "relativeTime": map[string]any{}}, "at most one arm"},
+		{"no arm where one is needed", map[string]any{"title": "t"}, "exactly one arm"},
+	}
+	for _, c := range cases {
+		_, err := hclValue("layout", layout, c.value)
+		if (c.want == "") != (err == nil) || (err != nil && !strings.Contains(err.Error(), c.want)) {
+			t.Errorf("%s: error = %v, want %q", c.name, err, c.want)
+		}
+	}
+	if err := checkGroups("create", r.Groups, map[string]any{"publicLink": 1, "privateShare": 2}); err == nil {
+		t.Error("two root arms: no error")
 	}
 }
