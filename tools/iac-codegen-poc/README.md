@@ -438,6 +438,17 @@ enums, sets, lists, objects, and the oneOf validators on unwrapped arms. On the 
 `unwrap: [LuceneQuery, PromQlQuery, UUID]` makes 27 query attributes strings, and the real widget JSON files round-trip with no
 change. Dashboards do not switch yet: they also need the `type` string rule.
 
+**Next candidates.** A schema compare of three more resources, before any overrides:
+
+| Resource | Breaking differences | Still missing |
+|---|---|---|
+| `coralogix_api_key` | 13 | `inline` (F67), a string for a uint64 (F68), `sensitive` |
+| `coralogix_tco_policies_logs`, `_traces` | 22, 18 | `inline`; the request body is not the policy type, so it stays handwritten |
+| `coralogix_alert` | 284 (85 distinct) | `inline` in 3 places, int64 strings (F68); most of the rest are existing overrides |
+
+`inline` is the opposite of `wrap`: the fields of a nested API object are shown in the parent, for example ApiKey
+`permissions` for `keyPermissions.permissions`.
+
 ## Decisions
 
 | # | Topic | Decision | Reason |
@@ -536,4 +547,6 @@ Gaps in the API, the contract, or the tools.
 | F64 | Some handwritten rules are not in the API and stay handwritten after a switch: SLO turns an old singular APM filter `value` into `values`, and leaves out ownership dimensions with no values. They run on the SDK value before the generated flatten and after the generated expand (`integration/slo/add/`). The provider's unit tests keep them: the switch rewrites the tests against the generated model with the same assertions. | Tooling (provider) |
 | F65 | Generator bug, fixed: a computed nested object had a struct-pointer model field. Terraform plans a computed attribute with no configuration value as unknown on an update, and a pointer cannot hold an unknown value, so the update failed ("Received unknown value ... *slotypes.ApmSliModel"). The SLO live check found it (`apm_sli_metadata`, `grouping`); the resource mode had the same latent bug (a computed object, the fake `routing`). A computed single nested attribute now has a `types.Object` model field (`objectAs` / `objectValue`). The offline checks missed it: states read from the API never hold unknown values. New check: `schemadump.PlanWithUnknowns` makes every computed attribute unknown, and each switch's plan test reads that into the model and expands it (both steps). | Tooling |
 | F66 | The API wraps many values in an object with one field, `value` (21 components; 50 of their 58 uses are in dashboards: `LuceneQuery`, `PromQlQuery`, `UUID`). Handwritten resources show the value itself. The `unwrap` override does the same: a null value sends no object, and a missing object and an object without a value both read as null. Alerts do not use them. | API proto / Tooling (provider) |
+| F67 | Handwritten resources often show the fields of a nested API object in the parent: ApiKey `permissions`, `presets` (API `keyPermissions.{permissions, presets}`); TCO `severities` (`logRules.severities`); alerts `percentage_of_deviation` (`anomalyAlertSettings.percentageOfDeviation`), `tracing_filter.latency_threshold_ms` (`tracingFilter.simpleFilter.latencyThresholdMs`), and the routing overrides (`configOverrides.{...}`). It is the opposite of `wrap`. All three measured resources need it. | Tooling (provider) |
+| F68 | A signed 64-bit integer that JSON sends as a string (alerts `maxUniqueCount`, `timeframeMs`, `duration`) has no `format: int64` in the spec, only `type: string` and `pattern: ^-?[0-9]+$`. So the type mode writes a String attribute; the handwritten resource has Int64, as D7 does for uint64. The OpenAPI generator should write the format; until then, an override. The reverse also occurs: ApiKey `owner.team_id` is a String in Terraform and a uint64 in the API. | Tooling |
 | F44 | `PolicySettings` (a singleton): Get is on `/dataplans/policy-settings/v1`, but Replace is on `/dataplans/policiy-settings/v1` (a typo). A singleton linter rule, all operations on one path, would catch it. | API proto |
