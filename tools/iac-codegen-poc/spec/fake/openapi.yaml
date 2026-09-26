@@ -586,6 +586,25 @@ components:
         - BYTES
       type: string
       description: A unit.
+    Orientation:
+      description: An enum whose zero value is also a real value, as in the dashboards API (vertical).
+      enum:
+        - ORIENTATION_VERTICAL_UNSPECIFIED
+        - ORIENTATION_HORIZONTAL
+      type: string
+    Comparison:
+      description: An enum whose zero value is also a real value, as in the alerts API (more than).
+      enum:
+        - COMPARISON_MORE_THAN_OR_UNSPECIFIED
+        - COMPARISON_LESS_THAN
+      type: string
+    Delivery:
+      description: An enum whose zero value has a prefix and whose other values have none, as in the real Delivery enum.
+      enum:
+        - DELIVERY_UNSPECIFIED
+        - DISABLED
+        - ERRORS_ONLY
+      type: string
     Color:
       enum:
         - RED

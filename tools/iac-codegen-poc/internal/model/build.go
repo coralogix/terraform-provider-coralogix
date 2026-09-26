@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel"
@@ -121,6 +122,31 @@ func BuildType(doc *v3.Document, name string) (*Type, error) {
 		return nil, fmt.Errorf("%s: %s with %d fields, want an object or a oneOf with fields", name, t.Kind, len(t.Fields))
 	}
 	t.Schema = name // the component itself is not a $ref
+	return t, nil
+}
+
+// BuildEnum builds the enum component schema name, for the enum names of
+// the type mode (F54).
+func BuildEnum(doc *v3.Document, name string) (*Type, error) {
+	proxy, err := component(doc, name)
+	if err != nil {
+		return nil, err
+	}
+	w := walk{stack: []string{componentPrefix + name}}
+	s, err := schemaOf(proxy)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", name, err)
+	}
+	t := &Type{Schema: name, Format: s.Format}
+	if len(s.Type) != 1 {
+		return nil, fmt.Errorf("%s: type %v, want an enum", name, s.Type)
+	}
+	if err := fillType(t, s, name, w); err != nil {
+		return nil, err
+	}
+	if t.Kind != Enum {
+		return nil, fmt.Errorf("%s: %s, want an enum", name, t.Kind)
+	}
 	return t, nil
 }
 
@@ -1110,13 +1136,18 @@ func stringType(t *Type, s *base.Schema) error {
 	case len(s.Enum) != 0:
 		t.Kind = Enum
 		t.MinLength, t.MaxLength = nil, nil
+		var all []string
 		for _, n := range s.Enum {
-			// Contract: the enum zero value is *_UNSPECIFIED. It is not a valid
-			// value. Older enums name it *_OR_UNSPECIFIED: then the zero value is
-			// also a real choice (for example MORE_THAN_OR_UNSPECIFIED is "more
-			// than"), so it is kept (F50).
-			if !strings.HasSuffix(n.Value, "_UNSPECIFIED") || strings.HasSuffix(n.Value, "_OR_UNSPECIFIED") {
-				t.Values = append(t.Values, n.Value)
+			all = append(all, n.Value)
+		}
+		t.EnumPrefix = enumPrefix(t.Schema, all)
+		for _, v := range all {
+			// Contract: the enum zero value is *_UNSPECIFIED, and it is not a
+			// valid value. Older enums also give it a real meaning, for
+			// example MORE_THAN_OR_UNSPECIFIED ("more than", F50) and
+			// VERTICAL_UNSPECIFIED ("vertical", F54). Those are kept.
+			if !enumZero(t.Schema, t.EnumPrefix, v) {
+				t.Values = append(t.Values, v)
 			}
 		}
 		if len(t.Values) == 0 {
@@ -1129,4 +1160,63 @@ func stringType(t *Type, s *base.Schema) error {
 		t.Kind = String
 	}
 	return nil
+}
+
+// enumPrefix returns the prefix of the enum values, with its "_": the
+// longest prefix of whole words that every value has and that leaves a word
+// in each (TEXT_ALIGNMENT_LEFT, TEXT_ALIGNMENT_RIGHT → TEXT_ALIGNMENT_;
+// PRIORITY_TYPE_LOW, PRIORITY_TYPE_HIGH → PRIORITY_TYPE_). With one value,
+// the last part of the enum name in upper snake case, when the value has
+// it. Else "".
+func enumPrefix(schema string, values []string) string {
+	if len(values) == 1 {
+		if p := enumTypePrefix(schema); allHavePrefix(values, p) {
+			return p
+		}
+		return ""
+	}
+	if len(values) == 0 {
+		return ""
+	}
+	words := strings.Split(values[0], "_")
+	for n := len(words) - 1; n > 0; n-- {
+		p := strings.Join(words[:n], "_") + "_"
+		if allHavePrefix(values, p) {
+			return p
+		}
+	}
+	return ""
+}
+
+func allHavePrefix(values []string, p string) bool {
+	for _, v := range values {
+		if !strings.HasPrefix(v, p) || v == p {
+			return false
+		}
+	}
+	return true
+}
+
+// enumTypePrefix is the upper snake case of the last part of an enum name,
+// with "_": "widgets.common.DataModeType" → "DATA_MODE_TYPE_".
+func enumTypePrefix(schema string) string {
+	name := schema[strings.LastIndex(schema, ".")+1:]
+	var b strings.Builder
+	for i, r := range name {
+		if i > 0 && unicode.IsUpper(r) && !unicode.IsUpper(rune(name[i-1])) {
+			b.WriteByte('_')
+		}
+		b.WriteRune(unicode.ToUpper(r))
+	}
+	if b.Len() == 0 {
+		return ""
+	}
+	return b.String() + "_"
+}
+
+// enumZero reports whether the enum value v only means "not set": nothing but
+// UNSPECIFIED after the prefix, or the enum name with _UNSPECIFIED (an enum
+// whose other values have no prefix).
+func enumZero(schema, prefix, v string) bool {
+	return strings.TrimPrefix(v, prefix) == "UNSPECIFIED" || v == enumTypePrefix(schema)+"UNSPECIFIED"
 }

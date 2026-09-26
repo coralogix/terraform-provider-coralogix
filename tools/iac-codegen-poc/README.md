@@ -100,10 +100,12 @@ go run ./cmd/tfgen --spec spec/fake/rules.yaml --resource FakeRule \
   --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakerule
 go run ./cmd/tfgen --spec spec/fake/views.yaml --resource FakeView \
   --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeview
-go run ./cmd/tfgen --spec spec/fake/openapi.yaml --types Panel,Header,Interval,AbsoluteTime --tag "Fake Boards Service" \
+go run ./cmd/tfgen --spec spec/fake/openapi.yaml --types Panel,Header,Interval,AbsoluteTime \
+  --enums Color,Unit,Orientation,Comparison,Delivery --tag "Fake Boards Service" \
   --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakepanel
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --types Widget.Definition --tag "Dashboard service" --out generated/dashboardwidgets
 integration/alertsanalytics/run.sh <provider checkout>   # plug generated alert types into a copy of the provider, run its tests
+integration/enumnames/compare.sh <provider checkout>     # compare generated enum names with the provider's handwritten ones
 go test ./...                                    # the acceptance test skips without TF_ACC
 go test ./internal/model -run TestDump -update   # rewrite internal/model/testdata/ai_evaluation.golden
 go test ./cmd/tfgen -run TestSDKNames -update    # rewrite cmd/tfgen/testdata/sdk_names.golden
@@ -286,6 +288,20 @@ states depend on them.
 
 Replacing a handwritten part would need per-field overrides that keep the old names, and a schema comparison that proves no change.
 
+**Enum names.** Handwritten resources give API enum values their own Terraform names, in maps that a new API value does not
+reach. `--enums` writes those maps from the spec (F54):
+
+```go
+generated.TextAlignmentByName   // "left" → TEXTALIGNMENT_TEXT_ALIGNMENT_LEFT, ...
+generated.TextAlignmentNames    // []string{"left", "center", "right"}, for stringvalidator.OneOf(...)
+generated.TextAlignmentName(v)  // the reverse; false for the value that only means "not set", and for unknown values
+```
+
+A name is the API value without the prefix that all its values share and without `_OR_UNSPECIFIED` / `_UNSPECIFIED`, in lower
+case. [`integration/enumnames/compare.sh`](integration/enumnames/compare.sh) compares the rule with the provider's handwritten
+maps: 293 of 327 names are the same, 20 differ only in letter case (`Debug`, `PHONE_NUMBER`), and 14 use other words (`euro` for
+`EUR`, `avg` for `AVERAGE`). Those stay handwritten.
+
 **Timestamps in requests** (`format: date-time`) are Terraform strings in RFC 3339, in UTC, as in the handwritten dashboard
 resource. A generated validator accepts only the form that the API returns, so a value reads back as it was written:
 
@@ -378,4 +394,6 @@ Gaps in the API, the contract, or the tools.
 | F51 | `date-time` in requests (F35) is needed: every dashboard chart widget has a query time frame with user-written `from` and `to` (`absoluteTimeFrame`). The handwritten resource uses RFC 3339 strings (`time.Parse(time.RFC3339, ...)`). Fixed: an RFC 3339 string in UTC, with a validator for the form that the API returns. | Tooling |
 | F52 | Terraform alerts have no `analytics_threshold` or `analytics_immediate` (API types added on 2026-06-15). Plugging in a generated type costs handwritten work beyond the plug-in lines: each alert type sets the common alert properties itself, 11 helper functions list every alert type and fail on others, and a test fixture lists the type names. | Tooling (provider) |
 | F53 | Generator bug, fixed: a model struct kept the dots of a component name (`widgets.GaugeModel`), which is not a Go name. Only the fake and `ai_evaluation`, which have no dots, were generated before. Now camelized like the SDK types (`WidgetsGaugeModel`). | Tooling |
+| F54 | Handwritten resources map about 330 enum values to their own Terraform names (`"left": TEXT_ALIGNMENT_LEFT`), in maps that a new API value does not reach. 293 follow one rule: the value without its longest shared word prefix and without `_OR_UNSPECIFIED` / `_UNSPECIFIED`, in lower case. 20 differ only in letter case (`Debug`, `PHONE_NUMBER`, `DataMap`), 14 use other words (`euro` for `EUR`, `percent01` for `PERCENT_ZERO_ONE`, `avg` for `AVERAGE`). The rule also finds a third zero-value style: `X_UNSPECIFIED` is a real value when X is a word (`ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED` = "vertical"); the model dropped it before. | Tooling (provider) |
+| F55 | openapi-generator breaks the words of an enum constant name at a lower-case letter or a digit before an upper-case letter: `E2M_TYPE_LOGS2METRICS` → `E2MTYPE_E2_M_TYPE_LOGS2_METRICS`. The generator now copies the rule; the SDK check found it. | SDK generator |
 | F44 | `PolicySettings` (a singleton): Get is on `/dataplans/policy-settings/v1`, but Replace is on `/dataplans/policiy-settings/v1` (a typo). A singleton linter rule, all operations on one path, would catch it. | API proto |

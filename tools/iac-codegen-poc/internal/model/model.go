@@ -130,7 +130,10 @@ type Type struct {
 	// WireString is true for an integer that JSON sends as a string
 	// (protobuf 64-bit numbers).
 	WireString bool
-	Values     []string // Enum: the values, without *_UNSPECIFIED
+	Values     []string // Enum: the values, without the zero value that only means "not set"
+	// EnumPrefix is the prefix of every enum value, with its "_", for
+	// example "TEXT_ALIGNMENT_"; "" when they have none.
+	EnumPrefix string
 	Elem       *Type    // List, Set, Map
 	Fields     []*Field // Object: the properties; OneOf: the arms
 	AllowNone  bool     // OneOf: the value can have no arm set

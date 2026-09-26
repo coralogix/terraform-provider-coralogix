@@ -102,7 +102,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 				"data_mode_type": schema.StringAttribute{
 					Optional: true,
 					Validators: []validator.String{
-						stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+						stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 					},
 					MarkdownDescription: "Data mode type, either high or archive",
 				},
@@ -462,7 +462,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"relation_type": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+																	stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 																},
 																MarkdownDescription: "Span relation type.",
 															},
@@ -1427,7 +1427,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"relation_type": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+															stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 														},
 														MarkdownDescription: "Span relation type.",
 													},
@@ -1577,7 +1577,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"relation_type": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+													stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 												},
 												MarkdownDescription: "Span relation type.",
 											},
@@ -1651,7 +1651,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"relation_type": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+												stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 											},
 											MarkdownDescription: "Span relation type.",
 										},
@@ -1906,7 +1906,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 				"data_mode_type": schema.StringAttribute{
 					Optional: true,
 					Validators: []validator.String{
-						stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+						stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 					},
 					MarkdownDescription: "Data mode type, either high or archive",
 				},
@@ -2227,7 +2227,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"relation_type": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+																	stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 																},
 																MarkdownDescription: "Span relation type.",
 															},
@@ -3106,7 +3106,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"relation_type": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+															stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 														},
 														MarkdownDescription: "Span relation type.",
 													},
@@ -3340,7 +3340,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"relation_type": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+															stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 														},
 														MarkdownDescription: "Span relation type.",
 													},
@@ -3458,7 +3458,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 								"data_mode_type": schema.StringAttribute{
 									Optional: true,
 									Validators: []validator.String{
-										stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+										stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 									},
 									MarkdownDescription: "Data mode type",
 								},
@@ -3744,7 +3744,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 								"data_mode_type": schema.StringAttribute{
 									Optional: true,
 									Validators: []validator.String{
-										stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+										stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 									},
 									MarkdownDescription: "Data mode type",
 								},
@@ -4219,7 +4219,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 								"data_mode_type": schema.StringAttribute{
 									Optional: true,
 									Validators: []validator.String{
-										stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+										stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 									},
 									MarkdownDescription: "Data mode type",
 								},
@@ -4276,7 +4276,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"relation_type": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+															stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 														},
 														MarkdownDescription: "Span relation type.",
 													},
@@ -4391,7 +4391,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"relation_type": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+													stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 												},
 												MarkdownDescription: "Span relation type.",
 											},
@@ -4458,7 +4458,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"data_mode_type": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+													stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 												},
 												MarkdownDescription: "Data mode type",
 											},
@@ -4744,7 +4744,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"data_mode_type": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+													stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 												},
 												MarkdownDescription: "Data mode type",
 											},
@@ -5219,7 +5219,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"data_mode_type": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+													stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 												},
 												MarkdownDescription: "Data mode type",
 											},
@@ -5276,7 +5276,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																"relation_type": schema.StringAttribute{
 																	Optional: true,
 																	Validators: []validator.String{
-																		stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+																		stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 																	},
 																	MarkdownDescription: "Span relation type.",
 																},
@@ -5391,7 +5391,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 														"relation_type": schema.StringAttribute{
 															Optional: true,
 															Validators: []validator.String{
-																stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+																stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 															},
 															MarkdownDescription: "Span relation type.",
 														},
@@ -9692,7 +9692,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 				"data_mode_type": schema.StringAttribute{
 					Optional: true,
 					Validators: []validator.String{
-						stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+						stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 					},
 					MarkdownDescription: "Data mode type, either high or archive",
 				},
@@ -10053,7 +10053,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"relation_type": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+																	stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 																},
 																MarkdownDescription: "Span relation type.",
 															},
@@ -10909,7 +10909,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"relation_type": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+															stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 														},
 														MarkdownDescription: "Span relation type.",
 													},
@@ -11059,7 +11059,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"relation_type": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+													stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 												},
 												MarkdownDescription: "Span relation type.",
 											},
@@ -11265,7 +11265,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 				"data_mode_type": schema.StringAttribute{
 					Optional: true,
 					Validators: []validator.String{
-						stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+						stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 					},
 					MarkdownDescription: "Data mode type, either high or archive",
 				},
@@ -11622,7 +11622,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"relation_type": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+																	stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 																},
 																MarkdownDescription: "Span relation type.",
 															},
@@ -12464,7 +12464,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"relation_type": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+															stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 														},
 														MarkdownDescription: "Span relation type.",
 													},
@@ -12614,7 +12614,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"relation_type": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+													stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 												},
 												MarkdownDescription: "Span relation type.",
 											},
@@ -12854,7 +12854,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 				"data_mode_type": schema.StringAttribute{
 					Optional: true,
 					Validators: []validator.String{
-						stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+						stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 					},
 					MarkdownDescription: "Data mode type, either high or archive",
 				},
@@ -13218,7 +13218,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"relation_type": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+																	stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 																},
 																MarkdownDescription: "Span relation type.",
 															},
@@ -14183,7 +14183,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"relation_type": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+															stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 														},
 														MarkdownDescription: "Span relation type.",
 													},
@@ -14333,7 +14333,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"relation_type": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+													stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 												},
 												MarkdownDescription: "Span relation type.",
 											},
@@ -14407,7 +14407,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"relation_type": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+												stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 											},
 											MarkdownDescription: "Span relation type.",
 										},
@@ -14605,7 +14605,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 							"data_mode_type": schema.StringAttribute{
 								Optional: true,
 								Validators: []validator.String{
-									stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+									stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 								},
 								MarkdownDescription: "Data mode type, either high or archive",
 							},
@@ -15002,7 +15002,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																		"relation_type": schema.StringAttribute{
 																			Optional: true,
 																			Validators: []validator.String{
-																				stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+																				stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 																			},
 																			MarkdownDescription: "Span relation type.",
 																		},
@@ -15909,7 +15909,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																"relation_type": schema.StringAttribute{
 																	Optional: true,
 																	Validators: []validator.String{
-																		stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+																		stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 																	},
 																	MarkdownDescription: "Span relation type.",
 																},
@@ -16059,7 +16059,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 														"relation_type": schema.StringAttribute{
 															Optional: true,
 															Validators: []validator.String{
-																stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+																stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 															},
 															MarkdownDescription: "Span relation type.",
 														},
@@ -16276,7 +16276,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 				"data_mode_type": schema.StringAttribute{
 					Optional: true,
 					Validators: []validator.String{
-						stringvalidator.OneOf("DATA_MODE_TYPE_ARCHIVE"),
+						stringvalidator.OneOf("DATA_MODE_TYPE_HIGH_UNSPECIFIED", "DATA_MODE_TYPE_ARCHIVE"),
 					},
 					MarkdownDescription: "Data mode type, either high or archive",
 				},
@@ -16672,7 +16672,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"relation_type": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+																	stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 																},
 																MarkdownDescription: "Span relation type.",
 															},
@@ -17639,7 +17639,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"relation_type": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+															stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 														},
 														MarkdownDescription: "Span relation type.",
 													},
@@ -17789,7 +17789,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"relation_type": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+													stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 												},
 												MarkdownDescription: "Span relation type.",
 											},
@@ -17863,7 +17863,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"relation_type": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.OneOf("SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
+												stringvalidator.OneOf("SPAN_RELATION_TYPE_NONE_UNSPECIFIED", "SPAN_RELATION_TYPE_OTHER", "SPAN_RELATION_TYPE_PARENT", "SPAN_RELATION_TYPE_ROOT"),
 											},
 											MarkdownDescription: "Span relation type.",
 										},

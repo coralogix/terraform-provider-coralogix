@@ -2,7 +2,7 @@
 
 // Package fakepanel has Terraform types for handwritten resources: the
 // schema attributes, the models, and expand and flatten of each type. It is
-// written by: tfgen --types Panel,Header,Interval,AbsoluteTime --tag "Fake Boards Service"
+// written by: tfgen --types Panel,Header,Interval,AbsoluteTime --enums Color,Unit,Orientation,Comparison,Delivery --tag "Fake Boards Service"
 package fakepanel
 
 import (

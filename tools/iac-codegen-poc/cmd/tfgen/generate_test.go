@@ -122,10 +122,11 @@ func TestTopLevelMaskWithGroups(t *testing.T) {
 // generatedTypeCases are the generated type packages (D20) and their inputs.
 var generatedTypeCases = []struct {
 	dir, spec, tag, sdk string
-	roots               []string
+	roots, enums        []string
 }{
-	{"../../generated/fakepanel", "../../spec/fake/openapi.yaml", "Fake Boards Service", fakeSDK, []string{"Panel", "Header", "Interval", "AbsoluteTime"}},
-	{"../../generated/dashboardwidgets", patchedSpec, "Dashboard service", realSDK, []string{"Widget.Definition"}},
+	{"../../generated/fakepanel", "../../spec/fake/openapi.yaml", "Fake Boards Service", fakeSDK, []string{"Panel", "Header", "Interval", "AbsoluteTime"},
+		[]string{"Color", "Unit", "Orientation", "Comparison", "Delivery"}},
+	{"../../generated/dashboardwidgets", patchedSpec, "Dashboard service", realSDK, []string{"Widget.Definition"}, nil},
 }
 
 // TestGeneratedTypesUpToDate checks that each generated type package is the
@@ -133,16 +134,17 @@ var generatedTypeCases = []struct {
 func TestGeneratedTypesUpToDate(t *testing.T) {
 	for _, c := range generatedTypeCases {
 		t.Run(filepath.Base(c.dir), func(t *testing.T) {
-			types, refs, err := checkedTypeNames(c.spec, c.roots, c.tag, c.sdk)
+			in := typeInputs{roots: c.roots, enums: c.enums}
+			types, enums, refs, err := checkedTypeNames(c.spec, in, c.tag, c.sdk)
 			if err != nil {
 				t.Fatal(err)
 			}
-			cmd := typesCommand(c.roots, c.tag)
-			files, err := generateTypes(types, refs, filepath.Base(c.dir), cmd)
+			cmd := typesCommand(in, c.tag)
+			files, err := generateTypes(types, enums, refs, filepath.Base(c.dir), cmd)
 			if err != nil {
 				t.Fatal(err)
 			}
-			again, err := generateTypes(types, refs, filepath.Base(c.dir), cmd)
+			again, err := generateTypes(types, enums, refs, filepath.Base(c.dir), cmd)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -171,7 +173,7 @@ func TestTypesRejects(t *testing.T) {
 		tag   string
 		want  string
 	}{
-		{"no tag", []string{"Panel"}, "", "--tag is required with --types"},
+		{"no tag", []string{"Panel"}, "", "--tag is required with --types and --enums"},
 		{"unknown type", []string{"Nope"}, "Fake Boards Service", "component Nope not found"},
 		{"an enum", []string{"Unit"}, "Fake Boards Service", "want an object or a oneOf with fields"},
 		{"no fields", []string{"BoldStyle"}, "Fake Boards Service", "want an object or a oneOf with fields"},
@@ -179,10 +181,51 @@ func TestTypesRejects(t *testing.T) {
 		{"another SDK package", []string{"Panel"}, "Fake Settings Service", "fake_settings_service"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			_, _, err := checkedTypeNames(spec, c.roots, c.tag, fakeSDK)
+			_, _, _, err := checkedTypeNames(spec, typeInputs{roots: c.roots}, c.tag, fakeSDK)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Errorf("error = %v, want it to contain %q", err, c.want)
 			}
 		})
+	}
+}
+
+// TestEnumNames checks the Terraform names of the fake enums: the three zero
+// value styles of the real API, and a name that two values share.
+func TestEnumNames(t *testing.T) {
+	_, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml",
+		typeInputs{enums: []string{"Orientation", "Comparison", "Delivery", "Color"}}, "Fake Boards Service", fakeSDK)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ix, err := indexRefs(refs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"Orientation": "vertical=ORIENTATION_VERTICAL_UNSPECIFIED horizontal=ORIENTATION_HORIZONTAL",
+		"Comparison":  "more_than=COMPARISON_MORE_THAN_OR_UNSPECIFIED less_than=COMPARISON_LESS_THAN",
+		"Delivery":    "disabled=DISABLED errors_only=ERRORS_ONLY",
+		"Color":       "red=RED green=GREEN blue=BLUE",
+	}
+	for _, e := range enums {
+		got, err := enumNames(e, ix)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var items []string
+		for _, it := range got.Items {
+			items = append(items, it.TFName+"="+it.Value)
+		}
+		if s := strings.Join(items, " "); s != want[e.Schema] {
+			t.Errorf("%s: %s, want %s", e.Schema, s, want[e.Schema])
+		}
+	}
+	clash := *enums[0]
+	clash.Values = []string{"ORIENTATION_VERTICAL", "ORIENTATION_VERTICAL_UNSPECIFIED"}
+	if _, err := enumNames(&clash, ix); err == nil || !strings.Contains(err.Error(), `both have the Terraform name "vertical"`) {
+		t.Errorf("two values with one name: error %v", err)
+	}
+	if _, _, _, err := checkedTypeNames("../../spec/fake/openapi.yaml", typeInputs{enums: []string{"Panel"}}, "Fake Boards Service", fakeSDK); err == nil {
+		t.Error("an object in --enums: no error")
 	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -304,7 +305,7 @@ func (s *resolver) nested(path string, t *model.Type) error {
 		name := goTypeName(t.Schema)
 		s.add(sdkRef{Path: path, Kind: kindType, Name: name, Rule: ruleComponent, Schema: t.Schema})
 		for _, v := range t.Values {
-			s.add(sdkRef{Path: path + "." + v, Kind: kindConst, Name: strings.ToUpper(name) + "_" + v, Rule: ruleEnumValue})
+			s.add(sdkRef{Path: path + "." + v, Kind: kindConst, Name: enumConstName(name, v), Rule: ruleEnumValue})
 		}
 	case model.Object, model.OneOf:
 		// An object with no fields has no SDK type (F16).
@@ -386,6 +387,18 @@ func valueType(t *model.Type) (string, error) {
 		return goTypeName(t.Schema), nil
 	}
 	return "", fmt.Errorf("%s with format %q is not supported", t.Kind, t.Format)
+}
+
+// enumWordBreak finds a lower-case letter or a digit before an upper-case
+// letter. openapi-generator puts "_" there in an enum constant name.
+var enumWordBreak = regexp.MustCompile(`([a-z\d])([A-Z])`)
+
+// enumConstName is the SDK constant of the enum value v of the SDK type
+// typeName: "TextAlignment", "TEXT_ALIGNMENT_LEFT" → "TEXTALIGNMENT_TEXT_ALIGNMENT_LEFT".
+// openapi-generator also breaks the words of the value at a digit before a
+// letter: "E2M_TYPE_LOGS2METRICS" → "E2_M_TYPE_LOGS2_METRICS" (F55).
+func enumConstName(typeName, v string) string {
+	return strings.ToUpper(typeName) + "_" + enumWordBreak.ReplaceAllString(v, "${1}_${2}")
 }
 
 // goTypeName is the SDK type for a component name: "v3.FilterOperator" → "V3FilterOperator".

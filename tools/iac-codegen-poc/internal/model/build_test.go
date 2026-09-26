@@ -109,6 +109,15 @@ func TestBuildTypes(t *testing.T) {
 			"    E: {type: string, enum: [E_UNSPECIFIED, A, B]}\n", "enum E [A B]"},
 		{"enum with a real zero value", "{$ref: '#/components/schemas/E'}",
 			"    E: {type: string, enum: [E_MORE_THAN_OR_UNSPECIFIED, E_LESS_THAN]}\n", "enum E [E_MORE_THAN_OR_UNSPECIFIED E_LESS_THAN]"},
+		{"enum with a real X_UNSPECIFIED value", "{$ref: '#/components/schemas/Orientation'}",
+			"    Orientation: {type: string, enum: [ORIENTATION_VERTICAL_UNSPECIFIED, ORIENTATION_HORIZONTAL]}\n",
+			"enum Orientation [ORIENTATION_VERTICAL_UNSPECIFIED ORIENTATION_HORIZONTAL]"},
+		{"enum with a longer shared prefix", "{$ref: '#/components/schemas/Priority'}",
+			"    Priority: {type: string, enum: [PRIORITY_TYPE_UNSPECIFIED, PRIORITY_TYPE_LOW, PRIORITY_TYPE_HIGH]}\n",
+			"enum Priority [PRIORITY_TYPE_LOW PRIORITY_TYPE_HIGH]"},
+		{"enum whose zero value alone has the prefix", "{$ref: '#/components/schemas/Delivery'}",
+			"    Delivery: {type: string, enum: [DELIVERY_UNSPECIFIED, DISABLED, ERRORS_ONLY]}\n",
+			"enum Delivery [DISABLED ERRORS_ONLY]"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := withField(c.schema, c.extra).build(t)
