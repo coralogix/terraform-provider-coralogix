@@ -38,6 +38,9 @@ type convData struct {
 	// Exported is true in the type mode (D20): other packages use the
 	// attribute types functions, so they have doc comments.
 	Exported bool
+	// CustomPkg is the import path of the handwritten converters of the
+	// custom fields (custom.go); "" for none.
+	CustomPkg string
 }
 
 // maskField is one top-level Update field. With leaf masks, it is also a
@@ -87,6 +90,9 @@ type convObject struct {
 	// none of its fields is set; then expand sends no object.
 	Inline     bool
 	UnsetCheck string
+	// NamesArm is the enum field that expand sets from the set arm
+	// (custom.go); nil for none.
+	NamesArm *armNames
 }
 
 type convAttrType struct {
@@ -135,6 +141,7 @@ const (
 	// convInt64Text is the string override (F68): types.String with the
 	// decimal number ↔ *int64.
 	convInt64Text = "int64text"
+	convCustom    = "custom" // types.<CustomType> ↔ the SDK field, by handwritten functions (custom.go)
 )
 
 // convField is one field of a convObject.
@@ -171,6 +178,9 @@ type convField struct {
 	// Unwrapped is true for the only field of an unwrapped object: its
 	// diagnostics have the path of the attribute, p.
 	Unwrapped bool
+	// Custom is the Go name of the handwritten functions of a custom field,
+	// and CustomType its Terraform value type (custom.go).
+	Custom, CustomType string
 }
 
 // Values of convField.Read.
@@ -661,12 +671,18 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		obj.Fields = append(obj.Fields, cf)
 	}
 	b.wrap(t, obj)
+	if err := b.namesArm(t, obj, ref.Path); err != nil {
+		return nil, err
+	}
 	return obj, nil
 }
 
 // objectField returns the conversion of the field f of the component schema,
 // whose SDK struct is at owner (an SDK name path), with its overrides.
 func (b *convBuilder) objectField(owner, schema string, f *model.Field) (*convField, error) {
+	if b.ov.field(schema, f.Name).Custom != nil {
+		return b.customField(owner, schema, f)
+	}
 	cf, err := b.field(owner, f.Name, b.ov.fieldType(schema, f))
 	if err != nil {
 		return nil, err
@@ -761,6 +777,8 @@ func modelGoType(cf *convField) (string, error) {
 		return "*" + cf.Object.Model, nil
 	case convUnwrap:
 		return cf.Object.ValueType, nil
+	case convCustom:
+		return "types." + cf.CustomType, nil
 	}
 	return "", fmt.Errorf("unwrap: a value of kind %s is not supported", cf.Conv)
 }
@@ -935,6 +953,8 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return expr, nil
 	}
 	switch f.Conv {
+	case convCustom:
+		return "types." + f.CustomType + "Type", nil
 	case convStrings, convEnumNames:
 		return "types." + f.Collection + "Type{ElemType: types.StringType}", nil
 	case convScalars:

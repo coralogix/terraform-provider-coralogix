@@ -62,6 +62,15 @@ func Dump(r *Resource) string {
 	return b.String()
 }
 
+// TypeText writes t and every type inside it, in the form of Dump. A change
+// of the API type changes the text.
+func TypeText(t *Type) string {
+	var b strings.Builder
+	b.WriteString(typeString(t) + "\n")
+	dumpChildren(&b, t, 2)
+	return b.String()
+}
+
 // dumpChildren writes the fields of an object, the arms of a oneOf, or the
 // fields of the objects in a list, set, or map.
 func dumpChildren(b *strings.Builder, t *Type, indent int) {

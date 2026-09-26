@@ -355,6 +355,7 @@ unwrap: [LuceneQuery]              # {"value": "..."} as the value itself
 | Reading a response | `missingAsZero` (a missing value is `""`, `false`, `0`, `[]`, or an enum's proto zero value), `emptyAsNull` (an empty list, map, or object is null) |
 | Server fields | `readOnly` (a read-only object makes everything inside it read only; the spec `readOnly` counts too) |
 | Shape | `wrap`: a new object around API fields, for example the arms of a proto oneof (F62). `unwrap`: an object with one field shown as that field (F66). `inline`: the fields of a nested object shown in the parent (F67) |
+| Handwritten parts | `custom`: one field keeps its handwritten attribute and converters; `namesArm`: an enum that names the set arm of a oneOf is filled in by expand |
 
 An override that names a type, field, or enum value that does not exist is an error, so a stale file cannot hide an API change.
 One change of shape is not supported yet: a `oneOf` written as a `type` string.
@@ -472,6 +473,37 @@ The spec sends some 64-bit numbers as strings with no `format`, only a pattern (
 Terraform has an Int64. The generator now also reads `format: int64` on a string, so a fixed spec needs no override. `string`
 is the reverse, for a handwritten String that holds a number (ApiKey `owner.team_id`).
 
+**Handwritten fields and the alert type: alerts.** Some alert fields have a Terraform shape that no rule converts.
+`of_the_last` is one string in Terraform and an object in the API:
+
+```hcl
+of_the_last = "10_MINUTES"   # or "1h30m"
+```
+
+```json
+{"ofTheLast": {"metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"}}
+```
+
+`custom` keeps the handwritten code for that one field. Everything around it is generated:
+
+```yaml
+customPackage: <import path of the handwritten converters>
+types:
+  MetricThresholdCondition:
+    ofTheLast: {custom: {type: String, shape: 1dd67adb0272}}
+```
+
+The generated code calls three handwritten functions for the field: its attribute, expand, and flatten. `shape` is a
+fingerprint of the API type of the field. When the API changes that type, the generator stops, shows the new type, and names
+the handwritten converter to check. The converters are in their own package, which must not import the generated one.
+
+An alert has one alert-type field set, and a `type` field that repeats its name
+(`{"metricThreshold": {...}, "type": "ALERT_DEF_TYPE_METRIC_THRESHOLD"}`). Terraform has no `type`. With
+`type: {namesArm: true}`, `type` is not an attribute, and expand fills it in from the set field. Every alert-type field must
+pair with one `type` value by the enum name rule, and every value with a field, so a new alert type without a value stops the
+generator. On the real spec, all 15 alert types pair. [`generated/fakealarm`](generated/fakealarm/alarm_test.go) tests both
+rules.
+
 **Next candidates.** A schema compare before and after these overrides:
 
 | Resource | Breaking before | Breaking after | Left |
@@ -506,7 +538,7 @@ is the reverse, for a handwritten String that holds a number (ApiKey `owner.team
 | D18 | Singletons | A singleton is a resource whose Get has no path parameter (one per company). Only a singleton with Create, Get, Update, and Delete on one path is generated. A singleton with only Get and Update is not a Terraform resource: not generated for now. | Terraform needs a real create and delete. (2026-09-25) |
 | D19 | Full-replace Update (`PUT`) | Generate it as it is, with no change to the API: `PUT` on the item path, or on the Create path with the id in the body. A request property with `readOnly: true` is a server field and is not sent. `PATCH` keeps the update mask. | The frequently changed APIs that Terraform has (dashboards, alerts, quota, notification center, SLO) all use `PUT`. Forcing `PATCH` on them is a breaking change for customers and work for every team. (2026-09-26) |
 | D20 | Generated parts inside handwritten resources (type mode) | A type mode, `tfgen --types A,B --tag <tag> --out <dir>`: the schema attributes, models, and expand and flatten of API types and every type inside them, in their own package (for example `dashboard_widgets/generated`). The handwritten code keeps the resource and plugs a type in with a few lines. Regenerating touches only that package. Existing handwritten code is never overwritten. | Most frequently changed APIs are existing, handwritten Terraform resources; regenerating them would lose custom code. In the last 12 months, 25 of 94 schema changes in Terraform-backed APIs added new objects to existing objects (dashboards 12, alerts 6). A separate package cannot clash with handwritten names. (2026-09-26) |
-| D21 | Overrides for existing resources (option D) | A YAML file per type-mode package: `--overrides <file>`. Keyed by API component and field, so one line covers every place the type is used. Kinds: `name`, `computed` (with "keep the state value"), `default`, `set`, `skip`, `required`, enum value names (the E14 rule, one line per value that differs), and one package option for wide numbers (`Int64`, `Float64`). Added in the pilot: how a response is read (`missingAsZero`, `emptyAsNull`, F57), `readOnly` (F58), and `deprecationMessage`. Added for SLO: `wrap` (a new object around API fields, F62), a read-only object makes everything inside it read only, `useNonNullStateForUnknown`, `missingAsZero` on an enum (the proto zero value, its first value), enum `acceptZero: false`; the spec `readOnly` applies in the type mode. Added for dashboards: `unwrap`, a top-level list of objects with one field that Terraform shows as that field (`lucene_query = "..."` for `{luceneQuery: {value: "..."}}`, F66). Added for ApiKey and alerts: `inline` on the field that holds a nested object (each parent decides; the fields of the object become fields of the parent, F67), `int64` (a string with the pattern `^-?[0-9]+$` or `^[0-9]+$` is an Int64, F68), `string` (an int64 JSON number is a String, F68), and `sensitive`. A switch needs a schema compare and an equivalence test of the old and new flatten and expand. An override that names a missing component or field is an error. The spec of existing APIs does not change; only new APIs follow the contract. Structure changes left (a `oneOf` as a `type` string, an empty object as a bool) are out of scope until the pilot is reevaluated. | 72% of the handwritten attributes of 18 resources already match; most of the rest are flags, defaults, set vs list, enum names, and renames. The switch must not change user configs or state. Pilot: GlobalRouter. New API fields are skipped in the switch, then added in a second step. Generated validators replace the handwritten ones; the compare tool lists each one that is new. (2026-09-26) |
+| D21 | Overrides for existing resources (option D) | A YAML file per type-mode package: `--overrides <file>`. Keyed by API component and field, so one line covers every place the type is used. Kinds: `name`, `computed` (with "keep the state value"), `default`, `set`, `skip`, `required`, enum value names (the E14 rule, one line per value that differs), and one package option for wide numbers (`Int64`, `Float64`). Added in the pilot: how a response is read (`missingAsZero`, `emptyAsNull`, F57), `readOnly` (F58), and `deprecationMessage`. Added for SLO: `wrap` (a new object around API fields, F62), a read-only object makes everything inside it read only, `useNonNullStateForUnknown`, `missingAsZero` on an enum (the proto zero value, its first value), enum `acceptZero: false`; the spec `readOnly` applies in the type mode. Added for dashboards: `unwrap`, a top-level list of objects with one field that Terraform shows as that field (`lucene_query = "..."` for `{luceneQuery: {value: "..."}}`, F66). Added for ApiKey and alerts: `inline` on the field that holds a nested object (each parent decides; the fields of the object become fields of the parent, F67), `int64` (a string with the pattern `^-?[0-9]+$` or `^[0-9]+$` is an Int64, F68), `string` (an int64 JSON number is a String, F68), and `sensitive`. Added for alerts: `custom` (one field keeps its handwritten attribute and converters; the override records a fingerprint of the field's API type, so an API change of that field stops the generator) and `namesArm` (an enum that names the set arm of a oneOf, such as the alerts `type`, is set by expand; every arm must pair with one value). A switch needs a schema compare and an equivalence test of the old and new flatten and expand. An override that names a missing component or field is an error. The spec of existing APIs does not change; only new APIs follow the contract. Structure changes left (a `oneOf` as a `type` string, an empty object as a bool) are out of scope until the pilot is reevaluated. | 72% of the handwritten attributes of 18 resources already match; most of the rest are flags, defaults, set vs list, enum names, and renames. The switch must not change user configs or state. Pilot: GlobalRouter. New API fields are skipped in the switch, then added in a second step. Generated validators replace the handwritten ones; the compare tool lists each one that is new. (2026-09-26) |
 
 ## Findings
 

@@ -40,6 +40,9 @@ type tfAttr struct {
 	// DeprecationMessage and Sensitive come from an override (D21).
 	DeprecationMessage string
 	Sensitive          bool
+	// Custom is the Go expression of a handwritten attribute (custom.go);
+	// then the other fields are not used.
+	Custom string
 }
 
 // tfModel is one Go struct of the Terraform model.
@@ -329,6 +332,10 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 // field f of the component schema.
 func (b *tfBuilder) field(p attrPath, schema string, f *model.Field) (*tfAttr, tfModelField, error) {
 	name := p[len(p)-1]
+	if b.ov.field(schema, f.Name).Custom != nil {
+		a, mf := b.customAttribute(name, schema, f)
+		return a, mf, nil
+	}
 	ft := b.ov.tfType(schema, f)
 	a, err := b.attribute(p, name, f.Description, ft, f.Attrs)
 	if err != nil {

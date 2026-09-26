@@ -37,6 +37,9 @@ type overrides struct {
 	// Unwrap lists objects with one field that Terraform shows as that
 	// field (see unwrap.go).
 	Unwrap []string `yaml:"unwrap"`
+	// CustomPackage is the import path of the handwritten converters of the
+	// custom fields (see custom.go).
+	CustomPackage string `yaml:"customPackage"`
 }
 
 // fieldOverride changes one API field. A nil flag keeps the generated value.
@@ -84,6 +87,13 @@ type fieldOverride struct {
 	// String makes an int64 field a String attribute with the decimal
 	// number, as some handwritten resources have (F68).
 	String bool `yaml:"string"`
+	// Custom keeps the handwritten attribute and converters of a field whose
+	// Terraform shape no rule converts (see custom.go).
+	Custom *customOverride `yaml:"custom"`
+	// NamesArm marks an enum field that names the set arm of the oneOf
+	// group of its object. It is not an attribute; expand sets it from the
+	// arm (see custom.go).
+	NamesArm bool `yaml:"namesArm"`
 }
 
 // numberPatterns are the formats of the patterns of a 64-bit number that
@@ -150,11 +160,12 @@ func (o *overrides) tfName(schema, name string) string {
 	return tfName(name)
 }
 
-// fields returns the fields of t that are not skipped.
+// fields returns the fields of t that are attributes: not skipped, and not
+// set from the arm (namesArm).
 func (o *overrides) fields(t *model.Type) []*model.Field {
 	var out []*model.Field
 	for _, f := range t.Fields {
-		if !o.field(t.Schema, f.Name).Skip {
+		if ov := o.field(t.Schema, f.Name); !ov.Skip && !ov.NamesArm {
 			out = append(out, f)
 		}
 	}
@@ -243,6 +254,7 @@ func (o *overrides) check(roots []*model.Type) error {
 		errs = append(errs, o.checkObject(t)...)
 	}
 	errs = append(errs, o.checkUnwrap(roots, objects)...)
+	errs = append(errs, o.checkCustomPackage()...)
 	for _, schema := range sortedKeys(o.Enums) {
 		t, ok := enums[schema]
 		if !ok {
@@ -274,8 +286,8 @@ func (o *overrides) checkObject(t *model.Type) []error {
 			errs = append(errs, fmt.Errorf("%s: %w", at, err))
 			continue
 		}
-		if o.Types[t.Schema][name].Inline {
-			if err := o.checkInline(t, f); err != nil {
+		if ok, err := o.checkShapeOverride(t, f); ok {
+			if err != nil {
 				errs = append(errs, fmt.Errorf("%s: %w", at, err))
 			}
 			continue

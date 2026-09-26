@@ -863,6 +863,109 @@ components:
             - $ref: '#/components/schemas/Key.Permissions'
           description: The permissions of the new key. Terraform shows its fields in the rotation.
       type: object
+    Alarm:
+      description: An alert, as in the alerts API. One rule is set, and type names it (namesArm). Two fields have a Terraform shape that no rule converts (custom). The custom and namesArm override (D21) tests use it.
+      properties:
+        name:
+          description: Name of the alarm.
+          type: string
+        type:
+          allOf:
+            - $ref: '#/components/schemas/AlarmType'
+          description: The rule that is set.
+        logsRule:
+          allOf:
+            - $ref: '#/components/schemas/LogsRule'
+          description: A logs rule.
+        metricRule:
+          allOf:
+            - $ref: '#/components/schemas/MetricRule'
+          description: A metric rule.
+        tracingRule:
+          allOf:
+            - $ref: '#/components/schemas/TracingRule'
+          description: A tracing rule.
+      oneOf:
+        - required:
+            - logsRule
+          type: object
+        - required:
+            - metricRule
+          type: object
+        - required:
+            - tracingRule
+          type: object
+        - not:
+            anyOf:
+              - required:
+                  - logsRule
+                type: object
+              - required:
+                  - metricRule
+                type: object
+              - required:
+                  - tracingRule
+                type: object
+          type: object
+      type: object
+    AlarmType:
+      description: The rule of an alarm.
+      enum:
+        - ALARM_TYPE_LOGS_RULE_OR_UNSPECIFIED
+        - ALARM_TYPE_METRIC_RULE
+        - ALARM_TYPE_TRACING_RULE
+      type: string
+    LogsRule:
+      description: A logs rule.
+      properties:
+        query:
+          description: The query.
+          type: string
+      type: object
+    MetricRule:
+      description: A metric rule.
+      properties:
+        threshold:
+          description: The threshold.
+          format: double
+          type: number
+        ofTheLast:
+          allOf:
+            - $ref: '#/components/schemas/TimeWindow'
+          description: The time window. Terraform has one string, as alerts of_the_last.
+      type: object
+    TracingRule:
+      description: A tracing rule.
+      properties:
+        latencyMs:
+          description: The latency. Terraform has a Number, as alerts latency_threshold_ms.
+          pattern: ^[0-9]+$
+          type: string
+      type: object
+    TimeWindow:
+      description: A fixed time window or a duration.
+      oneOf:
+        - required:
+            - specificValue
+          type: object
+        - required:
+            - dynamicDuration
+          type: object
+      properties:
+        specificValue:
+          allOf:
+            - $ref: '#/components/schemas/TimeWindowValue'
+          description: A fixed time window.
+        dynamicDuration:
+          description: A duration, for example 90s.
+          type: string
+      type: object
+    TimeWindowValue:
+      enum:
+        - TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED
+        - TIME_WINDOW_VALUE_HOURS_1
+      type: string
+      description: A fixed time window.
     DeleteFakeBoardResponse:
       type: object
       properties:

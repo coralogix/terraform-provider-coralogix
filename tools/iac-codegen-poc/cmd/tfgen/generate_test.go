@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"golang.org/x/tools/go/packages"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/internal/model"
 )
 
 // testSDKModule is the test SDK module (testsdk/generate.sh).
@@ -136,6 +138,8 @@ var generatedTypeCases = []struct {
 		"../../spec/fake/query.overrides.yaml"},
 	{"../../generated/fakeinline", "../../spec/fake/openapi.yaml", "Fake Boards Service", testSDKModule, []string{"Key"}, nil,
 		"../../spec/fake/key.overrides.yaml"},
+	{"../../generated/fakealarm", "../../spec/fake/openapi.yaml", "Fake Boards Service", testSDKModule, []string{"Alarm"}, nil,
+		"../../spec/fake/alarm.overrides.yaml"},
 }
 
 // TestGeneratedTypesUpToDate checks that each generated type package is the
@@ -420,6 +424,66 @@ func TestInlineRejects(t *testing.T) {
 				t.Errorf("error:\n%v\nwant it to contain:\n%s", err, c.want)
 			}
 		})
+	}
+}
+
+// TestCustomRejects checks the errors of the custom and namesArm overrides
+// (D21).
+func TestCustomRejects(t *testing.T) {
+	in := typeInputs{roots: []string{"Alarm", "Routing"}}
+	types, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml", in, "Fake Boards Service", testSDKModule)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const pkg = "customPackage: example.com/custom\n"
+	const window = "{type: String, shape: fd12ebc42bf2}"
+	for _, c := range []struct{ name, yaml, want string }{
+		{"custom with flags", pkg + "types: {MetricRule: {ofTheLast: {custom: " + window + ", required: true}}}", "custom can only be combined with name"},
+		{"custom type", pkg + "types: {MetricRule: {ofTheLast: {custom: {type: Text, shape: fd12ebc42bf2}}}}", `custom: type "Text" is not one of`},
+		{"stale shape", pkg + "types: {MetricRule: {ofTheLast: {custom: {type: String, shape: abc}}}}",
+			"the API type is not the one that the handwritten converter was written for (shape fd12ebc42bf2"},
+		{"custom arm", pkg + "types: {Alarm: {metricRule: {custom: " + window + "}}}", "a oneOf arm cannot be custom"},
+		{"no package", "types: {MetricRule: {ofTheLast: {custom: " + window + "}}}", "a custom field needs customPackage"},
+		{"package without custom", pkg, "customPackage is set, but no field is custom"},
+		{"namesArm with flags", "types: {Alarm: {type: {namesArm: true, required: true}}}", "namesArm cannot be combined with other overrides"},
+		{"namesArm on a string", "types: {Alarm: {name: {namesArm: true}}}", "namesArm needs an enum, the field is a string"},
+		{"namesArm without a group", "types: {Routing: {delivery: {namesArm: true}}}", "namesArm needs exactly one oneOf group in Routing, it has 0"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			p := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(p, []byte(c.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			ov, err := loadOverrides(p)
+			if err == nil {
+				_, err = generateTypes(types, enums, refs, ov, "fakealarm", "")
+			}
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("error:\n%v\nwant it to contain:\n%s", err, c.want)
+			}
+		})
+	}
+}
+
+// TestArmValues checks that namesArm pairs each arm with one enum value by
+// the name rule, and fails for an arm or a value without a pair.
+func TestArmValues(t *testing.T) {
+	enum := &model.Type{Kind: model.Enum, Schema: "RuleType", EnumPrefix: "RULE_TYPE_",
+		Values: []string{"RULE_TYPE_LOGS_RULE_OR_UNSPECIFIED", "RULE_TYPE_METRIC_RULE", "RULE_TYPE_SPAN_RULE"}}
+	obj := &model.Type{Kind: model.Object, Schema: "Rule", Groups: []model.OneOfGroup{{Arms: []string{"logsRule", "metricRule"}}}}
+	f := &model.Field{Name: "type", Type: enum}
+	_, err := armValues(obj, f)
+	if err == nil || err.Error() != "namesArm: the value RULE_TYPE_SPAN_RULE has no arm" {
+		t.Errorf("a value without an arm: %v", err)
+	}
+	obj.Groups[0].Arms = append(obj.Groups[0].Arms, "spanRule", "traceRule")
+	if _, err := armValues(obj, f); err == nil || err.Error() != "namesArm: the arm traceRule has no value" {
+		t.Errorf("an arm without a value: %v", err)
+	}
+	obj.Groups[0].Arms = obj.Groups[0].Arms[:3]
+	got, err := armValues(obj, f)
+	if err != nil || got["logsRule"] != "RULE_TYPE_LOGS_RULE_OR_UNSPECIFIED" || got["spanRule"] != "RULE_TYPE_SPAN_RULE" {
+		t.Errorf("pairs = %v, %v", got, err)
 	}
 }
 

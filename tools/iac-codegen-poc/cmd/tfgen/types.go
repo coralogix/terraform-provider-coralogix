@@ -28,6 +28,9 @@ type typesData struct {
 	// import path of their SDK package.
 	Enums  []*typeEnum
 	SDKPkg string
+	// CustomPkg is the import path of the handwritten custom attributes
+	// (custom.go); "" for none.
+	CustomPkg string
 }
 
 // typeEnum is one enum of --enums: the Terraform name of each API value.
@@ -139,11 +142,11 @@ func resolveTypeSDKNames(roots []*model.Type, tag, module string) ([]sdkRef, err
 // data. Each type is generated once, also when several roots use it. ov are
 // the overrides; nil for none.
 func buildTypes(roots, enums []*model.Type, refs []sdkRef, ov *overrides, pkg, command string) (*typesData, error) {
-	out := &typesData{Package: pkg, Command: command}
 	if ov == nil {
 		// The type mode always applies the spec readOnly (see effective).
 		ov = &overrides{}
 	}
+	out := &typesData{Package: pkg, Command: command, CustomPkg: ov.CustomPackage}
 	if err := ov.check(append(slices.Clone(roots), enums...)); err != nil {
 		return nil, err
 	}
@@ -242,7 +245,7 @@ func typesConv(roots []*model.Type, ix *refIndex, ov *overrides, out []*typeRoot
 			return nil, err
 		}
 	}
-	return &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Objects: cb.objects, Exported: true}, nil
+	return &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Objects: cb.objects, Exported: true, CustomPkg: ov.CustomPackage}, nil
 }
 
 // enumNames returns the Terraform name of each value of the enum t. The name

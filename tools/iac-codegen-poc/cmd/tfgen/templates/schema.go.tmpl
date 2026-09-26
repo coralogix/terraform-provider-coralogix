@@ -86,6 +86,7 @@ func (rfc3339Validator) ValidateString(_ context.Context, req validator.StringRe
 {{- end}}
 
 {{define "attribute" -}}
+{{if .Custom}}{{.Custom}}{{else -}}
 schema.{{.Kind}}Attribute{
 {{- if .Required}}
 	Required: true,
@@ -131,6 +132,7 @@ schema.{{.Kind}}Attribute{
 {{- end}}
 	MarkdownDescription: {{printf "%q" .Description}},
 }
+{{- end}}
 {{- end}}
 
 {{define "attributes" -}}

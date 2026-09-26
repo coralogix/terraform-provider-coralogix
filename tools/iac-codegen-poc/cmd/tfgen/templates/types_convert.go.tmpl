@@ -18,6 +18,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"{{.Conv.SDKPkg}}"
+{{- with .Conv.CustomPkg}}
+	custom "{{.}}"
+{{- end}}
 )
 {{- $sdk := .Conv.SDKName}}
 {{- range .Roots}}

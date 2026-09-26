@@ -98,6 +98,8 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, out, diags)
 {{- else if eq .Conv "inline"}}
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, p, m, diags){{$r}}
+{{- else if eq .Conv "custom"}}
+	out.{{.SDK}} = custom.Expand{{.Custom}}({{$p}}, m.{{.Model}}, diags)
 {{- else if eq .Conv "objectvalue"}}
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, objectAs[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags), diags){{$r}}
 {{- else if eq .Conv "empty"}}
@@ -182,6 +184,8 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, v, diags)
 {{- else if eq .Conv "inline"}}
 	flatten{{.Object.Func}}(ctx, p, {{$v}}, out, diags)
+{{- else if eq .Conv "custom"}}
+	out.{{.Model}} = custom.Flatten{{.Custom}}({{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "objectvalue"}}
 	out.{{.Model}} = objectValue(ctx, {{.Object.AttrTypesFunc}}(), flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags), diags)
 {{- else if eq .Conv "empty"}}
@@ -279,6 +283,16 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 {{- if not .ReadOnly}}
 {{- template "expandField" .}}
 {{- end}}
+{{- end}}
+{{- with .NamesArm}}
+{{- $field := .SDK}}{{$value := .Value}}
+	// {{$field}} names the arm that is set (the namesArm override).
+	switch {
+{{- range .Arms}}
+	case out.{{.SDK}} != nil:
+		out.{{$field}} = {{.Const}}{{if not $value}}.Ptr(){{end}}
+{{- end}}
+	}
 {{- end}}
 	return out
 }
