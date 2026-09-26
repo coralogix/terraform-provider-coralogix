@@ -1,0 +1,37 @@
+// This file is copied into a copy of the provider by integration/switch.sh.
+// It writes the schema dumps that cmd/schemacompare compares (D21).
+
+package slo_mgmt
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/schemadump"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/slo_mgmt/slotypes"
+)
+
+// TestWriteSchemaDumps writes the handwritten schema and the generated one
+// to $SCHEMA_DUMP_DIR.
+func TestWriteSchemaDumps(t *testing.T) {
+	dir := os.Getenv("SCHEMA_DUMP_DIR")
+	if dir == "" {
+		t.Skip("SCHEMA_DUMP_DIR is not set")
+	}
+	var resp resource.SchemaResponse
+	(&SLOV2Resource{}).Schema(context.Background(), resource.SchemaRequest{}, &resp)
+	for name, s := range map[string]schema.Schema{
+		"handwritten.txt": resp.Schema,
+		"generated.txt":   {Attributes: slotypes.SloAttributes()},
+	} {
+		text := schemadump.Text(schemadump.Dump(s, nil))
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

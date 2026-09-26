@@ -1,0 +1,196 @@
+// This file is copied into a copy of the provider by integration/switch.sh,
+// next to the handwritten SLO code. It checks that the generated types (D21)
+// read and send the same values as the handwritten code, before the
+// handwritten code is removed:
+//   - flatten: the same API object gives the same Terraform state;
+//   - expand: the same state gives the same request JSON.
+
+package slo_mgmt
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"testing"
+
+	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/schemadump"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/slo_mgmt/slotypes"
+)
+
+// sloFixtures are API objects as the server returns them.
+func sloFixtures() map[string]string {
+	return map[string]string{
+		"request based": `{"id":"s1","name":"req","description":"d","targetThresholdPercentage":99.5,
+			"labels":{"team":"a"},"sloTimeFrame":"SLO_TIME_FRAME_7_DAYS","productType":"SLO_PRODUCT_TYPE_UNSPECIFIED",
+			"requestBasedMetricSli":{"goodEvents":{"query":"sum(good)"},"totalEvents":{"query":"sum(all)"}},
+			"grouping":{"labels":["service"]}}`,
+		"window based": `{"id":"s2","name":"win","targetThresholdPercentage":90,"sloTimeFrame":"SLO_TIME_FRAME_28_DAYS",
+			"windowBasedMetricSli":{"query":{"query":"avg(x)"},"window":"WINDOW_SLO_WINDOW_1_MINUTE",
+				"comparisonOperator":"COMPARISON_OPERATOR_GREATER_THAN","threshold":0.5,
+				"missingDataStrategy":"MISSING_DATA_STRATEGY_GOOD"}}`,
+		"apm latency": `{"id":"s3","name":"apm","targetThresholdPercentage":95,"sloTimeFrame":"SLO_TIME_FRAME_14_DAYS",
+			"productType":"SLO_PRODUCT_TYPE_APM",
+			"apmSli":{"services":["api"],"groupingKeys":["env"],
+				"latencyConfig":{"timeWindow":"WINDOW_SLO_WINDOW_5_MINUTES","threshold":0.3,"quantile":{"percentile":0.99}},
+				"filters":[{"key":"region","values":["eu","us"]}]},
+			"apmSliMetadata":{"services":["api"],"latencyConfig":{"timeWindow":"WINDOW_SLO_WINDOW_5_MINUTES","threshold":0.3,"average":{}}},
+			"ownershipTags":{"team":{"staticValues":["sre"],"resolvedValues":["sre"]},"service":{"labelKeys":["svc"]}}}`,
+		"apm errors": `{"id":"s4","name":"err","targetThresholdPercentage":99,"sloTimeFrame":"SLO_TIME_FRAME_21_DAYS",
+			"productType":"SLO_PRODUCT_TYPE_APM","apmSli":{"services":["api"],"errorConfig":{}}}`,
+		"minimal": `{"id":"s5","name":"n","targetThresholdPercentage":50,"sloTimeFrame":"SLO_TIME_FRAME_7_DAYS",
+			"requestBasedMetricSli":{"goodEvents":{"query":"a"},"totalEvents":{"query":"b"}}}`,
+		"injected empties": `{"id":"s7","name":"e","targetThresholdPercentage":99,"sloTimeFrame":"SLO_TIME_FRAME_7_DAYS",
+			"productType":"SLO_PRODUCT_TYPE_APM","grouping":{"labels":["service_name"]},
+			"apmSli":{"services":["checkout"],"errorConfig":{},"filters":[],"groupingKeys":[]},
+			"apmSliMetadata":{"services":["checkout"],"errorConfig":{}},
+			"ownershipTags":{"environment":{"staticValues":["prod","staging"],"labelKeys":[],"resolvedValues":[]},
+				"team":{"staticValues":[],"labelKeys":["owning_team"],"resolvedValues":[]}}}`,
+		"legacy filter value": `{"id":"s8","name":"l","targetThresholdPercentage":99,"sloTimeFrame":"SLO_TIME_FRAME_7_DAYS",
+			"apmSli":{"services":["checkout"],
+				"latencyConfig":{"timeWindow":"WINDOW_SLO_WINDOW_5_MINUTES","threshold":500,"quantile":{"percentile":0.95}},
+				"filters":[{"key":"legacy","value":"only-value"},{"key":"modern","value":"","values":["500","503"]}]}}`,
+		"empty grouping and missing numbers": `{"id":"s9","name":"g","targetThresholdPercentage":99,"sloTimeFrame":"SLO_TIME_FRAME_7_DAYS",
+			"grouping":{},"windowBasedMetricSli":{"query":{"query":"q"},"window":"WINDOW_SLO_WINDOW_1_MINUTE",
+				"comparisonOperator":"COMPARISON_OPERATOR_LESS_THAN"},
+			"ownershipTags":{"service":{}}}`,
+		"zero enums": `{"id":"s6","name":"z","targetThresholdPercentage":1,"sloTimeFrame":"SLO_TIME_FRAME_UNSPECIFIED",
+			"windowBasedMetricSli":{"query":{"query":"q"},"window":"WINDOW_SLO_WINDOW_UNSPECIFIED",
+				"comparisonOperator":"COMPARISON_OPERATOR_UNSPECIFIED","threshold":0}}`,
+	}
+}
+
+func sloSchemas() (hw, gen schema.Schema) {
+	var resp resource.SchemaResponse
+	(&SLOV2Resource{}).Schema(context.Background(), resource.SchemaRequest{}, &resp)
+	return resp.Schema, schema.Schema{Version: resp.Schema.Version, Attributes: slotypes.SloAttributes()}
+}
+
+func decodeSlo(t *testing.T, js string) *slos.Slo {
+	t.Helper()
+	var s slos.Slo
+	if err := json.Unmarshal([]byte(js), &s); err != nil {
+		t.Fatal(err)
+	}
+	return &s
+}
+
+func TestSloEquivalenceFlatten(t *testing.T) {
+	ctx := context.Background()
+	hwSchema, genSchema := sloSchemas()
+	for name, js := range sloFixtures() {
+		t.Run(name, func(t *testing.T) {
+			hwState := sloState(t, hwSchema, func(s *tfsdk.State) diag.Diagnostics {
+				m, diags := flattenSLOV2(ctx, decodeSlo(t, js))
+				return append(diags, s.Set(ctx, m)...)
+			})
+			genState := sloState(t, genSchema, func(s *tfsdk.State) diag.Diagnostics {
+				slo := decodeSlo(t, js)
+				normalizeSloResponse(slo)
+				m, diags := slotypes.FlattenSlo(ctx, path.Empty(), slo)
+				return append(diags, s.Set(ctx, m)...)
+			})
+			diffs, err := hwState.Diff(genState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, d := range diffs {
+				t.Errorf("state differs at %s: handwritten %v, generated %v", d.Path, d.Value1, d.Value2)
+			}
+		})
+	}
+}
+
+func TestSloEquivalenceExpand(t *testing.T) {
+	ctx := context.Background()
+	hwSchema, genSchema := sloSchemas()
+	for name, js := range sloFixtures() {
+		t.Run(name, func(t *testing.T) {
+			raw := sloState(t, hwSchema, func(s *tfsdk.State) diag.Diagnostics {
+				m, diags := flattenSLOV2(ctx, decodeSlo(t, js))
+				return append(diags, s.Set(ctx, m)...)
+			})
+			var hwModel SLOV2ResourceModel
+			if diags := (tfsdk.State{Schema: hwSchema, Raw: raw}).Get(ctx, &hwModel); diags.HasError() {
+				t.Fatal(diags)
+			}
+			var genModel slotypes.SloModel
+			if diags := (tfsdk.State{Schema: genSchema, Raw: raw}).Get(ctx, &genModel); diags.HasError() {
+				t.Fatal(diags)
+			}
+			hwBody, diags := extractSLOV2(ctx, &hwModel)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			genBody, diags := slotypes.ExpandSlo(ctx, path.Empty(), &genModel)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			normalizeSloRequest(genBody)
+			// The request body is Slo1, a copy of Slo (extractSLOV2Payload).
+			h, g := sloJSON(t, extractSLOV2Payload(hwBody)), sloJSON(t, extractSLOV2Payload(genBody))
+			if h != g {
+				t.Errorf("request differs:\nhandwritten: %s\ngenerated:   %s", h, g)
+			}
+		})
+	}
+}
+
+// TestSloEquivalencePlanWithUnknowns checks that an update plan with every computed
+// attribute unknown reads into the generated model and expands. The first
+// live check found this: apm_sli_metadata and grouping are computed objects.
+func TestSloPlanWithUnknowns(t *testing.T) {
+	ctx := context.Background()
+	_, genSchema := sloSchemas()
+	for name, js := range sloFixtures() {
+		t.Run(name, func(t *testing.T) {
+			// The state of the switched code, so the check also runs with
+			// the added fields.
+			raw := sloState(t, genSchema, func(s *tfsdk.State) diag.Diagnostics {
+				slo := decodeSlo(t, js)
+				normalizeSloResponse(slo)
+				m, diags := slotypes.FlattenSlo(ctx, path.Empty(), slo)
+				return append(diags, s.Set(ctx, m)...)
+			})
+			plan, err := schemadump.PlanWithUnknowns(ctx, genSchema, raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var m slotypes.SloModel
+			if diags := (tfsdk.Plan{Schema: genSchema, Raw: plan}).Get(ctx, &m); diags.HasError() {
+				t.Fatalf("get plan: %v", diags)
+			}
+			body, diags := slotypes.ExpandSlo(ctx, path.Empty(), &m)
+			if diags.HasError() {
+				t.Fatalf("expand: %v", diags)
+			}
+			normalizeSloRequest(body)
+		})
+	}
+}
+
+func sloState(t *testing.T, s schema.Schema, set func(*tfsdk.State) diag.Diagnostics) tftypes.Value {
+	t.Helper()
+	state := tfsdk.State{Schema: s, Raw: tftypes.NewValue(s.Type().TerraformType(context.Background()), nil)}
+	if diags := set(&state); diags.HasError() {
+		t.Fatal(fmt.Sprint(diags))
+	}
+	return state.Raw
+}
+
+func sloJSON(t *testing.T, v any) string {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}

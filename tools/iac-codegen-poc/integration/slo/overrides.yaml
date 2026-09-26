@@ -1,0 +1,63 @@
+# Overrides (D21) for the Slo types of the handwritten coralogix_slo_v2
+# resource (internal/provider/slo_mgmt). The handwritten schema puts the
+# arms of the proto oneofs "sli" and "window" in objects named after them;
+# the wrappers do the same.
+#
+# Two rules that the API does not describe stay handwritten, in
+# add/resource_coralogix_slo_v2_normalize.go.txt: an old APM filter value, and
+# empty ownership dimensions.
+#
+# The first switch changes nothing for users, so the API fields that
+# Terraform does not have yet are skipped. overrides-added.yaml adds them.
+types:
+  Slo:
+    sli: {wrap: [requestBasedMetricSli, windowBasedMetricSli, apmSli], required: true}
+    window: {wrap: [sloTimeFrame], required: true}
+    id: {optional: false, computed: true, useStateForUnknown: true}
+    name: {required: true}
+    targetThresholdPercentage: {required: true}
+    sloTimeFrame: {required: true}
+    labels: {computed: true}
+    grouping: {readOnly: true}
+    productType: {computed: true, useNonNullStateForUnknown: true, missingAsZero: true}
+    apmSliMetadata: {readOnly: true}
+    createTime: {skip: true}
+    updateTime: {skip: true}
+    creator: {skip: true}
+    revision: {skip: true}
+    sloType: {skip: true}
+    type: {skip: true}   # deprecated in the API
+  SloOwnershipTag:
+    resolvedValues: {readOnly: true, emptyAsNull: true}
+    staticValues: {emptyAsNull: true}
+    labelKeys: {emptyAsNull: true}
+  ApmLatencySli:
+    timeWindow: {required: true}
+    threshold: {computed: true, useNonNullStateForUnknown: true, missingAsZero: true}
+  ApmLatencyQuantile:
+    percentile: {computed: true, useNonNullStateForUnknown: true, missingAsZero: true}
+  WindowBasedMetricSli:
+    missingDataStrategy: {computed: true, useNonNullStateForUnknown: true, missingAsZero: true}
+    comparisonOperator: {required: true}
+    query: {required: true}
+    threshold: {required: true, missingAsZero: true}
+    window: {required: true}
+  RequestBasedMetricSli:
+    goodEvents: {required: true}
+    totalEvents: {required: true}
+  Metric:
+    query: {required: true}
+  ApmSli:
+    services: {required: true, emptyAsNull: true}
+    groupingKeys: {emptyAsNull: true}
+    filters: {emptyAsNull: true}
+  ApmFilter:
+    key: {required: true}
+    values: {required: true, emptyAsNull: true}
+    value: {skip: true}   # deprecated: add/ turns it into values
+enums:
+  SloTimeFrame: {terraformNames: true, zero: unspecified}
+  WindowSloWindow: {terraformNames: true, zero: unspecified, acceptZero: false}   # the server fails on it
+  ComparisonOperator: {terraformNames: true, zero: unspecified}
+  MissingDataStrategy: {terraformNames: true}
+  SloProductType: {terraformNames: true, zero: unspecified}

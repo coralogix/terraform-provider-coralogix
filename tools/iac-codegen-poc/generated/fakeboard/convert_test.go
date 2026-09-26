@@ -42,6 +42,8 @@ func full(t *testing.T) *FakeBoardModel {
 		Flags:  types.MapNull(types.BoolType),
 		Labels: types.MapNull(types.StringType),
 		Panels: types.MapNull(types.ObjectType{AttrTypes: panelAttrTypes()}),
+		// Computed, so a types.Object: a plan can hold it unknown.
+		Routing: types.ObjectNull(routingAttrTypes()),
 		Layout: &LayoutModel{
 			// The time group needs exactly one arm.
 			RelativeTime: &EveryModel{Minutes: types.Int32Value(15)},
@@ -114,7 +116,8 @@ func TestExpandNullLevels(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			m := &FakeBoardModel{Layout: &LayoutModel{Title: types.StringValue("T"), Section: c.section, RelativeTime: &EveryModel{}}}
+			m := &FakeBoardModel{Routing: types.ObjectNull(routingAttrTypes()),
+				Layout: &LayoutModel{Title: types.StringValue("T"), Section: c.section, RelativeTime: &EveryModel{}}}
 			body, diags := expandUpdate(context.Background(), m)
 			assertNoDiags(t, diags)
 			assertJSON(t, body.Layout, strings.Replace(c.want, `{"title":"T"`, `{"relativeTime":{},"title":"T"`, 1))

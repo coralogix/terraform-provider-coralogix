@@ -46,6 +46,9 @@ type tfModel struct {
 	Name   string
 	Schema string // the component schema; "" for the resource model
 	Fields []tfModelField
+	// Wrapper is the Terraform name of a wrapper (D21): the model holds
+	// fields of Schema that the overrides moved into a new object.
+	Wrapper string
 }
 
 type tfModelField struct {
@@ -94,7 +97,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.RequiresReplace()")
 		}
 		out.Attributes = append(out.Attributes, a)
-		root.Fields = append(root.Fields, b.modelField(tfName(f.Name), f.Name, f.Type))
+		root.Fields = append(root.Fields, objectValueField(b.modelField(tfName(f.Name), f.Name, f.Type), a))
 	}
 	for _, g := range r.Groups {
 		var arms []string
@@ -278,13 +281,16 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	if t.Schema == "" {
 		return nil, fmt.Errorf("inline %s schema is not supported", t.Kind)
 	}
-	var attrs []*tfAttr
-	var fields []tfModelField
 	fs := b.ov.fields(t)
+	built := map[string]*tfAttr{}
+	modelFields := map[string]tfModelField{}
 	for _, f := range fs {
 		name := b.ov.tfName(t.Schema, f.Name)
 		ft := b.ov.fieldType(t.Schema, f)
 		child := append(append(attrPath{}, p...), name)
+		if w := b.ov.wrapperOf(t, f.Name); w != "" {
+			child = append(append(attrPath{}, p...), w, name)
+		}
 		a, err := b.attribute(child, name, f.Description, ft, f.Attrs)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
@@ -292,10 +298,10 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		if err := b.override(a, t.Schema, f, ft); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
-		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(name, f.Name, ft))
+		built[f.Name], modelFields[f.Name] = a, objectValueField(b.modelField(name, f.Name, ft), a)
 	}
 	armName := func(arm string) string { return b.ov.tfName(t.Schema, arm) }
+	attrs, fields := b.assemble(t, fs, built, modelFields, armName)
 	// A oneOf is one group of all its fields. Its validators are on the arms,
 	// with paths relative to the object, like the groups: they run only when
 	// the object is set, and each list item or map value on its own (F34,
@@ -303,12 +309,71 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	if t.Kind == model.OneOf {
 		addGroupValidators(attrs, []model.OneOfGroup{{Arms: fieldNames(fs), AllowNone: t.AllowNone}}, armName)
 	}
-	addGroupValidators(attrs, b.ov.groups(t), armName)
+	for _, g := range b.ov.groups(t) {
+		if b.ov.wrapperOf(t, g.Arms[0]) == "" {
+			addGroupValidators(attrs, []model.OneOfGroup{g}, armName)
+		}
+	}
 	if name := modelTypeName(t.Schema); !b.seen[name] {
 		b.seen[name] = true
 		b.models = append(b.models, &tfModel{Name: name, Schema: t.Schema, Fields: fields})
 	}
 	return attrs, nil
+}
+
+// assemble returns the attributes and model fields of t in API order, with
+// each wrapper (D21) at the place of its first field. A wrapper is a single
+// nested attribute with its own model; the oneOf groups inside it get their
+// validators there.
+func (b *tfBuilder) assemble(t *model.Type, fs []*model.Field, built map[string]*tfAttr, modelFields map[string]tfModelField,
+	armName func(string) string) ([]*tfAttr, []tfModelField) {
+	var attrs []*tfAttr
+	var fields []tfModelField
+	wrappers := map[string]wrapper{}
+	for _, w := range b.ov.wrappers(t) {
+		wrappers[w.Fields[0]] = w
+	}
+	for _, f := range fs {
+		if w, ok := wrappers[f.Name]; ok {
+			a, mf := b.wrapperAttribute(t, w, built, modelFields, armName)
+			attrs, fields = append(attrs, a), append(fields, mf)
+			continue
+		}
+		if b.ov.wrapperOf(t, f.Name) == "" {
+			attrs, fields = append(attrs, built[f.Name]), append(fields, modelFields[f.Name])
+		}
+	}
+	return attrs, fields
+}
+
+func (b *tfBuilder) wrapperAttribute(t *model.Type, w wrapper, built map[string]*tfAttr, modelFields map[string]tfModelField,
+	armName func(string) string) (*tfAttr, tfModelField) {
+	a := &tfAttr{Name: w.Name, Kind: "SingleNested", ValueKind: "Object",
+		Description: fmt.Sprintf("Holds the API fields %s of %s.", strings.Join(w.Fields, ", "), t.Schema)}
+	a.Required, a.Optional, a.Computed = flags(w.Ov, model.Attrs{})
+	// A computed wrapper would need a types.Object model (objectValueField);
+	// checkWrapper rejects it.
+	m := &tfModel{Name: wrapperModelName(t.Schema, w.Name), Schema: t.Schema, Wrapper: w.Name}
+	for _, name := range w.Fields {
+		a.Attributes = append(a.Attributes, built[name])
+		m.Fields = append(m.Fields, modelFields[name])
+	}
+	for _, g := range b.ov.groups(t) {
+		if b.ov.wrapperOf(t, g.Arms[0]) == w.Name {
+			addGroupValidators(a.Attributes, []model.OneOfGroup{g}, armName)
+		}
+	}
+	if !b.seen[m.Name] {
+		b.seen[m.Name] = true
+		b.models = append(b.models, m)
+	}
+	return a, tfModelField{Name: camelize(w.Name), Type: "*" + m.Name, TFName: w.Name}
+}
+
+// wrapperModelName is the model struct of a wrapper: "Slo", "sli" →
+// "SloSliModel".
+func wrapperModelName(schema, wrapper string) string {
+	return camelize(schema) + camelize(wrapper) + "Model"
 }
 
 // modelField is the model struct field of the API field apiName, whose
@@ -352,6 +417,16 @@ func fieldNames(fields []*model.Field) []string {
 	return names
 }
 
+// objectValueField returns mf as a types.Object when a is a computed single
+// nested attribute. Terraform plans such a value as unknown, for example on
+// an update, and a struct pointer cannot hold an unknown value.
+func objectValueField(mf tfModelField, a *tfAttr) tfModelField {
+	if a.Kind == "SingleNested" && a.Computed {
+		mf.Type = "types.Object"
+	}
+	return mf
+}
+
 // scalar returns the attribute kind and the validators of a scalar type,
 // with the overrides: wide numbers, and the Terraform names of an enum.
 func (b *tfBuilder) scalar(t *model.Type) (string, []string, error) {
@@ -387,16 +462,31 @@ func (b *tfBuilder) override(a *tfAttr, schema string, f *model.Field, t *model.
 	if ov.ReadOnly {
 		// Validators check the configuration, which is always null here.
 		a.Default, a.Validators = "", nil
+		readOnlyTree(a.Attributes)
 	}
 	pkg := strings.ToLower(a.ValueKind) + "planmodifier."
 	if ov.UseStateForUnknown {
 		a.Modifiers = append(a.Modifiers, pkg+"UseStateForUnknown()")
+	}
+	if ov.UseNonNullStateForUnknown {
+		a.Modifiers = append(a.Modifiers, pkg+"UseNonNullStateForUnknown()")
 	}
 	if ov.RequiresReplace {
 		a.Modifiers = append(a.Modifiers, pkg+"RequiresReplace()")
 	}
 	a.DeprecationMessage = ov.DeprecationMessage
 	return nil
+}
+
+// readOnlyTree makes every attribute inside a read-only one Computed only,
+// with no validators, defaults, or plan modifiers: the server sets all of
+// it.
+func readOnlyTree(attrs []*tfAttr) {
+	for _, a := range attrs {
+		a.Required, a.Optional, a.Computed = false, false, true
+		a.Default, a.Validators, a.Modifiers = "", nil, nil
+		readOnlyTree(a.Attributes)
+	}
 }
 
 // checkDefault checks that the default of an enum is one of its values: a

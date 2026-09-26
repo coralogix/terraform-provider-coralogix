@@ -68,6 +68,13 @@ type convObject struct {
 	// object. The function AttrTypesFunc returns them.
 	AttrTypes     []convAttrType
 	AttrTypesFunc string
+	// Wrapper is true for the object of a wrapper (D21): SDK is the SDK
+	// struct of the parent, and expand and flatten set and read its fields.
+	// NilCheck is the Go condition that is true when the API response has
+	// none of the wrapped fields; then flatten returns nil. "" when a
+	// wrapped field is a value, which is never missing.
+	Wrapper  bool
+	NilCheck string
 }
 
 type convAttrType struct {
@@ -103,6 +110,10 @@ const (
 	convFloat32Wide = "float32wide" // types.Float64 ↔ *float32
 	convEnumName    = "enumname"    // types.String (a Terraform name) ↔ *<enum type>
 	convEnumNames   = "enumnames"   // types.Set/List of Terraform names ↔ []<enum type>
+	convWrap        = "wrap"        // *<wrapper Model> ↔ fields of the same SDK struct (see wrapper)
+	// convObjValue is a computed object: types.Object ↔ *<SDK type>.
+	// Terraform plans it as unknown, which a struct pointer cannot hold.
+	convObjValue = "objectvalue"
 )
 
 // convField is one field of a convObject.
@@ -130,6 +141,9 @@ type convField struct {
 	// Read is how flatten reads a missing or empty value, from the
 	// overrides (D21): "" as it is, readZero or readNull.
 	Read string
+	// ProtoZero is the SDK constant of the proto zero value of an enum (its
+	// first value), for readZeroEnum: a response leaves it out.
+	ProtoZero string
 	// ReadOnly is true for a field that the server sets (the readOnly
 	// override): expand does not send it.
 	ReadOnly bool
@@ -142,6 +156,7 @@ const (
 	readEmptyMap  = "emptymap"   // a missing map → an empty map
 	readNullList  = "nulllist"   // an empty list or map → null
 	readNullObj   = "nullobject" // an object with no fields set → null
+	readZeroEnum  = "zeroenum"   // a missing enum → its proto zero value (ProtoZero)
 )
 
 // Normalizes reports whether flatten of obj changes a missing or empty
@@ -248,6 +263,9 @@ func buildConv(r *model.Resource, refs []sdkRef) (*convData, error) {
 			cf, err := b.field(root.path, f.Name, f.Type)
 			if err != nil {
 				return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+			}
+			if f.Behavior == model.Computed {
+				b.objectValue(cf)
 			}
 			obj.Fields = append(obj.Fields, cf)
 		}
@@ -578,23 +596,93 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		}
 		cf.TFName = b.ov.tfName(t.Schema, f.Name)
 		cf.ReadOnly = b.ov.effective(t.Schema, f).ReadOnly
-		if cf.Read, err = readRule(b.ov.field(t.Schema, f.Name), cf); err != nil {
+		if _, _, comp := flags(b.ov.effective(t.Schema, f), f.Attrs); comp && b.ov != nil {
+			b.objectValue(cf)
+		}
+		if cf.Read, err = b.readRule(b.ov.field(t.Schema, f.Name), cf, f.Type); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		obj.Fields = append(obj.Fields, cf)
 	}
+	b.wrap(t, obj)
 	return obj, nil
+}
+
+// objectValue makes a computed object field a types.Object (convObjValue).
+func (b *convBuilder) objectValue(cf *convField) {
+	if cf.Conv != convObj {
+		return
+	}
+	cf.Conv = convObjValue
+	if !contains(b.listed, cf.Object) {
+		b.listed = append(b.listed, cf.Object)
+	}
+}
+
+// wrap moves the fields of each wrapper of t (D21) from obj into a wrapper
+// object, and puts a wrap field at the place of the first one.
+func (b *convBuilder) wrap(t *model.Type, obj *convObject) {
+	byName := map[string]*convField{}
+	for _, cf := range obj.Fields {
+		byName[cf.TFName] = cf
+	}
+	first := map[*convField]*convField{} // first wrapped field → the wrap field
+	wrapped := map[*convField]bool{}
+	for _, w := range b.ov.wrappers(t) {
+		wobj := &convObject{Func: obj.Func + camelize(w.Name), Model: wrapperModelName(t.Schema, w.Name), SDK: obj.SDK, Wrapper: true}
+		wobj.AttrTypesFunc = lowerFirst(wobj.Func) + "AttrTypes"
+		var checks []string
+		for _, name := range w.Fields {
+			cf := byName[b.ov.tfName(t.Schema, name)]
+			wobj.Fields = append(wobj.Fields, cf)
+			wrapped[cf] = true
+			if !cf.Value {
+				checks = append(checks, "v."+cf.SDK+" == nil")
+			}
+		}
+		if len(checks) == len(wobj.Fields) {
+			wobj.NilCheck = strings.Join(checks, " && ")
+		}
+		b.objects = append(b.objects, wobj)
+		first[byName[b.ov.tfName(t.Schema, w.Fields[0])]] = &convField{TFName: w.Name, Model: camelize(w.Name), Conv: convWrap, Object: wobj}
+	}
+	if len(first) == 0 {
+		return
+	}
+	var fields []*convField
+	for _, cf := range obj.Fields {
+		if wf, ok := first[cf]; ok {
+			fields = append(fields, wf)
+		}
+		if !wrapped[cf] {
+			fields = append(fields, cf)
+		}
+	}
+	obj.Fields = fields
 }
 
 // zeroable are the conversions whose zero value is a valid Terraform value.
 var zeroable = map[string]bool{convString: true, convBool: true, convFloat64: true, convFloat32: true,
 	convInt32: true, convInt64: true, convInt32Wide: true, convFloat32Wide: true}
 
-// readRule returns how flatten reads a missing or empty value of cf.
-func readRule(ov fieldOverride, cf *convField) (string, error) {
+// readRule returns how flatten reads a missing or empty value of cf, whose
+// API type is t.
+func (b *convBuilder) readRule(ov fieldOverride, cf *convField, t *model.Type) (string, error) {
 	slice := map[string]bool{convStrings: true, convScalars: true, convObjects: true, convEnumNames: true}[cf.Conv]
 	mapped := map[string]bool{convStringMap: true, convScalarMap: true, convUint64Map: true, convObjectMap: true}[cf.Conv]
 	switch {
+	case ov.MissingAsZero && (cf.Conv == convEnum || cf.Conv == convEnumName) && !cf.Value:
+		// Proto3 JSON leaves out an enum at its zero value, the first one.
+		enum, err := b.ix.schemaRef(t.Schema)
+		if err != nil {
+			return "", err
+		}
+		zero := t.Zero
+		if zero == "" {
+			zero = t.Values[0]
+		}
+		cf.ProtoZero = b.qualify(enumConstName(enum.Name, zero))
+		return readZeroEnum, nil
 	case ov.MissingAsZero:
 		return zeroRule(cf, slice, mapped)
 	case ov.EmptyAsNull && (slice || mapped):
@@ -659,7 +747,7 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	}
 	for _, f := range obj.Fields {
 		switch f.Conv {
-		case convObj, convObjects, convObjectMap:
+		case convObj, convObjects, convObjectMap, convWrap, convObjValue:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
 			}
@@ -710,7 +798,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return "types.MapType{ElemType: types.StringType}", nil
 	case convUint64Map:
 		return "types.MapType{ElemType: types.Int64Type}", nil
-	case convObj, convObjects, convObjectMap:
+	case convObj, convObjects, convObjectMap, convWrap, convObjValue:
 		if err := b.attrTypes(f.Object); err != nil {
 			return "", err
 		}

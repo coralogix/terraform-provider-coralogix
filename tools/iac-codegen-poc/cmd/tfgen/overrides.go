@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"regexp"
 	"slices"
 	"strings"
@@ -45,8 +46,11 @@ type fieldOverride struct {
 	// makes the attribute Optional and Computed.
 	Default            *string `yaml:"default"`
 	UseStateForUnknown bool    `yaml:"useStateForUnknown"`
-	RequiresReplace    bool    `yaml:"requiresReplace"`
-	Set                bool    `yaml:"set"` // a list is a Terraform set
+	// UseNonNullStateForUnknown keeps a known, non-null state value in the
+	// plan (the framework plan modifier of that name).
+	UseNonNullStateForUnknown bool `yaml:"useNonNullStateForUnknown"`
+	RequiresReplace           bool `yaml:"requiresReplace"`
+	Set                       bool `yaml:"set"` // a list is a Terraform set
 	// DeprecationMessage makes Terraform warn when a configuration sets the
 	// attribute.
 	DeprecationMessage string `yaml:"deprecationMessage"`
@@ -61,6 +65,9 @@ type fieldOverride struct {
 	// readOnly (F46): the attribute is Computed only, and expand never
 	// sends it.
 	ReadOnly bool `yaml:"readOnly"`
+	// Wrap makes the key a new Terraform object that holds these API fields
+	// (see wrapper).
+	Wrap []string `yaml:"wrap"`
 }
 
 // enumOverride changes the Terraform values of one API enum.
@@ -73,6 +80,9 @@ type enumOverride struct {
 	// Zero is the name of the value that only means "not set". Without it,
 	// that value is null in Terraform.
 	Zero string `yaml:"zero"`
+	// AcceptZero false keeps Zero for reading, but not in the names that a
+	// configuration may use (the server may reject the value).
+	AcceptZero *bool `yaml:"acceptZero"`
 }
 
 // overridesFlag is the flag of the overrides file.
@@ -226,7 +236,10 @@ func (o *overrides) checkObject(t *model.Type) []error {
 	for _, name := range sortedKeys(o.Types[t.Schema]) {
 		at := fmt.Sprintf("overrides: types.%s.%s", t.Schema, name)
 		f, ok := fields[name]
-		if !ok {
+		switch {
+		case !ok && len(o.Types[t.Schema][name].Wrap) != 0:
+			continue // checkWrappers
+		case !ok:
 			errs = append(errs, fmt.Errorf("%s: no such field", at))
 			continue
 		}
@@ -237,7 +250,11 @@ func (o *overrides) checkObject(t *model.Type) []error {
 	if len(o.fields(t)) == 0 {
 		errs = append(errs, fmt.Errorf("overrides: types.%s: every field is skipped", t.Schema))
 	}
+	errs = append(errs, o.checkWrappers(t)...)
 	seen := map[string]string{}
+	for _, w := range o.wrappers(t) {
+		seen[w.Name] = "the wrapper " + w.Name
+	}
 	for _, f := range o.fields(t) {
 		n := o.tfName(t.Schema, f.Name)
 		if prev, ok := seen[n]; ok {
@@ -252,7 +269,10 @@ func (o *overrides) checkObject(t *model.Type) []error {
 // attribute: Required alone, Optional with or without Computed, or Computed
 // alone.
 func checkField(ov fieldOverride, f *model.Field) error {
-	if ov.Skip && ov != (fieldOverride{Skip: true}) {
+	if len(ov.Wrap) != 0 {
+		return errors.New("wrap: the key must be a new attribute name, not an API field")
+	}
+	if ov.Skip && !reflect.DeepEqual(ov, fieldOverride{Skip: true}) {
 		return errors.New("skip cannot be combined with other overrides")
 	}
 	if ov.Name != "" && !attrNamePattern.MatchString(ov.Name) {
@@ -357,6 +377,9 @@ func (o *overrides) checkEnum(t *model.Type) []error {
 	}
 	if ov.Zero != "" && t.Zero == "" {
 		errs = append(errs, fmt.Errorf("%s.zero: the enum has no value that only means \"not set\"", at))
+	}
+	if ov.AcceptZero != nil && ov.Zero == "" {
+		errs = append(errs, fmt.Errorf("%s.acceptZero needs zero", at))
 	}
 	return errs
 }

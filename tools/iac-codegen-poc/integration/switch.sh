@@ -7,9 +7,14 @@
 #      - dump the handwritten schema and the schema after the switch, and
 #        compare them with cmd/schemacompare (no breaking difference);
 #      - the equivalence test: the same API objects give the same state, and
-#        the same state gives the same request, in the old and the new code.
+#        the same state gives the same request, in the old and the new code;
+#      - the plan test: an update plan with every computed attribute unknown
+#        reads into the new model and expands (PlanWithUnknowns).
 #   4. Apply <name>/provider.patch (the switch), then go vet and the provider
 #      unit tests.
+# New handwritten provider files of the switch are in <name>/add/*.go.txt
+# (the suffix keeps them out of this module). They are copied in before
+# step 3, so the checks run the same code as the switched resource.
 # The provider checkout is not changed. The patches were made against
 # provider commit 752482ec.
 #
@@ -18,8 +23,8 @@
 # With WORK_DIR=<dir>, the switched copy is written there and kept.
 # With STEP=added, the types come from <name>/overrides-added.yaml, which adds
 # the API fields that Terraform did not have. Then step 3 allows these
-# additions, and the equivalence test does not run: the state has more
-# attributes.
+# additions, and only the plan test runs: the equivalence test cannot, the
+# state has more attributes.
 set -euo pipefail
 
 NAME="${1:?usage: integration/switch.sh <name> <provider checkout>}"
@@ -36,13 +41,18 @@ else
   trap 'rm -rf "$WORK"' EXIT
 fi
 OVERRIDES="$IT/overrides.yaml"
-TESTS='TestWriteSchemaDumps|Equivalence'
+TESTS='TestWriteSchemaDumps|Equivalence|PlanWithUnknowns'
 if [ "${STEP:-switch}" = added ]; then
   OVERRIDES="$IT/overrides-added.yaml"
-  TESTS='TestWriteSchemaDumps'
+  TESTS='TestWriteSchemaDumps|PlanWithUnknowns'
 fi
 
 git -C "$PROVIDER" archive HEAD | tar -x -C "$WORK"
+if [ -d "$IT/add" ]; then
+  for f in "$IT"/add/*.go.txt; do
+    cp "$f" "$WORK/$TEST_DIR/$(basename "$f" .txt)"
+  done
+fi
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --types "$ROOT" --tag "$TAG" \
   --overrides "$OVERRIDES" --out "$WORK/$PKG"
 

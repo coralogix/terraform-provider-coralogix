@@ -30,7 +30,9 @@ var {{.Name}}ByName = map[string]{{.SDK}}{
 // example for stringvalidator.OneOf({{.Name}}Names...).
 var {{.Name}}Names = []string{
 {{- range .Items}}
+{{- if not .ReadOnly}}
 	{{printf "%q" .TFName}},
+{{- end}}
 {{- end}}
 }
 

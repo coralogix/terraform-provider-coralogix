@@ -20,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/schemadump"
+
 	globalrouterschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/global_router_schema"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/globalroutertypes"
 )
@@ -136,6 +138,39 @@ func short(v *tftypes.Value) string {
 		return "{...}"
 	}
 	return v.String()
+}
+
+// TestEquivalencePlanWithUnknowns checks that an update plan with every
+// computed attribute unknown reads into the generated model and expands.
+func TestPlanWithUnknowns(t *testing.T) {
+	ctx := context.Background()
+	_, genSchema := equivalenceSchemas()
+	for name, js := range equivalenceFixtures() {
+		t.Run(name, func(t *testing.T) {
+			var router globalRouters.GlobalRouter
+			if err := json.Unmarshal([]byte(js), &router); err != nil {
+				t.Fatal(err)
+			}
+			// The state of the switched code, so the check also runs with
+			// the added fields.
+			raw := stateOf(t, genSchema, func(s *tfsdk.State) error {
+				m, diags := globalroutertypes.FlattenGlobalRouter(ctx, path.Empty(), &router)
+				diags.Append(s.Set(ctx, m)...)
+				return diagErr(diags)
+			})
+			plan, err := schemadump.PlanWithUnknowns(ctx, genSchema, raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var m globalroutertypes.GlobalRouterModel
+			if diags := (tfsdk.Plan{Schema: genSchema, Raw: plan}).Get(ctx, &m); diags.HasError() {
+				t.Fatalf("get plan: %v", diags)
+			}
+			if _, diags := globalroutertypes.ExpandGlobalRouter(ctx, path.Empty(), &m); diags.HasError() {
+				t.Fatalf("expand: %v", diags)
+			}
+		})
+	}
 }
 
 func stateOf(t *testing.T, s schema.Schema, set func(*tfsdk.State) error) tftypes.Value {

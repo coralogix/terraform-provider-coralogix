@@ -46,6 +46,9 @@ type enumItem struct {
 	TFName string // for example "left"
 	Const  string // qualified SDK constant
 	Value  string // the API value
+	// ReadOnly is true for the zero value when the overrides do not accept
+	// it in a configuration: it is read, but not in <E>Names.
+	ReadOnly bool
 }
 
 // typeRoot is one type that the handwritten code uses. The types inside it
@@ -157,7 +160,9 @@ func buildTypes(roots, enums []*model.Type, refs []sdkRef, ov *overrides, pkg, c
 		}
 		out.Enums = append(out.Enums, e)
 		for _, it := range e.Items {
-			names[t.Schema] = append(names[t.Schema], it.TFName)
+			if !it.ReadOnly {
+				names[t.Schema] = append(names[t.Schema], it.TFName)
+			}
 		}
 	}
 	tb := &tfBuilder{seen: map[string]bool{}, ov: ov, enumNames: names}
@@ -270,7 +275,9 @@ func enumNames(t *model.Type, ix *refIndex, ov *overrides) (*typeEnum, error) {
 			return nil, fmt.Errorf("%s: %s and %s both have the Terraform name %q", t.Schema, prev, v, name)
 		}
 		byName[name] = v
-		e.Items = append(e.Items, enumItem{TFName: name, Const: ix.pkg.Name + "." + enumConstName(ref.Name, v), Value: v})
+		item := enumItem{TFName: name, Const: ix.pkg.Name + "." + enumConstName(ref.Name, v), Value: v}
+		item.ReadOnly = v == t.Zero && eo.AcceptZero != nil && !*eo.AcceptZero
+		e.Items = append(e.Items, item)
 	}
 	return e, nil
 }

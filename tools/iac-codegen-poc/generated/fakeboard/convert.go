@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_boards_service"
 )
@@ -551,7 +552,7 @@ func flattenFakeBoard(ctx context.Context, p path.Path, v *fake_boards_service.F
 	}
 	out.Layout = flattenLayout(ctx, p.AtName("layout"), v.Layout, diags)
 	out.UpdatedAt = flattenTime(v.UpdatedAt)
-	out.Routing = flattenRouting(ctx, p.AtName("routing"), v.Routing, diags)
+	out.Routing = objectValue(ctx, routingAttrTypes(), flattenRouting(ctx, p.AtName("routing"), v.Routing, diags), diags)
 	return out
 }
 
@@ -577,6 +578,20 @@ func flattenRouting(ctx context.Context, p path.Path, v *fake_boards_service.Rou
 	out.RouterId = types.StringPointerValue(v.RouterId)
 	out.CreateTime = flattenTime(v.CreateTime)
 	return out
+}
+
+func routingAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"routing_name": types.StringType,
+		"delivery":     types.StringType,
+		"channels":     types.ListType{ElemType: types.StringType},
+		"targets":      types.ListType{ElemType: types.ObjectType{AttrTypes: targetAttrTypes()}},
+		"priority":     types.Int32Type,
+		"weight":       types.Float32Type,
+		"disabled":     types.BoolType,
+		"router_id":    types.StringType,
+		"create_time":  types.StringType,
+	}
 }
 
 func flattenTarget(ctx context.Context, p path.Path, v *fake_boards_service.Target, diags *diag.Diagnostics) *TargetModel {
@@ -877,6 +892,29 @@ func flattenScalarsSet[T any](ctx context.Context, elem attr.Type, v []T, diags 
 		return types.SetNull(elem)
 	}
 	return flattenSet(ctx, elem, v, diags)
+}
+
+// objectAs returns the model of the object v, or nil when v is null or
+// unknown (a computed object in a plan).
+func objectAs[T any](ctx context.Context, p path.Path, v types.Object, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	var m T
+	for _, d := range v.As(ctx, &m, basetypes.ObjectAsOptions{}) {
+		diags.Append(diag.WithPath(p, d))
+	}
+	return &m
+}
+
+// objectValue returns the object value of the model m, or null for nil.
+func objectValue[T any](ctx context.Context, attrTypes map[string]attr.Type, m *T, diags *diag.Diagnostics) types.Object {
+	if m == nil {
+		return types.ObjectNull(attrTypes)
+	}
+	v, d := types.ObjectValueFrom(ctx, attrTypes, *m)
+	diags.Append(d...)
+	return v
 }
 
 func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T, diags *diag.Diagnostics) types.Map {

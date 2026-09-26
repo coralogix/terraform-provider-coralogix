@@ -5,7 +5,7 @@ wideNumbers: true
 types:
   Routing:
     routingName: {name: name, required: true}
-    delivery: {default: unspecified}
+    delivery: {default: unspecified, missingAsZero: true}   # a missing enum reads as its proto zero value
     channels: {set: true, emptyAsNull: true}
     targets: {set: true}
     priority: {requiresReplace: true}

@@ -64,6 +64,10 @@ func flattenRouting(ctx context.Context, p path.Path, v *fake_boards_service.Rou
 	// The overrides read some missing or empty values in another way.
 	n := *v
 	v = &n
+	if v.Delivery == nil {
+		zero := fake_boards_service.DELIVERY_DELIVERY_UNSPECIFIED
+		v.Delivery = &zero
+	}
 	if len(v.Channels) == 0 {
 		v.Channels = nil
 	}

@@ -130,6 +130,8 @@ var generatedTypeCases = []struct {
 	{"../../generated/dashboardwidgets", patchedSpec, "Dashboard service", realSDK, []string{"Widget.Definition"}, nil, ""},
 	{"../../generated/fakerouting", "../../spec/fake/openapi.yaml", "Fake Boards Service", fakeSDK, []string{"Routing"}, nil,
 		"../../spec/fake/routing.overrides.yaml"},
+	{"../../generated/fakewrap", "../../spec/fake/openapi.yaml", "Fake Boards Service", fakeSDK, []string{"Layout"}, nil,
+		"../../spec/fake/layout.overrides.yaml"},
 }
 
 // TestGeneratedTypesUpToDate checks that each generated type package is the
@@ -263,7 +265,6 @@ func TestOverridesRejects(t *testing.T) {
 		{"read only and required", "types: {Routing: {weight: {readOnly: true, required: true}}}", "readOnly cannot be combined"},
 		{"zero and null", "types: {Routing: {channels: {missingAsZero: true, emptyAsNull: true}}}", "cannot be combined"},
 		{"null of a scalar", "types: {Routing: {weight: {emptyAsNull: true}}}", "emptyAsNull: the field is a number"},
-		{"zero of an enum", "types: {Routing: {delivery: {missingAsZero: true}}}", "missingAsZero is not supported for enum"},
 		{"zero of a time", "types: {Routing: {createTime: {missingAsZero: true}}}", "missingAsZero is not supported for time"},
 		{"flags of a spec readOnly field", "types: {Routing: {createTime: {computed: true}}}", "the spec marks the field readOnly"},
 		{"unknown enum", "enums: {Color: {terraformNames: true}}", "enums.Color: no such enum"},
@@ -301,5 +302,69 @@ func TestWideNumbersRejectsLists(t *testing.T) {
 	_, err = generateTypes(types, enums, refs, &overrides{WideNumbers: true}, "fake", "")
 	if err == nil || !strings.Contains(err.Error(), "wideNumbers: a list of integer int32 is not supported") {
 		t.Errorf("error = %v", err)
+	}
+}
+
+// TestWrapperRejects checks the wrapper overrides that the type mode rejects
+// (D21).
+func TestWrapperRejects(t *testing.T) {
+	const spec = "../../spec/fake/openapi.yaml"
+	types, enums, refs, err := checkedTypeNames(spec, typeInputs{roots: []string{"Layout"}}, "Fake Boards Service", fakeSDK)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ name, yaml, want string }{
+		{"wrap on an API field", "types: {Layout: {title: {wrap: [section]}}}", "the key must be a new attribute name"},
+		{"unknown field", "types: {Layout: {w: {wrap: [nope]}}}", "wrap: no field nope"},
+		{"skipped field", "types: {Layout: {w: {wrap: [section]}, section: {skip: true}}}", "wrap: section is skipped"},
+		{"two wrappers", "types: {Layout: {a: {wrap: [section]}, b: {wrap: [section]}}}", "wrap: section is also in a"},
+		{"split oneOf", "types: {Layout: {w: {wrap: [refreshOff]}}}", "must be in one wrapper or in none"},
+		{"bad name", "types: {Layout: {Wrap: {wrap: [section]}}}", `"Wrap" is not a valid Terraform attribute name`},
+		{"default", "types: {Layout: {w: {wrap: [section], default: x}}}", "a wrapper can only set wrap, required, optional, and computed"},
+		{"name clash", "types: {Layout: {w: {wrap: [section]}, title: {name: w}}}", `both have the Terraform name "w"`},
+		{"on a oneOf", "types: {TextStyle: {w: {wrap: [bold, font]}}}", "wrap needs an object, TextStyle is a oneOf"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			p := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(p, []byte(c.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			ov, err := loadOverrides(p)
+			if err == nil {
+				_, err = generateTypes(types, enums, refs, ov, "fakewrap", "")
+			}
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("error:\n%v\nwant it to contain:\n%s", err, c.want)
+			}
+		})
+	}
+}
+
+// TestEnumAcceptZero checks that acceptZero: false keeps the zero value's
+// name for reading (ByName, Name) but not in the names a configuration may
+// use (Names).
+func TestEnumAcceptZero(t *testing.T) {
+	types, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml", typeInputs{roots: []string{"Routing"}}, "Fake Boards Service", fakeSDK)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := false
+	ov := &overrides{Enums: map[string]enumOverride{"Delivery": {TerraformNames: true, Zero: "unspecified", AcceptZero: &f}}}
+	files, err := generateTypes(types, enums, refs, ov, "fakerouting", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(files["enums.go"])
+	names := src[strings.Index(src, "var DeliveryNames"):]
+	names = names[:strings.Index(names, "}")]
+	if strings.Contains(names, "unspecified") || !strings.Contains(names, "errors_only") {
+		t.Errorf("DeliveryNames:\n%s\nwant errors_only and no unspecified", names)
+	}
+	if !strings.Contains(src, `"unspecified": fake_boards_service.DELIVERY_DELIVERY_UNSPECIFIED`) {
+		t.Error("DeliveryByName has no unspecified")
+	}
+	bad := &overrides{Enums: map[string]enumOverride{"Delivery": {TerraformNames: true, AcceptZero: &f}}}
+	if _, err := generateTypes(types, enums, refs, bad, "fakerouting", ""); err == nil || !strings.Contains(err.Error(), "acceptZero needs zero") {
+		t.Errorf("acceptZero without zero: error = %v", err)
 	}
 }

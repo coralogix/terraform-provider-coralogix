@@ -18,7 +18,7 @@ type FakeBoardModel struct {
 	Panels       types.Map          `tfsdk:"panels"`
 	Layout       *LayoutModel       `tfsdk:"layout"`
 	UpdatedAt    types.String       `tfsdk:"updated_at"`
-	Routing      *RoutingModel      `tfsdk:"routing"`
+	Routing      types.Object       `tfsdk:"routing"`
 }
 
 type PublicLinkModel struct {

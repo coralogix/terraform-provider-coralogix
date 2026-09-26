@@ -1,0 +1,58 @@
+// Copyright 2024 Coralogix Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package slo_mgmt
+
+import (
+	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
+)
+
+// The generated slotypes read and send the SLO. These two functions keep the
+// SLO rules that the API does not describe.
+
+// normalizeSloResponse turns the deprecated singular value of an APM filter,
+// written before values existed, into a one-element values, so the next
+// replace keeps the filter's meaning. An empty value next to values is
+// ignored.
+func normalizeSloResponse(slo *slos.Slo) {
+	for _, apm := range []*slos.ApmSli{slo.ApmSli, slo.ApmSliMetadata} {
+		if apm == nil {
+			continue
+		}
+		for i := range apm.Filters {
+			f := &apm.Filters[i]
+			if len(f.Values) == 0 && f.GetValue() != "" {
+				f.Values = []string{f.GetValue()}
+			}
+		}
+	}
+}
+
+// normalizeSloRequest leaves out an ownership dimension with no values, and
+// the ownership block when no dimension is left: the backend drops them,
+// which would show as drift on the next read.
+func normalizeSloRequest(slo *slos.Slo) {
+	tags := slo.OwnershipTags
+	if tags == nil {
+		return
+	}
+	for _, d := range []**slos.SloOwnershipTag{&tags.Service, &tags.Environment, &tags.Team} {
+		if *d != nil && len((*d).StaticValues) == 0 && len((*d).LabelKeys) == 0 {
+			*d = nil
+		}
+	}
+	if tags.Service == nil && tags.Environment == nil && tags.Team == nil {
+		slo.OwnershipTags = nil
+	}
+}

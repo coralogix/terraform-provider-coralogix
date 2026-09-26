@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"{{.Conv.SDKPkg}}"
 )
@@ -89,6 +90,10 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.SDK}} = {{$l}}expandTime({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "object"}}
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "wrap"}}
+	expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, out, diags)
+{{- else if eq .Conv "objectvalue"}}
+	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, objectAs[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags), diags){{$r}}
 {{- else if eq .Conv "empty"}}
 	if m.{{.Model}} != nil {
 		out.{{.SDK}} = map[string]interface{}{}
@@ -152,6 +157,10 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.Model}} = flattenFloat32Wide({{$v}})
 {{- else if eq .Conv "object"}}
 	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags)
+{{- else if eq .Conv "wrap"}}
+	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, v, diags)
+{{- else if eq .Conv "objectvalue"}}
+	out.{{.Model}} = objectValue(ctx, {{.Object.AttrTypesFunc}}(), flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags), diags)
 {{- else if eq .Conv "empty"}}
 	if v.{{.SDK}} != nil {
 		out.{{.Model}} = &{{.Object.Model}}{}
@@ -187,7 +196,20 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 {{- define "convObjects"}}
 {{- $sdk := .SDKName}}
 {{range .Objects}}
-{{- if .Expand}}
+{{- if and .Expand .Wrapper}}
+// expand{{.Func}} sets the fields of the wrapper {{.Model}} on out. A null
+// wrapper sets none.
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$sdk}}.{{.SDK}}, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+{{- range .Fields}}
+{{- if not .ReadOnly}}
+{{- template "expandField" .}}
+{{- end}}
+{{- end}}
+}
+{{else if .Expand}}
 func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$sdk}}.{{.SDK}} {
 	if m == nil {
 		return nil
@@ -201,34 +223,30 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	return out
 }
 {{end}}
-{{- if .Flatten}}
+{{- if and .Flatten .Wrapper}}
+// flatten{{.Func}} reads the fields of the wrapper {{.Model}} from v.
+{{- if .NilCheck}}
+// It is nil when v has none of them.{{end}}
+func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, diags *diag.Diagnostics) *{{.Model}} {
+{{- if .NilCheck}}
+	if {{.NilCheck}} {
+		return nil
+	}
+{{- end}}
+	out := &{{.Model}}{}
+{{- template "normalize" .}}
+{{- range .Fields}}
+{{- template "flattenField" .}}
+{{- end}}
+	return out
+}
+{{else if .Flatten}}
 func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, diags *diag.Diagnostics) *{{.Model}} {
 	if v == nil {
 		return nil
 	}
 	out := &{{.Model}}{}
-{{- if .Normalizes}}
-	// The overrides read some missing or empty values in another way.
-	n := *v
-	v = &n
-{{- range .Fields}}
-{{- if eq .Read "zero"}}
-	v.{{.SDK}} = zeroIfNil(v.{{.SDK}})
-{{- else if eq .Read "emptylist"}}
-	v.{{.SDK}} = emptyIfNil(v.{{.SDK}})
-{{- else if eq .Read "emptymap"}}
-	v.{{.SDK}} = emptyMapIfNil(v.{{.SDK}})
-{{- else if eq .Read "nulllist"}}
-	if len(v.{{.SDK}}) == 0 {
-		v.{{.SDK}} = nil
-	}
-{{- else if eq .Read "nullobject"}}
-	if isEmptyObject(v.{{.SDK}}, p.AtName({{printf "%q" .TFName}}), diags) {
-		v.{{.SDK}} = nil
-	}
-{{- end}}
-{{- end}}
-{{- end}}
+{{- template "normalize" .}}
 {{- range .Fields}}
 {{- template "flattenField" .}}
 {{- end}}
@@ -248,6 +266,36 @@ func {{.AttrTypesFunc}}() map[string]attr.Type {
 	}
 }
 {{end}}
+{{- end}}
+{{- end}}
+
+{{- define "normalize"}}
+{{- if .Normalizes}}
+	// The overrides read some missing or empty values in another way.
+	n := *v
+	v = &n
+{{- range .Fields}}
+{{- if eq .Read "zero"}}
+	v.{{.SDK}} = zeroIfNil(v.{{.SDK}})
+{{- else if eq .Read "zeroenum"}}
+	if v.{{.SDK}} == nil {
+		zero := {{.ProtoZero}}
+		v.{{.SDK}} = &zero
+	}
+{{- else if eq .Read "emptylist"}}
+	v.{{.SDK}} = emptyIfNil(v.{{.SDK}})
+{{- else if eq .Read "emptymap"}}
+	v.{{.SDK}} = emptyMapIfNil(v.{{.SDK}})
+{{- else if eq .Read "nulllist"}}
+	if len(v.{{.SDK}}) == 0 {
+		v.{{.SDK}} = nil
+	}
+{{- else if eq .Read "nullobject"}}
+	if isEmptyObject(v.{{.SDK}}, p.AtName({{printf "%q" .TFName}}), diags) {
+		v.{{.SDK}} = nil
+	}
+{{- end}}
+{{- end}}
 {{- end}}
 {{- end}}
 
@@ -552,6 +600,31 @@ func flattenScalarsSet[T any](ctx context.Context, elem attr.Type, v []T, diags 
 		return types.SetNull(elem)
 	}
 	return flattenSet(ctx, elem, v, diags)
+}
+{{- end}}
+{{- if .Conv.Uses "objectvalue"}}
+
+// objectAs returns the model of the object v, or nil when v is null or
+// unknown (a computed object in a plan).
+func objectAs[T any](ctx context.Context, p path.Path, v types.Object, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	var m T
+	for _, d := range v.As(ctx, &m, basetypes.ObjectAsOptions{}) {
+		diags.Append(diag.WithPath(p, d))
+	}
+	return &m
+}
+
+// objectValue returns the object value of the model m, or null for nil.
+func objectValue[T any](ctx context.Context, attrTypes map[string]attr.Type, m *T, diags *diag.Diagnostics) types.Object {
+	if m == nil {
+		return types.ObjectNull(attrTypes)
+	}
+	v, d := types.ObjectValueFrom(ctx, attrTypes, *m)
+	diags.Append(d...)
+	return v
 }
 {{- end}}
 {{- if .Conv.Reads "zero"}}

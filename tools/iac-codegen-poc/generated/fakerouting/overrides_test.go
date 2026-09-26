@@ -218,7 +218,8 @@ func diagsText(diags diag.Diagnostics) string {
 }
 
 // TestReadRules checks missingAsZero and emptyAsNull: a missing weight
-// reads as 0, missing tags as an empty set, and empty channels as null.
+// reads as 0, a missing delivery as its proto zero value, missing tags as an
+// empty set, and empty channels as null.
 func TestReadRules(t *testing.T) {
 	ctx := context.Background()
 	in := &sdk.Routing{Channels: []sdk.Delivery{}, Targets: []sdk.Target{{ConnectorId: ptr("c1")}}}
@@ -237,6 +238,8 @@ func TestReadRules(t *testing.T) {
 		t.Errorf("targets = %s, want one with empty tags", m.Targets)
 	case !m.Priority.IsNull():
 		t.Errorf("priority = %s, want null: it has no read override", m.Priority)
+	case m.Delivery.ValueString() != "unspecified":
+		t.Errorf("delivery = %s, want the proto zero value \"unspecified\"", m.Delivery)
 	}
 	if in.Weight != nil || in.Channels == nil {
 		t.Errorf("flatten changed the API value: %+v", in)

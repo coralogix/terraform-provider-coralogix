@@ -1,0 +1,10 @@
+# Overrides (D21) for generated/fakewrap: wrappers. Handwritten resources
+# often put the arms of a proto oneof in an object named after the oneof.
+# generated/fakewrap/wrap_test.go checks the result.
+types:
+  Layout:
+    refresh: {wrap: [refreshOff, refreshEvery]}                  # a oneOf with no arm allowed
+    time_range: {wrap: [absoluteTime, relativeTime], required: true}   # a oneOf with one arm required
+    heading: {wrap: [title, titleStyle]}                          # plain fields; title is an SDK value
+    title: {name: text, useNonNullStateForUnknown: true}
+    section: {readOnly: true}   # a read-only object: every attribute inside is computed
