@@ -816,6 +816,25 @@ components:
           description: An unsigned 64-bit number that JSON sends as a string, with no format, as in the alerts API.
           pattern: ^[0-9]+$
           type: string
+        notify:
+          allOf:
+            - $ref: '#/components/schemas/KeyNotify'
+          description: Where to send notices. A oneOf that Terraform shows in the key, as the alerts webhook integration.
+        policy:
+          allOf:
+            - $ref: '#/components/schemas/KeyPolicy'
+          description: The policy. Its default is an object of the defaults of its fields (defaultObject).
+        retryMinutes:
+          description: Minutes between retries. Terraform has it in a computed object, retry.
+          format: int64
+          type: integer
+        ratio:
+          description: A float that Terraform shows as a Float64 (wide).
+          format: float
+          type: number
+        kind:
+          description: The kind. Computed, with a default.
+          type: string
       required:
         - limits
       type: object
@@ -836,6 +855,42 @@ components:
           description: Set by the server.
           readOnly: true
           type: string
+      type: object
+    KeyNotify:
+      description: Where to send notices, an email or a webhook.
+      oneOf:
+        - required:
+            - email
+          type: object
+        - required:
+            - webhookId
+          type: object
+        - not:
+            anyOf:
+              - required:
+                  - email
+                type: object
+              - required:
+                  - webhookId
+                type: object
+          type: object
+      properties:
+        email:
+          description: An email address.
+          type: string
+        webhookId:
+          description: A webhook.
+          type: string
+      type: object
+    KeyPolicy:
+      description: The policy of a key.
+      properties:
+        level:
+          description: The level. It has a default.
+          type: string
+        strict:
+          description: Strict mode. It has no default.
+          type: boolean
       type: object
     KeyLimits:
       description: Rate limits of a key.

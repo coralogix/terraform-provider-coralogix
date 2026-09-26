@@ -27,14 +27,24 @@ type Key struct {
 	Backup *KeyPermissions `json:"backup,omitempty"`
 	// What the key can do. Terraform shows its fields in the key.
 	KeyPermissions *KeyPermissions `json:"keyPermissions,omitempty"`
+	// The kind. Computed, with a default.
+	Kind *string `json:"kind,omitempty"`
 	// Rate limits. Required, so the SDK holds it as a value. Terraform shows its fields in the key.
 	Limits KeyLimits `json:"limits"`
 	// A signed 64-bit number that JSON sends as a string, with no format, as in the alerts API.
 	MaxCount *string `json:"maxCount,omitempty" validate:"regexp=^-?[0-9]+$"`
 	// Name of the key.
 	Name *string `json:"name,omitempty"`
+	// Where to send notices. A oneOf that Terraform shows in the key, as the alerts webhook integration.
+	Notify *KeyNotify `json:"notify,omitempty"`
 	// The owner team. An int64 JSON number; Terraform has a string.
 	OwnerTeamId *int64 `json:"ownerTeamId,omitempty"`
+	// The policy. Its default is an object of the defaults of its fields (defaultObject).
+	Policy *KeyPolicy `json:"policy,omitempty"`
+	// A float that Terraform shows as a Float64 (wide).
+	Ratio *float32 `json:"ratio,omitempty"`
+	// Minutes between retries. Terraform has it in a computed object, retry.
+	RetryMinutes *int64 `json:"retryMinutes,omitempty"`
 	// Rotation. It also inlines Key.Permissions.
 	Rotation *KeyRotation `json:"rotation,omitempty"`
 	// The secret. Terraform hides it (sensitive).
@@ -129,6 +139,38 @@ func (o *Key) SetKeyPermissions(v KeyPermissions) {
 	o.KeyPermissions = &v
 }
 
+// GetKind returns the Kind field value if set, zero value otherwise.
+func (o *Key) GetKind() string {
+	if o == nil || IsNil(o.Kind) {
+		var ret string
+		return ret
+	}
+	return *o.Kind
+}
+
+// GetKindOk returns a tuple with the Kind field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Key) GetKindOk() (*string, bool) {
+	if o == nil || IsNil(o.Kind) {
+		return nil, false
+	}
+	return o.Kind, true
+}
+
+// HasKind returns a boolean if a field has been set.
+func (o *Key) HasKind() bool {
+	if o != nil && !IsNil(o.Kind) {
+		return true
+	}
+
+	return false
+}
+
+// SetKind gets a reference to the given string and assigns it to the Kind field.
+func (o *Key) SetKind(v string) {
+	o.Kind = &v
+}
+
 // GetLimits returns the Limits field value
 func (o *Key) GetLimits() KeyLimits {
 	if o == nil {
@@ -217,6 +259,38 @@ func (o *Key) SetName(v string) {
 	o.Name = &v
 }
 
+// GetNotify returns the Notify field value if set, zero value otherwise.
+func (o *Key) GetNotify() KeyNotify {
+	if o == nil || IsNil(o.Notify) {
+		var ret KeyNotify
+		return ret
+	}
+	return *o.Notify
+}
+
+// GetNotifyOk returns a tuple with the Notify field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Key) GetNotifyOk() (*KeyNotify, bool) {
+	if o == nil || IsNil(o.Notify) {
+		return nil, false
+	}
+	return o.Notify, true
+}
+
+// HasNotify returns a boolean if a field has been set.
+func (o *Key) HasNotify() bool {
+	if o != nil && !IsNil(o.Notify) {
+		return true
+	}
+
+	return false
+}
+
+// SetNotify gets a reference to the given KeyNotify and assigns it to the Notify field.
+func (o *Key) SetNotify(v KeyNotify) {
+	o.Notify = &v
+}
+
 // GetOwnerTeamId returns the OwnerTeamId field value if set, zero value otherwise.
 func (o *Key) GetOwnerTeamId() int64 {
 	if o == nil || IsNil(o.OwnerTeamId) {
@@ -247,6 +321,102 @@ func (o *Key) HasOwnerTeamId() bool {
 // SetOwnerTeamId gets a reference to the given int64 and assigns it to the OwnerTeamId field.
 func (o *Key) SetOwnerTeamId(v int64) {
 	o.OwnerTeamId = &v
+}
+
+// GetPolicy returns the Policy field value if set, zero value otherwise.
+func (o *Key) GetPolicy() KeyPolicy {
+	if o == nil || IsNil(o.Policy) {
+		var ret KeyPolicy
+		return ret
+	}
+	return *o.Policy
+}
+
+// GetPolicyOk returns a tuple with the Policy field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Key) GetPolicyOk() (*KeyPolicy, bool) {
+	if o == nil || IsNil(o.Policy) {
+		return nil, false
+	}
+	return o.Policy, true
+}
+
+// HasPolicy returns a boolean if a field has been set.
+func (o *Key) HasPolicy() bool {
+	if o != nil && !IsNil(o.Policy) {
+		return true
+	}
+
+	return false
+}
+
+// SetPolicy gets a reference to the given KeyPolicy and assigns it to the Policy field.
+func (o *Key) SetPolicy(v KeyPolicy) {
+	o.Policy = &v
+}
+
+// GetRatio returns the Ratio field value if set, zero value otherwise.
+func (o *Key) GetRatio() float32 {
+	if o == nil || IsNil(o.Ratio) {
+		var ret float32
+		return ret
+	}
+	return *o.Ratio
+}
+
+// GetRatioOk returns a tuple with the Ratio field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Key) GetRatioOk() (*float32, bool) {
+	if o == nil || IsNil(o.Ratio) {
+		return nil, false
+	}
+	return o.Ratio, true
+}
+
+// HasRatio returns a boolean if a field has been set.
+func (o *Key) HasRatio() bool {
+	if o != nil && !IsNil(o.Ratio) {
+		return true
+	}
+
+	return false
+}
+
+// SetRatio gets a reference to the given float32 and assigns it to the Ratio field.
+func (o *Key) SetRatio(v float32) {
+	o.Ratio = &v
+}
+
+// GetRetryMinutes returns the RetryMinutes field value if set, zero value otherwise.
+func (o *Key) GetRetryMinutes() int64 {
+	if o == nil || IsNil(o.RetryMinutes) {
+		var ret int64
+		return ret
+	}
+	return *o.RetryMinutes
+}
+
+// GetRetryMinutesOk returns a tuple with the RetryMinutes field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Key) GetRetryMinutesOk() (*int64, bool) {
+	if o == nil || IsNil(o.RetryMinutes) {
+		return nil, false
+	}
+	return o.RetryMinutes, true
+}
+
+// HasRetryMinutes returns a boolean if a field has been set.
+func (o *Key) HasRetryMinutes() bool {
+	if o != nil && !IsNil(o.RetryMinutes) {
+		return true
+	}
+
+	return false
+}
+
+// SetRetryMinutes gets a reference to the given int64 and assigns it to the RetryMinutes field.
+func (o *Key) SetRetryMinutes(v int64) {
+	o.RetryMinutes = &v
 }
 
 // GetRotation returns the Rotation field value if set, zero value otherwise.
@@ -361,6 +531,9 @@ func (o Key) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.KeyPermissions) {
 		toSerialize["keyPermissions"] = o.KeyPermissions
 	}
+	if !IsNil(o.Kind) {
+		toSerialize["kind"] = o.Kind
+	}
 	toSerialize["limits"] = o.Limits
 	if !IsNil(o.MaxCount) {
 		toSerialize["maxCount"] = o.MaxCount
@@ -368,8 +541,20 @@ func (o Key) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.Name) {
 		toSerialize["name"] = o.Name
 	}
+	if !IsNil(o.Notify) {
+		toSerialize["notify"] = o.Notify
+	}
 	if !IsNil(o.OwnerTeamId) {
 		toSerialize["ownerTeamId"] = o.OwnerTeamId
+	}
+	if !IsNil(o.Policy) {
+		toSerialize["policy"] = o.Policy
+	}
+	if !IsNil(o.Ratio) {
+		toSerialize["ratio"] = o.Ratio
+	}
+	if !IsNil(o.RetryMinutes) {
+		toSerialize["retryMinutes"] = o.RetryMinutes
 	}
 	if !IsNil(o.Rotation) {
 		toSerialize["rotation"] = o.Rotation
@@ -426,10 +611,15 @@ func (o *Key) UnmarshalJSON(data []byte) (err error) {
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
 		delete(additionalProperties, "backup")
 		delete(additionalProperties, "keyPermissions")
+		delete(additionalProperties, "kind")
 		delete(additionalProperties, "limits")
 		delete(additionalProperties, "maxCount")
 		delete(additionalProperties, "name")
+		delete(additionalProperties, "notify")
 		delete(additionalProperties, "ownerTeamId")
+		delete(additionalProperties, "policy")
+		delete(additionalProperties, "ratio")
+		delete(additionalProperties, "retryMinutes")
 		delete(additionalProperties, "rotation")
 		delete(additionalProperties, "secret")
 		delete(additionalProperties, "ttlSeconds")

@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -28,11 +29,14 @@ func TestCompare(t *testing.T) {
 		"defaulted": schema.BoolAttribute{Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 		"kept": schema.StringAttribute{Computed: true,
 			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"gained": schema.StringAttribute{Computed: true},
 		"replaced": schema.StringAttribute{Optional: true,
 			PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 		"limited": schema.StringAttribute{Optional: true},
 		"enum":    schema.StringAttribute{Optional: true, Validators: oneOf("a", "b")},
 		"grown":   schema.StringAttribute{Optional: true, Validators: oneOf("a")},
+		"nulled": schema.ListAttribute{Optional: true, Computed: true, ElementType: types.StringType,
+			Default: listdefault.StaticValue(types.ListNull(types.StringType))},
 	}
 	gen := map[string]schema.Attribute{
 		"same":      schema.StringAttribute{Optional: true},
@@ -41,12 +45,15 @@ func TestCompare(t *testing.T) {
 		"computed":  schema.StringAttribute{Optional: true},
 		"defaulted": schema.BoolAttribute{Optional: true, Computed: true, Default: booldefault.StaticBool(true)},
 		"kept":      schema.StringAttribute{Computed: true},
-		"replaced":  schema.StringAttribute{Optional: true},
-		"limited":   schema.StringAttribute{Optional: true, Validators: []validator.String{stringvalidator.LengthAtMost(5)}},
-		"enum":      schema.StringAttribute{Optional: true, Validators: oneOf("A", "B")},
-		"grown":     schema.StringAttribute{Optional: true, Validators: oneOf("a", "c")},
-		"new":       schema.StringAttribute{Optional: true},
-		"needed":    schema.StringAttribute{Required: true},
+		"gained": schema.StringAttribute{Computed: true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"replaced": schema.StringAttribute{Optional: true},
+		"limited":  schema.StringAttribute{Optional: true, Validators: []validator.String{stringvalidator.LengthAtMost(5)}},
+		"enum":     schema.StringAttribute{Optional: true, Validators: oneOf("A", "B")},
+		"grown":    schema.StringAttribute{Optional: true, Validators: oneOf("a", "c")},
+		"new":      schema.StringAttribute{Optional: true},
+		"needed":   schema.StringAttribute{Required: true},
+		"nulled":   schema.ListAttribute{Optional: true, ElementType: types.StringType},
 	}
 	dump := func(a map[string]schema.Attribute) []schemadump.Entry {
 		return schemadump.Dump(schema.Schema{Attributes: a}, nil)
@@ -65,7 +72,8 @@ func TestCompare(t *testing.T) {
 		"loose flags":              false,
 		"computed flags":           true,
 		"defaulted default":        true,
-		"kept plan modifier":       false,
+		"kept plan modifier":       true, // a lost UseStateForUnknown shows "known after apply"
+		"gained plan modifier":     false,
 		"replaced plan modifier":   true,
 		"limited validator +":      false,
 		"enum validator values":    true,
@@ -73,6 +81,7 @@ func TestCompare(t *testing.T) {
 		"grown validator new":      false,
 		"new only in generated":    false,
 		"needed only in generated": true,
+		"nulled default":           false, // a null default: the same as optional
 	}
 	for k, b := range want {
 		if g, ok := got[k]; !ok || g != b {

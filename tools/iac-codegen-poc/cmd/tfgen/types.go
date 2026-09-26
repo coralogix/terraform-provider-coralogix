@@ -20,6 +20,7 @@ import (
 type typesData struct {
 	Package       string
 	TimeValidator bool   // an attribute uses rfc3339Validator
+	DefaultObject bool   // an attribute has the default of the defaultObject override
 	Command       string // the tfgen arguments that write the package
 	Roots         []*typeRoot
 	Models        []*tfModel
@@ -182,11 +183,23 @@ func buildTypes(roots, enums []*model.Type, refs []sdkRef, ov *overrides, pkg, c
 	out.Models = tb.models
 	for _, r := range out.Roots {
 		out.TimeValidator = out.TimeValidator || usesValidator(r.Attributes, timeValidator)
+		out.DefaultObject = out.DefaultObject || usesDefaultObject(r.Attributes)
 	}
 	if out.Conv, err = typesConv(roots, ix, ov, out.Roots); err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+// usesDefaultObject reports whether an attribute in attrs, at any depth, has
+// the default of the defaultObject override.
+func usesDefaultObject(attrs []*tfAttr) bool {
+	for _, a := range attrs {
+		if strings.HasPrefix(a.Default, "objectdefault.") || usesDefaultObject(a.Attributes) {
+			return true
+		}
+	}
+	return false
 }
 
 // withNamedEnums returns the enums of --enums, then the enums that the

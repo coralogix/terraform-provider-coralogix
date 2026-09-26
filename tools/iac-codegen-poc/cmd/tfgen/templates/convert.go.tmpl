@@ -92,14 +92,20 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.SDK}} = {{$l}}expandFloat32Wide(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "time"}}
 	out.{{.SDK}} = {{$l}}expandTime({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if and (eq .Conv "object") (eq .Read "emptyobject")}}
+	out.{{.SDK}} = nilIfEmpty(expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags))
 {{- else if or (eq .Conv "object") (eq .Conv "unwrap")}}
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "wrap"}}
 	expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, out, diags)
+{{- else if eq .Conv "wrapvalue"}}
+	expand{{.Object.Func}}(ctx, {{$p}}, objectAs[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags), out, diags)
 {{- else if eq .Conv "inline"}}
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, p, m, diags){{$r}}
 {{- else if eq .Conv "custom"}}
 	out.{{.SDK}} = custom.Expand{{.Custom}}({{$p}}, m.{{.Model}}, diags)
+{{- else if and (eq .Conv "objectvalue") (eq .Read "emptyobject")}}
+	out.{{.SDK}} = nilIfEmpty(expand{{.Object.Func}}(ctx, {{$p}}, objectAs[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags), diags))
 {{- else if eq .Conv "objectvalue"}}
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, objectAs[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags), diags){{$r}}
 {{- else if eq .Conv "empty"}}
@@ -182,6 +188,8 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "wrap"}}
 	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, v, diags)
+{{- else if eq .Conv "wrapvalue"}}
+	out.{{.Model}} = objectValue(ctx, {{.Object.AttrTypesFunc}}(), flatten{{.Object.Func}}(ctx, {{$p}}, v, diags), diags)
 {{- else if eq .Conv "inline"}}
 	flatten{{.Object.Func}}(ctx, p, {{$v}}, out, diags)
 {{- else if eq .Conv "custom"}}
@@ -388,6 +396,10 @@ func {{.AttrTypesFunc}}() map[string]attr.Type {
 {{- else if eq .Read "nulllist"}}
 	if len(v.{{.SDK}}) == 0 {
 		v.{{.SDK}} = nil
+	}
+{{- else if eq .Read "emptyobject"}}
+	if v.{{.SDK}} == nil {
+		v.{{.SDK}} = &{{.SDKType}}{}
 	}
 {{- else if eq .Read "nullobject"}}
 	if isEmptyObject(v.{{.SDK}}, {{if .Unwrapped}}p{{else}}p.AtName({{printf "%q" .TFName}}){{end}}, diags) {
@@ -701,7 +713,7 @@ func flattenScalarsSet[T any](ctx context.Context, elem attr.Type, v []T, diags 
 	return flattenSet(ctx, elem, v, diags)
 }
 {{- end}}
-{{- if .Conv.Uses "objectvalue"}}
+{{- if or (.Conv.Uses "objectvalue") (.Conv.Uses "wrapvalue")}}
 
 // objectAs returns the model of the object v, or nil when v is null or
 // unknown (a computed object in a plan).
@@ -754,6 +766,21 @@ func emptyMapIfNil[T any](m map[string]T) map[string]T {
 		return map[string]T{}
 	}
 	return m
+}
+{{- end}}
+{{- if .Conv.Reads "emptyobject"}}
+
+// nilIfEmpty returns nil for an object with no fields set: a missing object
+// reads as an empty one (the missingAsZero override), so an empty one is sent
+// as a missing one.
+func nilIfEmpty[T any](v *T) *T {
+	if v == nil {
+		return nil
+	}
+	if b, err := json.Marshal(v); err == nil && string(b) == "{}" {
+		return nil
+	}
+	return v
 }
 {{- end}}
 {{- if .Conv.Reads "nullobject"}}

@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/defaults"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -32,7 +33,8 @@ import (
 // lose it.
 const full = `{"backup":{"permissions":["b"]},"keyPermissions":{"permissions":["read"],"presets":["p1"]},` +
 	`"limits":{"burst":"-5","perMinute":60},"maxCount":"9007199254740993","name":"k","ownerTeamId":42,` +
-	`"rotation":{"everyDays":30,"permissions":{"presets":["p2"]}},"secret":"s","ttlSeconds":"18446744073709551"}`
+	`"rotation":{"everyDays":30,"permissions":{"presets":["p2"]}},"secret":"s","ttlSeconds":"18446744073709551",` +
+	`"notify":{"webhookId":"w1"},"policy":{"level":"high","strict":true},"retryMinutes":5,"ratio":0.1,"kind":"premium"}`
 
 func decode(t *testing.T, js string) *sdk.Key {
 	t.Helper()
@@ -136,6 +138,12 @@ func TestInlineRoundTrip(t *testing.T) {
 		t.Errorf("rotation = %+v", m.Rotation)
 	case m.Backup == nil || !m.Backup.Permissions.Equal(strSet("b")):
 		t.Errorf("backup = %+v", m.Backup)
+	case m.WebhookId.ValueString() != "w1" || !m.Email.IsNull():
+		t.Errorf("notify: email %v, webhook_id %v", m.Email, m.WebhookId)
+	case m.Ratio.ValueFloat64() != 0.1 || m.Kind.ValueString() != "premium":
+		t.Errorf("ratio %v, kind %v", m.Ratio, m.Kind)
+	case m.Retry.IsNull() || m.Policy.IsNull():
+		t.Errorf("retry %v, policy %v", m.Retry, m.Policy)
 	}
 	if got, want := expand(t, m), jsonOf(t, decode(t, full)); got != want {
 		t.Errorf("expand:\n got %s\nwant %s", got, want)
@@ -161,6 +169,9 @@ func TestInlineReads(t *testing.T) {
 			func(m *fakeinline.KeyModel) bool { return m.UpdatedBy.ValueString() == "u" }},
 		{"the same object, not inlined", `{"backup":{"presets":[]},"limits":{"perMinute":1}}`,
 			func(m *fakeinline.KeyModel) bool { return m.Backup != nil && m.Backup.Presets.IsNull() }},
+		{"missingAsZero on an object", `{"limits":{"perMinute":1}}`, func(m *fakeinline.KeyModel) bool {
+			return m.Backup != nil && m.Backup.Permissions.IsNull() && m.Backup.Presets.IsNull()
+		}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if m := flatten(t, c.json); !c.check(m) {
@@ -230,6 +241,9 @@ func nullKey() *fakeinline.KeyModel {
 		Permissions: types.SetNull(types.StringType), Presets: types.ListNull(types.StringType), UpdatedBy: types.StringNull(),
 		PerMinute: types.Int32Null(), Burst: types.Int64Null(),
 		OwnerTeamId: types.StringNull(), MaxCount: types.Int64Null(), TtlSeconds: types.Int64Null(),
+		Email: types.StringNull(), WebhookId: types.StringNull(),
+		Policy: types.ObjectNull(fakeinline.KeyPolicyAttrTypes()), Retry: types.ObjectNull(fakeinline.KeyRetryAttrTypes()),
+		Ratio: types.Float64Null(), Kind: types.StringNull(),
 	}
 }
 
@@ -245,9 +259,11 @@ func TestInlineValidators(t *testing.T) {
 		{"valid", func(*fakeinline.KeyModel) {}, ""},
 		{"no per_minute", func(m *fakeinline.KeyModel) { m.PerMinute = types.Int32Null() }, `AttributeName("per_minute")`},
 		{"negative unsigned", func(m *fakeinline.KeyModel) { m.TtlSeconds = types.Int64Value(-1) }, `AttributeName("ttl_seconds")`},
+		{"two arms of an inlined oneOf", func(m *fakeinline.KeyModel) { m.Email = types.StringValue("a@b.c") }, `AttributeName("email")`},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			m := flatten(t, full)
+			m.Kind = types.StringNull() // computed only: not in a configuration
 			c.edit(m)
 			got := validate(t, m)
 			switch {
@@ -281,8 +297,36 @@ func TestInlinePlanWithUnknowns(t *testing.T) {
 	if !plan.Key.UpdatedBy.IsUnknown() || !plan.Key.Rotation.UpdatedBy.IsUnknown() {
 		t.Errorf("updated_by = %v, rotation.updated_by = %v, want unknown", plan.Key.UpdatedBy, plan.Key.Rotation.UpdatedBy)
 	}
+	// kind has a default, so Terraform never plans it as unknown.
+	if !plan.Key.Retry.IsUnknown() || plan.Key.Kind.IsUnknown() {
+		t.Errorf("retry = %v, kind = %v, want retry unknown and kind known", plan.Key.Retry, plan.Key.Kind)
+	}
+	// backup reads as an empty object (missingAsZero), and an empty one is
+	// sent as a missing one.
 	if got, want := expand(t, plan.Key), `{"limits":{"perMinute":1},"rotation":{}}`; got != want {
 		t.Errorf("expand = %s, want %s", got, want)
+	}
+}
+
+// TestExtensionDefaults checks the defaults of the overrides: an object of
+// the defaults of its fields (defaultObject), and a default on a computed
+// attribute that is not optional.
+func TestExtensionDefaults(t *testing.T) {
+	ctx := context.Background()
+	attrs := fakeinline.KeyAttributes()
+	var resp defaults.ObjectResponse
+	attrs["policy"].(schema.SingleNestedAttribute).Default.DefaultObject(ctx, defaults.ObjectRequest{}, &resp)
+	want := types.ObjectValueMust(fakeinline.KeyPolicyAttrTypes(), map[string]attr.Value{
+		"level": types.StringValue("low"), "strict": types.BoolNull()})
+	if !resp.PlanValue.Equal(want) {
+		t.Errorf("policy default = %v, want %v", resp.PlanValue, want)
+	}
+	kind := attrs["kind"].(schema.StringAttribute)
+	if !kind.Computed || kind.Optional || kind.Default == nil {
+		t.Errorf("kind: computed %v, optional %v, default %v; want computed only, with a default", kind.Computed, kind.Optional, kind.Default)
+	}
+	if retry := attrs["retry"].(schema.SingleNestedAttribute); !retry.Computed || len(retry.PlanModifiers) != 1 {
+		t.Errorf("retry: computed %v, plan modifiers %d", retry.Computed, len(retry.PlanModifiers))
 	}
 }
 

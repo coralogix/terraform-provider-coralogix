@@ -26,6 +26,7 @@ import (
 //     inlined attribute is null, or what its read override says.
 //   - An inlined field is required only when the holding field is required
 //     too: else the object, and so the field, can be missing.
+//   - The arms of an inlined oneOf keep their validators, in the parent.
 
 // inlined reports whether the field f of the component schema is inlined.
 func (o *overrides) inlined(schema string, f *model.Field) bool {
@@ -52,7 +53,7 @@ type attrName struct{ tf, goName, label string }
 // attrNames returns the attributes that the field f of t becomes: one, or
 // the inlined fields.
 func (o *overrides) attrNames(t *model.Type, f *model.Field) []attrName {
-	if !o.inlined(t.Schema, f) || f.Type.Kind != model.Object {
+	if !o.inlined(t.Schema, f) || f.Type.Kind != model.Object && f.Type.Kind != model.OneOf {
 		return []attrName{{o.tfName(t.Schema, f.Name), camelize(f.Name), f.Name}}
 	}
 	var out []attrName
@@ -74,7 +75,7 @@ func (o *overrides) checkInline(t *model.Type, f *model.Field) error {
 		return errors.New("inline: a wrapped field cannot be inlined")
 	case f.Attrs.ReadOnly:
 		return errors.New("inline: a read-only field cannot be inlined")
-	case nt.Kind != model.Object:
+	case nt.Kind != model.Object && nt.Kind != model.OneOf:
 		return fmt.Errorf("inline needs an object, the field is a %s", nt.Kind)
 	case o.unwrapped(nt.Schema):
 		return fmt.Errorf("inline: %s is unwrapped", nt.Schema)
@@ -123,6 +124,12 @@ func (b *tfBuilder) inlineAttributes(p attrPath, holder *model.Field) (fieldPart
 			return out, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		out.attrs, out.fields = append(out.attrs, a), append(out.fields, mf)
+	}
+	// The arms of an inlined oneOf are attributes of the parent, so their
+	// validators name the other arms there.
+	if nt := holder.Type; nt.Kind == model.OneOf {
+		armName := func(arm string) string { return b.ov.tfName(nt.Schema, arm) }
+		addGroupValidators(out.attrs, []model.OneOfGroup{{Arms: fieldNames(b.ov.fields(nt)), AllowNone: nt.AllowNone}}, armName)
 	}
 	return out, nil
 }

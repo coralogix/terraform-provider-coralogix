@@ -132,6 +132,7 @@ const (
 	convEnumName    = "enumname"    // types.String (a Terraform name) ↔ *<enum type>
 	convEnumNames   = "enumnames"   // types.Set/List of Terraform names ↔ []<enum type>
 	convWrap        = "wrap"        // *<wrapper Model> ↔ fields of the same SDK struct (see wrapper)
+	convWrapValue   = "wrapvalue"   // a computed wrapper: types.Object ↔ fields of the same SDK struct
 	// convObjValue is a computed object: types.Object ↔ *<SDK type>.
 	// Terraform plans it as unknown, which a struct pointer cannot hold.
 	convObjValue = "objectvalue"
@@ -185,12 +186,13 @@ type convField struct {
 
 // Values of convField.Read.
 const (
-	readZero      = "zero"       // a missing scalar → its zero value
-	readEmptyList = "emptylist"  // a missing list → an empty list
-	readEmptyMap  = "emptymap"   // a missing map → an empty map
-	readNullList  = "nulllist"   // an empty list or map → null
-	readNullObj   = "nullobject" // an object with no fields set → null
-	readZeroEnum  = "zeroenum"   // a missing enum → its proto zero value (ProtoZero)
+	readZero      = "zero"        // a missing scalar → its zero value
+	readEmptyList = "emptylist"   // a missing list → an empty list
+	readEmptyMap  = "emptymap"    // a missing map → an empty map
+	readNullList  = "nulllist"    // an empty list or map → null
+	readNullObj   = "nullobject"  // an object with no fields set → null
+	readEmptyObj  = "emptyobject" // a missing object → an empty one (SDKType)
+	readZeroEnum  = "zeroenum"    // a missing enum → its proto zero value (ProtoZero)
 )
 
 // Normalizes reports whether flatten of obj changes a missing or empty
@@ -689,10 +691,15 @@ func (b *convBuilder) objectField(owner, schema string, f *model.Field) (*convFi
 	}
 	cf.TFName = b.ov.tfName(schema, f.Name)
 	cf.ReadOnly = b.ov.effective(schema, f).ReadOnly
-	if b.ov.field(schema, f.Name).String {
+	switch ov := b.ov.field(schema, f.Name); {
+	case ov.String:
 		// The SDK keeps its int64; Terraform has the decimal string (F68).
 		// checkNumberText allows the override only on an int64.
 		cf.Conv = convInt64Text
+	case ov.Wide && !b.ov.wide():
+		if _, err := wideConv(cf, f.Type); err != nil {
+			return nil, err
+		}
 	}
 	if _, _, comp := flags(b.ov.effective(schema, f), f.Attrs); comp && b.ov != nil {
 		if err := b.objectValue(cf); err != nil {
@@ -808,7 +815,15 @@ func (b *convBuilder) wrap(t *model.Type, obj *convObject) {
 			wobj.NilCheck = strings.Join(checks, " && ")
 		}
 		b.objects = append(b.objects, wobj)
-		first[byName[b.ov.tfName(t.Schema, w.Fields[0])]] = &convField{TFName: w.Name, Model: camelize(w.Name), Conv: convWrap, Object: wobj}
+		conv := convWrap
+		if _, _, comp := flags(w.Ov, model.Attrs{}); comp {
+			// Terraform plans it as unknown, which a struct pointer cannot hold.
+			conv = convWrapValue
+			if !contains(b.listed, wobj) {
+				b.listed = append(b.listed, wobj)
+			}
+		}
+		first[byName[b.ov.tfName(t.Schema, w.Fields[0])]] = &convField{TFName: w.Name, Model: camelize(w.Name), Conv: conv, Object: wobj}
 	}
 	if len(first) == 0 {
 		return
@@ -835,7 +850,22 @@ func (b *convBuilder) readRule(ov fieldOverride, cf *convField, t *model.Type) (
 	slice := map[string]bool{convStrings: true, convScalars: true, convObjects: true, convEnumNames: true}[cf.Conv]
 	mapped := map[string]bool{convStringMap: true, convScalarMap: true, convUint64Map: true, convObjectMap: true}[cf.Conv]
 	switch {
-	case ov.MissingAsZero && (cf.Conv == convEnum || cf.Conv == convEnumName) && !cf.Value:
+	case ov.MissingAsZero:
+		return b.missingRule(cf, t, slice, mapped)
+	case ov.EmptyAsNull && (slice || mapped):
+		return readNullList, nil
+	case ov.EmptyAsNull && cf.Conv == convObj && !cf.Value:
+		return readNullObj, nil
+	case ov.EmptyAsNull:
+		return "", fmt.Errorf("emptyAsNull is not supported for %s", cf.Conv)
+	}
+	return "", nil
+}
+
+// missingRule is the read rule of missingAsZero for cf, whose API type is t.
+func (b *convBuilder) missingRule(cf *convField, t *model.Type, slice, mapped bool) (string, error) {
+	switch {
+	case (cf.Conv == convEnum || cf.Conv == convEnumName) && !cf.Value:
 		// Proto3 JSON leaves out an enum at its zero value, the first one.
 		enum, err := b.ix.schemaRef(t.Schema)
 		if err != nil {
@@ -847,16 +877,14 @@ func (b *convBuilder) readRule(ov fieldOverride, cf *convField, t *model.Type) (
 		}
 		cf.ProtoZero = b.qualify(enumConstName(enum.Name, zero))
 		return readZeroEnum, nil
-	case ov.MissingAsZero:
-		return zeroRule(cf, slice, mapped)
-	case ov.EmptyAsNull && (slice || mapped):
-		return readNullList, nil
-	case ov.EmptyAsNull && cf.Conv == convObj && !cf.Value:
-		return readNullObj, nil
-	case ov.EmptyAsNull:
-		return "", fmt.Errorf("emptyAsNull is not supported for %s", cf.Conv)
+	case cf.Conv == convObj || cf.Conv == convObjValue:
+		if cf.Value {
+			return "", nil // a value is never missing
+		}
+		cf.SDKType = b.qualify(cf.Object.SDK)
+		return readEmptyObj, nil
 	}
-	return "", nil
+	return zeroRule(cf, slice, mapped)
 }
 
 // zeroRule is the read rule of missingAsZero for cf.
@@ -911,7 +939,7 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	}
 	for _, f := range obj.Fields {
 		switch f.Conv {
-		case convObj, convObjects, convObjectMap, convWrap, convObjValue, convUnwrap, convUnwraps, convInline:
+		case convObj, convObjects, convObjectMap, convWrap, convWrapValue, convObjValue, convUnwrap, convUnwraps, convInline:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
 			}
@@ -975,7 +1003,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		}
 		f.ElemType = elem
 		return "types." + f.Collection + "Type{ElemType: " + elem + "}", nil
-	case convObj, convObjects, convObjectMap, convWrap, convObjValue:
+	case convObj, convObjects, convObjectMap, convWrap, convWrapValue, convObjValue:
 		if err := b.attrTypes(f.Object); err != nil {
 			return "", err
 		}

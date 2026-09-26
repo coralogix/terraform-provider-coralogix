@@ -92,8 +92,9 @@ func checkWrapper(w wrapper, t *model.Type, fields map[string]*model.Field, owne
 		return errors.New("wrap: the key must be a new attribute name, not an API field")
 	case !attrNamePattern.MatchString(w.Name):
 		return fmt.Errorf("%q is not a valid Terraform attribute name", w.Name)
-	case !reflect.DeepEqual(w.Ov, fieldOverride{Wrap: w.Ov.Wrap, Required: w.Ov.Required, Optional: w.Ov.Optional, Computed: w.Ov.Computed}):
-		return errors.New("a wrapper can only set wrap, required, optional, and computed")
+	case !reflect.DeepEqual(w.Ov, fieldOverride{Wrap: w.Ov.Wrap, Required: w.Ov.Required, Optional: w.Ov.Optional, Computed: w.Ov.Computed,
+		UseStateForUnknown: w.Ov.UseStateForUnknown}):
+		return errors.New("a wrapper can only set wrap, required, optional, computed, and useStateForUnknown")
 	}
 	for _, name := range w.Ov.Wrap {
 		switch {
@@ -105,9 +106,6 @@ func checkWrapper(w wrapper, t *model.Type, fields map[string]*model.Field, owne
 			return fmt.Errorf("wrap: %s is also in %s", name, owner[name])
 		}
 		owner[name] = w.Name
-	}
-	if w.Ov.Computed != nil && *w.Ov.Computed {
-		return errors.New("a computed wrapper is not supported")
 	}
 	return checkFlags(w.Ov, model.Attrs{})
 }

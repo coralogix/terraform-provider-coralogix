@@ -4,6 +4,7 @@ package fakeinline
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk/go/openapi/gen/fake_boards_service"
 )
@@ -45,10 +47,15 @@ func expandKey(ctx context.Context, p path.Path, m *KeyModel, diags *diag.Diagno
 	out.KeyPermissions = expandKeyInlineKeyPermissions(ctx, p, m, diags)
 	out.Limits = valueOf(expandKeyInlineLimits(ctx, p, m, diags))
 	out.Rotation = expandKeyRotation(ctx, p.AtName("rotation"), m.Rotation, diags)
-	out.Backup = expandKeyPermissions(ctx, p.AtName("backup"), m.Backup, diags)
+	out.Backup = nilIfEmpty(expandKeyPermissions(ctx, p.AtName("backup"), m.Backup, diags))
 	out.OwnerTeamId = expandInt64Text(p.AtName("owner_team_id"), m.OwnerTeamId, diags)
 	out.MaxCount = expandInt64String(m.MaxCount)
 	out.TtlSeconds = expandUint64(p.AtName("ttl_seconds"), m.TtlSeconds, diags)
+	out.Notify = expandKeyInlineNotify(ctx, p, m, diags)
+	out.Policy = expandKeyPolicy(ctx, p.AtName("policy"), objectAs[KeyPolicyModel](ctx, p.AtName("policy"), m.Policy, diags), diags)
+	expandKeyRetry(ctx, p.AtName("retry"), objectAs[KeyRetryModel](ctx, p.AtName("retry"), m.Retry, diags), out, diags)
+	out.Ratio = expandFloat32Wide(m.Ratio)
+	out.Kind = expandString(m.Kind)
 	return out
 }
 
@@ -57,6 +64,12 @@ func flattenKey(ctx context.Context, p path.Path, v *fake_boards_service.Key, di
 		return nil
 	}
 	out := &KeyModel{}
+	// The overrides read some missing or empty values in another way.
+	n := *v
+	v = &n
+	if v.Backup == nil {
+		v.Backup = &fake_boards_service.KeyPermissions{}
+	}
 	out.Name = types.StringPointerValue(v.Name)
 	out.Secret = types.StringPointerValue(v.Secret)
 	flattenKeyInlineKeyPermissions(ctx, p, v.KeyPermissions, out, diags)
@@ -66,6 +79,11 @@ func flattenKey(ctx context.Context, p path.Path, v *fake_boards_service.Key, di
 	out.OwnerTeamId = flattenInt64Text(v.OwnerTeamId)
 	out.MaxCount = flattenInt64String(p.AtName("max_count"), v.MaxCount, diags)
 	out.TtlSeconds = flattenUint64(p.AtName("ttl_seconds"), v.TtlSeconds, diags)
+	flattenKeyInlineNotify(ctx, p, v.Notify, out, diags)
+	out.Policy = objectValue(ctx, KeyPolicyAttrTypes(), flattenKeyPolicy(ctx, p.AtName("policy"), v.Policy, diags), diags)
+	out.Retry = objectValue(ctx, KeyRetryAttrTypes(), flattenKeyRetry(ctx, p.AtName("retry"), v, diags), diags)
+	out.Ratio = flattenFloat32Wide(v.Ratio)
+	out.Kind = types.StringPointerValue(v.Kind)
 	return out
 }
 
@@ -85,6 +103,12 @@ func KeyAttrTypes() map[string]attr.Type {
 		"owner_team_id": types.StringType,
 		"max_count":     types.Int64Type,
 		"ttl_seconds":   types.Int64Type,
+		"email":         types.StringType,
+		"webhook_id":    types.StringType,
+		"policy":        types.ObjectType{AttrTypes: KeyPolicyAttrTypes()},
+		"retry":         types.ObjectType{AttrTypes: KeyRetryAttrTypes()},
+		"ratio":         types.Float64Type,
+		"kind":          types.StringType,
 	}
 }
 
@@ -233,6 +257,85 @@ func KeyPermissionsAttrTypes() map[string]attr.Type {
 		"permissions": types.SetType{ElemType: types.StringType},
 		"presets":     types.ListType{ElemType: types.StringType},
 		"updated_by":  types.StringType,
+	}
+}
+
+// expandKeyInlineNotify returns the API object KeyNotify from its fields in
+// KeyModel (an inlined object), or nil when none of them is set.
+func expandKeyInlineNotify(ctx context.Context, p path.Path, m *KeyModel, diags *diag.Diagnostics) *fake_boards_service.KeyNotify {
+	if unset(m.Email) && unset(m.WebhookId) {
+		return nil
+	}
+	out := &fake_boards_service.KeyNotify{}
+	out.Email = expandString(m.Email)
+	out.WebhookId = expandString(m.WebhookId)
+	return out
+}
+
+// flattenKeyInlineNotify sets the fields of the API object KeyNotify on out (an
+// inlined object). A missing object reads as an object with no fields.
+func flattenKeyInlineNotify(ctx context.Context, p path.Path, v *fake_boards_service.KeyNotify, out *KeyModel, diags *diag.Diagnostics) {
+	if v == nil {
+		v = &fake_boards_service.KeyNotify{}
+	}
+	out.Email = types.StringPointerValue(v.Email)
+	out.WebhookId = types.StringPointerValue(v.WebhookId)
+}
+
+func expandKeyPolicy(ctx context.Context, p path.Path, m *KeyPolicyModel, diags *diag.Diagnostics) *fake_boards_service.KeyPolicy {
+	if m == nil {
+		return nil
+	}
+	out := &fake_boards_service.KeyPolicy{}
+	out.Level = expandString(m.Level)
+	out.Strict = expandBool(m.Strict)
+	return out
+}
+
+func flattenKeyPolicy(ctx context.Context, p path.Path, v *fake_boards_service.KeyPolicy, diags *diag.Diagnostics) *KeyPolicyModel {
+	if v == nil {
+		return nil
+	}
+	out := &KeyPolicyModel{}
+	out.Level = types.StringPointerValue(v.Level)
+	out.Strict = types.BoolPointerValue(v.Strict)
+	return out
+}
+
+// KeyPolicyAttrTypes returns the Terraform attribute types of KeyPolicyModel, for
+// a types.Object, or a list or map of them.
+func KeyPolicyAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"level":  types.StringType,
+		"strict": types.BoolType,
+	}
+}
+
+// expandKeyRetry sets the fields of the wrapper KeyRetryModel on out. A null
+// wrapper sets none.
+func expandKeyRetry(ctx context.Context, p path.Path, m *KeyRetryModel, out *fake_boards_service.Key, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	out.RetryMinutes = expandInt64(m.RetryMinutes)
+}
+
+// flattenKeyRetry reads the fields of the wrapper KeyRetryModel from v.
+// It is nil when v has none of them.
+func flattenKeyRetry(ctx context.Context, p path.Path, v *fake_boards_service.Key, diags *diag.Diagnostics) *KeyRetryModel {
+	if v.RetryMinutes == nil {
+		return nil
+	}
+	out := &KeyRetryModel{}
+	out.RetryMinutes = types.Int64PointerValue(v.RetryMinutes)
+	return out
+}
+
+// KeyRetryAttrTypes returns the Terraform attribute types of KeyRetryModel, for
+// a types.Object, or a list or map of them.
+func KeyRetryAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"retry_minutes": types.Int64Type,
 	}
 }
 
@@ -402,6 +505,68 @@ func expandInt32(v types.Int32) *int32 {
 	}
 	n := v.ValueInt32()
 	return &n
+}
+
+func expandInt64(v types.Int64) *int64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n := v.ValueInt64()
+	return &n
+}
+
+// objectAs returns the model of the object v, or nil when v is null or
+// unknown (a computed object in a plan).
+func objectAs[T any](ctx context.Context, p path.Path, v types.Object, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	var m T
+	for _, d := range v.As(ctx, &m, basetypes.ObjectAsOptions{}) {
+		diags.Append(diag.WithPath(p, d))
+	}
+	return &m
+}
+
+// objectValue returns the object value of the model m, or null for nil.
+func objectValue[T any](ctx context.Context, attrTypes map[string]attr.Type, m *T, diags *diag.Diagnostics) types.Object {
+	if m == nil {
+		return types.ObjectNull(attrTypes)
+	}
+	v, d := types.ObjectValueFrom(ctx, attrTypes, *m)
+	diags.Append(d...)
+	return v
+}
+
+// nilIfEmpty returns nil for an object with no fields set: a missing object
+// reads as an empty one (the missingAsZero override), so an empty one is sent
+// as a missing one.
+func nilIfEmpty[T any](v *T) *T {
+	if v == nil {
+		return nil
+	}
+	if b, err := json.Marshal(v); err == nil && string(b) == "{}" {
+		return nil
+	}
+	return v
+}
+
+func expandFloat32Wide(v types.Float64) *float32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f := float32(v.ValueFloat64())
+	return &f
+}
+
+// flattenFloat32Wide returns the shortest decimal of the float32 v as a
+// Float64, so 0.1 reads back as 0.1, not 0.10000000149.
+func flattenFloat32Wide(v *float32) types.Float64 {
+	if v == nil {
+		return types.Float64Null()
+	}
+	f, _ := strconv.ParseFloat(strconv.FormatFloat(float64(*v), 'g', -1, 32), 64)
+	return types.Float64Value(f)
 }
 
 // unset reports whether v is null or unknown: expand does not send it.

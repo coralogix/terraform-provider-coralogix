@@ -47,8 +47,11 @@ func (o *overrides) unwrap(t *model.Type) *model.Type {
 // fieldType, then unwrap. The string override makes a number a String; the
 // conversion keeps the API type (objectField).
 func (o *overrides) tfType(schema string, f *model.Field) *model.Type {
-	if o.field(schema, f.Name).String {
+	switch ov := o.field(schema, f.Name); {
+	case ov.String:
 		return &model.Type{Kind: model.String}
+	case ov.Wide:
+		return widenType(f.Type)
 	}
 	return o.unwrap(o.fieldType(schema, f))
 }

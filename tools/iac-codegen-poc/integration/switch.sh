@@ -13,8 +13,9 @@
 #   4. Apply <name>/provider.patch (the switch), then go vet and the provider
 #      unit tests.
 # New handwritten provider files of the switch are in <name>/add/*.go.txt
-# (the suffix keeps them out of this module). They are copied in before
-# step 3, so the checks run the same code as the switched resource.
+# (the suffix keeps them out of this module), and in its subdirectories for
+# new packages. They are copied in before step 3, so the checks run the same
+# code as the switched resource.
 # The provider checkout is not changed. The patches were made against
 # provider commit 752482ec.
 #
@@ -49,8 +50,9 @@ fi
 
 git -C "$PROVIDER" archive HEAD | tar -x -C "$WORK"
 if [ -d "$IT/add" ]; then
-  for f in "$IT"/add/*.go.txt; do
-    cp "$f" "$WORK/$TEST_DIR/$(basename "$f" .txt)"
+  (cd "$IT/add" && find . -name '*.go.txt') | while read -r f; do
+    mkdir -p "$WORK/$TEST_DIR/$(dirname "$f")"
+    cp "$IT/add/$f" "$WORK/$TEST_DIR/${f%.txt}"
   done
 fi
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --types "$ROOT" --tag "$TAG" \

@@ -56,16 +56,49 @@ EOT
   export TF_CLI_CONFIG_FILE="$TMP/cli.tfrc"
 }
 
-# no_changes fails when terraform plans a change.
+# no_changes fails when terraform plans a change. Then it also writes the
+# JSON paths that differ, which the plan text can hide.
 no_changes() {
   local code=0
-  terraform -chdir="$TF" plan -detailed-exitcode -input=false -no-color > "$TMP/plan.txt" || code=$?
+  terraform -chdir="$TF" plan -detailed-exitcode -input=false -no-color -out="$TMP/nc.plan" > "$TMP/plan.txt" || code=$?
   if [ "$code" != 0 ]; then
     cat "$TMP/plan.txt"
+    explain_plan "$TMP/nc.plan"
     echo "FAIL: $1: the plan is not empty (exit $code)"
     exit 1
   fi
   echo "ok: $1: no changes"
+}
+
+# explain_plan writes, for each resource of the saved plan $1, the JSON paths
+# that the refresh changed (drift) and that the plan changes.
+explain_plan() {
+  terraform -chdir="$TF" show -json "$1" | python3 -c '
+import json, sys
+plan = json.load(sys.stdin)
+def walk(p, a, b, out):
+    if isinstance(a, dict) and isinstance(b, dict):
+        for k in sorted(set(a) | set(b)):
+            walk(p + "." + k, a.get(k), b.get(k), out)
+    elif isinstance(a, list) and isinstance(b, list) and len(a) == len(b):
+        for i, (x, y) in enumerate(zip(a, b)):
+            walk("%s[%d]" % (p, i), x, y, out)
+    elif a != b:
+        out.append("%s: %s -> %s" % (p, json.dumps(a), json.dumps(b)))
+for kind in ("resource_drift", "resource_changes"):
+    for c in plan.get(kind, []):
+        ch = c["change"]
+        out = []
+        walk("", ch.get("before"), ch.get("after"), out)
+        unknown = []
+        walk("", {}, ch.get("after_unknown") or {}, unknown)
+        if out or unknown:
+            print("%s %s:" % (kind, c["address"]))
+            for line in out:
+                print("  " + line)
+            for line in unknown:
+                print("  unknown" + line.split(":", 1)[0])
+'
 }
 
 # same_json reports whether the JSON $2 (new) has the values of $1 (old). With

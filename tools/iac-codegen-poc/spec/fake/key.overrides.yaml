@@ -10,6 +10,12 @@ types:
     ownerTeamId: {string: true}    # an int64 JSON number as a String
     maxCount: {int64: true}        # a string with ^-?[0-9]+$ as an Int64
     ttlSeconds: {int64: true}      # a string with ^[0-9]+$ as an Int64 of at least 0
+    notify: {inline: true}         # a oneOf in the parent: its arms keep their validators
+    policy: {defaultObject: true}  # the default is {level = "low", strict = null}
+    retry: {wrap: [retryMinutes], computed: true, useStateForUnknown: true}   # a computed wrapper
+    ratio: {wide: true}            # a float as a Float64, while rotation.every_days stays an Int32
+    kind: {optional: false, default: standard}   # computed only, with a default
+    backup: {missingAsZero: true}  # a missing object reads as an empty one
   KeyRotation:
     permissions: {inline: true}    # the same object, inlined in a second parent
   Key.Permissions:                 # also used by Key.backup, which is not inlined
@@ -17,3 +23,5 @@ types:
     presets: {emptyAsNull: true}
   KeyLimits:
     burst: {int64: true}
+  KeyPolicy:
+    level: {default: low}

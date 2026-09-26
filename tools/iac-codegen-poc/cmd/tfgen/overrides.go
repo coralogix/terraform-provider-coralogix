@@ -62,7 +62,9 @@ type fieldOverride struct {
 	// attribute.
 	DeprecationMessage string `yaml:"deprecationMessage"`
 	// MissingAsZero reads a value that the API response does not have as
-	// the zero value: "", false, 0, or an empty list or map. Handwritten
+	// the zero value: "", false, 0, or an empty list or map. A missing
+	// object reads as an empty one, whose fields follow their own read
+	// overrides, and expand sends an empty one as a missing one. Handwritten
 	// resources often do that (types.StringValue(v.GetName())).
 	MissingAsZero bool `yaml:"missingAsZero"`
 	// EmptyAsNull reads an empty list, map, or object (no fields set) as
@@ -94,6 +96,13 @@ type fieldOverride struct {
 	// group of its object. It is not an attribute; expand sets it from the
 	// arm (see custom.go).
 	NamesArm bool `yaml:"namesArm"`
+	// Wide writes one int32 as Int64, or one float as Float64, as
+	// wideNumbers does for every field.
+	Wide bool `yaml:"wide"`
+	// DefaultObject makes the default of an object attribute the object of
+	// the defaults of its fields, and null for the fields without one. Like
+	// default, it makes the attribute Optional and Computed.
+	DefaultObject bool `yaml:"defaultObject"`
 }
 
 // numberPatterns are the formats of the patterns of a 64-bit number that
@@ -220,6 +229,11 @@ func (o *overrides) widen(t *model.Type) *model.Type {
 	if !o.wide() || !isNarrow(t) {
 		return t
 	}
+	return widenType(t)
+}
+
+// widenType returns the wide type of the narrow number t.
+func widenType(t *model.Type) *model.Type {
 	w := *t
 	w.Format = map[string]string{"int32": "int64", "float": "double"}[t.Format]
 	return &w
@@ -316,8 +330,8 @@ func checkField(ov fieldOverride, f *model.Field) error {
 	if ov.Name != "" && !attrNamePattern.MatchString(ov.Name) {
 		return fmt.Errorf("name %q is not a valid Terraform attribute name", ov.Name)
 	}
-	if ov.Set && f.Type.Kind != model.List {
-		return fmt.Errorf("set: the field is a %s, not a list", f.Type.Kind)
+	if err := checkShape(ov, f.Type); err != nil {
+		return err
 	}
 	if err := checkNumberText(ov, f.Type); err != nil {
 		return err
@@ -326,6 +340,20 @@ func checkField(ov fieldOverride, f *model.Field) error {
 		return err
 	}
 	return checkFlags(ov, f.Attrs)
+}
+
+// checkShape checks the overrides that need a kind of field: set, wide, and
+// defaultObject.
+func checkShape(ov fieldOverride, t *model.Type) error {
+	switch {
+	case ov.Set && t.Kind != model.List:
+		return fmt.Errorf("set: the field is a %s, not a list", t.Kind)
+	case ov.Wide && !isNarrow(t):
+		return fmt.Errorf("wide: the field is a %s, not an int32 or a float", typeName(t))
+	case ov.DefaultObject && (t.Kind != model.Object && t.Kind != model.OneOf || ov.Default != nil):
+		return fmt.Errorf("defaultObject needs an object with no default, the field is a %s", t.Kind)
+	}
+	return nil
 }
 
 // checkNumberText checks the overrides int64 and string (F68): int64 needs a
@@ -350,8 +378,6 @@ func checkRead(ov fieldOverride, t *model.Type) error {
 	switch {
 	case ov.MissingAsZero && ov.EmptyAsNull:
 		return errors.New("missingAsZero and emptyAsNull cannot be combined")
-	case ov.MissingAsZero && object:
-		return errors.New("missingAsZero: an object has no zero value")
 	case ov.EmptyAsNull && !object && !collection:
 		return fmt.Errorf("emptyAsNull: the field is a %s, not a list, map, or object", t.Kind)
 	}
@@ -370,8 +396,8 @@ func checkFlags(ov fieldOverride, a model.Attrs) error {
 		return errors.New("a required attribute cannot be optional or computed")
 	case !req && !opt && !comp:
 		return errors.New("the attribute must be required, optional, or computed")
-	case ov.Default != nil && (!opt || !comp):
-		return errors.New("a default needs an optional and computed attribute")
+	case (ov.Default != nil || ov.DefaultObject) && !comp:
+		return errors.New("a default needs a computed attribute")
 	}
 	return nil
 }
@@ -379,7 +405,7 @@ func checkFlags(ov fieldOverride, a model.Attrs) error {
 // checkReadOnly fails when a read-only field, by the override or by the
 // spec, also has flags or a default.
 func checkReadOnly(ov fieldOverride, a model.Attrs) error {
-	if ov.Required == nil && ov.Optional == nil && ov.Computed == nil && ov.Default == nil {
+	if ov.Required == nil && ov.Optional == nil && ov.Computed == nil && ov.Default == nil && !ov.DefaultObject {
 		return nil
 	}
 	switch {
@@ -396,7 +422,7 @@ func checkReadOnly(ov fieldOverride, a model.Attrs) error {
 // Computed unless the override sets them.
 func flags(ov fieldOverride, a model.Attrs) (req, opt, comp bool) {
 	req, opt = a.Required, !a.Required
-	if a.Default != nil || ov.Default != nil {
+	if a.Default != nil || ov.Default != nil || ov.DefaultObject {
 		req, opt, comp = false, true, true
 	}
 	if ov.Required != nil {

@@ -268,7 +268,7 @@ func TestOverridesRejects(t *testing.T) {
 		{"set on a scalar", "types: {Routing: {weight: {set: true}}}", "set: the field is a number, not a list"},
 		{"required and computed", "types: {Routing: {weight: {required: true, computed: true}}}", "cannot be optional or computed"},
 		{"no flag left", "types: {Routing: {weight: {optional: false}}}", "must be required, optional, or computed"},
-		{"default not computed", `types: {Routing: {weight: {default: "1", computed: false}}}`, "a default needs an optional and computed attribute"},
+		{"default not computed", `types: {Routing: {weight: {default: "1", computed: false}}}`, "a default needs a computed attribute"},
 		{"every field skipped", "types: {Target: {connectorId: {skip: true}, tags: {skip: true}}}", "types.Target: every field is skipped"},
 		{"read only and required", "types: {Routing: {weight: {readOnly: true, required: true}}}", "readOnly cannot be combined"},
 		{"zero and null", "types: {Routing: {channels: {missingAsZero: true, emptyAsNull: true}}}", "cannot be combined"},
@@ -328,7 +328,7 @@ func TestWrapperRejects(t *testing.T) {
 		{"two wrappers", "types: {Layout: {a: {wrap: [section]}, b: {wrap: [section]}}}", "wrap: section is also in a"},
 		{"split oneOf", "types: {Layout: {w: {wrap: [refreshOff]}}}", "must be in one wrapper or in none"},
 		{"bad name", "types: {Layout: {Wrap: {wrap: [section]}}}", `"Wrap" is not a valid Terraform attribute name`},
-		{"default", "types: {Layout: {w: {wrap: [section], default: x}}}", "a wrapper can only set wrap, required, optional, and computed"},
+		{"default", "types: {Layout: {w: {wrap: [section], default: x}}}", "a wrapper can only set wrap, required, optional, computed, and useStateForUnknown"},
 		{"name clash", "types: {Layout: {w: {wrap: [section]}, title: {name: w}}}", `both have the Terraform name "w"`},
 		{"on a oneOf", "types: {TextStyle: {w: {wrap: [bold, font]}}}", "wrap needs an object, TextStyle is a oneOf"},
 	} {
@@ -396,7 +396,6 @@ func TestInlineRejects(t *testing.T) {
 		{"with flags", "types: {Key: {keyPermissions: {inline: true, required: true}}}", "inline cannot be combined with other overrides"},
 		{"on a scalar", "types: {Key: {name: {inline: true}}}", "inline needs an object, the field is a string"},
 		{"on a list", "types: {Routing: {targets: {inline: true}}}", "inline needs an object, the field is a list"},
-		{"on a oneOf object", "types: {Query: {source: {inline: true}}}", "inline needs an object, the field is a oneOf"},
 		{"on a oneOf arm", "types: {TextStyle: {font: {inline: true}}}", "a oneOf arm cannot be inlined"},
 		{"on a wrapped field", "types: {Key: {w: {wrap: [keyPermissions]}, keyPermissions: {inline: true}}}", "a wrapped field cannot be inlined"},
 		{"an unwrapped object", "unwrap: [FieldSource]\ntypes: {Query: {field: {inline: true}}}", "FieldSource is unwrapped"},
@@ -410,6 +409,9 @@ func TestInlineRejects(t *testing.T) {
 		{"string on a string", "types: {Key: {name: {string: true}}}", "string: the field is a string, it must be an int64 JSON number"},
 		{"string on an int32", "types: {KeyLimits: {perMinute: {string: true}}}", "string: the field is a integer int32"},
 		{"int64 and string", "types: {Key: {maxCount: {int64: true, string: true}}}", "int64 and string cannot be combined"},
+		{"wide on an int64", "types: {Key: {ownerTeamId: {wide: true}}}", "wide: the field is a integer int64, not an int32 or a float"},
+		{"defaultObject on a string", "types: {Key: {name: {defaultObject: true}}}", "defaultObject needs an object with no default, the field is a string"},
+		{"defaultObject not computed", "types: {Key: {rotation: {defaultObject: true, computed: false}}}", "a default needs a computed attribute"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			p := filepath.Join(t.TempDir(), "overrides.yaml")

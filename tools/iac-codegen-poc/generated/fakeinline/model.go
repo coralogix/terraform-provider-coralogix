@@ -21,6 +21,18 @@ type KeyPermissionsModel struct {
 	UpdatedBy   types.String `tfsdk:"updated_by"`
 }
 
+// KeyPolicyModel is the Terraform model of the API type KeyPolicy.
+type KeyPolicyModel struct {
+	Level  types.String `tfsdk:"level"`
+	Strict types.Bool   `tfsdk:"strict"`
+}
+
+// KeyRetryModel holds the fields of the API type Key
+// that the overrides put in retry.
+type KeyRetryModel struct {
+	RetryMinutes types.Int64 `tfsdk:"retry_minutes"`
+}
+
 // KeyModel is the Terraform model of the API type Key.
 type KeyModel struct {
 	Name        types.String         `tfsdk:"name"`
@@ -35,4 +47,10 @@ type KeyModel struct {
 	OwnerTeamId types.String         `tfsdk:"owner_team_id"`
 	MaxCount    types.Int64          `tfsdk:"max_count"`
 	TtlSeconds  types.Int64          `tfsdk:"ttl_seconds"`
+	Email       types.String         `tfsdk:"email"`
+	WebhookId   types.String         `tfsdk:"webhook_id"`
+	Policy      types.Object         `tfsdk:"policy"`
+	Retry       types.Object         `tfsdk:"retry"`
+	Ratio       types.Float64        `tfsdk:"ratio"`
+	Kind        types.String         `tfsdk:"kind"`
 }

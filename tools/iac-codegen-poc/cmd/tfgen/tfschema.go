@@ -32,11 +32,14 @@ type tfAttr struct {
 	Optional    bool
 	Computed    bool
 	Description string
-	ElementType string   // Set, List: the element type, for example "types.StringType"
-	Default     string   // Go expression
-	Validators  []string // Go expressions
-	Modifiers   []string // plan modifiers, Go expressions
-	Attributes  []*tfAttr
+	ElementType string // Set, List: the element type, for example "types.StringType"
+	Default     string // Go expression
+	// DefaultValue is the attr.Value of the default, as a Go expression,
+	// for the default of an object that holds the attribute (defaultObject).
+	DefaultValue string
+	Validators   []string // Go expressions
+	Modifiers    []string // plan modifiers, Go expressions
+	Attributes   []*tfAttr
 	// DeprecationMessage and Sensitive come from an override (D21).
 	DeprecationMessage string
 	Sensitive          bool
@@ -210,13 +213,41 @@ func (b *tfBuilder) attribute(p attrPath, name, desc string, t *model.Type, attr
 		return nil, err
 	}
 	if attrs.Default != nil {
-		d, err := defaultExpr(a.Kind, *attrs.Default)
-		if err != nil {
+		if err := setDefault(a, *attrs.Default); err != nil {
 			return nil, err
 		}
-		a.Required, a.Optional, a.Computed, a.Default = false, true, true, d
+		a.Required, a.Optional, a.Computed = false, true, true
 	}
 	return a, nil
+}
+
+// setDefault sets the default of the scalar attribute a from the YAML text
+// of the value.
+func setDefault(a *tfAttr, value string) error {
+	d, err := defaultExpr(a.Kind, value)
+	if err != nil {
+		return err
+	}
+	a.Default, a.DefaultValue = d, defaultValueExpr(a.Kind, d)
+	return nil
+}
+
+// defaultValueExpr returns the attr.Value of a default expression:
+// stringdefault.StaticString("x") → types.StringValue("x").
+func defaultValueExpr(kind, def string) string {
+	return "types." + kind + "Value(" + def[strings.Index(def, "(")+1:]
+}
+
+// defaultObjectExpr is the default of the object attribute a of type t
+// (defaultObject): the defaults of its attributes, and null for the others.
+func defaultObjectExpr(a *tfAttr, t *model.Type) string {
+	var values []string
+	for _, c := range a.Attributes {
+		if c.DefaultValue != "" {
+			values = append(values, fmt.Sprintf("%q: %s", c.Name, c.DefaultValue))
+		}
+	}
+	return fmt.Sprintf("defaultObject(%sAttrTypes(), map[string]attr.Value{%s})", camelize(t.Schema), strings.Join(values, ", "))
 }
 
 func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
@@ -384,8 +415,9 @@ func (b *tfBuilder) wrapperAttribute(t *model.Type, w wrapper, built map[string]
 	a := &tfAttr{Name: w.Name, Kind: "SingleNested", ValueKind: "Object",
 		Description: fmt.Sprintf("Holds the API fields %s of %s.", strings.Join(w.Fields, ", "), t.Schema)}
 	a.Required, a.Optional, a.Computed = flags(w.Ov, model.Attrs{})
-	// A computed wrapper would need a types.Object model (objectValueField);
-	// checkWrapper rejects it.
+	if w.Ov.UseStateForUnknown {
+		a.Modifiers = append(a.Modifiers, "objectplanmodifier.UseStateForUnknown()")
+	}
 	m := &tfModel{Name: wrapperModelName(t.Schema, w.Name), Schema: t.Schema, Wrapper: w.Name}
 	for _, name := range w.Fields {
 		a.Attributes = append(a.Attributes, built[name].attrs...)
@@ -400,7 +432,8 @@ func (b *tfBuilder) wrapperAttribute(t *model.Type, w wrapper, built map[string]
 		b.seen[m.Name] = true
 		b.models = append(b.models, m)
 	}
-	return a, tfModelField{Name: camelize(w.Name), Type: "*" + m.Name, TFName: w.Name}
+	// A computed wrapper is a types.Object (objectValueField).
+	return a, objectValueField(tfModelField{Name: camelize(w.Name), Type: "*" + m.Name, TFName: w.Name}, a)
 }
 
 // wrapperModelName is the model struct of a wrapper: "Slo", "sli" →
@@ -485,16 +518,18 @@ func (b *tfBuilder) override(a *tfAttr, schema string, f *model.Field, t *model.
 		if err := b.checkDefault(t, *ov.Default); err != nil {
 			return err
 		}
-		d, err := defaultExpr(a.Kind, *ov.Default)
-		if err != nil {
+		if err := setDefault(a, *ov.Default); err != nil {
 			return err
 		}
-		a.Default = d
+	}
+	if ov.DefaultObject {
+		a.DefaultValue = defaultObjectExpr(a, t)
+		a.Default = "objectdefault.StaticValue(" + a.DefaultValue + ")"
 	}
 	a.Required, a.Optional, a.Computed = flags(ov, f.Attrs)
 	if ov.ReadOnly {
 		// Validators check the configuration, which is always null here.
-		a.Default, a.Validators = "", nil
+		a.Default, a.DefaultValue, a.Validators = "", "", nil
 		readOnlyTree(a.Attributes)
 	}
 	pkg := strings.ToLower(a.ValueKind) + "planmodifier."
@@ -517,7 +552,7 @@ func (b *tfBuilder) override(a *tfAttr, schema string, f *model.Field, t *model.
 func readOnlyTree(attrs []*tfAttr) {
 	for _, a := range attrs {
 		a.Required, a.Optional, a.Computed = false, false, true
-		a.Default, a.Validators, a.Modifiers = "", nil, nil
+		a.Default, a.DefaultValue, a.Validators, a.Modifiers = "", "", nil, nil
 		readOnlyTree(a.Attributes)
 	}
 }

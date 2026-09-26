@@ -1,0 +1,358 @@
+// This file is copied into a copy of the provider by
+// integration/switch.sh, next to the handwritten alert code. It checks that
+// the switch (D21) reads and sends the same values as the handwritten code,
+// before the handwritten code is removed:
+//   - flatten: the same API alert gives the same Terraform state, on an
+//     import (no current state) and on a read (the current state);
+//   - expand: the same state gives the same request JSON.
+
+package alerts
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"testing"
+
+	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/schemadump"
+
+	alerttypes "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_types"
+)
+
+// commonFull has every property beside the alert type; commonMinimal only
+// the name.
+const (
+	commonFull = `"name":"a","description":"d","enabled":true,"priority":"ALERT_DEF_PRIORITY_P2","phantomMode":true,"deleted":false,` +
+		`"groupByKeys":["k1","k2"],"entityLabels":{"team":"x"},` +
+		`"incidentsSettings":{"notifyOn":"NOTIFY_ON_TRIGGERED_AND_RESOLVED","minutes":30},` +
+		`"activeOn":{"dayOfWeek":["DAY_OF_WEEK_MONDAY_OR_UNSPECIFIED","DAY_OF_WEEK_FRIDAY"],"startTime":{"hours":8,"minutes":30},"endTime":{"hours":20,"minutes":0}},` +
+		`"dataSources":[{"dataSet":"s","dataSpace":"p"}],` +
+		`"notificationGroup":{"groupByKeys":["k1"],` +
+		`"webhooks":[{"integration":{"integrationId":42},"notifyOn":"NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED","minutes":10},` +
+		`{"integration":{"recipients":{"emails":["a@b.c"]}},"notifyOn":"NOTIFY_ON_TRIGGERED_AND_RESOLVED","minutes":5}],` +
+		`"destinations":[{"connectorId":"c1","presetId":"p1","notifyOn":"NOTIFY_ON_TRIGGERED_AND_RESOLVED","retriggeringPeriodMinutes":15,` +
+		`"triggeredRoutingOverrides":{"configOverrides":{"payloadType":"t","connectorConfigFields":[{"fieldName":"f","template":"{{x}}"}],"messageConfigFields":[{"fieldName":"m","template":"y"}]}},` +
+		`"resolvedRouteOverrides":{"configOverrides":{"payloadType":"r"}}},` +
+		`{"connectorId":"c2","presetId":"p2","retriggeringPeriodMinutes":30}],` +
+		`"router":{"id":"","notifyOn":"NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"}}`
+	commonMinimal = `"name":"m"`
+
+	// The minimal rules have "timeWindow":{}: the API sends the time window
+	// of a rule, and leaves out a zero value inside it (protobuf JSON).
+
+	logsFilter = `{"simpleFilter":{"luceneQuery":"status:500","labelFilters":{` +
+		`"applicationName":[{"value":"app","operation":"LOG_FILTER_OPERATION_TYPE_STARTS_WITH"}],` +
+		`"subsystemName":[{"value":"sub","operation":"LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED"}],` +
+		`"severities":["LOG_SEVERITY_ERROR","LOG_SEVERITY_CRITICAL"]}}}`
+	tracingFilter = `{"simpleFilter":{"latencyThresholdMs":"1500","tracingLabelFilters":{` +
+		`"applicationName":[{"values":["app"],"operation":"TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED"}],` +
+		`"serviceName":[{"values":["s1","s2"],"operation":"TRACING_FILTER_OPERATION_TYPE_INCLUDES"}],` +
+		`"spanFields":[{"key":"k","filterType":{"values":["v"],"operation":"TRACING_FILTER_OPERATION_TYPE_IS_NOT"}}]}}}`
+	override       = `"override":{"priority":"ALERT_DEF_PRIORITY_P1"}`
+	undetected     = `"undetectedValuesManagement":{"triggerUndetectedValues":true,"autoRetireTimeframe":"AUTO_RETIRE_TIMEFRAME_HOURS_2"}`
+	noData         = `"noDataPolicy":{"state":"NO_DATA_POLICY_STATE_ALERTING","autoRetireSeconds":600}`
+	payloadFilters = `"notificationPayloadFilter":["f1","f2"]`
+)
+
+// alertCases are API alerts: each alert type with every field, some with
+// the fewest fields, and zero values.
+func alertCases() map[string]string {
+	full := map[string]string{
+		"logs immediate": `"type":"ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED","logsImmediate":{"logsFilter":` + logsFilter + `,` + payloadFilters + `}`,
+		"logs threshold": `"type":"ALERT_DEF_TYPE_LOGS_THRESHOLD","logsThreshold":{"logsFilter":` + logsFilter + `,` + payloadFilters + `,` + undetected + `,` + noData +
+			`,"evaluationDelayMs":60000,"rules":[{"condition":{"threshold":10,"timeWindow":{"logsTimeWindowSpecificValue":"LOGS_TIME_WINDOW_VALUE_MINUTES_10"},"conditionType":"LOGS_THRESHOLD_CONDITION_TYPE_LESS_THAN"},` + override + `}]}`,
+		"logs anomaly": `"type":"ALERT_DEF_TYPE_LOGS_ANOMALY","logsAnomaly":{"logsFilter":` + logsFilter + `,` + payloadFilters +
+			`,"evaluationDelayMs":1000,"anomalyAlertSettings":{"percentageOfDeviation":12.5},"rules":[{"condition":{"minimumThreshold":2,"timeWindow":{"logsTimeWindowSpecificValue":"LOGS_TIME_WINDOW_VALUE_HOUR_1"},"conditionType":"LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED"}}]}`,
+		"logs ratio": `"type":"ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD","logsRatioThreshold":{"numerator":` + logsFilter + `,"denominator":` + logsFilter +
+			`,"numeratorAlias":"n","denominatorAlias":"d","groupByFor":"LOGS_RATIO_GROUP_BY_FOR_NUMERATOR_ONLY","ignoreInfinity":true,` + undetected + `,` + payloadFilters +
+			`,"rules":[{"condition":{"threshold":0.5,"timeWindow":{"logsRatioTimeWindowSpecificValue":"LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_2"},"conditionType":"LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED"},` + override + `}]}`,
+		"logs new value": `"type":"ALERT_DEF_TYPE_LOGS_NEW_VALUE","logsNewValue":{"logsFilter":` + logsFilter + `,` + payloadFilters +
+			`,"rules":[{"condition":{"keypathToTrack":"user.id","timeWindow":{"logsNewValueTimeWindowSpecificValue":"LOGS_NEW_VALUE_TIME_WINDOW_VALUE_WEEK_1"}}}]}`,
+		"logs unique count": `"type":"ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT","logsUniqueCount":{"logsFilter":` + logsFilter + `,` + payloadFilters +
+			`,"uniqueCountKeypath":"ip","maxUniqueCountPerGroupByKey":"5","rules":[{"condition":{"maxUniqueCount":"100","timeWindow":{"logsUniqueValueTimeWindowSpecificValue":"LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_15"}}}]}`,
+		"logs time relative": `"type":"ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD","logsTimeRelativeThreshold":{"logsFilter":` + logsFilter + `,` + payloadFilters + `,` + undetected +
+			`,"ignoreInfinity":false,"evaluationDelayMs":0,"rules":[{"condition":{"threshold":3,"comparedTo":"LOGS_TIME_RELATIVE_COMPARED_TO_SAME_DAY_LAST_WEEK","conditionType":"LOGS_TIME_RELATIVE_CONDITION_TYPE_LESS_THAN"},` + override + `}]}`,
+		"metric threshold": `"type":"ALERT_DEF_TYPE_METRIC_THRESHOLD","metricThreshold":{"metricFilter":{"promql":"up"},` + undetected + `,` + noData +
+			`,"missingValues":{"minNonNullValuesPct":50},"evaluationDelayMs":30000,"rules":[` +
+			`{"condition":{"threshold":1,"forOverPct":80,"ofTheLast":{"metricTimeWindowSpecificValue":"METRIC_TIME_WINDOW_VALUE_MINUTES_5"},"conditionType":"METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_EQUALS"},` + override + `},` +
+			`{"condition":{"threshold":2,"forOverPct":90,"ofTheLast":{"metricTimeWindowDynamicDuration":"1h30m"},"conditionType":"METRIC_THRESHOLD_CONDITION_TYPE_LESS_THAN"},` + override + `}]}`,
+		"metric anomaly": `"type":"ALERT_DEF_TYPE_METRIC_ANOMALY","metricAnomaly":{"metricFilter":{"promql":"rate(x[5m])"},"evaluationDelayMs":0,"anomalyAlertSettings":{"percentageOfDeviation":0.25},` +
+			`"rules":[{"condition":{"threshold":3,"forOverPct":10,"minNonNullValuesPct":20,"ofTheLast":{"metricTimeWindowSpecificValue":"METRIC_TIME_WINDOW_VALUE_HOURS_12"},"conditionType":"METRIC_ANOMALY_CONDITION_TYPE_LESS_THAN_USUAL"}}]}`,
+		"tracing immediate": `"type":"ALERT_DEF_TYPE_TRACING_IMMEDIATE","tracingImmediate":{"tracingFilter":` + tracingFilter + `,` + payloadFilters + `}`,
+		"tracing threshold": `"type":"ALERT_DEF_TYPE_TRACING_THRESHOLD","tracingThreshold":{"tracingFilter":` + tracingFilter + `,` + payloadFilters +
+			`,"rules":[{"condition":{"spanAmount":7,"timeWindow":{"tracingTimeWindowValue":"TRACING_TIME_WINDOW_VALUE_MINUTES_30"},"conditionType":"TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED"}}]}`,
+		"flow": `"type":"ALERT_DEF_TYPE_FLOW","flow":{"enforceSuppression":true,"stages":[` +
+			`{"timeframeMs":"60000","timeframeType":"TIMEFRAME_TYPE_UP_TO","flowStagesGroups":{"groups":[{"alertDefs":[{"id":"x","not":true},{"id":"y","not":false}],"nextOp":"NEXT_OP_OR","alertsOp":"ALERTS_OP_AND_OR_UNSPECIFIED"}]}},` +
+			`{"timeframeMs":"0","flowStagesGroups":{"groups":[{"alertDefs":[{"id":"z"}],"nextOp":"NEXT_OP_AND_OR_UNSPECIFIED","alertsOp":"ALERTS_OP_OR"}]}}]}`,
+		"slo error budget": `"type":"ALERT_DEF_TYPE_SLO_THRESHOLD","sloThreshold":{"sloDefinition":{"sloId":"s1"},"errorBudget":{"rules":[{"condition":{"threshold":80},` + override + `}]}}`,
+		"slo burn rate": `"type":"ALERT_DEF_TYPE_SLO_THRESHOLD","sloThreshold":{"sloDefinition":{"sloId":"s2"},"burnRate":{"dual":{"timeDuration":{"duration":"24","unit":"DURATION_UNIT_HOURS"}},"rules":[{"condition":{"threshold":2}}]}}`,
+	}
+	out := map[string]string{}
+	for name, typed := range full {
+		out[name] = `{"id":"id-1","alertDefProperties":{` + commonFull + `,` + typed + `}}`
+	}
+	for name, typed := range map[string]string{
+		"minimal logs immediate":   `"logsImmediate":{}`,
+		"minimal logs threshold":   `"logsThreshold":{"rules":[{"condition":{"threshold":1,"timeWindow":{}}}]}`,
+		"minimal logs ratio":       `"logsRatioThreshold":{"rules":[{"condition":{"threshold":1,"timeWindow":{}}}]}`,
+		"minimal metric threshold": `"metricThreshold":{"metricFilter":{"promql":"up"},"missingValues":{"replaceWithZero":true},"rules":[{"condition":{"threshold":1}}]}`,
+		"minimal metric anomaly":   `"metricAnomaly":{"metricFilter":{"promql":"up"},"rules":[{"condition":{"threshold":1}}]}`,
+		// The handwritten flatten needs timeframeMs: without it, it panics.
+		"minimal flow": `"flow":{"stages":[{"timeframeMs":"0","flowStagesGroups":{"groups":[{"alertDefs":[{"id":"z"}]}]}}]}`,
+		"minimal logs anomaly":   `"logsAnomaly":{"rules":[{"condition":{"minimumThreshold":1,"timeWindow":{}}}]}`,
+		"minimal logs new value": `"logsNewValue":{"rules":[{"condition":{"keypathToTrack":"k","timeWindow":{}}}]}`,
+		"minimal logs unique":    `"logsUniqueCount":{"rules":[{"condition":{"maxUniqueCount":"1","timeWindow":{}}}]}`,
+		"minimal logs time rel":  `"logsTimeRelativeThreshold":{"rules":[{"condition":{"threshold":1}}]}`,
+		"minimal tracing imm":    `"tracingImmediate":{"tracingFilter":{"simpleFilter":{"latencyThresholdMs":"1","tracingLabelFilters":{}}}}`,
+		"minimal tracing thr":    `"tracingThreshold":{"tracingFilter":{"simpleFilter":{"latencyThresholdMs":"1","tracingLabelFilters":{}}},"rules":[{"condition":{"spanAmount":1,"timeWindow":{}}}]}`,
+		"minimal slo":            `"sloThreshold":{"sloDefinition":{"sloId":"s"},"errorBudget":{"rules":[{"condition":{"threshold":1}}]}}`,
+		// Empty lists and maps: the handwritten code reads some as null.
+		"empty collections": `"groupByKeys":[],"entityLabels":{},"dataSources":[],` +
+			`"notificationGroup":{"groupByKeys":[],"webhooks":[],"destinations":[]},` +
+			`"logsImmediate":{"notificationPayloadFilter":[],"logsFilter":{"simpleFilter":{"labelFilters":{"applicationName":[],"subsystemName":[],"severities":[]}}}}`,
+		"empty tracing collections": `"tracingThreshold":{"notificationPayloadFilter":[],"rules":[{"condition":{"spanAmount":1,"timeWindow":{}}}],` +
+			`"tracingFilter":{"simpleFilter":{"latencyThresholdMs":"1","tracingLabelFilters":{"applicationName":[],"subsystemName":[],"serviceName":[],"operationName":[],"spanFields":[]}}}}`,
+		"empty flow collections": `"flow":{"stages":[{"timeframeMs":"0","flowStagesGroups":{"groups":[{"alertDefs":[]}]}}]}`,
+		"minimal notifications": `"logsImmediate":{},"notificationGroup":{"destinations":[{"connectorId":"c","presetId":"p"}],` +
+			`"webhooks":[{"integration":{"integrationId":1}}],"router":{}},"incidentsSettings":{}`,
+		"zero enums": `"priority":"ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED","logsThreshold":{"noDataPolicy":{"state":"NO_DATA_POLICY_STATE_UNSPECIFIED"},` +
+			`"rules":[{"condition":{"threshold":1,"timeWindow":{"logsTimeWindowSpecificValue":"LOGS_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"},"conditionType":"LOGS_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED"}}]}`,
+	} {
+		out[name] = `{"id":"id-2","alertDefProperties":{` + commonMinimal + `,` + typed + `}}`
+	}
+	return out
+}
+
+func decodeAlert(t *testing.T, js string) alerts.AlertDef {
+	t.Helper()
+	var a alerts.AlertDef
+	if err := json.Unmarshal([]byte(js), &a); err != nil {
+		t.Fatalf("%v\n%s", err, js)
+	}
+	return a
+}
+
+func alertSchemas() (hw, switched schema.Schema) {
+	var resp resource.SchemaResponse
+	(&AlertResource{}).Schema(context.Background(), resource.SchemaRequest{}, &resp)
+	return resp.Schema, schema.Schema{Version: resp.Schema.Version, Attributes: switchedAlertAttributes()}
+}
+
+// hwAlertState is the state of the handwritten flatten of the alert, with
+// the current schedule and notification group of cur (nil for an import).
+func hwAlertState(t *testing.T, s schema.Schema, a alerts.AlertDef, cur *alerttypes.AlertResourceModel) tftypes.Value {
+	t.Helper()
+	schedule, group := types.ObjectNull(nil), types.ObjectNull(nil)
+	if cur != nil {
+		schedule, group = cur.Schedule, cur.NotificationGroup
+	}
+	return equivalenceState(t, s, func(st *tfsdk.State) diag.Diagnostics {
+		m, diags := flattenAlert(context.Background(), a, &schedule, &group)
+		if diags.HasError() {
+			return diags
+		}
+		return st.Set(context.Background(), m)
+	})
+}
+
+func swAlertState(t *testing.T, s schema.Schema, a alerts.AlertDef, cur *switchedAlertModel) tftypes.Value {
+	t.Helper()
+	var schedule, group *types.Object
+	if cur != nil {
+		schedule, group = &cur.Schedule, &cur.NotificationGroup
+	}
+	return equivalenceState(t, s, func(st *tfsdk.State) diag.Diagnostics {
+		m, diags := flattenSwitchedAlert(context.Background(), a, schedule, group)
+		if diags.HasError() {
+			return diags
+		}
+		return st.Set(context.Background(), m)
+	})
+}
+
+func TestAlertEquivalenceFlatten(t *testing.T) {
+	ctx := context.Background()
+	hwSchema, swSchema := alertSchemas()
+	for name, js := range alertCases() {
+		t.Run(name, func(t *testing.T) {
+			a := decodeAlert(t, js)
+			hwImport, swImport := hwAlertState(t, hwSchema, a, nil), swAlertState(t, swSchema, a, nil)
+			compareStates(t, "import", hwImport, swImport)
+			// A read after the import: the current state holds the
+			// schedule time zone and the retriggering nulls.
+			var hwCur alerttypes.AlertResourceModel
+			if diags := (tfsdk.State{Schema: hwSchema, Raw: hwImport}).Get(ctx, &hwCur); diags.HasError() {
+				t.Fatal(diags)
+			}
+			var swCur switchedAlertModel
+			if diags := (tfsdk.State{Schema: swSchema, Raw: swImport}).Get(ctx, &swCur); diags.HasError() {
+				t.Fatal(diags)
+			}
+			compareStates(t, "read", hwAlertState(t, hwSchema, a, &hwCur), swAlertState(t, swSchema, a, &swCur))
+		})
+	}
+}
+
+func compareStates(t *testing.T, step string, hw, sw tftypes.Value) {
+	t.Helper()
+	diffs, err := hw.Diff(sw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range diffs {
+		t.Errorf("%s: state differs at %s: handwritten %v, switched %v", step, d.Path, d.Value1, d.Value2)
+	}
+}
+
+func TestAlertEquivalenceExpand(t *testing.T) {
+	ctx := context.Background()
+	hwSchema, swSchema := alertSchemas()
+	for name, js := range alertCases() {
+		t.Run(name, func(t *testing.T) {
+			raw := hwAlertState(t, hwSchema, decodeAlert(t, js), nil)
+			var hwModel alerttypes.AlertResourceModel
+			if diags := (tfsdk.State{Schema: hwSchema, Raw: raw}).Get(ctx, &hwModel); diags.HasError() {
+				t.Fatal(diags)
+			}
+			var swModel switchedAlertModel
+			if diags := (tfsdk.State{Schema: swSchema, Raw: raw}).Get(ctx, &swModel); diags.HasError() {
+				t.Fatal(diags)
+			}
+			hwBody, diags := extractAlertProperties(ctx, &hwModel)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			swBody, diags := expandSwitchedAlert(ctx, &swModel)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			if h, s := equivalenceJSON(t, hwBody), equivalenceJSON(t, swBody); h != s {
+				t.Errorf("request differs at %v", jsonDiffs(t, h, s))
+			}
+		})
+	}
+}
+
+// TestAlertPlanWithUnknowns checks that an update plan with every computed
+// attribute unknown reads into the switched model and expands.
+func TestAlertPlanWithUnknowns(t *testing.T) {
+	ctx := context.Background()
+	_, swSchema := alertSchemas()
+	for name, js := range alertCases() {
+		t.Run(name, func(t *testing.T) {
+			raw := swAlertState(t, swSchema, decodeAlert(t, js), nil)
+			plan, err := schemadump.PlanWithUnknowns(ctx, swSchema, raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var m switchedAlertModel
+			if diags := (tfsdk.Plan{Schema: swSchema, Raw: plan}).Get(ctx, &m); diags.HasError() {
+				t.Fatalf("get plan: %v", diags)
+			}
+			if _, diags := expandSwitchedAlert(ctx, &m); diags.HasError() {
+				t.Fatalf("expand: %v", diags)
+			}
+		})
+	}
+}
+
+func equivalenceState(t *testing.T, s schema.Schema, set func(*tfsdk.State) diag.Diagnostics) tftypes.Value {
+	t.Helper()
+	state := tfsdk.State{Schema: s, Raw: tftypes.NewValue(s.Type().TerraformType(context.Background()), nil)}
+	if diags := set(&state); diags.HasError() {
+		t.Fatal(fmt.Sprint(diags))
+	}
+	return state.Raw
+}
+
+// equivalenceJSON is the JSON of v without empty arrays: the handwritten
+// code sends a null list as [], the generated code leaves it out, and for
+// the API (protobuf repeated fields) the two are the same.
+func equivalenceJSON(t *testing.T, v any) string {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tree any
+	if err := json.Unmarshal(b, &tree); err != nil {
+		t.Fatal(err)
+	}
+	b, err = json.Marshal(dropEmptyArrays(tree))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+// jsonDiffs lists the paths where the JSON texts a and b differ, with both
+// values.
+func jsonDiffs(t *testing.T, a, b string) []string {
+	t.Helper()
+	var x, y any
+	if err := json.Unmarshal([]byte(a), &x); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal([]byte(b), &y); err != nil {
+		t.Fatal(err)
+	}
+	var out []string
+	var walk func(p string, x, y any)
+	walk = func(p string, x, y any) {
+		xm, xok := x.(map[string]any)
+		ym, yok := y.(map[string]any)
+		xl, xlok := x.([]any)
+		yl, ylok := y.([]any)
+		switch {
+		case xok && yok:
+			keys := map[string]bool{}
+			for k := range xm {
+				keys[k] = true
+			}
+			for k := range ym {
+				keys[k] = true
+			}
+			for k := range keys {
+				walk(p+"."+k, xm[k], ym[k])
+			}
+		case xlok && ylok && len(xl) == len(yl):
+			for i := range xl {
+				walk(fmt.Sprintf("%s[%d]", p, i), xl[i], yl[i])
+			}
+		default:
+			xb, _ := json.Marshal(x)
+			yb, _ := json.Marshal(y)
+			if string(xb) != string(yb) {
+				out = append(out, fmt.Sprintf("%s: handwritten %s, switched %s", p, xb, yb))
+			}
+		}
+	}
+	walk("", x, y)
+	return out
+}
+
+func dropEmptyArrays(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		for k, e := range x {
+			if a, ok := e.([]any); ok && len(a) == 0 {
+				delete(x, k)
+				continue
+			}
+			x[k] = dropEmptyArrays(e)
+		}
+	case []any:
+		for i := range x {
+			x[i] = dropEmptyArrays(x[i])
+		}
+	}
+	return v
+}

@@ -1,0 +1,171 @@
+// Copyright 2024 Coralogix Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package alertcustom has the handwritten attributes and converters of the
+// alert fields that the overrides mark custom: their Terraform shape has no
+// generator rule. The generated package alertdeftypes calls them; this
+// package must not import it.
+package alertcustom
+
+import (
+	"fmt"
+	"math/big"
+	"regexp"
+	"strconv"
+
+	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	alertschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_schema"
+	alerttypes "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_types"
+)
+
+// defaultWindow is the time window of a missing of_the_last.
+const defaultWindow = alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED
+
+// durationPattern is a duration, for example 1h20m15s.
+var durationPattern = regexp.MustCompile(`^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$`)
+
+// MetricThresholdConditionOfTheLastAttribute is one string for the API
+// oneOf MetricTimeWindow: a time window name, or a duration.
+func MetricThresholdConditionOfTheLastAttribute() schema.Attribute {
+	return schema.StringAttribute{
+		Required: true,
+		Validators: []validator.String{
+			stringvalidator.Any(
+				stringvalidator.OneOf(alerttypes.ValidMetricTimeWindowValues...),
+				stringvalidator.RegexMatches(durationPattern, ""),
+			),
+		},
+		MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.\nOr having valid time duration - Supported units: y, w, d, h, m, s, ms.\nExamples: `30s`, `1m`, `1h20m15s`, `15d`", alerttypes.ValidMetricTimeWindowValues),
+	}
+}
+
+// ExpandMetricThresholdConditionOfTheLast sends a time window name as the
+// specific value, and anything else as a duration. Null and "" are the
+// default window.
+func ExpandMetricThresholdConditionOfTheLast(_ path.Path, v types.String, _ *diag.Diagnostics) *alerts.MetricTimeWindow {
+	if v.IsNull() || v.IsUnknown() || v.ValueString() == "" {
+		return &alerts.MetricTimeWindow{MetricTimeWindowSpecificValue: defaultWindow.Ptr()}
+	}
+	if w, ok := alerttypes.MetricTimeWindowValueSchemaToProtoMap[v.ValueString()]; ok {
+		return &alerts.MetricTimeWindow{MetricTimeWindowSpecificValue: w.Ptr()}
+	}
+	d := v.ValueString()
+	return &alerts.MetricTimeWindow{MetricTimeWindowDynamicDuration: &d}
+}
+
+// FlattenMetricThresholdConditionOfTheLast reads either arm into the
+// string. A missing window, or one with no arm, is the default window.
+func FlattenMetricThresholdConditionOfTheLast(_ path.Path, v *alerts.MetricTimeWindow, _ *diag.Diagnostics) types.String {
+	switch {
+	case v != nil && v.MetricTimeWindowSpecificValue != nil && *v.MetricTimeWindowSpecificValue != "":
+		return types.StringValue(alerttypes.MetricFilterOperationTypeProtoToSchemaMap[*v.MetricTimeWindowSpecificValue])
+	case v != nil && v.MetricTimeWindowSpecificValue == nil && v.MetricTimeWindowDynamicDuration != nil:
+		return types.StringPointerValue(v.MetricTimeWindowDynamicDuration)
+	}
+	return types.StringValue(alerttypes.MetricFilterOperationTypeProtoToSchemaMap[defaultWindow])
+}
+
+// MetricAnomalyConditionOfTheLastAttribute accepts only the time window
+// names: an anomaly alert has no duration.
+func MetricAnomalyConditionOfTheLastAttribute() schema.Attribute {
+	return schema.StringAttribute{
+		Required: true,
+		Validators: []validator.String{
+			stringvalidator.OneOf(alerttypes.ValidMetricTimeWindowValues...),
+		},
+		MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", alerttypes.ValidMetricTimeWindowValues),
+	}
+}
+
+// ExpandMetricAnomalyConditionOfTheLast always sends the specific value.
+func ExpandMetricAnomalyConditionOfTheLast(_ path.Path, v types.String, _ *diag.Diagnostics) *alerts.MetricTimeWindow {
+	name := v.ValueString()
+	if name == "" {
+		name = alerttypes.MetricFilterOperationTypeProtoToSchemaMap[defaultWindow]
+	}
+	return &alerts.MetricTimeWindow{MetricTimeWindowSpecificValue: alerttypes.MetricTimeWindowValueSchemaToProtoMap[name].Ptr()}
+}
+
+// FlattenMetricAnomalyConditionOfTheLast reads the window as the threshold
+// condition does.
+func FlattenMetricAnomalyConditionOfTheLast(p path.Path, v *alerts.MetricTimeWindow, diags *diag.Diagnostics) types.String {
+	return FlattenMetricThresholdConditionOfTheLast(p, v, diags)
+}
+
+// TracingSimpleFilterLatencyThresholdMsAttribute is a Number for the
+// decimal string of the API.
+func TracingSimpleFilterLatencyThresholdMsAttribute() schema.Attribute {
+	return schema.NumberAttribute{Required: true}
+}
+
+// ExpandTracingSimpleFilterLatencyThresholdMs sends the number as text.
+func ExpandTracingSimpleFilterLatencyThresholdMs(_ path.Path, v types.Number, _ *diag.Diagnostics) *string {
+	s := v.ValueBigFloat().String()
+	return &s
+}
+
+// FlattenTracingSimpleFilterLatencyThresholdMs parses the whole number.
+func FlattenTracingSimpleFilterLatencyThresholdMs(p path.Path, v *string, diags *diag.Diagnostics) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	n, err := strconv.ParseInt(*v, 10, 64)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid Latency Threshold Ms", fmt.Sprintf("Could not parse Latency Threshold Ms value '%s' to int64: %s", *v, err.Error()))
+		return types.NumberNull()
+	}
+	return types.NumberValue(new(big.Float).SetInt64(n))
+}
+
+// AlertDefOverridePriorityAttribute falls back to the top-level priority
+// when it is not configured (alertschema.PriorityOverrideFallback).
+func AlertDefOverridePriorityAttribute() schema.Attribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Validators: []validator.String{
+			stringvalidator.OneOf(alerttypes.ValidAlertPriorities...),
+		},
+		PlanModifiers: []planmodifier.String{
+			alertschema.PriorityOverrideFallback{},
+		},
+		MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q.", alerttypes.ValidAlertPriorities),
+	}
+}
+
+// ExpandAlertDefOverridePriority sends P5 for null.
+func ExpandAlertDefOverridePriority(_ path.Path, v types.String, _ *diag.Diagnostics) *alerts.AlertDefPriority {
+	name := alerttypes.AlertPriorityProtoToSchemaMap[alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED]
+	if !v.IsNull() && !v.IsUnknown() {
+		name = v.ValueString()
+	}
+	return alerttypes.AlertPrioritySchemaToProtoMap[name].Ptr()
+}
+
+// FlattenAlertDefOverridePriority reads a missing priority as P5.
+func FlattenAlertDefOverridePriority(_ path.Path, v *alerts.AlertDefPriority, _ *diag.Diagnostics) types.String {
+	priority := alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED
+	if v != nil {
+		priority = *v
+	}
+	return types.StringValue(alerttypes.AlertPriorityProtoToSchemaMap[priority])
+}

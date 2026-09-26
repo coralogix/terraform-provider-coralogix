@@ -6,10 +6,21 @@
 package fakeinline
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // KeyAttributes returns the attributes of Key. The attribute that
@@ -108,5 +119,80 @@ func KeyAttributes() map[string]schema.Attribute {
 			},
 			MarkdownDescription: "An unsigned 64-bit number that JSON sends as a string, with no format, as in the alerts API.",
 		},
+		"email": schema.StringAttribute{
+			Optional: true,
+			Validators: []validator.String{
+				stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("webhook_id")),
+			},
+			MarkdownDescription: "An email address.",
+		},
+		"webhook_id": schema.StringAttribute{
+			Optional: true,
+			Validators: []validator.String{
+				stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("email")),
+			},
+			MarkdownDescription: "A webhook.",
+		},
+		"policy": schema.SingleNestedAttribute{
+			Optional: true,
+			Computed: true,
+			Default:  objectdefault.StaticValue(defaultObject(KeyPolicyAttrTypes(), map[string]attr.Value{"level": types.StringValue("low")})),
+			Attributes: map[string]schema.Attribute{
+				"level": schema.StringAttribute{
+					Optional:            true,
+					Computed:            true,
+					Default:             stringdefault.StaticString("low"),
+					MarkdownDescription: "The level. It has a default.",
+				},
+				"strict": schema.BoolAttribute{
+					Optional:            true,
+					MarkdownDescription: "Strict mode. It has no default.",
+				},
+			},
+			MarkdownDescription: "The policy. Its default is an object of the defaults of its fields (defaultObject).",
+		},
+		"retry": schema.SingleNestedAttribute{
+			Optional: true,
+			Computed: true,
+			PlanModifiers: []planmodifier.Object{
+				objectplanmodifier.UseStateForUnknown(),
+			},
+			Attributes: map[string]schema.Attribute{
+				"retry_minutes": schema.Int64Attribute{
+					Optional:            true,
+					MarkdownDescription: "Minutes between retries. Terraform has it in a computed object, retry.",
+				},
+			},
+			MarkdownDescription: "Holds the API fields retryMinutes of Key.",
+		},
+		"ratio": schema.Float64Attribute{
+			Optional:            true,
+			MarkdownDescription: "A float that Terraform shows as a Float64 (wide).",
+		},
+		"kind": schema.StringAttribute{
+			Computed:            true,
+			Default:             stringdefault.StaticString("standard"),
+			MarkdownDescription: "The kind. Computed, with a default.",
+		},
 	}
+}
+
+// defaultObject returns the default of an object attribute (the
+// defaultObject override): the defaults of its attributes in values, and
+// null for the others.
+func defaultObject(attrTypes map[string]attr.Type, values map[string]attr.Value) types.Object {
+	ctx := context.Background()
+	out := make(map[string]attr.Value, len(attrTypes))
+	for name, t := range attrTypes {
+		if v, ok := values[name]; ok {
+			out[name] = v
+			continue
+		}
+		null, err := t.ValueFromTerraform(ctx, tftypes.NewValue(t.TerraformType(ctx), nil))
+		if err != nil {
+			panic(fmt.Sprintf("null %s: %v", name, err))
+		}
+		out[name] = null
+	}
+	return types.ObjectValueMust(attrTypes, out)
 }

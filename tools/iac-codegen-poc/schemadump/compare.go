@@ -38,9 +38,14 @@ const (
 //     is an addition.
 //   - Another type, element type, default, or Computed flag changes the plan
 //     or the state. A required attribute that becomes optional does not.
-//   - Another RequiresReplace changes the plan. Another UseStateForUnknown
-//     only shows "known after apply" in more plans.
+//   - Another RequiresReplace changes the plan. A lost UseStateForUnknown
+//     makes the attribute "known after apply" in every plan that changes
+//     another attribute, which a live check sees as a change; a new one only
+//     keeps the state value.
 //   - A deprecation message only shows a warning: it is for a review.
+//   - An optional and computed attribute with a null default plans null when
+//     it is not configured, as an optional attribute does: it is the same, and
+//     listed for a review.
 //   - A "one of" validator that no longer accepts a value breaks the
 //     configurations that use it. Other validators are for a review: the
 //     generated ones come from the spec.
@@ -62,10 +67,32 @@ func Compare(hw, gen []Entry) []Difference {
 				out = append(out, Difference{Path: p, Kind: KindOnlyGenerated, Breaking: hasFlag(g, "required"), Detail: g.Lines[0]})
 			}
 		default:
+			h, hNull := nullDefault(h)
+			g, gNull := nullDefault(g)
+			if hNull != gNull {
+				out = append(out, Difference{Path: p, Kind: KindDefault, Detail: "a null default on an optional computed attribute: the same as optional"})
+			}
 			out = append(out, compareEntry(p, h, g)...)
 		}
 	}
 	return out
+}
+
+// nullDefaultLine is the dump line of a null default.
+const nullDefaultLine = "default: value defaults to <null>"
+
+// nullDefault returns e without Computed and its null default, when it is
+// optional and computed with a null default.
+func nullDefault(e Entry) (Entry, bool) {
+	_, flags := splitFirst(e.Lines[0])
+	i := slices.Index(e.Lines, nullDefaultLine)
+	if i < 0 || !flags["optional"] || !flags["computed"] {
+		return e, false
+	}
+	lines := slices.Delete(slices.Clone(e.Lines), i, i+1)
+	fields := slices.DeleteFunc(strings.Fields(lines[0]), func(f string) bool { return f == "computed" })
+	lines[0] = strings.Join(fields, " ")
+	return Entry{Path: e.Path, Lines: lines}, true
 }
 
 func compareEntry(p string, h, g Entry) []Difference {
@@ -86,21 +113,23 @@ func compareEntry(p string, h, g Entry) []Difference {
 	g.Lines = append(g.Lines[:1:1], gv...)
 	for _, d := range []struct {
 		prefix, kind string
-		breaking     func(line string) bool
+		// breaking reports whether the line breaks users: removed is true for
+		// a line of hw that gen does not have.
+		breaking func(line string, removed bool) bool
 	}{
-		{"default: ", KindDefault, func(string) bool { return true }},
-		{"plan modifier: ", KindPlanModifier, func(l string) bool { return !strings.Contains(l, "will not change") }},
-		{"validator: ", KindValidator, func(string) bool { return false }},
-		{"deprecated: ", KindDeprecation, func(string) bool { return false }},
+		{"default: ", KindDefault, func(string, bool) bool { return true }},
+		{"plan modifier: ", KindPlanModifier, func(l string, removed bool) bool { return removed || !strings.Contains(l, "will not change") }},
+		{"validator: ", KindValidator, func(string, bool) bool { return false }},
+		{"deprecated: ", KindDeprecation, func(string, bool) bool { return false }},
 	} {
 		for _, l := range h.Lines[1:] {
 			if strings.HasPrefix(l, d.prefix) && !slices.Contains(g.Lines, l) {
-				out = append(out, Difference{Path: p, Kind: d.kind, Breaking: d.breaking(l), Detail: "- " + strings.TrimPrefix(l, d.prefix)})
+				out = append(out, Difference{Path: p, Kind: d.kind, Breaking: d.breaking(l, true), Detail: "- " + strings.TrimPrefix(l, d.prefix)})
 			}
 		}
 		for _, l := range g.Lines[1:] {
 			if strings.HasPrefix(l, d.prefix) && !slices.Contains(h.Lines, l) {
-				out = append(out, Difference{Path: p, Kind: d.kind, Breaking: d.breaking(l), Detail: "+ " + strings.TrimPrefix(l, d.prefix)})
+				out = append(out, Difference{Path: p, Kind: d.kind, Breaking: d.breaking(l, false), Detail: "+ " + strings.TrimPrefix(l, d.prefix)})
 			}
 		}
 	}
