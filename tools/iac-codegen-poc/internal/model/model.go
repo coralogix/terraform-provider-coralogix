@@ -151,4 +151,7 @@ type Type struct {
 	MinLength, MaxLength *int64
 	Minimum, Maximum     *float64
 	MinItems, MaxItems   *int64
+	// Pattern is the "pattern" of a string, "" for none. A 64-bit number
+	// without a format has one, for example ^-?[0-9]+$ (F68).
+	Pattern string
 }

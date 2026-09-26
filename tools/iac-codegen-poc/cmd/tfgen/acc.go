@@ -250,12 +250,17 @@ func hclTime(path string, v any) (string, error) {
 }
 
 // hclInteger converts an integer. A uint64 is a decimal string in the API
-// (D7); int32 and int64 are JSON numbers.
+// (D7), and so is an int64 with a string type (F68); other int32 and int64
+// values are JSON numbers.
 func hclInteger(path string, t *model.Type, v any) (string, error) {
 	if t.WireString {
 		s, ok := v.(string)
-		if _, err := strconv.ParseUint(s, 10, 63); !ok || err != nil {
-			return "", fmt.Errorf("%s: %v (%T) is not a decimal string up to the Int64 maximum", path, v, v)
+		_, err := strconv.ParseUint(s, 10, 63)
+		if t.Format == "int64" {
+			_, err = strconv.ParseInt(s, 10, 64)
+		}
+		if !ok || err != nil {
+			return "", fmt.Errorf("%s: %v (%T) is not a decimal string in the Int64 range", path, v, v)
 		}
 		return s, nil
 	}

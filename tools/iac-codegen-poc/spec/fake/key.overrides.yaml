@@ -1,0 +1,19 @@
+# Overrides (D21) for generated/fakeinline: the fields of nested objects in
+# the parent (inline, F67), 64-bit numbers as strings (int64 and string,
+# F68), and a secret (sensitive). generated/fakeinline/inline_test.go checks
+# the result.
+types:
+  Key:
+    keyPermissions: {inline: true}
+    limits: {inline: true}         # a required holder: the SDK holds it as a value
+    secret: {sensitive: true}
+    ownerTeamId: {string: true}    # an int64 JSON number as a String
+    maxCount: {int64: true}        # a string with ^-?[0-9]+$ as an Int64
+    ttlSeconds: {int64: true}      # a string with ^[0-9]+$ as an Int64 of at least 0
+  KeyRotation:
+    permissions: {inline: true}    # the same object, inlined in a second parent
+  Key.Permissions:                 # also used by Key.backup, which is not inlined
+    permissions: {set: true}
+    presets: {emptyAsNull: true}
+  KeyLimits:
+    burst: {int64: true}

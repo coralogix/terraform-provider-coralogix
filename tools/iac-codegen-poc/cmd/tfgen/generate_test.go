@@ -134,6 +134,8 @@ var generatedTypeCases = []struct {
 		"../../spec/fake/layout.overrides.yaml"},
 	{"../../generated/fakeunwrap", "../../spec/fake/openapi.yaml", "Fake Boards Service", testSDKModule, []string{"Query"}, nil,
 		"../../spec/fake/query.overrides.yaml"},
+	{"../../generated/fakeinline", "../../spec/fake/openapi.yaml", "Fake Boards Service", testSDKModule, []string{"Key"}, nil,
+		"../../spec/fake/key.overrides.yaml"},
 }
 
 // TestGeneratedTypesUpToDate checks that each generated type package is the
@@ -369,6 +371,50 @@ func TestUnwrapRejects(t *testing.T) {
 			ov, err := loadOverrides(p)
 			if err == nil {
 				_, err = generateTypes(types, enums, refs, ov, "fakeunwrap", "")
+			}
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("error:\n%v\nwant it to contain:\n%s", err, c.want)
+			}
+		})
+	}
+}
+
+// TestInlineRejects checks the errors of the inline, int64, and string
+// overrides (D21, F67, F68).
+func TestInlineRejects(t *testing.T) {
+	in := typeInputs{roots: []string{"Key", "Layout", "Query", "Routing"}}
+	types, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml", in, "Fake Boards Service", testSDKModule)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ name, yaml, want string }{
+		{"stale", "types: {Key: {nope: {inline: true}}}", "types.Key.nope: no such field"},
+		{"with flags", "types: {Key: {keyPermissions: {inline: true, required: true}}}", "inline cannot be combined with other overrides"},
+		{"on a scalar", "types: {Key: {name: {inline: true}}}", "inline needs an object, the field is a string"},
+		{"on a list", "types: {Routing: {targets: {inline: true}}}", "inline needs an object, the field is a list"},
+		{"on a oneOf object", "types: {Query: {source: {inline: true}}}", "inline needs an object, the field is a oneOf"},
+		{"on a oneOf arm", "types: {TextStyle: {font: {inline: true}}}", "a oneOf arm cannot be inlined"},
+		{"on a wrapped field", "types: {Key: {w: {wrap: [keyPermissions]}, keyPermissions: {inline: true}}}", "a wrapped field cannot be inlined"},
+		{"an unwrapped object", "unwrap: [FieldSource]\ntypes: {Query: {field: {inline: true}}}", "FieldSource is unwrapped"},
+		{"groups inside", "types: {Section: {interval: {inline: true}}}", "Interval has oneOf groups, which is not supported"},
+		{"inline inside", "types: {Key: {rotation: {inline: true}}, KeyRotation: {permissions: {inline: true}}}",
+			"KeyRotation has an inlined field, which is not supported"},
+		{"name clash", "types: {Key: {keyPermissions: {inline: true}}, Key.Permissions: {presets: {name: name}}}",
+			`name and keyPermissions.presets both have the Terraform name "name"`},
+		{"int64 without the pattern", "types: {Key: {name: {int64: true}}}", `int64: the field is a string with the pattern "", it must be a string with the pattern ^-?[0-9]+$ or ^[0-9]+$`},
+		{"int64 on a number", "types: {Key: {ownerTeamId: {int64: true}}}", "int64: the field is a integer int64"},
+		{"string on a string", "types: {Key: {name: {string: true}}}", "string: the field is a string, it must be an int64 JSON number"},
+		{"string on an int32", "types: {KeyLimits: {perMinute: {string: true}}}", "string: the field is a integer int32"},
+		{"int64 and string", "types: {Key: {maxCount: {int64: true, string: true}}}", "int64 and string cannot be combined"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			p := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(p, []byte(c.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			ov, err := loadOverrides(p)
+			if err == nil {
+				_, err = generateTypes(types, enums, refs, ov, "fakeinline", "")
 			}
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Errorf("error:\n%v\nwant it to contain:\n%s", err, c.want)

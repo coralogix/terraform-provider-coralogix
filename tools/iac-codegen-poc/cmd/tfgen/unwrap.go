@@ -44,8 +44,12 @@ func (o *overrides) unwrap(t *model.Type) *model.Type {
 }
 
 // tfType returns the Terraform type of the field f of the component schema:
-// fieldType, then unwrap.
+// fieldType, then unwrap. The string override makes a number a String; the
+// conversion keeps the API type (objectField).
 func (o *overrides) tfType(schema string, f *model.Field) *model.Type {
+	if o.field(schema, f.Name).String {
+		return &model.Type{Kind: model.String}
+	}
 	return o.unwrap(o.fieldType(schema, f))
 }
 

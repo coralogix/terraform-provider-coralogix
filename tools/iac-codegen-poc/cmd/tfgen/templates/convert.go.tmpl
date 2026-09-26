@@ -76,6 +76,10 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.SDK}} = expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
 {{- else if eq .Conv "uint64"}}
 	out.{{.SDK}} = {{$l}}expandUint64({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "int64string"}}
+	out.{{.SDK}} = {{$l}}expandInt64String(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "int64text"}}
+	out.{{.SDK}} = {{$l}}expandInt64Text({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "enum"}}
 	out.{{.SDK}} = {{$l}}expandEnum[{{.SDKType}}](m.{{.Model}}){{$r}}
 {{- else if eq .Conv "enumname"}}
@@ -92,6 +96,8 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "wrap"}}
 	expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, out, diags)
+{{- else if eq .Conv "inline"}}
+	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, p, m, diags){{$r}}
 {{- else if eq .Conv "objectvalue"}}
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, objectAs[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags), diags){{$r}}
 {{- else if eq .Conv "empty"}}
@@ -154,6 +160,10 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, v.{{.SDK}}, diags)
 {{- else if eq .Conv "uint64"}}
 	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
+{{- else if eq .Conv "int64string"}}
+	out.{{.Model}} = flattenInt64String({{$p}}, {{$v}}, diags)
+{{- else if eq .Conv "int64text"}}
+	out.{{.Model}} = flattenInt64Text({{$v}})
 {{- else if eq .Conv "time"}}
 	out.{{.Model}} = flattenTime({{$v}})
 {{- else if eq .Conv "enum"}}
@@ -170,6 +180,8 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "wrap"}}
 	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, v, diags)
+{{- else if eq .Conv "inline"}}
+	flatten{{.Object.Func}}(ctx, p, {{$v}}, out, diags)
 {{- else if eq .Conv "objectvalue"}}
 	out.{{.Model}} = objectValue(ctx, {{.Object.AttrTypesFunc}}(), flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags), diags)
 {{- else if eq .Conv "empty"}}
@@ -229,6 +241,21 @@ func expand{{.Func}}(ctx context.Context, p path.Path, value {{.ValueType}}, dia
 	}
 	return out
 }
+{{else if and .Expand .Inline}}
+// expand{{.Func}} returns the API object {{.SDK}} from its fields in
+// {{.Model}} (an inlined object), or nil when none of them is set.
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$sdk}}.{{.SDK}} {
+	if {{.UnsetCheck}} {
+		return nil
+	}
+	out := &{{$sdk}}.{{.SDK}}{}
+{{- range .Fields}}
+{{- if not .ReadOnly}}
+{{- template "expandField" .}}
+{{- end}}
+{{- end}}
+	return out
+}
 {{else if and .Expand .Wrapper}}
 // expand{{.Func}} sets the fields of the wrapper {{.Model}} on out. A null
 // wrapper sets none.
@@ -268,6 +295,18 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, di
 {{- template "normalize" .}}
 {{- template "flattenField" $f}}
 	return out.{{$f.Model}}
+}
+{{else if and .Flatten .Inline}}
+// flatten{{.Func}} sets the fields of the API object {{.SDK}} on out (an
+// inlined object). A missing object reads as an object with no fields.
+func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, out *{{.Model}}, diags *diag.Diagnostics) {
+	if v == nil {
+		v = &{{$sdk}}.{{.SDK}}{}
+	}
+{{- template "normalize" .}}
+{{- range .Fields}}
+{{- template "flattenField" .}}
+{{- end}}
 }
 {{else if and .Flatten .Wrapper}}
 // flatten{{.Func}} reads the fields of the wrapper {{.Model}} from v.
@@ -843,6 +882,59 @@ func flattenFloat32Wide(v *float32) types.Float64 {
 	}
 	f, _ := strconv.ParseFloat(strconv.FormatFloat(float64(*v), 'g', -1, 32), 64)
 	return types.Float64Value(f)
+}
+{{- end}}
+{{- if .Conv.Uses "inline"}}
+
+// unset reports whether v is null or unknown: expand does not send it.
+func unset(v attr.Value) bool { return v.IsNull() || v.IsUnknown() }
+{{- end}}
+{{- if .Conv.Uses "int64string"}}
+
+// expandInt64String returns the decimal string of v. The API sends 64-bit
+// numbers as strings.
+func expandInt64String(v types.Int64) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	s := strconv.FormatInt(v.ValueInt64(), 10)
+	return &s
+}
+
+// flattenInt64String parses the decimal string of a signed 64-bit number.
+func flattenInt64String(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 {
+	if v == nil {
+		return types.Int64Null()
+	}
+	n, err := strconv.ParseInt(*v, 10, 64)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid API value", fmt.Sprintf("The API returned %q, which is not a 64-bit number: %s", *v, err))
+		return types.Int64Null()
+	}
+	return types.Int64Value(n)
+}
+{{- end}}
+{{- if .Conv.Uses "int64text"}}
+
+// expandInt64Text parses the decimal number in the string v. The attribute
+// is a String, like the handwritten resource (D21); the API has a number.
+func expandInt64Text(p path.Path, v types.String, diags *diag.Diagnostics) *int64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n, err := strconv.ParseInt(v.ValueString(), 10, 64)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid value", fmt.Sprintf("%q is not a 64-bit number: %s", v.ValueString(), err))
+		return nil
+	}
+	return &n
+}
+
+func flattenInt64Text(v *int64) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(strconv.FormatInt(*v, 10))
 }
 {{- end}}
 {{- if .Conv.Uses "scalarmap"}}

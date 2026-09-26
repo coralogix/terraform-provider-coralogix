@@ -776,6 +776,93 @@ components:
             - $ref: '#/components/schemas/Color'
           description: The value.
       type: object
+    Key:
+      description: An API key, as in the ApiKey API. Handwritten resources show some nested objects as fields of the parent. The inline override (D21, F67) tests use it, and the int64, string, and sensitive overrides (F68).
+      properties:
+        name:
+          description: Name of the key.
+          type: string
+        secret:
+          description: The secret. Terraform hides it (sensitive).
+          type: string
+        keyPermissions:
+          allOf:
+            - $ref: '#/components/schemas/Key.Permissions'
+          description: What the key can do. Terraform shows its fields in the key.
+        limits:
+          allOf:
+            - $ref: '#/components/schemas/KeyLimits'
+          description: Rate limits. Required, so the SDK holds it as a value. Terraform shows its fields in the key.
+        rotation:
+          allOf:
+            - $ref: '#/components/schemas/KeyRotation'
+          description: Rotation. It also inlines Key.Permissions.
+        backup:
+          allOf:
+            - $ref: '#/components/schemas/Key.Permissions'
+          description: Backup permissions. The same object, not inlined.
+        ownerTeamId:
+          description: The owner team. An int64 JSON number; Terraform has a string.
+          format: int64
+          minimum: 0
+          type: integer
+        maxCount:
+          description: A signed 64-bit number that JSON sends as a string, with no format, as in the alerts API.
+          maxLength: 20
+          minLength: 1
+          pattern: ^-?[0-9]+$
+          type: string
+        ttlSeconds:
+          description: An unsigned 64-bit number that JSON sends as a string, with no format, as in the alerts API.
+          pattern: ^[0-9]+$
+          type: string
+      required:
+        - limits
+      type: object
+    Key.Permissions:
+      description: Permissions of a key.
+      properties:
+        permissions:
+          description: The permissions. Order does not matter.
+          items:
+            type: string
+          type: array
+        presets:
+          description: The preset names.
+          items:
+            type: string
+          type: array
+        updatedBy:
+          description: Set by the server.
+          readOnly: true
+          type: string
+      type: object
+    KeyLimits:
+      description: Rate limits of a key.
+      properties:
+        perMinute:
+          description: Requests per minute. Required.
+          format: int32
+          type: integer
+        burst:
+          description: A signed 64-bit number that JSON sends as a string.
+          pattern: ^-?[0-9]+$
+          type: string
+      required:
+        - perMinute
+      type: object
+    KeyRotation:
+      description: Key rotation.
+      properties:
+        everyDays:
+          description: Days between rotations.
+          format: int32
+          type: integer
+        permissions:
+          allOf:
+            - $ref: '#/components/schemas/Key.Permissions'
+          description: The permissions of the new key. Terraform shows its fields in the rotation.
+      type: object
     DeleteFakeBoardResponse:
       type: object
       properties:

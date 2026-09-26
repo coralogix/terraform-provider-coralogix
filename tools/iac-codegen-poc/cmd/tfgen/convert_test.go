@@ -18,11 +18,11 @@ func TestBuildConvRejects(t *testing.T) {
 		want       string
 	}{
 		{
-			name: "signed 64-bit integer as a JSON string",
+			name: "32-bit integer as a JSON string",
 			change: func(r *model.Resource) {
-				nestedField(t, r, "config", "sqlLoad", "cteLimit").Type = &model.Type{Kind: model.Integer, Format: "int64", WireString: true}
+				nestedField(t, r, "config", "sqlLoad", "cteLimit").Type = &model.Type{Kind: model.Integer, Format: "int32", WireString: true}
 			},
-			want: `sqlLoad: cteLimit: integer format "int64" is not supported`,
+			want: `sqlLoad: cteLimit: integer format "int32" is not supported`,
 		},
 		{
 			name: "SDK type does not fit the conversion",

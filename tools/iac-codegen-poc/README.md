@@ -335,6 +335,11 @@ types:
     id: {computed: true, useStateForUnknown: true, missingAsZero: true}
     fallback: {emptyAsNull: true, deprecationMessage: "Use `fallback_targets` instead."}
     createTime: {readOnly: true}   # set by the server: Computed only, never sent
+  KeyInfo:
+    keyPermissions: {inline: true} # the fields of the nested object in the parent
+    value: {sensitive: true}
+  FlowStages:
+    timeframeMs: {int64: true}     # "60000" in JSON, 60000 in Terraform
   RoutingRule:
     entityType: {default: unspecified}
 enums:
@@ -344,11 +349,12 @@ unwrap: [LuceneQuery]              # {"value": "..."} as the value itself
 
 | Kind | Overrides |
 |---|---|
-| Schema | `name`, `skip`, `required`, `optional`, `computed`, `default`, `set`, `useStateForUnknown`, `useNonNullStateForUnknown`, `requiresReplace`, `deprecationMessage`, `wideNumbers` |
+| Schema | `name`, `skip`, `required`, `optional`, `computed`, `default`, `set`, `useStateForUnknown`, `useNonNullStateForUnknown`, `requiresReplace`, `deprecationMessage`, `sensitive`, `wideNumbers` |
+| Numbers | `int64`: a string with the pattern `^-?[0-9]+$` or `^[0-9]+$` and no format is an Int64 (F68). `string`: an int64 is a String |
 | Enums | `terraformNames` (the enum name rule), `values` (names that differ), `zero` (a name for the value that only means "not set"), `acceptZero: false` (read it, but do not accept it in a configuration) |
 | Reading a response | `missingAsZero` (a missing value is `""`, `false`, `0`, `[]`, or an enum's proto zero value), `emptyAsNull` (an empty list, map, or object is null) |
 | Server fields | `readOnly` (a read-only object makes everything inside it read only; the spec `readOnly` counts too) |
-| Shape | `wrap`: a new object around API fields, for example the arms of a proto oneof (F62). `unwrap`: an object with one field shown as that field (F66) |
+| Shape | `wrap`: a new object around API fields, for example the arms of a proto oneof (F62). `unwrap`: an object with one field shown as that field (F66). `inline`: the fields of a nested object shown in the parent (F67) |
 
 An override that names a type, field, or enum value that does not exist is an error, so a stale file cannot hide an API change.
 One change of shape is not supported yet: a `oneOf` written as a `type` string.
@@ -438,16 +444,41 @@ enums, sets, lists, objects, and the oneOf validators on unwrapped arms. On the 
 `unwrap: [LuceneQuery, PromQlQuery, UUID]` makes 27 query attributes strings, and the real widget JSON files round-trip with no
 change. Dashboards do not switch yet: they also need the `type` string rule.
 
-**Next candidates.** A schema compare of three more resources, before any overrides:
+**Nested objects in the parent: ApiKey and alerts.** Handwritten resources often show the fields of a nested API object as
+fields of the parent (F67). `inline` does the same. It is on the field that holds the object, so each parent decides:
 
-| Resource | Breaking differences | Still missing |
-|---|---|---|
-| `coralogix_api_key` | 13 | `inline` (F67), a string for a uint64 (F68), `sensitive` |
-| `coralogix_tco_policies_logs`, `_traces` | 22, 18 | `inline`; the request body is not the policy type, so it stays handwritten |
-| `coralogix_alert` | 284 (85 distinct) | `inline` in 3 places, int64 strings (F68); most of the rest are existing overrides |
+```json
+{"name": "k", "keyPermissions": {"permissions": ["a"], "presets": ["p"]}}
+```
 
-`inline` is the opposite of `wrap`: the fields of a nested API object are shown in the parent, for example ApiKey
-`permissions` for `keyPermissions.permissions`.
+```yaml
+types:
+  KeyInfo:
+    keyPermissions: {inline: true}
+```
+
+```hcl
+name        = "k"
+permissions = ["a"]
+presets     = ["p"]
+```
+
+Expand sends the nested object when at least one of its writable fields is set, and no object otherwise. A missing object reads
+as null fields. An inlined field is required only when the object is required too. The inlined fields keep the overrides of
+their own type. [`generated/fakeinline`](generated/fakeinline/inline_test.go) tests the same object inlined in two parents and
+kept as an object in a third, read-only and unknown fields, and a required object.
+
+The spec sends some 64-bit numbers as strings with no `format`, only a pattern (F68). `int64` adds the missing format, so
+Terraform has an Int64. The generator now also reads `format: int64` on a string, so a fixed spec needs no override. `string`
+is the reverse, for a handwritten String that holds a number (ApiKey `owner.team_id`).
+
+**Next candidates.** A schema compare before and after these overrides:
+
+| Resource | Breaking before | Breaking after | Left |
+|---|---|---|---|
+| `coralogix_api_key` | 13 | 2 | the `access_policy` JSON plan modifier; `presets`, which Get sends as objects and Create takes as names (F69) |
+| `coralogix_alert` | 85 distinct | 85 distinct | all 11 that needed new rules are fixed; the rules open objects, so 11 new ones show inside them. The rest need existing overrides (flags, defaults, set vs list, enum names, renames), except `of_the_last`, the `schedule` times, and `latency_threshold_ms` (a Number) |
+| `coralogix_tco_policies_logs`, `_traces` | 22, 18 | not measured | the request body is not the policy type, so it stays handwritten |
 
 ## Decisions
 
@@ -475,7 +506,7 @@ change. Dashboards do not switch yet: they also need the `type` string rule.
 | D18 | Singletons | A singleton is a resource whose Get has no path parameter (one per company). Only a singleton with Create, Get, Update, and Delete on one path is generated. A singleton with only Get and Update is not a Terraform resource: not generated for now. | Terraform needs a real create and delete. (2026-09-25) |
 | D19 | Full-replace Update (`PUT`) | Generate it as it is, with no change to the API: `PUT` on the item path, or on the Create path with the id in the body. A request property with `readOnly: true` is a server field and is not sent. `PATCH` keeps the update mask. | The frequently changed APIs that Terraform has (dashboards, alerts, quota, notification center, SLO) all use `PUT`. Forcing `PATCH` on them is a breaking change for customers and work for every team. (2026-09-26) |
 | D20 | Generated parts inside handwritten resources (type mode) | A type mode, `tfgen --types A,B --tag <tag> --out <dir>`: the schema attributes, models, and expand and flatten of API types and every type inside them, in their own package (for example `dashboard_widgets/generated`). The handwritten code keeps the resource and plugs a type in with a few lines. Regenerating touches only that package. Existing handwritten code is never overwritten. | Most frequently changed APIs are existing, handwritten Terraform resources; regenerating them would lose custom code. In the last 12 months, 25 of 94 schema changes in Terraform-backed APIs added new objects to existing objects (dashboards 12, alerts 6). A separate package cannot clash with handwritten names. (2026-09-26) |
-| D21 | Overrides for existing resources (option D) | A YAML file per type-mode package: `--overrides <file>`. Keyed by API component and field, so one line covers every place the type is used. Kinds: `name`, `computed` (with "keep the state value"), `default`, `set`, `skip`, `required`, enum value names (the E14 rule, one line per value that differs), and one package option for wide numbers (`Int64`, `Float64`). Added in the pilot: how a response is read (`missingAsZero`, `emptyAsNull`, F57), `readOnly` (F58), and `deprecationMessage`. Added for SLO: `wrap` (a new object around API fields, F62), a read-only object makes everything inside it read only, `useNonNullStateForUnknown`, `missingAsZero` on an enum (the proto zero value, its first value), enum `acceptZero: false`; the spec `readOnly` applies in the type mode. Added for dashboards: `unwrap`, a top-level list of objects with one field that Terraform shows as that field (`lucene_query = "..."` for `{luceneQuery: {value: "..."}}`, F66). A switch needs a schema compare and an equivalence test of the old and new flatten and expand. An override that names a missing component or field is an error. The spec of existing APIs does not change; only new APIs follow the contract. Structure changes left (a `oneOf` as a `type` string, an empty object as a bool) are out of scope until the pilot is reevaluated. | 72% of the handwritten attributes of 18 resources already match; most of the rest are flags, defaults, set vs list, enum names, and renames. The switch must not change user configs or state. Pilot: GlobalRouter. New API fields are skipped in the switch, then added in a second step. Generated validators replace the handwritten ones; the compare tool lists each one that is new. (2026-09-26) |
+| D21 | Overrides for existing resources (option D) | A YAML file per type-mode package: `--overrides <file>`. Keyed by API component and field, so one line covers every place the type is used. Kinds: `name`, `computed` (with "keep the state value"), `default`, `set`, `skip`, `required`, enum value names (the E14 rule, one line per value that differs), and one package option for wide numbers (`Int64`, `Float64`). Added in the pilot: how a response is read (`missingAsZero`, `emptyAsNull`, F57), `readOnly` (F58), and `deprecationMessage`. Added for SLO: `wrap` (a new object around API fields, F62), a read-only object makes everything inside it read only, `useNonNullStateForUnknown`, `missingAsZero` on an enum (the proto zero value, its first value), enum `acceptZero: false`; the spec `readOnly` applies in the type mode. Added for dashboards: `unwrap`, a top-level list of objects with one field that Terraform shows as that field (`lucene_query = "..."` for `{luceneQuery: {value: "..."}}`, F66). Added for ApiKey and alerts: `inline` on the field that holds a nested object (each parent decides; the fields of the object become fields of the parent, F67), `int64` (a string with the pattern `^-?[0-9]+$` or `^[0-9]+$` is an Int64, F68), `string` (an int64 JSON number is a String, F68), and `sensitive`. A switch needs a schema compare and an equivalence test of the old and new flatten and expand. An override that names a missing component or field is an error. The spec of existing APIs does not change; only new APIs follow the contract. Structure changes left (a `oneOf` as a `type` string, an empty object as a bool) are out of scope until the pilot is reevaluated. | 72% of the handwritten attributes of 18 resources already match; most of the rest are flags, defaults, set vs list, enum names, and renames. The switch must not change user configs or state. Pilot: GlobalRouter. New API fields are skipped in the switch, then added in a second step. Generated validators replace the handwritten ones; the compare tool lists each one that is new. (2026-09-26) |
 
 ## Findings
 
@@ -547,6 +578,7 @@ Gaps in the API, the contract, or the tools.
 | F64 | Some handwritten rules are not in the API and stay handwritten after a switch: SLO turns an old singular APM filter `value` into `values`, and leaves out ownership dimensions with no values. They run on the SDK value before the generated flatten and after the generated expand (`integration/slo/add/`). The provider's unit tests keep them: the switch rewrites the tests against the generated model with the same assertions. | Tooling (provider) |
 | F65 | Generator bug, fixed: a computed nested object had a struct-pointer model field. Terraform plans a computed attribute with no configuration value as unknown on an update, and a pointer cannot hold an unknown value, so the update failed ("Received unknown value ... *slotypes.ApmSliModel"). The SLO live check found it (`apm_sli_metadata`, `grouping`); the resource mode had the same latent bug (a computed object, the fake `routing`). A computed single nested attribute now has a `types.Object` model field (`objectAs` / `objectValue`). The offline checks missed it: states read from the API never hold unknown values. New check: `schemadump.PlanWithUnknowns` makes every computed attribute unknown, and each switch's plan test reads that into the model and expands it (both steps). | Tooling |
 | F66 | The API wraps many values in an object with one field, `value` (21 components; 50 of their 58 uses are in dashboards: `LuceneQuery`, `PromQlQuery`, `UUID`). Handwritten resources show the value itself. The `unwrap` override does the same: a null value sends no object, and a missing object and an object without a value both read as null. Alerts do not use them. | API proto / Tooling (provider) |
-| F67 | Handwritten resources often show the fields of a nested API object in the parent: ApiKey `permissions`, `presets` (API `keyPermissions.{permissions, presets}`); TCO `severities` (`logRules.severities`); alerts `percentage_of_deviation` (`anomalyAlertSettings.percentageOfDeviation`), `tracing_filter.latency_threshold_ms` (`tracingFilter.simpleFilter.latencyThresholdMs`), and the routing overrides (`configOverrides.{...}`). It is the opposite of `wrap`. All three measured resources need it. | Tooling (provider) |
-| F68 | A signed 64-bit integer that JSON sends as a string (alerts `maxUniqueCount`, `timeframeMs`, `duration`) has no `format: int64` in the spec, only `type: string` and `pattern: ^-?[0-9]+$`. So the type mode writes a String attribute; the handwritten resource has Int64, as D7 does for uint64. The OpenAPI generator should write the format; until then, an override. The reverse also occurs: ApiKey `owner.team_id` is a String in Terraform and a uint64 in the API. | Tooling |
+| F67 | Handwritten resources often show the fields of a nested API object in the parent: ApiKey `permissions`, `presets` (API `keyPermissions.{permissions, presets}`); TCO `severities` (`logRules.severities`); alerts `percentage_of_deviation` (`anomalyAlertSettings.percentageOfDeviation`), `tracing_filter.latency_threshold_ms` (`tracingFilter.simpleFilter.latencyThresholdMs`), and the routing overrides (`configOverrides.{...}`). It is the opposite of `wrap`. All three measured resources need it. Correction: `tracing_filter` needs no `inline`: `TracingFilter` has only `simpleFilter`, so `unwrap: [TracingFilter]` covers it. Fixed by the `inline` override. | Tooling (provider) |
+| F68 | A signed 64-bit integer that JSON sends as a string (alerts `maxUniqueCount`, `timeframeMs`) has no `format: int64` in the spec, only `type: string` and `pattern: ^-?[0-9]+$`. So the type mode writes a String attribute; the handwritten resource has Int64, as D7 does for uint64. The OpenAPI generator should write the format; until then, an override. The reverse also occurs: ApiKey `owner.team_id` is a String in Terraform and an int64 JSON number in the API (corrected: not a uint64). Unsigned numbers have the same gap: alerts `duration` and `latencyThresholdMs` have only `pattern: ^[0-9]+$`, as the AI evaluation fields had before the overlay (D7). Fixed by the `int64` and `string` overrides; the generator now also reads `format: int64` on a string, so a fixed spec needs no override. | Tooling |
+| F69 | ApiKey `presets` has another shape in Get than in Create: Get sends `PresetInfo` objects (`{name, permissions}`), Create takes names. The handwritten resource shows the names as a set of strings (the resource-shape survey case "a field with another type in Create than in Get"). The type mode reads the Get type, so no override covers it: it stays handwritten, or the API sends names in both. | API proto |
 | F44 | `PolicySettings` (a singleton): Get is on `/dataplans/policy-settings/v1`, but Replace is on `/dataplans/policiy-settings/v1` (a typo). A singleton linter rule, all operations on one path, would catch it. | API proto |

@@ -72,7 +72,23 @@ type fieldOverride struct {
 	// Wrap makes the key a new Terraform object that holds these API fields
 	// (see wrapper).
 	Wrap []string `yaml:"wrap"`
+	// Inline shows the fields of this object field as fields of the parent
+	// (see inline.go).
+	Inline bool `yaml:"inline"`
+	// Sensitive hides the value in plans and logs (a secret).
+	Sensitive bool `yaml:"sensitive"`
+	// Int64 reads a string field with the pattern of a 64-bit number as an
+	// Int64 attribute: ^-?[0-9]+$ is an int64, ^[0-9]+$ a uint64 (D7). The
+	// spec has no format (F68).
+	Int64 bool `yaml:"int64"`
+	// String makes an int64 field a String attribute with the decimal
+	// number, as some handwritten resources have (F68).
+	String bool `yaml:"string"`
 }
+
+// numberPatterns are the formats of the patterns of a 64-bit number that
+// JSON sends as a string.
+var numberPatterns = map[string]string{`^-?[0-9]+$`: "int64", `^[0-9]+$`: "uint64"}
 
 // enumOverride changes the Terraform values of one API enum.
 type enumOverride struct {
@@ -146,14 +162,20 @@ func (o *overrides) fields(t *model.Type) []*model.Field {
 }
 
 // fieldType returns the type of the field f of the component schema, with a
-// list made a set when the override says so. The model is not changed.
+// list made a set, and a string made a 64-bit number that JSON sends as a
+// string, when the override says so. The model is not changed.
 func (o *overrides) fieldType(schema string, f *model.Field) *model.Type {
-	if !o.field(schema, f.Name).Set || f.Type.Kind != model.List {
-		return f.Type
+	ov := o.field(schema, f.Name)
+	switch {
+	case ov.Set && f.Type.Kind == model.List:
+		t := *f.Type
+		t.Kind = model.Set
+		return &t
+	case ov.Int64 && f.Type.Kind == model.String:
+		// The format that the OpenAPI generator leaves out (F68).
+		return &model.Type{Kind: model.Integer, Format: numberPatterns[f.Type.Pattern], WireString: true}
 	}
-	t := *f.Type
-	t.Kind = model.Set
-	return &t
+	return f.Type
 }
 
 // groups returns the oneOf groups of t without the skipped arms.
@@ -252,6 +274,12 @@ func (o *overrides) checkObject(t *model.Type) []error {
 			errs = append(errs, fmt.Errorf("%s: %w", at, err))
 			continue
 		}
+		if o.Types[t.Schema][name].Inline {
+			if err := o.checkInline(t, f); err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", at, err))
+			}
+			continue
+		}
 		if err := checkField(o.Types[t.Schema][name], f); err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", at, err))
 		}
@@ -260,18 +288,7 @@ func (o *overrides) checkObject(t *model.Type) []error {
 		errs = append(errs, fmt.Errorf("overrides: types.%s: every field is skipped", t.Schema))
 	}
 	errs = append(errs, o.checkWrappers(t)...)
-	seen := map[string]string{}
-	for _, w := range o.wrappers(t) {
-		seen[w.Name] = "the wrapper " + w.Name
-	}
-	for _, f := range o.fields(t) {
-		n := o.tfName(t.Schema, f.Name)
-		if prev, ok := seen[n]; ok {
-			errs = append(errs, fmt.Errorf("overrides: types.%s: %s and %s both have the Terraform name %q", t.Schema, prev, f.Name, n))
-		}
-		seen[n] = f.Name
-	}
-	return errs
+	return append(errs, o.checkNames(t)...)
 }
 
 // checkField checks one field override. The flags must leave a valid
@@ -290,10 +307,28 @@ func checkField(ov fieldOverride, f *model.Field) error {
 	if ov.Set && f.Type.Kind != model.List {
 		return fmt.Errorf("set: the field is a %s, not a list", f.Type.Kind)
 	}
+	if err := checkNumberText(ov, f.Type); err != nil {
+		return err
+	}
 	if err := checkRead(ov, f.Type); err != nil {
 		return err
 	}
 	return checkFlags(ov, f.Attrs)
+}
+
+// checkNumberText checks the overrides int64 and string (F68): int64 needs a
+// string with the pattern of a 64-bit number, and string needs an int64 JSON
+// number.
+func checkNumberText(ov fieldOverride, t *model.Type) error {
+	switch {
+	case ov.Int64 && ov.String:
+		return errors.New("int64 and string cannot be combined")
+	case ov.Int64 && (t.Kind != model.String || t.Format != "" || numberPatterns[t.Pattern] == ""):
+		return fmt.Errorf("int64: the field is a %s with the pattern %q, it must be a string with the pattern %s", typeName(t), t.Pattern, strings.Join(sortedKeys(numberPatterns), " or "))
+	case ov.String && (t.Kind != model.Integer || t.WireString || t.Format != "int64"):
+		return fmt.Errorf("string: the field is a %s, it must be an int64 JSON number", typeName(t))
+	}
+	return nil
 }
 
 // checkRead checks the overrides that change how a response is read.

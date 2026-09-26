@@ -81,6 +81,12 @@ type convObject struct {
 	// returns, a model value of the Go type ValueType.
 	Unwrap    bool
 	ValueType string
+	// Inline is true for the object of an inlined field (D21, inline.go):
+	// Model is the parent model, which holds the fields, and SDK is the
+	// nested SDK struct. UnsetCheck is the Go condition that is true when
+	// none of its fields is set; then expand sends no object.
+	Inline     bool
+	UnsetCheck string
 }
 
 type convAttrType struct {
@@ -101,10 +107,13 @@ const (
 	convStrings = "strings" // types.Set/List ↔ []string or []<enum type>
 	convObjects = "objects" // types.List ↔ []<SDK type>
 
-	convInt32   = "int32"   // types.Int32 ↔ *int32
-	convInt64   = "int64"   // types.Int64 ↔ *int64 (signed, a JSON number)
-	convFloat32 = "float32" // types.Float32 ↔ *float32
-	convScalars = "scalars" // types.List/Set ↔ []bool, []int32, []int64, []float32, []float64
+	convInt32 = "int32" // types.Int32 ↔ *int32
+	convInt64 = "int64" // types.Int64 ↔ *int64 (signed, a JSON number)
+	// convInt64String is a signed 64-bit number that JSON sends as a string:
+	// types.Int64 ↔ *string, like uint64 (F68).
+	convInt64String = "int64string"
+	convFloat32     = "float32" // types.Float32 ↔ *float32
+	convScalars     = "scalars" // types.List/Set ↔ []bool, []int32, []int64, []float32, []float64
 
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
@@ -122,6 +131,10 @@ const (
 	convObjValue = "objectvalue"
 	convUnwrap   = "unwrap"  // the value of the only field ↔ *<SDK type> (unwrap.go)
 	convUnwraps  = "unwraps" // types.Set/List of those values ↔ []<SDK type>
+	convInline   = "inline"  // fields of the parent model ↔ *<SDK type> (inline.go)
+	// convInt64Text is the string override (F68): types.String with the
+	// decimal number ↔ *int64.
+	convInt64Text = "int64text"
 )
 
 // convField is one field of a convObject.
@@ -534,8 +547,21 @@ func scalarConv(cf *convField, t *model.Type) (string, error) {
 	case t.Kind == model.Number && t.Format == "float":
 		cf.Conv = convFloat32
 		return "*float32", nil
+	case t.Kind == model.Integer:
+		return integerConv(cf, t)
+	}
+	return "", fmt.Errorf("%s format %q is not supported", t.Kind, t.Format)
+}
+
+// integerConv sets the conversion of cf for an integer t. A 64-bit number
+// that JSON sends as a string is a string in the SDK (D7, F68).
+func integerConv(cf *convField, t *model.Type) (string, error) {
+	switch {
 	case t.WireString && t.Format == "uint64":
 		cf.Conv = convUint64
+		return "*string", nil
+	case t.WireString && t.Format == "int64":
+		cf.Conv = convInt64String
 		return "*string", nil
 	case !t.WireString && t.Format == "int64":
 		cf.Conv = convInt64
@@ -623,24 +649,44 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	obj := b.object(t.Schema, ref)
 	b.objects = append(b.objects, obj)
 	for _, f := range b.ov.fields(t) {
-		cf, err := b.field(ref.Path, f.Name, b.ov.fieldType(t.Schema, f))
+		var cf *convField
+		if b.ov.inlined(t.Schema, f) {
+			cf, err = b.inline(obj, ref.Path, f)
+		} else {
+			cf, err = b.objectField(ref.Path, t.Schema, f)
+		}
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", f.Name, err)
-		}
-		cf.TFName = b.ov.tfName(t.Schema, f.Name)
-		cf.ReadOnly = b.ov.effective(t.Schema, f).ReadOnly
-		if _, _, comp := flags(b.ov.effective(t.Schema, f), f.Attrs); comp && b.ov != nil {
-			if err := b.objectValue(cf); err != nil {
-				return nil, fmt.Errorf("%s: %w", f.Name, err)
-			}
-		}
-		if cf.Read, err = b.readRule(b.ov.field(t.Schema, f.Name), cf, f.Type); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		obj.Fields = append(obj.Fields, cf)
 	}
 	b.wrap(t, obj)
 	return obj, nil
+}
+
+// objectField returns the conversion of the field f of the component schema,
+// whose SDK struct is at owner (an SDK name path), with its overrides.
+func (b *convBuilder) objectField(owner, schema string, f *model.Field) (*convField, error) {
+	cf, err := b.field(owner, f.Name, b.ov.fieldType(schema, f))
+	if err != nil {
+		return nil, err
+	}
+	cf.TFName = b.ov.tfName(schema, f.Name)
+	cf.ReadOnly = b.ov.effective(schema, f).ReadOnly
+	if b.ov.field(schema, f.Name).String {
+		// The SDK keeps its int64; Terraform has the decimal string (F68).
+		// checkNumberText allows the override only on an int64.
+		cf.Conv = convInt64Text
+	}
+	if _, _, comp := flags(b.ov.effective(schema, f), f.Attrs); comp && b.ov != nil {
+		if err := b.objectValue(cf); err != nil {
+			return nil, err
+		}
+	}
+	if cf.Read, err = b.readRule(b.ov.field(schema, f.Name), cf, f.Type); err != nil {
+		return nil, err
+	}
+	return cf, nil
 }
 
 // objectValue makes a computed object field a types.Object (convObjValue).
@@ -695,7 +741,7 @@ func (b *convBuilder) unwrapObject(t *model.Type) (*convObject, error) {
 // that tfBuilder.modelField writes.
 func modelGoType(cf *convField) (string, error) {
 	switch cf.Conv {
-	case convString, convTime, convEnum, convEnumName:
+	case convString, convTime, convEnum, convEnumName, convInt64Text:
 		return "types.String", nil
 	case convBool:
 		return "types.Bool", nil
@@ -705,7 +751,7 @@ func modelGoType(cf *convField) (string, error) {
 		return "types.Float32", nil
 	case convInt32:
 		return "types.Int32", nil
-	case convInt64, convInt32Wide, convUint64:
+	case convInt64, convInt32Wide, convUint64, convInt64String:
 		return "types.Int64", nil
 	case convStrings, convScalars, convObjects, convEnumNames, convUnwraps:
 		return "types." + cf.Collection, nil
@@ -847,7 +893,7 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	}
 	for _, f := range obj.Fields {
 		switch f.Conv {
-		case convObj, convObjects, convObjectMap, convWrap, convObjValue, convUnwrap, convUnwraps:
+		case convObj, convObjects, convObjectMap, convWrap, convObjValue, convUnwrap, convUnwraps, convInline:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
 			}
@@ -857,13 +903,13 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 }
 
 // attrTypes fills the Terraform attribute types of obj, and of the objects
-// inside it.
+// inside it. The fields of an inlined object are attributes of obj.
 func (b *convBuilder) attrTypes(obj *convObject) error {
 	if obj.AttrTypes != nil {
 		return nil
 	}
 	obj.AttrTypes = []convAttrType{}
-	for _, f := range obj.Fields {
+	for _, f := range withInlined(obj) {
 		expr, err := b.attrType(obj, f)
 		if err != nil {
 			return err
@@ -879,7 +925,8 @@ var scalarAttrTypes = map[string]string{
 	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type",
 	convInt32Wide: "types.Int64Type", convFloat32Wide: "types.Float64Type", convEnumName: "types.StringType",
-	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}",
+	convEmpty:       "types.ObjectType{AttrTypes: map[string]attr.Type{}}",
+	convInt64String: "types.Int64Type", convInt64Text: "types.StringType",
 }
 
 // attrType returns the Terraform attribute type expression of field f.

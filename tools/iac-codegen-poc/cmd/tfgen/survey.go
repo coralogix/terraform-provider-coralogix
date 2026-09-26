@@ -255,11 +255,11 @@ func resourceShapes(issues []surveyIssue, r string) []string {
 	return sortedKeys(seen)
 }
 
-// supportedNumber follows scalarConv: uint64 as a string, int32 and int64 as
-// numbers, float and double.
+// supportedNumber follows scalarConv: uint64 and int64 as a string, int32
+// and int64 as numbers, float and double.
 func supportedNumber(t *model.Type) bool {
 	if t.Kind == model.Integer && t.WireString {
-		return t.Format == "uint64"
+		return t.Format == "uint64" || t.Format == "int64"
 	}
 	_, _, ok := scalarElem(t)
 	return ok

@@ -37,8 +37,9 @@ type tfAttr struct {
 	Validators  []string // Go expressions
 	Modifiers   []string // plan modifiers, Go expressions
 	Attributes  []*tfAttr
-	// DeprecationMessage comes from an override (D21).
+	// DeprecationMessage and Sensitive come from an override (D21).
 	DeprecationMessage string
+	Sensitive          bool
 }
 
 // tfModel is one Go struct of the Terraform model.
@@ -282,26 +283,29 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		return nil, fmt.Errorf("inline %s schema is not supported", t.Kind)
 	}
 	fs := b.ov.fields(t)
-	built := map[string]*tfAttr{}
-	modelFields := map[string]tfModelField{}
+	built := map[string]fieldParts{}
 	for _, f := range fs {
+		if b.ov.inlined(t.Schema, f) {
+			parts, err := b.inlineAttributes(p, f)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", f.Name, err)
+			}
+			built[f.Name] = parts
+			continue
+		}
 		name := b.ov.tfName(t.Schema, f.Name)
-		ft := b.ov.tfType(t.Schema, f)
 		child := append(append(attrPath{}, p...), name)
 		if w := b.ov.wrapperOf(t, f.Name); w != "" {
 			child = append(append(attrPath{}, p...), w, name)
 		}
-		a, err := b.attribute(child, name, f.Description, ft, f.Attrs)
+		a, mf, err := b.field(child, t.Schema, f)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
-		if err := b.override(a, t.Schema, f, ft); err != nil {
-			return nil, fmt.Errorf("%s: %w", f.Name, err)
-		}
-		built[f.Name], modelFields[f.Name] = a, objectValueField(b.modelField(name, f.Name, ft), a)
+		built[f.Name] = fieldParts{attrs: []*tfAttr{a}, fields: []tfModelField{mf}}
 	}
 	armName := func(arm string) string { return b.ov.tfName(t.Schema, arm) }
-	attrs, fields := b.assemble(t, fs, built, modelFields, armName)
+	attrs, fields := b.assemble(t, fs, built, armName)
 	// A oneOf is one group of all its fields. Its validators are on the arms,
 	// with paths relative to the object, like the groups: they run only when
 	// the object is set, and each list item or map value on its own (F34,
@@ -321,11 +325,33 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	return attrs, nil
 }
 
+// field returns the attribute at the path p, and the model field, of the API
+// field f of the component schema.
+func (b *tfBuilder) field(p attrPath, schema string, f *model.Field) (*tfAttr, tfModelField, error) {
+	name := p[len(p)-1]
+	ft := b.ov.tfType(schema, f)
+	a, err := b.attribute(p, name, f.Description, ft, f.Attrs)
+	if err != nil {
+		return nil, tfModelField{}, err
+	}
+	if err := b.override(a, schema, f, ft); err != nil {
+		return nil, tfModelField{}, err
+	}
+	return a, objectValueField(b.modelField(name, f.Name, ft), a), nil
+}
+
+// fieldParts are the attributes and the model fields of one API field: one
+// of each, or the fields of an inlined object (inline.go).
+type fieldParts struct {
+	attrs  []*tfAttr
+	fields []tfModelField
+}
+
 // assemble returns the attributes and model fields of t in API order, with
 // each wrapper (D21) at the place of its first field. A wrapper is a single
 // nested attribute with its own model; the oneOf groups inside it get their
 // validators there.
-func (b *tfBuilder) assemble(t *model.Type, fs []*model.Field, built map[string]*tfAttr, modelFields map[string]tfModelField,
+func (b *tfBuilder) assemble(t *model.Type, fs []*model.Field, built map[string]fieldParts,
 	armName func(string) string) ([]*tfAttr, []tfModelField) {
 	var attrs []*tfAttr
 	var fields []tfModelField
@@ -335,18 +361,18 @@ func (b *tfBuilder) assemble(t *model.Type, fs []*model.Field, built map[string]
 	}
 	for _, f := range fs {
 		if w, ok := wrappers[f.Name]; ok {
-			a, mf := b.wrapperAttribute(t, w, built, modelFields, armName)
+			a, mf := b.wrapperAttribute(t, w, built, armName)
 			attrs, fields = append(attrs, a), append(fields, mf)
 			continue
 		}
 		if b.ov.wrapperOf(t, f.Name) == "" {
-			attrs, fields = append(attrs, built[f.Name]), append(fields, modelFields[f.Name])
+			attrs, fields = append(attrs, built[f.Name].attrs...), append(fields, built[f.Name].fields...)
 		}
 	}
 	return attrs, fields
 }
 
-func (b *tfBuilder) wrapperAttribute(t *model.Type, w wrapper, built map[string]*tfAttr, modelFields map[string]tfModelField,
+func (b *tfBuilder) wrapperAttribute(t *model.Type, w wrapper, built map[string]fieldParts,
 	armName func(string) string) (*tfAttr, tfModelField) {
 	a := &tfAttr{Name: w.Name, Kind: "SingleNested", ValueKind: "Object",
 		Description: fmt.Sprintf("Holds the API fields %s of %s.", strings.Join(w.Fields, ", "), t.Schema)}
@@ -355,8 +381,8 @@ func (b *tfBuilder) wrapperAttribute(t *model.Type, w wrapper, built map[string]
 	// checkWrapper rejects it.
 	m := &tfModel{Name: wrapperModelName(t.Schema, w.Name), Schema: t.Schema, Wrapper: w.Name}
 	for _, name := range w.Fields {
-		a.Attributes = append(a.Attributes, built[name])
-		m.Fields = append(m.Fields, modelFields[name])
+		a.Attributes = append(a.Attributes, built[name].attrs...)
+		m.Fields = append(m.Fields, built[name].fields...)
 	}
 	for _, g := range b.ov.groups(t) {
 		if b.ov.wrapperOf(t, g.Arms[0]) == w.Name {
@@ -474,7 +500,7 @@ func (b *tfBuilder) override(a *tfAttr, schema string, f *model.Field, t *model.
 	if ov.RequiresReplace {
 		a.Modifiers = append(a.Modifiers, pkg+"RequiresReplace()")
 	}
-	a.DeprecationMessage = ov.DeprecationMessage
+	a.DeprecationMessage, a.Sensitive = ov.DeprecationMessage, ov.Sensitive
 	return nil
 }
 

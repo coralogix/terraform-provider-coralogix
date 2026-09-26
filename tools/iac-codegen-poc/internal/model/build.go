@@ -1133,10 +1133,11 @@ func arrayType(t *Type, s *base.Schema, path string, w walk) error {
 
 func stringType(t *Type, s *base.Schema) error {
 	t.MinLength, t.MaxLength = s.MinLength, s.MaxLength
+	t.Pattern = s.Pattern
 	switch {
 	case len(s.Enum) != 0:
 		t.Kind = Enum
-		t.MinLength, t.MaxLength = nil, nil
+		t.MinLength, t.MaxLength, t.Pattern = nil, nil, ""
 		var all []string
 		for _, n := range s.Enum {
 			all = append(all, n.Value)
