@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -75,6 +76,11 @@ type convObject struct {
 	// wrapped field is a value, which is never missing.
 	Wrapper  bool
 	NilCheck string
+	// Unwrap is true for an unwrapped object (D21, unwrap.go): Terraform
+	// shows it as its only field. Its expand takes, and its flatten
+	// returns, a model value of the Go type ValueType.
+	Unwrap    bool
+	ValueType string
 }
 
 type convAttrType struct {
@@ -114,6 +120,8 @@ const (
 	// convObjValue is a computed object: types.Object ↔ *<SDK type>.
 	// Terraform plans it as unknown, which a struct pointer cannot hold.
 	convObjValue = "objectvalue"
+	convUnwrap   = "unwrap"  // the value of the only field ↔ *<SDK type> (unwrap.go)
+	convUnwraps  = "unwraps" // types.Set/List of those values ↔ []<SDK type>
 )
 
 // convField is one field of a convObject.
@@ -147,6 +155,9 @@ type convField struct {
 	// ReadOnly is true for a field that the server sets (the readOnly
 	// override): expand does not send it.
 	ReadOnly bool
+	// Unwrapped is true for the only field of an unwrapped object: its
+	// diagnostics have the path of the attribute, p.
+	Unwrapped bool
 }
 
 // Values of convField.Read.
@@ -265,7 +276,9 @@ func buildConv(r *model.Resource, refs []sdkRef) (*convData, error) {
 				return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
 			}
 			if f.Behavior == model.Computed {
-				b.objectValue(cf)
+				if err := b.objectValue(cf); err != nil {
+					return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+				}
 			}
 			obj.Fields = append(obj.Fields, cf)
 		}
@@ -476,6 +489,14 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type) (string, error) {
 		}
 		return "*" + enum.Name, nil
 	case model.Object, model.OneOf:
+		if b.ov.unwrapped(t.Schema) {
+			obj, err := b.unwrapObject(t)
+			if err != nil {
+				return "", err
+			}
+			cf.Conv, cf.Object = convUnwrap, obj
+			return "*" + obj.SDK, nil
+		}
 		if len(t.Fields) == 0 {
 			cf.Conv, cf.Object = convEmpty, &convObject{Model: modelTypeName(t.Schema)}
 			return "map[string]interface{}", nil
@@ -559,22 +580,34 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		cf.Conv, cf.SDKType, cf.ElemType = convScalars, goType, elem
 		return "[]" + goType, nil
 	case model.Object, model.OneOf:
-		// A diagnostic in a set item has the path of the set: an item path
-		// (path.AtSetValue) needs the Terraform value of the item.
-		if len(t.Elem.Fields) == 0 {
-			break
+		if len(t.Elem.Fields) != 0 {
+			return b.objectsConv(cf, t)
 		}
-		obj, err := b.nested(t.Elem)
+	}
+	return "", fmt.Errorf("%s of %s is not supported", t.Kind, t.Elem.Kind)
+}
+
+// objectsConv sets the conversion of cf for a Set or List of objects t. A
+// diagnostic in a set item has the path of the set: an item path
+// (path.AtSetValue) needs the Terraform value of the item.
+func (b *convBuilder) objectsConv(cf *convField, t *model.Type) (string, error) {
+	if b.ov.unwrapped(t.Elem.Schema) {
+		obj, err := b.unwrapObject(t.Elem)
 		if err != nil {
 			return "", err
 		}
-		if !contains(b.listed, obj) {
-			b.listed = append(b.listed, obj)
-		}
-		cf.Conv, cf.Object, cf.SDKType = convObjects, obj, b.qualify(obj.SDK)
+		cf.Conv, cf.Object, cf.SDKType = convUnwraps, obj, b.qualify(obj.SDK)
 		return "[]" + obj.SDK, nil
 	}
-	return "", fmt.Errorf("%s of %s is not supported", t.Kind, t.Elem.Kind)
+	obj, err := b.nested(t.Elem)
+	if err != nil {
+		return "", err
+	}
+	if !contains(b.listed, obj) {
+		b.listed = append(b.listed, obj)
+	}
+	cf.Conv, cf.Object, cf.SDKType = convObjects, obj, b.qualify(obj.SDK)
+	return "[]" + obj.SDK, nil
 }
 
 // nested returns the convObject of an object or a oneOf, and fills its
@@ -597,7 +630,9 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		cf.TFName = b.ov.tfName(t.Schema, f.Name)
 		cf.ReadOnly = b.ov.effective(t.Schema, f).ReadOnly
 		if _, _, comp := flags(b.ov.effective(t.Schema, f), f.Attrs); comp && b.ov != nil {
-			b.objectValue(cf)
+			if err := b.objectValue(cf); err != nil {
+				return nil, fmt.Errorf("%s: %w", f.Name, err)
+			}
 		}
 		if cf.Read, err = b.readRule(b.ov.field(t.Schema, f.Name), cf, f.Type); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
@@ -609,14 +644,79 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 }
 
 // objectValue makes a computed object field a types.Object (convObjValue).
-func (b *convBuilder) objectValue(cf *convField) {
+func (b *convBuilder) objectValue(cf *convField) error {
+	if cf.Conv == convUnwrap && strings.HasPrefix(cf.Object.ValueType, "*") {
+		return errors.New("unwrap: a computed field of an unwrapped object whose value is an object is not supported")
+	}
 	if cf.Conv != convObj {
-		return
+		return nil
 	}
 	cf.Conv = convObjValue
 	if !contains(b.listed, cf.Object) {
 		b.listed = append(b.listed, cf.Object)
 	}
+	return nil
+}
+
+// unwrapObject returns the convObject of the unwrapped object t (D21), and
+// fills its only field on the first call.
+func (b *convBuilder) unwrapObject(t *model.Type) (*convObject, error) {
+	ref, err := b.ix.schemaRef(t.Schema)
+	if err != nil {
+		return nil, err
+	}
+	if obj, ok := b.bySchema[t.Schema]; ok {
+		return obj, nil
+	}
+	obj := b.object(t.Schema, ref)
+	obj.Unwrap = true
+	b.objects = append(b.objects, obj)
+	f := t.Fields[0]
+	cf, err := b.field(ref.Path, f.Name, b.ov.fieldType(t.Schema, f))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", f.Name, err)
+	}
+	if cf.Value {
+		// Then a missing object and a zero value read the same.
+		return nil, fmt.Errorf("unwrap: the SDK field %s.%s is a value, not a pointer", obj.SDK, cf.SDK)
+	}
+	cf.Unwrapped = true
+	if cf.Read, err = b.readRule(b.ov.field(t.Schema, f.Name), cf, f.Type); err != nil {
+		return nil, fmt.Errorf("%s: %w", f.Name, err)
+	}
+	obj.Fields = []*convField{cf}
+	if obj.ValueType, err = modelGoType(cf); err != nil {
+		return nil, fmt.Errorf("%s: %w", f.Name, err)
+	}
+	return obj, nil
+}
+
+// modelGoType returns the Go type of the model field of cf. It is the type
+// that tfBuilder.modelField writes.
+func modelGoType(cf *convField) (string, error) {
+	switch cf.Conv {
+	case convString, convTime, convEnum, convEnumName:
+		return "types.String", nil
+	case convBool:
+		return "types.Bool", nil
+	case convFloat64, convFloat32Wide:
+		return "types.Float64", nil
+	case convFloat32:
+		return "types.Float32", nil
+	case convInt32:
+		return "types.Int32", nil
+	case convInt64, convInt32Wide, convUint64:
+		return "types.Int64", nil
+	case convStrings, convScalars, convObjects, convEnumNames, convUnwraps:
+		return "types." + cf.Collection, nil
+	case convStringMap, convScalarMap, convUint64Map, convObjectMap:
+		return "types.Map", nil
+	case convObj, convEmpty:
+		return "*" + cf.Object.Model, nil
+	case convUnwrap:
+		return cf.Object.ValueType, nil
+	}
+	return "", fmt.Errorf("unwrap: a value of kind %s is not supported", cf.Conv)
 }
 
 // wrap moves the fields of each wrapper of t (D21) from obj into a wrapper
@@ -747,7 +847,7 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	}
 	for _, f := range obj.Fields {
 		switch f.Conv {
-		case convObj, convObjects, convObjectMap, convWrap, convObjValue:
+		case convObj, convObjects, convObjectMap, convWrap, convObjValue, convUnwrap, convUnwraps:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
 			}
@@ -798,6 +898,16 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return "types.MapType{ElemType: types.StringType}", nil
 	case convUint64Map:
 		return "types.MapType{ElemType: types.Int64Type}", nil
+	case convUnwrap:
+		return b.attrType(f.Object, f.Object.Fields[0])
+	case convUnwraps:
+		// flatten also needs the element type.
+		elem, err := b.attrType(f.Object, f.Object.Fields[0])
+		if err != nil {
+			return "", err
+		}
+		f.ElemType = elem
+		return "types." + f.Collection + "Type{ElemType: " + elem + "}", nil
 	case convObj, convObjects, convObjectMap, convWrap, convObjValue:
 		if err := b.attrTypes(f.Object); err != nil {
 			return "", err

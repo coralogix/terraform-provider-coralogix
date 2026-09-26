@@ -10,16 +10,16 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// fakeSDK is the fake SDK module (fakesdk/generate.sh).
-const fakeSDK = "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk"
+// testSDKModule is the test SDK module (testsdk/generate.sh).
+const testSDKModule = "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk"
 
 // generatedCases are the generated resources and their inputs.
 var generatedCases = []struct{ dir, spec, resource, sdk, acc string }{
 	{"../../generated/aievaluation", patchedSpec, "AiEvaluation", realSDK, "../../spec/acc/AiEvaluation.yaml"},
-	{"../../generated/fakeboard", "../../spec/fake/openapi.yaml", "FakeBoard", fakeSDK, ""},
-	{"../../generated/fakesettings", "../../spec/fake/settings.yaml", "FakeSettings", fakeSDK, ""},
-	{"../../generated/fakerule", "../../spec/fake/rules.yaml", "FakeRule", fakeSDK, ""},
-	{"../../generated/fakeview", "../../spec/fake/views.yaml", "FakeView", fakeSDK, ""},
+	{"../../generated/fakeboard", "../../spec/fake/openapi.yaml", "FakeBoard", testSDKModule, ""},
+	{"../../generated/fakesettings", "../../spec/fake/settings.yaml", "FakeSettings", testSDKModule, ""},
+	{"../../generated/fakerule", "../../spec/fake/rules.yaml", "FakeRule", testSDKModule, ""},
+	{"../../generated/fakeview", "../../spec/fake/views.yaml", "FakeView", testSDKModule, ""},
 }
 
 // TestGeneratedUpToDate checks that each generated directory is the output
@@ -84,7 +84,7 @@ func TestTFName(t *testing.T) {
 // resource has oneOf groups at the root, so this covers the top-level mask
 // code for groups, which no generated resource uses yet.
 func TestTopLevelMaskWithGroups(t *testing.T) {
-	r, refs, err := checkedSDKNames("../../spec/fake/openapi.yaml", "FakeBoard", fakeSDK)
+	r, refs, err := checkedSDKNames("../../spec/fake/openapi.yaml", "FakeBoard", testSDKModule)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,13 +125,15 @@ var generatedTypeCases = []struct {
 	roots, enums        []string
 	overrides           string
 }{
-	{"../../generated/fakepanel", "../../spec/fake/openapi.yaml", "Fake Boards Service", fakeSDK, []string{"Panel", "Header", "Interval", "AbsoluteTime"},
+	{"../../generated/fakepanel", "../../spec/fake/openapi.yaml", "Fake Boards Service", testSDKModule, []string{"Panel", "Header", "Interval", "AbsoluteTime"},
 		[]string{"Color", "Unit", "Orientation", "Comparison", "Delivery"}, ""},
 	{"../../generated/dashboardwidgets", patchedSpec, "Dashboard service", realSDK, []string{"Widget.Definition"}, nil, ""},
-	{"../../generated/fakerouting", "../../spec/fake/openapi.yaml", "Fake Boards Service", fakeSDK, []string{"Routing"}, nil,
+	{"../../generated/fakerouting", "../../spec/fake/openapi.yaml", "Fake Boards Service", testSDKModule, []string{"Routing"}, nil,
 		"../../spec/fake/routing.overrides.yaml"},
-	{"../../generated/fakewrap", "../../spec/fake/openapi.yaml", "Fake Boards Service", fakeSDK, []string{"Layout"}, nil,
+	{"../../generated/fakewrap", "../../spec/fake/openapi.yaml", "Fake Boards Service", testSDKModule, []string{"Layout"}, nil,
 		"../../spec/fake/layout.overrides.yaml"},
+	{"../../generated/fakeunwrap", "../../spec/fake/openapi.yaml", "Fake Boards Service", testSDKModule, []string{"Query"}, nil,
+		"../../spec/fake/query.overrides.yaml"},
 }
 
 // TestGeneratedTypesUpToDate checks that each generated type package is the
@@ -192,7 +194,7 @@ func TestTypesRejects(t *testing.T) {
 		{"another SDK package", []string{"Panel"}, "Fake Settings Service", "fake_settings_service"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			_, _, _, err := checkedTypeNames(spec, typeInputs{roots: c.roots}, c.tag, fakeSDK)
+			_, _, _, err := checkedTypeNames(spec, typeInputs{roots: c.roots}, c.tag, testSDKModule)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Errorf("error = %v, want it to contain %q", err, c.want)
 			}
@@ -204,7 +206,7 @@ func TestTypesRejects(t *testing.T) {
 // value styles of the real API, and a name that two values share.
 func TestEnumNames(t *testing.T) {
 	_, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml",
-		typeInputs{enums: []string{"Orientation", "Comparison", "Delivery", "Color"}}, "Fake Boards Service", fakeSDK)
+		typeInputs{enums: []string{"Orientation", "Comparison", "Delivery", "Color"}}, "Fake Boards Service", testSDKModule)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,7 +238,7 @@ func TestEnumNames(t *testing.T) {
 	if _, err := enumNames(&clash, ix, nil); err == nil || !strings.Contains(err.Error(), `both have the Terraform name "vertical"`) {
 		t.Errorf("two values with one name: error %v", err)
 	}
-	if _, _, _, err := checkedTypeNames("../../spec/fake/openapi.yaml", typeInputs{enums: []string{"Panel"}}, "Fake Boards Service", fakeSDK); err == nil {
+	if _, _, _, err := checkedTypeNames("../../spec/fake/openapi.yaml", typeInputs{enums: []string{"Panel"}}, "Fake Boards Service", testSDKModule); err == nil {
 		t.Error("an object in --enums: no error")
 	}
 }
@@ -246,7 +248,7 @@ func TestEnumNames(t *testing.T) {
 func TestOverridesRejects(t *testing.T) {
 	const spec = "../../spec/fake/openapi.yaml"
 	in := typeInputs{roots: []string{"Routing"}}
-	types, enums, refs, err := checkedTypeNames(spec, in, "Fake Boards Service", fakeSDK)
+	types, enums, refs, err := checkedTypeNames(spec, in, "Fake Boards Service", testSDKModule)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +297,7 @@ func TestOverridesRejects(t *testing.T) {
 // TestWideNumbersRejectsLists checks that wideNumbers stops on a list of
 // int32 (Section.columns), which it does not convert yet.
 func TestWideNumbersRejectsLists(t *testing.T) {
-	types, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml", typeInputs{roots: []string{"Section"}}, "Fake Boards Service", fakeSDK)
+	types, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml", typeInputs{roots: []string{"Section"}}, "Fake Boards Service", testSDKModule)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +311,7 @@ func TestWideNumbersRejectsLists(t *testing.T) {
 // (D21).
 func TestWrapperRejects(t *testing.T) {
 	const spec = "../../spec/fake/openapi.yaml"
-	types, enums, refs, err := checkedTypeNames(spec, typeInputs{roots: []string{"Layout"}}, "Fake Boards Service", fakeSDK)
+	types, enums, refs, err := checkedTypeNames(spec, typeInputs{roots: []string{"Layout"}}, "Fake Boards Service", testSDKModule)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -340,11 +342,46 @@ func TestWrapperRejects(t *testing.T) {
 	}
 }
 
+// TestUnwrapRejects checks the errors of the unwrap overrides (D21).
+func TestUnwrapRejects(t *testing.T) {
+	types, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml", typeInputs{roots: []string{"Query"}}, "Fake Boards Service", testSDKModule)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ name, yaml, want string }{
+		{"unknown object", "unwrap: [Nope]", "unwrap.Nope: no such object in the generated types"},
+		{"listed twice", "unwrap: [LuceneQuery, LuceneQuery]", "unwrap.LuceneQuery: listed twice"},
+		{"two fields", "unwrap: [ObservationField]", "the object has 2 fields, unwrap needs exactly one"},
+		{"a oneOf", "unwrap: [QuerySource]", "a oneOf cannot be unwrapped"},
+		{"a root", "unwrap: [Query]", "a root type cannot be unwrapped"},
+		{"flags on the value", "unwrap: [LuceneQuery]\ntypes: {LuceneQuery: {value: {required: true}}}",
+			"the field of an unwrapped object can only have set, missingAsZero, and emptyAsNull"},
+		{"read rule on the user", "unwrap: [LuceneQuery]\ntypes: {QuerySource: {luceneQuery: {missingAsZero: true}}}",
+			"put missingAsZero and emptyAsNull on types.LuceneQuery.value"},
+		{"computed object value", "unwrap: [FieldSource]\ntypes: {Query: {field: {required: false, computed: true}}}",
+			"a computed field of an unwrapped object whose value is an object is not supported"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			p := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(p, []byte(c.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			ov, err := loadOverrides(p)
+			if err == nil {
+				_, err = generateTypes(types, enums, refs, ov, "fakeunwrap", "")
+			}
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("error:\n%v\nwant it to contain:\n%s", err, c.want)
+			}
+		})
+	}
+}
+
 // TestEnumAcceptZero checks that acceptZero: false keeps the zero value's
 // name for reading (ByName, Name) but not in the names a configuration may
 // use (Names).
 func TestEnumAcceptZero(t *testing.T) {
-	types, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml", typeInputs{roots: []string{"Routing"}}, "Fake Boards Service", fakeSDK)
+	types, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml", typeInputs{roots: []string{"Routing"}}, "Fake Boards Service", testSDKModule)
 	if err != nil {
 		t.Fatal(err)
 	}

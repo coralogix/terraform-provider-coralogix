@@ -2,7 +2,7 @@
 package fakepanel
 
 import (
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_boards_service"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk/go/openapi/gen/fake_boards_service"
 )
 
 // ColorByName maps the Terraform name of each Color value to the API

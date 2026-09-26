@@ -15,7 +15,7 @@ import (
 // realSDK is the default SDK module. go.mod pins its version, and
 // go/packages loads that version (README.md, "Pinned versions").
 // --sdk-module selects another module with the same layout, for example the
-// fake SDK.
+// test SDK.
 const realSDK = "github.com/coralogix/coralogix-management-sdk"
 
 // sdkGenRoot is the parent of the generated SDK packages of module.

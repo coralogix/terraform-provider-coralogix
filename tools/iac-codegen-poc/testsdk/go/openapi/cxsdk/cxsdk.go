@@ -1,4 +1,4 @@
-// Package cxsdk is the handwritten part of the fake SDK. It copies the names
+// Package cxsdk is the handwritten part of the test SDK. It copies the names
 // and signatures of the real cxsdk package that the generated resources use:
 // ClientSet, one accessor for each service, NewAPIError, and Code.
 package cxsdk
@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"net/http"
 
-	fakeboards "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_boards_service"
-	fakerules "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_rules_service"
-	fakesettings "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_settings_service"
-	fakeviews "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_views_service"
+	fakeboards "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk/go/openapi/gen/fake_boards_service"
+	fakerules "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk/go/openapi/gen/fake_rules_service"
+	fakesettings "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk/go/openapi/gen/fake_settings_service"
+	fakeviews "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk/go/openapi/gen/fake_views_service"
 )
 
 // ClientSet holds one client for each service.

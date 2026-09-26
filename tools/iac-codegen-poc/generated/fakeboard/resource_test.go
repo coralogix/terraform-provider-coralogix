@@ -1,5 +1,5 @@
 // This file is handwritten. It runs the generated CRUD code against a fake
-// HTTP server through the fake SDK.
+// HTTP server through the test SDK.
 
 package fakeboard
 
@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/cxsdk"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk/go/openapi/cxsdk"
 )
 
 // fakeAPI answers every request with status and body, and records the

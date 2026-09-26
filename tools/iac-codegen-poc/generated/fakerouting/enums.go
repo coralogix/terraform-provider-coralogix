@@ -2,7 +2,7 @@
 package fakerouting
 
 import (
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_boards_service"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk/go/openapi/gen/fake_boards_service"
 )
 
 // DeliveryByName maps the Terraform name of each Delivery value to the API

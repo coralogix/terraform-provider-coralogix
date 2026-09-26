@@ -89,25 +89,25 @@ Run them in this folder.
 go run ./cmd/overlay --overlay spec/overlay.yaml --out spec/openapi.patched.yaml
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --acc spec/acc/AiEvaluation.yaml --out generated/aievaluation
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --sdk-names   # print the SDK names
-fakesdk/generate.sh                              # regenerate the fake SDK (needs Docker)
+testsdk/generate.sh                              # regenerate the test SDK (needs Docker)
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey   # shapes that cannot be generated, for all Get resources
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey-resources   # operations, ids, bodies, responses of writable resources
 go run ./cmd/tfgen --spec spec/fake/settings.yaml --resource FakeSettings \
-  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakesettings
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk --out generated/fakesettings
 go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard \
-  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeboard
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk --out generated/fakeboard
 go run ./cmd/tfgen --spec spec/fake/rules.yaml --resource FakeRule \
-  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakerule
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk --out generated/fakerule
 go run ./cmd/tfgen --spec spec/fake/views.yaml --resource FakeView \
-  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeview
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk --out generated/fakeview
 go run ./cmd/tfgen --spec spec/fake/openapi.yaml --types Panel,Header,Interval,AbsoluteTime \
   --enums Color,Unit,Orientation,Comparison,Delivery --tag "Fake Boards Service" \
-  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakepanel
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk --out generated/fakepanel
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --types Widget.Definition --tag "Dashboard service" --out generated/dashboardwidgets
 integration/alertsanalytics/run.sh <provider checkout>   # plug generated alert types into a copy of the provider, run its tests
 integration/enumnames/compare.sh <provider checkout>     # compare generated enum names with the provider's handwritten ones
 go run ./cmd/tfgen --spec spec/fake/openapi.yaml --types Routing --tag "Fake Boards Service" \
-  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk \
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk \
   --overrides spec/fake/routing.overrides.yaml --out generated/fakerouting
 go run ./cmd/schemacompare <handwritten dump> <generated dump>   # breaking and review differences of two schema dumps
 integration/switch.sh globalrouter <provider checkout>   # switch a resource to generated types, prove no change (or connector)
@@ -167,9 +167,9 @@ CORALOGIX_ENV=EU2 TF_ACC=1 go test ./generated/aievaluation -run TestAccAiEvalua
 [`spec/fake/openapi.yaml`](spec/fake/openapi.yaml) is a fake API that follows the full contract. It tests the other shapes.
 No server implements it; the tests use a fake HTTP server.
 
-- **Fake SDK:** [`fakesdk/generate.sh`](fakesdk/generate.sh) runs the same steps as the pinned real SDK: its sanitizer,
+- **Test SDK:** [`testsdk/generate.sh`](testsdk/generate.sh) generates the SDK of the fake API with the pinned SDK's own steps: its sanitizer,
   `openapi-generator` 7.17.0 in Docker with the SDK templates and options, and its regex fix. Only
-  [`fakesdk/go/openapi/cxsdk`](fakesdk/go/openapi/cxsdk/cxsdk.go) is handwritten. `--sdk-module` selects it.
+  [`testsdk/go/openapi/cxsdk`](testsdk/go/openapi/cxsdk/cxsdk.go) is handwritten. `--sdk-module` selects it.
 - **Nested objects:** three levels, a `oneOf` at level 1, level 3, in a list item, and in a map value, a list of objects,
   nested required fields.
 - **Maps:** a map of strings, a map of objects, a map of 64-bit numbers inside a nested object. null is not sent; `{}` is sent.
@@ -339,6 +339,7 @@ types:
     entityType: {default: unspecified}
 enums:
   notification_center.EntityType: {terraformNames: true, zero: unspecified}   # "alerts", not "ALERTS"
+unwrap: [LuceneQuery]              # {"value": "..."} as the value itself
 ```
 
 | Kind | Overrides |
@@ -347,10 +348,10 @@ enums:
 | Enums | `terraformNames` (the enum name rule), `values` (names that differ), `zero` (a name for the value that only means "not set"), `acceptZero: false` (read it, but do not accept it in a configuration) |
 | Reading a response | `missingAsZero` (a missing value is `""`, `false`, `0`, `[]`, or an enum's proto zero value), `emptyAsNull` (an empty list, map, or object is null) |
 | Server fields | `readOnly` (a read-only object makes everything inside it read only; the spec `readOnly` counts too) |
-| Shape | `wrap`: a new object around API fields, for example the arms of a proto oneof (F62) |
+| Shape | `wrap`: a new object around API fields, for example the arms of a proto oneof (F62). `unwrap`: an object with one field shown as that field (F66) |
 
 An override that names a type, field, or enum value that does not exist is an error, so a stale file cannot hide an API change.
-Two changes of shape are not supported yet: a `oneOf` written as a `type` string, and `{value: x}` written as `x`.
+One change of shape is not supported yet: a `oneOf` written as a `type` string.
 
 **Checks.** A switch must change nothing for users. Three checks run before the handwritten code is removed:
 
@@ -420,6 +421,23 @@ describe stay handwritten, in a small file that runs before the generated read a
 assertions. The resource goes from 1,584 to 258 lines. The live checks pass for both steps. The first live run found F65, which
 the plan test now covers. The request body is a separate copy of the SLO type, which stays handwritten (F63).
 
+**Value objects: dashboards.** The dashboards API wraps many values in an object with one field (F66). The handwritten
+resource shows the value itself, and `unwrap` does the same:
+
+```json
+{"logs": {"luceneQuery": {"value": "status:500"}}}
+```
+
+```hcl
+logs = { lucene_query = "status:500" }
+```
+
+A null value sends no object. A missing object and an object with no value both read as null. A list of these objects is a list
+of values. The value keeps its own read overrides. [`generated/fakeunwrap`](generated/fakeunwrap/unwrap_test.go) tests strings,
+enums, sets, lists, objects, and the oneOf validators on unwrapped arms. On the real dashboard widgets,
+`unwrap: [LuceneQuery, PromQlQuery, UUID]` makes 27 query attributes strings, and the real widget JSON files round-trip with no
+change. Dashboards do not switch yet: they also need the `type` string rule.
+
 ## Decisions
 
 | # | Topic | Decision | Reason |
@@ -446,7 +464,7 @@ the plan test now covers. The request body is a separate copy of the SLO type, w
 | D18 | Singletons | A singleton is a resource whose Get has no path parameter (one per company). Only a singleton with Create, Get, Update, and Delete on one path is generated. A singleton with only Get and Update is not a Terraform resource: not generated for now. | Terraform needs a real create and delete. (2026-09-25) |
 | D19 | Full-replace Update (`PUT`) | Generate it as it is, with no change to the API: `PUT` on the item path, or on the Create path with the id in the body. A request property with `readOnly: true` is a server field and is not sent. `PATCH` keeps the update mask. | The frequently changed APIs that Terraform has (dashboards, alerts, quota, notification center, SLO) all use `PUT`. Forcing `PATCH` on them is a breaking change for customers and work for every team. (2026-09-26) |
 | D20 | Generated parts inside handwritten resources (type mode) | A type mode, `tfgen --types A,B --tag <tag> --out <dir>`: the schema attributes, models, and expand and flatten of API types and every type inside them, in their own package (for example `dashboard_widgets/generated`). The handwritten code keeps the resource and plugs a type in with a few lines. Regenerating touches only that package. Existing handwritten code is never overwritten. | Most frequently changed APIs are existing, handwritten Terraform resources; regenerating them would lose custom code. In the last 12 months, 25 of 94 schema changes in Terraform-backed APIs added new objects to existing objects (dashboards 12, alerts 6). A separate package cannot clash with handwritten names. (2026-09-26) |
-| D21 | Overrides for existing resources (option D) | A YAML file per type-mode package: `--overrides <file>`. Keyed by API component and field, so one line covers every place the type is used. Kinds: `name`, `computed` (with "keep the state value"), `default`, `set`, `skip`, `required`, enum value names (the E14 rule, one line per value that differs), and one package option for wide numbers (`Int64`, `Float64`). Added in the pilot: how a response is read (`missingAsZero`, `emptyAsNull`, F57), `readOnly` (F58), and `deprecationMessage`. Added for SLO: `wrap` (a new object around API fields, F62), a read-only object makes everything inside it read only, `useNonNullStateForUnknown`, `missingAsZero` on an enum (the proto zero value, its first value), enum `acceptZero: false`; the spec `readOnly` applies in the type mode. A switch needs a schema compare and an equivalence test of the old and new flatten and expand. An override that names a missing component or field is an error. The spec of existing APIs does not change; only new APIs follow the contract. Structure changes (a `oneOf` as a `type` string, `{value: x}` as `x`, a new wrapper object, an empty object as a bool) are out of scope until the pilot is reevaluated. | 72% of the handwritten attributes of 18 resources already match; most of the rest are flags, defaults, set vs list, enum names, and renames. The switch must not change user configs or state. Pilot: GlobalRouter. New API fields are skipped in the switch, then added in a second step. Generated validators replace the handwritten ones; the compare tool lists each one that is new. (2026-09-26) |
+| D21 | Overrides for existing resources (option D) | A YAML file per type-mode package: `--overrides <file>`. Keyed by API component and field, so one line covers every place the type is used. Kinds: `name`, `computed` (with "keep the state value"), `default`, `set`, `skip`, `required`, enum value names (the E14 rule, one line per value that differs), and one package option for wide numbers (`Int64`, `Float64`). Added in the pilot: how a response is read (`missingAsZero`, `emptyAsNull`, F57), `readOnly` (F58), and `deprecationMessage`. Added for SLO: `wrap` (a new object around API fields, F62), a read-only object makes everything inside it read only, `useNonNullStateForUnknown`, `missingAsZero` on an enum (the proto zero value, its first value), enum `acceptZero: false`; the spec `readOnly` applies in the type mode. Added for dashboards: `unwrap`, a top-level list of objects with one field that Terraform shows as that field (`lucene_query = "..."` for `{luceneQuery: {value: "..."}}`, F66). A switch needs a schema compare and an equivalence test of the old and new flatten and expand. An override that names a missing component or field is an error. The spec of existing APIs does not change; only new APIs follow the contract. Structure changes left (a `oneOf` as a `type` string, an empty object as a bool) are out of scope until the pilot is reevaluated. | 72% of the handwritten attributes of 18 resources already match; most of the rest are flags, defaults, set vs list, enum names, and renames. The switch must not change user configs or state. Pilot: GlobalRouter. New API fields are skipped in the switch, then added in a second step. Generated validators replace the handwritten ones; the compare tool lists each one that is new. (2026-09-26) |
 
 ## Findings
 
@@ -517,4 +535,5 @@ Gaps in the API, the contract, or the tools.
 | F63 | The SLO Create and Replace body is `Slo1`, an inline copy of `Slo`. The handwritten resource copies `Slo` into it field by field (`extractSLOV2Payload`), and its own comment warns that a new field is dropped until someone adds it there. The type mode cannot target an inline body, so this copy stays handwritten, with the drift risk. A request body that reuses the component (or a named component, F15) would remove it. | API proto / OpenAPI generator |
 | F64 | Some handwritten rules are not in the API and stay handwritten after a switch: SLO turns an old singular APM filter `value` into `values`, and leaves out ownership dimensions with no values. They run on the SDK value before the generated flatten and after the generated expand (`integration/slo/add/`). The provider's unit tests keep them: the switch rewrites the tests against the generated model with the same assertions. | Tooling (provider) |
 | F65 | Generator bug, fixed: a computed nested object had a struct-pointer model field. Terraform plans a computed attribute with no configuration value as unknown on an update, and a pointer cannot hold an unknown value, so the update failed ("Received unknown value ... *slotypes.ApmSliModel"). The SLO live check found it (`apm_sli_metadata`, `grouping`); the resource mode had the same latent bug (a computed object, the fake `routing`). A computed single nested attribute now has a `types.Object` model field (`objectAs` / `objectValue`). The offline checks missed it: states read from the API never hold unknown values. New check: `schemadump.PlanWithUnknowns` makes every computed attribute unknown, and each switch's plan test reads that into the model and expands it (both steps). | Tooling |
+| F66 | The API wraps many values in an object with one field, `value` (21 components; 50 of their 58 uses are in dashboards: `LuceneQuery`, `PromQlQuery`, `UUID`). Handwritten resources show the value itself. The `unwrap` override does the same: a null value sends no object, and a missing object and an object without a value both read as null. Alerts do not use them. | API proto / Tooling (provider) |
 | F44 | `PolicySettings` (a singleton): Get is on `/dataplans/policy-settings/v1`, but Replace is on `/dataplans/policiy-settings/v1` (a typo). A singleton linter rule, all operations on one path, would catch it. | API proto |

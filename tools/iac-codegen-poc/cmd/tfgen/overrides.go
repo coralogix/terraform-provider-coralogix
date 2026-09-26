@@ -27,12 +27,16 @@ import (
 //	    createTime: {skip: true}
 //	enums:
 //	  EntityType: {terraformNames: true, zero: unspecified}
+//	unwrap: [LuceneQuery]
 type overrides struct {
 	// WideNumbers writes int32 as Int64 and float as Float64, as most
 	// handwritten resources do. The SDK keeps its types.
 	WideNumbers bool                                `yaml:"wideNumbers"`
 	Types       map[string]map[string]fieldOverride `yaml:"types"`
 	Enums       map[string]enumOverride             `yaml:"enums"`
+	// Unwrap lists objects with one field that Terraform shows as that
+	// field (see unwrap.go).
+	Unwrap []string `yaml:"unwrap"`
 }
 
 // fieldOverride changes one API field. A nil flag keeps the generated value.
@@ -216,6 +220,7 @@ func (o *overrides) check(roots []*model.Type) error {
 		}
 		errs = append(errs, o.checkObject(t)...)
 	}
+	errs = append(errs, o.checkUnwrap(roots, objects)...)
 	for _, schema := range sortedKeys(o.Enums) {
 		t, ok := enums[schema]
 		if !ok {
@@ -241,6 +246,10 @@ func (o *overrides) checkObject(t *model.Type) []error {
 			continue // checkWrappers
 		case !ok:
 			errs = append(errs, fmt.Errorf("%s: no such field", at))
+			continue
+		}
+		if err := o.checkUsedField(o.Types[t.Schema][name], f); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", at, err))
 			continue
 		}
 		if err := checkField(o.Types[t.Schema][name], f); err != nil {

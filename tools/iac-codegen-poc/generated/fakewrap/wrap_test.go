@@ -21,9 +21,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
-	sdk "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_boards_service"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/generated/fakewrap"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/schemadump"
+	sdk "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk/go/openapi/gen/fake_boards_service"
 )
 
 func ptr[T any](v T) *T { return &v }

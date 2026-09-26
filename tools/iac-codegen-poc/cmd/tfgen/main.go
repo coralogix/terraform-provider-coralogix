@@ -4,8 +4,8 @@
 //	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --resource AiEvaluation --sdk-names
 //	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey
 //	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey-resources
-//	go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeboard
-//	go run ./cmd/tfgen --spec spec/fake/openapi.yaml --types Panel,Header --tag "Fake Boards Service" --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakepanel
+//	go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk --out generated/fakeboard
+//	go run ./cmd/tfgen --spec spec/fake/openapi.yaml --types Panel,Header --tag "Fake Boards Service" --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk --out generated/fakepanel
 //
 // Both check that the pinned SDK has every name the generated code uses.
 // --out writes the generated files. The package name is the last element of

@@ -670,6 +670,112 @@ components:
         - BLUE
       type: string
       description: A color.
+    Query:
+      description: A widget query, as in the dashboards API, where many fields are objects with one field, value. The unwrap override (D21) tests use it.
+      properties:
+        source:
+          allOf:
+            - $ref: '#/components/schemas/QuerySource'
+          description: Where the query runs.
+        widgetIds:
+          description: The widgets that use the query. A list of value objects.
+          items:
+            $ref: '#/components/schemas/WidgetId'
+          type: array
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/LabelValues'
+          description: Labels. A value object that holds a list.
+        field:
+          allOf:
+            - $ref: '#/components/schemas/FieldSource'
+          description: The field to show. A value object that holds an object. Required, so the SDK holds it as a value.
+        color:
+          allOf:
+            - $ref: '#/components/schemas/ColorValue'
+          description: The color. A value object that holds an enum.
+        series:
+          description: More fields. A list of value objects that hold objects.
+          items:
+            $ref: '#/components/schemas/FieldSource'
+          type: array
+      required:
+        - field
+      type: object
+    QuerySource:
+      description: Exactly one query language. Both arms are value objects.
+      properties:
+        luceneQuery:
+          allOf:
+            - $ref: '#/components/schemas/LuceneQuery'
+          description: A Lucene query.
+        promqlQuery:
+          allOf:
+            - $ref: '#/components/schemas/PromQlQuery'
+          description: A PromQL query.
+      oneOf:
+        - required:
+            - luceneQuery
+          type: object
+        - required:
+            - promqlQuery
+          type: object
+      type: object
+    LuceneQuery:
+      properties:
+        value:
+          description: The value.
+          type: string
+      type: object
+    PromQlQuery:
+      properties:
+        value:
+          description: The value.
+          minLength: 1
+          type: string
+      type: object
+    WidgetId:
+      properties:
+        value:
+          description: The value.
+          maxLength: 36
+          minLength: 36
+          type: string
+      type: object
+    LabelValues:
+      properties:
+        value:
+          description: The value.
+          items:
+            type: string
+          type: array
+      type: object
+    FieldSource:
+      properties:
+        value:
+          allOf:
+            - $ref: '#/components/schemas/ObservationField'
+          description: The value.
+      type: object
+    ObservationField:
+      description: A field of a log.
+      properties:
+        keypath:
+          description: The path of the field.
+          items:
+            type: string
+          type: array
+        scope:
+          description: The scope of the field.
+          type: string
+      type: object
+    ColorValue:
+      properties:
+        value:
+          allOf:
+            - $ref: '#/components/schemas/Color'
+          description: The value.
+      type: object
     DeleteFakeBoardResponse:
       type: object
       properties:

@@ -1,0 +1,12 @@
+# Overrides (D21) for generated/fakeunwrap: objects with one field. The
+# dashboards API wraps many values in {"value": x}; the handwritten resource
+# shows them as x. generated/fakeunwrap/unwrap_test.go checks the result.
+unwrap: [LuceneQuery, PromQlQuery, WidgetId, LabelValues, FieldSource, ColorValue]
+types:
+  Query:
+    widgetIds: {set: true}               # a set of unwrapped strings
+    color: {optional: true, computed: true}
+  WidgetId:
+    value: {missingAsZero: true}          # {} and a missing object read as ""
+  LabelValues:
+    value: {set: true, emptyAsNull: true} # [] and a missing object read as null

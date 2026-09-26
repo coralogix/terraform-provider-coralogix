@@ -286,7 +286,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	modelFields := map[string]tfModelField{}
 	for _, f := range fs {
 		name := b.ov.tfName(t.Schema, f.Name)
-		ft := b.ov.fieldType(t.Schema, f)
+		ft := b.ov.tfType(t.Schema, f)
 		child := append(append(attrPath{}, p...), name)
 		if w := b.ov.wrapperOf(t, f.Name); w != "" {
 			child = append(append(attrPath{}, p...), w, name)

@@ -229,10 +229,14 @@ func typesConv(roots []*model.Type, ix *refIndex, ov *overrides, out []*typeRoot
 	}
 	// Every type exports its attribute types: handwritten code needs them to
 	// build a types.Object, or a list or map of them, of any generated model.
+	// An unwrapped object has no model, so it has no attribute types.
 	for _, obj := range cb.objects {
 		obj.AttrTypesFunc = obj.Func + "AttrTypes"
 	}
 	for _, obj := range cb.objects {
+		if obj.Unwrap {
+			continue
+		}
 		if err := cb.attrTypes(obj); err != nil {
 			return nil, err
 		}
