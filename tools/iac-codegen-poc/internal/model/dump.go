@@ -15,7 +15,14 @@ func Dump(r *Resource) string {
 	} else {
 		fmt.Fprintf(&b, "  id param:     %s\n", r.IDParam)
 	}
-	fmt.Fprintf(&b, "  update mask:  %s\n", r.UpdateMask)
+	if r.Replace {
+		b.WriteString("  update:       full replace (PUT), no mask\n")
+	} else {
+		fmt.Fprintf(&b, "  update mask:  %s\n", r.UpdateMask)
+	}
+	if r.IDInBody {
+		fmt.Fprintf(&b, "  update id:    in the body (%s), not in the path\n", r.IDParam)
+	}
 
 	b.WriteString("\noperations\n")
 	var ops [][]string

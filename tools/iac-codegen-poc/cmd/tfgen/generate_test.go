@@ -17,6 +17,8 @@ var generatedCases = []struct{ dir, spec, resource, sdk, acc string }{
 	{"../../generated/aievaluation", patchedSpec, "AiEvaluation", realSDK, "../../spec/acc/AiEvaluation.yaml"},
 	{"../../generated/fakeboard", "../../spec/fake/openapi.yaml", "FakeBoard", fakeSDK, ""},
 	{"../../generated/fakesettings", "../../spec/fake/settings.yaml", "FakeSettings", fakeSDK, ""},
+	{"../../generated/fakerule", "../../spec/fake/rules.yaml", "FakeRule", fakeSDK, ""},
+	{"../../generated/fakeview", "../../spec/fake/views.yaml", "FakeView", fakeSDK, ""},
 }
 
 // TestGeneratedUpToDate checks that each generated directory is the output

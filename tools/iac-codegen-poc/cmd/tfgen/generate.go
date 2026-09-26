@@ -45,6 +45,11 @@ func generate(r *model.Resource, refs []sdkRef, pkg string, acc *accValues) (map
 		return nil, err
 	}
 	files := maps.Clone(generatedFiles)
+	if data.Conv.Replace {
+		// A full replace has no update mask (E11).
+		delete(files, "mask.go")
+		files["replace.go"] = "replace.go.tmpl"
+	}
 	if acc != nil {
 		if data.Acc, err = buildAcc(r, acc); err != nil {
 			return nil, fmt.Errorf("acceptance test values: %w", err)

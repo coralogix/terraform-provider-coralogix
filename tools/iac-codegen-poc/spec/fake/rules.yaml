@@ -1,0 +1,262 @@
+openapi: 3.1.0
+info:
+  title: Fake Rules API
+  version: "1"
+  description: >-
+    A fake API with a full-replace Update: PUT on the collection path, with the
+    id in the body, like the real E2M, Policy, and Slo APIs. The PUT body is the
+    whole resource, so it also has the server fields; they are readOnly. Create,
+    Get, and Replace return the rule in a wrapper field. No server implements it.
+tags:
+  - name: Fake Rules Service
+paths:
+  /fake/rules/v1:
+    post:
+      description: Creates a rule.
+      operationId: FakeRulesService_CreateFakeRule
+      tags:
+        - Fake Rules Service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to create a rule.
+              properties:
+                name:
+                  description: Name of the rule.
+                  maxLength: 64
+                  minLength: 1
+                  type: string
+                kind:
+                  allOf:
+                    - $ref: '#/components/schemas/RuleKind'
+                  description: What the rule reads. It cannot change after Create.
+                description:
+                  description: Free text about the rule.
+                  maxLength: 256
+                  type: string
+                  x-coralogix-presence: true
+                enabled:
+                  description: Whether the rule runs.
+                  type: boolean
+                  x-coralogix-presence: true
+                priority:
+                  description: Higher runs first.
+                  format: int32
+                  maximum: 10
+                  minimum: 0
+                  type: integer
+                  x-coralogix-presence: true
+                tags:
+                  description: Tags of the rule, in order.
+                  items:
+                    type: string
+                  type: array
+                  x-coralogix-presence: true
+                condition:
+                  allOf:
+                    - $ref: '#/components/schemas/RuleCondition'
+                  description: When the rule matches.
+              type: object
+              required:
+                - name
+                - kind
+                - condition
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateFakeRuleResponse'
+          description: ''
+    put:
+      description: Replaces a rule. The body is the whole rule.
+      operationId: FakeRulesService_ReplaceFakeRule
+      tags:
+        - Fake Rules Service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: The rule to store.
+              properties:
+                id:
+                  description: Id of the rule to replace.
+                  type: string
+                name:
+                  description: Name of the rule.
+                  maxLength: 64
+                  minLength: 1
+                  type: string
+                description:
+                  description: Free text about the rule.
+                  maxLength: 256
+                  type: string
+                  x-coralogix-presence: true
+                enabled:
+                  description: Whether the rule runs.
+                  type: boolean
+                  x-coralogix-presence: true
+                priority:
+                  description: Higher runs first.
+                  format: int32
+                  maximum: 10
+                  minimum: 0
+                  type: integer
+                  x-coralogix-presence: true
+                tags:
+                  description: Tags of the rule, in order.
+                  items:
+                    type: string
+                  type: array
+                  x-coralogix-presence: true
+                condition:
+                  allOf:
+                    - $ref: '#/components/schemas/RuleCondition'
+                  description: When the rule matches.
+                createTime:
+                  description: When the rule was created. Set by the server.
+                  format: date-time
+                  readOnly: true
+                  type: string
+              type: object
+              required:
+                - id
+                - name
+                - condition
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReplaceFakeRuleResponse'
+          description: ''
+  /fake/rules/v1/{id}:
+    get:
+      description: Gets a rule.
+      operationId: FakeRulesService_GetFakeRule
+      tags:
+        - Fake Rules Service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetFakeRuleResponse'
+          description: ''
+    delete:
+      description: Deletes a rule.
+      operationId: FakeRulesService_DeleteFakeRule
+      tags:
+        - Fake Rules Service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteFakeRuleResponse'
+          description: ''
+components:
+  schemas:
+    FakeRule:
+      type: object
+      properties:
+        id:
+          description: Id of the rule.
+          type: string
+        name:
+          description: Name of the rule.
+          maxLength: 64
+          minLength: 1
+          type: string
+        kind:
+          allOf:
+            - $ref: '#/components/schemas/RuleKind'
+          description: What the rule reads.
+        description:
+          description: Free text about the rule.
+          maxLength: 256
+          type: string
+        enabled:
+          description: Whether the rule runs.
+          type: boolean
+        priority:
+          description: Higher runs first.
+          format: int32
+          maximum: 10
+          minimum: 0
+          type: integer
+        tags:
+          description: Tags of the rule, in order.
+          items:
+            type: string
+          type: array
+        condition:
+          allOf:
+            - $ref: '#/components/schemas/RuleCondition'
+          description: When the rule matches.
+        createTime:
+          description: When the rule was created.
+          format: date-time
+          type: string
+    RuleCondition:
+      type: object
+      properties:
+        query:
+          description: The query that must match.
+          minLength: 1
+          type: string
+        threshold:
+          description: How many matches are needed.
+          format: double
+          minimum: 0
+          type: number
+          x-coralogix-presence: true
+      required:
+        - query
+    RuleKind:
+      enum:
+        - RULE_KIND_UNSPECIFIED
+        - RULE_KIND_LOGS
+        - RULE_KIND_SPANS
+      type: string
+      description: What a rule reads.
+    CreateFakeRuleResponse:
+      type: object
+      properties:
+        rule:
+          allOf:
+            - $ref: '#/components/schemas/FakeRule'
+          description: The created rule.
+    GetFakeRuleResponse:
+      type: object
+      properties:
+        rule:
+          allOf:
+            - $ref: '#/components/schemas/FakeRule'
+          description: The rule.
+    ReplaceFakeRuleResponse:
+      type: object
+      properties:
+        rule:
+          allOf:
+            - $ref: '#/components/schemas/FakeRule'
+          description: The stored rule.
+    DeleteFakeRuleResponse:
+      type: object
+      properties:
+        id:
+          description: Id of the deleted rule, like the real DeleteE2MResponse.
+          type: string

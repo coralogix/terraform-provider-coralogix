@@ -199,3 +199,45 @@ func nestedField(t *testing.T, r *model.Resource, top string, path ...string) *m
 	}
 	return found
 }
+
+// TestRealReplaceViewFolder checks a real full-replace resource (E11)
+// against the pinned SDK: ViewFolder is a PUT on the collection path with the
+// id in the body. It also checks two SDK naming rules that the fakes do not
+// have: an inline body with a title (F45), and a cxsdk accessor that is not
+// the tag without " Service" (F17).
+func TestRealReplaceViewFolder(t *testing.T) {
+	r, refs, err := checkedSDKNames(patchedSpec, "ViewFolder", realSDK)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.Replace || !r.IDInBody {
+		t.Errorf("replace %t, id in body %t; want both", r.Replace, r.IDInBody)
+	}
+	want := map[string]string{
+		"create.body": "CreateViewFolderRequest", // the title
+		"update.body": "ViewFolder1",             // the title is a component name
+	}
+	for _, ref := range refs {
+		if w, ok := want[ref.Path]; ok && ref.Kind == kindType && ref.Name != w {
+			t.Errorf("%s: type %s, want %s", ref.Path, ref.Name, w)
+		}
+		if ref.Path == "resource" && ref.Kind == kindMethod && ref.Owner == "ClientSet" && ref.Name != "ViewsFolders" {
+			t.Errorf("accessor %s, want ViewsFolders (found by type)", ref.Name)
+		}
+	}
+}
+
+func TestInlineBodyName(t *testing.T) {
+	for _, c := range []struct {
+		op   model.Operation
+		want string
+	}{
+		{model.Operation{}, "SCreateThingRequest"},
+		{model.Operation{BodyTitle: "CreateThingRequest"}, "CreateThingRequest"},
+		{model.Operation{BodyTitle: "Thing", BodyTitleIsComponent: true}, "Thing1"},
+	} {
+		if got := inlineBodyName("SCreateThing", c.op); got != c.want {
+			t.Errorf("%+v: %s, want %s", c.op, got, c.want)
+		}
+	}
+}

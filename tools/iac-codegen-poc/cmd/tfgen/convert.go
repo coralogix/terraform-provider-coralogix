@@ -29,6 +29,11 @@ type convData struct {
 	// MaskGroups are the oneOf groups among the Update fields, as Terraform
 	// names.
 	MaskGroups [][]string
+	// Replace is true when Update is a full replace (PUT, E11). It has no
+	// update mask. UpdateFields are the Terraform names of the Update fields:
+	// when none of them changed, Update sends no request (D14).
+	Replace      bool
+	UpdateFields []string
 }
 
 // maskField is one top-level Update field. With leaf masks, it is also a
@@ -193,10 +198,28 @@ func buildConv(r *model.Resource, refs []sdkRef) (*convData, error) {
 		}
 	}
 	out.Objects = b.objects
+	if r.Replace {
+		return out, replaceFields(r, out)
+	}
 	if err := buildMask(r, ix, out); err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+// replaceFields sets the Update fields of a full replace. The body has all of
+// them, and the server clears a field that the body does not have.
+func replaceFields(r *model.Resource, out *convData) error {
+	out.Replace = true
+	for _, f := range r.Fields {
+		if f.Update != nil {
+			out.UpdateFields = append(out.UpdateFields, tfName(f.Name))
+		}
+	}
+	if len(out.UpdateFields) == 0 {
+		return fmt.Errorf("update.body: no Update fields")
+	}
+	return nil
 }
 
 // buildMask sets the update mask data. Only the Update fields can be in the

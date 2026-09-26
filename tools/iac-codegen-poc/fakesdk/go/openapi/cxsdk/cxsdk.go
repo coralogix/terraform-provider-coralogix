@@ -9,13 +9,17 @@ import (
 	"net/http"
 
 	fakeboards "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_boards_service"
+	fakerules "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_rules_service"
 	fakesettings "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_settings_service"
+	fakeviews "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_views_service"
 )
 
 // ClientSet holds one client for each service.
 type ClientSet struct {
 	fakeBoards   *fakeboards.FakeBoardsServiceAPIService
 	fakeSettings *fakesettings.FakeSettingsServiceAPIService
+	fakeRules    *fakerules.FakeRulesServiceAPIService
+	fakeViews    *fakeviews.FakeViewsServiceAPIService
 }
 
 // NewClientSet returns a ClientSet whose clients send requests to url.
@@ -24,10 +28,26 @@ func NewClientSet(url string) *ClientSet {
 	boards.Servers = fakeboards.ServerConfigurations{{URL: url}}
 	settings := fakesettings.NewConfiguration()
 	settings.Servers = fakesettings.ServerConfigurations{{URL: url}}
+	rules := fakerules.NewConfiguration()
+	rules.Servers = fakerules.ServerConfigurations{{URL: url}}
+	views := fakeviews.NewConfiguration()
+	views.Servers = fakeviews.ServerConfigurations{{URL: url}}
 	return &ClientSet{
 		fakeBoards:   fakeboards.NewAPIClient(boards).FakeBoardsServiceAPI,
 		fakeSettings: fakesettings.NewAPIClient(settings).FakeSettingsServiceAPI,
+		fakeRules:    fakerules.NewAPIClient(rules).FakeRulesServiceAPI,
+		fakeViews:    fakeviews.NewAPIClient(views).FakeViewsServiceAPI,
 	}
+}
+
+// FakeRules returns the FakeRulesServiceAPIService client.
+func (c *ClientSet) FakeRules() *fakerules.FakeRulesServiceAPIService {
+	return c.fakeRules
+}
+
+// FakeViews returns the FakeViewsServiceAPIService client.
+func (c *ClientSet) FakeViews() *fakeviews.FakeViewsServiceAPIService {
+	return c.fakeViews
 }
 
 // FakeSettings returns the FakeSettingsServiceAPIService client.

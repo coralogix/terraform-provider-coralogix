@@ -7,8 +7,10 @@ This folder is a separate Go module. It does not change the provider build. The 
 not registered in the provider. The handwritten `coralogix_ai_evaluation` resource stays as it is.
 
 **The generated files:** [`generated/aievaluation/`](generated/aievaluation/) (the real API),
-[`generated/fakeboard/`](generated/fakeboard/) (a fake API, see "Fake resource"), and
-[`generated/fakesettings/`](generated/fakesettings/) (a fake singleton, see "Singletons").
+[`generated/fakeboard/`](generated/fakeboard/) (a fake API, see "Fake resource"),
+[`generated/fakesettings/`](generated/fakesettings/) (a fake singleton, see "Singletons"), and
+[`generated/fakerule/`](generated/fakerule/) and [`generated/fakeview/`](generated/fakeview/) (fake full-replace
+updates, see "Full replace").
 
 | File | Content |
 |---|---|
@@ -16,6 +18,7 @@ not registered in the provider. The handwritten `coralogix_ai_evaluation` resour
 | `model.go` ([ai](generated/aievaluation/model.go), [fake](generated/fakeboard/model.go)) | Model: Go structs for the plan and the state |
 | `convert.go` ([ai](generated/aievaluation/convert.go), [fake](generated/fakeboard/convert.go)) | Expand (plan → SDK request) and flatten (SDK response → state) |
 | `mask.go` ([ai](generated/aievaluation/mask.go), [fake](generated/fakeboard/mask.go)) | Update mask: the fields that changed between the plan and the state. Top-level names for `ai_evaluation`, leaf paths for the fake. |
+| `replace.go` ([rule](generated/fakerule/replace.go), [view](generated/fakeview/replace.go)) | Instead of `mask.go` when Update is a full replace (`PUT`): the whole Update body, and no request when nothing changed |
 | `resource.go` ([ai](generated/aievaluation/resource.go), [fake](generated/fakeboard/resource.go)) | Create, Read, Update, Delete, Import |
 | `acc_test.go` ([ai](generated/aievaluation/acc_test.go)) | The acceptance test, from the model and a values file (see "Acceptance test") |
 
@@ -88,6 +91,10 @@ go run ./cmd/tfgen --spec spec/fake/settings.yaml --resource FakeSettings \
   --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakesettings
 go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard \
   --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeboard
+go run ./cmd/tfgen --spec spec/fake/rules.yaml --resource FakeRule \
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakerule
+go run ./cmd/tfgen --spec spec/fake/views.yaml --resource FakeView \
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeview
 go test ./...                                    # the acceptance test skips without TF_ACC
 go test ./internal/model -run TestDump -update   # rewrite internal/model/testdata/ai_evaluation.golden
 go test ./cmd/tfgen -run TestSDKNames -update    # rewrite cmd/tfgen/testdata/sdk_names.golden
@@ -195,6 +202,34 @@ What the generator reads from OpenAPI:
   not a Terraform resource, and generation stops with an error. [`spec/fake/settings.yaml`](spec/fake/settings.yaml) is the
   fake singleton; [`generated/fakesettings/resource_test.go`](generated/fakesettings/resource_test.go) tests its CRUD.
 
+### Full replace
+
+Most APIs that Terraform has and that change often (dashboards, alerts, quota, notification center, SLO) update with `PUT`, not
+`PATCH` with a mask. The generator supports them as they are (D19):
+
+- **Detection:** `_Replace<Name>`, or `_Update<Name>` with `PUT`, is a full replace. `_Update<Name>` with `PATCH` keeps the mask.
+- **Paths:** `PUT /things/{id}` (View, TeamGroup), or `PUT /things` with the id in the body (E2M, Policy, Slo, ViewFolder).
+  The generated code then puts the id from the state in the body.
+- **Body:** every Update field, with no mask. A value that the plan removes is not sent, and the server clears it. Immutable
+  fields are not sent. When no Update field changed, Update sends no request and reads the resource.
+- **Server fields:** a full-replace body is often the whole resource, so it also has `createTime` and other server fields. A
+  request property with `readOnly: true` is not sent (F46). Without it, generation stops.
+
+```
+PUT /fake/rules/v1
+{"id":"r1","name":"errors","priority":5,"enabled":true,"tags":["a","b"],"condition":{"query":"level:error","threshold":2}}
+```
+
+Fakes: [`spec/fake/rules.yaml`](spec/fake/rules.yaml) (`PUT` on the collection, id in the body) and
+[`spec/fake/views.yaml`](spec/fake/views.yaml) (`PUT` on `{id}`), tested in
+[`generated/fakerule/resource_test.go`](generated/fakerule/resource_test.go) and
+[`generated/fakeview/resource_test.go`](generated/fakeview/resource_test.go).
+
+On the real spec, the `PUT` shape no longer stops any of the 20 full-replace resources. `ViewFolder` generates completely, with
+the same SDK calls as the handwritten resource. Its only schema difference: `name` is optional, because its Create body has no
+`required` list. The others stop on contract issues: a field in Update but not in Create (E2M, Policy, View), server fields
+without `readOnly` (E2M, Slo), a request body that wraps the resource (Connector, GlobalRouter), or the response shape.
+
 ## Decisions
 
 | # | Topic | Decision | Reason |
@@ -219,6 +254,7 @@ What the generator reads from OpenAPI:
 | D16 | Acceptance test value format | A YAML file (`spec/acc/<Resource>.yaml`) with `${name}` placeholders. A small handwritten Go hook fills the placeholders from the environment. | A backend developer edits only data. The generator checks the file. |
 | D17 | Names and shapes in that YAML | The API JSON shape (`camelCase`, request-body values). The generator converts it to HCL. | Backend developers know the API, not Terraform. The same file can serve the Operator and other tools later. |
 | D18 | Singletons | A singleton is a resource whose Get has no path parameter (one per company). Only a singleton with Create, Get, Update, and Delete on one path is generated. A singleton with only Get and Update is not a Terraform resource: not generated for now. | Terraform needs a real create and delete. (2026-09-25) |
+| D19 | Full-replace Update (`PUT`) | Generate it as it is, with no change to the API: `PUT` on the item path, or on the Create path with the id in the body. A request property with `readOnly: true` is a server field and is not sent. `PATCH` keeps the update mask. | The frequently changed APIs that Terraform has (dashboards, alerts, quota, notification center, SLO) all use `PUT`. Forcing `PATCH` on them is a breaking change for customers and work for every team. (2026-09-26) |
 
 ## Findings
 
@@ -268,4 +304,7 @@ Gaps in the API, the contract, or the tools.
 | F41 | Create returns only an id in 4 of 28 writable resources (`{dashboardId}`, `{folderId}`, `{id}`, `{keyId, name, value}`). Terraform needs the full resource after Create. Contract rule: Create returns the complete resource, like PATCH (rule 5.1). It extends the linter rule that PATCH returns the same resource as Get. The generator does not call Get after Create, on purpose. | Linter |
 | F42 | Later: `ApiKey` returns its secret `value` only in the Create response; Get never shows it. A valid pattern (a secret seen once), but neither the contract nor the generator covers it. Terraform would need a sensitive attribute set only from the Create response. | Contract / Tooling |
 | F43 | 23 of 43 Delete operations return an empty response object (for example `DeleteCompanyIpAccessSettingsResponse`). openapi-generator then returns `map[string]interface{}` from `Execute`, not a response type, and the generator stopped on it. The surveys did not show it, because they do not check SDK names. Fixed in E10: an empty response is expected as a map. | Tooling |
+| F45 | openapi-generator names an inline request body after its `title` when it has one (103 of 132 inline bodies), not after the operationId (F15). When a component has that name, it adds `1` (`ViewFolder` → `ViewFolder1`). The generator now copies both rules; the SDK check confirms them. | SDK generator |
+| F46 | Server fields in `PUT` bodies: when the body is the whole resource (E2M, Slo, CompanyIpAccessSettings), it also has `createTime`, `updateTime`, and other server fields, with nothing that marks them. The generator needs `readOnly: true` on them (D19). Our OpenAPI v3 generator sets `readOnly` only from `openapiv3_field.read_only`; the v2 generator also maps proto `field_behavior = OUTPUT_ONLY`, which no Coralogix proto uses today. | OpenAPI generator, API proto |
+| F47 | The handwritten `cxsdk` accessor is not always the tag without " Service": tag `Folders For Views Service` → `ViewsFolders()`. The generator now falls back to the one `ClientSet` method with the client type. | SDK |
 | F44 | `PolicySettings` (a singleton): Get is on `/dataplans/policy-settings/v1`, but Replace is on `/dataplans/policiy-settings/v1` (a typo). A singleton linter rule, all operations on one path, would catch it. | API proto |

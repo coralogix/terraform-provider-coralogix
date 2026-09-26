@@ -172,3 +172,48 @@ func TestAccGroups(t *testing.T) {
 		t.Error("two root arms: no error")
 	}
 }
+
+// TestAccReplace checks the values file of a full-replace resource (E11): the
+// same steps as for a PATCH resource. The immutable kind cannot have an update
+// value, and the id in the Update body and the readOnly createTime are not
+// fields of the file.
+func TestAccReplace(t *testing.T) {
+	data, err := os.ReadFile("../../spec/fake/rules.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := model.Load(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := model.Build(doc, "FakeRule")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const valid = `
+create: {name: n, kind: RULE_KIND_LOGS, description: d, tags: [a], condition: {query: q}}
+update: {name: n2, description: d2, enabled: true, priority: 5, tags: [b], condition: {query: q2}}
+`
+	d, err := buildAcc(r, accFile(t, valid))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, s := range d.Steps {
+		got = append(got, s.Kind+" "+s.Field)
+	}
+	want := []string{"create ", "import ", "update name", "update description", "update enabled", "update priority",
+		"update tags", "update condition", "clear description", "clear enabled", "clear priority", "clear tags"}
+	if !slices.Equal(got, want) {
+		t.Errorf("steps = %v\nwant    %v", got, want)
+	}
+	for _, bad := range []string{
+		"create: {name: n, kind: RULE_KIND_LOGS, condition: {query: q}}\nupdate: {kind: RULE_KIND_SPANS}\n",
+		"create: {name: n, kind: RULE_KIND_LOGS, condition: {query: q}, createTime: x}\n",
+		"create: {name: n, kind: RULE_KIND_LOGS, condition: {query: q}}\nupdate: {id: x}\n",
+	} {
+		if _, err := buildAcc(r, accFile(t, bad)); err == nil {
+			t.Errorf("no error for %q", bad)
+		}
+	}
+}

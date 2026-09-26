@@ -63,7 +63,10 @@ type sdkRef struct {
 	// WantValue is the value type that a field may have instead of the
 	// pointer type Want. checkSDKNames sets Want to it when the SDK has it.
 	WantValue string
-	Rule      rule
+	// ByType: a method that the SDK may name another way. When Name is not
+	// found, the check uses the one method of Owner with type Want (F17).
+	ByType bool
+	Rule   rule
 	// Schema is the component name of a type ref that comes from the spec.
 	// The generator uses it to find the SDK type of a model type.
 	Schema string
@@ -142,18 +145,18 @@ func resolveSDKNames(r *model.Resource, tag, module string) ([]sdkRef, error) {
 			}
 		}
 	}
-	mask := &model.Type{Kind: model.String}
-	if err := s.field("update.body."+r.UpdateMask, s.bodies["update"], r.UpdateMask, mask); err != nil {
+	if err := s.updateExtras(r); err != nil {
 		return nil, err
 	}
-	// cxsdk is handwritten. Its accessor name drops " Service" from the tag (F17).
+	// cxsdk is handwritten. Its accessor name usually drops " Service" from the
+	// tag (F17); when it does not, the check finds the accessor by its type.
 	// The provider data is a *ClientSet. The resource wraps API errors with
 	// NewAPIError and reads the HTTP status with Code.
 	for _, ref := range []sdkRef{
 		{Path: "cxsdk", Kind: kindPackage, Name: "cxsdk"},
 		{Path: "cxsdk", Kind: kindType, Name: "ClientSet"},
 		{Path: "resource", Kind: kindMethod, Owner: "ClientSet", Name: camelize(strings.TrimSuffix(tag, " Service")),
-			Want: "func() *" + pkgName + "." + client},
+			Want: "func() *" + pkgName + "." + client, ByType: true},
 		{Path: "cxsdk.errors", Kind: kindFunc, Name: "NewAPIError", Want: "func(resp *http.Response, err error) error"},
 		{Path: "cxsdk.errors", Kind: kindFunc, Name: "Code", Want: "func(err error) int"},
 	} {
@@ -161,6 +164,21 @@ func resolveSDKNames(r *model.Resource, tag, module string) ([]sdkRef, error) {
 		s.refs = append(s.refs, ref)
 	}
 	return s.refs, nil
+}
+
+// updateExtras adds the Update body fields that are not resource fields: the
+// update mask of a PATCH, and the id when the Update path has none.
+func (s *resolver) updateExtras(r *model.Resource) error {
+	str := &model.Type{Kind: model.String}
+	if !r.Replace {
+		if err := s.field("update.body."+r.UpdateMask, s.bodies["update"], r.UpdateMask, str); err != nil {
+			return err
+		}
+	}
+	if r.IDInBody {
+		return s.field("update.body."+r.IDParam, s.bodies["update"], r.IDParam, str)
+	}
+	return nil
 }
 
 // operations adds the SDK names of the four operations.
@@ -172,7 +190,7 @@ func (s *resolver) operations(r *model.Resource, client string) error {
 	}{
 		{"create", r.Create, false},
 		{"get", r.Get, true},
-		{"update", r.Update, true},
+		{"update", r.Update, !r.IDInBody},
 		{"delete", r.Delete, true},
 	}
 	for _, o := range ops {
@@ -216,8 +234,7 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 	switch op.Body {
 	case "":
 	case "inline":
-		// openapi-generator names an inline body after the operationId.
-		body := method + "Request"
+		body := inlineBodyName(method, op)
 		s.bodies[name] = body
 		s.add(sdkRef{Path: path + ".body", Kind: kindType, Name: body, Rule: ruleInlineBody})
 		s.add(sdkRef{Path: path + ".body", Kind: kindMethod, Owner: builder, Name: body,
@@ -241,6 +258,19 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 			Name: goFieldName(op.Response.Field), Want: "*" + goTypeName(r.Name), Rule: ruleProperty})
 	}
 	return nil
+}
+
+// inlineBodyName is the SDK type of an inline request body. openapi-generator
+// names it after its title, or after the operationId when it has none. When
+// a component has the title as its name, it adds "1" (F15, F45).
+func inlineBodyName(method string, op model.Operation) string {
+	switch {
+	case op.BodyTitle == "":
+		return method + "Request"
+	case op.BodyTitleIsComponent:
+		return goTypeName(op.BodyTitle) + "1"
+	}
+	return goTypeName(op.BodyTitle)
 }
 
 // field adds the Go field for the property name of the owner type.

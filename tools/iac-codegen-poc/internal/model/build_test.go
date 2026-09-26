@@ -334,3 +334,140 @@ func TestSingleton(t *testing.T) {
 		})
 	}
 }
+
+// replaceSpec is the resource Thing with a full-replace Update (E11).
+// COLLECTION and ITEM are the extra operations on /things and /things/{id}.
+// CREATE, UPDATE, and GET are the properties of the Create body, the Update
+// body, and the Thing schema.
+const replaceSpec = `openapi: 3.1.0
+info: {title: t, version: "1"}
+paths:
+  /things:
+    post:
+      operationId: S_CreateThing
+      requestBody: {content: {application/json: {schema: {type: object, properties: CREATE}}}}
+      responses: {"200": {content: {application/json: {schema: {$ref: '#/components/schemas/Wrap'}}}}}
+COLLECTION
+  /things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: S_GetThing
+      responses: {"200": {content: {application/json: {schema: {$ref: '#/components/schemas/Wrap'}}}}}
+    delete:
+      operationId: S_DeleteThing
+      responses: {"200": {content: {application/json: {schema: {$ref: '#/components/schemas/Empty'}}}}}
+ITEM
+components:
+  schemas:
+    Thing: {type: object, properties: GET}
+    Wrap: {type: object, properties: {thing: {$ref: '#/components/schemas/Thing'}}}
+    Empty: {type: object}
+`
+
+// replaceOp is an Update operation of replaceSpec with the operationId verb
+// and the HTTP method.
+func replaceOp(verb, method string) string {
+	return "    " + method + ":\n      operationId: S_" + verb + "Thing\n" +
+		"      requestBody: {content: {application/json: {schema: {type: object, properties: UPDATE}}}}\n" +
+		"      responses: {\"200\": {content: {application/json: {schema: {$ref: '#/components/schemas/Wrap'}}}}}\n"
+}
+
+type replaceThing struct {
+	collection, item    string // Update operations on each path
+	create, update, get string
+}
+
+func (s replaceThing) build(t *testing.T) (*model.Resource, error) {
+	t.Helper()
+	spec := strings.NewReplacer("COLLECTION", s.collection, "ITEM", s.item).Replace(replaceSpec)
+	spec = strings.NewReplacer("CREATE", s.create, "UPDATE", s.update, "GET", s.get).Replace(spec)
+	doc, err := model.Load([]byte(spec))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	return model.Build(doc, "Thing")
+}
+
+const (
+	replaceGet = "{id: {type: string}, name: {type: string}, createdAt: {type: string}}"
+	// replaceBody is a PUT body that is the whole resource, like E2M and Slo.
+	replaceBody = "{id: {type: string}, name: {type: string}, createdAt: {type: string, readOnly: true}}"
+)
+
+// TestReplace checks the two full-replace shapes of the real API: PUT on the
+// item path (View, TeamGroup), and PUT on the collection path with the id in
+// the body (E2M, Policy, Slo). readOnly properties of a request body are not
+// sent.
+func TestReplace(t *testing.T) {
+	r, err := replaceThing{
+		item:   replaceOp("Update", "put"),
+		create: "{name: {type: string}}",
+		update: "{name: {type: string}}",
+		get:    replaceGet,
+	}.build(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.Replace || r.IDInBody || r.UpdateMask != "" || r.Update.Method != "PUT" {
+		t.Errorf("item path: replace %t, id in body %t, mask %q, method %s; want true, false, none, PUT",
+			r.Replace, r.IDInBody, r.UpdateMask, r.Update.Method)
+	}
+
+	r, err = replaceThing{
+		collection: replaceOp("Replace", "put"),
+		create:     "{id: {type: string, readOnly: true}, name: {type: string}, createdAt: {type: string, readOnly: true}}",
+		update:     replaceBody,
+		get:        replaceGet,
+	}.build(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.Replace || !r.IDInBody || r.IDParam != "id" || r.Update.Path != "/things" {
+		t.Errorf("collection path: replace %t, id in body %t, id %q, path %s; want true, true, id, /things",
+			r.Replace, r.IDInBody, r.IDParam, r.Update.Path)
+	}
+	want := map[string]model.Behavior{"id": model.Computed, "name": model.Normal, "createdAt": model.Computed}
+	for _, f := range r.Fields {
+		if f.Behavior != want[f.Name] {
+			t.Errorf("%s: behavior %s, want %s", f.Name, f.Behavior, want[f.Name])
+		}
+	}
+	if !strings.Contains(model.Dump(r), "update id:    in the body (id)") {
+		t.Errorf("dump does not show the id in the body:\n%s", model.Dump(r))
+	}
+}
+
+// TestReplaceRejects checks the full-replace shapes that Build rejects.
+func TestReplaceRejects(t *testing.T) {
+	cases := []struct {
+		name string
+		spec replaceThing
+		want string
+	}{
+		{"PUT with a mask", replaceThing{item: replaceOp("Update", "put"), create: "{name: {type: string}}",
+			update: "{name: {type: string}, updateMask: {type: string}}", get: replaceGet},
+			"a full replace (PUT) has no updateMask"},
+		{"Replace with PATCH", replaceThing{item: replaceOp("Replace", "patch"), create: "{name: {type: string}}",
+			update: "{name: {type: string}}", get: replaceGet}, "S_ReplaceThing is PATCH, want PUT"},
+		{"Update and Replace", replaceThing{collection: replaceOp("Replace", "put"), item: replaceOp("Update", "put"),
+			create: "{name: {type: string}}", update: replaceBody, get: replaceGet}, "two operations"},
+		{"no id in the body", replaceThing{collection: replaceOp("Replace", "put"), create: "{name: {type: string}}",
+			update: "{name: {type: string}}", get: replaceGet}, `the body has no "id" property`},
+		{"readOnly id in the body", replaceThing{collection: replaceOp("Replace", "put"), create: "{name: {type: string}}",
+			update: "{id: {type: string, readOnly: true}, name: {type: string}}", get: replaceGet}, "must be a string that is not readOnly"},
+		{"server field without readOnly", replaceThing{collection: replaceOp("Replace", "put"), create: "{name: {type: string}}",
+			update: "{id: {type: string}, name: {type: string}, createdAt: {type: string}}", get: replaceGet},
+			"createdAt: unsupported field location"},
+		{"PUT on another path", replaceThing{collection: "  /other:\n" + replaceOp("Update", "put"), create: "{name: {type: string}}",
+			update: "{name: {type: string}}", get: replaceGet}, "Update: path /other has no id; want the Get path /things/{id}, or the Create path /things"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := c.spec.build(t)
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("error = %v, want it to contain %q", err, c.want)
+			}
+		})
+	}
+}

@@ -119,6 +119,9 @@ func checkMember(ref *sdkRef, pkg *packages.Package, qualifier types.Qualifier) 
 	} else if sel := types.NewMethodSet(types.NewPointer(owner.Type())).Lookup(pkg.Types, ref.Name); sel != nil {
 		got = sel.Type()
 	}
+	if got == nil && ref.ByType {
+		return findMethodByType(ref, owner, qualifier)
+	}
 	if got == nil {
 		return errors.New("not found")
 	}
@@ -129,5 +132,21 @@ func checkMember(ref *sdkRef, pkg *packages.Package, qualifier types.Qualifier) 
 	default:
 		return fmt.Errorf("type is %s, want %s", s, ref.Want)
 	}
+	return nil
+}
+
+// findMethodByType sets ref.Name to the one exported method of owner whose
+// type is ref.Want.
+func findMethodByType(ref *sdkRef, owner *types.TypeName, qualifier types.Qualifier) error {
+	var found []string
+	for sel := range types.NewMethodSet(types.NewPointer(owner.Type())).Methods() {
+		if sel.Obj().Exported() && types.TypeString(sel.Type(), qualifier) == ref.Want {
+			found = append(found, sel.Obj().Name())
+		}
+	}
+	if len(found) != 1 {
+		return fmt.Errorf("not found, and %d methods of %s have type %s: %v", len(found), ref.Owner, ref.Want, found)
+	}
+	ref.Name = found[0]
 	return nil
 }

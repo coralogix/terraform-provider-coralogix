@@ -1,0 +1,24 @@
+resource FakeRule
+  id param:     id
+  update:       full replace (PUT), no mask
+  update id:    in the body (id), not in the path
+
+operations
+  create  POST    /fake/rules/v1       FakeRulesService_CreateFakeRule   body inline  response CreateFakeRuleResponse.rule
+  get     GET     /fake/rules/v1/{id}  FakeRulesService_GetFakeRule      body -       response GetFakeRuleResponse.rule
+  update  PUT     /fake/rules/v1       FakeRulesService_ReplaceFakeRule  body inline  response ReplaceFakeRuleResponse.rule
+  delete  DELETE  /fake/rules/v1/{id}  FakeRulesService_DeleteFakeRule   body -       response DeleteFakeRuleResponse
+
+fields
+  NAME         BEHAVIOR   CREATE             UPDATE             GET  TYPE
+  id           computed   -                  -                  yes  string
+  name         normal     required           required           yes  string len 1..64
+  kind         immutable  required           -                  yes  enum RuleKind [RULE_KIND_LOGS RULE_KIND_SPANS]
+  description  normal     optional presence  optional presence  yes  string len ..256
+  enabled      normal     optional presence  optional presence  yes  bool
+  priority     normal     optional presence  optional presence  yes  integer int32 0..10
+  tags         normal     optional presence  optional presence  yes  list<string>
+  condition    normal     required           required           yes  object RuleCondition
+      query      required           string len 1..
+      threshold  optional presence  number double 0..
+  createTime   computed   -                  -                  yes  string date-time

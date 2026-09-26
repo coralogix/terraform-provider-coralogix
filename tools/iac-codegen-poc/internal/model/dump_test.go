@@ -15,6 +15,8 @@ var dumpCases = []struct{ spec, resource, golden string }{
 	{"../../spec/openapi.patched.yaml", "AiEvaluation", "testdata/ai_evaluation.golden"},
 	{"../../spec/fake/openapi.yaml", "FakeBoard", "testdata/fake_board.golden"},
 	{"../../spec/fake/settings.yaml", "FakeSettings", "testdata/fake_settings.golden"},
+	{"../../spec/fake/rules.yaml", "FakeRule", "testdata/fake_rule.golden"},
+	{"../../spec/fake/views.yaml", "FakeView", "testdata/fake_view.golden"},
 }
 
 // TestDump compares each model with its golden file. To rewrite the files,

@@ -16,8 +16,16 @@ type Resource struct {
 	// resource per company (D18). Create, Get, Update, and Delete use one
 	// path.
 	Singleton bool
-	// UpdateMask is the Update body property that holds the update mask.
-	// It is not a resource field.
+	// Replace is true when Update is a full replace (PUT, E11): the body has
+	// every Update field, and the server clears a field that the body does
+	// not have. It has no update mask. False: PATCH with an update mask.
+	Replace bool
+	// IDInBody is true when the Update path has no id: Update is on the
+	// Create path, and the Update body has the id in the property IDParam.
+	// That property is not a resource field.
+	IDInBody bool
+	// UpdateMask is the Update body property that holds the update mask, ""
+	// for a full replace. It is not a resource field.
 	UpdateMask string
 	// UpdateMaskPattern is the "pattern" of the update mask string, "" when
 	// the spec has none. It shows which mask paths the API accepts.
@@ -35,7 +43,11 @@ type Operation struct {
 	Path        string
 	OperationID string
 	Body        string // "" (no body), "inline", or a component name
-	Response    Response
+	// BodyTitle is the "title" of an inline body, "" when it has none.
+	// BodyTitleIsComponent: a component schema has the same name.
+	BodyTitle            string
+	BodyTitleIsComponent bool
+	Response             Response
 }
 
 // Response is the 200 response body.

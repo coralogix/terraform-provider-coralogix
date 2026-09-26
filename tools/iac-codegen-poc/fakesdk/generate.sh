@@ -48,3 +48,5 @@ generate_package() {
 
 generate_package spec/fake/openapi.yaml fake_boards_service
 generate_package spec/fake/settings.yaml fake_settings_service
+generate_package spec/fake/rules.yaml fake_rules_service
+generate_package spec/fake/views.yaml fake_views_service

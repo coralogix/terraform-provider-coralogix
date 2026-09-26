@@ -40,16 +40,22 @@ func Load(data []byte) (*v3.Document, error) {
 
 // Build reads the resource whose schema is the component name. It finds the
 // operations by operationId suffix: "_Create<name>", "_Get<name>",
-// "_Update<name>", and "_Delete<name>".
+// "_Update<name>" or "_Replace<name>", and "_Delete<name>". An Update with
+// PATCH has an update mask. An Update with PUT, or a Replace, is a full
+// replace (E11).
 func Build(doc *v3.Document, name string) (*Resource, error) {
 	ops, err := findOperations(doc, name)
 	if err != nil {
 		return nil, err
 	}
-	r := &Resource{Name: name, UpdateMask: updateMaskField}
+	r := &Resource{Name: name, Replace: ops[opUpdate].method == "PUT"}
+	if !r.Replace {
+		r.UpdateMask = updateMaskField
+	}
 	if err := r.readOperations(ops); err != nil {
 		return nil, err
 	}
+	r.readBodyTitles(doc, ops)
 	if err := r.readFields(doc, ops); err != nil {
 		return nil, err
 	}
@@ -59,15 +65,18 @@ func Build(doc *v3.Document, name string) (*Resource, error) {
 type verb string
 
 const (
-	opCreate verb = "Create"
-	opGet    verb = "Get"
-	opUpdate verb = "Update"
-	opDelete verb = "Delete"
+	opCreate  verb = "Create"
+	opGet     verb = "Get"
+	opUpdate  verb = "Update"
+	opReplace verb = "Replace" // a full-replace Update; findOperations stores it as opUpdate
+	opDelete  verb = "Delete"
 )
 
 var verbs = []verb{opCreate, opGet, opUpdate, opDelete}
 
-var verbMethod = map[verb]string{opCreate: "POST", opGet: "GET", opUpdate: "PATCH", opDelete: "DELETE"}
+var verbMethods = map[verb][]string{
+	opCreate: {"POST"}, opGet: {"GET"}, opUpdate: {"PATCH", "PUT"}, opReplace: {"PUT"}, opDelete: {"DELETE"},
+}
 
 type foundOp struct {
 	path   string
@@ -105,7 +114,7 @@ func findOperations(doc *v3.Document, name string) (map[verb]foundOp, error) {
 	}
 	for path, item := range doc.Paths.PathItems.FromOldest() {
 		for method, op := range item.GetOperations().FromOldest() {
-			for _, v := range verbs {
+			for _, v := range append(slices.Clone(verbs), opReplace) {
 				if !strings.HasSuffix(op.OperationId, "_"+string(v)+name) {
 					continue
 				}
@@ -116,21 +125,46 @@ func findOperations(doc *v3.Document, name string) (map[verb]foundOp, error) {
 			}
 		}
 	}
+	if err := mergeReplace(found); err != nil {
+		return nil, err
+	}
 	get, singleton := found[opGet]
 	singleton = singleton && len(pathParams(get)) == 0
 	for _, v := range verbs {
 		f, ok := found[v]
+		suffix := "_" + string(v) + name
+		if v == opUpdate {
+			suffix += " or _" + string(opReplace) + name
+		}
 		if !ok && singleton {
-			return nil, fmt.Errorf("%s: a singleton (Get has no path parameter) needs Create, Get, Update, and Delete on one path; no operation with operationId suffix _%s%s", v, v, name)
+			return nil, fmt.Errorf("%s: a singleton (Get has no path parameter) needs Create, Get, Update, and Delete on one path; no operation with operationId suffix %s", v, suffix)
 		}
 		if !ok {
-			return nil, fmt.Errorf("%s: no operation with operationId suffix _%s%s", v, v, name)
+			return nil, fmt.Errorf("%s: no operation with operationId suffix %s", v, suffix)
 		}
-		if f.method != verbMethod[v] {
-			return nil, fmt.Errorf("%s: %s is %s, want %s", v, f.op.OperationId, f.method, verbMethod[v])
+		if !slices.Contains(verbMethods[v], f.method) {
+			return nil, fmt.Errorf("%s: %s is %s, want %s", v, f.op.OperationId, f.method, strings.Join(verbMethods[v], " or "))
 		}
 	}
 	return found, nil
+}
+
+// mergeReplace stores a Replace operation as the Update. A resource has one
+// of them, and a Replace is always a PUT.
+func mergeReplace(found map[verb]foundOp) error {
+	rep, ok := found[opReplace]
+	if !ok {
+		return nil
+	}
+	if up, ok := found[opUpdate]; ok {
+		return fmt.Errorf("%s: two operations: %s and %s", opUpdate, up.op.OperationId, rep.op.OperationId)
+	}
+	if !slices.Contains(verbMethods[opReplace], rep.method) {
+		return fmt.Errorf("%s: %s is %s, want PUT", opReplace, rep.op.OperationId, rep.method)
+	}
+	found[opUpdate] = rep
+	delete(found, opReplace)
+	return nil
 }
 
 func (r *Resource) readOperations(ops map[verb]foundOp) error {
@@ -146,7 +180,11 @@ func (r *Resource) readOperations(ops map[verb]foundOp) error {
 		return fmt.Errorf("get: %w", err)
 	}
 	r.IDParam = id
-	for _, v := range []verb{opUpdate, opDelete} {
+	item, err := r.itemOperations(ops)
+	if err != nil {
+		return err
+	}
+	for _, v := range item {
 		other, err := idParam(ops[v])
 		if err != nil {
 			return fmt.Errorf("%s: %w", v, err)
@@ -162,13 +200,30 @@ func (r *Resource) readOperations(ops map[verb]foundOp) error {
 	if want := ops[opCreate].path + "/{" + id + "}"; itemPath != want {
 		return fmt.Errorf("get: path %s, want %s", itemPath, want)
 	}
-	for _, v := range []verb{opUpdate, opDelete} {
+	for _, v := range item {
 		if ops[v].path != itemPath {
 			return fmt.Errorf("%s: path %s, want %s (as in get)", v, ops[v].path, itemPath)
 		}
 	}
 
 	return r.readTargets(ops)
+}
+
+// itemOperations returns the operations besides Get that have the id in the
+// path: Delete, and Update unless it is on the Create path with no path
+// parameters. Then the Update body has the id (IDInBody), as in a PUT on the
+// collection (for example E2M and Slo).
+func (r *Resource) itemOperations(ops map[verb]foundOp) ([]verb, error) {
+	upd := ops[opUpdate]
+	if len(pathParams(upd)) != 0 {
+		return []verb{opUpdate, opDelete}, nil
+	}
+	if upd.path != ops[opCreate].path {
+		return nil, fmt.Errorf("%s: path %s has no id; want the Get path %s, or the Create path %s with the id in the body",
+			opUpdate, upd.path, ops[opGet].path, ops[opCreate].path)
+	}
+	r.IDInBody = true
+	return []verb{opDelete}, nil
 }
 
 // checkSingleton checks a singleton (D18): Create, Get, Update, and Delete on
@@ -207,6 +262,20 @@ func (r *Resource) readTargets(ops map[verb]foundOp) error {
 		}
 	}
 	return nil
+}
+
+// readBodyTitles reads the title of each inline request body, and whether a
+// component schema has the same name.
+func (r *Resource) readBodyTitles(doc *v3.Document, ops map[verb]foundOp) {
+	for v, o := range map[verb]*Operation{opCreate: &r.Create, opUpdate: &r.Update} {
+		proxy := bodyProxy(ops[v].op)
+		if o.Body != "inline" || proxy.Schema() == nil {
+			continue
+		}
+		o.BodyTitle = proxy.Schema().Title
+		o.BodyTitleIsComponent = o.BodyTitle != "" && doc.Components != nil && doc.Components.Schemas != nil &&
+			doc.Components.Schemas.GetOrZero(o.BodyTitle) != nil
+	}
 }
 
 func pathParams(f foundOp) []*v3.Parameter {
@@ -363,16 +432,23 @@ func (r *Resource) readFields(doc *v3.Document, ops map[verb]foundOp) error {
 	if err := r.checkBodies(createBody, updateBody, getSchema); err != nil {
 		return err
 	}
-	var names []string
-	for _, s := range []*base.Schema{getSchema, createBody, updateBody} {
-		for _, n := range propertyNames(s) {
-			if n != updateMaskField && !slices.Contains(names, n) {
+	names := propertyNames(getSchema)
+	for _, body := range []struct {
+		schema *base.Schema
+		update bool
+	}{{createBody, false}, {updateBody, true}} {
+		for _, n := range propertyNames(body.schema) {
+			p, err := r.requestProperty(body.schema, n, body.update)
+			if err != nil {
+				return fmt.Errorf("%s: %w", r.Name, err)
+			}
+			if p != nil && !slices.Contains(names, n) {
 				names = append(names, n)
 			}
 		}
 	}
 	for _, n := range names {
-		f, err := resourceField(n, createBody, updateBody, getSchema)
+		f, err := r.resourceField(n, createBody, updateBody, getSchema)
 		if err != nil {
 			return fmt.Errorf("%s: %w", r.Name, err)
 		}
@@ -450,17 +526,11 @@ func (r *Resource) fieldSchemas(doc *v3.Document, ops map[verb]foundOp) (createB
 	return createBody, updateBody, getSchema, nil
 }
 
-// checkBodies checks the update mask, the id field, and the required lists.
+// checkBodies checks the update mask, the id fields, and the required lists.
 func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema) error {
-	mask := updateBody.Properties.GetOrZero(updateMaskField)
-	if mask == nil {
-		return fmt.Errorf("update body: no %s property", updateMaskField)
+	if err := r.checkUpdateBody(updateBody); err != nil {
+		return err
 	}
-	ms, err := schemaOf(mask)
-	if err != nil || !slices.Equal(ms.Type, []string{"string"}) {
-		return fmt.Errorf("update body: %s must be a string", updateMaskField)
-	}
-	r.UpdateMaskPattern = ms.Pattern
 	for _, loc := range []location{{"create body", createBody}, {r.Name, getSchema}} {
 		if loc.schema.Properties.GetOrZero(updateMaskField) != nil {
 			return fmt.Errorf("%s: unexpected %s property", loc.name, updateMaskField)
@@ -477,9 +547,67 @@ func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema) e
 	return nil
 }
 
-func resourceField(name string, createBody, updateBody, getSchema *base.Schema) (*ResourceField, error) {
-	cp := createBody.Properties.GetOrZero(name)
-	up := updateBody.Properties.GetOrZero(name)
+// checkUpdateBody checks the properties of the Update body that are not
+// resource fields: the update mask of a PATCH, which a full replace (PUT)
+// does not have, and the id when the Update path has none.
+func (r *Resource) checkUpdateBody(updateBody *base.Schema) error {
+	mask := updateBody.Properties.GetOrZero(updateMaskField)
+	switch {
+	case r.Replace && mask != nil:
+		return fmt.Errorf("update body: a full replace (PUT) has no %s property", updateMaskField)
+	case !r.Replace && mask == nil:
+		return fmt.Errorf("update body: no %s property", updateMaskField)
+	case !r.Replace:
+		ms, err := schemaOf(mask)
+		if err != nil || !slices.Equal(ms.Type, []string{"string"}) {
+			return fmt.Errorf("update body: %s must be a string", updateMaskField)
+		}
+		r.UpdateMaskPattern = ms.Pattern
+	}
+	if !r.IDInBody {
+		return nil
+	}
+	id := updateBody.Properties.GetOrZero(r.IDParam)
+	if id == nil {
+		return fmt.Errorf("update body: the Update path has no id, and the body has no %q property", r.IDParam)
+	}
+	s, err := schemaOf(id)
+	if err != nil || !slices.Equal(s.Type, []string{"string"}) || s.ReadOnly != nil && *s.ReadOnly {
+		return fmt.Errorf("update body: the id %q must be a string that is not readOnly", r.IDParam)
+	}
+	return nil
+}
+
+// requestProperty returns the property name of a request body when it is a
+// resource field, else nil. These properties are not resource fields: the
+// update mask, the id in the Update body (IDInBody), and a readOnly property.
+// A readOnly property is set by the server (proto OUTPUT_ONLY). A full
+// replace often sends the whole resource, so its body also has them, for
+// example createTime.
+func (r *Resource) requestProperty(body *base.Schema, name string, update bool) (*base.SchemaProxy, error) {
+	p := body.Properties.GetOrZero(name)
+	if p == nil || name == updateMaskField || update && r.IDInBody && name == r.IDParam {
+		return nil, nil
+	}
+	s, err := schemaOf(p)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", name, err)
+	}
+	if s.ReadOnly != nil && *s.ReadOnly {
+		return nil, nil
+	}
+	return p, nil
+}
+
+func (r *Resource) resourceField(name string, createBody, updateBody, getSchema *base.Schema) (*ResourceField, error) {
+	cp, err := r.requestProperty(createBody, name, false)
+	if err != nil {
+		return nil, fmt.Errorf("create body: %w", err)
+	}
+	up, err := r.requestProperty(updateBody, name, true)
+	if err != nil {
+		return nil, fmt.Errorf("update body: %w", err)
+	}
 	gp := getSchema.Properties.GetOrZero(name)
 	behavior, err := Classify(cp != nil, up != nil, gp != nil)
 	if err != nil {

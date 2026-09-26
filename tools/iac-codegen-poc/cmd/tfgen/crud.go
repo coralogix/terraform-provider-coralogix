@@ -17,9 +17,16 @@ type crudData struct {
 	// Singleton: no id in the path (D18). The id attribute is the fixed value
 	// TypeName, and the API calls take no id.
 	Singleton bool
-	SDKName   string // package name of the resource SDK package
-	Client    string // SDK client type
-	Resource  string // SDK type of the resource
+	// Replace: Update is a full replace (PUT, E11) with no update mask.
+	Replace bool
+	// UpdateID is the SDK field of the id in the Update body, when the
+	// Update path has no id (E11). UpdateIDValue: it is a string, not a
+	// *string.
+	UpdateID      string
+	UpdateIDValue bool
+	SDKName       string // package name of the resource SDK package
+	Client        string // SDK client type
+	Resource      string // SDK type of the resource
 	// The cxsdk package: the provider data type, the accessor of the client,
 	// and the error helpers.
 	CXPkg, CXName        string
@@ -59,6 +66,7 @@ func buildCRUD(r *model.Resource, refs []sdkRef) (*crudData, error) {
 		Model:     modelTypeName(r.Name),
 		IDAttr:    "id",
 		Singleton: r.Singleton,
+		Replace:   r.Replace,
 		SDKName:   ix.pkg.Name,
 		Client:    client.Name,
 		Resource:  resource.Name,
@@ -72,6 +80,16 @@ func buildCRUD(r *model.Resource, refs []sdkRef) (*crudData, error) {
 			return nil, fmt.Errorf("SDK field %s has type %s, the id needs *string or string", id.sdkName(), id.Want)
 		}
 		out.IDAttr, out.IDField, out.IDValue = tfName(r.IDParam), id.Name, id.Want == "string"
+	}
+	if r.IDInBody {
+		id, err := ix.fieldRef("update.body." + r.IDParam)
+		if err != nil {
+			return nil, err
+		}
+		if id.Want != "*string" && id.Want != "string" {
+			return nil, fmt.Errorf("SDK field %s has type %s, the id needs *string or string", id.sdkName(), id.Want)
+		}
+		out.UpdateID, out.UpdateIDValue = id.Name, id.Want == "string"
 	}
 	if err := cxsdkNames(ix, client.Name, out); err != nil {
 		return nil, err
