@@ -1,5 +1,5 @@
 // This file is copied into a copy of the provider by
-// integration/connector/run.sh, next to the handwritten Connector code. It
+// integration/switch.sh, next to the handwritten Connector code. It
 // checks that the partial switch (D21) reads and sends the same values as
 // the handwritten code, before the handwritten code is removed:
 //   - flatten: the same API object gives the same Terraform state;

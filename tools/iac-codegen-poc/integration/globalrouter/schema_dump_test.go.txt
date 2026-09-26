@@ -1,5 +1,5 @@
 // This file is copied into a copy of the provider by
-// integration/globalrouter/run.sh. It writes the schema dumps that
+// integration/switch.sh. It writes the schema dumps that
 // cmd/schemacompare compares (D21).
 
 package notifications
