@@ -1,0 +1,16 @@
+resource FakeSettings
+  singleton:    yes (no id in the path)
+  update mask:  updateMask
+
+operations
+  create  POST    /fake/settings/v1  FakeSettingsService_CreateFakeSettings  body inline  response CreateFakeSettingsResponse.settings
+  get     GET     /fake/settings/v1  FakeSettingsService_GetFakeSettings     body -       response GetFakeSettingsResponse.settings
+  update  PATCH   /fake/settings/v1  FakeSettingsService_UpdateFakeSettings  body inline  response UpdateFakeSettingsResponse.settings
+  delete  DELETE  /fake/settings/v1  FakeSettingsService_DeleteFakeSettings  body -       response DeleteFakeSettingsResponse
+
+fields
+  NAME       BEHAVIOR  CREATE             UPDATE             GET  TYPE
+  enabled    normal    required           optional presence  yes  bool
+  allowList  normal    optional           optional presence  yes  list<string>
+  mode       normal    optional presence  optional presence  yes  enum SettingsMode [STRICT OPEN]
+  updatedAt  computed  -                  -                  yes  string date-time

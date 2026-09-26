@@ -1,0 +1,35 @@
+// This file is copied into a copy of the provider by
+// integration/switch.sh. It writes the schema dumps that
+// cmd/schemacompare compares (D21).
+
+package notifications
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/schemadump"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+
+	globalrouterschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/global_router_schema"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/globalroutertypes"
+)
+
+// TestWriteSchemaDumps writes the handwritten V1 schema and the generated
+// schema to $SCHEMA_DUMP_DIR.
+func TestWriteSchemaDumps(t *testing.T) {
+	dir := os.Getenv("SCHEMA_DUMP_DIR")
+	if dir == "" {
+		t.Skip("SCHEMA_DUMP_DIR is not set")
+	}
+	for name, s := range map[string]schema.Schema{
+		"handwritten.txt": globalrouterschema.V1(),
+		"generated.txt":   {Attributes: globalroutertypes.GlobalRouterAttributes()},
+	} {
+		text := schemadump.Text(schemadump.Dump(s, nil))
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

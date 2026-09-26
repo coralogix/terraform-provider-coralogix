@@ -1,0 +1,233 @@
+// Copyright 2024 Coralogix Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package alerts
+
+import (
+	"context"
+	"fmt"
+
+	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+
+	alertschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_schema"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alertdeftypes"
+)
+
+// The generated alertdeftypes read and send the alert properties. This file
+// adds what the API does not describe: the id and the schedule (times in a
+// time zone of the user), the Terraform-only validators and plan
+// modifiers, and two rules for reading a response.
+
+// switchedAlertModel is the Terraform model of coralogix_alert.
+type switchedAlertModel struct {
+	alertdeftypes.AlertDefPropertiesModel
+	ID       types.String `tfsdk:"id"`
+	Schedule types.Object `tfsdk:"schedule"`
+}
+
+// switchedAlertAttributes are the attributes of coralogix_alert: the
+// generated alert properties, the handwritten id and schedule, and the
+// Terraform-only rules on generated attributes.
+func switchedAlertAttributes() map[string]schema.Attribute {
+	attrs := alertdeftypes.AlertDefPropertiesAttributes()
+	v3 := alertschema.V3()
+	attrs["id"] = v3.Attributes["id"]
+	attrs["schedule"] = v3.Attributes["schedule"]
+	updateAttribute(attrs, []string{"priority"}, func(a schema.Attribute) schema.Attribute {
+		s := a.(schema.StringAttribute)
+		s.Validators = append(s.Validators, alertschema.PriorityDeprecationWarning{})
+		return s
+	})
+	updateAttribute(attrs, []string{"group_by"}, func(a schema.Attribute) schema.Attribute {
+		l := a.(schema.ListAttribute)
+		l.Validators = append(l.Validators, alertschema.GroupByValidator{})
+		l.PlanModifiers = append(l.PlanModifiers, alertschema.ComputedForSomeAlerts{})
+		return l
+	})
+	updateAttribute(attrs, []string{"type_definition", "logs_ratio_threshold", "group_by_for"}, func(a schema.Attribute) schema.Attribute {
+		s := a.(schema.StringAttribute)
+		s.Validators = append(s.Validators, stringvalidator.AlsoRequires(path.MatchRoot("group_by")))
+		return s
+	})
+	// An empty value reads back as null (emptyAsNull), so Terraform would
+	// fail the apply with an inconsistent result: reject it in the plan.
+	updateAttribute(attrs, []string{"labels"}, func(a schema.Attribute) schema.Attribute {
+		m := a.(schema.MapAttribute)
+		m.Validators = append(m.Validators, mapvalidator.SizeAtLeast(1))
+		return m
+	})
+	for _, p := range [][]string{{"data_sources"}, {"notification_group", "group_by_keys"}, {"notification_group", "destinations"}} {
+		updateAttribute(attrs, p, func(a schema.Attribute) schema.Attribute {
+			switch l := a.(type) {
+			case schema.ListAttribute:
+				l.Validators = append(l.Validators, listvalidator.SizeAtLeast(1))
+				return l
+			case schema.ListNestedAttribute:
+				l.Validators = append(l.Validators, listvalidator.SizeAtLeast(1))
+				return l
+			}
+			panic(fmt.Sprintf("coralogix_alert schema: %v is a %T, not a list", p, a))
+		})
+	}
+	for _, alertType := range []string{"logs_threshold", "metric_threshold"} {
+		updateAttribute(attrs, []string{"type_definition", alertType, "no_data_policy", "state"}, func(a schema.Attribute) schema.Attribute {
+			s := a.(schema.StringAttribute)
+			s.Validators = append(s.Validators, alertschema.NoDataPolicyUnspecifiedDeprecationWarning{})
+			return s
+		})
+	}
+	return attrs
+}
+
+// updateAttribute replaces the attribute at the path p (names, through
+// nested attributes) with f of it. A missing attribute is a programming
+// error: the generated schema changed.
+func updateAttribute(attrs map[string]schema.Attribute, p []string, f func(schema.Attribute) schema.Attribute) {
+	a, ok := attrs[p[0]]
+	if !ok {
+		panic(fmt.Sprintf("coralogix_alert schema: no attribute %q", p[0]))
+	}
+	if len(p) == 1 {
+		attrs[p[0]] = f(a)
+		return
+	}
+	switch n := a.(type) {
+	case schema.SingleNestedAttribute:
+		updateAttribute(n.Attributes, p[1:], f)
+	case schema.ListNestedAttribute:
+		updateAttribute(n.NestedObject.Attributes, p[1:], f)
+	case schema.SetNestedAttribute:
+		updateAttribute(n.NestedObject.Attributes, p[1:], f)
+	default:
+		panic(fmt.Sprintf("coralogix_alert schema: %q is a %T, not a nested attribute", p[0], a))
+	}
+}
+
+// expandSwitchedAlert returns the alert properties of m.
+func expandSwitchedAlert(ctx context.Context, m *switchedAlertModel) (*alerts.AlertDefProperties, diag.Diagnostics) {
+	props, diags := alertdeftypes.ExpandAlertDefProperties(ctx, path.Empty(), &m.AlertDefPropertiesModel)
+	if diags.HasError() {
+		return nil, diags
+	}
+	activeOn, d := expandActiveOnSchedule(ctx, m.Schedule)
+	diags.Append(d...)
+	props.ActiveOn = activeOn
+	sendEmptyRoutingOverrides(props.NotificationGroup)
+	return props, diags
+}
+
+// sendEmptyRoutingOverrides sends an empty routing override for a
+// destination with none, as the handwritten code always did.
+func sendEmptyRoutingOverrides(group *alerts.AlertDefNotificationGroup) {
+	if group == nil {
+		return
+	}
+	for i := range group.Destinations {
+		d := &group.Destinations[i]
+		if d.TriggeredRoutingOverrides == nil {
+			d.TriggeredRoutingOverrides = &alerts.NotificationRouting{}
+		}
+		if d.ResolvedRouteOverrides == nil {
+			d.ResolvedRouteOverrides = &alerts.NotificationRouting{}
+		}
+	}
+}
+
+// flattenSwitchedAlert returns the Terraform model of alert. The current
+// schedule has the time zone of the user; the current notification group
+// says which destinations inherit their retriggering period. Both are nil
+// on import.
+func flattenSwitchedAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule, currentNotificationGroup *types.Object) (*switchedAlertModel, diag.Diagnostics) {
+	props := alert.AlertDefProperties
+	if props == nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Missing alert properties", "The API response has no alert properties.")}
+	}
+	m, diags := alertdeftypes.FlattenAlertDefProperties(ctx, path.Empty(), props)
+	if diags.HasError() {
+		return nil, diags
+	}
+	out := &switchedAlertModel{AlertDefPropertiesModel: *m, ID: types.StringPointerValue(alert.Id)}
+	var d diag.Diagnostics
+	if currentSchedule == nil {
+		currentSchedule = &types.Object{}
+	}
+	out.Schedule, d = flattenAlertSchedule(ctx, *props, currentSchedule)
+	diags.Append(d...)
+	out.GroupByKeys = groupByKeysToStateValue(props.GroupByKeys, props)
+	out.NotificationGroup, d = keepInheritedRetriggering(ctx, currentNotificationGroup, out.NotificationGroup)
+	diags.Append(d...)
+	return out, diags
+}
+
+// keepInheritedRetriggering keeps retriggering_period_minutes null on the
+// destinations where it was null: the backend echoes the inherited
+// incident cadence (see preserveDestinationRetriggeringNulls).
+func keepInheritedRetriggering(ctx context.Context, current *types.Object, flattened types.Object) (types.Object, diag.Diagnostics) {
+	if current == nil || current.IsNull() || current.IsUnknown() {
+		return flattened, nil
+	}
+	var cur alertdeftypes.AlertDefNotificationGroupModel
+	if diags := current.As(ctx, &cur, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return flattened, diags
+	}
+	if cur.Destinations.IsNull() || cur.Destinations.IsUnknown() {
+		return flattened, nil
+	}
+	var curDestinations []alertdeftypes.NotificationDestinationModel
+	if diags := cur.Destinations.ElementsAs(ctx, &curDestinations, false); diags.HasError() {
+		return flattened, diags
+	}
+	return clearRetriggeringWhere(ctx, flattened, func(i int) bool {
+		return i < len(curDestinations) &&
+			(curDestinations[i].RetriggeringPeriodMinutes.IsNull() || curDestinations[i].RetriggeringPeriodMinutes.IsUnknown())
+	})
+}
+
+// clearRetriggeringWhere nulls retriggering_period_minutes of the
+// destinations i with shouldClear(i).
+func clearRetriggeringWhere(ctx context.Context, group types.Object, shouldClear func(int) bool) (types.Object, diag.Diagnostics) {
+	if group.IsNull() || group.IsUnknown() {
+		return group, nil
+	}
+	var m alertdeftypes.AlertDefNotificationGroupModel
+	if diags := group.As(ctx, &m, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return group, diags
+	}
+	if m.Destinations.IsNull() || m.Destinations.IsUnknown() {
+		return group, nil
+	}
+	var destinations []alertdeftypes.NotificationDestinationModel
+	if diags := m.Destinations.ElementsAs(ctx, &destinations, false); diags.HasError() {
+		return group, diags
+	}
+	for i := range destinations {
+		if shouldClear(i) {
+			destinations[i].RetriggeringPeriodMinutes = types.Int64Null()
+		}
+	}
+	list, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertdeftypes.NotificationDestinationAttrTypes()}, destinations)
+	if diags.HasError() {
+		return group, diags
+	}
+	m.Destinations = list
+	return types.ObjectValueFrom(ctx, alertdeftypes.AlertDefNotificationGroupAttrTypes(), m)
+}

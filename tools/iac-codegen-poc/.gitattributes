@@ -1,0 +1,2 @@
+spec/openapi.patched.yaml linguist-generated=true
+fakesdk/go/openapi/gen/** linguist-generated=true

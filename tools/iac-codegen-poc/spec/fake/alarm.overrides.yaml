@@ -1,0 +1,14 @@
+# Overrides (D21) for generated/fakealarm: an enum that names the set rule
+# (namesArm), and two fields whose Terraform shape no rule converts (custom),
+# as in the alerts API. Their converters are handwritten in
+# generated/fakealarm/alarmcustom. generated/fakealarm/alarm_test.go checks
+# the result.
+customPackage: github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/generated/fakealarm/alarmcustom
+types:
+  Alarm:
+    type: {namesArm: true}
+    rule: {wrap: [logsRule, metricRule, tracingRule]}
+  MetricRule:
+    ofTheLast: {custom: {type: String, shape: fd12ebc42bf2}}     # "5_MINUTES" or "90s" for a oneOf
+  TracingRule:
+    latencyMs: {custom: {type: Number, shape: 0c68feae3aa5}}     # a Number for a string

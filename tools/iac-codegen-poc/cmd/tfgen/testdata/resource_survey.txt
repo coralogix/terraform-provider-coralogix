@@ -1,0 +1,53 @@
+62 read-only names (Get, maybe Delete, no Create or Update) are not counted.
+28 writable resource names with a Get operation
+
+RESOURCES  SHAPE                                                     EXAMPLES
+21         operations: Create, Get, Update, Delete                   Action, AiEvaluation, AlertDef, …
+20         Get response: wraps the resource                          Action, AiEvaluation, AlertSchedulerRule, …
+7          Create body: wraps the resource in a field                AlertSchedulerRule, BulkAlertSchedulerRule, Connector, …
+6          Replace body: wraps the resource in a field               Action, Connector, Dashboard, …
+6          id: the id path parameter is not a resource field         AlertSchedulerRule, ApiKey, Dashboard, …
+5          Get response: the resource and other fields beside it     AlertDef, BulkAlertSchedulerRule, Dashboard, …
+5          Update body: wraps the resource in a field                AlertSchedulerRule, BulkAlertSchedulerRule, Retentions, …
+5          id: Get has no path parameter                             BulkAlertSchedulerRule, CompanyIpAccessSettings, PolicySettings, …
+4          Create response: no resource                              ApiKey, Dashboard, DashboardFolder, …
+4          operations: Get, Update only (a singleton or settings)    Case, Extension, PolicySettings, …
+3          fields: a field has another type in Create than in Get    ApiKey, CompanyIpAccessSettings, RuleGroup
+2          Create response: is the resource itself                   View, ViewFolder
+2          Get response: is the resource itself                      View, ViewFolder
+1          Create response: the resource and other fields beside it  CustomEnrichment
+1          Get response: no resource                                 PolicySettings
+1          Update body: none                                         Extension
+1          operations: other: Create, Get, Replace                   ConfigurationGroup
+1          operations: other: Create, Get, Update                    BulkAlertSchedulerRule
+1          operations: other: Get, Update, Delete                    Team
+
+RESOURCE                 SHAPES
+Action                   operations: Create, Get, Update, Delete; Replace body: wraps the resource in a field (action); Get response: wraps the resource
+AiEvaluation             operations: Create, Get, Update, Delete; Get response: wraps the resource
+AlertDef                 operations: Create, Get, Update, Delete; Get response: the resource and other fields beside it
+AlertSchedulerRule       operations: Create, Get, Update, Delete; id: the id path parameter is not a resource field ({alert_scheduler_rule_id}); Create body: wraps the resource in a field (alertSchedulerRule); Update body: wraps the resource in a field (alertSchedulerRule); Get response: wraps the resource
+ApiKey                   operations: Create, Get, Update, Delete; id: the id path parameter is not a resource field ({key_id}); Get response: wraps the resource; Create response: no resource; fields: a field has another type in Create than in Get (keyPermissions)
+BulkAlertSchedulerRule   operations: other: Create, Get, Update; id: Get has no path parameter; Create body: wraps the resource in a field (createAlertSchedulerRuleRequests); Update body: wraps the resource in a field (updateAlertSchedulerRuleRequests); Get response: the resource and other fields beside it
+Case                     operations: Get, Update only (a singleton or settings); Get response: wraps the resource
+CaseSettings             operations: Create, Get, Update, Delete; Get response: wraps the resource
+CompanyIpAccessSettings  operations: Create, Get, Update, Delete; id: Get has no path parameter; Get response: wraps the resource; fields: a field has another type in Create than in Get (ipAccess)
+ConfigurationGroup       operations: other: Create, Get, Replace; Get response: wraps the resource
+Connector                operations: Create, Get, Update, Delete; Create body: wraps the resource in a field (connector); Replace body: wraps the resource in a field (connector); Get response: wraps the resource
+CustomEnrichment         operations: Create, Get, Update, Delete; Get response: wraps the resource; Create response: the resource and other fields beside it
+Dashboard                operations: Create, Get, Update, Delete; id: the id path parameter is not a resource field ({dashboard_id}); Create body: wraps the resource in a field (dashboard); Replace body: wraps the resource in a field (dashboard); Get response: the resource and other fields beside it; Create response: no resource
+DashboardFolder          operations: Create, Get, Update, Delete; id: the id path parameter is not a resource field ({folder_id}); Create body: wraps the resource in a field (folder); Replace body: wraps the resource in a field (folder); Get response: wraps the resource; Create response: no resource
+E2M                      operations: Create, Get, Update, Delete; Get response: wraps the resource
+Extension                operations: Get, Update only (a singleton or settings); Update body: none; Get response: the resource and other fields beside it
+GlobalRouter             operations: Create, Get, Update, Delete; Create body: wraps the resource in a field (router); Replace body: wraps the resource in a field (router); Get response: wraps the resource
+OutgoingWebhook          operations: Create, Get, Update, Delete; Get response: wraps the resource; Create response: no resource
+Policy                   operations: Create, Get, Update, Delete; Get response: wraps the resource
+PolicySettings           operations: Get, Update only (a singleton or settings); id: Get has no path parameter; Get response: no resource
+QuotaAllocationRuleSet   operations: Create, Get, Update, Delete; id: Get has no path parameter; Create body: wraps the resource in a field (ruleSet); Replace body: wraps the resource in a field (ruleSet); Get response: wraps the resource
+Retentions               operations: Get, Update only (a singleton or settings); id: Get has no path parameter; Update body: wraps the resource in a field (retentionUpdateElements); Get response: wraps the resource
+RuleGroup                operations: Create, Get, Update, Delete; id: the id path parameter is not a resource field ({group_id}); Get response: wraps the resource; fields: a field has another type in Create than in Get (ruleSubgroups)
+Slo                      operations: Create, Get, Update, Delete; Get response: wraps the resource
+Team                     operations: other: Get, Update, Delete; Update body: wraps the resource in a field (dailyQuota); Update body: wraps the resource in a field (teamName); Get response: the resource and other fields beside it
+TeamGroup                operations: Create, Get, Update, Delete; id: the id path parameter is not a resource field ({group_id}); Get response: wraps the resource
+View                     operations: Create, Get, Update, Delete; Get response: is the resource itself; Create response: is the resource itself
+ViewFolder               operations: Create, Get, Update, Delete; Get response: is the resource itself; Create response: is the resource itself

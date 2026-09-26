@@ -1,0 +1,309 @@
+# Overrides (D21) for the switch of coralogix_alert: the generated
+# alertdeftypes give the schema of the handwritten resource, so no
+# configuration or state changes. By kind:
+#   - shape: wrap (type_definition, incidents and webhook retriggering_period),
+#     inline (anomaly settings, routing overrides, the webhook integration),
+#     unwrap (time windows, tracing filter, flow groups, recipients), custom
+#     (of_the_last, latency_threshold_ms, override.priority: see
+#     add/alertcustom), namesArm (type), skip (activeOn: the schedule stays
+#     handwritten; the analytics types and notificationGroupExcess come in
+#     the second step);
+#   - flags, defaults, defaultObject, set, renames, int64, string, wide;
+#   - reading a response like the handwritten code (missingAsZero,
+#     emptyAsNull), found by equivalence_test.go.txt;
+#   - enums: the Terraform names of the handwritten maps (alert_types).
+types:
+  AlertDefProperties:
+    type_definition:
+      wrap: [flow, logsAnomaly, logsImmediate, logsNewValue, logsRatioThreshold, logsThreshold, logsTimeRelativeThreshold, logsUniqueCount, metricAnomaly, metricThreshold, sloThreshold, tracingImmediate,
+        tracingThreshold]
+      required: true
+    entityLabels: {name: labels, emptyAsNull: true}
+    groupByKeys: {name: group_by, computed: true}
+    analyticsImmediate: {skip: true}
+    analyticsThreshold: {skip: true}
+    notificationGroupExcess: {skip: true}
+    type: {namesArm: true}
+    name: {required: true}
+    enabled: {default: 'true'}
+    phantomMode: {default: 'false'}
+    deleted: {readOnly: true, useStateForUnknown: true}
+    priority: {computed: true, useStateForUnknown: true, missingAsZero: true}
+    incidentsSettings: {computed: true, useStateForUnknown: true}
+    notificationGroup: {defaultObject: true}
+    activeOn: {skip: true}
+    dataSources: {emptyAsNull: true}
+  LogsAnomalyType:
+    anomalyAlertSettings: {inline: true}
+    notificationPayloadFilter: {set: true, emptyAsNull: true}
+    rules: {set: true, required: true}
+    evaluationDelayMs: {name: custom_evaluation_delay}
+    logsFilter: {computed: true, useStateForUnknown: true}
+  MetricAnomalyType:
+    anomalyAlertSettings: {inline: true}
+    rules: {set: true, required: true}
+    evaluationDelayMs: {name: custom_evaluation_delay}
+  NotificationRouting:
+    configOverrides: {inline: true}
+  v3.SourceOverrides:
+    connectorConfigFields: {name: connector_overrides}
+    messageConfigFields: {name: preset_overrides}
+    payloadType: {required: true}
+  FlowStages:
+    timeframeMs: {int64: true, default: '0'}
+    flowStagesGroups: {required: true}
+    timeframeType: {missingAsZero: true}
+  LogsUniqueCountCondition:
+    maxUniqueCount: {int64: true}
+  LogsUniqueCountType:
+    maxUniqueCountPerGroupByKey: {int64: true}
+    notificationPayloadFilter: {set: true, emptyAsNull: true}
+    rules: {set: true, required: true}
+    logsFilter: {computed: true, useStateForUnknown: true}
+  TimeDuration:
+    duration: {int64: true}
+  TracingSimpleFilter:
+    latencyThresholdMs:
+      custom: {type: Number, shape: c9ffc148226b}
+  MetricThresholdCondition:
+    ofTheLast:
+      custom: {type: String, shape: 1dd67adb0272}
+    conditionType: {missingAsZero: true}
+  MetricAnomalyCondition:
+    ofTheLast:
+      custom: {type: String, shape: 1dd67adb0272}
+    conditionType: {missingAsZero: true}
+  AlertDefOverride:
+    priority:
+      custom: {type: String, shape: 711424a7049a}
+  AlertDefDataSource:
+    dataSet: {required: true}
+    dataSpace: {required: true}
+  AlertDefIncidentSettings:
+    retriggering_period:
+      wrap: [minutes]
+      required: true
+    notifyOn: {required: true, missingAsZero: true}
+    minutes: {required: true}
+  NotificationDestination:
+    connectorId: {required: true}
+    presetId: {required: true}
+    notifyOn: {default: Triggered Only, missingAsZero: true}
+    resolvedRouteOverrides: {name: resolved_routing_overrides}
+  v3.ConnectorConfigField:
+    fieldName: {required: true}
+    template: {required: true}
+  v3.MessageConfigField:
+    fieldName: {required: true}
+    template: {required: true}
+  NotificationRouter:
+    id: {default: '', missingAsZero: true}
+    notifyOn: {default: Triggered Only, missingAsZero: true}
+  AlertDefNotificationGroup:
+    webhooks: {name: webhooks_settings, set: true, emptyAsNull: true}
+    destinations: {emptyAsNull: true}
+    groupByKeys: {emptyAsNull: true}
+  AlertDefWebhooksSettings:
+    retriggering_period:
+      wrap: [minutes]
+      computed: true
+      useStateForUnknown: true
+    minutes: {required: true}
+    notifyOn: {computed: true, useStateForUnknown: true}
+    integration: {inline: true}
+  v3.IntegrationType:
+    integrationId: {string: true}
+  Recipients:
+    emails: {set: true}
+  LogsImmediateType:
+    notificationPayloadFilter: {set: true, emptyAsNull: true}
+    logsFilter: {computed: true, useStateForUnknown: true}
+  LogsNewValueType:
+    notificationPayloadFilter: {set: true, emptyAsNull: true}
+    rules: {set: true, required: true}
+    logsFilter: {computed: true, useStateForUnknown: true}
+  LogsRatioThresholdType:
+    notificationPayloadFilter: {set: true, emptyAsNull: true}
+    rules: {set: true, required: true}
+    evaluationDelayMs: {name: custom_evaluation_delay}
+    numerator: {computed: true, useStateForUnknown: true}
+    denominator: {computed: true, useStateForUnknown: true}
+    groupByFor: {default: Both, missingAsZero: true}
+    ignoreInfinity: {default: 'false'}
+    undetectedValuesManagement: {useStateForUnknown: true, defaultObject: true, missingAsZero: true}
+  LogsThresholdType:
+    notificationPayloadFilter: {set: true, emptyAsNull: true}
+    rules: {set: true, required: true}
+    evaluationDelayMs: {name: custom_evaluation_delay}
+    logsFilter: {computed: true, useStateForUnknown: true}
+    undetectedValuesManagement: {useStateForUnknown: true, defaultObject: true, missingAsZero: true}
+    noDataPolicy: {computed: true, useStateForUnknown: true, missingAsZero: true}
+  LogsTimeRelativeThresholdType:
+    notificationPayloadFilter: {set: true, emptyAsNull: true}
+    rules: {set: true, required: true}
+    evaluationDelayMs: {name: custom_evaluation_delay}
+    logsFilter: {computed: true, useStateForUnknown: true}
+    ignoreInfinity: {default: 'false'}
+    undetectedValuesManagement: {useStateForUnknown: true, defaultObject: true, missingAsZero: true}
+  TracingImmediateType:
+    notificationPayloadFilter: {set: true, emptyAsNull: true}
+  TracingThresholdType:
+    notificationPayloadFilter: {set: true, emptyAsNull: true}
+    rules: {set: true, required: true}
+  MetricThresholdType:
+    rules: {set: true, required: true}
+    evaluationDelayMs: {name: custom_evaluation_delay}
+    undetectedValuesManagement: {useStateForUnknown: true, defaultObject: true, missingAsZero: true}
+    noDataPolicy: {computed: true, useStateForUnknown: true, missingAsZero: true}
+  v3.UndetectedValuesManagement:
+    autoRetireTimeframe: {default: NEVER, missingAsZero: true}
+    triggerUndetectedValues: {default: 'false', missingAsZero: true}
+  NoDataPolicy:
+    state: {computed: true}
+    autoRetireSeconds: {wide: true}
+  v3.LogsFilter:
+    simpleFilter: {computed: true, useStateForUnknown: true}
+  LogsSimpleFilter:
+    luceneQuery: {default: '', missingAsZero: true}
+    labelFilters: {defaultObject: true}
+  LabelFilters:
+    applicationName: {set: true, emptyAsNull: true}
+    subsystemName: {set: true, emptyAsNull: true}
+    severities: {set: true, emptyAsNull: true}
+  LabelFilterType:
+    operation: {default: IS}
+  TracingLabelFilters:
+    applicationName: {set: true, emptyAsNull: true}
+    subsystemName: {set: true, emptyAsNull: true}
+    serviceName: {set: true, emptyAsNull: true}
+    operationName: {set: true, emptyAsNull: true}
+    spanFields: {set: true, emptyAsNull: true}
+  TracingFilterType:
+    values: {set: true, required: true}
+    operation: {default: IS}
+  FlowType:
+    enforceSuppression: {default: 'false'}
+  FlowStagesGroup:
+    alertDefs: {required: true, set: true, emptyAsNull: true}
+    alertsOp: {required: true, missingAsZero: true}
+    nextOp: {required: true, missingAsZero: true}
+  FlowStagesGroupsAlertDefs:
+    not: {default: 'false'}
+  AnomalyAlertSettings:
+    percentageOfDeviation: {wide: true}
+  LogsAnomalyCondition:
+    conditionType: {optional: false, default: MORE_THAN_USUAL, useStateForUnknown: true, missingAsZero: true}
+  TracingThresholdCondition:
+    conditionType: {optional: false, default: MORE_THAN, useStateForUnknown: true, missingAsZero: true}
+  LogsThresholdCondition:
+    conditionType: {missingAsZero: true}
+  LogsRatioCondition:
+    conditionType: {missingAsZero: true}
+  LogsTimeRelativeCondition:
+    conditionType: {missingAsZero: true}
+    comparedTo: {missingAsZero: true}
+  LogsTimeWindow:
+    logsTimeWindowSpecificValue: {missingAsZero: true}
+  LogsNewValueTimeWindow:
+    logsNewValueTimeWindowSpecificValue: {missingAsZero: true}
+  LogsRatioTimeWindow:
+    logsRatioTimeWindowSpecificValue: {missingAsZero: true}
+  LogsUniqueValueTimeWindow:
+    logsUniqueValueTimeWindowSpecificValue: {missingAsZero: true}
+  TracingTimeWindow:
+    tracingTimeWindowValue: {missingAsZero: true}
+unwrap: [TracingFilter, LogsTimeWindow, LogsNewValueTimeWindow, LogsRatioTimeWindow, LogsUniqueValueTimeWindow, TracingTimeWindow, Recipients, FlowStagesGroups]
+customPackage: github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alertcustom
+enums:
+  AlertDefPriority:
+    terraformNames: true
+    values: {ALERT_DEF_PRIORITY_P1: P1, ALERT_DEF_PRIORITY_P2: P2, ALERT_DEF_PRIORITY_P3: P3, ALERT_DEF_PRIORITY_P4: P4, ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED: P5}
+  AlertsOp:
+    terraformNames: true
+    values: {ALERTS_OP_AND_OR_UNSPECIFIED: AND, ALERTS_OP_OR: OR}
+  DurationUnit:
+    terraformNames: true
+    values: {DURATION_UNIT_HOURS: HOURS}
+    zero: UNSPECIFIED
+  LogFilterOperationType:
+    terraformNames: true
+    values: {LOG_FILTER_OPERATION_TYPE_ENDS_WITH: ENDS_WITH, LOG_FILTER_OPERATION_TYPE_INCLUDES: INCLUDES, LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED: IS, LOG_FILTER_OPERATION_TYPE_STARTS_WITH: STARTS_WITH}
+  LogSeverity:
+    terraformNames: true
+    values: {LOG_SEVERITY_CRITICAL: Critical, LOG_SEVERITY_DEBUG: Debug, LOG_SEVERITY_ERROR: Error, LOG_SEVERITY_INFO: Info, LOG_SEVERITY_VERBOSE_UNSPECIFIED: Unspecified, LOG_SEVERITY_WARNING: Warning}
+  LogsAnomalyConditionType:
+    terraformNames: true
+    values: {LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED: MORE_THAN_USUAL}
+  LogsNewValueTimeWindowValue:
+    terraformNames: true
+    values: {LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_12_OR_UNSPECIFIED: 12_HOURS, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_24: 24_HOURS, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_48: 48_HOURS, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_72: 72_HOURS,
+      LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTHS_2: 2_MONTHS, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTHS_3: 3_MONTHS, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTH_1: 1_MONTH, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_WEEK_1: 1_WEEK}
+  LogsRatioConditionType:
+    terraformNames: true
+    values: {LOGS_RATIO_CONDITION_TYPE_LESS_THAN: LESS_THAN, LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: MORE_THAN}
+  LogsRatioGroupByFor:
+    terraformNames: true
+    values: {LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED: Both, LOGS_RATIO_GROUP_BY_FOR_DENUMERATOR_ONLY: Denominator Only, LOGS_RATIO_GROUP_BY_FOR_NUMERATOR_ONLY: Numerator Only}
+  LogsRatioTimeWindowValue:
+    terraformNames: true
+    values: {LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_12: 12_HOURS, LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_2: 2_HOURS, LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_24: 24_HOURS, LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_36: 36_HOURS,
+      LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_4: 4_HOURS, LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_6: 6_HOURS, LOGS_RATIO_TIME_WINDOW_VALUE_HOUR_1: 1_HOUR, LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10: 10_MINUTES, LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_15: 15_MINUTES,
+      LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_30: 30_MINUTES, LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED: 5_MINUTES}
+  LogsThresholdConditionType:
+    terraformNames: true
+    values: {LOGS_THRESHOLD_CONDITION_TYPE_EQUALS: EQUALS, LOGS_THRESHOLD_CONDITION_TYPE_LESS_THAN: LESS_THAN, LOGS_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: MORE_THAN, LOGS_THRESHOLD_CONDITION_TYPE_NOT_EQUALS: NOT_EQUALS}
+  LogsTimeRelativeComparedTo:
+    terraformNames: true
+    values: {LOGS_TIME_RELATIVE_COMPARED_TO_PREVIOUS_HOUR_OR_UNSPECIFIED: Previous Hour, LOGS_TIME_RELATIVE_COMPARED_TO_SAME_DAY_LAST_MONTH: Same Day Last Month, LOGS_TIME_RELATIVE_COMPARED_TO_SAME_DAY_LAST_WEEK: Same
+        Day Last Week, LOGS_TIME_RELATIVE_COMPARED_TO_SAME_HOUR_LAST_WEEK: Same Hour Last Week, LOGS_TIME_RELATIVE_COMPARED_TO_SAME_HOUR_YESTERDAY: Same Hour Yesterday, LOGS_TIME_RELATIVE_COMPARED_TO_YESTERDAY: Yesterday}
+  LogsTimeRelativeConditionType:
+    terraformNames: true
+    values: {LOGS_TIME_RELATIVE_CONDITION_TYPE_LESS_THAN: LESS_THAN, LOGS_TIME_RELATIVE_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: MORE_THAN}
+  LogsTimeWindowValue:
+    terraformNames: true
+    values: {LOGS_TIME_WINDOW_VALUE_HOURS_12: 12_HOURS, LOGS_TIME_WINDOW_VALUE_HOURS_2: 2_HOURS, LOGS_TIME_WINDOW_VALUE_HOURS_24: 24_HOURS, LOGS_TIME_WINDOW_VALUE_HOURS_36: 36_HOURS, LOGS_TIME_WINDOW_VALUE_HOURS_4: 4_HOURS,
+      LOGS_TIME_WINDOW_VALUE_HOURS_6: 6_HOURS, LOGS_TIME_WINDOW_VALUE_HOUR_1: 1_HOUR, LOGS_TIME_WINDOW_VALUE_MINUTES_10: 10_MINUTES, LOGS_TIME_WINDOW_VALUE_MINUTES_15: 15_MINUTES, LOGS_TIME_WINDOW_VALUE_MINUTES_20: 20_MINUTES,
+      LOGS_TIME_WINDOW_VALUE_MINUTES_30: 30_MINUTES, LOGS_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED: 5_MINUTES}
+  LogsUniqueValueTimeWindowValue:
+    terraformNames: true
+    values: {LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_1: 1_HOUR, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_12: 12_HOURS, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_2: 2_HOURS, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_24: 24_HOURS,
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_36: 36_HOURS, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_4: 4_HOURS, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_6: 6_HOURS, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_10: 10_MINUTES,
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_15: 15_MINUTES, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_20: 20_MINUTES, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_30: 30_MINUTES, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5: 5_MINUTES,
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTE_1_OR_UNSPECIFIED: 1_MINUTE}
+  MetricAnomalyConditionType:
+    terraformNames: true
+    values: {METRIC_ANOMALY_CONDITION_TYPE_LESS_THAN_USUAL: LESS_THAN, METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED: MORE_THAN}
+  MetricThresholdConditionType:
+    terraformNames: true
+    values: {METRIC_THRESHOLD_CONDITION_TYPE_EQUALS: EQUALS, METRIC_THRESHOLD_CONDITION_TYPE_LESS_THAN: LESS_THAN, METRIC_THRESHOLD_CONDITION_TYPE_LESS_THAN_OR_EQUALS: LESS_THAN_OR_EQUALS, METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_EQUALS: MORE_THAN_OR_EQUALS,
+      METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: MORE_THAN, METRIC_THRESHOLD_CONDITION_TYPE_NOT_EQUALS: NOT_EQUALS}
+  NextOp:
+    terraformNames: true
+    values: {NEXT_OP_AND_OR_UNSPECIFIED: AND, NEXT_OP_OR: OR}
+  NoDataPolicyState:
+    terraformNames: true
+    values: {NO_DATA_POLICY_STATE_ALERTING: ALERTING, NO_DATA_POLICY_STATE_KEEP_LAST: KEEP_LAST, NO_DATA_POLICY_STATE_NO_DATA: NO_DATA, NO_DATA_POLICY_STATE_OK: OK}
+    zero: UNSPECIFIED
+  NotifyOn:
+    terraformNames: true
+    values: {NOTIFY_ON_TRIGGERED_AND_RESOLVED: Triggered and Resolved, NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED: Triggered Only}
+  TimeframeType:
+    terraformNames: true
+    values: {TIMEFRAME_TYPE_UP_TO: Up To}
+    zero: Unspecified
+  TracingFilterOperationType:
+    terraformNames: true
+    values: {TRACING_FILTER_OPERATION_TYPE_ENDS_WITH: ENDS_WITH, TRACING_FILTER_OPERATION_TYPE_INCLUDES: INCLUDES, TRACING_FILTER_OPERATION_TYPE_IS_NOT: IS_NOT, TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED: IS,
+      TRACING_FILTER_OPERATION_TYPE_STARTS_WITH: STARTS_WITH}
+  TracingThresholdConditionType:
+    terraformNames: true
+    values: {TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: MORE_THAN}
+  TracingTimeWindowValue:
+    terraformNames: true
+    values: {TRACING_TIME_WINDOW_VALUE_HOURS_12: 12_HOURS, TRACING_TIME_WINDOW_VALUE_HOURS_2: 2_HOURS, TRACING_TIME_WINDOW_VALUE_HOURS_24: 24_HOURS, TRACING_TIME_WINDOW_VALUE_HOURS_36: 36_HOURS, TRACING_TIME_WINDOW_VALUE_HOURS_4: 4_HOURS,
+      TRACING_TIME_WINDOW_VALUE_HOURS_6: 6_HOURS, TRACING_TIME_WINDOW_VALUE_HOUR_1: 1_HOUR, TRACING_TIME_WINDOW_VALUE_MINUTES_10: 10_MINUTES, TRACING_TIME_WINDOW_VALUE_MINUTES_15: 15_MINUTES, TRACING_TIME_WINDOW_VALUE_MINUTES_20: 20_MINUTES,
+      TRACING_TIME_WINDOW_VALUE_MINUTES_30: 30_MINUTES, TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED: 5_MINUTES}
+  v3.AutoRetireTimeframe:
+    terraformNames: true
+    values: {AUTO_RETIRE_TIMEFRAME_HOURS_12: 12_HOURS, AUTO_RETIRE_TIMEFRAME_HOURS_2: 2_HOURS, AUTO_RETIRE_TIMEFRAME_HOURS_24: 24_HOURS, AUTO_RETIRE_TIMEFRAME_HOURS_6: 6_HOURS, AUTO_RETIRE_TIMEFRAME_HOUR_1: 1_HOUR,
+      AUTO_RETIRE_TIMEFRAME_MINUTES_10: 10_MINUTES, AUTO_RETIRE_TIMEFRAME_MINUTES_5: 5_MINUTES, AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED: NEVER}

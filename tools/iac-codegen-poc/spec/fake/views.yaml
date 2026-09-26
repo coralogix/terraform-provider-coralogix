@@ -1,0 +1,163 @@
+openapi: 3.1.0
+info:
+  title: Fake Views API
+  version: "1"
+  description: >-
+    A fake API with a full-replace Update: PUT on the item path, with the id in
+    the path, like the real View and TeamGroup APIs. Create, Get, and Update
+    return the view itself. Delete returns an empty object. No server
+    implements it.
+tags:
+  - name: Fake Views Service
+paths:
+  /fake/views/v1:
+    post:
+      description: Creates a view.
+      operationId: FakeViewsService_CreateFakeView
+      tags:
+        - Fake Views Service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to create a view.
+              properties:
+                name:
+                  description: Name of the view.
+                  maxLength: 64
+                  minLength: 1
+                  type: string
+                query:
+                  description: The search query of the view.
+                  type: string
+                  x-coralogix-presence: true
+                compact:
+                  description: Show one line per row.
+                  type: boolean
+                  x-coralogix-presence: true
+                columns:
+                  description: Columns to show, in order.
+                  items:
+                    type: string
+                  type: array
+                  x-coralogix-presence: true
+              type: object
+              required:
+                - name
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FakeView'
+          description: ''
+  /fake/views/v1/{id}:
+    get:
+      description: Gets a view.
+      operationId: FakeViewsService_GetFakeView
+      tags:
+        - Fake Views Service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FakeView'
+          description: ''
+    put:
+      description: Replaces a view.
+      operationId: FakeViewsService_UpdateFakeView
+      tags:
+        - Fake Views Service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: The view to store.
+              properties:
+                name:
+                  description: Name of the view.
+                  maxLength: 64
+                  minLength: 1
+                  type: string
+                query:
+                  description: The search query of the view.
+                  type: string
+                  x-coralogix-presence: true
+                compact:
+                  description: Show one line per row.
+                  type: boolean
+                  x-coralogix-presence: true
+                columns:
+                  description: Columns to show, in order.
+                  items:
+                    type: string
+                  type: array
+                  x-coralogix-presence: true
+              type: object
+              required:
+                - name
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FakeView'
+          description: ''
+    delete:
+      description: Deletes a view.
+      operationId: FakeViewsService_DeleteFakeView
+      tags:
+        - Fake Views Service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteFakeViewResponse'
+          description: ''
+components:
+  schemas:
+    FakeView:
+      type: object
+      properties:
+        id:
+          description: Id of the view.
+          type: string
+        name:
+          description: Name of the view.
+          maxLength: 64
+          minLength: 1
+          type: string
+        query:
+          description: The search query of the view.
+          type: string
+        compact:
+          description: Show one line per row.
+          type: boolean
+        columns:
+          description: Columns to show, in order.
+          items:
+            type: string
+          type: array
+    DeleteFakeViewResponse:
+      type: object
+      description: Response of Delete. It has no fields.

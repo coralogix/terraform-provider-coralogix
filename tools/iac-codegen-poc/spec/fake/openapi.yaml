@@ -1,0 +1,1029 @@
+openapi: 3.1.0
+info:
+  title: Fake Boards API
+  version: "1"
+  description: >-
+    A fake API that follows the full IaC contract. It exists only to test the
+    generator on shapes that the real API does not have. No server implements it.
+    Create, Get, and Update return the board itself, not inside a wrapper field.
+tags:
+  - name: Fake Boards Service
+paths:
+  /fake/boards/v1:
+    post:
+      description: Creates a board.
+      operationId: FakeBoardsService_CreateFakeBoard
+      tags:
+        - Fake Boards Service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to create a board.
+              properties:
+                name:
+                  description: Name of the board.
+                  maxLength: 64
+                  minLength: 1
+                  type: string
+                description:
+                  description: Free text about the board.
+                  maxLength: 256
+                  type: string
+                  x-coralogix-presence: true
+                flags:
+                  additionalProperties:
+                    type: boolean
+                  description: Feature flags. A map of bools.
+                  type: object
+                  x-coralogix-presence: true
+                publicLink:
+                  allOf:
+                    - $ref: '#/components/schemas/PublicLink'
+                  description: Share by a public link. A oneOf arm at the resource root.
+                  x-coralogix-presence: true
+                privateShare:
+                  allOf:
+                    - $ref: '#/components/schemas/PrivateShare'
+                  description: Share with a team. A oneOf arm at the resource root.
+                  x-coralogix-presence: true
+                icon:
+                  description: Board icon, base64 (format byte), as in the custom enrichments API.
+                  format: byte
+                  type: string
+                  x-coralogix-presence: true
+                labels:
+                  additionalProperties:
+                    type: string
+                  description: Labels of the board. A map of strings.
+                  type: object
+                  x-coralogix-presence: true
+                panels:
+                  additionalProperties:
+                    $ref: '#/components/schemas/Panel'
+                  description: Panels by id. A map of objects.
+                  type: object
+                  x-coralogix-presence: true
+                layout:
+                  allOf:
+                    - $ref: '#/components/schemas/Layout'
+                  description: How the board looks.
+              type: object
+              required:
+                - name
+                - layout
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FakeBoard'
+          description: ''
+  /fake/boards/v1/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      description: Gets a board.
+      operationId: FakeBoardsService_GetFakeBoard
+      tags:
+        - Fake Boards Service
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FakeBoard'
+          description: ''
+    patch:
+      description: Updates a board.
+      operationId: FakeBoardsService_UpdateFakeBoard
+      tags:
+        - Fake Boards Service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Request to update a board.
+              properties:
+                description:
+                  description: Free text about the board.
+                  maxLength: 256
+                  type: string
+                  x-coralogix-presence: true
+                flags:
+                  additionalProperties:
+                    type: boolean
+                  description: Feature flags. A map of bools.
+                  type: object
+                  x-coralogix-presence: true
+                publicLink:
+                  allOf:
+                    - $ref: '#/components/schemas/PublicLink'
+                  description: Share by a public link. A oneOf arm at the resource root.
+                  x-coralogix-presence: true
+                privateShare:
+                  allOf:
+                    - $ref: '#/components/schemas/PrivateShare'
+                  description: Share with a team. A oneOf arm at the resource root.
+                  x-coralogix-presence: true
+                icon:
+                  description: Board icon, base64 (format byte), as in the custom enrichments API.
+                  format: byte
+                  type: string
+                  x-coralogix-presence: true
+                labels:
+                  additionalProperties:
+                    type: string
+                  description: Labels of the board. A map of strings.
+                  type: object
+                  x-coralogix-presence: true
+                panels:
+                  additionalProperties:
+                    $ref: '#/components/schemas/Panel'
+                  description: Panels by id. A map of objects.
+                  type: object
+                  x-coralogix-presence: true
+                layout:
+                  allOf:
+                    - $ref: '#/components/schemas/Layout'
+                  description: How the board looks.
+                  x-coralogix-presence: true
+                updateMask:
+                  description: >-
+                    Comma-separated list of field paths to update. A path can
+                    name a nested field, for example layout.section.header.text.
+                  maxLength: 1024
+                  minLength: 1
+                  pattern: ^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*(,[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*)*$
+                  type: string
+              type: object
+              required: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FakeBoard'
+          description: ''
+    delete:
+      description: Deletes a board.
+      operationId: FakeBoardsService_DeleteFakeBoard
+      tags:
+        - Fake Boards Service
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteFakeBoardResponse'
+          description: ''
+components:
+  schemas:
+    FakeBoard:
+      type: object
+      oneOf:
+        - required: [publicLink]
+          type: object
+        - required: [privateShare]
+          type: object
+        - not:
+            anyOf:
+              - required: [publicLink]
+                type: object
+              - required: [privateShare]
+                type: object
+          type: object
+      properties:
+        publicLink:
+          allOf:
+            - $ref: '#/components/schemas/PublicLink'
+          description: Share by a public link. A oneOf arm at the resource root.
+        privateShare:
+          allOf:
+            - $ref: '#/components/schemas/PrivateShare'
+          description: Share with a team. A oneOf arm at the resource root.
+        id:
+          description: Unique identifier of the board.
+          type: string
+        name:
+          description: Name of the board.
+          maxLength: 64
+          minLength: 1
+          type: string
+        description:
+          description: Free text about the board.
+          maxLength: 256
+          type: string
+        flags:
+          additionalProperties:
+            type: boolean
+          description: Feature flags. A map of bools.
+          type: object
+        icon:
+          description: Board icon, base64 (format byte), as in the custom enrichments API.
+          format: byte
+          type: string
+        labels:
+          additionalProperties:
+            type: string
+          description: Labels of the board. A map of strings.
+          type: object
+        panels:
+          additionalProperties:
+            $ref: '#/components/schemas/Panel'
+          description: Panels by id. A map of objects.
+          type: object
+        layout:
+          allOf:
+            - $ref: '#/components/schemas/Layout'
+          description: How the board looks.
+        updatedAt:
+          description: RFC3339 timestamp of the last update.
+          format: date-time
+          type: string
+        routing:
+          allOf:
+            - $ref: '#/components/schemas/Routing'
+          description: Where alerts of the board go. Only in Get. The type mode uses it to test overrides (D21).
+      required:
+        - id
+        - name
+    Layout:
+      description: How the board looks. Level 1. It has two oneOf groups.
+      type: object
+      allOf:
+        - oneOf:
+            - required: [refreshOff]
+              type: object
+            - required: [refreshEvery]
+              type: object
+            - not:
+                anyOf:
+                  - required: [refreshOff]
+                    type: object
+                  - required: [refreshEvery]
+                    type: object
+              type: object
+        - oneOf:
+            - required: [absoluteTime]
+              type: object
+            - required: [relativeTime]
+              type: object
+      properties:
+        refreshOff:
+          allOf:
+            - $ref: '#/components/schemas/BoldStyle'
+          description: No auto refresh. Group 1 (none allowed).
+        refreshEvery:
+          allOf:
+            - $ref: '#/components/schemas/Every'
+          description: Refresh every n minutes. Group 1.
+        absoluteTime:
+          allOf:
+            - $ref: '#/components/schemas/AbsoluteTime'
+          description: A fixed time range. Group 2 (one arm required).
+        relativeTime:
+          allOf:
+            - $ref: '#/components/schemas/Every'
+          description: The last n minutes. Group 2.
+        title:
+          description: Title of the board.
+          type: string
+        titleStyle:
+          allOf:
+            - $ref: '#/components/schemas/TextStyle'
+          description: Style of the title. The same type as the header style.
+        section:
+          allOf:
+            - $ref: '#/components/schemas/Section'
+          description: The main section.
+      required:
+        - title
+    Section:
+      description: A section of the board. Level 2.
+      type: object
+      properties:
+        header:
+          allOf:
+            - $ref: '#/components/schemas/Header'
+          description: The section header.
+        widths:
+          additionalProperties:
+            format: uint64
+            pattern: ^[0-9]+$
+            type: string
+          description: Column widths by column name. A map of 64-bit numbers inside a nested object.
+          type: object
+        interval:
+          allOf:
+            - $ref: '#/components/schemas/Interval'
+          description: Time bucket. A oneOf with a normal field beside the arms.
+        columns:
+          description: Column numbers. A list of int32.
+          items:
+            format: int32
+            type: integer
+          type: array
+        ratios:
+          description: Column ratios. A list of 32-bit floats.
+          items:
+            format: float
+            type: number
+          type: array
+        rows:
+          description: The rows of the section, in order.
+          items:
+            $ref: '#/components/schemas/Row'
+          type: array
+    Header:
+      description: A section header. Level 3.
+      type: object
+      properties:
+        text:
+          description: Header text.
+          minLength: 1
+          type: string
+        color:
+          allOf:
+            - $ref: '#/components/schemas/Color'
+          description: Header color.
+        style:
+          allOf:
+            - $ref: '#/components/schemas/TextStyle'
+          description: Style of the header text.
+      required:
+        - text
+    Row:
+      description: One row of a section.
+      type: object
+      properties:
+        height:
+          description: Height in grid units.
+          format: uint64
+          pattern: ^[0-9]+$
+          type: string
+        label:
+          description: Row label.
+          type: string
+        offset:
+          description: Vertical offset. A signed 64-bit number (int64).
+          format: int64
+          maximum: 100
+          minimum: -100
+          type: integer
+        style:
+          allOf:
+            - $ref: '#/components/schemas/TextStyle'
+          description: Style of the row label. A oneOf inside a list item.
+      required:
+        - height
+    TextStyle:
+      description: Text style (oneof).
+      type: object
+      properties:
+        bold:
+          allOf:
+            - $ref: '#/components/schemas/BoldStyle'
+          description: Bold text (no fields).
+        font:
+          allOf:
+            - $ref: '#/components/schemas/FontStyle'
+          description: A font.
+      oneOf:
+        - required:
+            - bold
+          type: object
+        - required:
+            - font
+          type: object
+        - not:
+            anyOf:
+              - required:
+                  - bold
+                type: object
+              - required:
+                  - font
+                type: object
+          type: object
+    BoldStyle:
+      description: Bold text. It has no fields.
+      type: object
+    FontStyle:
+      description: A font.
+      type: object
+      properties:
+        family:
+          description: Font family.
+          type: string
+        scale:
+          description: Font scale. A 32-bit float.
+          format: float
+          type: number
+        size:
+          description: Font size in points.
+          format: uint64
+          pattern: ^[0-9]+$
+          type: string
+    SortStrategy:
+      description: A sort order. The arms byName and byValue, and the discriminator field strategyType.
+      type: object
+      discriminator:
+        propertyName: strategyType
+      properties:
+        byName:
+          allOf:
+            - $ref: '#/components/schemas/BoldStyle'
+          description: Sort by name.
+        byValue:
+          allOf:
+            - $ref: '#/components/schemas/Every'
+          description: Sort by value.
+        strategyType:
+          description: Discriminator field - BY_NAME or BY_VALUE.
+          maxLength: 128
+          minLength: 1
+          type: string
+      oneOf:
+        - required: [byName]
+          type: object
+        - required: [byValue]
+          type: object
+        - not:
+            anyOf:
+              - required: [byName]
+                type: object
+              - required: [byValue]
+                type: object
+          type: object
+    Interval:
+      description: A time bucket. The arms auto and manual (one is required), and the normal field useLimit.
+      type: object
+      properties:
+        auto:
+          allOf:
+            - $ref: '#/components/schemas/BoldStyle'
+          description: Pick the bucket automatically.
+        manual:
+          allOf:
+            - $ref: '#/components/schemas/Every'
+          description: A fixed bucket.
+        useLimit:
+          description: A normal field beside the arms.
+          type: boolean
+      oneOf:
+        - required: [auto]
+          type: object
+        - required: [manual]
+          type: object
+    Every:
+      description: A number of minutes.
+      type: object
+      properties:
+        minutes:
+          description: Minutes.
+          format: int32
+          type: integer
+    AbsoluteTime:
+      description: A fixed time range.
+      type: object
+      properties:
+        from:
+          description: Start. A timestamp that the user writes, as in the dashboards query time frame.
+          format: date-time
+          type: string
+        to:
+          description: End. A timestamp that the user writes.
+          format: date-time
+          type: string
+    PublicLink:
+      description: A public link.
+      type: object
+      properties:
+        url:
+          description: The link.
+          type: string
+    PrivateShare:
+      description: Shared with a team.
+      type: object
+      properties:
+        team:
+          description: The team.
+          type: string
+    Panel:
+      description: A panel. A value of the panels map.
+      type: object
+      properties:
+        query:
+          description: The panel query.
+          minLength: 1
+          type: string
+        sort:
+          allOf:
+            - $ref: '#/components/schemas/SortStrategy'
+          description: Sort order. A oneOf with a discriminator field, as in the dashboards API.
+        precision:
+          description: Digits after the point. A 32-bit integer (int32).
+          format: int32
+          maximum: 10
+          minimum: 0
+          type: integer
+        thresholds:
+          additionalProperties:
+            format: double
+            type: number
+          description: Thresholds by name. A map of numbers.
+          type: object
+        unit:
+          allOf:
+            - $ref: '#/components/schemas/Unit'
+          description: The unit of the values.
+        style:
+          allOf:
+            - $ref: '#/components/schemas/TextStyle'
+          description: Style of the panel title. A oneOf inside a map value.
+        filters:
+          description: Filters of the panel query. A list of oneOf, as in the dashboards query filters.
+          items:
+            $ref: '#/components/schemas/Filter'
+          type: array
+      required:
+        - query
+    Filter:
+      description: One filter. Exactly one arm is set.
+      type: object
+      properties:
+        equals:
+          allOf:
+            - $ref: '#/components/schemas/Match'
+          description: The field equals the value.
+        contains:
+          allOf:
+            - $ref: '#/components/schemas/Match'
+          description: The field contains the value.
+      oneOf:
+        - required:
+            - equals
+          type: object
+        - required:
+            - contains
+          type: object
+    Match:
+      description: A field and a value.
+      type: object
+      properties:
+        field:
+          description: The field name.
+          minLength: 1
+          type: string
+        value:
+          description: The value.
+          type: string
+      required:
+        - field
+    Unit:
+      enum:
+        - PERCENT
+        - BYTES
+      type: string
+      description: A unit.
+    Orientation:
+      description: An enum whose zero value is also a real value, as in the dashboards API (vertical).
+      enum:
+        - ORIENTATION_VERTICAL_UNSPECIFIED
+        - ORIENTATION_HORIZONTAL
+      type: string
+    Comparison:
+      description: An enum whose zero value is also a real value, as in the alerts API (more than).
+      enum:
+        - COMPARISON_MORE_THAN_OR_UNSPECIFIED
+        - COMPARISON_LESS_THAN
+      type: string
+    Routing:
+      description: Alert routing. Its handwritten Terraform schema differs from the API, as in real resources, so the overrides test (D21) uses it.
+      properties:
+        routingName:
+          description: Name of the routing. Terraform calls it name.
+          maxLength: 50
+          minLength: 1
+          type: string
+        delivery:
+          allOf:
+            - $ref: '#/components/schemas/Delivery'
+          description: How alerts are delivered.
+        channels:
+          description: Delivery kinds per channel. A list of enums.
+          items:
+            $ref: '#/components/schemas/Delivery'
+          type: array
+        targets:
+          description: The targets. Order does not matter.
+          items:
+            $ref: '#/components/schemas/Target'
+          type: array
+        priority:
+          description: Priority, an int32.
+          format: int32
+          type: integer
+        weight:
+          description: Weight, a float.
+          format: float
+          type: number
+        disabled:
+          description: Disabled routings send nothing.
+          type: boolean
+        routerId:
+          description: Set by the server.
+          type: string
+        createTime:
+          description: Set by the server. The spec marks it readOnly.
+          format: date-time
+          readOnly: true
+          type: string
+      type: object
+    Target:
+      description: A routing target.
+      properties:
+        connectorId:
+          description: The connector.
+          type: string
+        tags:
+          description: Tags. Order does not matter.
+          items:
+            type: string
+          type: array
+      type: object
+    Delivery:
+      description: An enum whose zero value has a prefix and whose other values have none, as in the real Delivery enum.
+      enum:
+        - DELIVERY_UNSPECIFIED
+        - DISABLED
+        - ERRORS_ONLY
+      type: string
+    Color:
+      enum:
+        - RED
+        - GREEN
+        - BLUE
+      type: string
+      description: A color.
+    Query:
+      description: A widget query, as in the dashboards API, where many fields are objects with one field, value. The unwrap override (D21) tests use it.
+      properties:
+        source:
+          allOf:
+            - $ref: '#/components/schemas/QuerySource'
+          description: Where the query runs.
+        widgetIds:
+          description: The widgets that use the query. A list of value objects.
+          items:
+            $ref: '#/components/schemas/WidgetId'
+          type: array
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/LabelValues'
+          description: Labels. A value object that holds a list.
+        field:
+          allOf:
+            - $ref: '#/components/schemas/FieldSource'
+          description: The field to show. A value object that holds an object. Required, so the SDK holds it as a value.
+        color:
+          allOf:
+            - $ref: '#/components/schemas/ColorValue'
+          description: The color. A value object that holds an enum.
+        series:
+          description: More fields. A list of value objects that hold objects.
+          items:
+            $ref: '#/components/schemas/FieldSource'
+          type: array
+      required:
+        - field
+      type: object
+    QuerySource:
+      description: Exactly one query language. Both arms are value objects.
+      properties:
+        luceneQuery:
+          allOf:
+            - $ref: '#/components/schemas/LuceneQuery'
+          description: A Lucene query.
+        promqlQuery:
+          allOf:
+            - $ref: '#/components/schemas/PromQlQuery'
+          description: A PromQL query.
+      oneOf:
+        - required:
+            - luceneQuery
+          type: object
+        - required:
+            - promqlQuery
+          type: object
+      type: object
+    LuceneQuery:
+      properties:
+        value:
+          description: The value.
+          type: string
+      type: object
+    PromQlQuery:
+      properties:
+        value:
+          description: The value.
+          minLength: 1
+          type: string
+      type: object
+    WidgetId:
+      properties:
+        value:
+          description: The value.
+          maxLength: 36
+          minLength: 36
+          type: string
+      type: object
+    LabelValues:
+      properties:
+        value:
+          description: The value.
+          items:
+            type: string
+          type: array
+      type: object
+    FieldSource:
+      properties:
+        value:
+          allOf:
+            - $ref: '#/components/schemas/ObservationField'
+          description: The value.
+      type: object
+    ObservationField:
+      description: A field of a log.
+      properties:
+        keypath:
+          description: The path of the field.
+          items:
+            type: string
+          type: array
+        scope:
+          description: The scope of the field.
+          type: string
+      type: object
+    ColorValue:
+      properties:
+        value:
+          allOf:
+            - $ref: '#/components/schemas/Color'
+          description: The value.
+      type: object
+    Key:
+      description: An API key, as in the ApiKey API. Handwritten resources show some nested objects as fields of the parent. The inline override (D21, F67) tests use it, and the int64, string, and sensitive overrides (F68).
+      properties:
+        name:
+          description: Name of the key.
+          type: string
+        secret:
+          description: The secret. Terraform hides it (sensitive).
+          type: string
+        keyPermissions:
+          allOf:
+            - $ref: '#/components/schemas/Key.Permissions'
+          description: What the key can do. Terraform shows its fields in the key.
+        limits:
+          allOf:
+            - $ref: '#/components/schemas/KeyLimits'
+          description: Rate limits. Required, so the SDK holds it as a value. Terraform shows its fields in the key.
+        rotation:
+          allOf:
+            - $ref: '#/components/schemas/KeyRotation'
+          description: Rotation. It also inlines Key.Permissions.
+        backup:
+          allOf:
+            - $ref: '#/components/schemas/Key.Permissions'
+          description: Backup permissions. The same object, not inlined.
+        ownerTeamId:
+          description: The owner team. An int64 JSON number; Terraform has a string.
+          format: int64
+          minimum: 0
+          type: integer
+        maxCount:
+          description: A signed 64-bit number that JSON sends as a string, with no format, as in the alerts API.
+          maxLength: 20
+          minLength: 1
+          pattern: ^-?[0-9]+$
+          type: string
+        ttlSeconds:
+          description: An unsigned 64-bit number that JSON sends as a string, with no format, as in the alerts API.
+          pattern: ^[0-9]+$
+          type: string
+        notify:
+          allOf:
+            - $ref: '#/components/schemas/KeyNotify'
+          description: Where to send notices. A oneOf that Terraform shows in the key, as the alerts webhook integration.
+        policy:
+          allOf:
+            - $ref: '#/components/schemas/KeyPolicy'
+          description: The policy. Its default is an object of the defaults of its fields (defaultObject).
+        retryMinutes:
+          description: Minutes between retries. Terraform has it in a computed object, retry.
+          format: int64
+          type: integer
+        ratio:
+          description: A float that Terraform shows as a Float64 (wide).
+          format: float
+          type: number
+        kind:
+          description: The kind. Computed, with a default.
+          type: string
+      required:
+        - limits
+      type: object
+    Key.Permissions:
+      description: Permissions of a key.
+      properties:
+        permissions:
+          description: The permissions. Order does not matter.
+          items:
+            type: string
+          type: array
+        presets:
+          description: The preset names.
+          items:
+            type: string
+          type: array
+        updatedBy:
+          description: Set by the server.
+          readOnly: true
+          type: string
+      type: object
+    KeyNotify:
+      description: Where to send notices, an email or a webhook.
+      oneOf:
+        - required:
+            - email
+          type: object
+        - required:
+            - webhookId
+          type: object
+        - not:
+            anyOf:
+              - required:
+                  - email
+                type: object
+              - required:
+                  - webhookId
+                type: object
+          type: object
+      properties:
+        email:
+          description: An email address.
+          type: string
+        webhookId:
+          description: A webhook.
+          type: string
+      type: object
+    KeyPolicy:
+      description: The policy of a key.
+      properties:
+        level:
+          description: The level. It has a default.
+          type: string
+        strict:
+          description: Strict mode. It has no default.
+          type: boolean
+      type: object
+    KeyLimits:
+      description: Rate limits of a key.
+      properties:
+        perMinute:
+          description: Requests per minute. Required.
+          format: int32
+          type: integer
+        burst:
+          description: A signed 64-bit number that JSON sends as a string.
+          pattern: ^-?[0-9]+$
+          type: string
+      required:
+        - perMinute
+      type: object
+    KeyRotation:
+      description: Key rotation.
+      properties:
+        everyDays:
+          description: Days between rotations.
+          format: int32
+          type: integer
+        permissions:
+          allOf:
+            - $ref: '#/components/schemas/Key.Permissions'
+          description: The permissions of the new key. Terraform shows its fields in the rotation.
+      type: object
+    Alarm:
+      description: An alert, as in the alerts API. One rule is set, and type names it (namesArm). Two fields have a Terraform shape that no rule converts (custom). The custom and namesArm override (D21) tests use it.
+      properties:
+        name:
+          description: Name of the alarm.
+          type: string
+        type:
+          allOf:
+            - $ref: '#/components/schemas/AlarmType'
+          description: The rule that is set.
+        logsRule:
+          allOf:
+            - $ref: '#/components/schemas/LogsRule'
+          description: A logs rule.
+        metricRule:
+          allOf:
+            - $ref: '#/components/schemas/MetricRule'
+          description: A metric rule.
+        tracingRule:
+          allOf:
+            - $ref: '#/components/schemas/TracingRule'
+          description: A tracing rule.
+      oneOf:
+        - required:
+            - logsRule
+          type: object
+        - required:
+            - metricRule
+          type: object
+        - required:
+            - tracingRule
+          type: object
+        - not:
+            anyOf:
+              - required:
+                  - logsRule
+                type: object
+              - required:
+                  - metricRule
+                type: object
+              - required:
+                  - tracingRule
+                type: object
+          type: object
+      type: object
+    AlarmType:
+      description: The rule of an alarm.
+      enum:
+        - ALARM_TYPE_LOGS_RULE_OR_UNSPECIFIED
+        - ALARM_TYPE_METRIC_RULE
+        - ALARM_TYPE_TRACING_RULE
+      type: string
+    LogsRule:
+      description: A logs rule.
+      properties:
+        query:
+          description: The query.
+          type: string
+      type: object
+    MetricRule:
+      description: A metric rule.
+      properties:
+        threshold:
+          description: The threshold.
+          format: double
+          type: number
+        ofTheLast:
+          allOf:
+            - $ref: '#/components/schemas/TimeWindow'
+          description: The time window. Terraform has one string, as alerts of_the_last.
+      type: object
+    TracingRule:
+      description: A tracing rule.
+      properties:
+        latencyMs:
+          description: The latency. Terraform has a Number, as alerts latency_threshold_ms.
+          pattern: ^[0-9]+$
+          type: string
+      type: object
+    TimeWindow:
+      description: A fixed time window or a duration.
+      oneOf:
+        - required:
+            - specificValue
+          type: object
+        - required:
+            - dynamicDuration
+          type: object
+      properties:
+        specificValue:
+          allOf:
+            - $ref: '#/components/schemas/TimeWindowValue'
+          description: A fixed time window.
+        dynamicDuration:
+          description: A duration, for example 90s.
+          type: string
+      type: object
+    TimeWindowValue:
+      enum:
+        - TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED
+        - TIME_WINDOW_VALUE_HOURS_1
+      type: string
+      description: A fixed time window.
+    DeleteFakeBoardResponse:
+      type: object
+      properties:
+        id:
+          description: Identifier of the deleted board.
+          type: string

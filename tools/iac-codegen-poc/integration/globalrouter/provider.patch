@@ -1,0 +1,866 @@
+diff --git a/internal/provider/notifications/data_source_coralogix_global_router.go b/internal/provider/notifications/data_source_coralogix_global_router.go
+index 0f10d76..f0355f9 100644
+--- a/internal/provider/notifications/data_source_coralogix_global_router.go
++++ b/internal/provider/notifications/data_source_coralogix_global_router.go
+@@ -22,6 +22,7 @@ import (
+ 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+ 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
+ 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
++	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/globalroutertypes"
+ 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+ 
+ 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+@@ -88,7 +89,7 @@ func (d *GlobalRouterDataSource) Schema(ctx context.Context, _ datasource.Schema
+ }
+ 
+ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+-	var data *GlobalRouterResourceModel
++	var data *globalroutertypes.GlobalRouterModel
+ 	diags := req.Config.Get(ctx, &data)
+ 	if diags.HasError() {
+ 		resp.Diagnostics.Append(diags...)
+@@ -122,7 +123,7 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
+ 			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_global_router with name %q not found", name), "")
+ 			return
+ 		}
+-	} else if id := data.ID.ValueString(); id != "" {
++	} else if id := data.Id.ValueString(); id != "" {
+ 		routerID = id
+ 	} else {
+ 		resp.Diagnostics.AddError("ID or name must be set", "")
+@@ -138,7 +139,7 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
+ 		)
+ 		return
+ 	}
+-	data, diags = flattenGlobalRouter(ctx, result.Router)
++	data, diags = globalroutertypes.FlattenGlobalRouter(ctx, path.Empty(), result.Router)
+ 	if diags.HasError() {
+ 		resp.Diagnostics.Append(diags...)
+ 		return
+diff --git a/internal/provider/notifications/global_router_schema/common.go b/internal/provider/notifications/global_router_schema/common.go
+index 7391f79..ce71399 100644
+--- a/internal/provider/notifications/global_router_schema/common.go
++++ b/internal/provider/notifications/global_router_schema/common.go
+@@ -18,31 +18,6 @@ import (
+ 	"github.com/hashicorp/terraform-plugin-framework/types"
+ )
+ 
+-func RoutingRuleAttr() map[string]attr.Type {
+-	return map[string]attr.Type{
+-		"entity_type":    types.StringType,
+-		"condition":      types.StringType,
+-		"name":           types.StringType,
+-		"targets":        types.ListType{ElemType: types.ObjectType{AttrTypes: RoutingTargetAttr()}},
+-		"custom_details": types.MapType{ElemType: types.StringType},
+-	}
+-}
+-
+-func RoutingTargetAttr() map[string]attr.Type {
+-	return map[string]attr.Type{
+-		"connector_id":   types.StringType,
+-		"preset_id":      types.StringType,
+-		"custom_details": types.MapType{ElemType: types.StringType},
+-	}
+-}
+-
+-func FallbackTargetAttr() map[string]attr.Type {
+-	return map[string]attr.Type{
+-		"entity_type": types.StringType,
+-		"target":      types.ObjectType{AttrTypes: RoutingTargetAttr()},
+-	}
+-}
+-
+ func MessageConfigFieldAttr() map[string]attr.Type {
+ 	return map[string]attr.Type{
+ 		"field_name": types.StringType,
+diff --git a/internal/provider/notifications/global_router_schema/v1.go b/internal/provider/notifications/global_router_schema/v1.go
+index 9825298..91c5924 100644
+--- a/internal/provider/notifications/global_router_schema/v1.go
++++ b/internal/provider/notifications/global_router_schema/v1.go
+@@ -15,196 +15,18 @@
+ package globalrouterschema
+ 
+ import (
+-	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
+-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+-
+ 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+-	"github.com/hashicorp/terraform-plugin-framework/types"
+-)
+ 
+-var (
+-	GlobalRouterEntityTypeSchemaToApi = map[string]globalRouters.NotificationCenterEntityType{
+-		utils.UNSPECIFIED:    globalRouters.NOTIFICATIONCENTERENTITYTYPE_ENTITY_TYPE_UNSPECIFIED,
+-		"alerts":             globalRouters.NOTIFICATIONCENTERENTITYTYPE_ALERTS,
+-		"cases":              globalRouters.NOTIFICATIONCENTERENTITYTYPE_CASES,
+-		"test_notifications": globalRouters.NOTIFICATIONCENTERENTITYTYPE_TEST_NOTIFICATIONS,
+-	}
+-	GlobalRouterNotificationCenterEntityTypeApiToSchema       = utils.ReverseMap(GlobalRouterEntityTypeSchemaToApi)
+-	GlobalRouterValidNotificationCenterEntityTypesSchemaToApi = utils.GetKeys(GlobalRouterEntityTypeSchemaToApi)
++	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/globalroutertypes"
+ )
+ 
++// V1 is the schema of coralogix_global_router. The attributes are generated
++// from the API (package globalroutertypes); the overrides file keeps them
++// the same as the handwritten schema they replace.
+ func V1() schema.Schema {
+ 	return schema.Schema{
+-		Version: 1,
+-		Attributes: map[string]schema.Attribute{
+-			"id": schema.StringAttribute{
+-				Optional:            true,
+-				Computed:            true,
+-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+-				MarkdownDescription: "The ID of the GlobalRouter. Use `router_default` for the default; leave empty for auto generated or provide your own (unique) id.",
+-			},
+-			"name": schema.StringAttribute{
+-				Required:            true,
+-				MarkdownDescription: "Name of the GlobalRouter.",
+-			},
+-			"description": schema.StringAttribute{
+-				Optional:            true,
+-				MarkdownDescription: "Description of the GlobalRouter.",
+-			},
+-			"routing_labels": schema.SingleNestedAttribute{
+-				Optional:            true,
+-				MarkdownDescription: "Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique. Labels matching is linked with AND, so an alert has to have all labels specified below.",
+-				Attributes: map[string]schema.Attribute{
+-					"environment": schema.StringAttribute{
+-						Optional: true,
+-						Computed: true,
+-					},
+-					"service": schema.StringAttribute{
+-						Optional: true,
+-						Computed: true,
+-					},
+-					"team": schema.StringAttribute{
+-						Optional: true,
+-						Computed: true,
+-					},
+-				},
+-			},
+-			"rules": schema.ListNestedAttribute{
+-				Optional:    true,
+-				Computed:    true,
+-				Description: "Routing rules for the GlobalRouter.",
+-				NestedObject: schema.NestedAttributeObject{
+-					Attributes: map[string]schema.Attribute{
+-						"entity_type": schema.StringAttribute{
+-							Optional:      true,
+-							Computed:      true,
+-							Default:       stringdefault.StaticString(utils.UNSPECIFIED),
+-							PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+-							Validators: []validator.String{
+-								stringvalidator.OneOf(GlobalRouterValidNotificationCenterEntityTypesSchemaToApi...),
+-							}},
+-						"condition": schema.StringAttribute{
+-							Required: true,
+-						},
+-						"targets": schema.ListNestedAttribute{
+-							Optional:    true,
+-							Computed:    true,
+-							Description: "Routing targets for the rule.",
+-							NestedObject: schema.NestedAttributeObject{
+-								Attributes: map[string]schema.Attribute{
+-									"connector_id": schema.StringAttribute{
+-										Required:    true,
+-										Description: "ID of the connector.",
+-									},
+-									"preset_id": schema.StringAttribute{
+-										Optional:    true,
+-										Description: "ID of the preset.",
+-									},
+-									"custom_details": schema.MapAttribute{
+-										Optional:    true,
+-										Computed:    true,
+-										ElementType: types.StringType,
+-										Description: "Custom details for the target.",
+-									},
+-								},
+-							},
+-						},
+-						"custom_details": schema.MapAttribute{
+-							Optional:    true,
+-							Computed:    true,
+-							ElementType: types.StringType,
+-							Description: "Custom details for the rule.",
+-						},
+-						"name": schema.StringAttribute{
+-							Required:    true,
+-							Description: "Name of the routing rule.",
+-						},
+-					},
+-				},
+-			},
+-			"fallback": schema.ListNestedAttribute{
+-				Optional:           true,
+-				Description:        "Fallback routing targets. Removing the block clears them.",
+-				DeprecationMessage: "Use `fallback_targets` instead, which supports per-entity-type fallback.",
+-				Validators: []validator.List{
+-					listvalidator.SizeAtLeast(1),
+-				},
+-				NestedObject: schema.NestedAttributeObject{
+-					Attributes: map[string]schema.Attribute{
+-						"connector_id": schema.StringAttribute{
+-							Required:    true,
+-							Description: "ID of the connector.",
+-						},
+-						"preset_id": schema.StringAttribute{
+-							Optional:    true,
+-							Description: "ID of the preset.",
+-						},
+-						"custom_details": schema.MapAttribute{
+-							Optional:    true,
+-							Computed:    true,
+-							ElementType: types.StringType,
+-							Description: "Custom details for the target.",
+-						},
+-					},
+-				},
+-			},
+-			"fallback_targets": schema.ListNestedAttribute{
+-				Optional:    true,
+-				Description: "Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. Omit the block to clear the fallback targets.",
+-				Validators: []validator.List{
+-					listvalidator.SizeAtLeast(1),
+-				},
+-				NestedObject: schema.NestedAttributeObject{
+-					Attributes: map[string]schema.Attribute{
+-						"entity_type": schema.StringAttribute{
+-							Required:    true,
+-							Description: "The entity type this fallback applies to.",
+-							Validators: []validator.String{
+-								stringvalidator.OneOf(GlobalRouterValidNotificationCenterEntityTypesSchemaToApi...),
+-							},
+-						},
+-						"target": schema.SingleNestedAttribute{
+-							Required:    true,
+-							Description: "The fallback routing target.",
+-							Attributes: map[string]schema.Attribute{
+-								"connector_id": schema.StringAttribute{
+-									Required:    true,
+-									Description: "ID of the connector.",
+-								},
+-								"preset_id": schema.StringAttribute{
+-									Optional:    true,
+-									Description: "ID of the preset.",
+-								},
+-								"custom_details": schema.MapAttribute{
+-									Optional:    true,
+-									Computed:    true,
+-									ElementType: types.StringType,
+-									Description: "Custom details for the target.",
+-								},
+-							},
+-						},
+-					},
+-				},
+-			},
+-			"disabled": schema.BoolAttribute{
+-				Optional:            true,
+-				Computed:            true,
+-				Default:             booldefault.StaticBool(false),
+-				MarkdownDescription: "Disables the router without deleting it. Defaults to false.",
+-			},
+-			"entity_labels": schema.MapAttribute{
+-				Optional:    true,
+-				Computed:    true,
+-				ElementType: types.StringType,
+-			},
+-		},
++		Version:             1,
++		Attributes:          globalroutertypes.GlobalRouterAttributes(),
+ 		MarkdownDescription: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in Beta stage.",
+ 	}
+ }
+diff --git a/internal/provider/notifications/resource_coralogix_global_router.go b/internal/provider/notifications/resource_coralogix_global_router.go
+index 3835211..4035fea 100644
+--- a/internal/provider/notifications/resource_coralogix_global_router.go
++++ b/internal/provider/notifications/resource_coralogix_global_router.go
+@@ -24,13 +24,12 @@ import (
+ 
+ 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+ 	globalrouterschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/global_router_schema"
++	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/globalroutertypes"
+ 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+ 
+-	"github.com/hashicorp/terraform-plugin-framework/diag"
+ 	"github.com/hashicorp/terraform-plugin-framework/path"
+ 	"github.com/hashicorp/terraform-plugin-framework/resource"
+ 	"github.com/hashicorp/terraform-plugin-framework/types"
+-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+ )
+ 
+ func NewGlobalRouterResource() resource.Resource {
+@@ -41,43 +40,6 @@ type GlobalRouterResource struct {
+ 	client *globalRouters.GlobalRoutersServiceAPIService
+ }
+ 
+-type GlobalRouterResourceModel struct {
+-	ID              types.String        `tfsdk:"id"`
+-	Name            types.String        `tfsdk:"name"`
+-	Description     types.String        `tfsdk:"description"`
+-	Rules           types.List          `tfsdk:"rules"`            // RoutingRuleModel
+-	FallBack        types.List          `tfsdk:"fallback"`         // RoutingTargetModel (deprecated)
+-	FallbackTargets types.List          `tfsdk:"fallback_targets"` // FallbackTargetModel
+-	Disabled        types.Bool          `tfsdk:"disabled"`
+-	EntityLabels    types.Map           `tfsdk:"entity_labels"`
+-	RoutingLabels   *RoutingLabelsModel `tfsdk:"routing_labels"`
+-}
+-
+-type FallbackTargetModel struct {
+-	EntityType types.String `tfsdk:"entity_type"`
+-	Target     types.Object `tfsdk:"target"` // RoutingTargetModel
+-}
+-
+-type RoutingRuleModel struct {
+-	EntityType    types.String `tfsdk:"entity_type"`
+-	Condition     types.String `tfsdk:"condition"`
+-	Targets       types.List   `tfsdk:"targets"` // RoutingTargetModel
+-	CustomDetails types.Map    `tfsdk:"custom_details"`
+-	Name          types.String `tfsdk:"name"`
+-}
+-
+-type RoutingTargetModel struct {
+-	ConnectorId   types.String `tfsdk:"connector_id"`
+-	PresetId      types.String `tfsdk:"preset_id"`
+-	CustomDetails types.Map    `tfsdk:"custom_details"`
+-}
+-
+-type RoutingLabelsModel struct {
+-	Environment types.String `tfsdk:"environment"`
+-	Service     types.String `tfsdk:"service"`
+-	Team        types.String `tfsdk:"team"`
+-}
+-
+ func (r *GlobalRouterResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+ 	resp.TypeName = req.ProviderTypeName + "_global_router"
+ }
+@@ -114,7 +76,7 @@ func (r *GlobalRouterResource) UpgradeState(_ context.Context) map[int64]resourc
+ }
+ 
+ func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+-	var state *GlobalRouterResourceModel
++	var state *globalroutertypes.GlobalRouterModel
+ 	id := types.StringValue("")
+ 	diags := req.State.GetAttribute(ctx, path.Root("id"), &id)
+ 	resp.Diagnostics.Append(diags...)
+@@ -122,7 +84,7 @@ func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context,
+ 		return
+ 	}
+ 
+-	// id := state.ID.ValueString()
++	// id := state.Id.ValueString()
+ 	rq := r.client.GlobalRoutersServiceGetGlobalRouter(ctx, id.ValueString())
+ 
+ 	result, httpResponse, err := rq.Execute()
+@@ -141,7 +103,7 @@ func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context,
+ 		return
+ 	}
+ 
+-	state, diags = flattenGlobalRouter(ctx, result.Router)
++	state, diags = globalroutertypes.FlattenGlobalRouter(ctx, path.Empty(), result.Router)
+ 	if diags.HasError() {
+ 		resp.Diagnostics.Append(diags...)
+ 		return
+@@ -155,14 +117,14 @@ func (r *GlobalRouterResource) ImportState(ctx context.Context, req resource.Imp
+ }
+ 
+ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+-	var plan *GlobalRouterResourceModel
++	var plan *globalroutertypes.GlobalRouterModel
+ 	diags := req.Plan.Get(ctx, &plan)
+ 	resp.Diagnostics.Append(diags...)
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+ 
+-	router, diags := extractGlobalRouter(ctx, plan)
++	router, diags := globalroutertypes.ExpandGlobalRouter(ctx, path.Empty(), plan)
+ 	if diags.HasError() {
+ 		resp.Diagnostics.Append(diags...)
+ 		return
+@@ -183,7 +145,7 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
+ 		)
+ 		return
+ 	}
+-	plan, diags = flattenGlobalRouter(ctx, result.Router)
++	plan, diags = globalroutertypes.FlattenGlobalRouter(ctx, path.Empty(), result.Router)
+ 	if diags.HasError() {
+ 		resp.Diagnostics.Append(diags...)
+ 		return
+@@ -193,7 +155,7 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
+ }
+ 
+ func (r *GlobalRouterResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+-	var state *GlobalRouterResourceModel
++	var state *globalroutertypes.GlobalRouterModel
+ 
+ 	diags := req.State.Get(ctx, &state)
+ 	resp.Diagnostics.Append(diags...)
+@@ -201,7 +163,7 @@ func (r *GlobalRouterResource) Read(ctx context.Context, req resource.ReadReques
+ 		return
+ 	}
+ 
+-	id := state.ID.ValueString()
++	id := state.Id.ValueString()
+ 	rq := r.client.GlobalRoutersServiceGetGlobalRouter(ctx, id)
+ 
+ 	result, httpResponse, err := rq.Execute()
+@@ -220,7 +182,7 @@ func (r *GlobalRouterResource) Read(ctx context.Context, req resource.ReadReques
+ 		return
+ 	}
+ 
+-	state, diags = flattenGlobalRouter(ctx, result.Router)
++	state, diags = globalroutertypes.FlattenGlobalRouter(ctx, path.Empty(), result.Router)
+ 	if diags.HasError() {
+ 		resp.Diagnostics.Append(diags...)
+ 		return
+@@ -230,15 +192,15 @@ func (r *GlobalRouterResource) Read(ctx context.Context, req resource.ReadReques
+ }
+ 
+ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+-	var plan *GlobalRouterResourceModel
++	var plan *globalroutertypes.GlobalRouterModel
+ 	diags := req.Plan.Get(ctx, &plan)
+ 	resp.Diagnostics.Append(diags...)
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+-	id := plan.ID.ValueString()
++	id := plan.Id.ValueString()
+ 
+-	router, diags := extractGlobalRouter(ctx, plan)
++	router, diags := globalroutertypes.ExpandGlobalRouter(ctx, path.Empty(), plan)
+ 	if diags.HasError() {
+ 		resp.Diagnostics.Append(diags...)
+ 		return
+@@ -263,7 +225,7 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
+ 		}
+ 		return
+ 	}
+-	plan, diags = flattenGlobalRouter(ctx, result.Router)
++	plan, diags = globalroutertypes.FlattenGlobalRouter(ctx, path.Empty(), result.Router)
+ 	if diags.HasError() {
+ 		resp.Diagnostics.Append(diags...)
+ 		return
+@@ -274,14 +236,14 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
+ }
+ 
+ func (r GlobalRouterResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+-	var state GlobalRouterResourceModel
++	var state globalroutertypes.GlobalRouterModel
+ 	diags := req.State.Get(ctx, &state)
+ 	resp.Diagnostics.Append(diags...)
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+ 
+-	id := state.ID.ValueString()
++	id := state.Id.ValueString()
+ 
+ 	if _, httpResponse, err := r.client.GlobalRoutersServiceDeleteGlobalRouter(ctx, id).Execute(); err != nil {
+ 		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+@@ -293,395 +255,3 @@ func (r GlobalRouterResource) Delete(ctx context.Context, req resource.DeleteReq
+ 		return
+ 	}
+ }
+-
+-func extractGlobalRouter(ctx context.Context, plan *GlobalRouterResourceModel) (*globalRouters.GlobalRouter, diag.Diagnostics) {
+-	rules, diags := extractGlobalRouterRules(ctx, plan.Rules)
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	fallback, diags := extractRoutingTargets(ctx, plan.FallBack)
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	fallbackTargets, diags := extractFallbackTargets(ctx, plan.FallbackTargets)
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	entityLabels, diags := utils.TypeMapToStringMap(ctx, plan.EntityLabels)
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	routingLabels := extractRoutingLabels(plan.RoutingLabels)
+-
+-	var routerId *string
+-	if !(plan.ID.IsNull() || plan.ID.IsUnknown()) {
+-		routerId = plan.ID.ValueStringPointer()
+-	}
+-
+-	return &globalRouters.GlobalRouter{
+-		Id:              routerId,
+-		Name:            plan.Name.ValueStringPointer(),
+-		Description:     plan.Description.ValueStringPointer(),
+-		Rules:           rules,
+-		Fallback:        fallback,
+-		FallbackTargets: fallbackTargets,
+-		Disabled:        plan.Disabled.ValueBoolPointer(),
+-		EntityLabels:    entityLabels,
+-		RoutingLabels:   routingLabels,
+-	}, nil
+-}
+-
+-func extractFallbackTargets(ctx context.Context, list types.List) ([]globalRouters.FallbackTarget, diag.Diagnostics) {
+-	if list.IsNull() || list.IsUnknown() {
+-		return nil, nil
+-	}
+-	var diags diag.Diagnostics
+-	var objs []types.Object
+-	list.ElementsAs(ctx, &objs, true)
+-	extracted := make([]globalRouters.FallbackTarget, 0, len(objs))
+-	for _, o := range objs {
+-		var model FallbackTargetModel
+-		if dg := o.As(ctx, &model, basetypes.ObjectAsOptions{}); dg.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		var targetModel RoutingTargetModel
+-		if dg := model.Target.As(ctx, &targetModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		target, dg := extractRoutingTarget(ctx, targetModel)
+-		if dg.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		entityType := globalrouterschema.GlobalRouterEntityTypeSchemaToApi[model.EntityType.ValueString()]
+-		extracted = append(extracted, globalRouters.FallbackTarget{
+-			EntityType: &entityType,
+-			Target:     target,
+-		})
+-	}
+-
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	return extracted, diags
+-}
+-
+-func extractGlobalRouterRules(ctx context.Context, rules types.List) ([]globalRouters.RoutingRule, diag.Diagnostics) {
+-	var diags diag.Diagnostics
+-	var rulesObjects []types.Object
+-	rules.ElementsAs(ctx, &rulesObjects, true)
+-	extractedRules := make([]globalRouters.RoutingRule, 0, len(rulesObjects))
+-	for _, rule := range rulesObjects {
+-		var ruleModel RoutingRuleModel
+-		if dg := rule.As(ctx, &ruleModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		extractedRule, dg := extractRoutingRule(ctx, ruleModel)
+-		if diags.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		extractedRules = append(extractedRules, *extractedRule)
+-	}
+-
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	return extractedRules, diags
+-}
+-
+-func extractRoutingRule(ctx context.Context, routingModel RoutingRuleModel) (*globalRouters.RoutingRule, diag.Diagnostics) {
+-	var diags diag.Diagnostics
+-	targets, dg := extractRoutingTargets(ctx, routingModel.Targets)
+-	if dg.HasError() {
+-		diags.Append(dg...)
+-		return nil, diags
+-	}
+-
+-	customDetails, dg := utils.TypeMapToStringMap(ctx, routingModel.CustomDetails)
+-	if dg.HasError() {
+-		diags.Append(dg...)
+-		return nil, diags
+-	}
+-
+-	entityType := globalrouterschema.GlobalRouterEntityTypeSchemaToApi[routingModel.EntityType.ValueString()]
+-
+-	return &globalRouters.RoutingRule{
+-		Name:          utils.TypeStringToStringPointer(routingModel.Name),
+-		Condition:     routingModel.Condition.ValueStringPointer(),
+-		Targets:       targets,
+-		CustomDetails: customDetails,
+-		EntityType:    &entityType,
+-	}, nil
+-}
+-
+-func extractRoutingLabels(routingLabels *RoutingLabelsModel) *globalRouters.RoutingLabels {
+-	if routingLabels == nil {
+-		return nil
+-	}
+-	routing := globalRouters.NewRoutingLabelsWithDefaults()
+-
+-	if !routingLabels.Service.IsUnknown() {
+-		routing.Service = routingLabels.Service.ValueStringPointer()
+-	}
+-	if !routingLabels.Team.IsUnknown() {
+-		routing.Team = routingLabels.Team.ValueStringPointer()
+-	}
+-	if !routingLabels.Environment.IsUnknown() {
+-		routing.Environment = routingLabels.Environment.ValueStringPointer()
+-	}
+-	return routing
+-
+-}
+-
+-func extractRoutingTargets(ctx context.Context, targets types.List) ([]globalRouters.RoutingTarget, diag.Diagnostics) {
+-	if targets.IsNull() || targets.IsUnknown() {
+-		return nil, nil
+-	}
+-	var diags diag.Diagnostics
+-	var targetsObjects []types.Object
+-	targets.ElementsAs(ctx, &targetsObjects, true)
+-	extractedTargets := make([]globalRouters.RoutingTarget, 0, len(targetsObjects))
+-	for _, target := range targetsObjects {
+-		var targetModel RoutingTargetModel
+-		if dg := target.As(ctx, &targetModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		extractedTarget, dgs := extractRoutingTarget(ctx, targetModel)
+-		if dgs.HasError() {
+-			diags.Append(dgs...)
+-			continue
+-		}
+-		extractedTargets = append(extractedTargets, *extractedTarget)
+-	}
+-
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	return extractedTargets, diags
+-
+-}
+-
+-func extractRoutingTarget(ctx context.Context, routingTargetModel RoutingTargetModel) (*globalRouters.RoutingTarget, diag.Diagnostics) {
+-	customDetails, diags := utils.TypeMapToStringMap(ctx, routingTargetModel.CustomDetails)
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	return &globalRouters.RoutingTarget{
+-		ConnectorId:   routingTargetModel.ConnectorId.ValueStringPointer(),
+-		PresetId:      utils.TypeStringToStringPointer(routingTargetModel.PresetId),
+-		CustomDetails: customDetails,
+-	}, nil
+-}
+-
+-func flattenGlobalRouter(ctx context.Context, globalRouter *globalRouters.GlobalRouter) (*GlobalRouterResourceModel, diag.Diagnostics) {
+-	rules, diags := flattenGlobalRouterRules(ctx, globalRouter.GetRules())
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	routingLabels := flattenRoutingLabels(globalRouter.RoutingLabels)
+-
+-	entityLabels, diags := utils.StringMapToTypeMap(ctx, &globalRouter.EntityLabels)
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	fallback, diags := flattenFallback(ctx, globalRouter.Fallback)
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	fallbackTargets, diags := flattenFallbackTargets(ctx, globalRouter.FallbackTargets)
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-	return &GlobalRouterResourceModel{
+-		ID:              types.StringValue(globalRouter.GetId()),
+-		Name:            types.StringValue(globalRouter.GetName()),
+-		Description:     types.StringValue(globalRouter.GetDescription()),
+-		Rules:           rules,
+-		FallBack:        fallback,
+-		FallbackTargets: fallbackTargets,
+-		Disabled:        types.BoolValue(globalRouter.GetDisabled()),
+-		EntityLabels:    entityLabels,
+-		RoutingLabels:   routingLabels,
+-	}, nil
+-}
+-
+-func flattenFallbackTargets(ctx context.Context, targets []globalRouters.FallbackTarget) (types.List, diag.Diagnostics) {
+-	var diags diag.Diagnostics
+-	// The API returns an empty list (not absent) when no fallback targets are set;
+-	// normalize that to null so an unset/removed `fallback_targets` block does not
+-	// drift against the empty list returned by the backend.
+-	if len(targets) == 0 {
+-		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.FallbackTargetAttr()}), diags
+-	}
+-	targetList := make([]types.Object, 0, len(targets))
+-	for _, t := range targets {
+-		targetObject, dg := flattenRoutingTarget(ctx, t.Target)
+-		if dg.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		entityType := globalrouterschema.GlobalRouterNotificationCenterEntityTypeApiToSchema[t.GetEntityType()]
+-		model := FallbackTargetModel{
+-			EntityType: types.StringValue(entityType),
+-			Target:     targetObject,
+-		}
+-		object, dg := types.ObjectValueFrom(ctx, globalrouterschema.FallbackTargetAttr(), model)
+-		if dg.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		targetList = append(targetList, object)
+-	}
+-
+-	if diags.HasError() {
+-		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.FallbackTargetAttr()}), diags
+-	}
+-
+-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: globalrouterschema.FallbackTargetAttr()}, targetList)
+-}
+-
+-func flattenGlobalRouterRules(ctx context.Context, rules []globalRouters.RoutingRule) (types.List, diag.Diagnostics) {
+-	var diags diag.Diagnostics
+-	rulesList := make([]types.Object, 0, len(rules))
+-	for _, rule := range rules {
+-		ruleModel, dgs := flattenRoutingRule(ctx, &rule)
+-		if dgs.HasError() {
+-			diags.Append(dgs...)
+-			continue
+-		}
+-		rulesList = append(rulesList, ruleModel)
+-	}
+-
+-	if diags.HasError() {
+-		return types.List{}, diags
+-	}
+-
+-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: globalrouterschema.RoutingRuleAttr()}, rulesList)
+-}
+-
+-func flattenFallback(ctx context.Context, targets []globalRouters.RoutingTarget) (types.List, diag.Diagnostics) {
+-	var diags diag.Diagnostics
+-	// The API returns an empty list (not absent) when no fallback is set; normalize
+-	// that to null so an unset/removed `fallback` block does not drift, and so an
+-	// existing deprecated `fallback` is actually cleared on removal.
+-	if len(targets) == 0 {
+-		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}), diags
+-	}
+-	fallbackTargetList := make([]types.Object, 0, len(targets))
+-	for _, target := range targets {
+-		targetModel, dgs := flattenRoutingTarget(ctx, &target)
+-		if dgs.HasError() {
+-			diags.Append(dgs...)
+-			continue
+-		}
+-		fallbackTargetList = append(fallbackTargetList, targetModel)
+-	}
+-
+-	if diags.HasError() {
+-		return types.List{}, diags
+-	}
+-
+-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}, fallbackTargetList)
+-}
+-
+-func flattenRoutingLabels(r *globalRouters.RoutingLabels) *RoutingLabelsModel {
+-	if r == nil || (r.Environment == nil && r.Service == nil && r.Team == nil) {
+-		return nil
+-	}
+-
+-	return &RoutingLabelsModel{
+-		Environment: types.StringPointerValue(r.Environment),
+-		Service:     types.StringPointerValue(r.Service),
+-		Team:        types.StringPointerValue(r.Team),
+-	}
+-}
+-
+-func flattenRoutingRule(ctx context.Context, rule *globalRouters.RoutingRule) (types.Object, diag.Diagnostics) {
+-	targets, diags := flattenRoutingTargets(ctx, rule.GetTargets())
+-	if diags.HasError() {
+-		return types.ObjectNull(globalrouterschema.RoutingRuleAttr()), diags
+-	}
+-
+-	customDetails, diags := flattenCustomDetails(ctx, rule.GetCustomDetails())
+-	if diags.HasError() {
+-		return types.ObjectNull(globalrouterschema.RoutingRuleAttr()), diags
+-	}
+-	entityType := globalrouterschema.GlobalRouterNotificationCenterEntityTypeApiToSchema[*rule.EntityType]
+-	ruleModel := RoutingRuleModel{
+-		Condition:     types.StringValue(rule.GetCondition()),
+-		Name:          types.StringValue(rule.GetName()),
+-		Targets:       targets,
+-		CustomDetails: customDetails,
+-		EntityType:    types.StringValue(entityType),
+-	}
+-
+-	return types.ObjectValueFrom(ctx, globalrouterschema.RoutingRuleAttr(), ruleModel)
+-}
+-
+-func flattenCustomDetails(ctx context.Context, details map[string]string) (types.Map, diag.Diagnostics) {
+-	var diags diag.Diagnostics
+-	if details == nil {
+-		return types.MapNull(types.StringType), diags
+-	}
+-
+-	detailsMap := make(map[string]types.String)
+-	for k, v := range details {
+-		detailsMap[k] = types.StringValue(v)
+-	}
+-
+-	return types.MapValueFrom(ctx, types.StringType, detailsMap)
+-}
+-
+-func flattenRoutingTargets(ctx context.Context, targets []globalRouters.RoutingTarget) (types.List, diag.Diagnostics) {
+-	if targets == nil {
+-		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}), nil
+-	}
+-
+-	var diags diag.Diagnostics
+-	targetsList := make([]types.Object, 0, len(targets))
+-	for _, target := range targets {
+-		targetModel, dgs := flattenRoutingTarget(ctx, &target)
+-		if dgs.HasError() {
+-			diags.Append(dgs...)
+-			continue
+-		}
+-		targetsList = append(targetsList, targetModel)
+-	}
+-
+-	if diags.HasError() {
+-		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}), diags
+-	}
+-
+-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}, targetsList)
+-}
+-
+-func flattenRoutingTarget(ctx context.Context, target *globalRouters.RoutingTarget) (types.Object, diag.Diagnostics) {
+-	customDetails, diags := flattenCustomDetails(ctx, target.GetCustomDetails())
+-	if diags.HasError() {
+-		return types.ObjectNull(globalrouterschema.RoutingTargetAttr()), diags
+-	}
+-
+-	targetModel := RoutingTargetModel{
+-		ConnectorId:   types.StringPointerValue(target.ConnectorId),
+-		PresetId:      utils.StringPointerToTypeString(target.PresetId),
+-		CustomDetails: customDetails,
+-	}
+-
+-	return types.ObjectValueFrom(ctx, globalrouterschema.RoutingTargetAttr(), targetModel)
+-}

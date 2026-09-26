@@ -1,0 +1,203 @@
+// This file is copied into a copy of the provider by
+// integration/switch.sh, next to the handwritten Connector code. It
+// checks that the partial switch (D21) reads and sends the same values as
+// the handwritten code, before the handwritten code is removed:
+//   - flatten: the same API object gives the same Terraform state;
+//   - expand: the same state and secrets give the same request JSON.
+// The switched model embeds the generated model and keeps the handwritten
+// connector_config, as provider.patch does.
+
+package notifications
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"testing"
+
+	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/schemadump"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/connectortypes"
+)
+
+type switchedConnectorModel struct {
+	connectortypes.ConnectorModel
+	ConnectorConfig types.Object `tfsdk:"connector_config"`
+}
+
+type connectorCase struct {
+	json      string
+	writeOnly map[string]struct{} // field names managed write-only
+	secrets   map[string]string   // their values, from the configuration
+}
+
+func connectorCases() map[string]connectorCase {
+	return map[string]connectorCase{
+		"full": {json: `{"id":"c1","name":"slack","description":"d","type":"SLACK",
+			"connectorConfig":{"fields":[{"fieldName":"channel","value":"#a"},{"fieldName":"integrationId","value":"i"}]},
+			"configOverrides":[{"entityType":"ALERTS","fields":[{"fieldName":"channel","template":"{{x}}"}]},
+				{"entityType":"CASES","fields":[]}]}`},
+		"minimal": {json: `{"id":"c2","name":"n","type":"GENERIC_HTTPS"}`},
+		"empty": {json: `{"id":"c3","name":"n","description":"","type":"EMAIL","connectorConfig":{"fields":[]},"configOverrides":[]}`},
+		"zero enums": {json: `{"id":"c4","name":"n","type":"CONNECTOR_TYPE_UNSPECIFIED",
+			"configOverrides":[{"entityType":"ENTITY_TYPE_UNSPECIFIED","fields":[{"fieldName":"f","template":""}]}]}`},
+		"write-only secret": {json: `{"id":"c5","name":"pd","type":"PAGERDUTY",
+			"connectorConfig":{"fields":[{"fieldName":"integrationKey","value":"s3cret"},{"fieldName":"x","value":"y"}]}}`,
+			writeOnly: map[string]struct{}{"integrationKey": {}}, secrets: map[string]string{"integrationKey": "s3cret"}},
+	}
+}
+
+func connectorSchemas(t *testing.T) (hw, switched schema.Schema) {
+	var resp resource.SchemaResponse
+	(&ConnectorResource{}).Schema(context.Background(), resource.SchemaRequest{}, &resp)
+	attrs := connectortypes.ConnectorAttributes()
+	attrs["connector_config"] = resp.Schema.Attributes["connector_config"]
+	return resp.Schema, schema.Schema{Version: resp.Schema.Version, Attributes: attrs}
+}
+
+func decodeConnector(t *testing.T, js string) *connectors.Connector {
+	t.Helper()
+	var c connectors.Connector
+	if err := json.Unmarshal([]byte(js), &c); err != nil {
+		t.Fatal(err)
+	}
+	return &c
+}
+
+// flattenSwitched is the flatten of the switched resource.
+func flattenSwitched(ctx context.Context, c *connectors.Connector, writeOnly map[string]struct{}) (*switchedConnectorModel, diag.Diagnostics) {
+	m, diags := connectortypes.FlattenConnector(ctx, path.Empty(), c)
+	if diags.HasError() {
+		return nil, diags
+	}
+	config := connectors.ConnectorConfig{}
+	if c.ConnectorConfig != nil {
+		config = *c.ConnectorConfig
+	}
+	cc, d := flattenConnectorConfig(ctx, config, writeOnly)
+	diags.Append(d...)
+	return &switchedConnectorModel{ConnectorModel: *m, ConnectorConfig: cc}, diags
+}
+
+// expandSwitched is the expand of the switched resource.
+func expandSwitched(ctx context.Context, m *switchedConnectorModel, secrets map[string]string) (*connectors.Connector, diag.Diagnostics) {
+	out, diags := connectortypes.ExpandConnector(ctx, path.Empty(), &m.ConnectorModel)
+	if diags.HasError() {
+		return nil, diags
+	}
+	cc, d := extractConnectorConfig(ctx, m.ConnectorConfig, secrets)
+	diags.Append(d...)
+	out.ConnectorConfig = cc
+	return out, diags
+}
+
+func TestConnectorEquivalenceFlatten(t *testing.T) {
+	ctx := context.Background()
+	hwSchema, swSchema := connectorSchemas(t)
+	for name, c := range connectorCases() {
+		t.Run(name, func(t *testing.T) {
+			hwState := equivalenceState(t, hwSchema, func(s *tfsdk.State) diag.Diagnostics {
+				m, diags := flattenConnector(ctx, decodeConnector(t, c.json), c.writeOnly)
+				return append(diags, s.Set(ctx, m)...)
+			})
+			swState := equivalenceState(t, swSchema, func(s *tfsdk.State) diag.Diagnostics {
+				m, diags := flattenSwitched(ctx, decodeConnector(t, c.json), c.writeOnly)
+				return append(diags, s.Set(ctx, m)...)
+			})
+			diffs, err := hwState.Diff(swState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, d := range diffs {
+				t.Errorf("state differs at %s: handwritten %v, switched %v", d.Path, d.Value1, d.Value2)
+			}
+		})
+	}
+}
+
+func TestConnectorEquivalenceExpand(t *testing.T) {
+	ctx := context.Background()
+	hwSchema, swSchema := connectorSchemas(t)
+	for name, c := range connectorCases() {
+		t.Run(name, func(t *testing.T) {
+			raw := equivalenceState(t, hwSchema, func(s *tfsdk.State) diag.Diagnostics {
+				m, diags := flattenConnector(ctx, decodeConnector(t, c.json), c.writeOnly)
+				return append(diags, s.Set(ctx, m)...)
+			})
+			var hwModel ConnectorResourceModel
+			if diags := (tfsdk.State{Schema: hwSchema, Raw: raw}).Get(ctx, &hwModel); diags.HasError() {
+				t.Fatal(diags)
+			}
+			var swModel switchedConnectorModel
+			if diags := (tfsdk.State{Schema: swSchema, Raw: raw}).Get(ctx, &swModel); diags.HasError() {
+				t.Fatal(diags)
+			}
+			hwBody, diags := extractConnector(ctx, &hwModel, c.secrets)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			swBody, diags := expandSwitched(ctx, &swModel, c.secrets)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			if h, s := equivalenceJSON(t, hwBody), equivalenceJSON(t, swBody); h != s {
+				t.Errorf("request differs:\nhandwritten: %s\nswitched:    %s", h, s)
+			}
+		})
+	}
+}
+
+// TestConnectorEquivalencePlanWithUnknowns checks that an update plan with every
+// computed attribute unknown reads into the switched model and expands.
+func TestConnectorPlanWithUnknowns(t *testing.T) {
+	ctx := context.Background()
+	_, swSchema := connectorSchemas(t)
+	for name, c := range connectorCases() {
+		t.Run(name, func(t *testing.T) {
+			// The state of the switched code, so the check also runs with
+			// the added fields.
+			raw := equivalenceState(t, swSchema, func(s *tfsdk.State) diag.Diagnostics {
+				m, diags := flattenSwitched(ctx, decodeConnector(t, c.json), c.writeOnly)
+				return append(diags, s.Set(ctx, m)...)
+			})
+			plan, err := schemadump.PlanWithUnknowns(ctx, swSchema, raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var m switchedConnectorModel
+			if diags := (tfsdk.Plan{Schema: swSchema, Raw: plan}).Get(ctx, &m); diags.HasError() {
+				t.Fatalf("get plan: %v", diags)
+			}
+			if _, diags := expandSwitched(ctx, &m, c.secrets); diags.HasError() {
+				t.Fatalf("expand: %v", diags)
+			}
+		})
+	}
+}
+
+func equivalenceState(t *testing.T, s schema.Schema, set func(*tfsdk.State) diag.Diagnostics) tftypes.Value {
+	t.Helper()
+	state := tfsdk.State{Schema: s, Raw: tftypes.NewValue(s.Type().TerraformType(context.Background()), nil)}
+	if diags := set(&state); diags.HasError() {
+		t.Fatal(fmt.Sprint(diags))
+	}
+	return state.Raw
+}
+
+func equivalenceJSON(t *testing.T, v any) string {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}

@@ -1,0 +1,60 @@
+resource AiEvaluation
+  id param:     id
+  update mask:  updateMask
+
+operations
+  create  POST    /ai/evaluations/v3       AiEvaluationsService_CreateAiEvaluation  body inline  response CreateAiEvaluationResponse.aiEvaluation
+  get     GET     /ai/evaluations/v3/{id}  AiEvaluationsService_GetAiEvaluation     body -       response GetAiEvaluationResponse.aiEvaluation
+  update  PATCH   /ai/evaluations/v3/{id}  AiEvaluationsService_UpdateAiEvaluation  body inline  response UpdateAiEvaluationResponse.aiEvaluation
+  delete  DELETE  /ai/evaluations/v3/{id}  AiEvaluationsService_DeleteAiEvaluation  body -       response DeleteAiEvaluationResponse
+
+fields
+  NAME         BEHAVIOR   CREATE                  UPDATE             GET  TYPE
+  application  immutable  required                -                  yes  string len 1..256
+  companyId    computed   -                       -                  yes  string len 1..256
+  config       normal     required                optional presence  yes  oneOf EvaluationConfig (19 arms, no arm allowed)
+      allowedTopics                  arm  object AllowedTopicsConfig
+        topics  optional  set<string len 1..256> items 1..1024
+      competition                    arm  object CompetitionConfig
+        competitors  optional  set<string len 1..256> items 1..1024
+      customEvaluation               arm  object CustomEvaluationConfig
+        examples                   optional  list<object CustomEvaluationExample> items 0..100
+          conversation  optional  string len 0..65536
+          score         optional  integer uint64 (wire: string) len 1..4
+        instructions               optional  string len 1..1048576
+        policyType                 optional  string len 1..256
+        safe                       optional  string len 0..65536
+        shouldIncludeSystemPrompt  optional  bool
+        violates                   optional  string len 0..65536
+      hallucinationCompleteness      arm  object HallucinationCompletenessConfig {}
+      hallucinationContextAdherence  arm  object HallucinationContextAdherenceConfig {}
+      hallucinationContextRelevance  arm  object HallucinationContextRelevanceConfig {}
+      hallucinationCorrectness       arm  object HallucinationCorrectnessConfig {}
+      hallucinationTaskAdherence     arm  object HallucinationTaskAdherenceConfig {}
+      languageMismatch               arm  object LanguageMismatchConfig {}
+      pii                            arm  object PiiConfig
+        categories  optional  set<enum PiiCategory [PHONE_NUMBER EMAIL_ADDRESS CREDIT_CARD IBAN_CODE US_SSN]> items 1..1024
+      promptInjection                arm  object PromptInjectionConfig
+        additionalContext  optional  string len 0..65536
+      restrictedTopics               arm  object RestrictedTopicsConfig
+        topics  optional  set<string len 1..256> items 1..1024
+      sexism                         arm  object SexismConfig {}
+      sqlAllowedTables               arm  object SqlAllowedTablesConfig
+        tables  optional  set<string len 1..256> items 1..1024
+      sqlHallucination               arm  object SqlHallucinationConfig {}
+      sqlLoad                        arm  object SqlLoadConfig
+        allowRecursiveCte  optional  bool
+        cteLimit           optional  integer uint64 (wire: string) len 1..4
+        joinLimit          optional  integer uint64 (wire: string) len 1..4
+      sqlReadOnly                    arm  object SqlReadOnlyConfig {}
+      sqlRestrictedTables            arm  object SqlRestrictedTablesConfig
+        tables  optional  set<string len 1..256> items 1..1024
+      toxicity                       arm  object ToxicityConfig {}
+  createdAt    computed   -                       -                  yes  string date-time len 20..35
+  createdBy    computed   -                       -                  yes  string len 36..36
+  id           computed   -                       -                  yes  string len 36..36
+  isEnabled    normal     optional default=false  optional presence  yes  bool
+  subsystem    immutable  required                -                  yes  string len 1..256
+  target       immutable  optional presence       -                  yes  enum EvaluationTarget [PROMPT RESPONSE CONVERSATION]
+  threshold    normal     optional presence       optional presence  yes  number double 0..1
+  updatedAt    computed   -                       -                  yes  string date-time len 20..35

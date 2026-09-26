@@ -1,0 +1,48 @@
+// This file is copied into a copy of the provider by
+// integration/switch.sh. It writes the schema dumps that
+// cmd/schemacompare compares (D21).
+
+package notifications
+
+import (
+	"context"
+	"maps"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/schemadump"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/connectortypes"
+)
+
+// handwrittenConnectorAttributes are the attributes that stay handwritten
+// in the partial switch.
+var handwrittenConnectorAttributes = []string{"connector_config"}
+
+// TestWriteSchemaDumps writes the handwritten schema and the schema after
+// the switch (the generated attributes and the handwritten ones) to
+// $SCHEMA_DUMP_DIR.
+func TestWriteSchemaDumps(t *testing.T) {
+	dir := os.Getenv("SCHEMA_DUMP_DIR")
+	if dir == "" {
+		t.Skip("SCHEMA_DUMP_DIR is not set")
+	}
+	var resp resource.SchemaResponse
+	(&ConnectorResource{}).Schema(context.Background(), resource.SchemaRequest{}, &resp)
+	switched := maps.Clone(connectortypes.ConnectorAttributes())
+	for _, name := range handwrittenConnectorAttributes {
+		switched[name] = resp.Schema.Attributes[name]
+	}
+	for name, s := range map[string]schema.Schema{
+		"handwritten.txt": resp.Schema,
+		"generated.txt":   {Attributes: switched},
+	} {
+		text := schemadump.Text(schemadump.Dump(s, nil))
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

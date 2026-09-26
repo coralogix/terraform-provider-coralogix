@@ -1,0 +1,17 @@
+resource FakeView
+  id param:     id
+  update:       full replace (PUT), no mask
+
+operations
+  create  POST    /fake/views/v1       FakeViewsService_CreateFakeView  body inline  response FakeView (the resource itself)
+  get     GET     /fake/views/v1/{id}  FakeViewsService_GetFakeView     body -       response FakeView (the resource itself)
+  update  PUT     /fake/views/v1/{id}  FakeViewsService_UpdateFakeView  body inline  response FakeView (the resource itself)
+  delete  DELETE  /fake/views/v1/{id}  FakeViewsService_DeleteFakeView  body -       response DeleteFakeViewResponse
+
+fields
+  NAME     BEHAVIOR  CREATE             UPDATE             GET  TYPE
+  id       computed  -                  -                  yes  string
+  name     normal    required           required           yes  string len 1..64
+  query    normal    optional presence  optional presence  yes  string
+  compact  normal    optional presence  optional presence  yes  bool
+  columns  normal    optional presence  optional presence  yes  list<string>
