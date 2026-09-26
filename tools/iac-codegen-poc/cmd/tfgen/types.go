@@ -137,6 +137,10 @@ func resolveTypeSDKNames(roots []*model.Type, tag, module string) ([]sdkRef, err
 // the overrides; nil for none.
 func buildTypes(roots, enums []*model.Type, refs []sdkRef, ov *overrides, pkg, command string) (*typesData, error) {
 	out := &typesData{Package: pkg, Command: command}
+	if ov == nil {
+		// The type mode always applies the spec readOnly (see effective).
+		ov = &overrides{}
+	}
 	if err := ov.check(append(slices.Clone(roots), enums...)); err != nil {
 		return nil, err
 	}

@@ -101,6 +101,16 @@ func (o *overrides) field(schema, name string) fieldOverride {
 	return o.Types[schema][name]
 }
 
+// effective returns the override of the field f of the component schema,
+// with readOnly also set when the spec marks the field readOnly.
+func (o *overrides) effective(schema string, f *model.Field) fieldOverride {
+	ov := o.field(schema, f.Name)
+	if o != nil && f.Attrs.ReadOnly {
+		ov.ReadOnly = true
+	}
+	return ov
+}
+
 // tfName is the Terraform name of the API field name of the component
 // schema.
 func (o *overrides) tfName(schema, name string) string {
@@ -275,8 +285,8 @@ func checkRead(ov fieldOverride, t *model.Type) error {
 // checkFlags checks that the flags of a field override leave a valid
 // attribute.
 func checkFlags(ov fieldOverride, a model.Attrs) error {
-	if ov.ReadOnly && (ov.Required != nil || ov.Optional != nil || ov.Computed != nil || ov.Default != nil) {
-		return errors.New("readOnly cannot be combined with required, optional, computed, or default")
+	if err := checkReadOnly(ov, a); err != nil {
+		return err
 	}
 	req, opt, comp := flags(ov, a)
 	switch {
@@ -286,6 +296,21 @@ func checkFlags(ov fieldOverride, a model.Attrs) error {
 		return errors.New("the attribute must be required, optional, or computed")
 	case ov.Default != nil && (!opt || !comp):
 		return errors.New("a default needs an optional and computed attribute")
+	}
+	return nil
+}
+
+// checkReadOnly fails when a read-only field, by the override or by the
+// spec, also has flags or a default.
+func checkReadOnly(ov fieldOverride, a model.Attrs) error {
+	if ov.Required == nil && ov.Optional == nil && ov.Computed == nil && ov.Default == nil {
+		return nil
+	}
+	switch {
+	case ov.ReadOnly:
+		return errors.New("readOnly cannot be combined with required, optional, computed, or default")
+	case a.ReadOnly:
+		return errors.New("the spec marks the field readOnly: it cannot be required, optional, computed, or have a default")
 	}
 	return nil
 }
@@ -312,7 +337,7 @@ func flags(ov fieldOverride, a model.Attrs) (req, opt, comp bool) {
 	if ov.Computed != nil {
 		comp = *ov.Computed
 	}
-	if ov.ReadOnly {
+	if ov.ReadOnly || a.ReadOnly {
 		req, opt, comp = false, false, true
 	}
 	return req, opt, comp

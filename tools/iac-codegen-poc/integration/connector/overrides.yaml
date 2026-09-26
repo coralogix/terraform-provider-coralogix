@@ -1,0 +1,35 @@
+# Overrides (D21) for the Connector types of the handwritten
+# coralogix_connector resource (internal/provider/notifications). This is a
+# partial switch: connector_config stays handwritten, because it has
+# Terraform-only write-only attributes for secrets, a validator, and code
+# that merges and hides those secrets. The resource model embeds the
+# generated model and adds connector_config beside it.
+#
+# The first switch changes nothing for users, so the API fields that
+# Terraform does not have yet are skipped. overrides-added.yaml adds them.
+types:
+  Connector:
+    id: {computed: true, useStateForUnknown: true, requiresReplace: true, missingAsZero: true}
+    name: {required: true, missingAsZero: true}
+    description: {missingAsZero: true}
+    type: {required: true}
+    configOverrides: {computed: true}
+    connectorConfig: {skip: true}   # handwritten: write-only secrets
+    createTime: {skip: true}
+    updateTime: {skip: true}
+    teamId: {skip: true}
+    diagnostics: {skip: true}       # deprecated in the API
+    resolvedConnectorConfig: {skip: true}
+  EntityTypeConfigOverrides:
+    entityType: {required: true}
+    fields: {required: true, set: true}
+  TemplatedConnectorConfigField:
+    fieldName: {required: true, missingAsZero: true}
+    template: {required: true, missingAsZero: true}
+enums:
+  notification_center.ConnectorType:
+    terraformNames: true
+    zero: unspecified
+  notification_center.EntityType:
+    terraformNames: true
+    zero: unspecified

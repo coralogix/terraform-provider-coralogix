@@ -100,8 +100,8 @@ func jsonOf(t *testing.T, v any) string {
 }
 
 // TestRoundTrip checks the Terraform values of the overrides, and that
-// expand gives back the API values. create_time is read only: it is read,
-// and not sent.
+// expand gives back the API values. The spec marks create_time readOnly:
+// it is read, and not sent.
 func TestRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	in := sdkRouting()

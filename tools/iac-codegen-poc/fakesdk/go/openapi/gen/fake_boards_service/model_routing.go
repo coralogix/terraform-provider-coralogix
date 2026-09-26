@@ -25,7 +25,7 @@ var _ MappedNullable = &Routing{}
 type Routing struct {
 	// Delivery kinds per channel. A list of enums.
 	Channels []Delivery `json:"channels,omitempty"`
-	// Set by the server.
+	// Set by the server. The spec marks it readOnly.
 	CreateTime *time.Time `json:"createTime,omitempty"`
 	// How alerts are delivered.
 	Delivery *Delivery `json:"delivery,omitempty"`

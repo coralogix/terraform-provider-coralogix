@@ -1,0 +1,541 @@
+diff --git a/internal/provider/notifications/data_source_coralogix_connector.go b/internal/provider/notifications/data_source_coralogix_connector.go
+index f6ae6ca..bd913b2 100644
+--- a/internal/provider/notifications/data_source_coralogix_connector.go
++++ b/internal/provider/notifications/data_source_coralogix_connector.go
+@@ -122,7 +122,7 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
+ 			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_connector with name %q not found", name), "")
+ 			return
+ 		}
+-	} else if id := data.ID.ValueString(); id != "" {
++	} else if id := data.Id.ValueString(); id != "" {
+ 		connectorID = id
+ 	} else {
+ 		resp.Diagnostics.AddError("ID or name must be set", "")
+diff --git a/internal/provider/notifications/resource_coralogix_connector.go b/internal/provider/notifications/resource_coralogix_connector.go
+index a0f84b3..af1ca21 100644
+--- a/internal/provider/notifications/resource_coralogix_connector.go
++++ b/internal/provider/notifications/resource_coralogix_connector.go
+@@ -22,49 +22,23 @@ import (
+ 	"strings"
+ 
+ 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
++	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/connectortypes"
+ 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+ 
+ 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+ 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
+ 
+-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+ 	"github.com/hashicorp/terraform-plugin-framework/attr"
+ 	"github.com/hashicorp/terraform-plugin-framework/diag"
+ 	"github.com/hashicorp/terraform-plugin-framework/path"
+ 	"github.com/hashicorp/terraform-plugin-framework/resource"
+ 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+ 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+ 	"github.com/hashicorp/terraform-plugin-framework/types"
+ 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+ )
+ 
+-var (
+-	_                        resource.ResourceWithImportState = &ConnectorResource{}
+-	connectorTypeSchemaToApi                                  = map[string]connectors.NotificationCenterConnectorType{
+-		utils.UNSPECIFIED:     connectors.NOTIFICATIONCENTERCONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
+-		"slack":               connectors.NOTIFICATIONCENTERCONNECTORTYPE_SLACK,
+-		"generic_https":       connectors.NOTIFICATIONCENTERCONNECTORTYPE_GENERIC_HTTPS,
+-		"pagerduty":           connectors.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY,
+-		"pagerduty_incidents": connectors.NOTIFICATIONCENTERCONNECTORTYPE_PAGERDUTY_INCIDENTS,
+-		"email":               connectors.NOTIFICATIONCENTERCONNECTORTYPE_EMAIL,
+-		"service_now":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_SERVICE_NOW,
+-		"microsoft_teams":     connectors.NOTIFICATIONCENTERCONNECTORTYPE_MICROSOFT_TEAMS,
+-		"eventbridge":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_EVENTBRIDGE,
+-		"incident_io":         connectors.NOTIFICATIONCENTERCONNECTORTYPE_INCIDENT_IO,
+-	}
+-	connectorTypeApiToSchema       = utils.ReverseMap(connectorTypeSchemaToApi)
+-	validConnectorTypesSchemaToApi = utils.GetKeys(connectorTypeSchemaToApi)
+-	connectorEntityTypeSchemaToApi = map[string]connectors.NotificationCenterEntityType{
+-		utils.UNSPECIFIED:    connectors.NOTIFICATIONCENTERENTITYTYPE_ENTITY_TYPE_UNSPECIFIED,
+-		"alerts":             connectors.NOTIFICATIONCENTERENTITYTYPE_ALERTS,
+-		"cases":              connectors.NOTIFICATIONCENTERENTITYTYPE_CASES,
+-		"test_notifications": connectors.NOTIFICATIONCENTERENTITYTYPE_TEST_NOTIFICATIONS,
+-	}
+-	connectorNotificationCenterEntityTypeApiToSchema       = utils.ReverseMap(connectorEntityTypeSchemaToApi)
+-	connectorValidNotificationCenterEntityTypesSchemaToApi = utils.GetKeys(connectorEntityTypeSchemaToApi)
+-)
++var _ resource.ResourceWithImportState = &ConnectorResource{}
+ 
+ func NewConnectorResource() resource.Resource {
+ 	return &ConnectorResource{}
+@@ -74,13 +48,12 @@ type ConnectorResource struct {
+ 	client *connectors.ConnectorsServiceAPIService
+ }
+ 
++// ConnectorResourceModel is the generated model (D21), with the
++// handwritten connector_config beside it: it has Terraform-only write-only
++// attributes for secrets.
+ type ConnectorResourceModel struct {
+-	ID              types.String `tfsdk:"id"`
+-	Name            types.String `tfsdk:"name"`
+-	Description     types.String `tfsdk:"description"`
+-	Type            types.String `tfsdk:"type"`
++	connectortypes.ConnectorModel
+ 	ConnectorConfig types.Object `tfsdk:"connector_config"` // ConnectorConfigModel
+-	ConfigOverrides types.List   `tfsdk:"config_overrides"` // ConfigOverrideModel
+ }
+ 
+ type ConnectorConfigModel struct {
+@@ -96,21 +69,6 @@ type ConnectorConfigFieldModel struct {
+ 	Value     types.String `tfsdk:"value"`
+ }
+ 
+-type TemplatedConnectorConfigFieldModel struct {
+-	FieldName types.String `tfsdk:"field_name"`
+-	Template  types.String `tfsdk:"template"`
+-}
+-
+-type ConfigOverrideModel struct {
+-	EntityType types.String `tfsdk:"entity_type"`
+-	Fields     types.Set    `tfsdk:"fields"` // ConnectorOverrideFieldModel
+-}
+-
+-type ConnectorOverrideFieldModel struct {
+-	FieldName types.String `tfsdk:"field_name"`
+-	Template  types.String `tfsdk:"template"`
+-}
+-
+ func (r *ConnectorResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+ 	resp.TypeName = req.ProviderTypeName + "_connector"
+ }
+@@ -133,102 +91,54 @@ func (r *ConnectorResource) Configure(_ context.Context, req resource.ConfigureR
+ }
+ 
+ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
++	attrs := connectortypes.ConnectorAttributes()
++	attrs["connector_config"] = connectorConfigAttribute()
+ 	resp.Schema = schema.Schema{
+-		Version: 0,
++		Version:             0,
++		Attributes:          attrs,
++		MarkdownDescription: "Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/. **Note:** This resource is in Beta stage.",
++	}
++}
++
++// connectorConfigAttribute is the handwritten connector_config: the API
++// fields, and the write-only secrets beside them.
++func connectorConfigAttribute() schema.Attribute {
++	return schema.SingleNestedAttribute{
++		Optional: true,
++		Validators: []validator.Object{
++			connectorWriteOnlyFieldsValidator{},
++		},
+ 		Attributes: map[string]schema.Attribute{
+-			"id": schema.StringAttribute{
+-				Optional: true,
+-				Computed: true,
+-				PlanModifiers: []planmodifier.String{
+-					stringplanmodifier.UseStateForUnknown(),
+-					stringplanmodifier.RequiresReplace(),
+-				},
+-				MarkdownDescription: "Connector ID. Can be set by the user or generated by Coralogix. Requires recreation in case of change.",
+-			},
+-			"name": schema.StringAttribute{
+-				Required: true,
+-				Validators: []validator.String{
+-					stringvalidator.LengthAtLeast(1),
+-				},
+-				MarkdownDescription: "Connector name.",
++			"field_values_wo": schema.MapAttribute{
++				ElementType: types.StringType,
++				Optional:    true,
++				WriteOnly:   true,
++				MarkdownDescription: "Secret values for connector fields, keyed by field name, which Terraform sends to the API and never writes to state. " +
++					"A field named here must not also appear in `fields`. Each entry needs a matching entry in `field_values_wo_versions`. Requires Terraform 1.11 or later.\n\n" +
++					"Importing is the one exception. An import has neither configuration nor prior state, so nothing identifies which field is a secret, and the API returns every field's value: " +
++					"the secret is written to state by the import itself. The following apply removes it again. Treat a secret that has been through an import as exposed, and rotate it. " +
++					"Reading the same connector through `data.coralogix_connector` also returns the value, under `connector_config.fields`: a data source reads from the API and has no configuration telling it which value is managed write-only.",
+ 			},
+-			"description": schema.StringAttribute{
+-				Optional: true,
++			"field_values_wo_versions": schema.MapAttribute{
++				ElementType: types.Int64Type,
++				Optional:    true,
++				MarkdownDescription: "Version of each `field_values_wo` entry, keyed by the same field name. Increment a value to send a rotated secret: " +
++					"Terraform holds no copy of a write-only value, so it cannot notice that one changed. These versions are kept in state and are not secret.",
+ 			},
+-			"type": schema.StringAttribute{
++			"fields": schema.SetNestedAttribute{
+ 				Required: true,
+-				Validators: []validator.String{
+-					stringvalidator.OneOf(validConnectorTypesSchemaToApi...),
+-				},
+-				MarkdownDescription: fmt.Sprintf("Connector type. Valid values are: %s. `incident_io` is a preview type.", validConnectorTypesSchemaToApi),
+-			},
+-			"connector_config": schema.SingleNestedAttribute{
+-				Optional: true,
+-				Validators: []validator.Object{
+-					connectorWriteOnlyFieldsValidator{},
+-				},
+-				Attributes: map[string]schema.Attribute{
+-					"field_values_wo": schema.MapAttribute{
+-						ElementType: types.StringType,
+-						Optional:    true,
+-						WriteOnly:   true,
+-						MarkdownDescription: "Secret values for connector fields, keyed by field name, which Terraform sends to the API and never writes to state. " +
+-							"A field named here must not also appear in `fields`. Each entry needs a matching entry in `field_values_wo_versions`. Requires Terraform 1.11 or later.\n\n" +
+-							"Importing is the one exception. An import has neither configuration nor prior state, so nothing identifies which field is a secret, and the API returns every field's value: " +
+-							"the secret is written to state by the import itself. The following apply removes it again. Treat a secret that has been through an import as exposed, and rotate it. " +
+-							"Reading the same connector through `data.coralogix_connector` also returns the value, under `connector_config.fields`: a data source reads from the API and has no configuration telling it which value is managed write-only.",
+-					},
+-					"field_values_wo_versions": schema.MapAttribute{
+-						ElementType: types.Int64Type,
+-						Optional:    true,
+-						MarkdownDescription: "Version of each `field_values_wo` entry, keyed by the same field name. Increment a value to send a rotated secret: " +
+-							"Terraform holds no copy of a write-only value, so it cannot notice that one changed. These versions are kept in state and are not secret.",
+-					},
+-					"fields": schema.SetNestedAttribute{
+-						Required: true,
+-						NestedObject: schema.NestedAttributeObject{
+-							Attributes: map[string]schema.Attribute{
+-								"field_name": schema.StringAttribute{
+-									Required: true,
+-								},
+-								"value": schema.StringAttribute{
+-									Required: true,
+-								},
+-							},
+-						},
+-					},
+-				},
+-			},
+-			"config_overrides": schema.ListNestedAttribute{
+-				Optional: true,
+-				Computed: true,
+ 				NestedObject: schema.NestedAttributeObject{
+ 					Attributes: map[string]schema.Attribute{
+-						"entity_type": schema.StringAttribute{
++						"field_name": schema.StringAttribute{
+ 							Required: true,
+-							Validators: []validator.String{
+-								stringvalidator.OneOf(connectorValidNotificationCenterEntityTypesSchemaToApi...),
+-							},
+-							Description: fmt.Sprintf("Entity type for the connector. Valid values are: %s", connectorValidNotificationCenterEntityTypesSchemaToApi),
+ 						},
+-						"fields": schema.SetNestedAttribute{
++						"value": schema.StringAttribute{
+ 							Required: true,
+-							NestedObject: schema.NestedAttributeObject{
+-								Attributes: map[string]schema.Attribute{
+-									"field_name": schema.StringAttribute{
+-										Required: true,
+-									},
+-									"template": schema.StringAttribute{
+-										Required: true,
+-									},
+-								},
+-							},
+ 						},
+ 					},
+ 				},
+ 			},
+ 		},
+-		MarkdownDescription: "Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/. **Note:** This resource is in Beta stage.",
+ 	}
+ }
+ 
+@@ -273,8 +183,8 @@ var connectorCredentialFieldNames = map[string]struct{}{
+ func connectorWarningSummary(config *ConnectorResourceModel, field string) string {
+ 	subject := ""
+ 	switch {
+-	case !config.ID.IsNull() && !config.ID.IsUnknown():
+-		subject = config.ID.ValueString()
++	case !config.Id.IsNull() && !config.Id.IsUnknown():
++		subject = config.Id.ValueString()
+ 	case !config.Name.IsNull() && !config.Name.IsUnknown():
+ 		subject = config.Name.ValueString()
+ 	}
+@@ -406,7 +316,7 @@ func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest,
+ 		return
+ 	}
+ 
+-	id := state.ID.ValueString()
++	id := state.Id.ValueString()
+ 	rq := r.client.ConnectorsServiceGetConnector(ctx, id)
+ 
+ 	result, httpResponse, err := rq.Execute()
+@@ -446,7 +356,7 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+-	id := plan.ID.ValueString()
++	id := plan.Id.ValueString()
+ 	var config *ConnectorResourceModel
+ 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+ 	if resp.Diagnostics.HasError() {
+@@ -508,7 +418,7 @@ func (r ConnectorResource) Delete(ctx context.Context, req resource.DeleteReques
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+-	id := state.ID.ValueString()
++	id := state.Id.ValueString()
+ 
+ 	_, httpResponse, err := r.client.
+ 		ConnectorsServiceDeleteConnector(ctx, id).
+@@ -724,24 +634,16 @@ func (v connectorWriteOnlyFieldsValidator) ValidateObject(ctx context.Context, r
+ // secretFields is passed in rather than read from the plan, which never carries
+ // a write-only value.
+ func extractConnector(ctx context.Context, plan *ConnectorResourceModel, secretFields map[string]string) (*connectors.Connector, diag.Diagnostics) {
+-	connectorConfigs, diags := extractConnectorConfig(ctx, plan.ConnectorConfig, secretFields)
++	connector, diags := connectortypes.ExpandConnector(ctx, path.Empty(), &plan.ConnectorModel)
+ 	if diags.HasError() {
+ 		return nil, diags
+ 	}
+-
+-	configOverrides, diags := extractConfigOverrides(ctx, plan.ConfigOverrides)
++	connectorConfig, diags := extractConnectorConfig(ctx, plan.ConnectorConfig, secretFields)
+ 	if diags.HasError() {
+ 		return nil, diags
+ 	}
+-	ty := connectorTypeSchemaToApi[plan.Type.ValueString()]
+-	return &connectors.Connector{
+-		Id:              utils.TypeStringToStringPointer(plan.ID),
+-		Name:            plan.Name.ValueStringPointer(),
+-		Description:     plan.Description.ValueStringPointer(),
+-		Type:            &ty,
+-		ConnectorConfig: connectorConfigs,
+-		ConfigOverrides: configOverrides,
+-	}, nil
++	connector.ConnectorConfig = connectorConfig
++	return connector, nil
+ }
+ 
+ func extractConnectorConfig(ctx context.Context, connectorConfig types.Object, secretFields map[string]string) (*connectors.ConnectorConfig, diag.Diagnostics) {
+@@ -806,168 +708,22 @@ func extractConnectorConfigField(connectorConfigField ConnectorConfigFieldModel)
+ 	}
+ }
+ 
+-func extractConfigOverrides(ctx context.Context, overrides types.List) ([]connectors.EntityTypeConfigOverrides, diag.Diagnostics) {
+-	if overrides.IsNull() || overrides.IsUnknown() {
+-		return nil, nil
+-	}
+-	var diags diag.Diagnostics
+-	var connectorOverridesObjects []types.Object
+-	overrides.ElementsAs(ctx, &connectorOverridesObjects, true)
+-	extractedConnectorOverrides := make([]connectors.EntityTypeConfigOverrides, 0, len(connectorOverridesObjects))
+-
+-	for _, co := range connectorOverridesObjects {
+-		var connectorOverrideModel ConfigOverrideModel
+-		if dg := co.As(ctx, &connectorOverrideModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		extractedConnectorOverride, dg := extractConnectorOverride(ctx, connectorOverrideModel)
+-		if diags.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		extractedConnectorOverrides = append(extractedConnectorOverrides, *extractedConnectorOverride)
+-	}
+-
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	return extractedConnectorOverrides, diags
+-}
+-
+-func extractConnectorOverride(ctx context.Context, connectorOverrideModel ConfigOverrideModel) (*connectors.EntityTypeConfigOverrides, diag.Diagnostics) {
+-	templatedConnectorConfigFields, diags := extractTemplatedConnectorConfigFields(ctx, connectorOverrideModel.Fields)
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-	entityType := connectorEntityTypeSchemaToApi[connectorOverrideModel.EntityType.ValueString()]
+-	return &connectors.EntityTypeConfigOverrides{
+-		EntityType: &entityType,
+-		Fields:     templatedConnectorConfigFields,
+-	}, nil
+-}
+-
+-func extractTemplatedConnectorConfigFields(ctx context.Context, connectorConfigFields types.Set) ([]connectors.TemplatedConnectorConfigField, diag.Diagnostics) {
+-	var diags diag.Diagnostics
+-	var connectorConfigFieldsObjects []types.Object
+-	connectorConfigFields.ElementsAs(ctx, &connectorConfigFieldsObjects, true)
+-	extractedConnectorConfigFields := make([]connectors.TemplatedConnectorConfigField, 0, len(connectorConfigFieldsObjects))
+-
+-	for _, ccf := range connectorConfigFieldsObjects {
+-		var connectorConfigFieldModel TemplatedConnectorConfigFieldModel
+-		if dg := ccf.As(ctx, &connectorConfigFieldModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		extractedConnectorConfigField := extractTemplatedConnectorConfigField(connectorConfigFieldModel)
+-		extractedConnectorConfigFields = append(extractedConnectorConfigFields, *extractedConnectorConfigField)
+-	}
+-
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	return extractedConnectorConfigFields, diags
+-}
+-
+-func extractTemplatedConnectorConfigField(model TemplatedConnectorConfigFieldModel) *connectors.TemplatedConnectorConfigField {
+-	return &connectors.TemplatedConnectorConfigField{
+-		FieldName: model.FieldName.ValueStringPointer(),
+-		Template:  model.Template.ValueStringPointer(),
+-	}
+-}
+-
+ // Fields named in writeOnlyFields are left out. The API returns their values,
+ // and storing one would put the secret in state and diff on every later plan.
+ func flattenConnector(ctx context.Context, connector *connectors.Connector, writeOnlyFields map[string]struct{}) (*ConnectorResourceModel, diag.Diagnostics) {
+-	if connector.ConnectorConfig == nil {
+-		connector.ConnectorConfig = &connectors.ConnectorConfig{}
+-	}
+-	config, diags := flattenConnectorConfig(ctx, *connector.ConnectorConfig, writeOnlyFields)
+-	if diags.HasError() {
+-		return nil, diags
+-	}
+-
+-	overrides, diags := flattenConnectorOverrides(ctx, connector.ConfigOverrides)
++	model, diags := connectortypes.FlattenConnector(ctx, path.Empty(), connector)
+ 	if diags.HasError() {
+ 		return nil, diags
+ 	}
+-
+-	return &ConnectorResourceModel{
+-		ID:              types.StringValue(connector.GetId()),
+-		Name:            types.StringValue(connector.GetName()),
+-		Description:     types.StringValue(connector.GetDescription()),
+-		Type:            types.StringValue(connectorTypeApiToSchema[connector.GetType()]),
+-		ConnectorConfig: config,
+-		ConfigOverrides: overrides,
+-	}, nil
+-}
+-
+-func flattenConnectorOverrides(ctx context.Context, overrides []connectors.EntityTypeConfigOverrides) (types.List, diag.Diagnostics) {
+-	if overrides == nil {
+-		return types.ListNull(types.ObjectType{AttrTypes: connectorOverrideAttr()}), nil
+-	}
+-	var diags diag.Diagnostics
+-	flattenedOverrides := make([]types.Object, 0, len(overrides))
+-	for _, override := range overrides {
+-		flattenedOverride, dg := flattenConnectorOverride(ctx, &override)
+-		if dg.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		flattenedOverrides = append(flattenedOverrides, flattenedOverride)
++	connectorConfig := connectors.ConnectorConfig{}
++	if connector.ConnectorConfig != nil {
++		connectorConfig = *connector.ConnectorConfig
+ 	}
+-
++	config, diags := flattenConnectorConfig(ctx, connectorConfig, writeOnlyFields)
+ 	if diags.HasError() {
+-		return types.ListNull(types.ObjectType{AttrTypes: connectorOverrideAttr()}), diags
+-	}
+-
+-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: connectorOverrideAttr()}, flattenedOverrides)
+-}
+-
+-func flattenConnectorOverride(ctx context.Context, override *connectors.EntityTypeConfigOverrides) (types.Object, diag.Diagnostics) {
+-	var diags diag.Diagnostics
+-	overrideFields, dg := flattenTemplatedConnectorConfigFields(ctx, override.GetFields())
+-	if dg.HasError() {
+-		diags.Append(dg...)
+-		return types.ObjectNull(connectorOverrideAttr()), diags
+-	}
+-
+-	connectorOverrideModel := ConfigOverrideModel{
+-		EntityType: types.StringValue(connectorNotificationCenterEntityTypeApiToSchema[override.GetEntityType()]),
+-		Fields:     overrideFields,
+-	}
+-
+-	return types.ObjectValueFrom(ctx, connectorOverrideAttr(), connectorOverrideModel)
+-}
+-
+-func flattenTemplatedConnectorConfigFields(ctx context.Context, fields []connectors.TemplatedConnectorConfigField) (types.Set, diag.Diagnostics) {
+-	var diags diag.Diagnostics
+-	flattenedFields := make([]types.Object, 0, len(fields))
+-	for _, field := range fields {
+-		flattenedField, dg := flattenTemplatedConnectorConfigField(ctx, &field)
+-		if dg.HasError() {
+-			diags.Append(dg...)
+-			continue
+-		}
+-		flattenedFields = append(flattenedFields, flattenedField)
+-	}
+-
+-	if diags.HasError() {
+-		return types.SetNull(types.ObjectType{AttrTypes: templatedConnectorConfigFieldAttr()}), diags
+-	}
+-
+-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: templatedConnectorConfigFieldAttr()}, flattenedFields)
+-}
+-
+-func flattenTemplatedConnectorConfigField(ctx context.Context, field *connectors.TemplatedConnectorConfigField) (types.Object, diag.Diagnostics) {
+-	fieldModel := TemplatedConnectorConfigFieldModel{
+-		FieldName: types.StringValue(field.GetFieldName()),
+-		Template:  types.StringValue(field.GetTemplate()),
++		return nil, diags
+ 	}
+-
+-	return types.ObjectValueFrom(ctx, templatedConnectorConfigFieldAttr(), fieldModel)
++	return &ConnectorResourceModel{ConnectorModel: *model, ConnectorConfig: config}, nil
+ }
+ 
+ func flattenConnectorConfig(ctx context.Context, connectorConfig connectors.ConnectorConfig, writeOnlyFields map[string]struct{}) (types.Object, diag.Diagnostics) {
+@@ -1023,17 +779,3 @@ func connectorConfigFieldAttrs() map[string]attr.Type {
+ 		"value":      types.StringType,
+ 	}
+ }
+-
+-func connectorOverrideAttr() map[string]attr.Type {
+-	return map[string]attr.Type{
+-		"entity_type": types.StringType,
+-		"fields":      types.SetType{ElemType: types.ObjectType{AttrTypes: templatedConnectorConfigFieldAttr()}},
+-	}
+-}
+-
+-func templatedConnectorConfigFieldAttr() map[string]attr.Type {
+-	return map[string]attr.Type{
+-		"field_name": types.StringType,
+-		"template":   types.StringType,
+-	}
+-}
+diff --git a/internal/provider/notifications/resource_coralogix_connector_warnings_test.go b/internal/provider/notifications/resource_coralogix_connector_warnings_test.go
+index 93b1416..52e3011 100644
+--- a/internal/provider/notifications/resource_coralogix_connector_warnings_test.go
++++ b/internal/provider/notifications/resource_coralogix_connector_warnings_test.go
+@@ -20,6 +20,8 @@ import (
+ 	"testing"
+ 
+ 	"github.com/hashicorp/terraform-plugin-framework/types"
++
++	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/connectortypes"
+ )
+ 
+ // connectorModel builds the shape ValidateConfig sees: a connector whose field
+@@ -50,8 +52,10 @@ func connectorModel(t *testing.T, id string, fields map[string]string) *Connecto
+ 	}
+ 
+ 	return &ConnectorResourceModel{
+-		ID:              types.StringValue(id),
+-		Name:            types.StringValue("a connector"),
++		ConnectorModel: connectortypes.ConnectorModel{
++			Id:   types.StringValue(id),
++			Name: types.StringValue("a connector"),
++		},
+ 		ConnectorConfig: config,
+ 	}
+ }
+@@ -123,7 +127,7 @@ func TestConnectorWarningSummariesDifferPerConnector(t *testing.T) {
+ // The id is generated when not supplied, so it can be unknown at plan time.
+ func TestConnectorWarningSummaryWithUnknownID(t *testing.T) {
+ 	config := connectorModel(t, "ignored", map[string]string{"apiKey": "x"})
+-	config.ID = types.StringUnknown()
++	config.Id = types.StringUnknown()
+ 
+ 	summary := connectorWarningSummary(config, "apiKey")
+ 	if strings.Contains(summary, "%!") {

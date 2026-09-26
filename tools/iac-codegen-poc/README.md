@@ -110,9 +110,9 @@ go run ./cmd/tfgen --spec spec/fake/openapi.yaml --types Routing --tag "Fake Boa
   --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk \
   --overrides spec/fake/routing.overrides.yaml --out generated/fakerouting
 go run ./cmd/schemacompare <handwritten dump> <generated dump>   # breaking and review differences of two schema dumps
-integration/globalrouter/run.sh <provider checkout>      # switch coralogix_global_router to generated types, prove no change
-STEP=added integration/globalrouter/run.sh <provider checkout>   # the same, with the API fields that Terraform did not have
-CORALOGIX_ENV=EU2 integration/globalrouter/live.sh <provider checkout>   # live check; prompts for the API key
+integration/switch.sh globalrouter <provider checkout>   # switch a resource to generated types, prove no change (or connector)
+STEP=added integration/switch.sh globalrouter <provider checkout>   # the same, with the API fields that Terraform did not have
+CORALOGIX_ENV=EU2 integration/live.sh globalrouter <provider checkout>   # live check; prompts for the API key
 go test ./...                                    # the acceptance test skips without TF_ACC
 go test ./internal/model -run TestDump -update   # rewrite internal/model/testdata/ai_evaluation.golden
 go test ./cmd/tfgen -run TestSDKNames -update    # rewrite cmd/tfgen/testdata/sdk_names.golden
@@ -359,7 +359,13 @@ Changes of shape (a `oneOf` written as a `type` string, a new wrapper object) ar
 - An equivalence test runs the old and the new code on the same API responses: the same Terraform state, and the same request.
   The schema cannot show how a handwritten flatten reads a response, for example a missing description as `""` (F57).
 
-**Pilot: `coralogix_global_router`.** [`integration/globalrouter/run.sh`](integration/globalrouter/run.sh) copies the provider,
+**Scripts.** [`integration/switch.sh <name>`](integration/switch.sh) runs a switch in a copy of the provider, and
+[`integration/live.sh <name>`](integration/live.sh) checks it on a real account. Each resource has its inputs in
+`integration/<name>/`: `switch.env` (the root type, the tag, the packages), the overrides, `provider.patch`, the two checks, and
+`live.tf`. The live check applies `live.tf` with the current provider, then plans with the switched one (no changes), imports with
+both (the same state, the same plan), updates, and plans again.
+
+**Pilot: `coralogix_global_router`.** `switch.sh globalrouter` copies the provider,
 generates the types with [`overrides.yaml`](integration/globalrouter/overrides.yaml) (37 lines), runs both checks, and applies
 [`provider.patch`](integration/globalrouter/provider.patch): the resource, the data source, and the schema use the generated
 types, and the handwritten models, expand, and flatten are removed (+26 −658 lines). Results:
@@ -368,10 +374,25 @@ types, and the handwritten models, expand, and flatten are removed (+26 −658 l
 - The equivalence test found 9 differences in how the handwritten code reads responses; `missingAsZero` and `emptyAsNull` fixed
   them. 5 API responses give the same state and the same request.
 - All provider unit tests pass.
-- [`live.sh`](integration/globalrouter/live.sh) on EU2: the current provider creates a connector and a router; the switched one
-  plans no changes on that state, after an import, and after an update. It passed.
+- `live.sh globalrouter` on EU2: the current provider creates a connector and a router; the switched one plans no changes on
+  that state and after an update, and imports the same state. It passed.
 - With [`overrides-added.yaml`](integration/globalrouter/overrides-added.yaml), the fields that Terraform did not have
   (`create_time`, `update_time`, target ids) become computed attributes. The same checks and the live check pass.
+
+**Partial switch: `coralogix_connector`.** Its `connector_config` has Terraform-only parts: write-only attributes for secrets, a
+validator, and code that merges the secrets into the request and keeps them out of state. That part stays handwritten; the rest
+(`id`, `name`, `description`, `type`, `config_overrides`) is generated. The resource model embeds the generated model (F61):
+
+```go
+type ConnectorResourceModel struct {
+	connectortypes.ConnectorModel                             // generated
+	ConnectorConfig types.Object `tfsdk:"connector_config"`   // handwritten
+}
+```
+
+The checks run on the combined schema and code: 0 breaking differences, and the equivalence test (including a write-only secret)
+passes. [`provider.patch`](integration/connector/provider.patch) is +63 −317 lines. The live checks pass for both steps.
+`resolvedConnectorConfig` stays out of Terraform: it is read only, but it holds the secrets (F60).
 
 ## Decisions
 
@@ -464,4 +485,6 @@ Gaps in the API, the contract, or the tools.
 | F57 | A handwritten flatten also changes values: GlobalRouter reads a missing `name`, `description`, rule `name` and `condition` as `""`, a missing `disabled` as `false`, a missing `rules` as `[]`, and an empty `fallback`, `fallback_targets`, or `routing_labels` as null (the API returns empty lists). A schema compare cannot see this; the equivalence test (old and new flatten of the same API object) did. Fixed by the overrides `missingAsZero` and `emptyAsNull`. Every switch needs such a test. | Tooling (provider) |
 | F58 | Server fields in the GlobalRouter types (`createTime`, `updateTime`, `RoutingTarget.id`) have no `readOnly` (F46), so the type mode would make them optional and send them. Fixed by the override `readOnly` (Computed only, not sent, no validators). | OpenAPI generator, API proto |
 | F59 | The generated attribute descriptions come from the spec, not from the handwritten schema, so the provider docs change on a switch. Not a user break; the compare tool does not check descriptions. | Tooling (provider) |
+| F60 | `Connector.resolvedConnectorConfig` (spec `readOnly`) is the full effective config, so it would also hold the values that the write-only attributes keep out of state. Adding it to Terraform would leak them; it stays skipped. A server field is not always safe to show. | API proto / Tooling |
+| F61 | A resource with Terraform-only parts (Connector: write-only secrets beside the API fields, with their own validator and read and write logic) can switch partly: the resource model embeds the generated model (plugin framework embedded structs), and the handwritten attribute stays beside it. The checks run on the combined schema and code. | Tooling (provider) |
 | F44 | `PolicySettings` (a singleton): Get is on `/dataplans/policy-settings/v1`, but Replace is on `/dataplans/policiy-settings/v1` (a typo). A singleton linter rule, all operations on one path, would catch it. | API proto |

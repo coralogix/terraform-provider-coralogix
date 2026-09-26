@@ -372,7 +372,7 @@ func (b *tfBuilder) override(a *tfAttr, schema string, f *model.Field, t *model.
 	if b.ov == nil {
 		return nil
 	}
-	ov := b.ov.field(schema, f.Name)
+	ov := b.ov.effective(schema, f)
 	if ov.Default != nil {
 		if err := b.checkDefault(t, *ov.Default); err != nil {
 			return err

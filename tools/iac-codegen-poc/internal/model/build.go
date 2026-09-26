@@ -744,6 +744,7 @@ func attrsOf(parent *base.Schema, name string, proxy *base.SchemaProxy) (Attrs, 
 		v := s.Default.Value
 		a.Default = &v
 	}
+	a.ReadOnly = s.ReadOnly != nil && *s.ReadOnly
 	return a, nil
 }
 

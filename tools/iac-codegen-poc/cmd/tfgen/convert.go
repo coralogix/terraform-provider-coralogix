@@ -577,7 +577,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		cf.TFName = b.ov.tfName(t.Schema, f.Name)
-		cf.ReadOnly = b.ov.field(t.Schema, f.Name).ReadOnly
+		cf.ReadOnly = b.ov.effective(t.Schema, f).ReadOnly
 		if cf.Read, err = readRule(b.ov.field(t.Schema, f.Name), cf); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}

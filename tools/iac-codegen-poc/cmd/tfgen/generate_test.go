@@ -265,6 +265,7 @@ func TestOverridesRejects(t *testing.T) {
 		{"null of a scalar", "types: {Routing: {weight: {emptyAsNull: true}}}", "emptyAsNull: the field is a number"},
 		{"zero of an enum", "types: {Routing: {delivery: {missingAsZero: true}}}", "missingAsZero is not supported for enum"},
 		{"zero of a time", "types: {Routing: {createTime: {missingAsZero: true}}}", "missingAsZero is not supported for time"},
+		{"flags of a spec readOnly field", "types: {Routing: {createTime: {computed: true}}}", "the spec marks the field readOnly"},
 		{"unknown enum", "enums: {Color: {terraformNames: true}}", "enums.Color: no such enum"},
 		{"values without names", "enums: {Delivery: {values: {DISABLED: off}}}", "need terraformNames: true"},
 		{"unknown enum value", "enums: {Delivery: {terraformNames: true, values: {NOPE: x}}}", "values.NOPE: no such value"},

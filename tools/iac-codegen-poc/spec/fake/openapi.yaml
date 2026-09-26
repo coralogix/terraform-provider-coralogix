@@ -639,8 +639,9 @@ components:
           description: Set by the server.
           type: string
         createTime:
-          description: Set by the server.
+          description: Set by the server. The spec marks it readOnly.
           format: date-time
+          readOnly: true
           type: string
       type: object
     Target:

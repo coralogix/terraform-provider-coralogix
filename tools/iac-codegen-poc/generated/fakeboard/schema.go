@@ -588,7 +588,7 @@ func Schema() schema.Schema {
 						Validators: []validator.String{
 							rfc3339Validator{},
 						},
-						MarkdownDescription: "Set by the server.",
+						MarkdownDescription: "Set by the server. The spec marks it readOnly.",
 					},
 				},
 				MarkdownDescription: "Where alerts of the board go. Only in Get. The type mode uses it to test overrides (D21).",

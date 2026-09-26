@@ -92,7 +92,7 @@ func RoutingAttributes() map[string]schema.Attribute {
 		},
 		"create_time": schema.StringAttribute{
 			Computed:            true,
-			MarkdownDescription: "Set by the server.",
+			MarkdownDescription: "Set by the server. The spec marks it readOnly.",
 		},
 	}
 }
