@@ -39,10 +39,12 @@ func main() {
 	typeList := flag.String("types", "", "comma-separated component schemas: write only their Terraform types, for handwritten resources")
 	enumList := flag.String("enums", "", "comma-separated enum component schemas: write their Terraform names, for handwritten resources")
 	tag := flag.String("tag", "", "with --types or --enums: the operation tag whose SDK package has the types")
+	overridesFile := flag.String("overrides", "", "with --types: a YAML file that makes the types match an existing handwritten resource")
 	flag.Parse()
 
-	if *typeList != "" || *enumList != "" {
-		if err := runTypes(*spec, typeInputs{roots: splitList(*typeList), enums: splitList(*enumList)}, *tag, *sdkModule, *out); err != nil {
+	if *typeList != "" || *enumList != "" || *overridesFile != "" {
+		in := typeInputs{roots: splitList(*typeList), enums: splitList(*enumList), overrides: *overridesFile}
+		if err := runTypes(*spec, in, *tag, *sdkModule, *out); err != nil {
 			fmt.Fprintln(os.Stderr, "tfgen:", err)
 			os.Exit(1)
 		}
@@ -102,11 +104,21 @@ func runTypes(spec string, in typeInputs, tag, sdkModule, out string) error {
 	if spec == "" || out == "" {
 		return errors.New("--spec and --out are required with --types and --enums")
 	}
+	if len(in.roots) == 0 && in.overrides != "" {
+		return fmt.Errorf("%s needs --types", overridesFlag)
+	}
+	var ov *overrides
+	if in.overrides != "" {
+		var err error
+		if ov, err = loadOverrides(in.overrides); err != nil {
+			return err
+		}
+	}
 	types, enums, refs, err := checkedTypeNames(spec, in, tag, sdkModule)
 	if err != nil {
 		return err
 	}
-	files, err := generateTypes(types, enums, refs, filepath.Base(out), typesCommand(in, tag))
+	files, err := generateTypes(types, enums, refs, ov, filepath.Base(out), typesCommand(in, tag))
 	if err != nil {
 		return err
 	}
@@ -122,6 +134,9 @@ func typesCommand(in typeInputs, tag string) string {
 	}
 	if len(in.enums) != 0 {
 		parts = append(parts, "--enums "+strings.Join(in.enums, ","))
+	}
+	if in.overrides != "" {
+		parts = append(parts, overridesFlag+" "+filepath.Base(in.overrides))
 	}
 	return fmt.Sprintf("%s %s %q", strings.Join(parts, " "), typeTagFlag, tag)
 }

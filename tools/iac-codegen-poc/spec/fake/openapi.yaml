@@ -245,6 +245,10 @@ components:
           description: RFC3339 timestamp of the last update.
           format: date-time
           type: string
+        routing:
+          allOf:
+            - $ref: '#/components/schemas/Routing'
+          description: Where alerts of the board go. Only in Get. The type mode uses it to test overrides (D21).
       required:
         - id
         - name
@@ -598,6 +602,59 @@ components:
         - COMPARISON_MORE_THAN_OR_UNSPECIFIED
         - COMPARISON_LESS_THAN
       type: string
+    Routing:
+      description: Alert routing. Its handwritten Terraform schema differs from the API, as in real resources, so the overrides test (D21) uses it.
+      properties:
+        routingName:
+          description: Name of the routing. Terraform calls it name.
+          maxLength: 50
+          minLength: 1
+          type: string
+        delivery:
+          allOf:
+            - $ref: '#/components/schemas/Delivery'
+          description: How alerts are delivered.
+        channels:
+          description: Delivery kinds per channel. A list of enums.
+          items:
+            $ref: '#/components/schemas/Delivery'
+          type: array
+        targets:
+          description: The targets. Order does not matter.
+          items:
+            $ref: '#/components/schemas/Target'
+          type: array
+        priority:
+          description: Priority, an int32.
+          format: int32
+          type: integer
+        weight:
+          description: Weight, a float.
+          format: float
+          type: number
+        disabled:
+          description: Disabled routings send nothing.
+          type: boolean
+        routerId:
+          description: Set by the server.
+          type: string
+        createTime:
+          description: Set by the server.
+          format: date-time
+          type: string
+      type: object
+    Target:
+      description: A routing target.
+      properties:
+        connectorId:
+          description: The connector.
+          type: string
+        tags:
+          description: Tags. Order does not matter.
+          items:
+            type: string
+          type: array
+      type: object
     Delivery:
       description: An enum whose zero value has a prefix and whose other values have none, as in the real Delivery enum.
       enum:

@@ -1,0 +1,165 @@
+// This file is copied into a copy of the provider by
+// integration/globalrouter/run.sh, next to the handwritten GlobalRouter
+// code. It checks that the generated types (D21) read and send the same
+// values as the handwritten code, before the handwritten code is removed:
+//   - flatten: the same API object gives the same Terraform state;
+//   - expand: the same state gives the same request JSON.
+
+package notifications
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"testing"
+
+	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+
+	globalrouterschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/global_router_schema"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/globalroutertypes"
+)
+
+func eqPtr[T any](v T) *T { return &v }
+
+// equivalenceFixtures are API objects as the server returns them: every
+// field, the fewest fields, empty values, and the zero enum value.
+func equivalenceFixtures() map[string]string {
+	return map[string]string{
+		"full": `{"id":"r1","name":"main","description":"d","disabled":true,
+			"entityLabels":{"team":"a"},
+			"routingLabels":{"environment":"prod","service":"api","team":"sre"},
+			"rules":[{"name":"r","condition":"alert.priority == \"P1\"","entityType":"ALERTS","customDetails":{"k":"v"},
+				"targets":[{"connectorId":"c1","presetId":"p1","customDetails":{"x":"y"}},{"connectorId":"c2"}]}],
+			"fallback":[{"connectorId":"c3"}],
+			"fallbackTargets":[{"entityType":"CASES","target":{"connectorId":"c4","presetId":"p4"}}]}`,
+		"minimal": `{"id":"r2","name":"only name"}`,
+		"empty": `{"id":"r3","name":"n","description":"","disabled":false,"entityLabels":{},
+			"routingLabels":{},"rules":[],"fallback":[],"fallbackTargets":[]}`,
+		"partial": `{"id":"r5","name":"n","description":"x","routingLabels":{"team":"sre"},"entityLabels":{"a":"b"},
+			"rules":[{"name":"r","condition":"true","entityType":"TEST_NOTIFICATIONS","targets":[{"connectorId":"c1","customDetails":{}}]}],
+			"fallbackTargets":[{"entityType":"ALERTS","target":{"connectorId":"c2","customDetails":{"k":"v"}}}]}`,
+		"zero enum": `{"id":"r4","name":"n","rules":[{"name":"r","condition":"true","entityType":"ENTITY_TYPE_UNSPECIFIED","targets":[]}]}`,
+	}
+}
+
+func equivalenceSchemas() (hw, gen schema.Schema) {
+	hw = globalrouterschema.V1()
+	gen = schema.Schema{Version: hw.Version, Attributes: globalroutertypes.GlobalRouterAttributes()}
+	return hw, gen
+}
+
+func TestEquivalenceFlatten(t *testing.T) {
+	ctx := context.Background()
+	hwSchema, genSchema := equivalenceSchemas()
+	for name, js := range equivalenceFixtures() {
+		t.Run(name, func(t *testing.T) {
+			var router globalRouters.GlobalRouter
+			if err := json.Unmarshal([]byte(js), &router); err != nil {
+				t.Fatal(err)
+			}
+			hwState := stateOf(t, hwSchema, func(s *tfsdk.State) error {
+				m, diags := flattenGlobalRouter(ctx, &router)
+				diags.Append(s.Set(ctx, m)...)
+				return diagErr(diags)
+			})
+			genState := stateOf(t, genSchema, func(s *tfsdk.State) error {
+				m, diags := globalroutertypes.FlattenGlobalRouter(ctx, path.Empty(), &router)
+				diags.Append(s.Set(ctx, m)...)
+				return diagErr(diags)
+			})
+			diffs, err := hwState.Diff(genState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, d := range diffs {
+				t.Errorf("state differs at %s: handwritten %s, generated %s", d.Path, short(d.Value1), short(d.Value2))
+			}
+		})
+	}
+}
+
+func TestEquivalenceExpand(t *testing.T) {
+	ctx := context.Background()
+	hwSchema, genSchema := equivalenceSchemas()
+	for name, js := range equivalenceFixtures() {
+		t.Run(name, func(t *testing.T) {
+			var router globalRouters.GlobalRouter
+			if err := json.Unmarshal([]byte(js), &router); err != nil {
+				t.Fatal(err)
+			}
+			// The state of the handwritten code is the input of both.
+			raw := stateOf(t, hwSchema, func(s *tfsdk.State) error {
+				m, diags := flattenGlobalRouter(ctx, &router)
+				diags.Append(s.Set(ctx, m)...)
+				return diagErr(diags)
+			})
+			var hwModel GlobalRouterResourceModel
+			if diags := (tfsdk.State{Schema: hwSchema, Raw: raw}).Get(ctx, &hwModel); diags.HasError() {
+				t.Fatal(diags)
+			}
+			var genModel globalroutertypes.GlobalRouterModel
+			if diags := (tfsdk.State{Schema: genSchema, Raw: raw}).Get(ctx, &genModel); diags.HasError() {
+				t.Fatal(diags)
+			}
+			hwBody, diags := extractGlobalRouter(ctx, &hwModel)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			genBody, diags := globalroutertypes.ExpandGlobalRouter(ctx, path.Empty(), &genModel)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			if h, g := jsonText(t, hwBody), jsonText(t, genBody); h != g {
+				t.Errorf("request differs:\nhandwritten: %s\ngenerated:   %s", h, g)
+			}
+		})
+	}
+}
+
+// short writes a value without its type, which the path already shows.
+func short(v *tftypes.Value) string {
+	switch {
+	case v == nil:
+		return "<none>"
+	case v.IsNull():
+		return "null"
+	case v.Type().Is(tftypes.List{}) || v.Type().Is(tftypes.Map{}) || v.Type().Is(tftypes.Object{}):
+		var elems []tftypes.Value
+		if v.Type().Is(tftypes.List{}) && v.As(&elems) == nil && len(elems) == 0 {
+			return "[]"
+		}
+		return "{...}"
+	}
+	return v.String()
+}
+
+func stateOf(t *testing.T, s schema.Schema, set func(*tfsdk.State) error) tftypes.Value {
+	t.Helper()
+	state := tfsdk.State{Schema: s, Raw: tftypes.NewValue(s.Type().TerraformType(context.Background()), nil)}
+	if err := set(&state); err != nil {
+		t.Fatal(err)
+	}
+	return state.Raw
+}
+
+func jsonText(t *testing.T, v any) string {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+// diagErr returns the errors of diags as one error, or nil.
+func diagErr(diags diag.Diagnostics) error {
+	if !diags.HasError() {
+		return nil
+	}
+	return fmt.Errorf("%v", diags)
+}

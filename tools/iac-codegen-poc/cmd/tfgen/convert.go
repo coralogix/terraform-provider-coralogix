@@ -97,6 +97,12 @@ const (
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
 	convUint64Map = "uint64map" // types.Map of Int64 ↔ map[string]string (D7)
 	convObjectMap = "objectmap" // types.Map ↔ map[string]<SDK type>
+
+	// Overrides of the type mode (D21).
+	convInt32Wide   = "int32wide"   // types.Int64 ↔ *int32, with a range check
+	convFloat32Wide = "float32wide" // types.Float64 ↔ *float32
+	convEnumName    = "enumname"    // types.String (a Terraform name) ↔ *<enum type>
+	convEnumNames   = "enumnames"   // types.Set/List of Terraform names ↔ []<enum type>
 )
 
 // convField is one field of a convObject.
@@ -117,6 +123,48 @@ type convField struct {
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
 	Value bool
+	// Enum is the Go prefix of the enum name maps of enumname and
+	// enumnames: <Enum>ByName and <Enum>Name. Zero is the SDK value that
+	// only means "not set", as a Go expression; flatten makes it null.
+	Enum, Zero string
+	// Read is how flatten reads a missing or empty value, from the
+	// overrides (D21): "" as it is, readZero or readNull.
+	Read string
+	// ReadOnly is true for a field that the server sets (the readOnly
+	// override): expand does not send it.
+	ReadOnly bool
+}
+
+// Values of convField.Read.
+const (
+	readZero      = "zero"       // a missing scalar → its zero value
+	readEmptyList = "emptylist"  // a missing list → an empty list
+	readEmptyMap  = "emptymap"   // a missing map → an empty map
+	readNullList  = "nulllist"   // an empty list or map → null
+	readNullObj   = "nullobject" // an object with no fields set → null
+)
+
+// Normalizes reports whether flatten of obj changes a missing or empty
+// value first (D21).
+func (obj *convObject) Normalizes() bool {
+	for _, f := range obj.Fields {
+		if f.Read != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// Reads reports whether a field is read with the rule read.
+func (d *convData) Reads(read string) bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if obj.Flatten && f.Read == read {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Uses reports whether a field uses the conversion kind conv. The template
@@ -355,6 +403,7 @@ type convBuilder struct {
 	objects  []*convObject
 	bySchema map[string]*convObject
 	listed   []*convObject // objects that a list holds
+	ov       *overrides    // the overrides of the type mode (D21); nil in the resource mode
 }
 
 // object adds the convObject of a component schema, without fields.
@@ -374,6 +423,9 @@ func (b *convBuilder) field(owner, name string, t *model.Type) (*convField, erro
 	}
 	cf := &convField{TFName: tfName(name), Model: camelize(name), SDK: ref.Name}
 	want, err := b.fieldConv(cf, t)
+	if err == nil && b.ov.wide() && isNarrow(t) {
+		want, err = wideConv(cf, t)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -400,6 +452,10 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type) (string, error) {
 			return "", err
 		}
 		cf.Conv, cf.SDKType = convEnum, b.qualify(enum.Name)
+		if b.ov.named(t.Schema) {
+			cf.Conv = convEnumName
+			b.enumNames(cf, t, enum)
+		}
 		return "*" + enum.Name, nil
 	case model.Object, model.OneOf:
 		if len(t.Fields) == 0 {
@@ -469,8 +525,15 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 			return "", err
 		}
 		cf.Conv, cf.SDKType = convStrings, b.qualify(enum.Name)
+		if b.ov.named(t.Elem.Schema) {
+			cf.Conv = convEnumNames
+			b.enumNames(cf, t.Elem, enum)
+		}
 		return "[]" + enum.Name, nil
 	case model.Bool, model.Number, model.Integer:
+		if b.ov.wide() && isNarrow(t.Elem) {
+			break
+		}
 		goType, elem, ok := scalarElem(t.Elem)
 		if !ok {
 			break
@@ -478,9 +541,9 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		cf.Conv, cf.SDKType, cf.ElemType = convScalars, goType, elem
 		return "[]" + goType, nil
 	case model.Object, model.OneOf:
-		// A set of objects needs path.AtSetValue for diagnostics. No
-		// resource uses it yet.
-		if t.Kind == model.Set || len(t.Elem.Fields) == 0 {
+		// A diagnostic in a set item has the path of the set: an item path
+		// (path.AtSetValue) needs the Terraform value of the item.
+		if len(t.Elem.Fields) == 0 {
 			break
 		}
 		obj, err := b.nested(t.Elem)
@@ -508,14 +571,79 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	}
 	obj := b.object(t.Schema, ref)
 	b.objects = append(b.objects, obj)
-	for _, f := range t.Fields {
-		cf, err := b.field(ref.Path, f.Name, f.Type)
+	for _, f := range b.ov.fields(t) {
+		cf, err := b.field(ref.Path, f.Name, b.ov.fieldType(t.Schema, f))
 		if err != nil {
+			return nil, fmt.Errorf("%s: %w", f.Name, err)
+		}
+		cf.TFName = b.ov.tfName(t.Schema, f.Name)
+		cf.ReadOnly = b.ov.field(t.Schema, f.Name).ReadOnly
+		if cf.Read, err = readRule(b.ov.field(t.Schema, f.Name), cf); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		obj.Fields = append(obj.Fields, cf)
 	}
 	return obj, nil
+}
+
+// zeroable are the conversions whose zero value is a valid Terraform value.
+var zeroable = map[string]bool{convString: true, convBool: true, convFloat64: true, convFloat32: true,
+	convInt32: true, convInt64: true, convInt32Wide: true, convFloat32Wide: true}
+
+// readRule returns how flatten reads a missing or empty value of cf.
+func readRule(ov fieldOverride, cf *convField) (string, error) {
+	slice := map[string]bool{convStrings: true, convScalars: true, convObjects: true, convEnumNames: true}[cf.Conv]
+	mapped := map[string]bool{convStringMap: true, convScalarMap: true, convUint64Map: true, convObjectMap: true}[cf.Conv]
+	switch {
+	case ov.MissingAsZero:
+		return zeroRule(cf, slice, mapped)
+	case ov.EmptyAsNull && (slice || mapped):
+		return readNullList, nil
+	case ov.EmptyAsNull && cf.Conv == convObj && !cf.Value:
+		return readNullObj, nil
+	case ov.EmptyAsNull:
+		return "", fmt.Errorf("emptyAsNull is not supported for %s", cf.Conv)
+	}
+	return "", nil
+}
+
+// zeroRule is the read rule of missingAsZero for cf.
+func zeroRule(cf *convField, slice, mapped bool) (string, error) {
+	switch {
+	case slice:
+		return readEmptyList, nil
+	case mapped:
+		return readEmptyMap, nil
+	case cf.Value:
+		return "", nil // a value is never missing
+	case zeroable[cf.Conv]:
+		return readZero, nil
+	}
+	// "", a zero time, or an empty uint64 string is not a valid value.
+	return "", fmt.Errorf("missingAsZero is not supported for %s", cf.Conv)
+}
+
+// enumNames sets the name maps and the zero value of an enum with
+// Terraform names (D21). The type mode writes the maps in enums.go.
+func (b *convBuilder) enumNames(cf *convField, t *model.Type, enum sdkRef) {
+	cf.Enum, cf.Zero = camelize(t.Schema), `""`
+	if t.Zero != "" {
+		cf.Zero = b.qualify(enumConstName(enum.Name, t.Zero))
+	}
+}
+
+// wideConv sets the wide conversion of a narrow number (D21): Terraform
+// Int64 or Float64, SDK int32 or float32. It returns the SDK Go type.
+func wideConv(cf *convField, t *model.Type) (string, error) {
+	switch cf.Conv {
+	case convInt32:
+		cf.Conv = convInt32Wide
+		return "*int32", nil
+	case convFloat32:
+		cf.Conv = convFloat32Wide
+		return "*float32", nil
+	}
+	return "", fmt.Errorf("wideNumbers: %s is not supported", typeName(t))
 }
 
 // mark sets the direction that uses obj and its nested objects: expand
@@ -562,6 +690,7 @@ var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType",
 	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type",
+	convInt32Wide: "types.Int64Type", convFloat32Wide: "types.Float64Type", convEnumName: "types.StringType",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}",
 }
 
@@ -571,7 +700,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return expr, nil
 	}
 	switch f.Conv {
-	case convStrings:
+	case convStrings, convEnumNames:
 		return "types." + f.Collection + "Type{ElemType: types.StringType}", nil
 	case convScalars:
 		return "types." + f.Collection + "Type{ElemType: " + f.ElemType + "}", nil
@@ -588,7 +717,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		expr := "types.ObjectType{AttrTypes: " + f.Object.AttrTypesFunc + "()}"
 		switch f.Conv {
 		case convObjects:
-			expr = "types.ListType{ElemType: " + expr + "}"
+			expr = "types." + f.Collection + "Type{ElemType: " + expr + "}"
 		case convObjectMap:
 			expr = "types.MapType{ElemType: " + expr + "}"
 		}
@@ -601,6 +730,9 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 // that the conversion needs.
 func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 	cf.Collection = "Map"
+	if err := b.checkMapOverrides(t.Elem); err != nil {
+		return "", err
+	}
 	if goType, elem, ok := scalarElem(t.Elem); ok {
 		cf.Conv, cf.SDKType, cf.ElemType = convScalarMap, goType, elem
 		return "map[string]" + goType, nil
@@ -632,6 +764,15 @@ func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 		return "map[string]" + obj.SDK, nil
 	}
 	return "", fmt.Errorf("map of %s is not supported", typeName(t.Elem))
+}
+
+// checkMapOverrides fails for a map value that an override would convert:
+// the map conversions do not support that yet.
+func (b *convBuilder) checkMapOverrides(e *model.Type) error {
+	if b.ov.wide() && isNarrow(e) || e.Kind == model.Enum && b.ov.named(e.Schema) {
+		return fmt.Errorf("overrides: a map of %s with wideNumbers or terraformNames is not supported", typeName(e))
+	}
+	return nil
 }
 
 // scalarElem returns the Go type and the Terraform element type of a bool or

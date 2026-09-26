@@ -180,7 +180,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"text": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The text.",
 										},
@@ -261,7 +261,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -291,7 +291,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -361,7 +361,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -391,7 +391,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -430,7 +430,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"process_tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 																},
 																MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -438,7 +438,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 																},
 																MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -507,7 +507,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -537,7 +537,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -944,7 +944,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -974,7 +974,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -1037,7 +1037,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -1188,7 +1188,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -1218,7 +1218,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -1395,7 +1395,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"process_tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 														},
 														MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -1403,7 +1403,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 														},
 														MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -1472,7 +1472,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -1502,7 +1502,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -1540,7 +1540,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"process_tag_field": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 													stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 												},
 												MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -1548,7 +1548,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"tag_field": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 													stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 												},
 												MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -1598,7 +1598,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -1619,7 +1619,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"process_tag_field": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 255),
+												stringvalidator.LengthAtMost(255),
 												stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 											},
 											MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -1627,7 +1627,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"tag_field": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 255),
+												stringvalidator.LengthAtMost(255),
 												stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 											},
 											MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -1945,7 +1945,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"text": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The text.",
 										},
@@ -2026,7 +2026,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -2056,7 +2056,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -2126,7 +2126,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -2156,7 +2156,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -2195,7 +2195,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"process_tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 																},
 																MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -2203,7 +2203,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 																},
 																MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -2272,7 +2272,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -2302,7 +2302,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -2441,7 +2441,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -2471,7 +2471,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -2821,7 +2821,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -2935,7 +2935,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -2965,7 +2965,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -3074,7 +3074,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"process_tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 														},
 														MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -3082,7 +3082,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 														},
 														MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -3151,7 +3151,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -3181,7 +3181,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -3303,7 +3303,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"process_tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 														},
 														MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -3311,7 +3311,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 														},
 														MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -3364,7 +3364,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -3468,7 +3468,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"text": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The text.",
 										},
@@ -3816,7 +3816,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -3846,7 +3846,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -3900,7 +3900,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -4244,7 +4244,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"process_tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 														},
 														MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -4252,7 +4252,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 														},
 														MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -4321,7 +4321,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -4351,7 +4351,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -4412,7 +4412,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -4468,7 +4468,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"text": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 10000),
+															stringvalidator.LengthAtMost(10000),
 														},
 														MarkdownDescription: "The text.",
 													},
@@ -4816,7 +4816,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																							ElementType: types.StringType,
 																							Validators: []validator.List{
 																								listvalidator.SizeAtMost(1000),
-																								listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																								listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																							},
 																							MarkdownDescription: "A list of selected values.",
 																						},
@@ -4846,7 +4846,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																							ElementType: types.StringType,
 																							Validators: []validator.List{
 																								listvalidator.SizeAtMost(1000),
-																								listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																								listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																							},
 																							MarkdownDescription: "A list of values for the selection.",
 																						},
@@ -4900,7 +4900,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"value": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 10000),
+															stringvalidator.LengthAtMost(10000),
 														},
 														MarkdownDescription: "The value.",
 													},
@@ -5244,7 +5244,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																"process_tag_field": schema.StringAttribute{
 																	Optional: true,
 																	Validators: []validator.String{
-																		stringvalidator.LengthBetween(0, 255),
+																		stringvalidator.LengthAtMost(255),
 																		stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 																	},
 																	MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -5252,7 +5252,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																"tag_field": schema.StringAttribute{
 																	Optional: true,
 																	Validators: []validator.String{
-																		stringvalidator.LengthBetween(0, 255),
+																		stringvalidator.LengthAtMost(255),
 																		stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 																	},
 																	MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -5321,7 +5321,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																							ElementType: types.StringType,
 																							Validators: []validator.List{
 																								listvalidator.SizeAtMost(1000),
-																								listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																								listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																							},
 																							MarkdownDescription: "A list of selected values.",
 																						},
@@ -5351,7 +5351,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																							ElementType: types.StringType,
 																							Validators: []validator.List{
 																								listvalidator.SizeAtMost(1000),
-																								listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																								listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																							},
 																							MarkdownDescription: "A list of values for the selection.",
 																						},
@@ -5412,7 +5412,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"value": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 10000),
+															stringvalidator.LengthAtMost(10000),
 														},
 														MarkdownDescription: "The value.",
 													},
@@ -5626,7 +5626,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"label": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 												},
 												MarkdownDescription: "Optional label of the threshold",
 											},
@@ -6450,7 +6450,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"label": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 												},
 												MarkdownDescription: "Optional label of the threshold",
 											},
@@ -7390,7 +7390,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"label": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 												},
 												MarkdownDescription: "Optional label of the threshold",
 											},
@@ -7572,7 +7572,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"label": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																},
 																MarkdownDescription: "Optional label of the threshold",
 															},
@@ -7613,7 +7613,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"value": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 4096),
+																	stringvalidator.LengthAtMost(4096),
 																},
 																MarkdownDescription: "Value to match (exact string for value mapping, regex pattern for regex mapping)",
 															},
@@ -7654,7 +7654,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"value": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 4096),
+																	stringvalidator.LengthAtMost(4096),
 																},
 																MarkdownDescription: "Value to match (exact string for value mapping, regex pattern for regex mapping)",
 															},
@@ -8234,7 +8234,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																					"label": schema.StringAttribute{
 																						Optional: true,
 																						Validators: []validator.String{
-																							stringvalidator.LengthBetween(0, 255),
+																							stringvalidator.LengthAtMost(255),
 																						},
 																						MarkdownDescription: "Optional label of the threshold",
 																					},
@@ -9771,7 +9771,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"text": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The text.",
 										},
@@ -9852,7 +9852,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -9882,7 +9882,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -9952,7 +9952,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -9982,7 +9982,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -10021,7 +10021,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"process_tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 																},
 																MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -10029,7 +10029,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 																},
 																MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -10098,7 +10098,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -10128,7 +10128,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -10274,7 +10274,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -10304,7 +10304,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -10610,7 +10610,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -10731,7 +10731,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -10761,7 +10761,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -10877,7 +10877,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"process_tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 														},
 														MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -10885,7 +10885,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 														},
 														MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -10954,7 +10954,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -10984,7 +10984,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -11022,7 +11022,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"process_tag_field": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 													stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 												},
 												MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -11030,7 +11030,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"tag_field": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 													stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 												},
 												MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -11080,7 +11080,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -11340,7 +11340,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"text": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The text.",
 										},
@@ -11421,7 +11421,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -11451,7 +11451,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -11521,7 +11521,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -11551,7 +11551,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -11590,7 +11590,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"process_tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 																},
 																MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -11598,7 +11598,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 																},
 																MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -11667,7 +11667,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -11697,7 +11697,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -11836,7 +11836,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -11866,7 +11866,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -12172,7 +12172,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -12293,7 +12293,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -12323,7 +12323,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -12432,7 +12432,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"process_tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 														},
 														MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -12440,7 +12440,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 														},
 														MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -12509,7 +12509,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -12539,7 +12539,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -12577,7 +12577,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"process_tag_field": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 													stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 												},
 												MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -12585,7 +12585,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"tag_field": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 													stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 												},
 												MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -12635,7 +12635,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -12767,7 +12767,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 							"label": schema.StringAttribute{
 								Optional: true,
 								Validators: []validator.String{
-									stringvalidator.LengthBetween(0, 255),
+									stringvalidator.LengthAtMost(255),
 								},
 								MarkdownDescription: "Optional label of the threshold",
 							},
@@ -12936,7 +12936,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"text": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The text.",
 										},
@@ -13017,7 +13017,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -13047,7 +13047,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -13117,7 +13117,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -13147,7 +13147,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -13186,7 +13186,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"process_tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 																},
 																MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -13194,7 +13194,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 																},
 																MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -13263,7 +13263,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -13293,7 +13293,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -13700,7 +13700,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -13730,7 +13730,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -13793,7 +13793,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -13944,7 +13944,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -13974,7 +13974,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -14151,7 +14151,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"process_tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 														},
 														MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -14159,7 +14159,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 														},
 														MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -14228,7 +14228,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -14258,7 +14258,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -14296,7 +14296,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"process_tag_field": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 													stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 												},
 												MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -14304,7 +14304,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"tag_field": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 													stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 												},
 												MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -14354,7 +14354,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -14375,7 +14375,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"process_tag_field": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 255),
+												stringvalidator.LengthAtMost(255),
 												stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 											},
 											MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -14383,7 +14383,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"tag_field": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 255),
+												stringvalidator.LengthAtMost(255),
 												stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 											},
 											MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -14720,7 +14720,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"text": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 10000),
+															stringvalidator.LengthAtMost(10000),
 														},
 														MarkdownDescription: "The text.",
 													},
@@ -14801,7 +14801,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																									ElementType: types.StringType,
 																									Validators: []validator.List{
 																										listvalidator.SizeAtMost(1000),
-																										listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																										listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																									},
 																									MarkdownDescription: "A list of selected values.",
 																								},
@@ -14831,7 +14831,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																									ElementType: types.StringType,
 																									Validators: []validator.List{
 																										listvalidator.SizeAtMost(1000),
-																										listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																										listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																									},
 																									MarkdownDescription: "A list of values for the selection.",
 																								},
@@ -14901,7 +14901,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																									ElementType: types.StringType,
 																									Validators: []validator.List{
 																										listvalidator.SizeAtMost(1000),
-																										listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																										listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																									},
 																									MarkdownDescription: "A list of selected values.",
 																								},
@@ -14931,7 +14931,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																									ElementType: types.StringType,
 																									Validators: []validator.List{
 																										listvalidator.SizeAtMost(1000),
-																										listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																										listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																									},
 																									MarkdownDescription: "A list of values for the selection.",
 																								},
@@ -14970,7 +14970,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																		"process_tag_field": schema.StringAttribute{
 																			Optional: true,
 																			Validators: []validator.String{
-																				stringvalidator.LengthBetween(0, 255),
+																				stringvalidator.LengthAtMost(255),
 																				stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 																			},
 																			MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -14978,7 +14978,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																		"tag_field": schema.StringAttribute{
 																			Optional: true,
 																			Validators: []validator.String{
-																				stringvalidator.LengthBetween(0, 255),
+																				stringvalidator.LengthAtMost(255),
 																				stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 																			},
 																			MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -15047,7 +15047,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																									ElementType: types.StringType,
 																									Validators: []validator.List{
 																										listvalidator.SizeAtMost(1000),
-																										listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																										listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																									},
 																									MarkdownDescription: "A list of selected values.",
 																								},
@@ -15077,7 +15077,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																									ElementType: types.StringType,
 																									Validators: []validator.List{
 																										listvalidator.SizeAtMost(1000),
-																										listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																										listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																									},
 																									MarkdownDescription: "A list of values for the selection.",
 																								},
@@ -15474,7 +15474,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																							ElementType: types.StringType,
 																							Validators: []validator.List{
 																								listvalidator.SizeAtMost(1000),
-																								listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																								listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																							},
 																							MarkdownDescription: "A list of selected values.",
 																						},
@@ -15504,7 +15504,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																							ElementType: types.StringType,
 																							Validators: []validator.List{
 																								listvalidator.SizeAtMost(1000),
-																								listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																								listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																							},
 																							MarkdownDescription: "A list of values for the selection.",
 																						},
@@ -15567,7 +15567,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"value": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 10000),
+															stringvalidator.LengthAtMost(10000),
 														},
 														MarkdownDescription: "The value.",
 													},
@@ -15681,7 +15681,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																							ElementType: types.StringType,
 																							Validators: []validator.List{
 																								listvalidator.SizeAtMost(1000),
-																								listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																								listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																							},
 																							MarkdownDescription: "A list of selected values.",
 																						},
@@ -15711,7 +15711,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																							ElementType: types.StringType,
 																							Validators: []validator.List{
 																								listvalidator.SizeAtMost(1000),
-																								listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																								listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																							},
 																							MarkdownDescription: "A list of values for the selection.",
 																						},
@@ -15877,7 +15877,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																"process_tag_field": schema.StringAttribute{
 																	Optional: true,
 																	Validators: []validator.String{
-																		stringvalidator.LengthBetween(0, 255),
+																		stringvalidator.LengthAtMost(255),
 																		stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 																	},
 																	MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -15885,7 +15885,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																"tag_field": schema.StringAttribute{
 																	Optional: true,
 																	Validators: []validator.String{
-																		stringvalidator.LengthBetween(0, 255),
+																		stringvalidator.LengthAtMost(255),
 																		stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 																	},
 																	MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -15954,7 +15954,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																							ElementType: types.StringType,
 																							Validators: []validator.List{
 																								listvalidator.SizeAtMost(1000),
-																								listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																								listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																							},
 																							MarkdownDescription: "A list of selected values.",
 																						},
@@ -15984,7 +15984,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																							ElementType: types.StringType,
 																							Validators: []validator.List{
 																								listvalidator.SizeAtMost(1000),
-																								listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																								listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																							},
 																							MarkdownDescription: "A list of values for the selection.",
 																						},
@@ -16022,7 +16022,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 														"process_tag_field": schema.StringAttribute{
 															Optional: true,
 															Validators: []validator.String{
-																stringvalidator.LengthBetween(0, 255),
+																stringvalidator.LengthAtMost(255),
 																stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 															},
 															MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -16030,7 +16030,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 														"tag_field": schema.StringAttribute{
 															Optional: true,
 															Validators: []validator.String{
-																stringvalidator.LengthBetween(0, 255),
+																stringvalidator.LengthAtMost(255),
 																stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 															},
 															MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -16080,7 +16080,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"value": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 10000),
+															stringvalidator.LengthAtMost(10000),
 														},
 														MarkdownDescription: "The value.",
 													},
@@ -16239,14 +16239,14 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 				"markdown_text": schema.StringAttribute{
 					Optional: true,
 					Validators: []validator.String{
-						stringvalidator.LengthBetween(0, 65536),
+						stringvalidator.LengthAtMost(65536),
 					},
 					MarkdownDescription: "Markdown text",
 				},
 				"tooltip_text": schema.StringAttribute{
 					Optional: true,
 					Validators: []validator.String{
-						stringvalidator.LengthBetween(0, 4096),
+						stringvalidator.LengthAtMost(4096),
 					},
 					MarkdownDescription: "Tooltip text to display on widget hover",
 				},
@@ -16390,7 +16390,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"text": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The text.",
 										},
@@ -16471,7 +16471,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -16501,7 +16501,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -16571,7 +16571,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -16601,7 +16601,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -16640,7 +16640,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"process_tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 																},
 																MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -16648,7 +16648,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 															"tag_field": schema.StringAttribute{
 																Optional: true,
 																Validators: []validator.String{
-																	stringvalidator.LengthBetween(0, 255),
+																	stringvalidator.LengthAtMost(255),
 																	stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 																},
 																MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -16717,7 +16717,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of selected values.",
 																					},
@@ -16747,7 +16747,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																						ElementType: types.StringType,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtMost(1000),
-																							listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																							listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																						},
 																						MarkdownDescription: "A list of values for the selection.",
 																					},
@@ -17155,7 +17155,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -17185,7 +17185,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -17248,7 +17248,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -17399,7 +17399,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -17429,7 +17429,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -17607,7 +17607,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"process_tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 														},
 														MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -17615,7 +17615,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 													"tag_field": schema.StringAttribute{
 														Optional: true,
 														Validators: []validator.String{
-															stringvalidator.LengthBetween(0, 255),
+															stringvalidator.LengthAtMost(255),
 															stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 														},
 														MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -17684,7 +17684,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of selected values.",
 																			},
@@ -17714,7 +17714,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Validators: []validator.List{
 																					listvalidator.SizeAtMost(1000),
-																					listvalidator.ValueStringsAre(stringvalidator.LengthBetween(0, 4096)),
+																					listvalidator.ValueStringsAre(stringvalidator.LengthAtMost(4096)),
 																				},
 																				MarkdownDescription: "A list of values for the selection.",
 																			},
@@ -17752,7 +17752,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"process_tag_field": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 													stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 												},
 												MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -17760,7 +17760,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 											"tag_field": schema.StringAttribute{
 												Optional: true,
 												Validators: []validator.String{
-													stringvalidator.LengthBetween(0, 255),
+													stringvalidator.LengthAtMost(255),
 													stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 												},
 												MarkdownDescription: "Name of a span tag field to use as the data source.",
@@ -17810,7 +17810,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"value": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 10000),
+												stringvalidator.LengthAtMost(10000),
 											},
 											MarkdownDescription: "The value.",
 										},
@@ -17831,7 +17831,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"process_tag_field": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 255),
+												stringvalidator.LengthAtMost(255),
 												stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("tag_field")),
 											},
 											MarkdownDescription: "Name of a process-level tag field to use as the data source.",
@@ -17839,7 +17839,7 @@ func WidgetDefinitionAttributes() map[string]schema.Attribute {
 										"tag_field": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 255),
+												stringvalidator.LengthAtMost(255),
 												stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metadata_field"), path.MatchRelative().AtParent().AtName("process_tag_field")),
 											},
 											MarkdownDescription: "Name of a span tag field to use as the data source.",

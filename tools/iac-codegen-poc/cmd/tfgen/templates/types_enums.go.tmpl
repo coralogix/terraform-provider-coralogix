@@ -14,7 +14,12 @@ import (
 // {{.Name}}ByName maps the Terraform name of each {{.Schema}} value to the API
 // value. The name is the API value in lower case, without its prefix
 // ({{if .Prefix}}{{.Prefix}}{{else}}none{{end}}) and without the suffix _OR_UNSPECIFIED or _UNSPECIFIED.
+{{- if .Overridden}}
+// The overrides file gives some values other names, and can name the value
+// that only means "not set"; without a name, that value is null.
+{{- else}}
 // The value that only means "not set" has no name.
+{{- end}}
 var {{.Name}}ByName = map[string]{{.SDK}}{
 {{- range .Items}}
 	{{printf "%q" .TFName}}: {{.Const}},

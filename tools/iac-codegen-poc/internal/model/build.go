@@ -1146,9 +1146,11 @@ func stringType(t *Type, s *base.Schema) error {
 			// valid value. Older enums also give it a real meaning, for
 			// example MORE_THAN_OR_UNSPECIFIED ("more than", F50) and
 			// VERTICAL_UNSPECIFIED ("vertical", F54). Those are kept.
-			if !enumZero(t.Schema, t.EnumPrefix, v) {
-				t.Values = append(t.Values, v)
+			if enumZero(t.Schema, t.EnumPrefix, v) {
+				t.Zero = v
+				continue
 			}
+			t.Values = append(t.Values, v)
 		}
 		if len(t.Values) == 0 {
 			return errors.New("enum has no values")

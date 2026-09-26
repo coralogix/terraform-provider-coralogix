@@ -18,6 +18,7 @@ type FakeBoardModel struct {
 	Panels       types.Map          `tfsdk:"panels"`
 	Layout       *LayoutModel       `tfsdk:"layout"`
 	UpdatedAt    types.String       `tfsdk:"updated_at"`
+	Routing      *RoutingModel      `tfsdk:"routing"`
 }
 
 type PublicLinkModel struct {
@@ -113,4 +114,21 @@ type LayoutModel struct {
 	Title        types.String       `tfsdk:"title"`
 	TitleStyle   *TextStyleModel    `tfsdk:"title_style"`
 	Section      *SectionModel      `tfsdk:"section"`
+}
+
+type TargetModel struct {
+	ConnectorId types.String `tfsdk:"connector_id"`
+	Tags        types.List   `tfsdk:"tags"`
+}
+
+type RoutingModel struct {
+	RoutingName types.String  `tfsdk:"routing_name"`
+	Delivery    types.String  `tfsdk:"delivery"`
+	Channels    types.List    `tfsdk:"channels"`
+	Targets     types.List    `tfsdk:"targets"`
+	Priority    types.Int32   `tfsdk:"priority"`
+	Weight      types.Float32 `tfsdk:"weight"`
+	Disabled    types.Bool    `tfsdk:"disabled"`
+	RouterId    types.String  `tfsdk:"router_id"`
+	CreateTime  types.String  `tfsdk:"create_time"`
 }

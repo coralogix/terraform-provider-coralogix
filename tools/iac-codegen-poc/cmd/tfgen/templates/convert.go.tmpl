@@ -4,8 +4,10 @@ package {{.Package}}
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -75,6 +77,14 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.SDK}} = {{$l}}expandUint64({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "enum"}}
 	out.{{.SDK}} = {{$l}}expandEnum[{{.SDKType}}](m.{{.Model}}){{$r}}
+{{- else if eq .Conv "enumname"}}
+	out.{{.SDK}} = {{$l}}expandEnumName({{$p}}, m.{{.Model}}, {{.Enum}}ByName, diags){{$r}}
+{{- else if eq .Conv "enumnames"}}
+	out.{{.SDK}} = expandEnumNames(ctx, {{$p}}, m.{{.Model}}, {{.Enum}}ByName, diags)
+{{- else if eq .Conv "int32wide"}}
+	out.{{.SDK}} = {{$l}}expandInt32Wide({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "float32wide"}}
+	out.{{.SDK}} = {{$l}}expandFloat32Wide(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "time"}}
 	out.{{.SDK}} = {{$l}}expandTime({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "object"}}
@@ -101,7 +111,7 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	if items := expandElements[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
 		out.{{.SDK}} = make([]{{.SDKType}}, 0, len(items))
 		for i := range items {
-			out.{{.SDK}} = append(out.{{.SDK}}, *expand{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &items[i], diags))
+			out.{{.SDK}} = append(out.{{.SDK}}, *expand{{.Object.Func}}(ctx, {{$p}}{{if eq .Collection "List"}}.AtListIndex(i){{end}}, &items[i], diags))
 		}
 	}
 {{- end}}
@@ -132,6 +142,14 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.Model}} = flattenTime({{$v}})
 {{- else if eq .Conv "enum"}}
 	out.{{.Model}} = flattenEnum({{$v}})
+{{- else if eq .Conv "enumname"}}
+	out.{{.Model}} = flattenEnumName({{$p}}, {{$v}}, {{.Enum}}Name, {{.Zero}}, diags)
+{{- else if eq .Conv "enumnames"}}
+	out.{{.Model}} = flattenEnumNames{{.Collection}}(ctx, {{$p}}, v.{{.SDK}}, {{.Enum}}Name, diags)
+{{- else if eq .Conv "int32wide"}}
+	out.{{.Model}} = flattenInt32Wide({{$v}})
+{{- else if eq .Conv "float32wide"}}
+	out.{{.Model}} = flattenFloat32Wide({{$v}})
 {{- else if eq .Conv "object"}}
 	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "empty"}}
@@ -159,7 +177,7 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	if v.{{.SDK}} != nil {
 		items := make([]{{.Object.Model}}, 0, len(v.{{.SDK}}))
 		for i := range v.{{.SDK}} {
-			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &v.{{.SDK}}[i], diags))
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}{{if eq .Collection "List"}}.AtListIndex(i){{end}}, &v.{{.SDK}}[i], diags))
 		}
 		out.{{.Model}} = flatten{{.Collection}}(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
 	}
@@ -176,7 +194,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	}
 	out := &{{$sdk}}.{{.SDK}}{}
 {{- range .Fields}}
+{{- if not .ReadOnly}}
 {{- template "expandField" .}}
+{{- end}}
 {{- end}}
 	return out
 }
@@ -187,6 +207,28 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, di
 		return nil
 	}
 	out := &{{.Model}}{}
+{{- if .Normalizes}}
+	// The overrides read some missing or empty values in another way.
+	n := *v
+	v = &n
+{{- range .Fields}}
+{{- if eq .Read "zero"}}
+	v.{{.SDK}} = zeroIfNil(v.{{.SDK}})
+{{- else if eq .Read "emptylist"}}
+	v.{{.SDK}} = emptyIfNil(v.{{.SDK}})
+{{- else if eq .Read "emptymap"}}
+	v.{{.SDK}} = emptyMapIfNil(v.{{.SDK}})
+{{- else if eq .Read "nulllist"}}
+	if len(v.{{.SDK}}) == 0 {
+		v.{{.SDK}} = nil
+	}
+{{- else if eq .Read "nullobject"}}
+	if isEmptyObject(v.{{.SDK}}, p.AtName({{printf "%q" .TFName}}), diags) {
+		v.{{.SDK}} = nil
+	}
+{{- end}}
+{{- end}}
+{{- end}}
 {{- range .Fields}}
 {{- template "flattenField" .}}
 {{- end}}
@@ -510,6 +552,178 @@ func flattenScalarsSet[T any](ctx context.Context, elem attr.Type, v []T, diags 
 		return types.SetNull(elem)
 	}
 	return flattenSet(ctx, elem, v, diags)
+}
+{{- end}}
+{{- if .Conv.Reads "zero"}}
+
+// zeroIfNil returns a pointer to the zero value for nil (the missingAsZero
+// override).
+func zeroIfNil[T any](p *T) *T {
+	if p == nil {
+		var zero T
+		return &zero
+	}
+	return p
+}
+{{- end}}
+{{- if .Conv.Reads "emptylist"}}
+
+func emptyIfNil[T any](s []T) []T {
+	if s == nil {
+		return []T{}
+	}
+	return s
+}
+{{- end}}
+{{- if .Conv.Reads "emptymap"}}
+
+func emptyMapIfNil[T any](m map[string]T) map[string]T {
+	if m == nil {
+		return map[string]T{}
+	}
+	return m
+}
+{{- end}}
+{{- if .Conv.Reads "nullobject"}}
+
+// isEmptyObject reports whether v is an object with no fields set (the
+// emptyAsNull override).
+func isEmptyObject(v any, p path.Path, diags *diag.Diagnostics) bool {
+	if reflect.ValueOf(v).IsNil() {
+		return false
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid API value", err.Error())
+		return false
+	}
+	return string(b) == "{}"
+}
+{{- end}}
+{{- if .Conv.Uses "enumname"}}
+
+// expandEnumName returns the API value of the Terraform name v. The schema
+// validator already checks the name, so an error here is unexpected.
+func expandEnumName[T ~string](p path.Path, v types.String, byName map[string]T, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	e, ok := byName[v.ValueString()]
+	if !ok {
+		diags.AddAttributeError(p, "Invalid value", fmt.Sprintf("%q is not a valid value.", v.ValueString()))
+		return nil
+	}
+	return &e
+}
+
+// flattenEnumName returns the Terraform name of the API value v. The value
+// zero only means "not set", so it is null unless it has a name. A value
+// with no name is an error: the SDK is newer than the generated types.
+func flattenEnumName[T ~string](p path.Path, v *T, name func(T) (string, bool), zero T, diags *diag.Diagnostics) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	if n, ok := name(*v); ok {
+		return types.StringValue(n)
+	}
+	if *v != zero {
+		diags.AddAttributeError(p, "Unknown API value", fmt.Sprintf("The API returned %q, which has no Terraform name. Regenerate the types.", *v))
+	}
+	return types.StringNull()
+}
+{{- end}}
+{{- if .Conv.Uses "enumnames"}}
+
+// expandEnumNames returns the API values of the Terraform names in v.
+func expandEnumNames[T ~string](ctx context.Context, p path.Path, v elements, byName map[string]T, diags *diag.Diagnostics) []T {
+	items := expandElements[string](ctx, p, v, diags)
+	if items == nil {
+		return nil
+	}
+	out := make([]T, 0, len(items))
+	for _, s := range items {
+		e, ok := byName[s]
+		if !ok {
+			diags.AddAttributeError(p, "Invalid value", fmt.Sprintf("%q is not a valid value.", s))
+			continue
+		}
+		out = append(out, e)
+	}
+	return out
+}
+
+// enumNames returns the Terraform names of the API values v. A value with no
+// name is an error.
+func enumNames[T ~string](p path.Path, v []T, name func(T) (string, bool), diags *diag.Diagnostics) []string {
+	out := make([]string, 0, len(v))
+	for _, e := range v {
+		n, ok := name(e)
+		if !ok {
+			diags.AddAttributeError(p, "Unknown API value", fmt.Sprintf("The API returned %q, which has no Terraform name. Regenerate the types.", e))
+			continue
+		}
+		out = append(out, n)
+	}
+	return out
+}
+
+func flattenEnumNamesList[T ~string](ctx context.Context, p path.Path, v []T, name func(T) (string, bool), diags *diag.Diagnostics) types.List {
+	if v == nil {
+		return types.ListNull(types.StringType)
+	}
+	return flattenList(ctx, types.StringType, enumNames(p, v, name, diags), diags)
+}
+
+func flattenEnumNamesSet[T ~string](ctx context.Context, p path.Path, v []T, name func(T) (string, bool), diags *diag.Diagnostics) types.Set {
+	if v == nil {
+		return types.SetNull(types.StringType)
+	}
+	return flattenSet(ctx, types.StringType, enumNames(p, v, name, diags), diags)
+}
+{{- end}}
+{{- if .Conv.Uses "int32wide"}}
+
+// expandInt32Wide returns v as the int32 that the API has. The attribute is
+// an Int64, like the handwritten resource (D21), so a value out of range is
+// an error.
+func expandInt32Wide(p path.Path, v types.Int64, diags *diag.Diagnostics) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n := v.ValueInt64()
+	if n < math.MinInt32 || n > math.MaxInt32 {
+		diags.AddAttributeError(p, "Invalid value", fmt.Sprintf("The value %d is out of range: the API accepts a 32-bit number.", n))
+		return nil
+	}
+	i := int32(n)
+	return &i
+}
+
+func flattenInt32Wide(v *int32) types.Int64 {
+	if v == nil {
+		return types.Int64Null()
+	}
+	return types.Int64Value(int64(*v))
+}
+{{- end}}
+{{- if .Conv.Uses "float32wide"}}
+
+func expandFloat32Wide(v types.Float64) *float32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f := float32(v.ValueFloat64())
+	return &f
+}
+
+// flattenFloat32Wide returns the shortest decimal of the float32 v as a
+// Float64, so 0.1 reads back as 0.1, not 0.10000000149.
+func flattenFloat32Wide(v *float32) types.Float64 {
+	if v == nil {
+		return types.Float64Null()
+	}
+	f, _ := strconv.ParseFloat(strconv.FormatFloat(float64(*v), 'g', -1, 32), 64)
+	return types.Float64Value(f)
 }
 {{- end}}
 {{- if .Conv.Uses "scalarmap"}}

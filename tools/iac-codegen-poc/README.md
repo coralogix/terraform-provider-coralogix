@@ -106,6 +106,13 @@ go run ./cmd/tfgen --spec spec/fake/openapi.yaml --types Panel,Header,Interval,A
 go run ./cmd/tfgen --spec spec/openapi.patched.yaml --types Widget.Definition --tag "Dashboard service" --out generated/dashboardwidgets
 integration/alertsanalytics/run.sh <provider checkout>   # plug generated alert types into a copy of the provider, run its tests
 integration/enumnames/compare.sh <provider checkout>     # compare generated enum names with the provider's handwritten ones
+go run ./cmd/tfgen --spec spec/fake/openapi.yaml --types Routing --tag "Fake Boards Service" \
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk \
+  --overrides spec/fake/routing.overrides.yaml --out generated/fakerouting
+go run ./cmd/schemacompare <handwritten dump> <generated dump>   # breaking and review differences of two schema dumps
+integration/globalrouter/run.sh <provider checkout>      # switch coralogix_global_router to generated types, prove no change
+STEP=added integration/globalrouter/run.sh <provider checkout>   # the same, with the API fields that Terraform did not have
+CORALOGIX_ENV=EU2 integration/globalrouter/live.sh <provider checkout>   # live check; prompts for the API key
 go test ./...                                    # the acceptance test skips without TF_ACC
 go test ./internal/model -run TestDump -update   # rewrite internal/model/testdata/ai_evaluation.golden
 go test ./cmd/tfgen -run TestSDKNames -update    # rewrite cmd/tfgen/testdata/sdk_names.golden
@@ -286,7 +293,7 @@ states depend on them.
 | `time_frame.absolute.start` / `end` | `time_frame.absolute_time_frame.from` / `to` |
 | `threshold_type = "absolute"` | `threshold_type = "THRESHOLD_TYPE_ABSOLUTE"` |
 
-Replacing a handwritten part would need per-field overrides that keep the old names, and a schema comparison that proves no change.
+Replacing a handwritten part needs overrides that keep the old names, and checks that prove no change: see "Overrides".
 
 **Enum names.** Handwritten resources give API enum values their own Terraform names, in maps that a new API value does not
 reach. `--enums` writes those maps from the spec (F54):
@@ -309,6 +316,62 @@ resource. A generated validator accepts only the form that the API returns, so a
 from = "2026-09-26T08:00:00Z"        accepted
 from = "2026-09-26T10:00:00+02:00"   Write "2026-09-26T10:00:00+02:00" as "2026-09-26T08:00:00Z": the API returns this form, ...
 ```
+
+## Overrides
+
+The type mode can also replace an existing handwritten resource (D21). Overrides make the generated schema the handwritten one,
+so user configurations and states do not change. Later API changes then reach Terraform when the types are regenerated.
+
+```sh
+tfgen --spec <spec> --types GlobalRouter --tag "Global routers service" --overrides overrides.yaml --out <dir>/globalroutertypes
+```
+
+An overrides file is keyed by API type and API field, so one line covers every place that uses the type:
+
+```yaml
+wideNumbers: true                  # int32 and float as Int64 and Float64
+types:
+  GlobalRouter:
+    id: {computed: true, useStateForUnknown: true, missingAsZero: true}
+    fallback: {emptyAsNull: true, deprecationMessage: "Use `fallback_targets` instead."}
+    createTime: {readOnly: true}   # set by the server: Computed only, never sent
+  RoutingRule:
+    entityType: {default: unspecified}
+enums:
+  notification_center.EntityType: {terraformNames: true, zero: unspecified}   # "alerts", not "ALERTS"
+```
+
+| Kind | Overrides |
+|---|---|
+| Schema | `name`, `skip`, `required`, `optional`, `computed`, `default`, `set`, `useStateForUnknown`, `requiresReplace`, `deprecationMessage`, `wideNumbers` |
+| Enums | `terraformNames` (the enum name rule), `values` (names that differ), `zero` (a name for the value that only means "not set") |
+| Reading a response | `missingAsZero` (a missing value is `""`, `false`, `0`, or `[]`), `emptyAsNull` (an empty list, map, or object is null) |
+| Server fields | `readOnly` |
+
+An override that names a type, field, or enum value that does not exist is an error, so a stale file cannot hide an API change.
+Changes of shape (a `oneOf` written as a `type` string, a new wrapper object) are not supported.
+
+**Checks.** A switch must change nothing for users. Two checks run before the handwritten code is removed:
+
+- [`cmd/schemacompare`](cmd/schemacompare/main.go) compares the schema dumps. A difference is breaking (a removed or renamed
+  attribute, another type, `computed`, default, `RequiresReplace`, an enum value no longer accepted) or for review (new validators
+  from the spec, required → optional, new optional or computed attributes).
+- An equivalence test runs the old and the new code on the same API responses: the same Terraform state, and the same request.
+  The schema cannot show how a handwritten flatten reads a response, for example a missing description as `""` (F57).
+
+**Pilot: `coralogix_global_router`.** [`integration/globalrouter/run.sh`](integration/globalrouter/run.sh) copies the provider,
+generates the types with [`overrides.yaml`](integration/globalrouter/overrides.yaml) (37 lines), runs both checks, and applies
+[`provider.patch`](integration/globalrouter/provider.patch): the resource, the data source, and the schema use the generated
+types, and the handwritten models, expand, and flatten are removed (+26 −658 lines). Results:
+
+- The schema compare went from 17 breaking differences to 0, with 22 for review.
+- The equivalence test found 9 differences in how the handwritten code reads responses; `missingAsZero` and `emptyAsNull` fixed
+  them. 5 API responses give the same state and the same request.
+- All provider unit tests pass.
+- [`live.sh`](integration/globalrouter/live.sh) on EU2: the current provider creates a connector and a router; the switched one
+  plans no changes on that state, after an import, and after an update. It passed.
+- With [`overrides-added.yaml`](integration/globalrouter/overrides-added.yaml), the fields that Terraform did not have
+  (`create_time`, `update_time`, target ids) become computed attributes. The same checks and the live check pass.
 
 ## Decisions
 
@@ -336,6 +399,7 @@ from = "2026-09-26T10:00:00+02:00"   Write "2026-09-26T10:00:00+02:00" as "2026-
 | D18 | Singletons | A singleton is a resource whose Get has no path parameter (one per company). Only a singleton with Create, Get, Update, and Delete on one path is generated. A singleton with only Get and Update is not a Terraform resource: not generated for now. | Terraform needs a real create and delete. (2026-09-25) |
 | D19 | Full-replace Update (`PUT`) | Generate it as it is, with no change to the API: `PUT` on the item path, or on the Create path with the id in the body. A request property with `readOnly: true` is a server field and is not sent. `PATCH` keeps the update mask. | The frequently changed APIs that Terraform has (dashboards, alerts, quota, notification center, SLO) all use `PUT`. Forcing `PATCH` on them is a breaking change for customers and work for every team. (2026-09-26) |
 | D20 | Generated parts inside handwritten resources (type mode) | A type mode, `tfgen --types A,B --tag <tag> --out <dir>`: the schema attributes, models, and expand and flatten of API types and every type inside them, in their own package (for example `dashboard_widgets/generated`). The handwritten code keeps the resource and plugs a type in with a few lines. Regenerating touches only that package. Existing handwritten code is never overwritten. | Most frequently changed APIs are existing, handwritten Terraform resources; regenerating them would lose custom code. In the last 12 months, 25 of 94 schema changes in Terraform-backed APIs added new objects to existing objects (dashboards 12, alerts 6). A separate package cannot clash with handwritten names. (2026-09-26) |
+| D21 | Overrides for existing resources (option D) | A YAML file per type-mode package: `--overrides <file>`. Keyed by API component and field, so one line covers every place the type is used. Kinds: `name`, `computed` (with "keep the state value"), `default`, `set`, `skip`, `required`, enum value names (the E14 rule, one line per value that differs), and one package option for wide numbers (`Int64`, `Float64`). Added in the pilot: how a response is read (`missingAsZero`, `emptyAsNull`, F57), `readOnly` (F58), and `deprecationMessage`. A switch needs a schema compare and an equivalence test of the old and new flatten and expand. An override that names a missing component or field is an error. The spec of existing APIs does not change; only new APIs follow the contract. Structure changes (a `oneOf` as a `type` string, `{value: x}` as `x`, a new wrapper object, an empty object as a bool) are out of scope until the pilot is reevaluated. | 72% of the handwritten attributes of 18 resources already match; most of the rest are flags, defaults, set vs list, enum names, and renames. The switch must not change user configs or state. Pilot: GlobalRouter. New API fields are skipped in the switch, then added in a second step. Generated validators replace the handwritten ones; the compare tool lists each one that is new. (2026-09-26) |
 
 ## Findings
 
@@ -396,4 +460,8 @@ Gaps in the API, the contract, or the tools.
 | F53 | Generator bug, fixed: a model struct kept the dots of a component name (`widgets.GaugeModel`), which is not a Go name. Only the fake and `ai_evaluation`, which have no dots, were generated before. Now camelized like the SDK types (`WidgetsGaugeModel`). | Tooling |
 | F54 | Handwritten resources map about 330 enum values to their own Terraform names (`"left": TEXT_ALIGNMENT_LEFT`), in maps that a new API value does not reach. 293 follow one rule: the value without its longest shared word prefix and without `_OR_UNSPECIFIED` / `_UNSPECIFIED`, in lower case. 20 differ only in letter case (`Debug`, `PHONE_NUMBER`, `DataMap`), 14 use other words (`euro` for `EUR`, `percent01` for `PERCENT_ZERO_ONE`, `avg` for `AVERAGE`). The rule also finds a third zero-value style: `X_UNSPECIFIED` is a real value when X is a word (`ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED` = "vertical"); the model dropped it before. | Tooling (provider) |
 | F55 | openapi-generator breaks the words of an enum constant name at a lower-case letter or a digit before an upper-case letter: `E2M_TYPE_LOGS2METRICS` → `E2MTYPE_E2_M_TYPE_LOGS2_METRICS`. The generator now copies the rule; the SDK check found it. | SDK generator |
+| F56 | The type mode writes enum attributes with the API values (`"ALERTS"`); handwritten resources use their own names (`"alerts"`), in 309 of the 18 resources' enum attributes. Fixed for existing resources by the enum overrides (`terraformNames`, per-value names, a name for the zero value). | Tooling (provider) |
+| F57 | A handwritten flatten also changes values: GlobalRouter reads a missing `name`, `description`, rule `name` and `condition` as `""`, a missing `disabled` as `false`, a missing `rules` as `[]`, and an empty `fallback`, `fallback_targets`, or `routing_labels` as null (the API returns empty lists). A schema compare cannot see this; the equivalence test (old and new flatten of the same API object) did. Fixed by the overrides `missingAsZero` and `emptyAsNull`. Every switch needs such a test. | Tooling (provider) |
+| F58 | Server fields in the GlobalRouter types (`createTime`, `updateTime`, `RoutingTarget.id`) have no `readOnly` (F46), so the type mode would make them optional and send them. Fixed by the override `readOnly` (Computed only, not sent, no validators). | OpenAPI generator, API proto |
+| F59 | The generated attribute descriptions come from the spec, not from the handwritten schema, so the provider docs change on a switch. Not a user break; the compare tool does not check descriptions. | Tooling (provider) |
 | F44 | `PolicySettings` (a singleton): Get is on `/dataplans/policy-settings/v1`, but Replace is on `/dataplans/policiy-settings/v1` (a typo). A singleton linter rule, all operations on one path, would catch it. | API proto |

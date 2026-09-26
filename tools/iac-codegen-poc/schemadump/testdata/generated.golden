@@ -20,7 +20,7 @@ config.custom_evaluation  SingleNestedAttribute optional
 config.custom_evaluation.examples  ListNestedAttribute optional
     validator: list must contain at most 100 elements
 config.custom_evaluation.examples[].conversation  StringAttribute optional
-    validator: string length must be between 0 and 65536
+    validator: string length must be at most 65536
 config.custom_evaluation.examples[].score  Int64Attribute optional
     validator: value must be at least 0
 config.custom_evaluation.instructions  StringAttribute optional
@@ -28,10 +28,10 @@ config.custom_evaluation.instructions  StringAttribute optional
 config.custom_evaluation.policy_type  StringAttribute optional
     validator: string length must be between 1 and 256
 config.custom_evaluation.safe  StringAttribute optional
-    validator: string length must be between 0 and 65536
+    validator: string length must be at most 65536
 config.custom_evaluation.should_include_system_prompt  BoolAttribute optional
 config.custom_evaluation.violates  StringAttribute optional
-    validator: string length must be between 0 and 65536
+    validator: string length must be at most 65536
 config.hallucination_completeness  SingleNestedAttribute optional
     validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
 config.hallucination_context_adherence  SingleNestedAttribute optional
@@ -53,7 +53,7 @@ config.pii.categories  SetAttribute optional elem=basetypes.StringType
 config.prompt_injection  SingleNestedAttribute optional
     validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
 config.prompt_injection.additional_context  StringAttribute optional
-    validator: string length must be between 0 and 65536
+    validator: string length must be at most 65536
 config.restricted_topics  SingleNestedAttribute optional
     validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
 config.restricted_topics.topics  SetAttribute optional elem=basetypes.StringType

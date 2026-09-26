@@ -551,7 +551,49 @@ func flattenFakeBoard(ctx context.Context, p path.Path, v *fake_boards_service.F
 	}
 	out.Layout = flattenLayout(ctx, p.AtName("layout"), v.Layout, diags)
 	out.UpdatedAt = flattenTime(v.UpdatedAt)
+	out.Routing = flattenRouting(ctx, p.AtName("routing"), v.Routing, diags)
 	return out
+}
+
+func flattenRouting(ctx context.Context, p path.Path, v *fake_boards_service.Routing, diags *diag.Diagnostics) *RoutingModel {
+	if v == nil {
+		return nil
+	}
+	out := &RoutingModel{}
+	out.RoutingName = types.StringPointerValue(v.RoutingName)
+	out.Delivery = flattenEnum(v.Delivery)
+	out.Channels = flattenStringsList(ctx, v.Channels, diags)
+	out.Targets = types.ListNull(types.ObjectType{AttrTypes: targetAttrTypes()})
+	if v.Targets != nil {
+		items := make([]TargetModel, 0, len(v.Targets))
+		for i := range v.Targets {
+			items = append(items, *flattenTarget(ctx, p.AtName("targets").AtListIndex(i), &v.Targets[i], diags))
+		}
+		out.Targets = flattenList(ctx, types.ObjectType{AttrTypes: targetAttrTypes()}, items, diags)
+	}
+	out.Priority = types.Int32PointerValue(v.Priority)
+	out.Weight = types.Float32PointerValue(v.Weight)
+	out.Disabled = types.BoolPointerValue(v.Disabled)
+	out.RouterId = types.StringPointerValue(v.RouterId)
+	out.CreateTime = flattenTime(v.CreateTime)
+	return out
+}
+
+func flattenTarget(ctx context.Context, p path.Path, v *fake_boards_service.Target, diags *diag.Diagnostics) *TargetModel {
+	if v == nil {
+		return nil
+	}
+	out := &TargetModel{}
+	out.ConnectorId = types.StringPointerValue(v.ConnectorId)
+	out.Tags = flattenStringsList(ctx, v.Tags, diags)
+	return out
+}
+
+func targetAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"connector_id": types.StringType,
+		"tags":         types.ListType{ElemType: types.StringType},
+	}
 }
 
 // valueOf returns the value of p, or the zero value for nil. It fills an SDK

@@ -123,10 +123,13 @@ func TestTopLevelMaskWithGroups(t *testing.T) {
 var generatedTypeCases = []struct {
 	dir, spec, tag, sdk string
 	roots, enums        []string
+	overrides           string
 }{
 	{"../../generated/fakepanel", "../../spec/fake/openapi.yaml", "Fake Boards Service", fakeSDK, []string{"Panel", "Header", "Interval", "AbsoluteTime"},
-		[]string{"Color", "Unit", "Orientation", "Comparison", "Delivery"}},
-	{"../../generated/dashboardwidgets", patchedSpec, "Dashboard service", realSDK, []string{"Widget.Definition"}, nil},
+		[]string{"Color", "Unit", "Orientation", "Comparison", "Delivery"}, ""},
+	{"../../generated/dashboardwidgets", patchedSpec, "Dashboard service", realSDK, []string{"Widget.Definition"}, nil, ""},
+	{"../../generated/fakerouting", "../../spec/fake/openapi.yaml", "Fake Boards Service", fakeSDK, []string{"Routing"}, nil,
+		"../../spec/fake/routing.overrides.yaml"},
 }
 
 // TestGeneratedTypesUpToDate checks that each generated type package is the
@@ -134,17 +137,23 @@ var generatedTypeCases = []struct {
 func TestGeneratedTypesUpToDate(t *testing.T) {
 	for _, c := range generatedTypeCases {
 		t.Run(filepath.Base(c.dir), func(t *testing.T) {
-			in := typeInputs{roots: c.roots, enums: c.enums}
+			in := typeInputs{roots: c.roots, enums: c.enums, overrides: c.overrides}
 			types, enums, refs, err := checkedTypeNames(c.spec, in, c.tag, c.sdk)
 			if err != nil {
 				t.Fatal(err)
 			}
+			var ov *overrides
+			if c.overrides != "" {
+				if ov, err = loadOverrides(c.overrides); err != nil {
+					t.Fatal(err)
+				}
+			}
 			cmd := typesCommand(in, c.tag)
-			files, err := generateTypes(types, enums, refs, filepath.Base(c.dir), cmd)
+			files, err := generateTypes(types, enums, refs, ov, filepath.Base(c.dir), cmd)
 			if err != nil {
 				t.Fatal(err)
 			}
-			again, err := generateTypes(types, enums, refs, filepath.Base(c.dir), cmd)
+			again, err := generateTypes(types, enums, refs, ov, filepath.Base(c.dir), cmd)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -208,7 +217,7 @@ func TestEnumNames(t *testing.T) {
 		"Color":       "red=RED green=GREEN blue=BLUE",
 	}
 	for _, e := range enums {
-		got, err := enumNames(e, ix)
+		got, err := enumNames(e, ix, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -222,10 +231,74 @@ func TestEnumNames(t *testing.T) {
 	}
 	clash := *enums[0]
 	clash.Values = []string{"ORIENTATION_VERTICAL", "ORIENTATION_VERTICAL_UNSPECIFIED"}
-	if _, err := enumNames(&clash, ix); err == nil || !strings.Contains(err.Error(), `both have the Terraform name "vertical"`) {
+	if _, err := enumNames(&clash, ix, nil); err == nil || !strings.Contains(err.Error(), `both have the Terraform name "vertical"`) {
 		t.Errorf("two values with one name: error %v", err)
 	}
 	if _, _, _, err := checkedTypeNames("../../spec/fake/openapi.yaml", typeInputs{enums: []string{"Panel"}}, "Fake Boards Service", fakeSDK); err == nil {
 		t.Error("an object in --enums: no error")
+	}
+}
+
+// TestOverridesRejects checks the overrides files that the type mode
+// rejects (D21). A stale or wrong override is an error, not ignored.
+func TestOverridesRejects(t *testing.T) {
+	const spec = "../../spec/fake/openapi.yaml"
+	in := typeInputs{roots: []string{"Routing"}}
+	types, enums, refs, err := checkedTypeNames(spec, in, "Fake Boards Service", fakeSDK)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ name, yaml, want string }{
+		{"unknown key", "types: {Routing: {routingName: {rename: x}}}", "field rename not found"},
+		{"unknown component", "types: {Panel: {query: {skip: true}}}", "types.Panel: no such object"},
+		{"unknown field", "types: {Routing: {nope: {skip: true}}}", "types.Routing.nope: no such field"},
+		{"skip with more", "types: {Routing: {weight: {skip: true, name: w}}}", "skip cannot be combined"},
+		{"bad name", "types: {Routing: {weight: {name: Weight}}}", `"Weight" is not a valid Terraform attribute name`},
+		{"name clash", "types: {Routing: {weight: {name: priority}}}", `weight both have the Terraform name "priority"`},
+		{"set on a scalar", "types: {Routing: {weight: {set: true}}}", "set: the field is a number, not a list"},
+		{"required and computed", "types: {Routing: {weight: {required: true, computed: true}}}", "cannot be optional or computed"},
+		{"no flag left", "types: {Routing: {weight: {optional: false}}}", "must be required, optional, or computed"},
+		{"default not computed", `types: {Routing: {weight: {default: "1", computed: false}}}`, "a default needs an optional and computed attribute"},
+		{"every field skipped", "types: {Target: {connectorId: {skip: true}, tags: {skip: true}}}", "types.Target: every field is skipped"},
+		{"read only and required", "types: {Routing: {weight: {readOnly: true, required: true}}}", "readOnly cannot be combined"},
+		{"zero and null", "types: {Routing: {channels: {missingAsZero: true, emptyAsNull: true}}}", "cannot be combined"},
+		{"null of a scalar", "types: {Routing: {weight: {emptyAsNull: true}}}", "emptyAsNull: the field is a number"},
+		{"zero of an enum", "types: {Routing: {delivery: {missingAsZero: true}}}", "missingAsZero is not supported for enum"},
+		{"zero of a time", "types: {Routing: {createTime: {missingAsZero: true}}}", "missingAsZero is not supported for time"},
+		{"unknown enum", "enums: {Color: {terraformNames: true}}", "enums.Color: no such enum"},
+		{"values without names", "enums: {Delivery: {values: {DISABLED: off}}}", "need terraformNames: true"},
+		{"unknown enum value", "enums: {Delivery: {terraformNames: true, values: {NOPE: x}}}", "values.NOPE: no such value"},
+		{"enum name clash", "enums: {Delivery: {terraformNames: true, values: {DISABLED: errors_only}}}", `both have the Terraform name "errors_only"`},
+		{"enum default", "types: {Routing: {delivery: {default: ERRORS_ONLY}}}\nenums: {Delivery: {terraformNames: true}}", `default "ERRORS_ONLY" is not one of [disabled errors_only]`},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			p := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(p, []byte(c.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			ov, err := loadOverrides(p)
+			if err == nil {
+				_, err = generateTypes(types, enums, refs, ov, "fakerouting", "")
+			}
+			switch {
+			case err == nil:
+				t.Fatalf("no error, want %q", c.want)
+			case !strings.Contains(err.Error(), c.want):
+				t.Errorf("error:\n%v\nwant it to contain:\n%s", err, c.want)
+			}
+		})
+	}
+}
+
+// TestWideNumbersRejectsLists checks that wideNumbers stops on a list of
+// int32 (Section.columns), which it does not convert yet.
+func TestWideNumbersRejectsLists(t *testing.T) {
+	types, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml", typeInputs{roots: []string{"Section"}}, "Fake Boards Service", fakeSDK)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = generateTypes(types, enums, refs, &overrides{WideNumbers: true}, "fake", "")
+	if err == nil || !strings.Contains(err.Error(), "wideNumbers: a list of integer int32 is not supported") {
+		t.Errorf("error = %v", err)
 	}
 }

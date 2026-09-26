@@ -132,6 +132,26 @@ func TestBuildTypes(t *testing.T) {
 	}
 }
 
+// TestEnumZero checks that the model keeps the value that only means "not
+// set", apart from Values: an override can give it a Terraform name (D21).
+func TestEnumZero(t *testing.T) {
+	for _, c := range []struct{ name, enum, zero string }{
+		{"Delivery", "[DELIVERY_UNSPECIFIED, DISABLED, ERRORS_ONLY]", "DELIVERY_UNSPECIFIED"},
+		{"E", "[E_UNSPECIFIED, E_A]", "E_UNSPECIFIED"},
+		{"E", "[E_MORE_THAN_OR_UNSPECIFIED, E_LESS_THAN]", ""},
+	} {
+		r, err := withField("{$ref: '#/components/schemas/"+c.name+"'}", "    "+c.name+": {type: string, enum: "+c.enum+"}\n").build(t)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, f := range r.Fields {
+			if f.Name == "f" && f.Type.Zero != c.zero {
+				t.Errorf("%s: zero %q, want %q", c.enum, f.Type.Zero, c.zero)
+			}
+		}
+	}
+}
+
 func TestBuildRejects(t *testing.T) {
 	for _, c := range []struct {
 		name    string

@@ -1,0 +1,46 @@
+# Overrides (D21) for the GlobalRouter types of the handwritten
+# coralogix_global_router resource (internal/provider/notifications,
+# schema global_router_schema/v1.go). With them, the generated schema is the
+# handwritten one: cmd/schemacompare shows no breaking difference.
+#
+# This is the file after step O6: the API fields that Terraform did not
+# have are added. The server sets them (the spec does not mark them
+# readOnly, F46), so they are computed and never sent. overrides.yaml is the
+# file of the first switch, which skips them.
+# missingAsZero and emptyAsNull copy how the handwritten flatten reads the
+# response: a missing name or description is "", an empty fallback is null.
+types:
+  GlobalRouter:
+    id: {computed: true, useStateForUnknown: true, missingAsZero: true}
+    name: {required: true, missingAsZero: true}
+    description: {missingAsZero: true}
+    disabled: {default: "false", missingAsZero: true}
+    entityLabels: {computed: true}
+    rules: {computed: true, missingAsZero: true}
+    routingLabels: {emptyAsNull: true}
+    fallbackTargets: {emptyAsNull: true}
+    fallback: {emptyAsNull: true, deprecationMessage: "Use `fallback_targets` instead, which supports per-entity-type fallback."}
+    entityType: {skip: true}   # deprecated in the API
+    createTime: {readOnly: true}
+    updateTime: {readOnly: true}
+  RoutingRule:
+    name: {required: true, missingAsZero: true}
+    condition: {required: true, missingAsZero: true}
+    entityType: {default: unspecified, useStateForUnknown: true}
+    customDetails: {computed: true}
+    targets: {computed: true}
+  RoutingTarget:
+    connectorId: {required: true}
+    customDetails: {computed: true}
+    id: {readOnly: true}   # no useStateForUnknown: it would match the old id by list position
+  FallbackTarget:
+    entityType: {required: true}
+    target: {required: true}
+  RoutingLabels:
+    environment: {computed: true}
+    service: {computed: true}
+    team: {computed: true}
+enums:
+  notification_center.EntityType:
+    terraformNames: true
+    zero: unspecified

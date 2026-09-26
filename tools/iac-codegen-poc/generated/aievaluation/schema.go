@@ -94,7 +94,7 @@ func Schema() schema.Schema {
 										"conversation": schema.StringAttribute{
 											Optional: true,
 											Validators: []validator.String{
-												stringvalidator.LengthBetween(0, 65536),
+												stringvalidator.LengthAtMost(65536),
 											},
 											MarkdownDescription: "Example conversation text.",
 										},
@@ -126,7 +126,7 @@ func Schema() schema.Schema {
 							"safe": schema.StringAttribute{
 								Optional: true,
 								Validators: []validator.String{
-									stringvalidator.LengthBetween(0, 65536),
+									stringvalidator.LengthAtMost(65536),
 								},
 								MarkdownDescription: "Description of what counts as safe.",
 							},
@@ -137,7 +137,7 @@ func Schema() schema.Schema {
 							"violates": schema.StringAttribute{
 								Optional: true,
 								Validators: []validator.String{
-									stringvalidator.LengthBetween(0, 65536),
+									stringvalidator.LengthAtMost(65536),
 								},
 								MarkdownDescription: "Description of what counts as violating the policy.",
 							},
@@ -220,7 +220,7 @@ func Schema() schema.Schema {
 							"additional_context": schema.StringAttribute{
 								Optional: true,
 								Validators: []validator.String{
-									stringvalidator.LengthBetween(0, 65536),
+									stringvalidator.LengthAtMost(65536),
 								},
 								MarkdownDescription: "Additional context passed to the LLM evaluator.",
 							},

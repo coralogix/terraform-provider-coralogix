@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
@@ -523,6 +524,74 @@ func Schema() schema.Schema {
 			"updated_at": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "RFC3339 timestamp of the last update.",
+			},
+			"routing": schema.SingleNestedAttribute{
+				Computed: true,
+				Attributes: map[string]schema.Attribute{
+					"routing_name": schema.StringAttribute{
+						Optional: true,
+						Validators: []validator.String{
+							stringvalidator.LengthBetween(1, 50),
+						},
+						MarkdownDescription: "Name of the routing. Terraform calls it name.",
+					},
+					"delivery": schema.StringAttribute{
+						Optional: true,
+						Validators: []validator.String{
+							stringvalidator.OneOf("DISABLED", "ERRORS_ONLY"),
+						},
+						MarkdownDescription: "How alerts are delivered.",
+					},
+					"channels": schema.ListAttribute{
+						Optional:    true,
+						ElementType: types.StringType,
+						Validators: []validator.List{
+							listvalidator.ValueStringsAre(stringvalidator.OneOf("DISABLED", "ERRORS_ONLY")),
+						},
+						MarkdownDescription: "Delivery kinds per channel. A list of enums.",
+					},
+					"targets": schema.ListNestedAttribute{
+						Optional: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"connector_id": schema.StringAttribute{
+									Optional:            true,
+									MarkdownDescription: "The connector.",
+								},
+								"tags": schema.ListAttribute{
+									Optional:            true,
+									ElementType:         types.StringType,
+									MarkdownDescription: "Tags. Order does not matter.",
+								},
+							},
+						},
+						MarkdownDescription: "The targets. Order does not matter.",
+					},
+					"priority": schema.Int32Attribute{
+						Optional:            true,
+						MarkdownDescription: "Priority, an int32.",
+					},
+					"weight": schema.Float32Attribute{
+						Optional:            true,
+						MarkdownDescription: "Weight, a float.",
+					},
+					"disabled": schema.BoolAttribute{
+						Optional:            true,
+						MarkdownDescription: "Disabled routings send nothing.",
+					},
+					"router_id": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "Set by the server.",
+					},
+					"create_time": schema.StringAttribute{
+						Optional: true,
+						Validators: []validator.String{
+							rfc3339Validator{},
+						},
+						MarkdownDescription: "Set by the server.",
+					},
+				},
+				MarkdownDescription: "Where alerts of the board go. Only in Get. The type mode uses it to test overrides (D21).",
 			},
 		},
 	}

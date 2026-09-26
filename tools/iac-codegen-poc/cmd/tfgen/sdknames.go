@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -304,7 +305,12 @@ func (s *resolver) nested(path string, t *model.Type) error {
 		s.seen[t.Schema] = true
 		name := goTypeName(t.Schema)
 		s.add(sdkRef{Path: path, Kind: kindType, Name: name, Rule: ruleComponent, Schema: t.Schema})
-		for _, v := range t.Values {
+		values := t.Values
+		if t.Zero != "" {
+			// An override can give the zero value a Terraform name (D21).
+			values = append(slices.Clone(values), t.Zero)
+		}
+		for _, v := range values {
 			s.add(sdkRef{Path: path + "." + v, Kind: kindConst, Name: enumConstName(name, v), Rule: ruleEnumValue})
 		}
 	case model.Object, model.OneOf:

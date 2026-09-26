@@ -41,7 +41,9 @@
 ~ config.prompt_injection.additional_context
     - StringAttribute optional computed
     - default: value defaults to 
+    - validator: string length must be between 0 and 65536
     + StringAttribute optional
+    + validator: string length must be at most 65536
 ~ config.restricted_topics
     + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
 ~ config.restricted_topics.topics

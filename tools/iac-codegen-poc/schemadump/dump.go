@@ -77,6 +77,9 @@ func entry(p string, a schema.Attribute) Entry {
 		first += " elem=" + f.Interface().(attr.Type).String()
 	}
 	var details []string
+	if f := v.FieldByName("DeprecationMessage"); f.IsValid() && f.String() != "" {
+		details = append(details, "deprecated: "+f.String())
+	}
 	if f := v.FieldByName("Default"); f.IsValid() && !f.IsNil() {
 		details = append(details, "default: "+describe(f.Interface()))
 	}

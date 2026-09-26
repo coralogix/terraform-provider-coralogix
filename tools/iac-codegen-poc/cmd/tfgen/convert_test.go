@@ -18,14 +18,6 @@ func TestBuildConvRejects(t *testing.T) {
 		want       string
 	}{
 		{
-			name: "set of objects",
-			change: func(r *model.Resource) {
-				f := nestedField(t, r, "config", "customEvaluation", "examples")
-				f.Type = &model.Type{Kind: model.Set, Elem: f.Type.Elem}
-			},
-			want: "customEvaluation: examples: set of object is not supported",
-		},
-		{
 			name: "signed 64-bit integer as a JSON string",
 			change: func(r *model.Resource) {
 				nestedField(t, r, "config", "sqlLoad", "cteLimit").Type = &model.Type{Kind: model.Integer, Format: "int64", WireString: true}

@@ -185,11 +185,8 @@ func collectionIssues(resource, path string, t *model.Type) []surveyIssue {
 	case model.String, model.Enum:
 		return tfUnsupported(resource, path+"[]", e)
 	case model.Object, model.OneOf:
-		switch {
-		case len(e.Fields) == 0:
+		if len(e.Fields) == 0 {
 			return issue(fmt.Sprintf("%s of empty objects", t.Kind))
-		case t.Kind == model.Set:
-			return issue("set of objects")
 		}
 		return tfUnsupported(resource, path+"[]", e)
 	default:

@@ -37,6 +37,8 @@ type tfAttr struct {
 	Validators  []string // Go expressions
 	Modifiers   []string // plan modifiers, Go expressions
 	Attributes  []*tfAttr
+	// DeprecationMessage comes from an override (D21).
+	DeprecationMessage string
 }
 
 // tfModel is one Go struct of the Terraform model.
@@ -77,7 +79,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 		root.Fields = append(root.Fields, tfModelField{Name: "Id", Type: "types.String", TFName: "id"})
 	}
 	for _, f := range r.Fields {
-		a, err := b.attribute(attrPath{"root", tfName(f.Name)}, f.Name, f.Description, f.Type, fieldAttrs(f))
+		a, err := b.attribute(attrPath{"root", tfName(f.Name)}, tfName(f.Name), f.Description, f.Type, fieldAttrs(f))
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -92,7 +94,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.RequiresReplace()")
 		}
 		out.Attributes = append(out.Attributes, a)
-		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type))
+		root.Fields = append(root.Fields, b.modelField(tfName(f.Name), f.Name, f.Type))
 	}
 	for _, g := range r.Groups {
 		var arms []string
@@ -111,19 +113,19 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // object: ExactlyOneOf, or ConflictsWith when no arm is allowed, with the
 // other arms. On the arm, Terraform runs it only when the object is set. A
 // resource validator would also run when the object is null, and then
-// "exactly one" fails.
-func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup) {
+// "exactly one" fails. name returns the Terraform name of an arm.
+func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup, name func(string) string) {
 	byName := map[string]*tfAttr{}
 	for _, a := range attrs {
 		byName[a.Name] = a
 	}
 	for _, g := range groups {
 		for _, arm := range g.Arms {
-			a := byName[tfName(arm)]
+			a := byName[name(arm)]
 			var others []string
 			for _, o := range g.Arms {
 				if o != arm {
-					others = append(others, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", tfName(o)))
+					others = append(others, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", name(o)))
 				}
 			}
 			pkg := strings.ToLower(a.ValueKind) + "validator"
@@ -158,6 +160,11 @@ type tfBuilder struct {
 	models     []*tfModel
 	seen       map[string]bool // model structs already added
 	validators []string        // resource config validators
+	// ov are the overrides of the type mode (D21); nil in the resource mode.
+	ov *overrides
+	// enumNames are the Terraform names of the enums with names, by
+	// component schema, to check a default.
+	enumNames map[string][]string
 }
 
 // attrPath is a Terraform attribute path: "root", then the names. The step
@@ -167,6 +174,7 @@ type attrPath []string
 const (
 	anyListItem = "[]"
 	anyMapValue = "{}"
+	anySetValue = "<>"
 )
 
 func (p attrPath) expr() string {
@@ -179,14 +187,18 @@ func (p attrPath) expr() string {
 		case anyMapValue:
 			s += ".AtAnyMapKey()"
 			continue
+		case anySetValue:
+			s += ".AtAnySetValue()"
+			continue
 		}
 		s += fmt.Sprintf(".AtName(%q)", n)
 	}
 	return s
 }
 
+// attribute returns the attribute name (a Terraform name) of type t.
 func (b *tfBuilder) attribute(p attrPath, name, desc string, t *model.Type, attrs model.Attrs) (*tfAttr, error) {
-	a := &tfAttr{Name: tfName(name), Description: desc, Required: attrs.Required, Optional: !attrs.Required}
+	a := &tfAttr{Name: name, Description: desc, Required: attrs.Required, Optional: !attrs.Required}
 	if err := b.setType(a, p, t); err != nil {
 		return nil, err
 	}
@@ -203,7 +215,7 @@ func (b *tfBuilder) attribute(p attrPath, name, desc string, t *model.Type, attr
 func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
 	switch t.Kind {
 	case model.String, model.Enum, model.Bool, model.Number, model.Integer:
-		kind, vals, err := scalar(t)
+		kind, vals, err := b.scalar(t)
 		if err != nil {
 			return err
 		}
@@ -224,10 +236,10 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
 }
 
 func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
-	kind, step := "Set", anyListItem
+	kind, step := "Set", anySetValue
 	switch t.Kind {
 	case model.List:
-		kind = "List"
+		kind, step = "List", anyListItem
 	case model.Map:
 		kind, step = "Map", anyMapValue
 	}
@@ -237,14 +249,16 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	switch t.Elem.Kind {
 	case model.Object, model.OneOf:
 		a.Kind = kind + "Nested"
-		// buildConv rejects a set of objects, so a Set never gets here.
 		attrs, err := b.objectAttributes(append(append(attrPath{}, p...), step), t.Elem)
 		if err != nil {
 			return err
 		}
 		a.Attributes = attrs
 	case model.String, model.Enum, model.Bool, model.Number, model.Integer:
-		elem, vals, err := scalar(t.Elem)
+		if b.ov.wide() && isNarrow(t.Elem) {
+			return fmt.Errorf("wideNumbers: a %s of %s is not supported", t.Kind, typeName(t.Elem))
+		}
+		elem, vals, err := b.scalar(t.Elem)
 		if err != nil {
 			return err
 		}
@@ -266,23 +280,30 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	var attrs []*tfAttr
 	var fields []tfModelField
-	for _, f := range t.Fields {
-		child := append(append(attrPath{}, p...), tfName(f.Name))
-		a, err := b.attribute(child, f.Name, f.Description, f.Type, f.Attrs)
+	fs := b.ov.fields(t)
+	for _, f := range fs {
+		name := b.ov.tfName(t.Schema, f.Name)
+		ft := b.ov.fieldType(t.Schema, f)
+		child := append(append(attrPath{}, p...), name)
+		a, err := b.attribute(child, name, f.Description, ft, f.Attrs)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
+		if err := b.override(a, t.Schema, f, ft); err != nil {
+			return nil, fmt.Errorf("%s: %w", f.Name, err)
+		}
 		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(f.Name, f.Type))
+		fields = append(fields, b.modelField(name, f.Name, ft))
 	}
+	armName := func(arm string) string { return b.ov.tfName(t.Schema, arm) }
 	// A oneOf is one group of all its fields. Its validators are on the arms,
 	// with paths relative to the object, like the groups: they run only when
 	// the object is set, and each list item or map value on its own (F34,
 	// F49).
 	if t.Kind == model.OneOf {
-		addGroupValidators(attrs, []model.OneOfGroup{{Arms: fieldNames(t), AllowNone: t.AllowNone}})
+		addGroupValidators(attrs, []model.OneOfGroup{{Arms: fieldNames(fs), AllowNone: t.AllowNone}}, armName)
 	}
-	addGroupValidators(attrs, t.Groups)
+	addGroupValidators(attrs, b.ov.groups(t), armName)
 	if name := modelTypeName(t.Schema); !b.seen[name] {
 		b.seen[name] = true
 		b.models = append(b.models, &tfModel{Name: name, Schema: t.Schema, Fields: fields})
@@ -290,8 +311,12 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	return attrs, nil
 }
 
-func (b *tfBuilder) modelField(name string, t *model.Type) tfModelField {
+// modelField is the model struct field of the API field apiName, whose
+// Terraform name is name. The Go name comes from the API name, so a renamed
+// attribute keeps its Go name.
+func (b *tfBuilder) modelField(name, apiName string, t *model.Type) tfModelField {
 	var goType string
+	t = b.ov.widen(t)
 	switch t.Kind {
 	case model.String, model.Enum:
 		goType = "types.String"
@@ -316,15 +341,78 @@ func (b *tfBuilder) modelField(name string, t *model.Type) tfModelField {
 	case model.Object, model.OneOf:
 		goType = "*" + modelTypeName(t.Schema)
 	}
-	return tfModelField{Name: camelize(name), Type: goType, TFName: tfName(name)}
+	return tfModelField{Name: camelize(apiName), Type: goType, TFName: name}
 }
 
-func fieldNames(t *model.Type) []string {
-	names := make([]string, 0, len(t.Fields))
-	for _, f := range t.Fields {
+func fieldNames(fields []*model.Field) []string {
+	names := make([]string, 0, len(fields))
+	for _, f := range fields {
 		names = append(names, f.Name)
 	}
 	return names
+}
+
+// scalar returns the attribute kind and the validators of a scalar type,
+// with the overrides: wide numbers, and the Terraform names of an enum.
+func (b *tfBuilder) scalar(t *model.Type) (string, []string, error) {
+	kind, vals, err := scalar(b.ov.widen(t))
+	if err != nil {
+		return "", nil, err
+	}
+	if t.Kind == model.Enum && b.ov.named(t.Schema) {
+		vals = []string{"stringvalidator.OneOf(" + camelize(t.Schema) + "Names...)"}
+	}
+	return kind, vals, nil
+}
+
+// override applies the field override of the API field f of the component
+// schema to a: the flags, the default, and the plan modifiers. t is the
+// field type after the overrides.
+func (b *tfBuilder) override(a *tfAttr, schema string, f *model.Field, t *model.Type) error {
+	if b.ov == nil {
+		return nil
+	}
+	ov := b.ov.field(schema, f.Name)
+	if ov.Default != nil {
+		if err := b.checkDefault(t, *ov.Default); err != nil {
+			return err
+		}
+		d, err := defaultExpr(a.Kind, *ov.Default)
+		if err != nil {
+			return err
+		}
+		a.Default = d
+	}
+	a.Required, a.Optional, a.Computed = flags(ov, f.Attrs)
+	if ov.ReadOnly {
+		// Validators check the configuration, which is always null here.
+		a.Default, a.Validators = "", nil
+	}
+	pkg := strings.ToLower(a.ValueKind) + "planmodifier."
+	if ov.UseStateForUnknown {
+		a.Modifiers = append(a.Modifiers, pkg+"UseStateForUnknown()")
+	}
+	if ov.RequiresReplace {
+		a.Modifiers = append(a.Modifiers, pkg+"RequiresReplace()")
+	}
+	a.DeprecationMessage = ov.DeprecationMessage
+	return nil
+}
+
+// checkDefault checks that the default of an enum is one of its values: a
+// Terraform name when the enum has names, else an API value.
+func (b *tfBuilder) checkDefault(t *model.Type, value string) error {
+	if t.Kind != model.Enum {
+		return nil
+	}
+	valid := t.Values
+	if b.ov.named(t.Schema) {
+		valid = b.enumNames[t.Schema]
+	}
+	if !slices.Contains(valid, value) {
+		return fmt.Errorf("default %q is not one of %v", value, valid)
+	}
+	return nil
 }
 
 // timeValidator is the validator of a timestamp attribute. The schema
@@ -393,7 +481,12 @@ func scalar(t *model.Type) (string, []string, error) {
 	return "", nil, fmt.Errorf("kind %s is not a scalar", t.Kind)
 }
 
+// lengthValidator returns the length validator of a string. A minimum of 0
+// is not a limit.
 func lengthValidator(minLen, maxLen *int64) string {
+	if minLen != nil && *minLen == 0 {
+		minLen = nil
+	}
 	switch {
 	case minLen != nil && maxLen != nil:
 		return fmt.Sprintf("stringvalidator.LengthBetween(%d, %d)", *minLen, *maxLen)

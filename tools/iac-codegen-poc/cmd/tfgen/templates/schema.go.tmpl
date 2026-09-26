@@ -109,6 +109,9 @@ schema.{{.Kind}}Attribute{
 	{{- end}}
 	},
 {{- end}}
+{{- if .DeprecationMessage}}
+	DeprecationMessage: {{printf "%q" .DeprecationMessage}},
+{{- end}}
 {{- if .Modifiers}}
 	PlanModifiers: []planmodifier.{{.ValueKind}}{
 	{{- range .Modifiers}}

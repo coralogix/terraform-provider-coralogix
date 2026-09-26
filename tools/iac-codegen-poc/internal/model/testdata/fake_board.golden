@@ -88,6 +88,18 @@ fields
               scale   optional  number float
               size    optional  integer uint64 (wire: string)
   updatedAt     computed   -                  -                  yes  string date-time
+  routing       computed   -                  -                  yes  object Routing
+      routingName  optional  string len 1..50
+      delivery     optional  enum Delivery [DISABLED ERRORS_ONLY]
+      channels     optional  list<enum Delivery [DISABLED ERRORS_ONLY]>
+      targets      optional  list<object Target>
+        connectorId  optional  string
+        tags         optional  list<string>
+      priority     optional  integer int32
+      weight       optional  number float
+      disabled     optional  bool
+      routerId     optional  string
+      createTime   optional  string date-time
 
 oneOf groups
   oneOf(publicLink|privateShare, none allowed)

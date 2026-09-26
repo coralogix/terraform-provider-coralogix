@@ -1,0 +1,23 @@
+# Overrides (D21) for generated/fakerouting. They make the generated Routing
+# types match a handwritten Terraform schema that differs from the API, as
+# real resources do. generated/fakerouting/host_test.go checks the result.
+wideNumbers: true
+types:
+  Routing:
+    routingName: {name: name, required: true}
+    delivery: {default: unspecified}
+    channels: {set: true, emptyAsNull: true}
+    targets: {set: true}
+    priority: {requiresReplace: true}
+    disabled: {default: "false"}
+    routerId: {name: id, optional: false, computed: true, useStateForUnknown: true}
+    createTime: {readOnly: true}
+    weight: {missingAsZero: true}
+  Target:
+    connectorId: {required: true}
+    tags: {set: true, computed: true, missingAsZero: true}
+enums:
+  Delivery:
+    terraformNames: true
+    zero: unspecified
+    values: {ERRORS_ONLY: errors}

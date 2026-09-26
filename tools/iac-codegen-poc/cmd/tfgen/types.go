@@ -37,6 +37,9 @@ type typeEnum struct {
 	Schema string // the component schema
 	Prefix string // the prefix of the API values
 	Items  []enumItem
+	// Overridden is true when the overrides give some values other names,
+	// or name the value that only means "not set" (D21).
+	Overridden bool
 }
 
 type enumItem struct {
@@ -60,6 +63,8 @@ const typeTagFlag = "--tag"
 // enums whose Terraform names handwritten code needs.
 type typeInputs struct {
 	roots, enums []string
+	// overrides is the path of the overrides file (D21); "" for none.
+	overrides string
 }
 
 // checkedTypeNames builds the model of each root and each enum, and returns
@@ -128,22 +133,30 @@ func resolveTypeSDKNames(roots []*model.Type, tag, module string) ([]sdkRef, err
 }
 
 // buildTypes maps the roots, the enums, and their SDK names to the template
-// data. Each type is generated once, also when several roots use it.
-func buildTypes(roots, enums []*model.Type, refs []sdkRef, pkg, command string) (*typesData, error) {
+// data. Each type is generated once, also when several roots use it. ov are
+// the overrides; nil for none.
+func buildTypes(roots, enums []*model.Type, refs []sdkRef, ov *overrides, pkg, command string) (*typesData, error) {
 	out := &typesData{Package: pkg, Command: command}
+	if err := ov.check(append(slices.Clone(roots), enums...)); err != nil {
+		return nil, err
+	}
 	ix, err := indexRefs(refs)
 	if err != nil {
 		return nil, err
 	}
 	out.SDKPkg = ix.pkg.Pkg
-	for _, t := range enums {
-		e, err := enumNames(t, ix)
+	names := map[string][]string{}
+	for _, t := range withNamedEnums(roots, enums, ov) {
+		e, err := enumNames(t, ix, ov)
 		if err != nil {
 			return nil, err
 		}
 		out.Enums = append(out.Enums, e)
+		for _, it := range e.Items {
+			names[t.Schema] = append(names[t.Schema], it.TFName)
+		}
 	}
-	tb := &tfBuilder{seen: map[string]bool{}}
+	tb := &tfBuilder{seen: map[string]bool{}, ov: ov, enumNames: names}
 	for _, t := range roots {
 		attrs, err := tb.objectAttributes(attrPath{"root", tfName(t.Schema)}, t)
 		if err != nil {
@@ -158,16 +171,40 @@ func buildTypes(roots, enums []*model.Type, refs []sdkRef, pkg, command string) 
 	for _, r := range out.Roots {
 		out.TimeValidator = out.TimeValidator || usesValidator(r.Attributes, timeValidator)
 	}
-	if out.Conv, err = typesConv(roots, ix, out.Roots); err != nil {
+	if out.Conv, err = typesConv(roots, ix, ov, out.Roots); err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
+// withNamedEnums returns the enums of --enums, then the enums that the
+// overrides give Terraform names, in name order. The generated code of an
+// enum with names uses its name maps, so enums.go must have them.
+func withNamedEnums(roots, enums []*model.Type, ov *overrides) []*model.Type {
+	if ov == nil {
+		return enums
+	}
+	out := slices.Clone(enums)
+	listed := map[string]bool{}
+	for _, t := range enums {
+		listed[t.Schema] = true
+	}
+	objects, found := map[string]*model.Type{}, map[string]*model.Type{}
+	for _, t := range roots {
+		collectTypes(t, objects, found)
+	}
+	for _, schema := range sortedKeys(ov.Enums) {
+		if t, ok := found[schema]; ok && ov.named(schema) && !listed[schema] {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 // typesConv returns the expand and flatten data of the roots, and sets the
 // convObject of each typeRoot.
-func typesConv(roots []*model.Type, ix *refIndex, out []*typeRoot) (*convData, error) {
-	cb := &convBuilder{ix: ix, bySchema: map[string]*convObject{}}
+func typesConv(roots []*model.Type, ix *refIndex, ov *overrides, out []*typeRoot) (*convData, error) {
+	cb := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, ov: ov}
 	for i, t := range roots {
 		obj, err := cb.nested(t)
 		if err != nil {
@@ -198,20 +235,33 @@ func typesConv(roots []*model.Type, ix *refIndex, out []*typeRoot) (*convData, e
 // is the API value without the enum prefix and without _OR_UNSPECIFIED or
 // _UNSPECIFIED, in lower case: TEXT_ALIGNMENT_LEFT → "left",
 // ANNOTATION_ORIENTATION_VERTICAL_UNSPECIFIED → "vertical". Handwritten
-// resources use these names (F54). Two values with one name are an error.
-func enumNames(t *model.Type, ix *refIndex) (*typeEnum, error) {
+// resources use these names (F54). The overrides can give a value another
+// name, and name the value that only means "not set" (D21). Two values with
+// one name are an error.
+func enumNames(t *model.Type, ix *refIndex, ov *overrides) (*typeEnum, error) {
 	ref, err := ix.schemaRef(t.Schema)
 	if err != nil {
 		return nil, err
 	}
 	e := &typeEnum{Name: camelize(t.Schema), SDK: ix.pkg.Name + "." + ref.Name, Schema: t.Schema, Prefix: t.EnumPrefix}
+	var eo enumOverride
+	if ov != nil {
+		eo = ov.Enums[t.Schema]
+	}
+	values := t.Values
+	if eo.Zero != "" {
+		values = append(slices.Clone(values), t.Zero)
+	}
+	e.Overridden = len(eo.Values) != 0 || eo.Zero != ""
 	byName := map[string]string{}
-	for _, v := range t.Values {
-		name := strings.TrimPrefix(v, t.EnumPrefix)
-		for _, suffix := range []string{"_OR_UNSPECIFIED", "_UNSPECIFIED"} {
-			name = strings.TrimSuffix(name, suffix)
+	for _, v := range values {
+		name := enumRuleName(t, v)
+		switch {
+		case v == t.Zero:
+			name = eo.Zero
+		case eo.Values[v] != "":
+			name = eo.Values[v]
 		}
-		name = strings.ToLower(name)
 		if prev, ok := byName[name]; ok {
 			return nil, fmt.Errorf("%s: %s and %s both have the Terraform name %q", t.Schema, prev, v, name)
 		}
@@ -219,6 +269,16 @@ func enumNames(t *model.Type, ix *refIndex) (*typeEnum, error) {
 		e.Items = append(e.Items, enumItem{TFName: name, Const: ix.pkg.Name + "." + enumConstName(ref.Name, v), Value: v})
 	}
 	return e, nil
+}
+
+// enumRuleName is the Terraform name of the enum value v by the rule of
+// enumNames.
+func enumRuleName(t *model.Type, v string) string {
+	name := strings.TrimPrefix(v, t.EnumPrefix)
+	for _, suffix := range []string{"_OR_UNSPECIFIED", "_UNSPECIFIED"} {
+		name = strings.TrimSuffix(name, suffix)
+	}
+	return strings.ToLower(name)
 }
 
 // typeFiles maps each output file of the type mode to its template. They are
@@ -230,8 +290,8 @@ var typeFiles = map[string]string{
 }
 
 // generateTypes returns the generated files of the type mode, by file name.
-func generateTypes(roots, enums []*model.Type, refs []sdkRef, pkg, command string) (map[string][]byte, error) {
-	data, err := buildTypes(roots, enums, refs, pkg, command)
+func generateTypes(roots, enums []*model.Type, refs []sdkRef, ov *overrides, pkg, command string) (map[string][]byte, error) {
+	data, err := buildTypes(roots, enums, refs, ov, pkg, command)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +299,7 @@ func generateTypes(roots, enums []*model.Type, refs []sdkRef, pkg, command strin
 	if len(roots) != 0 {
 		files = maps.Clone(typeFiles)
 	}
-	if len(enums) != 0 {
+	if len(data.Enums) != 0 {
 		files["enums.go"] = "types_enums.go.tmpl"
 	}
 	return render(files, data)

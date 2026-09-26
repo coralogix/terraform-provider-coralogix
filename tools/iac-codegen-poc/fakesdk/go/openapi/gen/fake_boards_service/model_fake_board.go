@@ -44,6 +44,8 @@ type FakeBoard struct {
 	PrivateShare *PrivateShare `json:"privateShare,omitempty"`
 	// Share by a public link. A oneOf arm at the resource root.
 	PublicLink *PublicLink `json:"publicLink,omitempty"`
+	// Where alerts of the board go. Only in Get. The type mode uses it to test overrides (D21).
+	Routing *Routing `json:"routing,omitempty"`
 	// RFC3339 timestamp of the last update.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 	AdditionalProperties map[string]interface{}
@@ -375,6 +377,38 @@ func (o *FakeBoard) SetPublicLink(v PublicLink) {
 	o.PublicLink = &v
 }
 
+// GetRouting returns the Routing field value if set, zero value otherwise.
+func (o *FakeBoard) GetRouting() Routing {
+	if o == nil || IsNil(o.Routing) {
+		var ret Routing
+		return ret
+	}
+	return *o.Routing
+}
+
+// GetRoutingOk returns a tuple with the Routing field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *FakeBoard) GetRoutingOk() (*Routing, bool) {
+	if o == nil || IsNil(o.Routing) {
+		return nil, false
+	}
+	return o.Routing, true
+}
+
+// HasRouting returns a boolean if a field has been set.
+func (o *FakeBoard) HasRouting() bool {
+	if o != nil && !IsNil(o.Routing) {
+		return true
+	}
+
+	return false
+}
+
+// SetRouting gets a reference to the given Routing and assigns it to the Routing field.
+func (o *FakeBoard) SetRouting(v Routing) {
+	o.Routing = &v
+}
+
 // GetUpdatedAt returns the UpdatedAt field value if set, zero value otherwise.
 func (o *FakeBoard) GetUpdatedAt() time.Time {
 	if o == nil || IsNil(o.UpdatedAt) {
@@ -442,6 +476,9 @@ func (o FakeBoard) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.PublicLink) {
 		toSerialize["publicLink"] = o.PublicLink
+	}
+	if !IsNil(o.Routing) {
+		toSerialize["routing"] = o.Routing
 	}
 	if !IsNil(o.UpdatedAt) {
 		toSerialize["updatedAt"] = o.UpdatedAt
@@ -540,6 +577,7 @@ func (o *FakeBoard) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "panels")
 		delete(additionalProperties, "privateShare")
 		delete(additionalProperties, "publicLink")
+		delete(additionalProperties, "routing")
 		delete(additionalProperties, "updatedAt")
 		o.AdditionalProperties = additionalProperties
 		o.additionalPropertiesFromUnmarshal = len(additionalProperties) > 0

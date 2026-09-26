@@ -134,9 +134,12 @@ type Type struct {
 	// EnumPrefix is the prefix of every enum value, with its "_", for
 	// example "TEXT_ALIGNMENT_"; "" when they have none.
 	EnumPrefix string
-	Elem       *Type    // List, Set, Map
-	Fields     []*Field // Object: the properties; OneOf: the arms
-	AllowNone  bool     // OneOf: the value can have no arm set
+	// Zero is the enum value that only means "not set", when the enum has
+	// one. It is not in Values.
+	Zero      string
+	Elem      *Type    // List, Set, Map
+	Fields    []*Field // Object: the properties; OneOf: the arms
+	AllowNone bool     // OneOf: the value can have no arm set
 	// Groups are the oneOf groups of an Object that also has normal fields,
 	// or has more than one group. Each arm is one of Fields.
 	Groups []OneOfGroup
