@@ -1,0 +1,6 @@
+{
+	"provider": {
+		"name": "coralogix"
+	},
+	"version": "0.1"
+}
