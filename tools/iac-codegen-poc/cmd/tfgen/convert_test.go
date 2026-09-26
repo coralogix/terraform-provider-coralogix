@@ -18,11 +18,6 @@ func TestBuildConvRejects(t *testing.T) {
 		want       string
 	}{
 		{
-			name:   "date-time in a request",
-			change: func(r *model.Resource) { topField(t, r, "createdAt").Create = &model.Attrs{} },
-			want:   "create.body: created_at: date-time in a request is not supported",
-		},
-		{
 			name: "set of objects",
 			change: func(r *model.Resource) {
 				f := nestedField(t, r, "config", "customEvaluation", "examples")

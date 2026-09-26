@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -42,6 +42,9 @@ func Schema() schema.Schema {
 				Attributes: map[string]schema.Attribute{
 					"allowed_topics": schema.SingleNestedAttribute{
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes: map[string]schema.Attribute{
 							"topics": schema.SetAttribute{
 								Optional:    true,
@@ -58,6 +61,9 @@ func Schema() schema.Schema {
 					},
 					"competition": schema.SingleNestedAttribute{
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes: map[string]schema.Attribute{
 							"competitors": schema.SetAttribute{
 								Optional:    true,
@@ -74,6 +80,9 @@ func Schema() schema.Schema {
 					},
 					"custom_evaluation": schema.SingleNestedAttribute{
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes: map[string]schema.Attribute{
 							"examples": schema.ListNestedAttribute{
 								Optional: true,
@@ -136,37 +145,58 @@ func Schema() schema.Schema {
 						MarkdownDescription: "Custom evaluation policy details (instructions + examples for the LLM evaluator).",
 					},
 					"hallucination_completeness": schema.SingleNestedAttribute{
-						Optional:            true,
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes:          map[string]schema.Attribute{},
 						MarkdownDescription: "Configuration for the HallucinationCompleteness evaluation (no fields).",
 					},
 					"hallucination_context_adherence": schema.SingleNestedAttribute{
-						Optional:            true,
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes:          map[string]schema.Attribute{},
 						MarkdownDescription: "Configuration for the HallucinationContextAdherence evaluation (no fields).",
 					},
 					"hallucination_context_relevance": schema.SingleNestedAttribute{
-						Optional:            true,
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes:          map[string]schema.Attribute{},
 						MarkdownDescription: "Configuration for the HallucinationContextRelevance evaluation (no fields).",
 					},
 					"hallucination_correctness": schema.SingleNestedAttribute{
-						Optional:            true,
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes:          map[string]schema.Attribute{},
 						MarkdownDescription: "Configuration for the HallucinationCorrectness evaluation (no fields).",
 					},
 					"hallucination_task_adherence": schema.SingleNestedAttribute{
-						Optional:            true,
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes:          map[string]schema.Attribute{},
 						MarkdownDescription: "Configuration for the HallucinationTaskAdherence evaluation (no fields).",
 					},
 					"language_mismatch": schema.SingleNestedAttribute{
-						Optional:            true,
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes:          map[string]schema.Attribute{},
 						MarkdownDescription: "Configuration for the LanguageMismatch evaluation (no fields).",
 					},
 					"pii": schema.SingleNestedAttribute{
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes: map[string]schema.Attribute{
 							"categories": schema.SetAttribute{
 								Optional:    true,
@@ -183,6 +213,9 @@ func Schema() schema.Schema {
 					},
 					"prompt_injection": schema.SingleNestedAttribute{
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes: map[string]schema.Attribute{
 							"additional_context": schema.StringAttribute{
 								Optional: true,
@@ -196,6 +229,9 @@ func Schema() schema.Schema {
 					},
 					"restricted_topics": schema.SingleNestedAttribute{
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes: map[string]schema.Attribute{
 							"topics": schema.SetAttribute{
 								Optional:    true,
@@ -211,12 +247,18 @@ func Schema() schema.Schema {
 						MarkdownDescription: "Configuration for the RestrictedTopics evaluation.",
 					},
 					"sexism": schema.SingleNestedAttribute{
-						Optional:            true,
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes:          map[string]schema.Attribute{},
 						MarkdownDescription: "Configuration for the Sexism evaluation (no fields).",
 					},
 					"sql_allowed_tables": schema.SingleNestedAttribute{
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes: map[string]schema.Attribute{
 							"tables": schema.SetAttribute{
 								Optional:    true,
@@ -232,12 +274,18 @@ func Schema() schema.Schema {
 						MarkdownDescription: "Configuration for the SqlAllowedTables evaluation.",
 					},
 					"sql_hallucination": schema.SingleNestedAttribute{
-						Optional:            true,
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes:          map[string]schema.Attribute{},
 						MarkdownDescription: "Configuration for the SqlHallucination evaluation (no fields).",
 					},
 					"sql_load": schema.SingleNestedAttribute{
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes: map[string]schema.Attribute{
 							"allow_recursive_cte": schema.BoolAttribute{
 								Optional:            true,
@@ -261,12 +309,18 @@ func Schema() schema.Schema {
 						MarkdownDescription: "Configuration for the SqlLoad evaluation: caps on query complexity.",
 					},
 					"sql_read_only": schema.SingleNestedAttribute{
-						Optional:            true,
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_restricted_tables"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes:          map[string]schema.Attribute{},
 						MarkdownDescription: "Configuration for the SqlReadOnly evaluation (no fields).",
 					},
 					"sql_restricted_tables": schema.SingleNestedAttribute{
 						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("toxicity")),
+						},
 						Attributes: map[string]schema.Attribute{
 							"tables": schema.SetAttribute{
 								Optional:    true,
@@ -282,7 +336,10 @@ func Schema() schema.Schema {
 						MarkdownDescription: "Configuration for the SqlRestrictedTables evaluation.",
 					},
 					"toxicity": schema.SingleNestedAttribute{
-						Optional:            true,
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_topics"), path.MatchRelative().AtParent().AtName("competition"), path.MatchRelative().AtParent().AtName("custom_evaluation"), path.MatchRelative().AtParent().AtName("hallucination_completeness"), path.MatchRelative().AtParent().AtName("hallucination_context_adherence"), path.MatchRelative().AtParent().AtName("hallucination_context_relevance"), path.MatchRelative().AtParent().AtName("hallucination_correctness"), path.MatchRelative().AtParent().AtName("hallucination_task_adherence"), path.MatchRelative().AtParent().AtName("language_mismatch"), path.MatchRelative().AtParent().AtName("pii"), path.MatchRelative().AtParent().AtName("prompt_injection"), path.MatchRelative().AtParent().AtName("restricted_topics"), path.MatchRelative().AtParent().AtName("sexism"), path.MatchRelative().AtParent().AtName("sql_allowed_tables"), path.MatchRelative().AtParent().AtName("sql_hallucination"), path.MatchRelative().AtParent().AtName("sql_load"), path.MatchRelative().AtParent().AtName("sql_read_only"), path.MatchRelative().AtParent().AtName("sql_restricted_tables")),
+						},
 						Attributes:          map[string]schema.Attribute{},
 						MarkdownDescription: "Configuration for the Toxicity evaluation (no fields).",
 					},
@@ -347,27 +404,5 @@ func Schema() schema.Schema {
 
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
-	return []resource.ConfigValidator{
-		resourcevalidator.Conflicting(
-			path.MatchRoot("config").AtName("allowed_topics"),
-			path.MatchRoot("config").AtName("competition"),
-			path.MatchRoot("config").AtName("custom_evaluation"),
-			path.MatchRoot("config").AtName("hallucination_completeness"),
-			path.MatchRoot("config").AtName("hallucination_context_adherence"),
-			path.MatchRoot("config").AtName("hallucination_context_relevance"),
-			path.MatchRoot("config").AtName("hallucination_correctness"),
-			path.MatchRoot("config").AtName("hallucination_task_adherence"),
-			path.MatchRoot("config").AtName("language_mismatch"),
-			path.MatchRoot("config").AtName("pii"),
-			path.MatchRoot("config").AtName("prompt_injection"),
-			path.MatchRoot("config").AtName("restricted_topics"),
-			path.MatchRoot("config").AtName("sexism"),
-			path.MatchRoot("config").AtName("sql_allowed_tables"),
-			path.MatchRoot("config").AtName("sql_hallucination"),
-			path.MatchRoot("config").AtName("sql_load"),
-			path.MatchRoot("config").AtName("sql_read_only"),
-			path.MatchRoot("config").AtName("sql_restricted_tables"),
-			path.MatchRoot("config").AtName("toxicity"),
-		),
-	}
+	return []resource.ConfigValidator{}
 }

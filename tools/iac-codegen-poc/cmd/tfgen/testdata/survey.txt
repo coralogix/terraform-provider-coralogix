@@ -1,12 +1,11 @@
-43 resources, 42 with no issue
+43 resources, 43 with no issue
 
-RESOURCES  PLACES  SHAPE                                          EXAMPLE
-1          2       model: enum with only the *_UNSPECIFIED value  AlertDef.alertDefProperties.logsAnomaly.rules[].condition.conditionType
+RESOURCES  PLACES  SHAPE  EXAMPLE
 
 RESOURCE                          ISSUES  SHAPES
 AiApplication                     0       
 AiEvaluation                      0       
-AlertDef                          2       enum with only the *_UNSPECIFIED value
+AlertDef                          0       
 AlertEvent                        0       
 AlertSchedulerRule                0       
 Case                              0       

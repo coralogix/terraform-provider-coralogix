@@ -36,13 +36,20 @@ fields
           family  optional  string
           scale   optional  number float
           size    optional  integer uint64 (wire: string)
+      filters     optional  list<oneOf Filter (2 arms)>
+        equals    arm  object Match
+          field  required  string len 1..
+          value  optional  string
+        contains  arm  object Match
+          field  required  string len 1..
+          value  optional  string
   layout        normal     required           optional presence  yes  object Layout oneOf(refreshOff|refreshEvery, none allowed) oneOf(absoluteTime|relativeTime)
       refreshOff    optional  object BoldStyle {}
       refreshEvery  optional  object Every
         minutes  optional  integer int32
       absoluteTime  optional  object AbsoluteTime
-        from  optional  string
-        to    optional  string
+        from  optional  string date-time
+        to    optional  string date-time
       relativeTime  optional  object Every
         minutes  optional  integer int32
       title         required  string

@@ -56,6 +56,11 @@ func generate(r *model.Resource, refs []sdkRef, pkg string, acc *accValues) (map
 		}
 		files["acc_test.go"] = "acc_test.go.tmpl"
 	}
+	return render(files, data)
+}
+
+// render executes the template of each file with data, and formats the result.
+func render(files map[string]string, data any) (map[string][]byte, error) {
 	out := map[string][]byte{}
 	for file, tmpl := range files {
 		var buf bytes.Buffer

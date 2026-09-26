@@ -3,6 +3,10 @@
 package fakeboard
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
@@ -148,12 +152,18 @@ func Schema() schema.Schema {
 							Optional: true,
 							Attributes: map[string]schema.Attribute{
 								"bold": schema.SingleNestedAttribute{
-									Optional:            true,
+									Optional: true,
+									Validators: []validator.Object{
+										objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("font")),
+									},
 									Attributes:          map[string]schema.Attribute{},
 									MarkdownDescription: "Bold text (no fields).",
 								},
 								"font": schema.SingleNestedAttribute{
 									Optional: true,
+									Validators: []validator.Object{
+										objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("bold")),
+									},
 									Attributes: map[string]schema.Attribute{
 										"family": schema.StringAttribute{
 											Optional:            true,
@@ -175,6 +185,54 @@ func Schema() schema.Schema {
 								},
 							},
 							MarkdownDescription: "Style of the panel title. A oneOf inside a map value.",
+						},
+						"filters": schema.ListNestedAttribute{
+							Optional: true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"equals": schema.SingleNestedAttribute{
+										Optional: true,
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("contains")),
+										},
+										Attributes: map[string]schema.Attribute{
+											"field": schema.StringAttribute{
+												Required: true,
+												Validators: []validator.String{
+													stringvalidator.LengthAtLeast(1),
+												},
+												MarkdownDescription: "The field name.",
+											},
+											"value": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "The value.",
+											},
+										},
+										MarkdownDescription: "The field equals the value.",
+									},
+									"contains": schema.SingleNestedAttribute{
+										Optional: true,
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("equals")),
+										},
+										Attributes: map[string]schema.Attribute{
+											"field": schema.StringAttribute{
+												Required: true,
+												Validators: []validator.String{
+													stringvalidator.LengthAtLeast(1),
+												},
+												MarkdownDescription: "The field name.",
+											},
+											"value": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "The value.",
+											},
+										},
+										MarkdownDescription: "The field contains the value.",
+									},
+								},
+							},
+							MarkdownDescription: "Filters of the panel query. A list of oneOf, as in the dashboards query filters.",
 						},
 					},
 				},
@@ -211,12 +269,18 @@ func Schema() schema.Schema {
 						},
 						Attributes: map[string]schema.Attribute{
 							"from": schema.StringAttribute{
-								Optional:            true,
-								MarkdownDescription: "Start, RFC3339.",
+								Optional: true,
+								Validators: []validator.String{
+									rfc3339Validator{},
+								},
+								MarkdownDescription: "Start. A timestamp that the user writes, as in the dashboards query time frame.",
 							},
 							"to": schema.StringAttribute{
-								Optional:            true,
-								MarkdownDescription: "End, RFC3339.",
+								Optional: true,
+								Validators: []validator.String{
+									rfc3339Validator{},
+								},
+								MarkdownDescription: "End. A timestamp that the user writes.",
 							},
 						},
 						MarkdownDescription: "A fixed time range. Group 2 (one arm required).",
@@ -242,12 +306,18 @@ func Schema() schema.Schema {
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"bold": schema.SingleNestedAttribute{
-								Optional:            true,
+								Optional: true,
+								Validators: []validator.Object{
+									objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("font")),
+								},
 								Attributes:          map[string]schema.Attribute{},
 								MarkdownDescription: "Bold text (no fields).",
 							},
 							"font": schema.SingleNestedAttribute{
 								Optional: true,
+								Validators: []validator.Object{
+									objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("bold")),
+								},
 								Attributes: map[string]schema.Attribute{
 									"family": schema.StringAttribute{
 										Optional:            true,
@@ -294,12 +364,18 @@ func Schema() schema.Schema {
 										Optional: true,
 										Attributes: map[string]schema.Attribute{
 											"bold": schema.SingleNestedAttribute{
-												Optional:            true,
+												Optional: true,
+												Validators: []validator.Object{
+													objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("font")),
+												},
 												Attributes:          map[string]schema.Attribute{},
 												MarkdownDescription: "Bold text (no fields).",
 											},
 											"font": schema.SingleNestedAttribute{
 												Optional: true,
+												Validators: []validator.Object{
+													objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("bold")),
+												},
 												Attributes: map[string]schema.Attribute{
 													"family": schema.StringAttribute{
 														Optional:            true,
@@ -400,12 +476,18 @@ func Schema() schema.Schema {
 											Optional: true,
 											Attributes: map[string]schema.Attribute{
 												"bold": schema.SingleNestedAttribute{
-													Optional:            true,
+													Optional: true,
+													Validators: []validator.Object{
+														objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("font")),
+													},
 													Attributes:          map[string]schema.Attribute{},
 													MarkdownDescription: "Bold text (no fields).",
 												},
 												"font": schema.SingleNestedAttribute{
 													Optional: true,
+													Validators: []validator.Object{
+														objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("bold")),
+													},
 													Attributes: map[string]schema.Attribute{
 														"family": schema.StringAttribute{
 															Optional:            true,
@@ -450,24 +532,37 @@ func Schema() schema.Schema {
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{
 		resourcevalidator.Conflicting(
-			path.MatchRoot("panels").AtAnyMapKey().AtName("style").AtName("bold"),
-			path.MatchRoot("panels").AtAnyMapKey().AtName("style").AtName("font"),
-		),
-		resourcevalidator.Conflicting(
-			path.MatchRoot("layout").AtName("title_style").AtName("bold"),
-			path.MatchRoot("layout").AtName("title_style").AtName("font"),
-		),
-		resourcevalidator.Conflicting(
-			path.MatchRoot("layout").AtName("section").AtName("header").AtName("style").AtName("bold"),
-			path.MatchRoot("layout").AtName("section").AtName("header").AtName("style").AtName("font"),
-		),
-		resourcevalidator.Conflicting(
-			path.MatchRoot("layout").AtName("section").AtName("rows").AtAnyListIndex().AtName("style").AtName("bold"),
-			path.MatchRoot("layout").AtName("section").AtName("rows").AtAnyListIndex().AtName("style").AtName("font"),
-		),
-		resourcevalidator.Conflicting(
 			path.MatchRoot("public_link"),
 			path.MatchRoot("private_share"),
 		),
+	}
+}
+
+// rfc3339Validator accepts a timestamp in the form that the API returns: RFC
+// 3339 in UTC, with no trailing zeros in the fraction, for example
+// "2026-09-26T08:00:00Z". Another form of the same time would read back
+// differently, and Terraform would report a change on every plan (F51).
+type rfc3339Validator struct{}
+
+func (rfc3339Validator) Description(context.Context) string {
+	return `value must be an RFC 3339 timestamp in UTC, for example "2026-09-26T08:00:00Z"`
+}
+
+func (v rfc3339Validator) MarkdownDescription(ctx context.Context) string { return v.Description(ctx) }
+
+func (rfc3339Validator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	s := req.ConfigValue.ValueString()
+	t, err := time.Parse(time.RFC3339Nano, s)
+	if err != nil {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid timestamp",
+			fmt.Sprintf("%q is not an RFC 3339 timestamp, for example \"2026-09-26T08:00:00Z\": %s", s, err))
+		return
+	}
+	if want := t.UTC().Format(time.RFC3339Nano); want != s {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid timestamp",
+			fmt.Sprintf("Write %q as %q: the API returns this form, so another form shows a change on every plan.", s, want))
 	}
 }

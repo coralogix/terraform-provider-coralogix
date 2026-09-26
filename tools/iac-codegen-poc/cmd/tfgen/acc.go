@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.yaml.in/yaml/v4"
 
@@ -193,6 +194,9 @@ func hclScalar(path string, t *model.Type, v any) (string, error) {
 	}
 	switch t.Kind {
 	case model.String, model.Enum:
+		if t.Format == "date-time" {
+			return hclTime(path, v)
+		}
 		s, ok := v.(string)
 		if !ok {
 			return fail("a string")
@@ -218,6 +222,31 @@ func hclScalar(path string, t *model.Type, v any) (string, error) {
 		return hclInteger(path, t, v)
 	}
 	return "", fmt.Errorf("%s: kind %s is not supported", path, t.Kind)
+}
+
+// hclTime converts a timestamp. It must be the form that the schema accepts
+// (RFC 3339 in UTC, F51). YAML reads an unquoted timestamp as a time.
+func hclTime(path string, v any) (string, error) {
+	var t time.Time
+	switch x := v.(type) {
+	case time.Time:
+		t = x
+	case string:
+		if placeholder.MatchString(x) {
+			return strconv.Quote(x), nil
+		}
+		parsed, err := time.Parse(time.RFC3339Nano, x)
+		if err != nil {
+			return "", fmt.Errorf("%s: %q is not an RFC 3339 timestamp", path, x)
+		}
+		if want := parsed.UTC().Format(time.RFC3339Nano); want != x {
+			return "", fmt.Errorf("%s: write %q as %q, the form that the API returns", path, x, want)
+		}
+		t = parsed
+	default:
+		return "", fmt.Errorf("%s: %v (%T) is not a timestamp", path, v, v)
+	}
+	return strconv.Quote(t.UTC().Format(time.RFC3339Nano)), nil
 }
 
 // hclInteger converts an integer. A uint64 is a decimal string in the API

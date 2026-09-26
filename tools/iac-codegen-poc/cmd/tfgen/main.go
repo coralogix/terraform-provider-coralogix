@@ -5,10 +5,12 @@
 //	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey
 //	go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey-resources
 //	go run ./cmd/tfgen --spec spec/fake/openapi.yaml --resource FakeBoard --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeboard
+//	go run ./cmd/tfgen --spec spec/fake/openapi.yaml --types Panel,Header --tag "Fake Boards Service" --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakepanel
 //
 // Both check that the pinned SDK has every name the generated code uses.
 // --out writes the generated files. The package name is the last element of
-// the directory. --sdk-names prints the list of names.
+// the directory. --sdk-names prints the list of names. --types writes only
+// the Terraform types of component schemas, for handwritten resources (D20).
 package main
 
 import (
@@ -34,7 +36,17 @@ func main() {
 	survey := flag.Bool("survey", false, "measure the schema shapes of all Get resources that cannot be generated")
 	surveyResources := flag.Bool("survey-resources", false, "measure the resource shapes (operations, ids, bodies, responses) of all Get resources")
 	acc := flag.String("acc", "", "acceptance test values file (API shape); with --out, also writes acc_test.go")
+	typeList := flag.String("types", "", "comma-separated component schemas: write only their Terraform types, for handwritten resources")
+	tag := flag.String("tag", "", "with --types: the operation tag whose SDK package has the types")
 	flag.Parse()
+
+	if *typeList != "" {
+		if err := runTypes(*spec, strings.Split(*typeList, ","), *tag, *sdkModule, *out); err != nil {
+			fmt.Fprintln(os.Stderr, "tfgen:", err)
+			os.Exit(1)
+		}
+		return
+	}
 
 	if *surveyResources {
 		if err := runResourceSurvey(*spec, os.Stdout); err != nil {
@@ -81,6 +93,32 @@ func run(spec, resource, out, sdkModule, accPath string, sdkNames bool) error {
 	if err != nil {
 		return err
 	}
+	return writeFiles(out, files)
+}
+
+// runTypes writes the Terraform types of the component schemas roots to out.
+func runTypes(spec string, roots []string, tag, sdkModule, out string) error {
+	if spec == "" || out == "" {
+		return errors.New("--spec and --out are required with --types")
+	}
+	types, refs, err := checkedTypeNames(spec, roots, tag, sdkModule)
+	if err != nil {
+		return err
+	}
+	files, err := generateTypes(types, refs, filepath.Base(out), typesCommand(roots, tag))
+	if err != nil {
+		return err
+	}
+	return writeFiles(out, files)
+}
+
+// typesCommand is the part of the tfgen command that the generated package
+// records. It has no paths, so it is the same on every machine.
+func typesCommand(roots []string, tag string) string {
+	return fmt.Sprintf("--types %s %s %q", strings.Join(roots, ","), typeTagFlag, tag)
+}
+
+func writeFiles(out string, files map[string][]byte) error {
 	if err := os.MkdirAll(out, 0o755); err != nil {
 		return err
 	}

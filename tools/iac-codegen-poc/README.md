@@ -1,7 +1,11 @@
 # IaC code generation POC
 
-A proof of concept: generate a complete Terraform resource from OpenAPI, with no handwritten resource code.
-It generates one resource, `ai_evaluation`, from the AI Evaluations API.
+A proof of concept: generate Terraform code from OpenAPI. Two modes:
+
+- **Resource mode:** a complete Terraform resource, with no handwritten resource code. It generates `ai_evaluation`
+  from the AI Evaluations API, and fake resources for the shapes that it does not have.
+- **Type mode:** only the Terraform types (schema attributes, models, expand, flatten) of API types, in their own package.
+  Handwritten resources embed them, for example a new alert type in the handwritten alert resource. See "Type mode".
 
 This folder is a separate Go module. It does not change the provider build. The generated resource is
 not registered in the provider. The handwritten `coralogix_ai_evaluation` resource stays as it is.
@@ -10,7 +14,8 @@ not registered in the provider. The handwritten `coralogix_ai_evaluation` resour
 [`generated/fakeboard/`](generated/fakeboard/) (a fake API, see "Fake resource"),
 [`generated/fakesettings/`](generated/fakesettings/) (a fake singleton, see "Singletons"), and
 [`generated/fakerule/`](generated/fakerule/) and [`generated/fakeview/`](generated/fakeview/) (fake full-replace
-updates, see "Full replace").
+updates, see "Full replace"). Type mode: [`generated/fakepanel/`](generated/fakepanel/) (fake types) and
+[`generated/dashboardwidgets/`](generated/dashboardwidgets/) (the 9 real dashboard widget types).
 
 | File | Content |
 |---|---|
@@ -95,6 +100,10 @@ go run ./cmd/tfgen --spec spec/fake/rules.yaml --resource FakeRule \
   --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakerule
 go run ./cmd/tfgen --spec spec/fake/views.yaml --resource FakeView \
   --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakeview
+go run ./cmd/tfgen --spec spec/fake/openapi.yaml --types Panel,Header,Interval,AbsoluteTime --tag "Fake Boards Service" \
+  --sdk-module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk --out generated/fakepanel
+go run ./cmd/tfgen --spec spec/openapi.patched.yaml --types Widget.Definition --tag "Dashboard service" --out generated/dashboardwidgets
+integration/alertsanalytics/run.sh <provider checkout>   # plug generated alert types into a copy of the provider, run its tests
 go test ./...                                    # the acceptance test skips without TF_ACC
 go test ./internal/model -run TestDump -update   # rewrite internal/model/testdata/ai_evaluation.golden
 go test ./cmd/tfgen -run TestSDKNames -update    # rewrite cmd/tfgen/testdata/sdk_names.golden
@@ -181,8 +190,8 @@ only top-level names, so its `mask.go` has top-level masks.
 `go run ./cmd/tfgen --spec spec/openapi.patched.yaml --survey` measures, for the resource schema of every Get operation in the
 spec, the shapes that the model or the generator cannot generate. It ignores the operations (it assumes `PATCH` with a mask).
 The model reports every problem, not only the first. The last output is in
-[`cmd/tfgen/testdata/survey.txt`](cmd/tfgen/testdata/survey.txt): 42 of 43 resources have no issue. Left: AlertDef, which
-has an enum with only the `*_UNSPECIFIED` value (F33, an API gap).
+[`cmd/tfgen/testdata/survey.txt`](cmd/tfgen/testdata/survey.txt): all 43 resources have no issue. (AlertDef looked blocked by
+an enum with only a `*_UNSPECIFIED` value, but those enums are `*_OR_UNSPECIFIED` enums with a real value; see F33, F50.)
 
 ## Resource shapes
 
@@ -230,6 +239,61 @@ the same SDK calls as the handwritten resource. Its only schema difference: `nam
 `required` list. The others stop on contract issues: a field in Update but not in Create (E2M, Policy, View), server fields
 without `readOnly` (E2M, Slo), a request body that wraps the resource (Connector, GlobalRouter), or the response shape.
 
+## Type mode
+
+Most APIs that change often are existing, handwritten Terraform resources. Regenerating them would lose their custom code,
+so the type mode generates only new parts, next to the handwritten code (D20):
+
+```sh
+tfgen --spec <spec> --types AnalyticsThresholdType,AnalyticsImmediateType --tag "Alert definitions service" --out <dir>/generated
+```
+
+It writes one package: the given types and every type inside them, each type once. For each root type `T`:
+
+```go
+generated.TAttributes() map[string]schema.Attribute  // the attribute that holds them decides Optional or Required
+generated.TModel                                     // and a model, with <Model>AttrTypes(), for every type inside T
+generated.ExpandT(ctx, p, m)                         // → *sdk.T, diag.Diagnostics
+generated.FlattenT(ctx, p, v)                        // → *TModel, diag.Diagnostics
+```
+
+- `oneOf` rules become validators on the arms, relative to their object. They run only when the object is set, and for each list
+  item or map value on its own. The handwritten code wires nothing.
+- `--tag` selects the SDK package: the SDK copies a type into each package that uses it.
+- The package doc records the command. A second run gives the same files.
+
+**Real alerts.** Terraform has no `analytics_threshold` or `analytics_immediate` alert types (API types from 2026-06-15). The
+generator writes them (681 lines). [`integration/alertsanalytics/run.sh`](integration/alertsanalytics/run.sh) copies the provider
+(`git archive`), generates the types, applies [`provider.patch`](integration/alertsanalytics/provider.patch), and runs the alert
+tests. The patch is the handwritten plug-in: about 50 changed lines in 5 files and a 94-line glue file. Most of it is existing
+handwritten structure: each alert type sets the common alert properties itself, and 11 helper functions list every alert type
+(F52). All provider unit tests pass, plus a round trip of analytics alerts through the handwritten expand and flatten.
+
+**Real dashboards.** All 9 widget types of `Widget.Definition` generate
+([`generated/dashboardwidgets/`](generated/dashboardwidgets/), 27,000 lines). Its
+[`roundtrip_test.go`](generated/dashboardwidgets/roundtrip_test.go) reads real widget JSON with the SDK, flattens it, stores it in
+a Terraform state of the generated schema, reads it back, and expands it, with no change. The fixtures are the provider's
+dashboard test fixtures and example (line charts, data tables, dynamic widgets) and one hexagon with an absolute time frame.
+
+These widgets cannot replace the handwritten ones: the handwritten schema has other names and shapes, and user configurations and
+states depend on them.
+
+| Handwritten | Generated from the API |
+|---|---|
+| `query.data_prime` | `query.dataprime` |
+| `time_frame.absolute.start` / `end` | `time_frame.absolute_time_frame.from` / `to` |
+| `threshold_type = "absolute"` | `threshold_type = "THRESHOLD_TYPE_ABSOLUTE"` |
+
+Replacing a handwritten part would need per-field overrides that keep the old names, and a schema comparison that proves no change.
+
+**Timestamps in requests** (`format: date-time`) are Terraform strings in RFC 3339, in UTC, as in the handwritten dashboard
+resource. A generated validator accepts only the form that the API returns, so a value reads back as it was written:
+
+```
+from = "2026-09-26T08:00:00Z"        accepted
+from = "2026-09-26T10:00:00+02:00"   Write "2026-09-26T10:00:00+02:00" as "2026-09-26T08:00:00Z": the API returns this form, ...
+```
+
 ## Decisions
 
 | # | Topic | Decision | Reason |
@@ -255,6 +319,7 @@ without `readOnly` (E2M, Slo), a request body that wraps the resource (Connector
 | D17 | Names and shapes in that YAML | The API JSON shape (`camelCase`, request-body values). The generator converts it to HCL. | Backend developers know the API, not Terraform. The same file can serve the Operator and other tools later. |
 | D18 | Singletons | A singleton is a resource whose Get has no path parameter (one per company). Only a singleton with Create, Get, Update, and Delete on one path is generated. A singleton with only Get and Update is not a Terraform resource: not generated for now. | Terraform needs a real create and delete. (2026-09-25) |
 | D19 | Full-replace Update (`PUT`) | Generate it as it is, with no change to the API: `PUT` on the item path, or on the Create path with the id in the body. A request property with `readOnly: true` is a server field and is not sent. `PATCH` keeps the update mask. | The frequently changed APIs that Terraform has (dashboards, alerts, quota, notification center, SLO) all use `PUT`. Forcing `PATCH` on them is a breaking change for customers and work for every team. (2026-09-26) |
+| D20 | Generated parts inside handwritten resources (type mode) | A type mode, `tfgen --types A,B --tag <tag> --out <dir>`: the schema attributes, models, and expand and flatten of API types and every type inside them, in their own package (for example `dashboard_widgets/generated`). The handwritten code keeps the resource and plugs a type in with a few lines. Regenerating touches only that package. Existing handwritten code is never overwritten. | Most frequently changed APIs are existing, handwritten Terraform resources; regenerating them would lose custom code. In the last 12 months, 25 of 94 schema changes in Terraform-backed APIs added new objects to existing objects (dashboards 12, alerts 6). A separate package cannot clash with handwritten names. (2026-09-26) |
 
 ## Findings
 
@@ -293,7 +358,7 @@ Gaps in the API, the contract, or the tools.
 | F29 | Dashboards: an object has a `oneOf` and normal fields beside it (`IntervalResolution`: `auto` or `manual`, plus `useAdvancedLimit`). The model assumes that every field of a `oneOf` object is an arm. Generator limit. | Tooling |
 | F30 | The SDK uses a value type (`string`, `Layout`), not a pointer, for a field that its source spec marks `required` (F18). The patched spec cannot tell which: `ai_evaluation` has `required` only in the overlay, so its SDK still has pointers. The generator now accepts `*T` or `T` and follows the SDK. | Tooling |
 | F31 | A test needs a valid value for each field, and a second one for updates. The spec has `example` for few fields, and none can know the environment (a real AI application). The contract could require an `example` on every writable field; then the values file keeps only the environment placeholders. | Contract |
-| F33 | Survey: 3 enums have only the `*_UNSPECIFIED` value (for example `LogsAnomalyConditionType`). No valid value can be sent. | API proto |
+| F33 | Wrong, corrected on 2026-09-26 (F50). The 3 "enums with only `*_UNSPECIFIED`" (for example `LogsAnomalyConditionType`) are `*_OR_UNSPECIFIED` enums: their one value is a real choice. With F50 the survey has no issue in AlertDef's schema. | – |
 | F34 | Latent generator risk: a required pure `oneOf` (no "no arm") inside an optional object gets a resource-level `ExactlyOneOf`. When the parent object is null, that validator finds no arm and fails. `ai_evaluation` is not affected (its `config` allows no arm). oneOf groups put the validator on each arm instead, which runs only when the parent is set. Pure `oneOf` should do the same; that changes the `ai_evaluation` schema.go. | Tooling |
 | F35 | Server timestamps in request bodies: SLO Create, Replace, and ValidateReplace send `createTime` and `updateTime` (`date-time`). They are server-generated, so by the contract they exist only in responses. These are the only `date-time` fields in any request body. | API proto |
 | F36 | A `discriminator` names a string field beside a `oneOf` (for example dashboards `SortStrategy.strategyType`: `STRATEGY_TYPE_CATEGORY` or `STRATEGY_TYPE_QUERY_VALUE`), with no mapping. The spec does not say who sets it: must a Terraform user send a value that matches the arm, or does the server derive it? The field is redundant with the arm. The contract should drop it, or mark it server-set. | API proto / Contract |
@@ -307,4 +372,10 @@ Gaps in the API, the contract, or the tools.
 | F45 | openapi-generator names an inline request body after its `title` when it has one (103 of 132 inline bodies), not after the operationId (F15). When a component has that name, it adds `1` (`ViewFolder` → `ViewFolder1`). The generator now copies both rules; the SDK check confirms them. | SDK generator |
 | F46 | Server fields in `PUT` bodies: when the body is the whole resource (E2M, Slo, CompanyIpAccessSettings), it also has `createTime`, `updateTime`, and other server fields, with nothing that marks them. The generator needs `readOnly: true` on them (D19). Our OpenAPI v3 generator sets `readOnly` only from `openapiv3_field.read_only`; the v2 generator also maps proto `field_behavior = OUTPUT_ONLY`, which no Coralogix proto uses today. | OpenAPI generator, API proto |
 | F47 | The handwritten `cxsdk` accessor is not always the tag without " Service": tag `Folders For Views Service` → `ViewsFolders()`. The generator now falls back to the one `ClientSet` method with the client type. | SDK |
+| F48 | Every dashboard chart widget (7 of 9 `Widget.Definition` arms) has a list whose items are a pure `oneOf` (the dataprime query `filters`, the logs `aggregation`). The generator supported a `oneOf` inside a list item, but not a list of `oneOf`. Fixed: lists and maps of `oneOf` generate. | Tooling |
+| F49 | Generator bug, fixed: a `oneOf` inside a list item or map value got one resource validator with a wildcard (`rows[*].style.bold` conflicts with `rows[*].style.font`). It compared all items together, so row 0 bold and row 1 with a font was rejected. Every `oneOf` below the root now has validators on its arms, relative to its object, like the groups. This also fixes F34. | Tooling |
+| F50 | Generator bug, fixed: 35 enum values in the spec end in `_OR_UNSPECIFIED` (for example `ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED`, `ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED`). That zero value is also a real choice, but the model dropped every `*_UNSPECIFIED`, so a user could not choose "more than" or P5. The model now drops only a plain `*_UNSPECIFIED`. Risk: without presence, the server may omit the zero value on read (F21). | Tooling, API proto |
+| F51 | `date-time` in requests (F35) is needed: every dashboard chart widget has a query time frame with user-written `from` and `to` (`absoluteTimeFrame`). The handwritten resource uses RFC 3339 strings (`time.Parse(time.RFC3339, ...)`). Fixed: an RFC 3339 string in UTC, with a validator for the form that the API returns. | Tooling |
+| F52 | Terraform alerts have no `analytics_threshold` or `analytics_immediate` (API types added on 2026-06-15). Plugging in a generated type costs handwritten work beyond the plug-in lines: each alert type sets the common alert properties itself, 11 helper functions list every alert type and fail on others, and a test fixture lists the type names. | Tooling (provider) |
+| F53 | Generator bug, fixed: a model struct kept the dots of a component name (`widgets.GaugeModel`), which is not a Go name. Only the fake and `ai_evaluation`, which have no dots, were generated before. Now camelized like the SDK types (`WidgetsGaugeModel`). | Tooling |
 | F44 | `PolicySettings` (a singleton): Get is on `/dataplans/policy-settings/v1`, but Replace is on `/dataplans/policiy-settings/v1` (a typo). A singleton linter rule, all operations on one path, would catch it. | API proto |

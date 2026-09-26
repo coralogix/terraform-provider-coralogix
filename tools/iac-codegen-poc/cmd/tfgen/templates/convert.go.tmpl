@@ -49,6 +49,125 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out := flatten{{.Resource.Func}}(ctx, path.Empty(), v, &diags)
 	return out, diags
 }
+{{template "convObjects" .}}
+{{- end}}
+{{template "convHelpers" .}}
+{{- define "expandField"}}
+{{- $p := printf "p.AtName(%q)" .TFName}}
+{{- $l := ""}}{{$r := ""}}{{if .Value}}{{$l = "valueOf("}}{{$r = ")"}}{{end}}
+{{- if eq .Conv "string"}}
+	out.{{.SDK}} = {{$l}}expandString(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "bool"}}
+	out.{{.SDK}} = {{$l}}expandBool(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "float64"}}
+	out.{{.SDK}} = {{$l}}expandFloat64(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "int32"}}
+	out.{{.SDK}} = {{$l}}expandInt32(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "int64"}}
+	out.{{.SDK}} = {{$l}}expandInt64(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "float32"}}
+	out.{{.SDK}} = {{$l}}expandFloat32(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "scalars"}}
+	out.{{.SDK}} = expandElements[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
+{{- else if eq .Conv "scalarmap"}}
+	out.{{.SDK}} = expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
+{{- else if eq .Conv "uint64"}}
+	out.{{.SDK}} = {{$l}}expandUint64({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "enum"}}
+	out.{{.SDK}} = {{$l}}expandEnum[{{.SDKType}}](m.{{.Model}}){{$r}}
+{{- else if eq .Conv "time"}}
+	out.{{.SDK}} = {{$l}}expandTime({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "object"}}
+	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "empty"}}
+	if m.{{.Model}} != nil {
+		out.{{.SDK}} = map[string]interface{}{}
+	}
+{{- else if eq .Conv "strings"}}
+	out.{{.SDK}} = expandStrings[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
+{{- else if eq .Conv "stringmap"}}
+	out.{{.SDK}} = expandStringMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
+{{- else if eq .Conv "uint64map"}}
+	out.{{.SDK}} = expandUint64Map(ctx, {{$p}}, m.{{.Model}}, diags)
+{{- else if eq .Conv "objectmap"}}
+	if items := expandMap[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
+		out.{{.SDK}} = make(map[string]{{.SDKType}}, len(items))
+		for k := range items {
+			item := items[k]
+			out.{{.SDK}}[k] = *expand{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
+		}
+	}
+{{- else if eq .Conv "objects"}}
+	if items := expandElements[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
+		out.{{.SDK}} = make([]{{.SDKType}}, 0, len(items))
+		for i := range items {
+			out.{{.SDK}} = append(out.{{.SDK}}, *expand{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &items[i], diags))
+		}
+	}
+{{- end}}
+{{- end}}
+
+{{- define "flattenField"}}
+{{- $p := printf "p.AtName(%q)" .TFName}}
+{{- $v := printf "v.%s" .SDK}}{{if .Value}}{{$v = printf "&v.%s" .SDK}}{{end}}
+{{- if eq .Conv "string"}}
+	out.{{.Model}} = types.StringPointerValue({{$v}})
+{{- else if eq .Conv "bool"}}
+	out.{{.Model}} = types.BoolPointerValue({{$v}})
+{{- else if eq .Conv "float64"}}
+	out.{{.Model}} = types.Float64PointerValue({{$v}})
+{{- else if eq .Conv "int32"}}
+	out.{{.Model}} = types.Int32PointerValue({{$v}})
+{{- else if eq .Conv "int64"}}
+	out.{{.Model}} = types.Int64PointerValue({{$v}})
+{{- else if eq .Conv "float32"}}
+	out.{{.Model}} = types.Float32PointerValue({{$v}})
+{{- else if eq .Conv "scalars"}}
+	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, {{.ElemType}}, v.{{.SDK}}, diags)
+{{- else if eq .Conv "scalarmap"}}
+	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, v.{{.SDK}}, diags)
+{{- else if eq .Conv "uint64"}}
+	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
+{{- else if eq .Conv "time"}}
+	out.{{.Model}} = flattenTime({{$v}})
+{{- else if eq .Conv "enum"}}
+	out.{{.Model}} = flattenEnum({{$v}})
+{{- else if eq .Conv "object"}}
+	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags)
+{{- else if eq .Conv "empty"}}
+	if v.{{.SDK}} != nil {
+		out.{{.Model}} = &{{.Object.Model}}{}
+	}
+{{- else if eq .Conv "strings"}}
+	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, v.{{.SDK}}, diags)
+{{- else if eq .Conv "stringmap"}}
+	out.{{.Model}} = flattenStringMap(ctx, v.{{.SDK}}, diags)
+{{- else if eq .Conv "uint64map"}}
+	out.{{.Model}} = flattenUint64Map(ctx, {{$p}}, v.{{.SDK}}, diags)
+{{- else if eq .Conv "objectmap"}}
+	out.{{.Model}} = types.MapNull(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
+	if v.{{.SDK}} != nil {
+		items := make(map[string]{{.Object.Model}}, len(v.{{.SDK}}))
+		for k := range v.{{.SDK}} {
+			item := v.{{.SDK}}[k]
+			items[k] = *flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
+		}
+		out.{{.Model}} = flattenMap(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
+	}
+{{- else if eq .Conv "objects"}}
+	out.{{.Model}} = types.{{.Collection}}Null(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
+	if v.{{.SDK}} != nil {
+		items := make([]{{.Object.Model}}, 0, len(v.{{.SDK}}))
+		for i := range v.{{.SDK}} {
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &v.{{.SDK}}[i], diags))
+		}
+		out.{{.Model}} = flatten{{.Collection}}(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
+	}
+{{- end}}
+{{- end}}
+
+{{- define "convObjects"}}
+{{- $sdk := .SDKName}}
 {{range .Objects}}
 {{- if .Expand}}
 func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$sdk}}.{{.SDK}} {
@@ -75,6 +194,10 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, di
 }
 {{end}}
 {{- if .AttrTypes}}
+{{- if $.Exported}}
+// {{.AttrTypesFunc}} returns the Terraform attribute types of {{.Model}}, for
+// a types.Object, or a list or map of them.
+{{- end}}
 func {{.AttrTypesFunc}}() map[string]attr.Type {
 	return map[string]attr.Type{
 {{- range .AttrTypes}}
@@ -85,6 +208,8 @@ func {{.AttrTypesFunc}}() map[string]attr.Type {
 {{end}}
 {{- end}}
 {{- end}}
+
+{{- define "convHelpers"}}
 {{- if .Conv.HasValue}}
 // valueOf returns the value of p, or the zero value for nil. It fills an SDK
 // field that is a value, not a pointer.
@@ -203,12 +328,31 @@ func flattenEnum[T ~string](v *T) types.String {
 	return types.StringValue(string(*v))
 }
 
+// flattenTime writes a timestamp in RFC 3339 in UTC, the only form that the
+// schema accepts, so a value reads back as it was written (F51).
 func flattenTime(v *time.Time) types.String {
 	if v == nil {
 		return types.StringNull()
 	}
-	return types.StringValue(v.Format(time.RFC3339Nano))
+	return types.StringValue(v.UTC().Format(time.RFC3339Nano))
 }
+
+{{- if .Conv.ExpandsTime}}
+
+// expandTime parses an RFC 3339 timestamp. The schema validator already
+// checks the form, so an error here is unexpected.
+func expandTime(p path.Path, v types.String, diags *diag.Diagnostics) *time.Time {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339Nano, v.ValueString())
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid timestamp", fmt.Sprintf("%q is not an RFC 3339 timestamp: %s", v.ValueString(), err))
+		return nil
+	}
+	return &t
+}
+{{- end}}
 
 func flattenStringsSet[T ~string](ctx context.Context, v []T, diags *diag.Diagnostics) types.Set {
 	if v == nil {
@@ -378,114 +522,4 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 }
 {{- end}}
 
-{{- define "expandField"}}
-{{- $p := printf "p.AtName(%q)" .TFName}}
-{{- $l := ""}}{{$r := ""}}{{if .Value}}{{$l = "valueOf("}}{{$r = ")"}}{{end}}
-{{- if eq .Conv "string"}}
-	out.{{.SDK}} = {{$l}}expandString(m.{{.Model}}){{$r}}
-{{- else if eq .Conv "bool"}}
-	out.{{.SDK}} = {{$l}}expandBool(m.{{.Model}}){{$r}}
-{{- else if eq .Conv "float64"}}
-	out.{{.SDK}} = {{$l}}expandFloat64(m.{{.Model}}){{$r}}
-{{- else if eq .Conv "int32"}}
-	out.{{.SDK}} = {{$l}}expandInt32(m.{{.Model}}){{$r}}
-{{- else if eq .Conv "int64"}}
-	out.{{.SDK}} = {{$l}}expandInt64(m.{{.Model}}){{$r}}
-{{- else if eq .Conv "float32"}}
-	out.{{.SDK}} = {{$l}}expandFloat32(m.{{.Model}}){{$r}}
-{{- else if eq .Conv "scalars"}}
-	out.{{.SDK}} = expandElements[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
-{{- else if eq .Conv "scalarmap"}}
-	out.{{.SDK}} = expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
-{{- else if eq .Conv "uint64"}}
-	out.{{.SDK}} = {{$l}}expandUint64({{$p}}, m.{{.Model}}, diags){{$r}}
-{{- else if eq .Conv "enum"}}
-	out.{{.SDK}} = {{$l}}expandEnum[{{.SDKType}}](m.{{.Model}}){{$r}}
-{{- else if eq .Conv "object"}}
-	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
-{{- else if eq .Conv "empty"}}
-	if m.{{.Model}} != nil {
-		out.{{.SDK}} = map[string]interface{}{}
-	}
-{{- else if eq .Conv "strings"}}
-	out.{{.SDK}} = expandStrings[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
-{{- else if eq .Conv "stringmap"}}
-	out.{{.SDK}} = expandStringMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
-{{- else if eq .Conv "uint64map"}}
-	out.{{.SDK}} = expandUint64Map(ctx, {{$p}}, m.{{.Model}}, diags)
-{{- else if eq .Conv "objectmap"}}
-	if items := expandMap[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
-		out.{{.SDK}} = make(map[string]{{.SDKType}}, len(items))
-		for k := range items {
-			item := items[k]
-			out.{{.SDK}}[k] = *expand{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
-		}
-	}
-{{- else if eq .Conv "objects"}}
-	if items := expandElements[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
-		out.{{.SDK}} = make([]{{.SDKType}}, 0, len(items))
-		for i := range items {
-			out.{{.SDK}} = append(out.{{.SDK}}, *expand{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &items[i], diags))
-		}
-	}
-{{- end}}
-{{- end}}
-
-{{- define "flattenField"}}
-{{- $p := printf "p.AtName(%q)" .TFName}}
-{{- $v := printf "v.%s" .SDK}}{{if .Value}}{{$v = printf "&v.%s" .SDK}}{{end}}
-{{- if eq .Conv "string"}}
-	out.{{.Model}} = types.StringPointerValue({{$v}})
-{{- else if eq .Conv "bool"}}
-	out.{{.Model}} = types.BoolPointerValue({{$v}})
-{{- else if eq .Conv "float64"}}
-	out.{{.Model}} = types.Float64PointerValue({{$v}})
-{{- else if eq .Conv "int32"}}
-	out.{{.Model}} = types.Int32PointerValue({{$v}})
-{{- else if eq .Conv "int64"}}
-	out.{{.Model}} = types.Int64PointerValue({{$v}})
-{{- else if eq .Conv "float32"}}
-	out.{{.Model}} = types.Float32PointerValue({{$v}})
-{{- else if eq .Conv "scalars"}}
-	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, {{.ElemType}}, v.{{.SDK}}, diags)
-{{- else if eq .Conv "scalarmap"}}
-	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, v.{{.SDK}}, diags)
-{{- else if eq .Conv "uint64"}}
-	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
-{{- else if eq .Conv "time"}}
-	out.{{.Model}} = flattenTime({{$v}})
-{{- else if eq .Conv "enum"}}
-	out.{{.Model}} = flattenEnum({{$v}})
-{{- else if eq .Conv "object"}}
-	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags)
-{{- else if eq .Conv "empty"}}
-	if v.{{.SDK}} != nil {
-		out.{{.Model}} = &{{.Object.Model}}{}
-	}
-{{- else if eq .Conv "strings"}}
-	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, v.{{.SDK}}, diags)
-{{- else if eq .Conv "stringmap"}}
-	out.{{.Model}} = flattenStringMap(ctx, v.{{.SDK}}, diags)
-{{- else if eq .Conv "uint64map"}}
-	out.{{.Model}} = flattenUint64Map(ctx, {{$p}}, v.{{.SDK}}, diags)
-{{- else if eq .Conv "objectmap"}}
-	out.{{.Model}} = types.MapNull(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
-	if v.{{.SDK}} != nil {
-		items := make(map[string]{{.Object.Model}}, len(v.{{.SDK}}))
-		for k := range v.{{.SDK}} {
-			item := v.{{.SDK}}[k]
-			items[k] = *flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
-		}
-		out.{{.Model}} = flattenMap(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
-	}
-{{- else if eq .Conv "objects"}}
-	out.{{.Model}} = types.{{.Collection}}Null(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
-	if v.{{.SDK}} != nil {
-		items := make([]{{.Object.Model}}, 0, len(v.{{.SDK}}))
-		for i := range v.{{.SDK}} {
-			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &v.{{.SDK}}[i], diags))
-		}
-		out.{{.Model}} = flatten{{.Collection}}(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
-	}
-{{- end}}
 {{- end}}

@@ -198,11 +198,13 @@ func flattenEnum[T ~string](v *T) types.String {
 	return types.StringValue(string(*v))
 }
 
+// flattenTime writes a timestamp in RFC 3339 in UTC, the only form that the
+// schema accepts, so a value reads back as it was written (F51).
 func flattenTime(v *time.Time) types.String {
 	if v == nil {
 		return types.StringNull()
 	}
-	return types.StringValue(v.Format(time.RFC3339Nano))
+	return types.StringValue(v.UTC().Format(time.RFC3339Nano))
 }
 
 func flattenStringsSet[T ~string](ctx context.Context, v []T, diags *diag.Diagnostics) types.Set {

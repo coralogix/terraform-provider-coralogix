@@ -52,6 +52,16 @@ type TextStyleModel struct {
 	Font *FontStyleModel `tfsdk:"font"`
 }
 
+type MatchModel struct {
+	Field types.String `tfsdk:"field"`
+	Value types.String `tfsdk:"value"`
+}
+
+type FilterModel struct {
+	Equals   *MatchModel `tfsdk:"equals"`
+	Contains *MatchModel `tfsdk:"contains"`
+}
+
 type PanelModel struct {
 	Query      types.String       `tfsdk:"query"`
 	Sort       *SortStrategyModel `tfsdk:"sort"`
@@ -59,6 +69,7 @@ type PanelModel struct {
 	Thresholds types.Map          `tfsdk:"thresholds"`
 	Unit       types.String       `tfsdk:"unit"`
 	Style      *TextStyleModel    `tfsdk:"style"`
+	Filters    types.List         `tfsdk:"filters"`
 }
 
 type AbsoluteTimeModel struct {

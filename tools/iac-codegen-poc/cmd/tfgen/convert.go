@@ -34,6 +34,9 @@ type convData struct {
 	// when none of them changed, Update sends no request (D14).
 	Replace      bool
 	UpdateFields []string
+	// Exported is true in the type mode (D20): other packages use the
+	// attribute types functions, so they have doc comments.
+	Exported bool
 }
 
 // maskField is one top-level Update field. With leaf masks, it is also a
@@ -78,7 +81,7 @@ const (
 	convBool    = "bool"    // types.Bool ↔ *bool
 	convFloat64 = "float64" // types.Float64 ↔ *float64
 	convUint64  = "uint64"  // types.Int64 ↔ *string (D7)
-	convTime    = "time"    // types.String ← *time.Time (flatten only)
+	convTime    = "time"    // types.String ↔ *time.Time, RFC 3339 in UTC (F51)
 	convEnum    = "enum"    // types.String ↔ *<enum type> (D12)
 	convObj     = "object"  // *<Model> ↔ *<SDK type>
 	convEmpty   = "empty"   // *<Model> ↔ map[string]interface{} (F16)
@@ -122,6 +125,19 @@ func (d *convData) Uses(conv string) bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if f.Conv == conv {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// ExpandsTime reports whether a request has a timestamp. The template then
+// emits the expandTime helper.
+func (d *convData) ExpandsTime() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if obj.Expand && f.Conv == convTime {
 				return true
 			}
 		}
@@ -461,7 +477,7 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		}
 		cf.Conv, cf.SDKType, cf.ElemType = convScalars, goType, elem
 		return "[]" + goType, nil
-	case model.Object:
+	case model.Object, model.OneOf:
 		// A set of objects needs path.AtSetValue for diagnostics. No
 		// resource uses it yet.
 		if t.Kind == model.Set || len(t.Elem.Fields) == 0 {
@@ -503,7 +519,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 }
 
 // mark sets the direction that uses obj and its nested objects: expand
-// (a request) or flatten (a response). A request cannot hold a date-time.
+// (a request) or flatten (a response).
 func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	if (expand && obj.Expand) || (!expand && obj.Flatten) {
 		return nil
@@ -514,10 +530,8 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 		obj.Flatten = true
 	}
 	for _, f := range obj.Fields {
-		switch {
-		case f.Conv == convTime && expand:
-			return fmt.Errorf("%s: date-time in a request is not supported", f.TFName)
-		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap:
+		switch f.Conv {
+		case convObj, convObjects, convObjectMap:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
 			}
@@ -606,7 +620,7 @@ func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 		cf.Conv = convUint64Map
 		return "map[string]string", nil
 
-	case e.Kind == model.Object && len(e.Fields) != 0:
+	case (e.Kind == model.Object || e.Kind == model.OneOf) && len(e.Fields) != 0:
 		obj, err := b.nested(e)
 		if err != nil {
 			return "", err

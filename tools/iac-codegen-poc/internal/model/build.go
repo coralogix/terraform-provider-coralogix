@@ -90,21 +90,49 @@ type foundOp struct {
 // starts with its path. It is for measuring which shapes a spec uses that
 // the model does not support.
 func Survey(doc *v3.Document, name string) (*Type, []error) {
-	if doc.Components == nil || doc.Components.Schemas == nil {
-		return nil, []error{errors.New("spec has no component schemas")}
-	}
-	proxy := doc.Components.Schemas.GetOrZero(name)
-	if proxy == nil {
-		return nil, []error{fmt.Errorf("component %s not found", name)}
+	proxy, err := component(doc, name)
+	if err != nil {
+		return nil, []error{err}
 	}
 	var issues []error
-	w := walk{stack: []string{"#/components/schemas/" + name}, issues: &issues}
+	w := walk{stack: []string{componentPrefix + name}, issues: &issues}
 	t, err := typeOf(proxy, name, w)
 	if err != nil {
 		return nil, append(issues, err)
 	}
 	t.Schema = name // the component itself is not a $ref
 	return t, issues
+}
+
+// BuildType builds the type of the component schema name and of every type
+// inside it, for the type mode of the generator (D20). It stops at the first
+// unsupported shape, as Build does. The type must be an object or a oneOf
+// with fields.
+func BuildType(doc *v3.Document, name string) (*Type, error) {
+	proxy, err := component(doc, name)
+	if err != nil {
+		return nil, err
+	}
+	t, err := typeOf(proxy, name, walk{stack: []string{componentPrefix + name}})
+	if err != nil {
+		return nil, err
+	}
+	if t.Kind != Object && t.Kind != OneOf || len(t.Fields) == 0 {
+		return nil, fmt.Errorf("%s: %s with %d fields, want an object or a oneOf with fields", name, t.Kind, len(t.Fields))
+	}
+	t.Schema = name // the component itself is not a $ref
+	return t, nil
+}
+
+func component(doc *v3.Document, name string) (*base.SchemaProxy, error) {
+	if doc.Components == nil || doc.Components.Schemas == nil {
+		return nil, errors.New("spec has no component schemas")
+	}
+	proxy := doc.Components.Schemas.GetOrZero(name)
+	if proxy == nil {
+		return nil, fmt.Errorf("component %s not found", name)
+	}
+	return proxy, nil
 }
 
 func findOperations(doc *v3.Document, name string) (map[verb]foundOp, error) {
@@ -1083,8 +1111,11 @@ func stringType(t *Type, s *base.Schema) error {
 		t.Kind = Enum
 		t.MinLength, t.MaxLength = nil, nil
 		for _, n := range s.Enum {
-			// Contract: the enum zero value is *_UNSPECIFIED. It is not a valid value.
-			if !strings.HasSuffix(n.Value, "_UNSPECIFIED") {
+			// Contract: the enum zero value is *_UNSPECIFIED. It is not a valid
+			// value. Older enums name it *_OR_UNSPECIFIED: then the zero value is
+			// also a real choice (for example MORE_THAN_OR_UNSPECIFIED is "more
+			// than"), so it is kept (F50).
+			if !strings.HasSuffix(n.Value, "_UNSPECIFIED") || strings.HasSuffix(n.Value, "_OR_UNSPECIFIED") {
 				t.Values = append(t.Values, n.Value)
 			}
 		}

@@ -23,6 +23,8 @@ var _ MappedNullable = &Panel{}
 
 // Panel A panel. A value of the panels map.
 type Panel struct {
+	// Filters of the panel query. A list of oneOf, as in the dashboards query filters.
+	Filters []Filter `json:"filters,omitempty"`
 	// Digits after the point. A 32-bit integer (int32).
 	Precision *int32 `json:"precision,omitempty"`
 	// The panel query.
@@ -57,6 +59,38 @@ func NewPanel(query string) *Panel {
 func NewPanelWithDefaults() *Panel {
 	this := Panel{}
 	return &this
+}
+
+// GetFilters returns the Filters field value if set, zero value otherwise.
+func (o *Panel) GetFilters() []Filter {
+	if o == nil || IsNil(o.Filters) {
+		var ret []Filter
+		return ret
+	}
+	return o.Filters
+}
+
+// GetFiltersOk returns a tuple with the Filters field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Panel) GetFiltersOk() ([]Filter, bool) {
+	if o == nil || IsNil(o.Filters) {
+		return nil, false
+	}
+	return o.Filters, true
+}
+
+// HasFilters returns a boolean if a field has been set.
+func (o *Panel) HasFilters() bool {
+	if o != nil && !IsNil(o.Filters) {
+		return true
+	}
+
+	return false
+}
+
+// SetFilters gets a reference to the given []Filter and assigns it to the Filters field.
+func (o *Panel) SetFilters(v []Filter) {
+	o.Filters = v
 }
 
 // GetPrecision returns the Precision field value if set, zero value otherwise.
@@ -253,6 +287,9 @@ func (o Panel) MarshalJSON() ([]byte, error) {
 
 func (o Panel) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	if !IsNil(o.Filters) {
+		toSerialize["filters"] = o.Filters
+	}
 	if !IsNil(o.Precision) {
 		toSerialize["precision"] = o.Precision
 	}
@@ -313,6 +350,7 @@ func (o *Panel) UnmarshalJSON(data []byte) (err error) {
 	additionalProperties := make(map[string]interface{})
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
+		delete(additionalProperties, "filters")
 		delete(additionalProperties, "precision")
 		delete(additionalProperties, "query")
 		delete(additionalProperties, "sort")

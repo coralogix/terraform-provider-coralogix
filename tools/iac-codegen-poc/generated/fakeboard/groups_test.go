@@ -12,11 +12,13 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // withGroups returns withNumbers with an arm set in every group.
@@ -41,7 +43,7 @@ func TestExpandGroups(t *testing.T) {
 
 func TestRoundTripGroups(t *testing.T) {
 	const resp = `{"id":"b1","name":"ops","privateShare":{"team":"sre"},
-		"layout":{"title":"T","refreshOff":{},"absoluteTime":{"from":"a","to":"b"},
+		"layout":{"title":"T","refreshOff":{},"absoluteTime":{"from":"2026-09-26T08:00:00Z","to":"2026-09-26T09:30:00.5Z"},
 			"section":{"interval":{"manual":{"minutes":1},"useLimit":false}}}}`
 	m, diags := flatten(context.Background(), unmarshalBoard(t, resp))
 	assertNoDiags(t, diags)
@@ -120,10 +122,29 @@ func validateAll(t *testing.T, m *FakeBoardModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 	for _, d := range resp.Diagnostics {
 		if d.Severity == tfprotov6.DiagnosticSeverityError {
-			diags.AddError(d.Summary, d.Detail+" at "+d.Attribute.String())
+			diags.AddAttributeError(frameworkPath(d.Attribute), d.Summary, d.Detail+" at "+d.Attribute.String())
 		}
 	}
 	return diags
+}
+
+// frameworkPath converts the attribute path of a protocol diagnostic.
+func frameworkPath(p *tftypes.AttributePath) path.Path {
+	out := path.Empty()
+	if p == nil {
+		return out
+	}
+	for _, step := range p.Steps() {
+		switch s := step.(type) {
+		case tftypes.AttributeName:
+			out = out.AtName(string(s))
+		case tftypes.ElementKeyInt:
+			out = out.AtListIndex(int(s))
+		case tftypes.ElementKeyString:
+			out = out.AtMapKey(string(s))
+		}
+	}
+	return out
 }
 
 // testProvider serves only the generated resource.
@@ -170,7 +191,7 @@ func TestLeafMaskGroups(t *testing.T) {
 		}, "layout.section.interval.useLimit"},
 		{"remove the arm", func(m *FakeBoardModel) { m.Layout.RefreshEvery = nil }, "layout.refreshEvery"},
 		{"switch arm in group 2 of 2", func(m *FakeBoardModel) {
-			m.Layout.RelativeTime, m.Layout.AbsoluteTime = nil, &AbsoluteTimeModel{From: types.StringValue("a")}
+			m.Layout.RelativeTime, m.Layout.AbsoluteTime = nil, &AbsoluteTimeModel{From: types.StringValue("2026-09-26T08:00:00Z")}
 		}, "layout.absoluteTime"},
 		{"value inside an arm", func(m *FakeBoardModel) {
 			m.Layout.RefreshEvery = &EveryModel{Minutes: types.Int32Value(6)}

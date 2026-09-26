@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -12,6 +13,7 @@ import (
 // tfResource is the template data for the Terraform schema and model files.
 type tfResource struct {
 	Package          string
+	TimeValidator    bool   // an attribute uses rfc3339Validator
 	Model            string // Go type of the resource model, for example "AiEvaluationModel"
 	Attributes       []*tfAttr
 	ConfigValidators []string // Go expressions of type resource.ConfigValidator
@@ -40,6 +42,7 @@ type tfAttr struct {
 // tfModel is one Go struct of the Terraform model.
 type tfModel struct {
 	Name   string
+	Schema string // the component schema; "" for the resource model
 	Fields []tfModelField
 }
 
@@ -100,6 +103,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 	}
 	out.ConfigValidators = b.validators
 	out.Models = b.models
+	out.TimeValidator = usesValidator(out.Attributes, timeValidator)
 	return out, nil
 }
 
@@ -231,7 +235,7 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	pkg := strings.ToLower(kind) + "validator"
 	a.Validators = sizeValidator(pkg, t.MinItems, t.MaxItems)
 	switch t.Elem.Kind {
-	case model.Object:
+	case model.Object, model.OneOf:
 		a.Kind = kind + "Nested"
 		// buildConv rejects a set of objects, so a Set never gets here.
 		attrs, err := b.objectAttributes(append(append(attrPath{}, p...), step), t.Elem)
@@ -262,7 +266,6 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	var attrs []*tfAttr
 	var fields []tfModelField
-	var arms []string
 	for _, f := range t.Fields {
 		child := append(append(attrPath{}, p...), tfName(f.Name))
 		a, err := b.attribute(child, f.Name, f.Description, f.Type, f.Attrs)
@@ -271,19 +274,18 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		}
 		attrs = append(attrs, a)
 		fields = append(fields, b.modelField(f.Name, f.Type))
-		arms = append(arms, child.expr())
 	}
+	// A oneOf is one group of all its fields. Its validators are on the arms,
+	// with paths relative to the object, like the groups: they run only when
+	// the object is set, and each list item or map value on its own (F34,
+	// F49).
 	if t.Kind == model.OneOf {
-		v := "resourcevalidator.ExactlyOneOf"
-		if t.AllowNone {
-			v = "resourcevalidator.Conflicting"
-		}
-		b.validators = append(b.validators, v+"(\n"+strings.Join(arms, ",\n")+",\n)")
+		addGroupValidators(attrs, []model.OneOfGroup{{Arms: fieldNames(t), AllowNone: t.AllowNone}})
 	}
 	addGroupValidators(attrs, t.Groups)
 	if name := modelTypeName(t.Schema); !b.seen[name] {
 		b.seen[name] = true
-		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
+		b.models = append(b.models, &tfModel{Name: name, Schema: t.Schema, Fields: fields})
 	}
 	return attrs, nil
 }
@@ -317,8 +319,33 @@ func (b *tfBuilder) modelField(name string, t *model.Type) tfModelField {
 	return tfModelField{Name: camelize(name), Type: goType, TFName: tfName(name)}
 }
 
-// modelTypeName is the Terraform model struct of a component schema.
-func modelTypeName(schema string) string { return schema + "Model" }
+func fieldNames(t *model.Type) []string {
+	names := make([]string, 0, len(t.Fields))
+	for _, f := range t.Fields {
+		names = append(names, f.Name)
+	}
+	return names
+}
+
+// timeValidator is the validator of a timestamp attribute. The schema
+// template emits its type when an attribute uses it (usesValidator).
+const timeValidator = "rfc3339Validator{}"
+
+// usesValidator reports whether an attribute in attrs, at any depth, has the
+// validator v.
+func usesValidator(attrs []*tfAttr, v string) bool {
+	for _, a := range attrs {
+		if slices.Contains(a.Validators, v) || usesValidator(a.Attributes, v) {
+			return true
+		}
+	}
+	return false
+}
+
+// modelTypeName is the Terraform model struct of a component schema. A
+// component name can have dots ("widgets.Gauge"), so it is camelized, as the
+// SDK type names are: "WidgetsGaugeModel".
+func modelTypeName(schema string) string { return camelize(schema) + "Model" }
 
 // scalar returns the attribute kind and the validators of a scalar type.
 func scalar(t *model.Type) (string, []string, error) {
@@ -327,6 +354,9 @@ func scalar(t *model.Type) (string, []string, error) {
 		var vals []string
 		if v := lengthValidator(t.MinLength, t.MaxLength); v != "" {
 			vals = append(vals, v)
+		}
+		if t.Format == "date-time" {
+			vals = append(vals, timeValidator)
 		}
 		return "String", vals, nil
 	case model.Enum:

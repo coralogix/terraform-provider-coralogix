@@ -31,8 +31,11 @@ func panels(t *testing.T, ps map[string]PanelModel) types.Map {
 	for k, p := range ps {
 		if p.Thresholds.ElementType(context.Background()) == nil {
 			p.Thresholds = types.MapNull(types.Float64Type)
-			ps[k] = p
 		}
+		if p.Filters.ElementType(context.Background()) == nil {
+			p.Filters = types.ListNull(types.ObjectType{AttrTypes: filterAttrTypes()})
+		}
+		ps[k] = p
 	}
 	m, diags := types.MapValueFrom(context.Background(), types.ObjectType{AttrTypes: panelAttrTypes()}, ps)
 	assertNoDiags(t, diags)
@@ -135,8 +138,14 @@ func TestMapErrorPaths(t *testing.T) {
 	both := &TextStyleModel{Bold: &BoldStyleModel{}, Font: &FontStyleModel{Size: types.Int64Value(1)}}
 	m.Panels = panels(t, map[string]PanelModel{"cpu": {Query: types.StringValue("q"), Style: both}})
 	diags = validateConfig(t, m)
-	if d, ok := firstError(diags); !ok || !strings.HasPrefix(d.Path().String(), `panels["cpu"].style.`) {
-		t.Errorf("diagnostics = %v, want a conflict at panels[\"cpu\"].style", diags)
+	// The validators are on the arms, so each set arm reports the conflict.
+	if !diags.HasError() {
+		t.Error("no error, want a conflict at panels[\"cpu\"].style")
+	}
+	for _, e := range diags.Errors() {
+		if d, ok := e.(diag.DiagnosticWithPath); !ok || !strings.HasPrefix(d.Path().String(), `panels["cpu"].style.`) {
+			t.Errorf("diagnostics = %v, want conflicts only at panels[\"cpu\"].style", diags)
+		}
 	}
 }
 

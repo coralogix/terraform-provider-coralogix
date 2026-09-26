@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/internal/model"
 )
@@ -214,6 +215,29 @@ update: {name: n2, description: d2, enabled: true, priority: 5, tags: [b], condi
 	} {
 		if _, err := buildAcc(r, accFile(t, bad)); err == nil {
 			t.Errorf("no error for %q", bad)
+		}
+	}
+}
+
+// TestAccTimes checks the timestamp rule of the values file: the canonical
+// UTC form, as a string or as a YAML timestamp.
+func TestAccTimes(t *testing.T) {
+	typ := &model.Type{Kind: model.String, Format: "date-time"}
+	for _, c := range []struct {
+		value   any
+		want    string
+		wantErr bool
+	}{
+		{"2026-09-26T08:00:00Z", `"2026-09-26T08:00:00Z"`, false},
+		{"${start}", `"${start}"`, false},
+		{time.Date(2026, 9, 26, 10, 0, 0, 0, time.FixedZone("CEST", 7200)), `"2026-09-26T08:00:00Z"`, false},
+		{"2026-09-26T10:00:00+02:00", "", true},
+		{"soon", "", true},
+		{7, "", true},
+	} {
+		got, err := hclValue("x", typ, c.value)
+		if (err != nil) != c.wantErr || got != c.want {
+			t.Errorf("%v: got %q, %v; want %q, error %t", c.value, got, err, c.want, c.wantErr)
 		}
 	}
 }

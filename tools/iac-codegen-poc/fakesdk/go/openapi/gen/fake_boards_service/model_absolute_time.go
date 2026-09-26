@@ -13,6 +13,7 @@ package fake_boards_service
 import (
 	"bytes"
 	"encoding/json"
+	"time"
 )
 
 var _ = bytes.MinRead
@@ -22,10 +23,10 @@ var _ MappedNullable = &AbsoluteTime{}
 
 // AbsoluteTime A fixed time range.
 type AbsoluteTime struct {
-	// Start, RFC3339.
-	From *string `json:"from,omitempty"`
-	// End, RFC3339.
-	To *string `json:"to,omitempty"`
+	// Start. A timestamp that the user writes, as in the dashboards query time frame.
+	From *time.Time `json:"from,omitempty"`
+	// End. A timestamp that the user writes.
+	To *time.Time `json:"to,omitempty"`
 	AdditionalProperties map[string]interface{}
 	additionalPropertiesFromUnmarshal bool
 }
@@ -50,9 +51,9 @@ func NewAbsoluteTimeWithDefaults() *AbsoluteTime {
 }
 
 // GetFrom returns the From field value if set, zero value otherwise.
-func (o *AbsoluteTime) GetFrom() string {
+func (o *AbsoluteTime) GetFrom() time.Time {
 	if o == nil || IsNil(o.From) {
-		var ret string
+		var ret time.Time
 		return ret
 	}
 	return *o.From
@@ -60,7 +61,7 @@ func (o *AbsoluteTime) GetFrom() string {
 
 // GetFromOk returns a tuple with the From field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *AbsoluteTime) GetFromOk() (*string, bool) {
+func (o *AbsoluteTime) GetFromOk() (*time.Time, bool) {
 	if o == nil || IsNil(o.From) {
 		return nil, false
 	}
@@ -76,15 +77,15 @@ func (o *AbsoluteTime) HasFrom() bool {
 	return false
 }
 
-// SetFrom gets a reference to the given string and assigns it to the From field.
-func (o *AbsoluteTime) SetFrom(v string) {
+// SetFrom gets a reference to the given time.Time and assigns it to the From field.
+func (o *AbsoluteTime) SetFrom(v time.Time) {
 	o.From = &v
 }
 
 // GetTo returns the To field value if set, zero value otherwise.
-func (o *AbsoluteTime) GetTo() string {
+func (o *AbsoluteTime) GetTo() time.Time {
 	if o == nil || IsNil(o.To) {
-		var ret string
+		var ret time.Time
 		return ret
 	}
 	return *o.To
@@ -92,7 +93,7 @@ func (o *AbsoluteTime) GetTo() string {
 
 // GetToOk returns a tuple with the To field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *AbsoluteTime) GetToOk() (*string, bool) {
+func (o *AbsoluteTime) GetToOk() (*time.Time, bool) {
 	if o == nil || IsNil(o.To) {
 		return nil, false
 	}
@@ -108,8 +109,8 @@ func (o *AbsoluteTime) HasTo() bool {
 	return false
 }
 
-// SetTo gets a reference to the given string and assigns it to the To field.
-func (o *AbsoluteTime) SetTo(v string) {
+// SetTo gets a reference to the given time.Time and assigns it to the To field.
+func (o *AbsoluteTime) SetTo(v time.Time) {
 	o.To = &v
 }
 

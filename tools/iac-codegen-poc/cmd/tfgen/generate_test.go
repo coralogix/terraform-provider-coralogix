@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"golang.org/x/tools/go/packages"
@@ -115,5 +116,73 @@ func TestTopLevelMaskWithGroups(t *testing.T) {
 		for _, e := range p.Errors {
 			t.Error(e)
 		}
+	}
+}
+
+// generatedTypeCases are the generated type packages (D20) and their inputs.
+var generatedTypeCases = []struct {
+	dir, spec, tag, sdk string
+	roots               []string
+}{
+	{"../../generated/fakepanel", "../../spec/fake/openapi.yaml", "Fake Boards Service", fakeSDK, []string{"Panel", "Header", "Interval", "AbsoluteTime"}},
+	{"../../generated/dashboardwidgets", patchedSpec, "Dashboard service", realSDK, []string{"Widget.Definition"}},
+}
+
+// TestGeneratedTypesUpToDate checks that each generated type package is the
+// output of the generator, and that a second run gives the same files.
+func TestGeneratedTypesUpToDate(t *testing.T) {
+	for _, c := range generatedTypeCases {
+		t.Run(filepath.Base(c.dir), func(t *testing.T) {
+			types, refs, err := checkedTypeNames(c.spec, c.roots, c.tag, c.sdk)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cmd := typesCommand(c.roots, c.tag)
+			files, err := generateTypes(types, refs, filepath.Base(c.dir), cmd)
+			if err != nil {
+				t.Fatal(err)
+			}
+			again, err := generateTypes(types, refs, filepath.Base(c.dir), cmd)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for name, got := range files {
+				want, err := os.ReadFile(filepath.Join(c.dir, name))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(got, want) {
+					t.Errorf("%s is not up to date. Run go run ./cmd/tfgen --types ... --out %s", name, c.dir)
+				}
+				if !bytes.Equal(got, again[name]) {
+					t.Errorf("%s: two runs give different output", name)
+				}
+			}
+		})
+	}
+}
+
+// TestTypesRejects checks the inputs that the type mode rejects.
+func TestTypesRejects(t *testing.T) {
+	const spec = "../../spec/fake/openapi.yaml"
+	for _, c := range []struct {
+		name  string
+		roots []string
+		tag   string
+		want  string
+	}{
+		{"no tag", []string{"Panel"}, "", "--tag is required with --types"},
+		{"unknown type", []string{"Nope"}, "Fake Boards Service", "component Nope not found"},
+		{"an enum", []string{"Unit"}, "Fake Boards Service", "want an object or a oneOf with fields"},
+		{"no fields", []string{"BoldStyle"}, "Fake Boards Service", "want an object or a oneOf with fields"},
+		{"listed twice", []string{"Panel", "Panel"}, "Fake Boards Service", "listed twice"},
+		{"another SDK package", []string{"Panel"}, "Fake Settings Service", "fake_settings_service"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			_, _, err := checkedTypeNames(spec, c.roots, c.tag, fakeSDK)
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("error = %v, want it to contain %q", err, c.want)
+			}
+		})
 	}
 }

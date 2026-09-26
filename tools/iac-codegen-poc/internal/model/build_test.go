@@ -107,6 +107,8 @@ func TestBuildTypes(t *testing.T) {
 		{"list", "{type: array, items: {type: string}}", "", "list<string>"},
 		{"enum without UNSPECIFIED", "{$ref: '#/components/schemas/E'}",
 			"    E: {type: string, enum: [E_UNSPECIFIED, A, B]}\n", "enum E [A B]"},
+		{"enum with a real zero value", "{$ref: '#/components/schemas/E'}",
+			"    E: {type: string, enum: [E_MORE_THAN_OR_UNSPECIFIED, E_LESS_THAN]}\n", "enum E [E_MORE_THAN_OR_UNSPECIFIED E_LESS_THAN]"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := withField(c.schema, c.extra).build(t)

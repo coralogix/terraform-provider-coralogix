@@ -1,10 +1,12 @@
-~ (resource)
-    - validator: Exactly one of these attributes must be configured: [config.allowed_topics,config.competition,config.hallucination_completeness,config.hallucination_context_adherence,config.hallucination_context_relevance,config.hallucination_correctness,config.hallucination_task_adherence,config.language_mismatch,config.pii,config.prompt_injection,config.restricted_topics,config.sexism,config.sql_allowed_tables,config.sql_hallucination,config.sql_read_only,config.sql_restricted_tables,config.toxicity]
-    + validator: These attributes cannot be configured together: [config.allowed_topics,config.competition,config.custom_evaluation,config.hallucination_completeness,config.hallucination_context_adherence,config.hallucination_context_relevance,config.hallucination_correctness,config.hallucination_task_adherence,config.language_mismatch,config.pii,config.prompt_injection,config.restricted_topics,config.sexism,config.sql_allowed_tables,config.sql_hallucination,config.sql_load,config.sql_read_only,config.sql_restricted_tables,config.toxicity]
+- (resource)  validator: Exactly one of these attributes must be configured: [config.allowed_topics,config.competition,config.hallucination_completeness,config.hallucination_context_adherence,config.hallucination_context_relevance,config.hallucination_correctness,config.hallucination_task_adherence,config.language_mismatch,config.pii,config.prompt_injection,config.restricted_topics,config.sexism,config.sql_allowed_tables,config.sql_hallucination,config.sql_read_only,config.sql_restricted_tables,config.toxicity]
 + company_id  StringAttribute computed
+~ config.allowed_topics
+    + validator: Ensure that if an attribute is set, these are not set: "[<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
 ~ config.allowed_topics.topics
     - SetAttribute required elem=basetypes.StringType
     + SetAttribute optional elem=basetypes.StringType
+~ config.competition
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
 ~ config.competition.competitors
     - SetAttribute required elem=basetypes.StringType
     + SetAttribute optional elem=basetypes.StringType
@@ -17,26 +19,56 @@
 + config.custom_evaluation.safe  StringAttribute optional
 + config.custom_evaluation.should_include_system_prompt  BoolAttribute optional
 + config.custom_evaluation.violates  StringAttribute optional
+~ config.hallucination_completeness
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
+~ config.hallucination_context_adherence
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
+~ config.hallucination_context_relevance
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
+~ config.hallucination_correctness
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
+~ config.hallucination_task_adherence
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
+~ config.language_mismatch
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
+~ config.pii
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
 ~ config.pii.categories
     - SetAttribute required elem=basetypes.StringType
     + SetAttribute optional elem=basetypes.StringType
+~ config.prompt_injection
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
 ~ config.prompt_injection.additional_context
     - StringAttribute optional computed
     - default: value defaults to 
     + StringAttribute optional
+~ config.restricted_topics
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
 ~ config.restricted_topics.topics
     - SetAttribute required elem=basetypes.StringType
     + SetAttribute optional elem=basetypes.StringType
+~ config.sexism
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
+~ config.sql_allowed_tables
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
 ~ config.sql_allowed_tables.tables
     - SetAttribute required elem=basetypes.StringType
     + SetAttribute optional elem=basetypes.StringType
+~ config.sql_hallucination
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_load,<.sql_read_only,<.sql_restricted_tables,<.toxicity]"
 + config.sql_load  SingleNestedAttribute optional
 + config.sql_load.allow_recursive_cte  BoolAttribute optional
 + config.sql_load.cte_limit  Int64Attribute optional
 + config.sql_load.join_limit  Int64Attribute optional
+~ config.sql_read_only
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_restricted_tables,<.toxicity]"
+~ config.sql_restricted_tables
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.toxicity]"
 ~ config.sql_restricted_tables.tables
     - SetAttribute required elem=basetypes.StringType
     + SetAttribute optional elem=basetypes.StringType
+~ config.toxicity
+    + validator: Ensure that if an attribute is set, these are not set: "[<.allowed_topics,<.competition,<.custom_evaluation,<.hallucination_completeness,<.hallucination_context_adherence,<.hallucination_context_relevance,<.hallucination_correctness,<.hallucination_task_adherence,<.language_mismatch,<.pii,<.prompt_injection,<.restricted_topics,<.sexism,<.sql_allowed_tables,<.sql_hallucination,<.sql_load,<.sql_read_only,<.sql_restricted_tables]"
 + created_at  StringAttribute computed
 + created_by  StringAttribute computed
 ~ is_enabled

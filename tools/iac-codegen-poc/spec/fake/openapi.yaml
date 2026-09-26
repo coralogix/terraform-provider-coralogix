@@ -488,10 +488,12 @@ components:
       type: object
       properties:
         from:
-          description: Start, RFC3339.
+          description: Start. A timestamp that the user writes, as in the dashboards query time frame.
+          format: date-time
           type: string
         to:
-          description: End, RFC3339.
+          description: End. A timestamp that the user writes.
+          format: date-time
           type: string
     PublicLink:
       description: A public link.
@@ -539,8 +541,45 @@ components:
           allOf:
             - $ref: '#/components/schemas/TextStyle'
           description: Style of the panel title. A oneOf inside a map value.
+        filters:
+          description: Filters of the panel query. A list of oneOf, as in the dashboards query filters.
+          items:
+            $ref: '#/components/schemas/Filter'
+          type: array
       required:
         - query
+    Filter:
+      description: One filter. Exactly one arm is set.
+      type: object
+      properties:
+        equals:
+          allOf:
+            - $ref: '#/components/schemas/Match'
+          description: The field equals the value.
+        contains:
+          allOf:
+            - $ref: '#/components/schemas/Match'
+          description: The field contains the value.
+      oneOf:
+        - required:
+            - equals
+          type: object
+        - required:
+            - contains
+          type: object
+    Match:
+      description: A field and a value.
+      type: object
+      properties:
+        field:
+          description: The field name.
+          minLength: 1
+          type: string
+        value:
+          description: The value.
+          type: string
+      required:
+        - field
     Unit:
       enum:
         - PERCENT

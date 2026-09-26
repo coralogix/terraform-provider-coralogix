@@ -13,8 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/fakesdk/go/openapi/gen/fake_boards_service"
@@ -136,7 +134,7 @@ func unmarshalBoard(t *testing.T, s string) *fake_boards_service.FakeBoard {
 // TestRoundTripNested reads a response, and sends it back. The layout must
 // not change on the way.
 func TestRoundTripNested(t *testing.T) {
-	const layout = `{"absoluteTime":{"from":"a"},"title":"Ops","titleStyle":{"font":{"size":"9"}},"section":{
+	const layout = `{"absoluteTime":{"from":"2026-09-26T08:00:00Z"},"title":"Ops","titleStyle":{"font":{"size":"9"}},"section":{
 		"header":{"text":"CPU","style":{"bold":{}}},
 		"rows":[{"height":"2","style":{"font":{"family":"mono"}}}]}}`
 	v := unmarshalBoard(t, `{"id":"b1","name":"ops","description":"","layout":`+layout+`}`)
@@ -218,9 +216,12 @@ func TestOneOfValidators(t *testing.T) {
 			if !diags.HasError() {
 				t.Fatalf("no error, want a conflict at %s", c.want)
 			}
-			d, ok := diags.Errors()[0].(diag.DiagnosticWithPath)
-			if diags.ErrorsCount() != 1 || !ok || !strings.HasPrefix(d.Path().String(), c.want+".") {
-				t.Errorf("diagnostics = %v, want one conflict at %s", diags, c.want)
+			// The validators are on the arms, so each set arm reports it.
+			for _, e := range diags.Errors() {
+				d, ok := e.(diag.DiagnosticWithPath)
+				if !ok || !strings.HasPrefix(d.Path().String(), c.want+".") {
+					t.Errorf("diagnostics = %v, want conflicts only at %s", diags, c.want)
+				}
 			}
 		})
 	}
@@ -228,15 +229,5 @@ func TestOneOfValidators(t *testing.T) {
 
 func validateConfig(t *testing.T, m *FakeBoardModel) diag.Diagnostics {
 	t.Helper()
-	ctx := context.Background()
-	state := tfsdk.State{Schema: Schema()}
-	assertNoDiags(t, state.Set(ctx, m))
-	req := resource.ValidateConfigRequest{Config: tfsdk.Config{Schema: Schema(), Raw: state.Raw}}
-	var diags diag.Diagnostics
-	for _, v := range ConfigValidators() {
-		var resp resource.ValidateConfigResponse
-		v.ValidateResource(ctx, req, &resp)
-		diags.Append(resp.Diagnostics...)
-	}
-	return diags
+	return validateAll(t, m)
 }
