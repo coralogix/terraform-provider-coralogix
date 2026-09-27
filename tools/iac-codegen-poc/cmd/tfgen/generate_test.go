@@ -140,6 +140,8 @@ var generatedTypeCases = []struct {
 		"../../spec/fake/key.overrides.yaml"},
 	{"../../generated/fakealarm", "../../spec/fake/openapi.yaml", "Fake Boards Service", testSDKModule, []string{"Alarm"}, nil,
 		"../../spec/fake/alarm.overrides.yaml"},
+	{"../../generated/fakechart", "../../spec/fake/openapi.yaml", "Fake Boards Service", testSDKModule, []string{"Chart"}, nil,
+		"../../spec/fake/chart.overrides.yaml"},
 }
 
 // TestGeneratedTypesUpToDate checks that each generated type package is the
@@ -421,6 +423,50 @@ func TestInlineRejects(t *testing.T) {
 			ov, err := loadOverrides(p)
 			if err == nil {
 				_, err = generateTypes(types, enums, refs, ov, "fakeinline", "")
+			}
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("error:\n%v\nwant it to contain:\n%s", err, c.want)
+			}
+		})
+	}
+}
+
+// TestTypeStringRejects checks the errors of the typeStrings and bool
+// overrides (D21).
+func TestTypeStringRejects(t *testing.T) {
+	in := typeInputs{roots: []string{"Chart", "Alarm"}}
+	types, enums, refs, err := checkedTypeNames("../../spec/fake/openapi.yaml", in, "Fake Boards Service", testSDKModule)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ name, yaml, want string }{
+		{"stale", "typeStrings: {Nope: {}}", "typeStrings.Nope: no such object"},
+		{"a root", "typeStrings: {Chart: {}}", "typeStrings.Chart: a root type cannot be a typeString"},
+		{"not a oneOf", "typeStrings: {ChartAverage: {}}", "typeStrings.ChartAverage: the object is not a oneOf"},
+		{"a scalar arm", "typeStrings: {TimeWindow: {}}", "a typeString arm must be an object with no oneOf"},
+		{"plain with fields", "typeStrings: {ChartAggregation: {plain: true}}", "a plain typeString needs empty arms, and ChartAverage has the fields"},
+		{"a stale name", "typeStrings: {ChartColorsBy: {plain: true, names: {nope: x}}}", "typeStrings.ChartColorsBy.names.nope: no such arm"},
+		{"two arms, one name", "typeStrings: {ChartColorsBy: {plain: true, names: {stack: group_by}}}", `the arms stack and groupBy both have the name "group_by"`},
+		{"a bad name", "typeStrings: {ChartColorsBy: {plain: true, names: {stack: Stack}}}", `the name "Stack" of the arm stack is not a Terraform name`},
+		{"an arm override", "typeStrings: {ChartAggregation: {}}\ntypes: {ChartAggregation: {count: {name: c}}}", "types.ChartAggregation.count: an arm of a typeString can only be skipped"},
+		{"flags in an arm", "typeStrings: {ChartAggregation: {}}\ntypes: {ChartPercentile: {percent: {required: true}}}", "types.ChartPercentile.percent: a field of a typeString arm cannot have flags"},
+		{"the name type", "typeStrings: {ChartAggregation: {}}\ntypes: {ChartAverage: {labels: {name: type}}}", `has the name "type", which names the arm`},
+		{"merged fields differ", "typeStrings: {ChartAggregation: {}}\ntypes: {ChartAverage: {field: {missingAsZero: true}}}",
+			`ChartAverage.field and ChartPercentile.field are both "field", but their API types or overrides differ`},
+		{"missingAsZero on a use", "typeStrings: {ChartColorsBy: {plain: true}}\ntypes: {Chart: {colorsBy: {missingAsZero: true}}}", "ChartColorsBy is a typeString: missingAsZero is not supported"},
+		{"bool on a use", "typeStrings: {ChartColorsBy: {plain: true}}\ntypes: {Chart: {colorsBy: {bool: true}}}", "ChartColorsBy is a typeString: bool is not supported"},
+		{"bool on an object with fields", "types: {Chart: {minMax: {bool: true}}}", "bool needs an empty object with no defaultObject or emptyAsNull, the field is a oneOf with 2 fields"},
+		{"bool on a scalar", "types: {Chart: {title: {bool: true}}}", "bool needs an empty object with no defaultObject or emptyAsNull, the field is a string"},
+		{"bool and emptyAsNull", "types: {Chart: {mappedValues: {bool: true, emptyAsNull: true}}}", "bool needs an empty object with no defaultObject or emptyAsNull"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			p := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(p, []byte(c.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			ov, err := loadOverrides(p)
+			if err == nil {
+				_, err = generateTypes(types, enums, refs, ov, "fakechart", "")
 			}
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Errorf("error:\n%v\nwant it to contain:\n%s", err, c.want)

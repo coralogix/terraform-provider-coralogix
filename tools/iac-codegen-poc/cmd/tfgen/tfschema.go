@@ -38,8 +38,11 @@ type tfAttr struct {
 	// for the default of an object that holds the attribute (defaultObject).
 	DefaultValue string
 	Validators   []string // Go expressions
-	Modifiers    []string // plan modifiers, Go expressions
-	Attributes   []*tfAttr
+	// ElemValidators are the validators of the nested object of a list,
+	// set, or map of objects: validator.Object expressions.
+	ElemValidators []string
+	Modifiers      []string // plan modifiers, Go expressions
+	Attributes     []*tfAttr
 	// DeprecationMessage and Sensitive come from an override (D21).
 	DeprecationMessage string
 	Sensitive          bool
@@ -267,6 +270,9 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
 			return err
 		}
 		a.Attributes = attrs
+		if b.ov.typeStringObject(t) {
+			a.Validators = append(a.Validators, b.typeStringValidator(t))
+		}
 	default:
 		return fmt.Errorf("kind %s is not supported", t.Kind)
 	}
@@ -292,6 +298,9 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 			return err
 		}
 		a.Attributes = attrs
+		if b.ov.typeStringObject(t.Elem) {
+			a.ElemValidators = append(a.ElemValidators, b.typeStringValidator(t.Elem))
+		}
 	case model.String, model.Enum, model.Bool, model.Number, model.Integer:
 		if b.ov.wide() && isNarrow(t.Elem) {
 			return fmt.Errorf("wideNumbers: a %s of %s is not supported", t.Kind, typeName(t.Elem))
@@ -315,6 +324,9 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, error) {
 	if t.Schema == "" {
 		return nil, fmt.Errorf("inline %s schema is not supported", t.Kind)
+	}
+	if b.ov.typeString(t.Schema) != nil && t.Kind == model.OneOf {
+		return b.typeStringAttributes(p, t)
 	}
 	fs := b.ov.fields(t)
 	built := map[string]fieldParts{}
@@ -529,7 +541,7 @@ func (b *tfBuilder) override(a *tfAttr, schema string, f *model.Field, t *model.
 	a.Required, a.Optional, a.Computed = flags(ov, f.Attrs)
 	if ov.ReadOnly {
 		// Validators check the configuration, which is always null here.
-		a.Default, a.DefaultValue, a.Validators = "", "", nil
+		a.Default, a.DefaultValue, a.Validators, a.ElemValidators = "", "", nil, nil
 		readOnlyTree(a.Attributes)
 	}
 	pkg := strings.ToLower(a.ValueKind) + "planmodifier."
@@ -552,7 +564,7 @@ func (b *tfBuilder) override(a *tfAttr, schema string, f *model.Field, t *model.
 func readOnlyTree(attrs []*tfAttr) {
 	for _, a := range attrs {
 		a.Required, a.Optional, a.Computed = false, false, true
-		a.Default, a.DefaultValue, a.Validators, a.Modifiers = "", "", nil, nil
+		a.Default, a.DefaultValue, a.Validators, a.ElemValidators, a.Modifiers = "", "", nil, nil, nil
 		readOnlyTree(a.Attributes)
 	}
 }

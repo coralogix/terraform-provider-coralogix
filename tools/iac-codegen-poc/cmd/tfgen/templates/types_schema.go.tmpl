@@ -8,6 +8,8 @@ package {{.Package}}
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
@@ -109,5 +111,51 @@ func defaultObject(attrTypes map[string]attr.Type, values map[string]attr.Value)
 		out[name] = null
 	}
 	return types.ObjectValueMust(attrTypes, out)
+}
+{{- end}}
+{{- if .TypeString}}
+
+// typeStringValidator checks an object of the typeStrings override: type
+// names the set field of an API oneOf, and the other attributes are the
+// fields of its arms. An attribute of another arm must not be set, and a
+// required field of the arm must be.
+type typeStringValidator struct {
+	// fields and required are the attributes of each arm, by type.
+	fields, required map[string][]string
+}
+
+func (typeStringValidator) Description(context.Context) string {
+	return "each attribute must be one of the type"
+}
+
+func (v typeStringValidator) MarkdownDescription(ctx context.Context) string { return v.Description(ctx) }
+
+func (v typeStringValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	attrs := req.ConfigValue.Attributes()
+	t, ok := attrs["type"].(types.String)
+	if !ok || t.IsNull() || t.IsUnknown() {
+		return
+	}
+	name := t.ValueString()
+	fields, known := v.fields[name]
+	if !known {
+		return // the validator of type reports it
+	}
+	for _, n := range slices.Sorted(maps.Keys(attrs)) {
+		if n == "type" || attrs[n].IsNull() || attrs[n].IsUnknown() || slices.Contains(fields, n) {
+			continue
+		}
+		resp.Diagnostics.AddAttributeError(req.Path.AtName(n), "Attribute not used by the type",
+			fmt.Sprintf("%s cannot be set when type is %q.", n, name))
+	}
+	for _, n := range v.required[name] {
+		if attrs[n].IsNull() {
+			resp.Diagnostics.AddAttributeError(req.Path.AtName(n), "Missing attribute for the type",
+				fmt.Sprintf("%s is required when type is %q.", n, name))
+		}
+	}
 }
 {{- end}}

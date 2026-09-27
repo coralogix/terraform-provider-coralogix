@@ -40,6 +40,9 @@ type overrides struct {
 	// CustomPackage is the import path of the handwritten converters of the
 	// custom fields (see custom.go).
 	CustomPackage string `yaml:"customPackage"`
+	// TypeStrings are the oneOf objects that Terraform shows by the name of
+	// the set arm, by component (see typestring.go).
+	TypeStrings map[string]typeStringOverride `yaml:"typeStrings"`
 }
 
 // fieldOverride changes one API field. A nil flag keeps the generated value.
@@ -103,6 +106,9 @@ type fieldOverride struct {
 	// the defaults of its fields, and null for the fields without one. Like
 	// default, it makes the attribute Optional and Computed.
 	DefaultObject bool `yaml:"defaultObject"`
+	// Bool shows an empty object field as a Bool: true sends {}, and a
+	// present object reads as true (see typestring.go).
+	Bool bool `yaml:"bool"`
 }
 
 // numberPatterns are the formats of the patterns of a 64-bit number that
@@ -268,6 +274,7 @@ func (o *overrides) check(roots []*model.Type) error {
 		errs = append(errs, o.checkObject(t)...)
 	}
 	errs = append(errs, o.checkUnwrap(roots, objects)...)
+	errs = append(errs, o.checkTypeStrings(roots, objects)...)
 	errs = append(errs, o.checkCustomPackage()...)
 	for _, schema := range sortedKeys(o.Enums) {
 		t, ok := enums[schema]
@@ -297,6 +304,10 @@ func (o *overrides) checkObject(t *model.Type) []error {
 			continue
 		}
 		if err := o.checkUsedField(o.Types[t.Schema][name], f); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", at, err))
+			continue
+		}
+		if err := o.checkTypeStringUse(o.Types[t.Schema][name], f); err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", at, err))
 			continue
 		}
@@ -342,10 +353,12 @@ func checkField(ov fieldOverride, f *model.Field) error {
 	return checkFlags(ov, f.Attrs)
 }
 
-// checkShape checks the overrides that need a kind of field: set, wide, and
-// defaultObject.
+// checkShape checks the overrides that need a kind of field: set, wide,
+// defaultObject, and bool.
 func checkShape(ov fieldOverride, t *model.Type) error {
 	switch {
+	case ov.Bool && (t.Kind != model.Object || len(t.Fields) != 0 || ov.DefaultObject || ov.EmptyAsNull):
+		return fmt.Errorf("bool needs an empty object with no defaultObject or emptyAsNull, the field is a %s with %d fields", t.Kind, len(t.Fields))
 	case ov.Set && t.Kind != model.List:
 		return fmt.Errorf("set: the field is a %s, not a list", t.Kind)
 	case ov.Wide && !isNarrow(t):

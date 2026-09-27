@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"{{.Conv.SDKPkg}}"
 )
@@ -94,7 +95,7 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.SDK}} = {{$l}}expandTime({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if and (eq .Conv "object") (eq .Read "emptyobject")}}
 	out.{{.SDK}} = nilIfEmpty(expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags))
-{{- else if or (eq .Conv "object") (eq .Conv "unwrap")}}
+{{- else if eq .Conv "object" "unwrap" "typestring"}}
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "wrap"}}
 	expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, out, diags)
@@ -108,6 +109,10 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.SDK}} = nilIfEmpty(expand{{.Object.Func}}(ctx, {{$p}}, objectAs[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags), diags))
 {{- else if eq .Conv "objectvalue"}}
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, objectAs[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags), diags){{$r}}
+{{- else if eq .Conv "emptybool"}}
+	if m.{{.Model}}.ValueBool() {
+		out.{{.SDK}} = map[string]interface{}{}
+	}
 {{- else if eq .Conv "empty"}}
 	if m.{{.Model}} != nil {
 		out.{{.SDK}} = map[string]interface{}{}
@@ -184,7 +189,7 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.Model}} = flattenInt32Wide({{$v}})
 {{- else if eq .Conv "float32wide"}}
 	out.{{.Model}} = flattenFloat32Wide({{$v}})
-{{- else if or (eq .Conv "object") (eq .Conv "unwrap")}}
+{{- else if eq .Conv "object" "unwrap" "typestring"}}
 	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "wrap"}}
 	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, v, diags)
@@ -196,6 +201,13 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.Model}} = custom.Flatten{{.Custom}}({{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "objectvalue"}}
 	out.{{.Model}} = objectValue(ctx, {{.Object.AttrTypesFunc}}(), flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags), diags)
+{{- else if and (eq .Conv "emptybool") (eq .Read "false")}}
+	out.{{.Model}} = types.BoolValue(v.{{.SDK}} != nil)
+{{- else if eq .Conv "emptybool"}}
+	out.{{.Model}} = types.BoolNull()
+	if v.{{.SDK}} != nil {
+		out.{{.Model}} = types.BoolValue(true)
+	}
 {{- else if eq .Conv "empty"}}
 	if v.{{.SDK}} != nil {
 		out.{{.Model}} = &{{.Object.Model}}{}
@@ -240,7 +252,55 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 {{- define "convObjects"}}
 {{- $sdk := .SDKName}}
 {{range .Objects}}
-{{- if and .Expand .Unwrap}}
+{{- if and .Expand .TypeString .TypeString.Plain}}
+// expand{{.Func}} returns the API oneOf {{.SDK}} with the arm that value
+// names (a plain typeString), or nil when value is null.
+func expand{{.Func}}(ctx context.Context, p path.Path, value types.String, diags *diag.Diagnostics) *{{$sdk}}.{{.SDK}} {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	out := &{{$sdk}}.{{.SDK}}{}
+	switch value.ValueString() {
+{{- range .TypeString.Arms}}
+	case {{printf "%q" .Name}}:
+		out.{{.SDK}} = map[string]interface{}{}
+{{- end}}
+	}
+	return out
+}
+{{else if and .Expand .TypeString}}
+// expand{{.Func}} returns the API oneOf {{.SDK}} with the arm that type
+// names, and its fields (a typeString object), or nil for a null object.
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$sdk}}.{{.SDK}} {
+	if m == nil {
+		return nil
+	}
+	out := &{{$sdk}}.{{.SDK}}{}
+	switch m.Type.ValueString() {
+{{- range .TypeString.Arms}}
+	case {{printf "%q" .Name}}:
+{{- if .Object}}
+		out.{{.SDK}} = expand{{.Object.Func}}(ctx, p, m, diags)
+{{- else}}
+		out.{{.SDK}} = map[string]interface{}{}
+{{- end}}
+{{- end}}
+	}
+	return out
+}
+{{else if and .Expand .Arm}}
+// expand{{.Func}} returns an arm of a typeString object from the fields of
+// {{.Model}}.
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$sdk}}.{{.SDK}} {
+	out := &{{$sdk}}.{{.SDK}}{}
+{{- range .Fields}}
+{{- if not .ReadOnly}}
+{{- template "expandField" .}}
+{{- end}}
+{{- end}}
+	return out
+}
+{{else if and .Expand .Unwrap}}
 {{- $f := index .Fields 0}}
 // expand{{.Func}} returns the API object {{.SDK}} whose only field is value,
 // or nil when value is null (an unwrapped object).
@@ -305,7 +365,53 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	return out
 }
 {{end}}
-{{- if and .Flatten .Unwrap}}
+{{- if and .Flatten .TypeString .TypeString.Plain}}
+// flatten{{.Func}} returns the name of the set arm of the API oneOf {{.SDK}}
+// (a plain typeString), or null when none is set.
+func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, diags *diag.Diagnostics) types.String {
+	switch {
+	case v == nil:
+{{- range .TypeString.Arms}}
+	case v.{{.SDK}} != nil:
+		return types.StringValue({{printf "%q" .Name}})
+{{- end}}
+	}
+	return types.StringNull()
+}
+{{else if and .Flatten .TypeString}}
+// flatten{{.Func}} returns the typeString object of the API oneOf {{.SDK}}:
+// type names the set arm, and the fields of the other arms are null. It is
+// nil when no arm is set.
+func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, diags *diag.Diagnostics) *{{.Model}} {
+	if v == nil {
+		return nil
+	}
+	out := &{{.Model}}{}
+{{- range .NullInits}}
+	out.{{.Model}} = nullValue[{{.GoType}}](ctx, {{.AttrType}})
+{{- end}}
+	switch {
+{{- range .TypeString.Arms}}
+	case v.{{.SDK}} != nil:
+		out.Type = types.StringValue({{printf "%q" .Name}})
+{{- if .Object}}
+		flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, out, diags)
+{{- end}}
+{{- end}}
+	default:
+		return nil
+	}
+	return out
+}
+{{else if and .Flatten .Arm}}
+// flatten{{.Func}} sets the fields of an arm of a typeString object on out.
+func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, out *{{.Model}}, diags *diag.Diagnostics) {
+{{- template "normalize" .}}
+{{- range .Fields}}
+{{- template "flattenField" .}}
+{{- end}}
+}
+{{else if and .Flatten .Unwrap}}
 {{- $f := index .Fields 0}}
 // flatten{{.Func}} returns the only field of the API object {{.SDK}} (an
 // unwrapped object). A missing object reads as an object without the field.
@@ -411,6 +517,17 @@ func {{.AttrTypesFunc}}() map[string]attr.Type {
 {{- end}}
 
 {{- define "convHelpers"}}
+{{- if .Conv.HasNullInits}}
+// nullValue returns the null value of the Terraform type t, as the model
+// field type T.
+func nullValue[T attr.Value](ctx context.Context, t attr.Type) T {
+	v, err := t.ValueFromTerraform(ctx, tftypes.NewValue(t.TerraformType(ctx), nil))
+	if err != nil {
+		panic(fmt.Sprintf("null %s: %v", t, err))
+	}
+	return v.(T)
+}
+{{end}}
 {{- if .Conv.HasValue}}
 // valueOf returns the value of p, or the zero value for nil. It fills an SDK
 // field that is a value, not a pointer.

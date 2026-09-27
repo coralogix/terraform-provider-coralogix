@@ -1,0 +1,11 @@
+# Overrides (D21) for generated/fakechart: two oneOf objects shown by the
+# name of the set arm (typeStrings), and two empty objects shown as bools, as
+# in the dashboards API. generated/fakechart/chart_test.go checks the result.
+typeStrings:
+  ChartColorsBy: {plain: true}                  # colors_by = "stack"
+  ChartAggregation: {names: {average: avg}}     # aggregation = {type = "avg", field = "x"}
+types:
+  ChartMinMax:
+    auto: {bool: true}                          # min_max = {auto = true}
+  Chart:
+    mappedValues: {bool: true, missingAsZero: true}

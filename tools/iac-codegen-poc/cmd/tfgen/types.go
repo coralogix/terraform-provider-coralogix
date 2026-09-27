@@ -21,6 +21,7 @@ type typesData struct {
 	Package       string
 	TimeValidator bool   // an attribute uses rfc3339Validator
 	DefaultObject bool   // an attribute has the default of the defaultObject override
+	TypeString    bool   // an attribute uses typeStringValidator (typestring.go)
 	Command       string // the tfgen arguments that write the package
 	Roots         []*typeRoot
 	Models        []*tfModel
@@ -181,14 +182,21 @@ func buildTypes(roots, enums []*model.Type, refs []sdkRef, ov *overrides, pkg, c
 		return nil, errors.New("internal error: a resource validator in the type mode")
 	}
 	out.Models = tb.models
-	for _, r := range out.Roots {
-		out.TimeValidator = out.TimeValidator || usesValidator(r.Attributes, timeValidator)
-		out.DefaultObject = out.DefaultObject || usesDefaultObject(r.Attributes)
-	}
+	out.setHelpers()
 	if out.Conv, err = typesConv(roots, ix, ov, out.Roots); err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+// setHelpers sets the flags of the helpers that the schema file emits only
+// when an attribute uses them.
+func (d *typesData) setHelpers() {
+	for _, r := range d.Roots {
+		d.TimeValidator = d.TimeValidator || usesValidator(r.Attributes, timeValidator)
+		d.DefaultObject = d.DefaultObject || usesDefaultObject(r.Attributes)
+		d.TypeString = d.TypeString || usesTypeStringValidator(r.Attributes)
+	}
 }
 
 // usesDefaultObject reports whether an attribute in attrs, at any depth, has
@@ -245,13 +253,14 @@ func typesConv(roots []*model.Type, ix *refIndex, ov *overrides, out []*typeRoot
 	}
 	// Every type exports its attribute types: handwritten code needs them to
 	// build a types.Object, or a list or map of them, of any generated model.
-	// An unwrapped object has no model, so it has no attribute types, and an
-	// inlined object has the model of its parent.
+	// An unwrapped object and a plain typeString have no model, so they have
+	// no attribute types, and an inlined object or a typeString arm has the
+	// model of its parent.
 	for _, obj := range cb.objects {
 		obj.AttrTypesFunc = obj.Func + "AttrTypes"
 	}
 	for _, obj := range cb.objects {
-		if obj.Unwrap || obj.Inline {
+		if obj.Unwrap || obj.Inline || obj.Arm || obj.TypeString != nil && obj.TypeString.Plain {
 			continue
 		}
 		if err := cb.attrTypes(obj); err != nil {

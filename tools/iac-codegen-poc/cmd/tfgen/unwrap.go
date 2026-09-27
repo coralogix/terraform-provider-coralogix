@@ -44,16 +44,19 @@ func (o *overrides) unwrap(t *model.Type) *model.Type {
 }
 
 // tfType returns the Terraform type of the field f of the component schema:
-// fieldType, then unwrap. The string override makes a number a String; the
+// fieldType, then unwrap, or the names of a plain typeString. The string
+// override makes a number a String, and bool an empty object a Bool; the
 // conversion keeps the API type (objectField).
 func (o *overrides) tfType(schema string, f *model.Field) *model.Type {
 	switch ov := o.field(schema, f.Name); {
 	case ov.String:
 		return &model.Type{Kind: model.String}
+	case ov.Bool:
+		return &model.Type{Kind: model.Bool}
 	case ov.Wide:
 		return widenType(f.Type)
 	}
-	return o.unwrap(o.fieldType(schema, f))
+	return o.typeStringType(o.unwrap(o.fieldType(schema, f)))
 }
 
 // usesUnwrapped returns the unwrapped object that the type t is, or that

@@ -1021,6 +1021,172 @@ components:
         - TIME_WINDOW_VALUE_HOURS_1
       type: string
       description: A fixed time window.
+    Chart:
+      description: A chart, as in the dashboards API. Two oneOf objects are shown by the name of the set arm, and two empty objects as bools. The typeStrings and bool override (D21) tests use it.
+      properties:
+        title:
+          description: The title.
+          type: string
+        colorsBy:
+          allOf:
+            - $ref: '#/components/schemas/ChartColorsBy'
+          description: How the chart picks colors. Terraform has one string, as dashboards colors_by.
+        aggregation:
+          allOf:
+            - $ref: '#/components/schemas/ChartAggregation'
+          description: The aggregation. Terraform has type and the fields of the arms, as dashboards aggregation.
+        aggregations:
+          description: More aggregations.
+          type: array
+          items:
+            $ref: '#/components/schemas/ChartAggregation'
+        minMax:
+          allOf:
+            - $ref: '#/components/schemas/ChartMinMax'
+          description: The range of the axis.
+        mappedValues:
+          allOf:
+            - $ref: '#/components/schemas/ChartMappedValues'
+          description: Show mapped values. Terraform has a bool, as dashboards mapped_values.
+      type: object
+    ChartColorsBy:
+      description: How the chart picks colors.
+      oneOf:
+        - required:
+            - stack
+          type: object
+        - required:
+            - groupBy
+          type: object
+        - not:
+            anyOf:
+              - required:
+                  - stack
+                type: object
+              - required:
+                  - groupBy
+                type: object
+          type: object
+      properties:
+        stack:
+          $ref: '#/components/schemas/ChartColorsByStack'
+        groupBy:
+          $ref: '#/components/schemas/ChartColorsByGroupBy'
+      type: object
+    ChartColorsByStack:
+      additionalProperties: false
+      type: object
+    ChartColorsByGroupBy:
+      additionalProperties: false
+      type: object
+    ChartAggregation:
+      description: An aggregation.
+      oneOf:
+        - required:
+            - count
+          type: object
+        - required:
+            - average
+          type: object
+        - required:
+            - percentile
+          type: object
+        - not:
+            anyOf:
+              - required:
+                  - count
+                type: object
+              - required:
+                  - average
+                type: object
+              - required:
+                  - percentile
+                type: object
+          type: object
+      properties:
+        count:
+          $ref: '#/components/schemas/ChartCount'
+        average:
+          $ref: '#/components/schemas/ChartAverage'
+        percentile:
+          $ref: '#/components/schemas/ChartPercentile'
+      type: object
+    ChartCount:
+      additionalProperties: false
+      type: object
+    ChartAverage:
+      description: The average of a field.
+      properties:
+        field:
+          description: The field.
+          type: string
+        labels:
+          description: Labels of the average. A list, so flatten sets it to null for the other arms.
+          type: array
+          items:
+            type: string
+        observationField:
+          allOf:
+            - $ref: '#/components/schemas/ChartObservationField'
+          description: The field as an observation field.
+      type: object
+    ChartPercentile:
+      description: A percentile of a field.
+      required:
+        - percent
+      properties:
+        field:
+          description: The field.
+          type: string
+        percent:
+          description: The percent.
+          format: double
+          type: number
+        observationField:
+          allOf:
+            - $ref: '#/components/schemas/ChartObservationField'
+          description: The field as an observation field.
+      type: object
+    ChartObservationField:
+      description: An observation field.
+      properties:
+        keypath:
+          description: The key path.
+          type: array
+          items:
+            type: string
+      type: object
+    ChartMinMax:
+      description: The range of an axis.
+      oneOf:
+        - required:
+            - auto
+          type: object
+        - required:
+            - custom
+          type: object
+      properties:
+        auto:
+          $ref: '#/components/schemas/ChartMinMaxAuto'
+        custom:
+          $ref: '#/components/schemas/ChartMinMaxCustom'
+      type: object
+    ChartMinMaxAuto:
+      additionalProperties: false
+      type: object
+    ChartMinMaxCustom:
+      description: A fixed range.
+      properties:
+        min:
+          format: double
+          type: number
+        max:
+          format: double
+          type: number
+      type: object
+    ChartMappedValues:
+      additionalProperties: false
+      type: object
     DeleteFakeBoardResponse:
       type: object
       properties:

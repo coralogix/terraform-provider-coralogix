@@ -93,6 +93,11 @@ type convObject struct {
 	// NamesArm is the enum field that expand sets from the set arm
 	// (custom.go); nil for none.
 	NamesArm *armNames
+	// TypeString is set for a typeString oneOf (typestring.go). Arm is true
+	// for the object of one of its arms: Model is the model of the
+	// typeString object, and SDK is the SDK struct of the arm.
+	TypeString *typeStringData
+	Arm        bool
 }
 
 type convAttrType struct {
@@ -143,6 +148,12 @@ const (
 	// decimal number ↔ *int64.
 	convInt64Text = "int64text"
 	convCustom    = "custom" // types.<CustomType> ↔ the SDK field, by handwritten functions (custom.go)
+	// convEmptyBool is the bool override: types.Bool ↔ map[string]interface{}
+	// (typestring.go).
+	convEmptyBool = "emptybool"
+	// convTypeString is a plain typeString: types.String, the name of the set
+	// arm ↔ *<SDK type> (typestring.go).
+	convTypeString = "typestring"
 )
 
 // convField is one field of a convObject.
@@ -193,6 +204,7 @@ const (
 	readNullObj   = "nullobject"  // an object with no fields set → null
 	readEmptyObj  = "emptyobject" // a missing object → an empty one (SDKType)
 	readZeroEnum  = "zeroenum"    // a missing enum → its proto zero value (ProtoZero)
+	readFalse     = "false"       // a missing empty object of the bool override → false
 )
 
 // Normalizes reports whether flatten of obj changes a missing or empty
@@ -242,6 +254,22 @@ func (d *convData) ExpandsTime() bool {
 		}
 	}
 	return false
+}
+
+// HasNullInits reports whether the flatten of a typeString object sets a
+// field to its null value first. The template then emits the nullValue
+// helper.
+func (d *convData) HasNullInits() (bool, error) {
+	for _, obj := range d.Objects {
+		if obj.TypeString == nil || obj.TypeString.Plain || !obj.Flatten {
+			continue
+		}
+		inits, err := obj.NullInits()
+		if err != nil || len(inits) != 0 {
+			return err == nil, err
+		}
+	}
+	return false, nil
 }
 
 // HasValue reports whether an expanded SDK field is a value, not a pointer.
@@ -514,30 +542,39 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type) (string, error) {
 		}
 		return "*" + enum.Name, nil
 	case model.Object, model.OneOf:
-		if b.ov.unwrapped(t.Schema) {
-			obj, err := b.unwrapObject(t)
-			if err != nil {
-				return "", err
-			}
-			cf.Conv, cf.Object = convUnwrap, obj
-			return "*" + obj.SDK, nil
-		}
-		if len(t.Fields) == 0 {
-			cf.Conv, cf.Object = convEmpty, &convObject{Model: modelTypeName(t.Schema)}
-			return "map[string]interface{}", nil
-		}
-		obj, err := b.nested(t)
-		if err != nil {
-			return "", err
-		}
-		cf.Conv, cf.Object = convObj, obj
-		return "*" + obj.SDK, nil
+		return b.objectConv(cf, t)
 	case model.Set, model.List:
 		return b.collectionConv(cf, t)
 	case model.Map:
 		return b.mapConv(cf, t)
 	}
 	return "", fmt.Errorf("kind %s is not supported", t.Kind)
+}
+
+// objectConv sets the conversion of cf for an object or oneOf t. It returns
+// the SDK Go type that the conversion needs.
+func (b *convBuilder) objectConv(cf *convField, t *model.Type) (string, error) {
+	var obj *convObject
+	var err error
+	switch ts := b.ov.typeString(t.Schema); {
+	case ts != nil && ts.Plain && t.Kind == model.OneOf:
+		obj, err = b.typeStringObject(t)
+		cf.Conv = convTypeString
+	case b.ov.unwrapped(t.Schema):
+		obj, err = b.unwrapObject(t)
+		cf.Conv = convUnwrap
+	case len(t.Fields) == 0:
+		cf.Conv, cf.Object = convEmpty, &convObject{Model: modelTypeName(t.Schema)}
+		return "map[string]interface{}", nil
+	default:
+		obj, err = b.nested(t)
+		cf.Conv = convObj
+	}
+	if err != nil {
+		return "", err
+	}
+	cf.Object = obj
+	return "*" + obj.SDK, nil
 }
 
 // scalarConv sets the conversion of cf for a string, bool, number, or
@@ -658,6 +695,12 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	if obj, ok := b.bySchema[t.Schema]; ok {
 		return obj, nil
 	}
+	if ts := b.ov.typeString(t.Schema); ts != nil && t.Kind == model.OneOf {
+		if ts.Plain {
+			return nil, fmt.Errorf("%s is a plain typeString: a list, set, or map of it is not supported", t.Schema)
+		}
+		return b.typeStringObject(t)
+	}
 	obj := b.object(t.Schema, ref)
 	b.objects = append(b.objects, obj)
 	for _, f := range b.ov.fields(t) {
@@ -696,6 +739,9 @@ func (b *convBuilder) objectField(owner, schema string, f *model.Field) (*convFi
 		// The SDK keeps its int64; Terraform has the decimal string (F68).
 		// checkNumberText allows the override only on an int64.
 		cf.Conv = convInt64Text
+	case ov.Bool:
+		// checkShape allows it only on an empty object (convEmpty).
+		cf.Conv = convEmptyBool
 	case ov.Wide && !b.ov.wide():
 		if _, err := wideConv(cf, f.Type); err != nil {
 			return nil, err
@@ -764,9 +810,9 @@ func (b *convBuilder) unwrapObject(t *model.Type) (*convObject, error) {
 // that tfBuilder.modelField writes.
 func modelGoType(cf *convField) (string, error) {
 	switch cf.Conv {
-	case convString, convTime, convEnum, convEnumName, convInt64Text:
+	case convString, convTime, convEnum, convEnumName, convInt64Text, convTypeString:
 		return "types.String", nil
-	case convBool:
+	case convBool, convEmptyBool:
 		return "types.Bool", nil
 	case convFloat64, convFloat32Wide:
 		return "types.Float64", nil
@@ -877,6 +923,8 @@ func (b *convBuilder) missingRule(cf *convField, t *model.Type, slice, mapped bo
 		}
 		cf.ProtoZero = b.qualify(enumConstName(enum.Name, zero))
 		return readZeroEnum, nil
+	case cf.Conv == convEmptyBool:
+		return readFalse, nil
 	case cf.Conv == convObj || cf.Conv == convObjValue:
 		if cf.Value {
 			return "", nil // a value is never missing
@@ -939,9 +987,19 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	}
 	for _, f := range obj.Fields {
 		switch f.Conv {
-		case convObj, convObjects, convObjectMap, convWrap, convWrapValue, convObjValue, convUnwrap, convUnwraps, convInline:
+		case convObj, convObjects, convObjectMap, convWrap, convWrapValue, convObjValue, convUnwrap, convUnwraps, convInline, convTypeString:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
+			}
+		}
+	}
+	if obj.TypeString != nil {
+		for _, arm := range obj.TypeString.Arms {
+			if arm.Object == nil {
+				continue
+			}
+			if err := b.mark(arm.Object, expand); err != nil {
+				return fmt.Errorf("%s: %w", arm.Name, err)
 			}
 		}
 	}
@@ -973,6 +1031,7 @@ var scalarAttrTypes = map[string]string{
 	convInt32Wide: "types.Int64Type", convFloat32Wide: "types.Float64Type", convEnumName: "types.StringType",
 	convEmpty:       "types.ObjectType{AttrTypes: map[string]attr.Type{}}",
 	convInt64String: "types.Int64Type", convInt64Text: "types.StringType",
+	convEmptyBool: "types.BoolType", convTypeString: "types.StringType",
 }
 
 // attrType returns the Terraform attribute type expression of field f.
