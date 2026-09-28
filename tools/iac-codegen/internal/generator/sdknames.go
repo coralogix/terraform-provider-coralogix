@@ -34,14 +34,15 @@ const (
 type rule string
 
 const (
-	ruleTag         rule = "tag"                   // the operation tag
-	ruleOperationID rule = "operationId"           // the operationId
-	ruleComponent   rule = "component"             // the component schema name
-	ruleProperty    rule = "property"              // the property name
-	ruleEnumValue   rule = "enum value"            // the component name and the enum value
-	ruleInlineBody  rule = "special: inline body"  // F15
-	ruleEmptyObject rule = "special: empty object" // F16
-	ruleClientSet   rule = "special: cxsdk"        // F17
+	ruleTag               rule = "tag"                   // the operation tag
+	ruleOperationID       rule = "operationId"           // the operationId
+	ruleComponent         rule = "component"             // the component schema name
+	ruleProperty          rule = "property"              // the property name
+	ruleEnumValue         rule = "enum value"            // the component name and the enum value
+	ruleInlineBody        rule = "special: inline body"  // F15
+	ruleEmptyObject       rule = "special: empty object" // F16
+	ruleClientSet         rule = "special: cxsdk"        // F17
+	ruleProviderClientSet rule = "special: provider clientset"
 )
 
 // sdkRef is one SDK name that the generated code uses.
@@ -101,7 +102,7 @@ func resourceTag(doc *v3.Document, r *model.Resource) (string, error) {
 // resolveSDKNames lists the SDK names that the generated code uses for the
 // resource. It only applies the naming rules. checkSDKNames confirms that
 // the names exist.
-func resolveSDKNames(r *model.Resource, tag, module string) ([]sdkRef, error) {
+func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]sdkRef, error) {
 	pkgName := strings.ToLower(strings.ReplaceAll(tag, " ", "_"))
 	s := &resolver{pkg: sdkGenRoot(module) + "/" + pkgName, seen: map[string]bool{}, bodies: map[string]string{}}
 	client := camelize(tag) + "APIService"
@@ -142,15 +143,21 @@ func resolveSDKNames(r *model.Resource, tag, module string) ([]sdkRef, error) {
 	if err := s.updateExtras(r); err != nil {
 		return nil, err
 	}
-	// cxsdk is handwritten. Its accessor name usually drops " Service" from the
-	// tag (F17); when it does not, the check finds the accessor by its type.
-	// The provider data is a *ClientSet. The resource wraps API errors with
-	// NewAPIError and reads the HTTP status with Code.
+	// The provider clientset is handwritten. Its accessor name usually drops
+	// " Service" from the tag (F17); when it does not, the check finds the
+	// accessor by its type. The SDK cxsdk package owns the API error helpers.
+	providerClientSet := providerModule + "/internal/clientset"
 	for _, ref := range []sdkRef{
-		{Path: "cxsdk", Kind: kindPackage, Name: "cxsdk"},
-		{Path: "cxsdk", Kind: kindType, Name: "ClientSet"},
+		{Path: "provider.clientset", Kind: kindPackage, Name: "clientset"},
+		{Path: "provider.clientset", Kind: kindType, Name: "ClientSet"},
 		{Path: "resource", Kind: kindMethod, Owner: "ClientSet", Name: camelize(strings.TrimSuffix(tag, " Service")),
 			Want: "func() *" + pkgName + "." + client, ByType: true},
+	} {
+		ref.Pkg, ref.Rule = providerClientSet, ruleProviderClientSet
+		s.refs = append(s.refs, ref)
+	}
+	for _, ref := range []sdkRef{
+		{Path: "cxsdk", Kind: kindPackage, Name: "cxsdk"},
 		{Path: "cxsdk.errors", Kind: kindFunc, Name: "NewAPIError", Want: "func(resp *http.Response, err error) error"},
 		{Path: "cxsdk.errors", Kind: kindFunc, Name: "Code", Want: "func(err error) int"},
 	} {

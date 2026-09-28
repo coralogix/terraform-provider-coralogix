@@ -32,7 +32,6 @@ type tfAttr struct {
 	Computed    bool
 	Description string
 	ElementType string   // Set, List: the element type, for example "types.StringType"
-	Default     string   // Go expression
 	Validators  []string // Go expressions
 	Modifiers   []string // plan modifiers, Go expressions
 	Attributes  []*tfAttr
@@ -54,9 +53,8 @@ type tfModelField struct {
 //   - Computed field → Computed. Only the id reuses the state value (D5).
 //   - Immutable field → RequiresReplace (D9).
 //   - Required in Create or in the object → Required. Otherwise Optional.
-//   - "default" → Optional, Computed, and Default.
-//   - oneOf → an object with one optional attribute per arm, and a resource
-//     validator: ExactlyOneOf, or Conflicting when no arm is allowed.
+//   - oneOf → an object with one optional attribute per arm. Each arm checks
+//     the other arms only when its parent object is present.
 //   - uint64 → Int64 (D7). Enum → String with the API values (D12).
 func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 	b := &tfBuilder{seen: map[string]bool{}}
@@ -82,7 +80,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 		switch f.Behavior {
 		case model.Computed:
 			// Validators check the configuration, which is always null here.
-			a.Required, a.Optional, a.Computed, a.Default, a.Validators = false, false, true, "", nil
+			a.Required, a.Optional, a.Computed, a.Validators = false, false, true, nil
 			if f.Name == r.IDParam {
 				a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 			}
@@ -142,8 +140,8 @@ func groupValidator(pkg string, g model.OneOfGroup, resource bool) string {
 	return pkg + ".ConflictsWith"
 }
 
-// fieldAttrs are the attributes that decide Required and Default. Create
-// decides, because a Terraform resource is first created.
+// fieldAttrs are the attributes that decide Required. Create decides, because
+// a Terraform resource is first created.
 func fieldAttrs(f *model.ResourceField) model.Attrs {
 	if f.Create != nil {
 		return *f.Create
@@ -186,13 +184,6 @@ func (b *tfBuilder) attribute(p attrPath, name, desc string, t *model.Type, attr
 	a := &tfAttr{Name: tfName(name), Description: desc, Required: attrs.Required, Optional: !attrs.Required}
 	if err := b.setType(a, p, t); err != nil {
 		return nil, err
-	}
-	if attrs.Default != nil {
-		d, err := defaultExpr(a.Kind, *attrs.Default)
-		if err != nil {
-			return nil, err
-		}
-		a.Required, a.Optional, a.Computed, a.Default = false, true, true, d
 	}
 	return a, nil
 }
@@ -263,7 +254,6 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	var attrs []*tfAttr
 	var fields []tfModelField
-	var arms []string
 	for _, f := range t.Fields {
 		child := append(append(attrPath{}, p...), tfName(f.Name))
 		a, err := b.attribute(child, f.Name, f.Description, f.Type, f.Attrs)
@@ -272,16 +262,16 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		}
 		attrs = append(attrs, a)
 		fields = append(fields, b.modelField(f.Name, f.Type))
-		arms = append(arms, child.expr())
 	}
+	groups := t.Groups
 	if t.Kind == model.OneOf {
-		v := "resourcevalidator.ExactlyOneOf"
-		if t.AllowNone {
-			v = "resourcevalidator.Conflicting"
+		group := model.OneOfGroup{AllowNone: t.AllowNone}
+		for _, f := range t.Fields {
+			group.Arms = append(group.Arms, f.Name)
 		}
-		b.validators = append(b.validators, v+"(\n"+strings.Join(arms, ",\n")+",\n)")
+		groups = append(groups, group)
 	}
-	addGroupValidators(attrs, t.Groups)
+	addGroupValidators(attrs, groups)
 	if name := modelTypeName(t.Schema); !b.seen[name] {
 		b.seen[name] = true
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
@@ -403,40 +393,6 @@ func rangeValidator(pkg string, minimum, maximum *float64, format func(float64) 
 
 func formatFloat(f float64) string { return strconv.FormatFloat(f, 'g', -1, 64) }
 func formatInt(f float64) string   { return strconv.FormatInt(int64(f), 10) }
-
-// defaultExpr is the Go expression for a Terraform default. value is the
-// YAML text of the OpenAPI default.
-func defaultExpr(kind, value string) (string, error) {
-	switch kind {
-	case "Bool":
-		v, err := strconv.ParseBool(value)
-		if err != nil {
-			return "", fmt.Errorf("default %q: %w", value, err)
-		}
-		return fmt.Sprintf("booldefault.StaticBool(%t)", v), nil
-	case "String":
-		return fmt.Sprintf("stringdefault.StaticString(%q)", value), nil
-	case "Float64":
-		v, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			return "", fmt.Errorf("default %q: %w", value, err)
-		}
-		return fmt.Sprintf("float64default.StaticFloat64(%s)", formatFloat(v)), nil
-	case "Float32":
-		v, err := strconv.ParseFloat(value, 32)
-		if err != nil {
-			return "", fmt.Errorf("default %q: %w", value, err)
-		}
-		return fmt.Sprintf("float32default.StaticFloat32(%s)", formatFloat(v)), nil
-	case "Int64", "Int32":
-		v, err := strconv.ParseInt(value, 10, map[string]int{"Int64": 64, "Int32": 32}[kind])
-		if err != nil {
-			return "", fmt.Errorf("default %q: %w", value, err)
-		}
-		return fmt.Sprintf("%sdefault.Static%s(%d)", strings.ToLower(kind), kind, v), nil
-	}
-	return "", fmt.Errorf("default for %s is not supported", kind)
-}
 
 // tfName is the Terraform name for a property name: "sqlReadOnly" → "sql_read_only".
 func tfName(property string) string {
