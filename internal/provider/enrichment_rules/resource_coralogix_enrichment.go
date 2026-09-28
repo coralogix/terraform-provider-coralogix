@@ -296,6 +296,39 @@ func extractIdsFromEnrichment(d *schema.ResourceData) []uint32 {
 	return result
 }
 
+// extractOldIdsFromEnrichment mirrors extractIdsFromEnrichment but sources the
+// enrichment fields from the *old* (pre-change) configuration via d.GetChange.
+// The Update flow uses these IDs to decide what to delete from the backend:
+// deletion must be driven by the pre-change set because emptying or shrinking a
+// fields set otherwise makes d.Get return the (empty/smaller) proposed set and
+// skip the Delete, leaving the old backend enrichments orphaned.
+func extractOldIdsFromEnrichment(d *schema.ResourceData) []uint32 {
+	var v interface{}
+	if oldGeoIp, _ := d.GetChange("geo_ip"); len(oldGeoIp.([]interface{})) != 0 {
+		v = oldGeoIp.([]interface{})[0]
+	}
+	if oldSuspiciousIp, _ := d.GetChange("suspicious_ip"); len(oldSuspiciousIp.([]interface{})) != 0 {
+		v = oldSuspiciousIp.([]interface{})[0]
+	}
+	if oldAws, _ := d.GetChange("aws"); len(oldAws.([]interface{})) != 0 {
+		v = oldAws.([]interface{})[0]
+	}
+	if oldCustom, _ := d.GetChange("custom"); len(oldCustom.([]interface{})) != 0 {
+		v = oldCustom.([]interface{})[0]
+	}
+	m, ok := v.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	fields := m["fields"].(*schema.Set).List()
+	result := make([]uint32, 0, len(fields))
+	for _, field := range fields {
+		id := uint32(field.(map[string]interface{})["id"].(int))
+		result = append(result, id)
+	}
+	return result
+}
+
 // addEnrichmentsFn and deleteEnrichmentsFn are the seams the update flow calls
 // into the Enrichments client through. They default to the real client calls and
 // are overridable in unit tests so the remove -> add -> rollback flow can be
@@ -334,7 +367,7 @@ func extractOldEnrichmentRequest(d *schema.ResourceData) []*cxsdk.EnrichmentRequ
 }
 
 func resourceCoralogixEnrichmentUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	ids := extractIdsFromEnrichment(d)
+	oldIds := extractOldIdsFromEnrichment(d)
 	enrichmentReq, _, err := extractEnrichmentRequest(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -346,8 +379,13 @@ func resourceCoralogixEnrichmentUpdate(ctx context.Context, d *schema.ResourceDa
 	// applied (all enrichments deleted) state. Mirrors the coralogix_data_enrichments
 	// rollback (#765).
 	oldReq := extractOldEnrichmentRequest(d)
-	deleteReq := &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: utils.Uint32SliceToWrappedUint32Slice(ids)}
-	if len(ids) > 0 {
+	// deleteReq targets the enrichments from the *old* (pre-change) set. The IDs
+	// must come from oldIds (d.GetChange) rather than the proposed configuration:
+	// when a fields set is emptied or shrunk, d.Get would return the smaller set
+	// (len 0 when emptied) and the Delete would be skipped, leaving the removed
+	// backend enrichments orphaned. Sourcing from the pre-change set deletes them.
+	deleteReq := &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: utils.Uint32SliceToWrappedUint32Slice(oldIds)}
+	if len(oldIds) > 0 {
 		if err = deleteEnrichmentsFn(ctx, meta, deleteReq); err != nil {
 			log.Printf("[ERROR] Received error: %s", err.Error())
 			return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.DeleteEnrichmentsRPC, protojson.Format(deleteReq)))
@@ -363,7 +401,9 @@ func resourceCoralogixEnrichmentUpdate(ctx context.Context, d *schema.ResourceDa
 		// fails we log it and report it as a separate diagnostic, without
 		// masking the original Add error. No Read/refresh runs on the error path.
 		addErr := diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.AddEnrichmentsRPC, protojson.Format(createReq)))
-		if len(ids) > 0 {
+		// Only roll back if we actually deleted something; oldIds (the pre-change
+		// set) is the same source the Delete above was gated on.
+		if len(oldIds) > 0 {
 			rollbackReq := &cxsdk.AddEnrichmentsRequest{RequestEnrichments: oldReq}
 			if _, rollbackErr := addEnrichmentsFn(ctx, meta, rollbackReq); rollbackErr != nil {
 				log.Printf("[ERROR] failed to roll back deleted enrichments after a failed enrichment update: %s (original error: %s)", rollbackErr.Error(), err.Error())

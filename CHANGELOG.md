@@ -19,7 +19,7 @@
 - FEAT: Add support for the `type_definition.analytics_immediate` and `type_definition.analytics_threshold` alert types (preview), which trigger off a DataPrime query. Also flows through to `data-source/coralogix_alert`.
 
 #### resource/coralogix_enrichment
-- FIX: Roll back enrichments when the Add fails after the Delete during an update. The update deletes the existing enrichments and re-adds the new set in two separate calls; if the Add failed, the resource was left with all of its enrichments removed while state still showed them. The old set is now best-effort re-added on Add failure, the original Add error is still returned, and a rollback failure is reported as a separate diagnostic.
+- FIX: Roll back enrichments when the Add fails after the Delete during an update. The update deletes the existing enrichments and re-adds the new set in two separate calls; if the Add failed, the resource was left with all of its enrichments removed while state still showed them. The old set is now best-effort re-added on Add failure, the original Add error is still returned, and a rollback failure is reported as a separate diagnostic. The enrichments to delete are now taken from the pre-change configuration, so emptying or shrinking a fields set actually removes those enrichments from the backend.
 
 # Release 3.18.0
 

@@ -112,3 +112,90 @@ func TestResourceCoralogixEnrichmentUpdateRollsBackOnAddFailure(t *testing.T) {
 		t.Fatalf("expected the original Add error %q to be returned, got %q", addErr.Error(), diags[0].Summary)
 	}
 }
+
+// TestResourceCoralogixEnrichmentUpdateDeletesOldIdsWhenFieldsEmptied verifies
+// that when a fields set is emptied, the update flow still deletes the OLD
+// backend enrichments. Deletion IDs are derived from the pre-change set via
+// extractOldIdsFromEnrichment (d.GetChange), so an emptied set (proposed len 0)
+// no longer skips the Delete and orphans the old backend enrichments. This is
+// the regression Codex review comment 4121293986 flagged.
+func TestResourceCoralogixEnrichmentUpdateDeletesOldIdsWhenFieldsEmptied(t *testing.T) {
+	// Save and restore the package-level seams the update flow calls through.
+	origAdd, origDelete := addEnrichmentsFn, deleteEnrichmentsFn
+	defer func() {
+		addEnrichmentsFn = origAdd
+		deleteEnrichmentsFn = origDelete
+	}()
+
+	// Delete records its request and succeeds; Add succeeds so no rollback runs.
+	var deleteReqs []*cxsdk.DeleteEnrichmentsRequest
+	deleteEnrichmentsFn = func(_ context.Context, _ interface{}, req *cxsdk.DeleteEnrichmentsRequest) error {
+		deleteReqs = append(deleteReqs, req)
+		return nil
+	}
+	var addReqs []*cxsdk.AddEnrichmentsRequest
+	addEnrichmentsFn = func(_ context.Context, _ interface{}, req *cxsdk.AddEnrichmentsRequest) (any, error) {
+		addReqs = append(addReqs, req)
+		return nil, nil
+	}
+
+	// Build a *schema.ResourceData whose OLD (pre-change) state has geo_ip.0.fields
+	// with id=42, mirroring the rollback test's flatmap pattern. GetChange(old)
+	// then sees field 42.
+	r := ResourceCoralogixEnrichment()
+	field := map[string]interface{}{
+		"name": "coralogix.metadata.remote_ip",
+		"id":   42,
+	}
+	fieldHash := hashFields()(field)
+	prefix := fmt.Sprintf("geo_ip.0.fields.%d", fieldHash)
+	instanceState := &terraform.InstanceState{
+		ID: "geo_ip",
+		Attributes: map[string]string{
+			"geo_ip.#":          "1",
+			"geo_ip.0.fields.#": "1",
+			prefix + ".name":    "coralogix.metadata.remote_ip",
+			prefix + ".id":      strconv.Itoa(42),
+		},
+	}
+	d := r.Data(instanceState)
+
+	// Empty the geo_ip fields set so GetChange(new) is empty while GetChange(old)
+	// still carries field 42. d.Get would see the empty set and skip the Delete;
+	// extractOldIdsFromEnrichment must still surface id 42.
+	if err := d.Set("geo_ip", []interface{}{
+		map[string]interface{}{
+			"fields": schema.NewSet(hashFields(), []interface{}{}),
+		},
+	}); err != nil {
+		t.Fatalf("failed to set emptied geo_ip: %s", err)
+	}
+
+	// On the success path the update flow ends by calling
+	// resourceCoralogixEnrichmentRead, which needs a live *clientset.ClientSet
+	// (not one of the stubbable seams). With a nil meta that Read panics, so we
+	// recover from it here: the Delete/Add requests we assert on are already
+	// recorded by the time Read runs, and Read behaviour is out of scope for
+	// this test.
+	func() {
+		defer func() { _ = recover() }()
+		resourceCoralogixEnrichmentUpdate(context.Background(), d, nil)
+	}()
+
+	// Delete must be called exactly once, targeting the OLD enrichment id 42.
+	if len(deleteReqs) != 1 {
+		t.Fatalf("expected Delete to be called once, got %d", len(deleteReqs))
+	}
+	// EnrichmentIds is []*wrapperspb.UInt32Value.
+	gotIds := deleteReqs[0].GetEnrichmentIds()
+	if len(gotIds) != 1 {
+		t.Fatalf("expected Delete to target 1 enrichment id, got %d", len(gotIds))
+	}
+	if gotIds[0].GetValue() != 42 {
+		t.Fatalf("expected Delete to target old id 42, got %d", gotIds[0].GetValue())
+	}
+	// Add must be called exactly once (no rollback; the real Add succeeded).
+	if len(addReqs) != 1 {
+		t.Fatalf("expected Add to be called once, got %d", len(addReqs))
+	}
+}
