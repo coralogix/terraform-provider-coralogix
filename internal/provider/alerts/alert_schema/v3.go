@@ -136,7 +136,7 @@ func V3() schema.Schema {
 			// type is being inferred by the type_definition attribute
 			"type_definition": schema.SingleNestedAttribute{
 				Required:            true,
-				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold.",
+				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate (preview), analytics_threshold (preview).",
 				Attributes: map[string]schema.Attribute{
 					"logs_immediate": schema.SingleNestedAttribute{
 						Optional: true,
@@ -158,6 +158,8 @@ func V3() schema.Schema {
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 								path.MatchRoot("type_definition").AtName("flow"),
 								path.MatchRoot("type_definition").AtName("slo_threshold"),
+								path.MatchRoot("type_definition").AtName("analytics_immediate"),
+								path.MatchRoot("type_definition").AtName("analytics_threshold"),
 							),
 						},
 					},
@@ -629,6 +631,66 @@ func V3() schema.Schema {
 							},
 						},
 						MarkdownDescription: "SLO threshold alert type definition.",
+					},
+					"analytics_immediate": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"dataprime_query":          dataprimeQuerySchema(),
+							"no_data_policy":           analyticsNoDataPolicySchema(),
+							"use_rows_as_permutations": analyticsUseRowsAsPermutationsSchema(),
+							"timeframe_minutes":        analyticsTimeframeMinutesSchema(),
+							"custom_evaluation_delay":  evaluationDelaySchema(),
+						},
+						MarkdownDescription: "Analytics immediate alert type definition (preview) — fires as soon as the DataPrime " +
+							"query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`.",
+					},
+					"analytics_threshold": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"dataprime_query": dataprimeQuerySchema(),
+							"rules": schema.ListNestedAttribute{
+								Required: true,
+								// The API rejects fewer than 1 or more than 5 rules.
+								Validators: []validator.List{listvalidator.SizeBetween(1, 5)},
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: map[string]schema.Attribute{
+										"condition": schema.SingleNestedAttribute{
+											Required: true,
+											Attributes: map[string]schema.Attribute{
+												"threshold": schema.Float64Attribute{
+													Required:            true,
+													MarkdownDescription: "The value `target_column` is compared against.",
+												},
+											},
+										},
+										"override": overrideAlertSchema(),
+									},
+								},
+								MarkdownDescription: "The per-priority threshold rules, between 1 and 5. This is an ordered " +
+									"list: the API preserves and reads back the submitted order, and rules carry no server-side ID.",
+							},
+							"operator": schema.StringAttribute{
+								Required: true,
+								Validators: []validator.String{
+									stringvalidator.OneOf(alerttypes.ValidAnalyticsThresholdOperators...),
+								},
+								MarkdownDescription: fmt.Sprintf("The comparison operator applied to every threshold rule. Valid values: %q.", alerttypes.ValidAnalyticsThresholdOperators),
+							},
+							"target_column": schema.StringAttribute{
+								Required: true,
+								Validators: []validator.String{
+									stringvalidator.LengthAtMost(255),
+								},
+								MarkdownDescription: "The name of the numeric column in the DataPrime result to compare against the thresholds.",
+							},
+							"no_data_policy":           analyticsNoDataPolicySchema(),
+							"use_rows_as_permutations": analyticsUseRowsAsPermutationsSchema(),
+							"timeframe_minutes":        analyticsTimeframeMinutesSchema(),
+							"custom_evaluation_delay":  evaluationDelaySchema(),
+						},
+						MarkdownDescription: "Analytics threshold alert type definition (preview) — fires when a numeric column in the " +
+							"DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with " +
+							"`use_rows_as_permutations`.",
 					},
 				},
 			},

@@ -35,6 +35,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -129,7 +130,8 @@ func (p PriorityDeprecationWarning) ValidateString(ctx context.Context, req vali
 		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsRatioThreshold) ||
 		!utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsTimeRelativeThreshold) ||
 		!utils.ObjIsNullOrUnknown(typeDefinitionModel.MetricThreshold) ||
-		!utils.ObjIsNullOrUnknown(typeDefinitionModel.SloThreshold) {
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.SloThreshold) ||
+		!utils.ObjIsNullOrUnknown(typeDefinitionModel.AnalyticsThreshold) {
 		resp.Diagnostics.AddAttributeWarning(req.Path, "Deprecated Attribute", priorityDeprecationMessage)
 	}
 }
@@ -633,6 +635,113 @@ func noDataPolicySchema() schema.SingleNestedAttribute {
 	}
 }
 
+func dataprimeQuerySchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Required: true,
+		Attributes: map[string]schema.Attribute{
+			"query": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(1, 65535),
+				},
+				MarkdownDescription: "The DataPrime query to evaluate. Unlike the Coralogix expression " +
+					"languages (DPXL), a DataPrime query takes no `<v1>` version prefix.",
+			},
+		},
+		MarkdownDescription: "The DataPrime query that triggers the alert.",
+	}
+}
+
+// analyticsNoDataPolicyNotEmpty rejects a no_data_policy block that sets none of
+// its (all-optional) children. Such a block would otherwise round-trip as null on
+// read — extractNoDataPolicy collapses an all-null policy to nil and the API omits
+// it — and fail apply with "inconsistent result after apply: object, but now null".
+// Removing the block entirely is the supported way to leave the policy unset.
+type analyticsNoDataPolicyNotEmpty struct{}
+
+func (v analyticsNoDataPolicyNotEmpty) Description(ctx context.Context) string {
+	return "no_data_policy must set at least one attribute; remove the block to leave the policy unset."
+}
+
+func (v analyticsNoDataPolicyNotEmpty) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v analyticsNoDataPolicyNotEmpty) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	var model alerttypes.NoDataPolicyModel
+	if diags := req.ConfigValue.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	// An unknown child (variable-derived) leaves IsNull() false, so this only
+	// fires when every child is explicitly absent.
+	if model.State.IsNull() && model.AutoRetireSeconds.IsNull() {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Empty no_data_policy",
+			"no_data_policy must set at least one of state or auto_retire_seconds; remove the block to leave the policy unset.",
+		)
+	}
+}
+
+func analyticsNoDataPolicySchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional:   true,
+		Computed:   true,
+		Validators: []validator.Object{analyticsNoDataPolicyNotEmpty{}},
+		PlanModifiers: []planmodifier.Object{
+			objectplanmodifier.UseStateForUnknown(),
+		},
+		Attributes: map[string]schema.Attribute{
+			"auto_retire_seconds": schema.Int64Attribute{
+				Optional: true,
+				MarkdownDescription: "The timeframe in seconds for auto retiring values that were detected as no-data. " +
+					"Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`.",
+			},
+			"state": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseNonNullStateForUnknown(),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf(alerttypes.AcceptedNoDataPolicyStates...),
+					NoDataPolicyUnspecifiedDeprecationWarning{},
+				},
+				MarkdownDescription: fmt.Sprintf(
+					"No-data policy state. Preferred values: %q. "+
+						"`UNSPECIFIED` is a deprecated protobuf sentinel (not a UI option); omit `no_data_policy` for the same legacy behavior. "+
+						"It remains accepted with a warning and will be rejected in a future provider release.",
+					alerttypes.ValidNoDataPolicyStates,
+				),
+			},
+		},
+		MarkdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy " +
+			"persists; the Coralogix API does not clear it when the block is removed.",
+	}
+}
+
+func analyticsTimeframeMinutesSchema() schema.Int32Attribute {
+	return schema.Int32Attribute{
+		Required: true,
+		Validators: []validator.Int32{
+			int32validator.AtLeast(1),
+		},
+		MarkdownDescription: "The evaluation window duration, in minutes. Minimum 1.",
+	}
+}
+
+func analyticsUseRowsAsPermutationsSchema() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		Optional: true,
+		MarkdownDescription: "Whether each row of the DataPrime result is treated as a separate permutation. " +
+			"When omitted, the provider does not send a value and the backend applies its own default.",
+	}
+}
+
 func WebhooksSettingsAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"notify_on": types.StringType,
@@ -698,6 +807,54 @@ func AlertTypeDefinitionAttr() map[string]attr.Type {
 		"slo_threshold": types.ObjectType{
 			AttrTypes: SloThresholdAttr(),
 		},
+		"analytics_immediate": types.ObjectType{
+			AttrTypes: AnalyticsImmediateAttr(),
+		},
+		"analytics_threshold": types.ObjectType{
+			AttrTypes: AnalyticsThresholdAttr(),
+		},
+	}
+}
+
+func AnalyticsImmediateAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"dataprime_query":          types.ObjectType{AttrTypes: DataprimeQueryAttr()},
+		"no_data_policy":           types.ObjectType{AttrTypes: NoDataPolicyAttr()},
+		"use_rows_as_permutations": types.BoolType,
+		"timeframe_minutes":        types.Int32Type,
+		"custom_evaluation_delay":  types.Int32Type,
+	}
+}
+
+func AnalyticsThresholdAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"dataprime_query":          types.ObjectType{AttrTypes: DataprimeQueryAttr()},
+		"rules":                    types.ListType{ElemType: types.ObjectType{AttrTypes: AnalyticsThresholdRuleAttr()}},
+		"operator":                 types.StringType,
+		"target_column":            types.StringType,
+		"no_data_policy":           types.ObjectType{AttrTypes: NoDataPolicyAttr()},
+		"use_rows_as_permutations": types.BoolType,
+		"timeframe_minutes":        types.Int32Type,
+		"custom_evaluation_delay":  types.Int32Type,
+	}
+}
+
+func AnalyticsThresholdRuleAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"condition": types.ObjectType{AttrTypes: AnalyticsThresholdConditionAttr()},
+		"override":  types.ObjectType{AttrTypes: AlertOverrideAttr()},
+	}
+}
+
+func AnalyticsThresholdConditionAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"threshold": types.Float64Type,
+	}
+}
+
+func DataprimeQueryAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"query": types.StringType,
 	}
 }
 
