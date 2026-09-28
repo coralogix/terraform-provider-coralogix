@@ -1736,6 +1736,22 @@ func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
 					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},
+			// A no_data_policy that sets auto_retire_seconds but omits state: the API
+			// materializes state as UNSPECIFIED, which only an Optional+Computed state
+			// field can absorb (plain Optional fails apply with "was null, but now ...").
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsImmediatePartialNoDataPolicy(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.auto_retire_seconds", "3600"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state", "UNSPECIFIED"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsImmediatePartialNoDataPolicy(),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
 		},
 	})
 }
@@ -1822,6 +1838,27 @@ func testAccCoralogixResourceAlertAnalyticsImmediate() string {
       timeframe_minutes        = 45
       no_data_policy = {
         state               = "ALERTING"
+        auto_retire_seconds = 3600
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertAnalyticsImmediatePartialNoDataPolicy() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "analytics immediate alert"
+  description = "Example of analytics immediate alert from terraform"
+  priority    = "P3"
+
+  type_definition = {
+    analytics_immediate = {
+      dataprime_query = {
+        query = "source logs | count"
+      }
+      timeframe_minutes = 10
+      no_data_policy = {
         auto_retire_seconds = 3600
       }
     }
