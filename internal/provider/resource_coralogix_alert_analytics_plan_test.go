@@ -174,7 +174,7 @@ func TestPlanAnalyticsMinimalConfigIsStable(t *testing.T) {
 						"dataprime_query": {"query": "source logs | count"},
 						"no_data_policy": null,
 						"use_rows_as_permutations": null,
-						"timeframe_minutes": null,
+						"timeframe_minutes": 10,
 						"custom_evaluation_delay": null
 					}
 				}
@@ -199,7 +199,7 @@ func TestPlanAnalyticsMinimalConfigIsStable(t *testing.T) {
 						"target_column": "c",
 						"no_data_policy": null,
 						"use_rows_as_permutations": null,
-						"timeframe_minutes": null,
+						"timeframe_minutes": 10,
 						"custom_evaluation_delay": null
 					}
 				}
@@ -244,7 +244,7 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 				"dataprime_query": {"query": "source logs | count"},
 				"no_data_policy": {"state": "ALERTING", "auto_retire_seconds": 3600},
 				"use_rows_as_permutations": true,
-				"timeframe_minutes": 45,
+				"timeframe_minutes": 10,
 				"custom_evaluation_delay": 120000
 			}
 		}
@@ -261,7 +261,7 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 				"dataprime_query": {"query": "source logs | count"},
 				"no_data_policy": null,
 				"use_rows_as_permutations": null,
-				"timeframe_minutes": null,
+				"timeframe_minutes": 10,
 				"custom_evaluation_delay": null
 			}
 		}
@@ -279,7 +279,7 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 				"dataprime_query": {"query": "source logs | count"},
 				"no_data_policy": null,
 				"use_rows_as_permutations": null,
-				"timeframe_minutes": null,
+				"timeframe_minutes": 10,
 				"custom_evaluation_delay": null
 			}
 		}

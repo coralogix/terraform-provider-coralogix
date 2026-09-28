@@ -595,7 +595,7 @@ func TestExpandAnalyticsImmediate(t *testing.T) {
 			"dataprime_query":          dataprimeQueryObject("source logs | count"),
 			"no_data_policy":           types.ObjectNull(alertschema.NoDataPolicyAttr()),
 			"use_rows_as_permutations": types.BoolNull(),
-			"timeframe_minutes":        types.Int32Null(),
+			"timeframe_minutes":        types.Int32Value(10),
 			"custom_evaluation_delay":  types.Int32Null(),
 		})
 
@@ -609,9 +609,6 @@ func TestExpandAnalyticsImmediate(t *testing.T) {
 		}
 		if immediate.UseRowsAsPermutations != nil {
 			t.Errorf("UseRowsAsPermutations = %v, want nil", *immediate.UseRowsAsPermutations)
-		}
-		if immediate.TimeframeMinutes != nil {
-			t.Errorf("TimeframeMinutes = %v, want nil", *immediate.TimeframeMinutes)
 		}
 		if immediate.EvaluationDelayMs != nil {
 			t.Errorf("EvaluationDelayMs = %v, want nil", *immediate.EvaluationDelayMs)
@@ -627,9 +624,10 @@ func TestFlattenAnalyticsImmediate(t *testing.T) {
 	query, delay, timeframe, permutations, retire := "source logs | count", int32(120000), int32(45), true, int32(3600)
 	state := alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_ALERTING
 
-	t.Run("minimal read stays null", func(t *testing.T) {
+	t.Run("minimal read leaves optional leaves null", func(t *testing.T) {
 		got, diags := flattenAnalyticsImmediate(ctx, &alerts.AnalyticsImmediateType{
-			DataprimeQuery: &alerts.DataprimeAlertQuery{Query: &query},
+			DataprimeQuery:   &alerts.DataprimeAlertQuery{Query: &query},
+			TimeframeMinutes: &timeframe,
 		})
 		if diags.HasError() {
 			t.Fatalf("flattenAnalyticsImmediate returned diagnostics: %v", diags)
@@ -643,9 +641,6 @@ func TestFlattenAnalyticsImmediate(t *testing.T) {
 		}
 		if !model.UseRowsAsPermutations.IsNull() {
 			t.Errorf("use_rows_as_permutations = %v, want null", model.UseRowsAsPermutations)
-		}
-		if !model.TimeframeMinutes.IsNull() {
-			t.Errorf("timeframe_minutes = %v, want null", model.TimeframeMinutes)
 		}
 		if !model.CustomEvaluationDelay.IsNull() {
 			t.Errorf("custom_evaluation_delay = %v, want null", model.CustomEvaluationDelay)
@@ -825,29 +820,6 @@ func TestFlattenAnalyticsThreshold(t *testing.T) {
 		}
 	})
 
-	// The threshold API materializes an omitted timeframe_minutes as 0 on read.
-	// The schema forbids a user-supplied 0, so 0 means "unset" and must flatten to
-	// null; returning 0 instead fails apply with "was null, but now 0".
-	t.Run("timeframe_minutes of 0 flattens to null", func(t *testing.T) {
-		zero := int32(0)
-		got, diags := flattenAnalyticsThreshold(ctx, &alerts.AnalyticsThresholdType{
-			DataprimeQuery:   &alerts.DataprimeAlertQuery{Query: &query},
-			TargetColumn:     &targetColumn,
-			Operator:         alerts.ANALYTICSTHRESHOLDOPERATOR_ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED.Ptr(),
-			Rules:            []alerts.AnalyticsThresholdRule{rule(1, alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P2)},
-			TimeframeMinutes: &zero,
-		})
-		if diags.HasError() {
-			t.Fatalf("flattenAnalyticsThreshold returned diagnostics: %v", diags)
-		}
-		var model alerttypes.AnalyticsThresholdModel
-		if diags := got.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
-			t.Fatalf("As() returned diagnostics: %v", diags)
-		}
-		if !model.TimeframeMinutes.IsNull() {
-			t.Errorf("timeframe_minutes = %v, want null", model.TimeframeMinutes)
-		}
-	})
 }
 
 func TestExtractUndetectedValuesManagementForRatio(t *testing.T) {

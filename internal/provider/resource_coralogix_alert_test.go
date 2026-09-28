@@ -1724,7 +1724,7 @@ func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.dataprime_query.query", "source logs | count"),
 					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.use_rows_as_permutations"),
 					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.custom_evaluation_delay"),
-					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.timeframe_minutes"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.timeframe_minutes", "10"),
 					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state"),
 				),
 			},
@@ -1776,7 +1776,7 @@ func TestAccCoralogixResourceAlert_analytics_threshold(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.1.override.priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.2.condition.threshold", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.2.override.priority", "P2"),
-					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_threshold.timeframe_minutes"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.timeframe_minutes", "10"),
 				),
 			},
 			// An empty rules list is rejected by the schema validator, matching the
@@ -1841,6 +1841,7 @@ func testAccCoralogixResourceAlertAnalyticsImmediateMinimal() string {
       dataprime_query = {
         query = "source logs | count"
       }
+      timeframe_minutes = 10
     }
   }
 }
@@ -1899,8 +1900,9 @@ func testAccCoralogixResourceAlertAnalyticsThresholdOrderedRules() string {
           override  = { priority = "P2" }
         },
       ]
-      operator      = "MORE_THAN"
-      target_column = "error_count"
+      operator          = "MORE_THAN"
+      target_column     = "error_count"
+      timeframe_minutes = 10
     }
   }
 }
@@ -1924,8 +1926,9 @@ func testAccCoralogixResourceAlertAnalyticsThresholdSixRules() string {
         { condition = { threshold = 5 }, override = { priority = "P5" } },
         { condition = { threshold = 6 }, override = { priority = "P1" } },
       ]
-      operator      = "MORE_THAN"
-      target_column = "c"
+      operator          = "MORE_THAN"
+      target_column     = "c"
+      timeframe_minutes = 10
     }
   }
 }
@@ -1942,8 +1945,9 @@ func testAccCoralogixResourceAlertAnalyticsThresholdEmptyRules() string {
         query = "source logs | count as c"
       }
       rules         = []
-      operator      = "MORE_THAN"
-      target_column = "c"
+      operator          = "MORE_THAN"
+      target_column     = "c"
+      timeframe_minutes = 10
     }
   }
 }

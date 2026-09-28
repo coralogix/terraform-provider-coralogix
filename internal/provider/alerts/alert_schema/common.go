@@ -724,11 +724,11 @@ func analyticsNoDataPolicySchema() schema.SingleNestedAttribute {
 
 func analyticsTimeframeMinutesSchema() schema.Int32Attribute {
 	return schema.Int32Attribute{
-		Optional: true,
+		Required: true,
 		Validators: []validator.Int32{
 			int32validator.AtLeast(1),
 		},
-		MarkdownDescription: "The evaluation window duration, in minutes. When omitted, the provider does not send a timeframe.",
+		MarkdownDescription: "The evaluation window duration, in minutes. Minimum 1.",
 	}
 }
 

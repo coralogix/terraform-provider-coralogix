@@ -217,7 +217,7 @@ Read-Only:
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `dataprime_query` (Attributes) The DataPrime query that triggers the alert. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--dataprime_query))
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Omitted by default; removing the block clears the policy. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--no_data_policy))
-- `timeframe_minutes` (Number) The evaluation window duration, in minutes. When omitted, the provider does not send a timeframe.
+- `timeframe_minutes` (Number) The evaluation window duration, in minutes. Minimum 1.
 - `use_rows_as_permutations` (Boolean) Whether each row of the DataPrime result is treated as a separate permutation. When omitted, the provider does not send a value and the backend applies its own default.
 
 <a id="nestedatt--type_definition--analytics_immediate--dataprime_query"></a>
@@ -249,7 +249,7 @@ Read-Only:
 - `operator` (String) The comparison operator applied to every threshold rule. Valid values: ["EQUALS" "LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS" "NOT_EQUALS"].
 - `rules` (Attributes List) The per-priority threshold rules, between 1 and 5. This is an ordered list: the API preserves and reads back the submitted order, and rules carry no server-side ID. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules))
 - `target_column` (String) The name of the numeric column in the DataPrime result to compare against the thresholds.
-- `timeframe_minutes` (Number) The evaluation window duration, in minutes. When omitted, the provider does not send a timeframe.
+- `timeframe_minutes` (Number) The evaluation window duration, in minutes. Minimum 1.
 - `use_rows_as_permutations` (Boolean) Whether each row of the DataPrime result is treated as a separate permutation. When omitted, the provider does not send a value and the backend applies its own default.
 
 <a id="nestedatt--type_definition--analytics_threshold--dataprime_query"></a>
