@@ -892,7 +892,7 @@ Required:
 Optional:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
-- `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Omitted by default; removing the block clears the policy. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--no_data_policy))
+- `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_immediate--no_data_policy))
 - `use_rows_as_permutations` (Boolean) Whether each row of the DataPrime result is treated as a separate permutation. When omitted, the provider does not send a value and the backend applies its own default.
 
 <a id="nestedatt--type_definition--analytics_immediate--dataprime_query"></a>
@@ -927,7 +927,7 @@ Required:
 Optional:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
-- `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Omitted by default; removing the block clears the policy. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--no_data_policy))
+- `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--no_data_policy))
 - `use_rows_as_permutations` (Boolean) Whether each row of the DataPrime result is treated as a separate permutation. When omitted, the provider does not send a value and the backend applies its own default.
 
 <a id="nestedatt--type_definition--analytics_threshold--dataprime_query"></a>

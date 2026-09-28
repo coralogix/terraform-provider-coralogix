@@ -258,7 +258,7 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 		"type_definition": {
 			"analytics_immediate": {
 				"dataprime_query": {"query": "source logs | count"},
-				"no_data_policy": null,
+				"no_data_policy": {"state": "ALERTING", "auto_retire_seconds": 3600},
 				"use_rows_as_permutations": null,
 				"timeframe_minutes": 10,
 				"custom_evaluation_delay": null
@@ -276,7 +276,7 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 		"type_definition": {
 			"analytics_immediate": {
 				"dataprime_query": {"query": "source logs | count"},
-				"no_data_policy": null,
+				"no_data_policy": {"state": "ALERTING", "auto_retire_seconds": 3600},
 				"use_rows_as_permutations": null,
 				"timeframe_minutes": 10,
 				"custom_evaluation_delay": null

@@ -690,7 +690,11 @@ func (v analyticsNoDataPolicyNotEmpty) ValidateObject(ctx context.Context, req v
 func analyticsNoDataPolicySchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional:   true,
+		Computed:   true,
 		Validators: []validator.Object{analyticsNoDataPolicyNotEmpty{}},
+		PlanModifiers: []planmodifier.Object{
+			objectplanmodifier.UseStateForUnknown(),
+		},
 		Attributes: map[string]schema.Attribute{
 			"auto_retire_seconds": schema.Int64Attribute{
 				Optional: true,
@@ -715,8 +719,8 @@ func analyticsNoDataPolicySchema() schema.SingleNestedAttribute {
 				),
 			},
 		},
-		MarkdownDescription: "How to treat, and what state to give, an alert with no data. Omitted by default; " +
-			"removing the block clears the policy.",
+		MarkdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy " +
+			"persists; the Coralogix API does not clear it when the block is removed.",
 	}
 }
 

@@ -1716,8 +1716,9 @@ func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
 				ResourceName: alertResourceName,
 				ImportState:  true,
 			},
-			// Removing the optionals must clear them: PUT is a full replace, and an
-			// accidental Computed/UseStateForUnknown would silently preserve them.
+			// Removing the plain-Optional leaves (use_rows, custom_evaluation_delay)
+			// clears them. no_data_policy is Optional+Computed and sticky — the API
+			// keeps it when the config drops it — so it persists from the create step.
 			{
 				Config: testAccCoralogixResourceAlertAnalyticsImmediateMinimal(),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -1725,7 +1726,7 @@ func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
 					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.use_rows_as_permutations"),
 					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.custom_evaluation_delay"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.timeframe_minutes", "10"),
-					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state", "ALERTING"),
 				),
 			},
 			// The minimal config must not drift on re-plan.
@@ -1735,9 +1736,22 @@ func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
 					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
 			},
-			// A no_data_policy that sets auto_retire_seconds but omits state: the API
-			// materializes state as UNSPECIFIED, which only an Optional+Computed state
-			// field can absorb (plain Optional fails apply with "was null, but now ...").
+		},
+	})
+}
+
+// TestAccCoralogixResourceAlert_analytics_immediate_noDataPolicy covers the
+// Optional+Computed no_data_policy: a partial policy (auto_retire_seconds set, state
+// omitted) whose state the API materializes as UNSPECIFIED, and the fact that the
+// block is sticky — the API keeps it when the config drops it, so dropping it must
+// not fail apply nor drift.
+func TestAccCoralogixResourceAlert_analytics_immediate_noDataPolicy(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccAnalyticsAlertsPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			// Partial policy: state omitted, materialized to UNSPECIFIED on read.
 			{
 				Config: testAccCoralogixResourceAlertAnalyticsImmediatePartialNoDataPolicy(),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -1747,6 +1761,21 @@ func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
 			},
 			{
 				Config: testAccCoralogixResourceAlertAnalyticsImmediatePartialNoDataPolicy(),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			// Dropping the block does not clear it (the API keeps it) and must not
+			// crash or drift — it persists.
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsImmediateMinimal(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.auto_retire_seconds", "3600"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state", "UNSPECIFIED"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsImmediateMinimal(),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 				},
