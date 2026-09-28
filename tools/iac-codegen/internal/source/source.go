@@ -13,15 +13,19 @@ import (
 	"golang.org/x/mod/module"
 )
 
-const SDKModule = "github.com/coralogix/coralogix-management-sdk"
+const (
+	ProviderModule = "github.com/coralogix/terraform-provider-coralogix"
+	SDKModule      = "github.com/coralogix/coralogix-management-sdk"
+)
 
 // Input is one matched OpenAPI and SDK source.
 type Input struct {
-	ProviderRoot string
-	SDKDir       string
-	SDKModule    string
-	SDKVersion   string
-	OpenAPI      []byte
+	ProviderRoot   string
+	ProviderModule string
+	SDKDir         string
+	SDKModule      string
+	SDKVersion     string
+	OpenAPI        []byte
 }
 
 // Resolve walks from start to the provider go.mod and resolves its exact SDK version.
@@ -33,6 +37,9 @@ func Resolve(start string) (Input, error) {
 	parsed, err := modfile.Parse(filepath.Join(root, "go.mod"), data, nil)
 	if err != nil {
 		return Input{}, fmt.Errorf("parse provider go.mod: %w", err)
+	}
+	if parsed.Module == nil || parsed.Module.Mod.Path == "" {
+		return Input{}, errors.New("provider go.mod must declare a module path")
 	}
 	var versions []string
 	for _, req := range parsed.Require {
@@ -61,7 +68,7 @@ func Resolve(start string) (Input, error) {
 	if err != nil {
 		return Input{}, fmt.Errorf("read OpenAPI for pinned SDK %s from %s: %w; download the pinned module before generation", versions[0], openAPIPath, err)
 	}
-	return Input{ProviderRoot: root, SDKDir: sdkDir, SDKModule: SDKModule, SDKVersion: versions[0], OpenAPI: openAPI}, nil
+	return Input{ProviderRoot: root, ProviderModule: parsed.Module.Mod.Path, SDKDir: sdkDir, SDKModule: SDKModule, SDKVersion: versions[0], OpenAPI: openAPI}, nil
 }
 
 func findProviderModule(start string) (string, []byte, error) {

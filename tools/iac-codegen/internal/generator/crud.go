@@ -27,13 +27,14 @@ type crudData struct {
 	SDKName       string // package name of the resource SDK package
 	Client        string // SDK client type
 	Resource      string // SDK type of the resource
-	// The cxsdk package: the provider data type, the accessor of the client,
-	// and the error helpers.
-	CXPkg, CXName        string
-	ClientSet, Accessor  string
-	NewAPIError, APICode string
-	Create, Get          crudOp
-	Update, Delete       crudOp
+	// The provider clientset supplies provider data and the checked service
+	// accessor. The SDK cxsdk package supplies API error helpers.
+	ProviderPkg, ProviderName string
+	CXPkg, CXName             string
+	ClientSet, Accessor       string
+	NewAPIError, APICode      string
+	Create, Get               crudOp
+	Update, Delete            crudOp
 }
 
 // crudOp is the SDK call of one operation:
@@ -91,7 +92,10 @@ func buildCRUD(r *model.Resource, refs []sdkRef) (*crudData, error) {
 		}
 		out.UpdateID, out.UpdateIDValue = id.Name, id.Want == "string"
 	}
-	if err := cxsdkNames(ix, client.Name, out); err != nil {
+	if err := providerNames(ix, client.Name, out); err != nil {
+		return nil, err
+	}
+	if err := cxsdkNames(ix, out); err != nil {
 		return nil, err
 	}
 
@@ -157,13 +161,13 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 	return out, nil
 }
 
-// cxsdkNames sets the names from the handwritten cxsdk package (F17).
-func cxsdkNames(ix *refIndex, client string, out *crudData) error {
-	pkg, err := ix.pkgRef("cxsdk")
+// providerNames sets the provider clientset and accessor names (F17).
+func providerNames(ix *refIndex, client string, out *crudData) error {
+	pkg, err := ix.pkgRef("provider.clientset")
 	if err != nil {
 		return err
 	}
-	clientSet, err := ix.typeRef("cxsdk")
+	clientSet, err := ix.typeRef("provider.clientset")
 	if err != nil {
 		return err
 	}
@@ -174,6 +178,17 @@ func cxsdkNames(ix *refIndex, client string, out *crudData) error {
 	if want := "func() *" + ix.pkg.Name + "." + client; accessor.Want != want {
 		return fmt.Errorf("SDK method %s has type %s, want %s", accessor.sdkName(), accessor.Want, want)
 	}
+	out.ProviderPkg, out.ProviderName = pkg.Pkg, pkg.Name
+	out.ClientSet, out.Accessor = clientSet.Name, accessor.Name
+	return nil
+}
+
+// cxsdkNames sets the names of the SDK API error helpers.
+func cxsdkNames(ix *refIndex, out *crudData) error {
+	pkg, err := ix.pkgRef("cxsdk")
+	if err != nil {
+		return err
+	}
 	newAPIError, err := ix.funcRef("cxsdk.errors", "NewAPIError")
 	if err != nil {
 		return err
@@ -183,7 +198,6 @@ func cxsdkNames(ix *refIndex, client string, out *crudData) error {
 		return err
 	}
 	out.CXPkg, out.CXName = pkg.Pkg, pkg.Name
-	out.ClientSet, out.Accessor = clientSet.Name, accessor.Name
 	out.NewAPIError, out.APICode = newAPIError.Name, code.Name
 	return nil
 }

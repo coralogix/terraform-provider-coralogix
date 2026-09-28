@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
@@ -283,12 +284,61 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 			t.Errorf("mask.go lacks update contract fragment %q", fragment)
 		}
 	}
+	resource, err := os.ReadFile(filepath.Join("testdata", "golden", "thing", "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, fragment := range []string{
+		`req.ProviderData.(*clientset.ClientSet)`,
+		`if cxsdk.Code(err) == http.StatusNotFound {`,
+		`resp.Diagnostics.AddWarning("Resource disappeared during update"`,
+		`resp.State.RemoveResource(ctx)`,
+	} {
+		if !bytes.Contains(resource, []byte(fragment)) {
+			t.Errorf("resource.go lacks runtime contract fragment %q", fragment)
+		}
+	}
+}
+
+func TestRequestDefaultIsIneligible(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = bytes.Replace(input.OpenAPI,
+		[]byte("                enabled:\n                  type: boolean\n                  x-coralogix-presence: true"),
+		[]byte("                enabled:\n                  type: boolean\n                  default: false\n                  x-coralogix-presence: true"), 1)
+	err := generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "thing")}, input, loadDir)
+	var eligibility *EligibilityError
+	if !errors.As(err, &eligibility) || !strings.Contains(eligibility.Error(), "FIELD_DEFAULT_UNSUPPORTED") {
+		t.Fatalf("got %v, want request-default eligibility error", err)
+	}
+}
+
+func TestOptionalOneOfUsesNestedValidators(t *testing.T) {
+	choice := &model.Type{Kind: model.OneOf, Schema: "Choice", Fields: []*model.Field{
+		{Name: "first", Type: &model.Type{Kind: model.String}},
+		{Name: "second", Type: &model.Type{Kind: model.String}},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{{
+		Name: "choice", Type: choice, Behavior: model.Normal,
+		Create: &model.Attrs{Presence: true}, Update: &model.Attrs{Presence: true}, Get: &model.Attrs{}, InGet: true,
+	}}}
+	data, err := buildTFResource(resource, "thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data.ConfigValidators) != 0 {
+		t.Fatalf("optional oneOf has resource validators: %v", data.ConfigValidators)
+	}
+	for _, child := range data.Attributes[0].Attributes {
+		if len(child.Validators) != 1 || !strings.Contains(child.Validators[0], "validator.ExactlyOneOf(path.MatchRelative().AtParent().AtName") {
+			t.Errorf("%s validators = %v, want nested ExactlyOneOf", child.Name, child.Validators)
+		}
+	}
 }
 
 func TestGeneratedRuntimeSemantics(t *testing.T) {
-	input, sdkDir := syntheticInput(t)
+	input, loadDir := syntheticInput(t)
 	out := filepath.Join(t.TempDir(), "thing")
-	if err := generateFromInput(Options{Resource: "thing", OutputDir: out}, input, sdkDir); err != nil {
+	if err := generateFromInput(Options{Resource: "thing", OutputDir: out}, input, loadDir); err != nil {
 		t.Fatal(err)
 	}
 	semantics, err := os.ReadFile(filepath.Join("testdata", "semantics_test.go"))
@@ -298,17 +348,19 @@ func TestGeneratedRuntimeSemantics(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	module := fmt.Sprintf(`module example.com/generated-thing
+	module := fmt.Sprintf(`module github.com/coralogix/terraform-provider-coralogix/generated-test
 
 go 1.26.0
 
-require (
+	require (
 	example.com/iac-test-sdk v0.0.0
+	github.com/coralogix/terraform-provider-coralogix v0.0.0
 	github.com/hashicorp/terraform-plugin-framework v1.17.0
 )
 
 replace example.com/iac-test-sdk => %s
-`, sdkDir)
+replace github.com/coralogix/terraform-provider-coralogix => %s
+`, input.SDKDir, input.ProviderRoot)
 	if err := os.WriteFile(filepath.Join(out, "go.mod"), []byte(module), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -329,11 +381,8 @@ replace example.com/iac-test-sdk => %s
 }
 
 func TestSDKIssuesAreAggregated(t *testing.T) {
-	input, sdkDir := syntheticInput(t)
-	brokenSDK := filepath.Join(t.TempDir(), "sdk")
-	if err := copyTree(sdkDir, brokenSDK); err != nil {
-		t.Fatal(err)
-	}
+	input, loadDir := copiedSyntheticInput(t)
+	brokenSDK := input.SDKDir
 	path := filepath.Join(brokenSDK, "go", "openapi", "gen", "things_service", "things.go")
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -345,7 +394,7 @@ func TestSDKIssuesAreAggregated(t *testing.T) {
 		t.Fatal(err)
 	}
 	input.SDKDir = brokenSDK
-	err = generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "thing")}, input, brokenSDK)
+	err = generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "thing")}, input, loadDir)
 	var eligibility *EligibilityError
 	if !errors.As(err, &eligibility) {
 		t.Fatalf("got %v, want EligibilityError", err)
@@ -362,11 +411,8 @@ func TestSDKIssuesAreAggregated(t *testing.T) {
 }
 
 func TestOptionalSDKValuesNeedPointers(t *testing.T) {
-	input, sdkDir := syntheticInput(t)
-	brokenSDK := filepath.Join(t.TempDir(), "sdk")
-	if err := copyTree(sdkDir, brokenSDK); err != nil {
-		t.Fatal(err)
-	}
+	input, loadDir := copiedSyntheticInput(t)
+	brokenSDK := input.SDKDir
 	path := filepath.Join(brokenSDK, "go", "openapi", "gen", "things_service", "things.go")
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -377,15 +423,35 @@ func TestOptionalSDKValuesNeedPointers(t *testing.T) {
 		t.Fatal(err)
 	}
 	input.SDKDir = brokenSDK
-	err = generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "thing")}, input, brokenSDK)
+	err = generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "thing")}, input, loadDir)
 	var eligibility *EligibilityError
 	if !errors.As(err, &eligibility) || !strings.Contains(eligibility.Error(), "type is bool, want *bool") {
 		t.Fatalf("got %v, want pointer-presence eligibility error", err)
 	}
 }
 
+func TestProviderClientAccessorMustMatchSDKClient(t *testing.T) {
+	input, loadDir := copiedSyntheticInput(t)
+	path := filepath.Join(input.ProviderRoot, "internal", "clientset", "clientset.go")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = bytes.Replace(data,
+		[]byte("func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }"),
+		[]byte("func (*ClientSet) Wrong() string { return \"\" }"), 1)
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err = generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "thing")}, input, loadDir)
+	var eligibility *EligibilityError
+	if !errors.As(err, &eligibility) || !strings.Contains(eligibility.Error(), "SDK_SYMBOL_MISSING") {
+		t.Fatalf("got %v, want provider-accessor eligibility error", err)
+	}
+}
+
 func TestFullReplaceGeneration(t *testing.T) {
-	input, sdkDir := syntheticInput(t)
+	input, loadDir := copiedSyntheticInput(t)
 	text := strings.Replace(string(input.OpenAPI), "    patch:\n", "    put:\n", 1)
 	text = strings.Replace(text, "ThingsService_UpdateThing", "ThingsService_ReplaceThing", 1)
 	start := strings.Index(text, "                updateMask:\n")
@@ -394,10 +460,7 @@ func TestFullReplaceGeneration(t *testing.T) {
 		t.Fatal("cannot locate updateMask block")
 	}
 	input.OpenAPI = []byte(text[:start] + text[start+end:])
-	putSDK := filepath.Join(t.TempDir(), "sdk")
-	if err := copyTree(sdkDir, putSDK); err != nil {
-		t.Fatal(err)
-	}
+	putSDK := input.SDKDir
 	path := filepath.Join(putSDK, "go", "openapi", "gen", "things_service", "things.go")
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -410,7 +473,7 @@ func TestFullReplaceGeneration(t *testing.T) {
 	}
 	input.SDKDir = putSDK
 	out := filepath.Join(t.TempDir(), "thing")
-	if err := generateFromInput(Options{Resource: "thing", OutputDir: out}, input, putSDK); err != nil {
+	if err := generateFromInput(Options{Resource: "thing", OutputDir: out}, input, loadDir); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(out, "replace.go")); err != nil {
@@ -475,7 +538,28 @@ func syntheticInput(t *testing.T) (source.Input, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return source.Input{SDKDir: sdkDir, SDKModule: "example.com/iac-test-sdk", OpenAPI: data}, sdkDir
+	providerDir, err := filepath.Abs(filepath.Join("testdata", "provider"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return source.Input{ProviderRoot: providerDir, ProviderModule: source.ProviderModule, SDKDir: sdkDir, SDKModule: "example.com/iac-test-sdk", OpenAPI: data}, providerDir
+}
+
+func copiedSyntheticInput(t *testing.T) (source.Input, string) {
+	t.Helper()
+	input, _ := syntheticInput(t)
+	root := t.TempDir()
+	sdkDir := filepath.Join(root, "sdk")
+	providerDir := filepath.Join(root, "provider")
+	if err := copyTree(input.SDKDir, sdkDir); err != nil {
+		t.Fatal(err)
+	}
+	if err := copyTree(input.ProviderRoot, providerDir); err != nil {
+		t.Fatal(err)
+	}
+	input.SDKDir = sdkDir
+	input.ProviderRoot = providerDir
+	return input, providerDir
 }
 
 func compareDirectories(wantDir, gotDir string) string {

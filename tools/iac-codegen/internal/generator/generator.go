@@ -66,7 +66,7 @@ func Check(options CheckOptions) error {
 	if err != nil {
 		return fmt.Errorf("read candidate OpenAPI %s: %w", options.OpenAPIPath, err)
 	}
-	_, err = validateOpenAPI(data, options.Resource, options.OperationIDs, "candidate.invalid/coralogix-management-sdk")
+	_, err = validateOpenAPI(data, options.Resource, options.OperationIDs, "candidate.invalid/coralogix-management-sdk", source.ProviderModule)
 	return err
 }
 
@@ -77,7 +77,7 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if err != nil {
 		return err
 	}
-	validated, err := validateOpenAPI(input.OpenAPI, options.Resource, options.OperationIDs, input.SDKModule)
+	validated, err := validateOpenAPI(input.OpenAPI, options.Resource, options.OperationIDs, input.SDKModule, input.ProviderModule)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func validateOptions(options Options) (string, error) {
 // validateOpenAPI is the single OpenAPI eligibility path for Check and Generate.
 // sdkModule only supplies deterministic expected SDK import names. This function
 // does not load Go packages.
-func validateOpenAPI(data []byte, resourceName string, operationIDs model.OperationIDs, sdkModule string) (*validatedResource, error) {
+func validateOpenAPI(data []byte, resourceName string, operationIDs model.OperationIDs, sdkModule, providerModule string) (*validatedResource, error) {
 	doc, err := model.Load(data)
 	if err != nil {
 		code := "OPENAPI_INVALID"
@@ -139,7 +139,7 @@ func validateOpenAPI(data []byte, resourceName string, operationIDs model.Operat
 	if err != nil {
 		return nil, eligibilityIssue("OPERATION_TAG_INCOMPATIBLE", "paths", err, "Give every lifecycle operation exactly one matching SDK package tag.")
 	}
-	refs, err := resolveSDKNames(resource, tag, sdkModule)
+	refs, err := resolveSDKNames(resource, tag, sdkModule, providerModule)
 	if err != nil {
 		return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", "resource", err, "Use OpenAPI shapes that have deterministic generated Go SDK names and types.")
 	}
@@ -162,8 +162,14 @@ func sdkIssues(refs []sdkRef, loaded map[string]*packages.Package, input source.
 		if pkg == nil || pkg.Module == nil {
 			continue
 		}
-		if pkg.Module.Path != input.SDKModule || input.SDKVersion != "" && pkg.Module.Version != input.SDKVersion || input.SDKDir != "" && !samePath(pkg.Module.Dir, input.SDKDir) {
-			report = append(report, issue.Issue{Code: "SDK_SOURCE_MISMATCH", Location: ref.Pkg, Message: fmt.Sprintf("The loaded package comes from module %s %s at %s; expected %s %s at %s.", pkg.Module.Path, pkg.Module.Version, pkg.Module.Dir, input.SDKModule, input.SDKVersion, input.SDKDir), Remediation: "Load the Go SDK and OpenAPI from the same provider-pinned module version."})
+		expectedModule, expectedVersion, expectedDir := input.SDKModule, input.SDKVersion, input.SDKDir
+		remediation := "Load the Go SDK and OpenAPI from the same provider-pinned module version."
+		if ref.Rule == ruleProviderClientSet {
+			expectedModule, expectedVersion, expectedDir = input.ProviderModule, "", input.ProviderRoot
+			remediation = "Load the provider clientset from the same provider checkout."
+		}
+		if pkg.Module.Path != expectedModule || expectedVersion != "" && pkg.Module.Version != expectedVersion || expectedDir != "" && !samePath(pkg.Module.Dir, expectedDir) {
+			report = append(report, issue.Issue{Code: "SDK_SOURCE_MISMATCH", Location: ref.Pkg, Message: fmt.Sprintf("The loaded package comes from module %s %s at %s; expected %s %s at %s.", pkg.Module.Path, pkg.Module.Version, pkg.Module.Dir, expectedModule, expectedVersion, expectedDir), Remediation: remediation})
 		}
 	}
 	for index := range refs {

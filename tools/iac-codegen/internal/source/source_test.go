@@ -22,7 +22,7 @@ func TestResolveUsesProviderPinnedSDK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if input.ProviderRoot != root || input.SDKVersion != version || string(input.OpenAPI) != string(openAPI) {
+	if input.ProviderRoot != root || input.ProviderModule != "example.com/provider" || input.SDKVersion != version || string(input.OpenAPI) != string(openAPI) {
 		t.Fatalf("resolved %+v", input)
 	}
 }

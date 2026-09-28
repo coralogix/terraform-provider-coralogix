@@ -156,10 +156,42 @@ func validateFieldContract(name, field string, create, update, get *base.Schema)
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
 	}
 	report := fieldTypeIssues(location, gp, cp, up)
+	report = append(report, requestDefaultIssues(location+".create", cp, map[*base.Schema]bool{})...)
+	report = append(report, requestDefaultIssues(location+".update", up, map[*base.Schema]bool{})...)
 	report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
 	report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
 	report = append(report, nestedReadOnlyIssues(location+".create", cp, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(location+".update", up, map[*base.Schema]bool{})...)
+	return report
+}
+
+func requestDefaultIssues(location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+	if proxy == nil {
+		return nil
+	}
+	schema, err := schemaOf(proxy)
+	if err != nil || seen[schema] {
+		return nil
+	}
+	seen[schema] = true
+	var report issue.Report
+	if schema.Default != nil {
+		report = append(report, issue.Issue{
+			Code:        "FIELD_DEFAULT_UNSUPPORTED",
+			Location:    location,
+			Message:     "The request field has an OpenAPI default. Terraform must preserve the difference between omission and an explicit value.",
+			Remediation: "Remove the request default. A future contract can allow it only when omission and the default are proven equivalent.",
+		})
+	}
+	for _, name := range propertyNames(schema) {
+		report = append(report, requestDefaultIssues(location+"."+name, schema.Properties.GetOrZero(name), seen)...)
+	}
+	if schema.Items != nil && schema.Items.IsA() {
+		report = append(report, requestDefaultIssues(location+"[]", schema.Items.A, seen)...)
+	}
+	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
+		report = append(report, requestDefaultIssues(location+"{}", schema.AdditionalProperties.A, seen)...)
+	}
 	return report
 }
 
