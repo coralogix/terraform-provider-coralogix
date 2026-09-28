@@ -9,7 +9,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -44,8 +46,11 @@ func KeyAttributes() map[string]schema.Attribute {
 			MarkdownDescription: "The permissions. Order does not matter.",
 		},
 		"presets": schema.ListAttribute{
-			Optional:            true,
-			ElementType:         types.StringType,
+			Optional:    true,
+			ElementType: types.StringType,
+			Validators: []validator.List{
+				listvalidator.SizeAtLeast(1),
+			},
 			MarkdownDescription: "The preset names.",
 		},
 		"updated_by": schema.StringAttribute{
@@ -73,8 +78,11 @@ func KeyAttributes() map[string]schema.Attribute {
 					MarkdownDescription: "The permissions. Order does not matter.",
 				},
 				"presets": schema.ListAttribute{
-					Optional:            true,
-					ElementType:         types.StringType,
+					Optional:    true,
+					ElementType: types.StringType,
+					Validators: []validator.List{
+						listvalidator.SizeAtLeast(1),
+					},
 					MarkdownDescription: "The preset names.",
 				},
 				"updated_by": schema.StringAttribute{
@@ -93,8 +101,11 @@ func KeyAttributes() map[string]schema.Attribute {
 					MarkdownDescription: "The permissions. Order does not matter.",
 				},
 				"presets": schema.ListAttribute{
-					Optional:            true,
-					ElementType:         types.StringType,
+					Optional:    true,
+					ElementType: types.StringType,
+					Validators: []validator.List{
+						listvalidator.SizeAtLeast(1),
+					},
 					MarkdownDescription: "The preset names.",
 				},
 				"updated_by": schema.StringAttribute{
@@ -166,7 +177,10 @@ func KeyAttributes() map[string]schema.Attribute {
 			MarkdownDescription: "Holds the API fields retryMinutes of Key.",
 		},
 		"ratio": schema.Float64Attribute{
-			Optional:            true,
+			Optional: true,
+			Validators: []validator.Float64{
+				float64validator.Between(-3.4028234663852886e+38, 3.4028234663852886e+38),
+			},
 			MarkdownDescription: "A float that Terraform shows as a Float64 (wide).",
 		},
 		"kind": schema.StringAttribute{

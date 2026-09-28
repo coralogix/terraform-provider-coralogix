@@ -43,6 +43,11 @@ func expandRouting(ctx context.Context, p path.Path, m *RoutingModel, diags *dia
 	out.RoutingName = expandString(m.RoutingName)
 	out.Delivery = expandEnumName(p.AtName("delivery"), m.Delivery, DeliveryByName, diags)
 	out.Channels = expandEnumNames(ctx, p.AtName("channels"), m.Channels, DeliveryByName, diags)
+	// emptyAsNull reads an empty value back as null. The validator refuses a
+	// known empty one; this refuses one that was unknown at plan time.
+	if out.Channels != nil && len(out.Channels) == 0 {
+		diags.AddAttributeError(p.AtName("channels"), "Invalid value", "The value is empty, so it would read back as null: set at least one element, or leave it out.")
+	}
 	if items := expandElements[TargetModel](ctx, p.AtName("targets"), m.Targets, diags); items != nil {
 		out.Targets = make([]fake_boards_service.Target, 0, len(items))
 		for i := range items {

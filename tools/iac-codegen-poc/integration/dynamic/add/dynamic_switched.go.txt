@@ -1,0 +1,288 @@
+// Copyright 2026 Coralogix Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package dashboard_widgets
+
+import (
+	"context"
+	"fmt"
+	"math"
+	"reflect"
+
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets/dynamictypes"
+)
+
+// The dynamic widget runs on the generated types of the API type
+// widgets.Dynamic (dynamictypes). This file has the rules that the API does
+// not have and only Terraform has: the widget needs a title, primary_value
+// cannot use mapped_values, the plan checks of the handwritten schema that
+// the spec lacks or has stricter stay, new query definitions and table parts
+// get an id,
+// a data prime query always sends its query object, and a widget that the
+// typed schema cannot hold (an unknown query or visualization, or the
+// deprecated top-level query) is refused on read.
+
+// SwitchedDynamicSchema is the attribute of the dynamic widget.
+func SwitchedDynamicSchema() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional:   true,
+		Attributes: switchedDynamicAttributes(),
+		Validators: []validator.Object{
+			objectvalidator.AlsoRequires(
+				path.MatchRelative().AtParent().AtParent().AtName("title"),
+			),
+		},
+	}
+}
+
+// switchedDynamicAttributes are the generated attributes, with the
+// validator of primary_value.mapped_values (the API type of mapped_values is
+// shared by label, title, and primary_value, so the overrides cannot put it
+// on one of them), and the one that makes a query set one of its kinds (the
+// API query is a value, so the overrides cannot read an empty one as null).
+func switchedDynamicAttributes() map[string]schema.Attribute {
+	attrs := dynamictypes.WidgetsDynamicAttributes()
+	definitions := attrs["query_definitions"].(schema.ListNestedAttribute)
+	query := definitions.NestedObject.Attributes["query"].(schema.SingleNestedAttribute)
+	query.Validators = append(query.Validators, ExactlyOneOfChildren("logs", "spans", "metrics", "data_prime"))
+	definitions.NestedObject.Attributes["query"] = query
+	attrs["query_definitions"] = definitions
+	keepHandwrittenPlanChecks(attrs)
+	visualization := attrs["visualization"].(schema.SingleNestedAttribute).Attributes
+	statCard := visualization["stat_card"].(schema.SingleNestedAttribute).Attributes
+	primaryValue := statCard["primary_value"].(schema.SingleNestedAttribute).Attributes
+	mappedValues := primaryValue["mapped_values"].(schema.BoolAttribute)
+	mappedValues.Validators = append(mappedValues.Validators, unsupportedMappedValuesValidator{})
+	primaryValue["mapped_values"] = mappedValues
+	return attrs
+}
+
+// keepHandwrittenPlanChecks adds the plan checks of the handwritten schema
+// that the spec lacks, and puts back the handwritten range where the spec has
+// a stricter one, so a configuration that the plan accepted before still
+// passes, and one that it refused is still refused:
+//   - percent of a logs or spans aggregation is between 0 and 100;
+//   - color_label_mapping sets exactly one of range, value, and regex (it also
+//     has color_by, so the generated at-least-one-of does not cover it);
+//   - decimal_precision is any int32 (the spec has 0 to 15).
+func keepHandwrittenPlanChecks(attrs map[string]schema.Attribute) {
+	for _, kind := range []string{"logs", "spans"} {
+		updateDynamicAttribute(attrs, []string{"query_definitions", "query", kind, "aggregations", "percent"}, func(a schema.Attribute) schema.Attribute {
+			f := a.(schema.Float64Attribute)
+			f.Validators = append(f.Validators, float64validator.Between(0, 100))
+			return f
+		})
+	}
+	updateDynamicAttribute(attrs, []string{"visualization", "stat_card", "color_label_mapping"}, func(a schema.Attribute) schema.Attribute {
+		o := a.(schema.SingleNestedAttribute)
+		o.Validators = append(o.Validators, ExactlyOneOfChildren("range", "value", "regex"))
+		return o
+	})
+	walkDynamicAttributes(attrs, func(name string, a schema.Attribute) schema.Attribute {
+		if i, ok := a.(schema.Int64Attribute); ok && name == "decimal_precision" {
+			i.Validators = []validator.Int64{int64validator.Between(math.MinInt32, math.MaxInt32)}
+			return i
+		}
+		return a
+	})
+}
+
+// updateDynamicAttribute replaces the attribute at the names, through single
+// and list nested attributes, with f of it.
+func updateDynamicAttribute(attrs map[string]schema.Attribute, names []string, f func(schema.Attribute) schema.Attribute) {
+	a, ok := attrs[names[0]]
+	if !ok {
+		panic(fmt.Sprintf("dynamic widget schema: no attribute %q", names[0]))
+	}
+	if len(names) == 1 {
+		attrs[names[0]] = f(a)
+		return
+	}
+	switch n := a.(type) {
+	case schema.SingleNestedAttribute:
+		updateDynamicAttribute(n.Attributes, names[1:], f)
+	case schema.ListNestedAttribute:
+		updateDynamicAttribute(n.NestedObject.Attributes, names[1:], f)
+	default:
+		panic(fmt.Sprintf("dynamic widget schema: %q is a %T, not a nested attribute", names[0], a))
+	}
+}
+
+// walkDynamicAttributes replaces each attribute, at any depth, with f of its
+// name and itself.
+func walkDynamicAttributes(attrs map[string]schema.Attribute, f func(string, schema.Attribute) schema.Attribute) {
+	for name, a := range attrs {
+		switch n := a.(type) {
+		case schema.SingleNestedAttribute:
+			walkDynamicAttributes(n.Attributes, f)
+		case schema.ListNestedAttribute:
+			walkDynamicAttributes(n.NestedObject.Attributes, f)
+		}
+		attrs[name] = f(name, a)
+	}
+}
+
+// SwitchedDynamicType is the Terraform type of the dynamic widget.
+func SwitchedDynamicType() types.ObjectType {
+	return types.ObjectType{AttrTypes: dynamictypes.WidgetsDynamicAttrTypes()}
+}
+
+// ExpandSwitchedDynamic returns the API definition of the dynamic widget m.
+// A query definition, table rule, table property, or link action with a
+// null or unknown id gets a new one, as in the other widgets
+// (ExpandDashboardIDs, ExpandDashboardUUID).
+func ExpandSwitchedDynamic(ctx context.Context, m *dynamictypes.WidgetsDynamicModel) (*dashboardservice.WidgetDefinition, diag.Diagnostics) {
+	if m == nil {
+		return nil, nil
+	}
+	m, diags := withQueryDefinitionIDs(ctx, m)
+	if diags.HasError() {
+		return nil, diags
+	}
+	dynamic, d := dynamictypes.ExpandWidgetsDynamic(ctx, path.Empty(), m)
+	diags.Append(d...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	fillTableIDs(dynamic.Visualization)
+	for i := range dynamic.QueryDefinitions {
+		// A data prime query always has its query object, empty for a null
+		// query, as the handwritten code sends it.
+		if dp := dynamic.QueryDefinitions[i].Query.Dataprime; dp != nil && dp.DataprimeQuery == nil {
+			dp.DataprimeQuery = &dashboardservice.CommonDataprimeQuery{}
+		}
+	}
+	return &dashboardservice.WidgetDefinition{Dynamic: dynamic}, diags
+}
+
+// withQueryDefinitionIDs returns m with a new id for each query definition
+// whose id is null or unknown. The API id is a string value, so after expand
+// a null id and "" are the same; the model tells them apart.
+func withQueryDefinitionIDs(ctx context.Context, m *dynamictypes.WidgetsDynamicModel) (*dynamictypes.WidgetsDynamicModel, diag.Diagnostics) {
+	if m.QueryDefinitions.IsNull() || m.QueryDefinitions.IsUnknown() {
+		return m, nil
+	}
+	var items []dynamictypes.DynamicQueryDefinitionModel
+	diags := m.QueryDefinitions.ElementsAs(ctx, &items, false)
+	if diags.HasError() {
+		return nil, diags
+	}
+	for i := range items {
+		if items[i].Id.IsNull() || items[i].Id.IsUnknown() {
+			items[i].Id = types.StringValue(uuid.NewString())
+		}
+	}
+	out := *m
+	var d diag.Diagnostics
+	out.QueryDefinitions, d = types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dynamictypes.DynamicQueryDefinitionAttrTypes()}, items)
+	diags.Append(d...)
+	return &out, diags
+}
+
+// fillTableIDs gives each table rule, property, and link action with no id a
+// new one. A null id sends no UUID object, and "" sends {"value": ""}.
+func fillTableIDs(v *dashboardservice.Visualization) {
+	if v == nil || v.Table == nil {
+		return
+	}
+	newID := func(id **dashboardservice.UUID) {
+		if *id == nil {
+			value := uuid.NewString()
+			*id = &dashboardservice.UUID{Value: &value}
+		}
+	}
+	for i := range v.Table.Rules {
+		rule := &v.Table.Rules[i]
+		newID(&rule.Id)
+		for j := range rule.Properties {
+			property := &rule.Properties[j]
+			newID(&property.Id)
+			if property.Definition == nil || property.Definition.Link == nil {
+				continue
+			}
+			for k := range property.Definition.Link.Actions {
+				newID(&property.Definition.Link.Actions[k].Id)
+			}
+		}
+	}
+}
+
+// FlattenSwitchedDynamic returns the model of the API dynamic widget v. It
+// refuses a widget that the typed schema cannot hold, instead of writing a
+// state that loses part of it.
+func FlattenSwitchedDynamic(ctx context.Context, v *dashboardservice.WidgetsDynamic) (*dynamictypes.WidgetsDynamicModel, diag.Diagnostics) {
+	if v == nil {
+		return nil, nil
+	}
+	// The deprecated top-level query has no typed equivalent, and the API stores
+	// and returns it verbatim rather than migrating it to query_definitions.
+	if v.Query != nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Unsupported Dashboard Widget Definition",
+			"The dynamic widget uses the deprecated top-level `query`, which this provider cannot represent as typed HCL. Manage this dashboard with `content_json`, or move the widget to `query_definitions`, which holds the same queries.",
+		)}
+	}
+	m, diags := dynamictypes.FlattenWidgetsDynamic(ctx, path.Empty(), v)
+	if diags.HasError() {
+		return nil, diags
+	}
+	for i := range v.QueryDefinitions {
+		if noFieldSet(v.QueryDefinitions[i].Query.Logs, v.QueryDefinitions[i].Query.Spans, v.QueryDefinitions[i].Query.Metrics, v.QueryDefinitions[i].Query.Dataprime) {
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dynamic Query", "unknown dynamic query type")}
+		}
+	}
+	if v.Visualization != nil && noFieldSet(m.Visualization) {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
+			"Unsupported Dashboard Widget Definition",
+			"The dynamic widget uses a visualization variant this provider version cannot represent as typed HCL. Manage this dashboard with `content_json` until that visualization is supported.",
+		)}
+	}
+	return m, diags
+}
+
+// noFieldSet reports whether each of the pointers is nil, or the one
+// struct pointer has only nil fields: the API sent a oneOf arm that the SDK
+// does not know.
+func noFieldSet(pointers ...any) bool {
+	if len(pointers) == 1 {
+		v := reflect.ValueOf(pointers[0])
+		if v.IsNil() {
+			return true
+		}
+		v = v.Elem()
+		for i := range v.NumField() {
+			if !v.Field(i).IsNil() {
+				return false
+			}
+		}
+		return true
+	}
+	for _, p := range pointers {
+		if !reflect.ValueOf(p).IsNil() {
+			return false
+		}
+	}
+	return true
+}

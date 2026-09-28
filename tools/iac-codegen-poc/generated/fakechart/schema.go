@@ -121,10 +121,14 @@ func ChartAttributes() map[string]schema.Attribute {
 		},
 		"min_max": schema.SingleNestedAttribute{
 			Optional: true,
+			Validators: []validator.Object{
+				notEmptyValidator{},
+			},
 			Attributes: map[string]schema.Attribute{
 				"auto": schema.BoolAttribute{
 					Optional: true,
 					Validators: []validator.Bool{
+						trueValidator{},
 						boolvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("custom")),
 					},
 					MarkdownDescription: "",
@@ -150,10 +154,54 @@ func ChartAttributes() map[string]schema.Attribute {
 			MarkdownDescription: "The range of the axis.",
 		},
 		"mapped_values": schema.BoolAttribute{
-			Optional:            true,
+			Optional: true,
+			Validators: []validator.Bool{
+				trueValidator{},
+			},
 			MarkdownDescription: "Show mapped values. Terraform has a bool, as dashboards mapped_values.",
 		},
 	}
+}
+
+// trueValidator is the validator of an empty API object shown as a Bool (the
+// bool override). A false would be sent as nothing and read back as null,
+// so it must be left out instead.
+type trueValidator struct{}
+
+func (trueValidator) Description(context.Context) string {
+	return "value must be true when set"
+}
+
+func (v trueValidator) MarkdownDescription(ctx context.Context) string { return v.Description(ctx) }
+
+func (trueValidator) ValidateBool(_ context.Context, req validator.BoolRequest, resp *validator.BoolResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.ConfigValue.ValueBool() {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(req.Path, "Invalid value", "this marker must be true when set; omit it otherwise")
+}
+
+// notEmptyValidator is the validator of an object that the emptyAsNull
+// override reads back as null when no attribute is set: such an object must
+// set one, or be left out.
+type notEmptyValidator struct{}
+
+func (notEmptyValidator) Description(context.Context) string {
+	return "at least one attribute must be set"
+}
+
+func (v notEmptyValidator) MarkdownDescription(ctx context.Context) string { return v.Description(ctx) }
+
+func (notEmptyValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	for _, a := range req.ConfigValue.Attributes() {
+		if !a.IsNull() {
+			return // an unknown value can still be set
+		}
+	}
+	resp.Diagnostics.AddAttributeError(req.Path, "Invalid value", "The block sets no attribute, so it would read back as null: set one, or leave the block out.")
 }
 
 // typeStringValidator checks an object of the typeStrings override: type

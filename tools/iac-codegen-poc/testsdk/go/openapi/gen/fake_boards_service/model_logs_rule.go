@@ -24,6 +24,8 @@ var _ MappedNullable = &LogsRule{}
 type LogsRule struct {
 	// The query.
 	Query *string `json:"query,omitempty"`
+	// The time window. Terraform has an object of its own shape, as dashboards time_frame.
+	Window *TimeWindow `json:"window,omitempty"`
 	AdditionalProperties map[string]interface{}
 	additionalPropertiesFromUnmarshal bool
 }
@@ -79,6 +81,38 @@ func (o *LogsRule) SetQuery(v string) {
 	o.Query = &v
 }
 
+// GetWindow returns the Window field value if set, zero value otherwise.
+func (o *LogsRule) GetWindow() TimeWindow {
+	if o == nil || IsNil(o.Window) {
+		var ret TimeWindow
+		return ret
+	}
+	return *o.Window
+}
+
+// GetWindowOk returns a tuple with the Window field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *LogsRule) GetWindowOk() (*TimeWindow, bool) {
+	if o == nil || IsNil(o.Window) {
+		return nil, false
+	}
+	return o.Window, true
+}
+
+// HasWindow returns a boolean if a field has been set.
+func (o *LogsRule) HasWindow() bool {
+	if o != nil && !IsNil(o.Window) {
+		return true
+	}
+
+	return false
+}
+
+// SetWindow gets a reference to the given TimeWindow and assigns it to the Window field.
+func (o *LogsRule) SetWindow(v TimeWindow) {
+	o.Window = &v
+}
+
 func (o LogsRule) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -91,6 +125,9 @@ func (o LogsRule) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	if !IsNil(o.Query) {
 		toSerialize["query"] = o.Query
+	}
+	if !IsNil(o.Window) {
+		toSerialize["window"] = o.Window
 	}
 
 	for key, value := range o.AdditionalProperties {
@@ -116,6 +153,7 @@ func (o *LogsRule) UnmarshalJSON(data []byte) (err error) {
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
 		delete(additionalProperties, "query")
+		delete(additionalProperties, "window")
 		o.AdditionalProperties = additionalProperties
 		o.additionalPropertiesFromUnmarshal = len(additionalProperties) > 0
 	}

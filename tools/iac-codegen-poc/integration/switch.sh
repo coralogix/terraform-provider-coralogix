@@ -65,16 +65,21 @@ cp "$WORK/go.sum" "$WORK/go.sum.orig"
 (cd "$WORK" && go mod edit -require=github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc@v0.0.0 -replace=github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc="$HERE")
 cp "$IT/schema_dump_test.go.txt" "$WORK/$TEST_DIR/zz_schema_dump_test.go"
 cp "$IT/equivalence_test.go.txt" "$WORK/$TEST_DIR/zz_equivalence_test.go"
+# The API fixtures of the equivalence test, when they are a file of their own.
+if [ -f "$IT/equivalence_fixtures.json" ]; then
+  cp "$IT/equivalence_fixtures.json" "$WORK/$TEST_DIR/zz_equivalence_fixtures.json"
+fi
 DUMPS="$(mktemp -d)"
 (cd "$WORK" && SCHEMA_DUMP_DIR="$DUMPS" GOFLAGS=-mod=mod go test "./$TEST_DIR" \
   -run "$TESTS" -count=1 -v | grep -E '^(--- |ok|FAIL)')
 go run ./cmd/schemacompare "$DUMPS/handwritten.txt" "$DUMPS/generated.txt"
-rm -rf "$DUMPS" "$WORK/$TEST_DIR/zz_schema_dump_test.go" "$WORK/$TEST_DIR/zz_equivalence_test.go"
+rm -rf "$DUMPS" "$WORK/$TEST_DIR/zz_schema_dump_test.go" "$WORK/$TEST_DIR/zz_equivalence_test.go" "$WORK/$TEST_DIR/zz_equivalence_fixtures.json"
 mv "$WORK/go.mod.orig" "$WORK/go.mod"
 mv "$WORK/go.sum.orig" "$WORK/go.sum"
 
 echo "== step 4: switch"
 cd "$WORK"
-patch -s -p1 < "$IT/provider.patch"
+# -E removes the files that the switch deletes.
+patch -s -p1 -E < "$IT/provider.patch"
 go vet "./$TEST_DIR/..."
 go test ./internal/...

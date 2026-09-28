@@ -8,4 +8,5 @@ types:
   ChartMinMax:
     auto: {bool: true}                          # min_max = {auto = true}
   Chart:
-    mappedValues: {bool: true, missingAsZero: true}
+    minMax: {emptyAsNull: true}                 # {"minMax": {}} reads as null
+    mappedValues: {bool: true}

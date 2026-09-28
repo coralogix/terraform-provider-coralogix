@@ -1,0 +1,651 @@
+// Copyright 2026 Coralogix Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package dynamiccustom has the handwritten attributes and converters of the
+// dynamic widget fields that the overrides mark custom: their Terraform
+// shape has no generator rule. The generated package dynamictypes calls
+// them; this package must not import it or dashboard_widgets, which imports
+// dynamictypes. So the code is a copy of the dashboard_widgets code that the
+// other widgets still use: the filter operator (with its validator and plan
+// modifier), the span field, and the time frame.
+package dynamiccustom
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"time"
+
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+)
+
+// The filter operator: type, selection_type, and selected_values for the
+// API oneOf of equals and not_equals, each with a oneOf selection.
+
+const (
+	filterSelectionTypeAll  = "all"
+	filterSelectionTypeList = "list"
+)
+
+type filterOperatorModel struct {
+	Type           types.String `tfsdk:"type"`
+	SelectionType  types.String `tfsdk:"selection_type"`
+	SelectedValues types.List   `tfsdk:"selected_values"`
+}
+
+func filterOperatorAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"type":            types.StringType,
+		"selection_type":  types.StringType,
+		"selected_values": types.ListType{ElemType: types.StringType},
+	}
+}
+
+func filterOperatorAttribute() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Attributes: map[string]schema.Attribute{
+			"type": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("equals", "not_equals"),
+				},
+				MarkdownDescription: "The type of the operator. Can be one of `equals` or `not_equals`.",
+			},
+			"selection_type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(filterSelectionTypeAll, filterSelectionTypeList),
+				},
+				PlanModifiers: []planmodifier.String{
+					filterSelectionTypeFromSelectedValues{},
+				},
+				MarkdownDescription: "How the operator selects values. Use `all` to select every value. Use `list` to select only `selected_values`. If omitted, an empty legacy `selected_values` list means `all`.",
+			},
+			"selected_values": schema.ListAttribute{
+				ElementType:         types.StringType,
+				Optional:            true,
+				Computed:            true,
+				Default:             listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
+				MarkdownDescription: "Values to filter by. For `equals`, set `selection_type` to `list` to represent an empty selection. If `selection_type` is omitted, an empty list selects all values for backward compatibility. For `not_equals`, this list must contain at least one value.",
+			},
+		},
+		Validators: []validator.Object{
+			filterOperatorValidator{},
+		},
+		Required:            true,
+		MarkdownDescription: "Operator to use for filtering.",
+	}
+}
+
+func expandFilterOperator(p path.Path, v types.Object, diags *diag.Diagnostics) *dashboardservice.FilterOperator {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	ctx := context.Background()
+	var operator filterOperatorModel
+	if d := v.As(ctx, &operator, basetypes.ObjectAsOptions{}); d.HasError() {
+		diags.Append(d...)
+		return nil
+	}
+	selectedValues, d := typeStringListToStringSlice(ctx, operator.SelectedValues)
+	if d.HasError() {
+		diags.Append(d...)
+		return nil
+	}
+	selectionType := operator.SelectionType.ValueString()
+	if operator.SelectionType.IsNull() || operator.SelectionType.IsUnknown() {
+		if operator.SelectedValues.IsUnknown() {
+			diags.AddAttributeError(p, "Error expand filter operator", "cannot determine the selection type because selected_values is unknown")
+			return nil
+		}
+		selectionType = filterSelectionTypeList
+		if len(selectedValues) == 0 {
+			selectionType = filterSelectionTypeAll
+		}
+	}
+
+	switch operator.Type.ValueString() {
+	case "equals":
+		out := &dashboardservice.FilterOperator{
+			Equals: &dashboardservice.FilterEquals{
+				Selection: &dashboardservice.EqualsSelection{},
+			},
+		}
+		switch selectionType {
+		case filterSelectionTypeAll:
+			if len(selectedValues) != 0 {
+				diags.AddAttributeError(p, "Error expand filter operator", "selected_values must be empty when selection_type is `all`")
+				return nil
+			}
+			out.Equals.Selection.All = map[string]interface{}{}
+		case filterSelectionTypeList:
+			if operator.SelectedValues.IsUnknown() {
+				diags.AddAttributeError(p, "Error expand filter operator", "cannot expand a list selection because selected_values is unknown")
+				return nil
+			}
+			out.Equals.Selection.List = &dashboardservice.EqualsSelectionListSelection{Values: selectedValues}
+		default:
+			diags.AddAttributeError(p, "Error expand filter operator", fmt.Sprintf("unknown selection type %s", selectionType))
+			return nil
+		}
+		return out
+	case "not_equals":
+		if selectionType != filterSelectionTypeList {
+			diags.AddAttributeError(p, "Error expand filter operator", "when type is `not_equals`, selection_type must be `list`")
+			return nil
+		}
+		if operator.SelectedValues.IsUnknown() {
+			diags.AddAttributeError(p, "Error expand filter operator", "cannot expand a list selection because selected_values is unknown")
+			return nil
+		}
+		return &dashboardservice.FilterOperator{
+			NotEquals: &dashboardservice.FilterNotEquals{
+				Selection: &dashboardservice.NotEqualsSelection{
+					List: &dashboardservice.NotEqualsSelectionListSelection{Values: selectedValues},
+				},
+			},
+		}
+	default:
+		diags.AddAttributeError(p, "Error expand filter operator", fmt.Sprintf("unknown filter operator type %s", operator.Type.ValueString()))
+		return nil
+	}
+}
+
+func flattenFilterOperator(p path.Path, operator *dashboardservice.FilterOperator, diags *diag.Diagnostics) types.Object {
+	if operator == nil {
+		return types.ObjectNull(filterOperatorAttrTypes())
+	}
+	var m filterOperatorModel
+	switch {
+	case operator.Equals != nil && operator.Equals.Selection != nil && operator.Equals.Selection.All != nil:
+		m = filterOperatorModel{Type: types.StringValue("equals"), SelectionType: types.StringValue(filterSelectionTypeAll),
+			SelectedValues: types.ListValueMust(types.StringType, []attr.Value{})}
+	case operator.Equals != nil && operator.Equals.Selection != nil && operator.Equals.Selection.List != nil:
+		m = filterOperatorModel{Type: types.StringValue("equals"), SelectionType: types.StringValue(filterSelectionTypeList),
+			SelectedValues: flattenFilterSelectedValues(operator.Equals.Selection.List.GetValues())}
+	case operator.Equals != nil:
+		diags.AddAttributeError(p, "Error Flatten Logs Filter Operator Equals", "unknown logs filter operator equals selection type")
+		return types.ObjectNull(filterOperatorAttrTypes())
+	case operator.NotEquals != nil && operator.NotEquals.Selection != nil && operator.NotEquals.Selection.List != nil:
+		m = filterOperatorModel{Type: types.StringValue("not_equals"), SelectionType: types.StringValue(filterSelectionTypeList),
+			SelectedValues: flattenFilterSelectedValues(operator.NotEquals.Selection.List.GetValues())}
+	case operator.NotEquals != nil:
+		diags.AddAttributeError(p, "Error Flatten Logs Filter Operator NotEquals", "unknown logs filter operator not_equals selection type")
+		return types.ObjectNull(filterOperatorAttrTypes())
+	default:
+		diags.AddAttributeError(p, "Error Flatten Logs Filter Operator", "unknown logs filter operator type")
+		return types.ObjectNull(filterOperatorAttrTypes())
+	}
+	out, d := types.ObjectValueFrom(context.Background(), filterOperatorAttrTypes(), m)
+	diags.Append(d...)
+	return out
+}
+
+func flattenFilterSelectedValues(values []string) types.List {
+	if len(values) == 0 {
+		return types.ListValueMust(types.StringType, []attr.Value{})
+	}
+	return utils.StringSliceToTypeStringList(values)
+}
+
+func typeStringListToStringSlice(ctx context.Context, list types.List) ([]string, diag.Diagnostics) {
+	if list.IsNull() || list.IsUnknown() {
+		return nil, nil
+	}
+	var values []types.String
+	diags := list.ElementsAs(ctx, &values, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return utils.TypeStringSliceToStringSlice(values), nil
+}
+
+type filterOperatorValidator struct{}
+
+func (f filterOperatorValidator) Description(_ context.Context) string {
+	return ""
+}
+
+func (f filterOperatorValidator) MarkdownDescription(_ context.Context) string {
+	return ""
+}
+
+func (f filterOperatorValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() {
+		return
+	}
+
+	var filter filterOperatorModel
+	diags := req.ConfigValue.As(ctx, &filter, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	selectionType := knownFilterSelectionType(filter.SelectionType)
+	if filter.Type.ValueString() == "not_equals" && selectionType == filterSelectionTypeAll {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when type is `not_equals`, `selection_type` must be `list`"))
+	}
+
+	if selectionType == filterSelectionTypeAll && filterSelectedValuesAreKnownNonEmpty(filter.SelectedValues) {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when selection_type is `all`, `selected_values` must be empty"))
+	}
+
+	if filter.Type.ValueString() == "not_equals" && filterSelectedValuesAreMissing(filter.SelectedValues) {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when type is `not_equals`, `selected_values` must contain at least one value"))
+	}
+}
+
+func knownFilterSelectionType(value types.String) string {
+	if value.IsNull() || value.IsUnknown() {
+		return ""
+	}
+	return value.ValueString()
+}
+
+func filterSelectedValuesAreKnownNonEmpty(value types.List) bool {
+	return !value.IsNull() && !value.IsUnknown() && len(value.Elements()) != 0
+}
+
+func filterSelectedValuesAreMissing(value types.List) bool {
+	return value.IsNull() || (!value.IsUnknown() && len(value.Elements()) == 0)
+}
+
+// filterSelectionTypeFromSelectedValues preserves the legacy meaning of an
+// omitted selection_type. It derives the planned value from selected_values
+// instead of retaining a computed value from prior state.
+type filterSelectionTypeFromSelectedValues struct{}
+
+func (m filterSelectionTypeFromSelectedValues) Description(_ context.Context) string {
+	return "When selection_type is omitted, an empty selected_values list selects all values and a non-empty list selects those values."
+}
+
+func (m filterSelectionTypeFromSelectedValues) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m filterSelectionTypeFromSelectedValues) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.ConfigValue.IsUnknown() || !req.ConfigValue.IsNull() {
+		return
+	}
+
+	var selectedValues types.List
+	diags := req.Plan.GetAttribute(ctx, req.Path.ParentPath().AtName("selected_values"), &selectedValues)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	if selectedValues.IsUnknown() {
+		resp.PlanValue = types.StringUnknown()
+		return
+	}
+	if selectedValues.IsNull() || len(selectedValues.Elements()) == 0 {
+		resp.PlanValue = types.StringValue(filterSelectionTypeAll)
+		return
+	}
+	resp.PlanValue = types.StringValue(filterSelectionTypeList)
+}
+
+// FilterLogsFilterOperatorAttribute is the operator of a logs filter.
+func FilterLogsFilterOperatorAttribute() schema.Attribute { return filterOperatorAttribute() }
+
+// FilterLogsFilterOperatorAttrTypes are the attribute types of the operator.
+func FilterLogsFilterOperatorAttrTypes() map[string]attr.Type { return filterOperatorAttrTypes() }
+
+// ExpandFilterLogsFilterOperator sends the operator of a logs filter.
+func ExpandFilterLogsFilterOperator(p path.Path, v types.Object, diags *diag.Diagnostics) *dashboardservice.FilterOperator {
+	return expandFilterOperator(p, v, diags)
+}
+
+// FlattenFilterLogsFilterOperator reads the operator of a logs filter.
+func FlattenFilterLogsFilterOperator(p path.Path, v *dashboardservice.FilterOperator, diags *diag.Diagnostics) types.Object {
+	return flattenFilterOperator(p, v, diags)
+}
+
+// SpansFilterOperatorAttribute is the operator of a spans filter.
+func SpansFilterOperatorAttribute() schema.Attribute { return filterOperatorAttribute() }
+
+// SpansFilterOperatorAttrTypes are the attribute types of the operator.
+func SpansFilterOperatorAttrTypes() map[string]attr.Type { return filterOperatorAttrTypes() }
+
+// ExpandSpansFilterOperator sends the operator of a spans filter.
+func ExpandSpansFilterOperator(p path.Path, v types.Object, diags *diag.Diagnostics) *dashboardservice.FilterOperator {
+	return expandFilterOperator(p, v, diags)
+}
+
+// FlattenSpansFilterOperator reads the operator of a spans filter.
+func FlattenSpansFilterOperator(p path.Path, v *dashboardservice.FilterOperator, diags *diag.Diagnostics) types.Object {
+	return flattenFilterOperator(p, v, diags)
+}
+
+// The span field: type and value for the API oneOf of a metadata field (an
+// enum), a tag, and a process tag.
+
+var (
+	spanFieldTypes          = []string{"metadata", "tag", "process_tag"}
+	spanFieldMetadataFields = map[string]dashboardservice.MetadataField{
+		utils.UNSPECIFIED:  dashboardservice.METADATAFIELD_METADATA_FIELD_UNSPECIFIED,
+		"application_name": dashboardservice.METADATAFIELD_METADATA_FIELD_APPLICATION_NAME,
+		"subsystem_name":   dashboardservice.METADATAFIELD_METADATA_FIELD_SUBSYSTEM_NAME,
+		"service_name":     dashboardservice.METADATAFIELD_METADATA_FIELD_SERVICE_NAME,
+		"operation_name":   dashboardservice.METADATAFIELD_METADATA_FIELD_OPERATION_NAME,
+	}
+	spanFieldMetadataNames = utils.ReverseMap(spanFieldMetadataFields)
+)
+
+type spanFieldModel struct {
+	Type  types.String `tfsdk:"type"`
+	Value types.String `tfsdk:"value"`
+}
+
+// SpansFilterFieldAttribute is the field of a spans filter. It is optional:
+// the Coralogix UI writes a filter that only sets observation_field.
+func SpansFilterFieldAttribute() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Attributes: map[string]schema.Attribute{
+			"type": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(spanFieldTypes...),
+				},
+				MarkdownDescription: fmt.Sprintf("The type of the field. Can be one of %q", spanFieldTypes),
+			},
+			"value": schema.StringAttribute{
+				Required:            true,
+				MarkdownDescription: fmt.Sprintf("The value of the field. When the field type is `metadata`, can be one of %q", utils.GetKeys(spanFieldMetadataFields)),
+			},
+		},
+		Optional: true,
+	}
+}
+
+// SpansFilterFieldAttrTypes are the attribute types of the span field.
+func SpansFilterFieldAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"type":  types.StringType,
+		"value": types.StringType,
+	}
+}
+
+// ExpandSpansFilterField sends the arm that type names.
+func ExpandSpansFilterField(p path.Path, v types.Object, diags *diag.Diagnostics) *dashboardservice.SpanField {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	var field spanFieldModel
+	if d := v.As(context.Background(), &field, basetypes.ObjectAsOptions{}); d.HasError() {
+		diags.Append(d...)
+		return nil
+	}
+	switch field.Type.ValueString() {
+	case "metadata":
+		return &dashboardservice.SpanField{MetadataField: optionalEnumPointer(field.Value, spanFieldMetadataFields)}
+	case "tag":
+		return &dashboardservice.SpanField{TagField: utils.TypeStringToStringPointer(field.Value)}
+	case "process_tag":
+		return &dashboardservice.SpanField{ProcessTagField: utils.TypeStringToStringPointer(field.Value)}
+	default:
+		diags.AddAttributeError(p, "Extract Spans Filter Field Error", fmt.Sprintf("Unknown spans filter field type %s", field.Type.ValueString()))
+		return nil
+	}
+}
+
+// FlattenSpansFilterField reads the set arm.
+func FlattenSpansFilterField(p path.Path, v *dashboardservice.SpanField, diags *diag.Diagnostics) types.Object {
+	if v == nil {
+		return types.ObjectNull(SpansFilterFieldAttrTypes())
+	}
+	var m spanFieldModel
+	switch {
+	case v.MetadataField != nil:
+		m = spanFieldModel{Type: types.StringValue("metadata"), Value: types.StringValue(spanFieldMetadataNames[v.GetMetadataField()])}
+	case v.TagField != nil:
+		m = spanFieldModel{Type: types.StringValue("tag"), Value: types.StringPointerValue(v.TagField)}
+	case v.ProcessTagField != nil:
+		m = spanFieldModel{Type: types.StringValue("process_tag"), Value: types.StringPointerValue(v.ProcessTagField)}
+	default:
+		diags.AddAttributeError(p, "Error Flatten Spans Field", "unknown spans field type")
+		return types.ObjectNull(SpansFilterFieldAttrTypes())
+	}
+	out, d := types.ObjectValueFrom(context.Background(), SpansFilterFieldAttrTypes(), m)
+	diags.Append(d...)
+	return out
+}
+
+func optionalEnumPointer[T ~string](value types.String, values map[string]T) *T {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	converted, ok := values[value.ValueString()]
+	if !ok {
+		return nil
+	}
+	return &converted
+}
+
+// The time frame: absolute {start, end} or relative {duration}, for the API
+// oneOf of absoluteTimeFrame {from, to} and relativeTimeFrame, a protobuf
+// duration.
+
+type timeFrameModel struct {
+	Absolute *timeFrameAbsoluteModel `tfsdk:"absolute"`
+	Relative *timeFrameRelativeModel `tfsdk:"relative"`
+}
+
+type timeFrameAbsoluteModel struct {
+	Start types.String `tfsdk:"start"`
+	End   types.String `tfsdk:"end"`
+}
+
+type timeFrameRelativeModel struct {
+	Duration types.String `tfsdk:"duration"`
+}
+
+// WidgetsDynamicTimeFrameAttribute is the time frame of the widget.
+func WidgetsDynamicTimeFrameAttribute() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"absolute": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"start": schema.StringAttribute{
+						Required: true,
+					},
+					"end": schema.StringAttribute{
+						Required: true,
+					},
+				},
+				Optional:            true,
+				MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
+			},
+			"relative": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"duration": schema.StringAttribute{
+						Required: true,
+					},
+				},
+				Optional:            true,
+				MarkdownDescription: "Relative time frame specifying a duration from the current time.",
+			},
+		},
+		Validators: []validator.Object{
+			exactlyOneOfChildrenValidator{childNames: []string{"absolute", "relative"}},
+		},
+		MarkdownDescription: "Specifies the time frame. Can be either absolute or relative.",
+	}
+}
+
+// WidgetsDynamicTimeFrameAttrTypes are the attribute types of the time frame.
+func WidgetsDynamicTimeFrameAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"absolute": types.ObjectType{AttrTypes: map[string]attr.Type{"start": types.StringType, "end": types.StringType}},
+		"relative": types.ObjectType{AttrTypes: map[string]attr.Type{"duration": types.StringType}},
+	}
+}
+
+// ExpandWidgetsDynamicTimeFrame sends the relative or the absolute time
+// frame.
+func ExpandWidgetsDynamicTimeFrame(p path.Path, v types.Object, diags *diag.Diagnostics) *dashboardservice.TimeFrameSelect {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	var timeFrame timeFrameModel
+	if d := v.As(context.Background(), &timeFrame, basetypes.ObjectAsOptions{}); d.HasError() {
+		diags.Append(d...)
+		return nil
+	}
+	out := &dashboardservice.TimeFrameSelect{}
+	switch {
+	case timeFrame.Relative != nil:
+		duration, dg := utils.ParseDuration(timeFrame.Relative.Duration.ValueString(), "Relative Dashboard Time Frame")
+		if dg != nil {
+			diags.Append(dg)
+			return nil
+		}
+		out.RelativeTimeFrame = durationToOpenAPI(*duration)
+	case timeFrame.Absolute != nil:
+		from, err := time.Parse(time.RFC3339, timeFrame.Absolute.Start.ValueString())
+		if err != nil {
+			diags.AddAttributeError(p, "Error Expand Absolute Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))
+			return nil
+		}
+		to, err := time.Parse(time.RFC3339, timeFrame.Absolute.End.ValueString())
+		if err != nil {
+			diags.AddAttributeError(p, "Error Expand Absolute Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))
+			return nil
+		}
+		out.AbsoluteTimeFrame = &dashboardservice.TimeFrame{From: &from, To: &to}
+	default:
+		diags.AddAttributeError(p, "Error Expand Time Frame", "Dashboard TimeFrame must be either Relative or Absolute")
+		return nil
+	}
+	return out
+}
+
+// FlattenWidgetsDynamicTimeFrame reads the absolute or the relative time
+// frame.
+func FlattenWidgetsDynamicTimeFrame(p path.Path, v *dashboardservice.TimeFrameSelect, diags *diag.Diagnostics) types.Object {
+	if v == nil {
+		return types.ObjectNull(WidgetsDynamicTimeFrameAttrTypes())
+	}
+	var m timeFrameModel
+	switch {
+	case v.AbsoluteTimeFrame != nil:
+		m.Absolute = &timeFrameAbsoluteModel{
+			Start: types.StringValue(v.AbsoluteTimeFrame.GetFrom().Format(time.RFC3339Nano)),
+			End:   types.StringValue(v.AbsoluteTimeFrame.GetTo().Format(time.RFC3339Nano)),
+		}
+	case v.RelativeTimeFrame != nil:
+		m.Relative = &timeFrameRelativeModel{Duration: openAPIDurationToLegacy(v.RelativeTimeFrame)}
+	default:
+		diags.AddAttributeError(p, "Error Flatten Dashboard Time Frame", fmt.Sprintf("unknown time frame type %T", v))
+		return types.ObjectNull(WidgetsDynamicTimeFrameAttrTypes())
+	}
+	out, d := types.ObjectValueFrom(context.Background(), WidgetsDynamicTimeFrameAttrTypes(), m)
+	diags.Append(d...)
+	return out
+}
+
+func durationToOpenAPI(duration time.Duration) *string {
+	encoded, err := protojson.Marshal(durationpb.New(duration))
+	if err != nil {
+		return nil
+	}
+	value := string(encoded[1 : len(encoded)-1])
+	return &value
+}
+
+func openAPIDurationToLegacy(value *string) basetypes.StringValue {
+	if value == nil {
+		return types.StringNull()
+	}
+	duration := new(durationpb.Duration)
+	if err := protojson.Unmarshal([]byte(fmt.Sprintf("%q", *value)), duration); err != nil {
+		return types.StringValue(*value)
+	}
+	if duration.Seconds == 0 && duration.Nanos == 0 {
+		return types.StringValue("seconds:0")
+	}
+	return types.StringValue(duration.String())
+}
+
+type exactlyOneOfChildrenValidator struct {
+	childNames []string
+}
+
+func (v exactlyOneOfChildrenValidator) Description(_ context.Context) string {
+	return fmt.Sprintf("exactly one of %v must be configured", v.childNames)
+}
+
+func (v exactlyOneOfChildrenValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v exactlyOneOfChildrenValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	attrs := req.ConfigValue.Attributes()
+	var knownChildrenSet []string
+	unknownCount := 0
+	for _, name := range v.childNames {
+		val, ok := attrs[name]
+		if !ok {
+			continue
+		}
+		if val.IsUnknown() {
+			unknownCount++
+			continue
+		}
+		if !val.IsNull() {
+			knownChildrenSet = append(knownChildrenSet, name)
+		}
+	}
+
+	// A second known-and-set child is an unavoidable conflict no matter how
+	// any remaining unknown children resolve, so report it immediately.
+	if len(knownChildrenSet) > 1 {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Attribute Combination",
+			fmt.Sprintf("Only one of these attributes can be configured: `%s`.", strings.Join(knownChildrenSet, "`, `")))
+		return
+	}
+
+	// With at most one known-and-set child, an unknown sibling could still
+	// resolve to satisfy (or break) "exactly one" — defer instead of
+	// reporting a false-positive "none configured" error.
+	if unknownCount > 0 {
+		return
+	}
+
+	if len(knownChildrenSet) == 0 {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Attribute Combination",
+			"No attribute was configured in this one-of group. Configure exactly one value.")
+	}
+}

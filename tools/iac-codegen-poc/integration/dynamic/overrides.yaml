@@ -1,0 +1,259 @@
+# Overrides (D21) for the switch of the dynamic widget of coralogix_dashboard:
+# the generated dynamictypes give the schema of the handwritten
+# definition.dynamic, so no configuration or state changes. By kind:
+#   - shape: typeStrings (colors_by as a string; the logs and spans
+#     aggregations as type and the arm fields), bool (empty objects such as
+#     min_max.auto), unwrap (the query values), custom (the filter
+#     operators, the span field, and time_frame: see add/dynamiccustom),
+#     skip (the deprecated top-level query, which the handwritten resource
+#     rejects; two new geomap region configs come in the second step);
+#   - flags, defaults ("unspecified" for most enums), renames, int64,
+#     deprecation messages, wideNumbers;
+#   - enums: the Terraform names of the handwritten maps (dashboard_widgets).
+wideNumbers: true
+unwrap: [LuceneQuery, PromQlQuery, UUID, common.DataprimeQuery]
+typeStrings:
+  ColorsBy: {plain: true}
+  LogsAggregation: {names: {average: avg}}
+customPackage: github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets/dynamiccustom
+types:
+  Filter.LogsFilter:
+    operator: {custom: {type: Object, shape: ff7271ae4722}}
+  SpansFilter:
+    operator: {custom: {type: Object, shape: ff7271ae4722}}
+    field: {custom: {type: Object, shape: 84bbd5207862}}
+  GeomapAggregation:
+    count: {bool: true}
+  MinMax:
+    auto: {bool: true}
+  SortStrategy:
+    strategyType: {computed: true}
+    category: {bool: true}
+  StatVisualElement:
+    templateVariables: {emptyAsNull: true}
+    mappedValues: {bool: true}
+  DisplayNameTemplateVariable:
+    mappedValues: {bool: true}
+  TimeSeriesLines:
+    valueFields: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    scaleType: {default: unspecified}
+    stackedLine: {default: unspecified}
+    unit: {default: unspecified}
+    xAxisTimeFormat: {default: unspecified}
+    seriesCountLimit: {int64: true}
+  QueryDisplaySettings:
+    valueFields: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    scaleType: {default: unspecified}
+    unit: {default: unspecified}
+    seriesCountLimit: {int64: true}
+  Dataprime:
+    dataModeType: {default: unspecified}
+    dataprimeQuery: {name: query}
+  Dynamic.Query:
+    dataprime: {name: data_prime}
+  Logs:
+    groupBy: {emptyAsNull: true}
+    filters: {emptyAsNull: true}
+    dataModeType: {default: unspecified}
+    aggregation: {name: aggregations, emptyAsNull: true}
+  Spans:
+    groupBy: {emptyAsNull: true}
+    filters: {emptyAsNull: true}
+    dataModeType: {default: unspecified}
+    aggregation: {name: aggregations, emptyAsNull: true}
+  ColorLabelMapping:
+    colorBy: {default: unspecified}
+  Dynamic.QueryDefinition:
+    id: {required: false, optional: true, computed: true, useNonNullStateForUnknown: true}
+  Geomap:
+    minMax: {emptyAsNull: true}
+    config: {emptyAsNull: true}
+    color: {emptyAsNull: true}
+    aggregation: {emptyAsNull: true}
+    unit: {default: unspecified}
+  Heatmap:
+    yAxisFields: {emptyAsNull: true}
+    xAxisFields: {emptyAsNull: true}
+    histogramBucketUnit: {default: unspecified}
+    scaleType: {default: unspecified}
+    unit: {default: unspecified}
+    xAxisTimeFormat: {default: unspecified}
+  HexagonBins:
+    thresholds: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    legendBy: {default: unspecified}
+    thresholdType: {default: unspecified}
+    unit: {default: unspecified}
+  HorizontalBars:
+    subCategoryFields: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    scaleType: {default: unspecified}
+    sortBy: {default: unspecified}
+    unit: {default: unspecified}
+    yAxisViewBy: {default: unspecified}
+  HorizontalBarsMulti:
+    queryFieldSettings: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    scaleType: {default: unspecified}
+    unit: {default: unspecified}
+    yAxisViewBy: {default: unspecified}
+  Legend:
+    columns: {emptyAsNull: true}
+    groupByQuery: {default: 'false'}
+    isVisible: {default: 'true'}
+    placement: {computed: true, useNonNullStateForUnknown: true, missingAsZero: true}
+  LinkAction:
+    id: {computed: true, useNonNullStateForUnknown: true}
+  MappingSection:
+    color: {default: unspecified}
+  Metrics:
+    editorMode: {default: unspecified}
+    promqlQueryType: {default: unspecified}
+    seriesLimitType: {default: unspecified}
+  Property:
+    definition: {emptyAsNull: true}
+    id: {computed: true, useNonNullStateForUnknown: true}
+  PropertyThresholds:
+    values: {emptyAsNull: true}
+    type: {default: unspecified}
+  PropertyUnits:
+    unit: {default: unspecified}
+  PropertyValuesMapping.ValueMapping:
+    type: {default: unspecified}
+  RangeMapping:
+    minMax: {emptyAsNull: true}
+    thresholds: {emptyAsNull: true}
+    thresholdType: {default: unspecified}
+  SpanObservationField:
+    relationType: {default: unspecified}
+  Stat:
+    valueFields: {emptyAsNull: true}
+    thresholds: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    valueField: {deprecationMessage: "Deprecated: superseded by value_fields."}
+    legendBy: {default: unspecified}
+    thresholdBy: {default: unspecified}
+    thresholdType: {default: unspecified}
+    unit: {default: unspecified}
+  StatCard:
+    colorLabelMapping: {emptyAsNull: true}
+    valueFields: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    legendBy: {default: unspecified}
+    unit: {default: unspecified}
+  Table.Rule:
+    properties: {emptyAsNull: true}
+    ruleScope: {emptyAsNull: true}
+    id: {computed: true, useNonNullStateForUnknown: true}
+  TableSettings:
+    columnWidths: {emptyAsNull: true}
+    rowStyle: {default: unspecified}
+  TimeSeriesBars:
+    valueFields: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    barValueDisplay: {default: unspecified}
+    scaleType: {default: unspecified}
+    sortBy: {default: unspecified}
+    unit: {default: unspecified}
+    xAxisTimeFormat: {default: unspecified}
+  TimeSeriesLinesMulti:
+    queryDisplaySettings: {emptyAsNull: true}
+    stackedLine: {default: unspecified}
+    xAxisTimeFormat: {default: unspecified}
+  VerticalBars:
+    subCategoryFields: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    barValueDisplay: {default: unspecified}
+    scaleType: {default: unspecified}
+    sortBy: {default: unspecified}
+    unit: {default: unspecified}
+  VerticalBarsMulti:
+    queryFieldSettings: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    barValueDisplay: {default: unspecified}
+    scaleType: {default: unspecified}
+    unit: {default: unspecified}
+  Visualization.Gauge:
+    valueFields: {emptyAsNull: true}
+    thresholds: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    showInnerArc: {deprecationMessage: "Use `arc_display.value_arc` instead."}
+    showOuterArc: {deprecationMessage: "Use `arc_display.threshold_arc` instead."}
+    legendBy: {default: unspecified}
+    thresholdType: {default: unspecified}
+    unit: {default: unspecified}
+  Visualization.PieChart:
+    subCategoryFields: {emptyAsNull: true}
+    categoryFields: {emptyAsNull: true}
+    unit: {default: unspecified}
+  Visualization.PieChart.LabelDefinition:
+    labelSource: {default: unspecified}
+  Visualization.SortOrder:
+    strategy: {emptyAsNull: true}
+    orderDirection: {default: unspecified}
+  widgets.Dynamic:
+    visualization: {emptyAsNull: true}
+    queryDefinitions: {emptyAsNull: true}
+    query: {skip: true}                     # the deprecated query; the handwritten resource rejects it
+    timeFrame: {custom: {type: Object, shape: cfd59d2799bd}}
+    interpretation: {default: unspecified, deprecationMessage: "Deprecated: superseded by the visualization block."}
+  Visualization:
+    timeSeriesLines: {deprecationMessage: "Deprecated: use time_series_lines_multi instead."}
+  GeomapFieldConfig:
+    allRegionConfig: {skip: true}           # new API fields, added in the second step
+    ibmRegionConfig: {skip: true}
+  GeomapTooltip:
+    labels: {emptyAsNull: true}
+  HeatmapTooltip:
+    labels: {emptyAsNull: true}
+  ObservationField:
+    keypath: {emptyAsNull: true}
+  RegexMapping:
+    sections: {emptyAsNull: true}
+  Table:
+    rules: {emptyAsNull: true}
+    columns: {emptyAsNull: true}
+  ColorLabelMapping.ValueMapping:
+    sections: {emptyAsNull: true}
+  PropertyLinks:
+    actions: {emptyAsNull: true}
+  PropertyValuesMapping:
+    mappings: {emptyAsNull: true}
+enums:
+  ColorApplyTarget: {terraformNames: true, zero: unspecified}
+  ColorGradientType: {terraformNames: true, zero: unspecified}
+  ColorSolidType: {terraformNames: true, zero: unspecified}
+  DatasetScope: {terraformNames: true, zero: unspecified}
+  FieldDataType: {terraformNames: true, zero: unspecified}
+  HeatmapColorPreset: {terraformNames: true, zero: unspecified}
+  HeatmapHistogramBucketUnit: {terraformNames: true, zero: unspecified}
+  HorizontalBars.YAxisViewBy: {terraformNames: true, zero: unspecified}
+  HorizontalBarsMulti.YAxisViewBy: {terraformNames: true, zero: unspecified}
+  Interpretation: {terraformNames: true, zero: unspecified}
+  LegendBy: {terraformNames: true, zero: unspecified}
+  LegendColumn: {terraformNames: true, zero: unspecified}
+  LegendPlacement: {terraformNames: true, zero: unspecified}
+  MetadataField: {terraformNames: true, zero: unspecified}
+  MetricsQueryEditorMode: {terraformNames: true, zero: unspecified}
+  MetricsSeriesLimitType: {terraformNames: true, zero: unspecified}
+  OrderDirection: {terraformNames: true, zero: unspecified}
+  PromQLQueryType: {terraformNames: true, zero: unspecified}
+  RowStyle: {terraformNames: true, zero: unspecified}
+  ScaleType: {terraformNames: true, zero: unspecified}
+  SortByType: {terraformNames: true, zero: unspecified}
+  SpanRelationType: {terraformNames: true, values: {SPAN_RELATION_TYPE_NONE_UNSPECIFIED: unspecified}}
+  TextAlignment: {terraformNames: true, zero: unspecified}
+  ThresholdType: {terraformNames: true, zero: unspecified}
+  ValuesMappingType: {terraformNames: true, zero: unspecified}
+  Visualization.BarValueDisplay: {terraformNames: true, zero: unspecified}
+  Visualization.PieChart.LabelSource: {terraformNames: true, zero: unspecified}
+  Visualization.StackedLine: {terraformNames: true, zero: unspecified}
+  XAxisTimeFormat: {terraformNames: true, zero: unspecified}
+  common.ThresholdBy: {terraformNames: true, zero: unspecified}
+  common.Unit:
+    terraformNames: true
+    zero: unspecified
+    values: {UNIT_EUR: euro, UNIT_EUR_CENTS: euro_cents, UNIT_PERCENT_ZERO_ONE: percent01, UNIT_PERCENT_ZERO_HUNDRED: percent100}
+  widgets.common.DataModeType: {terraformNames: true, values: {DATA_MODE_TYPE_HIGH_UNSPECIFIED: unspecified}}

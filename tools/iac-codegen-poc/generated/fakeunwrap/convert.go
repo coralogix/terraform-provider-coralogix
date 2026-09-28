@@ -216,6 +216,11 @@ func expandLabelValues(ctx context.Context, p path.Path, value types.Set, diags 
 	m := &struct{ Value types.Set }{value}
 	out := &fake_boards_service.LabelValues{}
 	out.Value = expandStrings[string](ctx, p, m.Value, diags)
+	// emptyAsNull reads an empty value back as null. The validator refuses a
+	// known empty one; this refuses one that was unknown at plan time.
+	if out.Value != nil && len(out.Value) == 0 {
+		diags.AddAttributeError(p, "Invalid value", "The value is empty, so it would read back as null: set at least one element, or leave it out.")
+	}
 	if out.Value == nil {
 		return nil
 	}

@@ -113,6 +113,51 @@ func defaultObject(attrTypes map[string]attr.Type, values map[string]attr.Value)
 	return types.ObjectValueMust(attrTypes, out)
 }
 {{- end}}
+{{- if .True}}
+
+// trueValidator is the validator of an empty API object shown as a Bool (the
+// bool override). A false would be sent as nothing and read back as null,
+// so it must be left out instead.
+type trueValidator struct{}
+
+func (trueValidator) Description(context.Context) string {
+	return "value must be true when set"
+}
+
+func (v trueValidator) MarkdownDescription(ctx context.Context) string { return v.Description(ctx) }
+
+func (trueValidator) ValidateBool(_ context.Context, req validator.BoolRequest, resp *validator.BoolResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.ConfigValue.ValueBool() {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(req.Path, "Invalid value", "this marker must be true when set; omit it otherwise")
+}
+{{- end}}
+{{- if .NotEmpty}}
+
+// notEmptyValidator is the validator of an object that the emptyAsNull
+// override reads back as null when no attribute is set: such an object must
+// set one, or be left out.
+type notEmptyValidator struct{}
+
+func (notEmptyValidator) Description(context.Context) string {
+	return "at least one attribute must be set"
+}
+
+func (v notEmptyValidator) MarkdownDescription(ctx context.Context) string { return v.Description(ctx) }
+
+func (notEmptyValidator) ValidateObject(_ context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	for _, a := range req.ConfigValue.Attributes() {
+		if !a.IsNull() {
+			return // an unknown value can still be set
+		}
+	}
+	resp.Diagnostics.AddAttributeError(req.Path, "Invalid value", "The block sets no attribute, so it would read back as null: set one, or leave the block out.")
+}
+{{- end}}
 {{- if .TypeString}}
 
 // typeStringValidator checks an object of the typeStrings override: type

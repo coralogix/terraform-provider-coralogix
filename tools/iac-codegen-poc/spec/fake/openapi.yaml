@@ -976,6 +976,10 @@ components:
         query:
           description: The query.
           type: string
+        window:
+          allOf:
+            - $ref: '#/components/schemas/TimeWindow'
+          description: The time window. Terraform has an object of its own shape, as dashboards time_frame.
       type: object
     MetricRule:
       description: A metric rule.

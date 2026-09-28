@@ -4,8 +4,10 @@ package fakechart
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -51,8 +53,17 @@ func expandChart(ctx context.Context, p path.Path, m *ChartModel, diags *diag.Di
 		}
 	}
 	out.MinMax = expandChartMinMax(ctx, p.AtName("min_max"), m.MinMax, diags)
-	if m.MappedValues.ValueBool() {
+	// emptyAsNull reads an empty object back as null. The validator refuses a
+	// known empty one; this refuses one that was unknown at plan time.
+	if isEmptyObject(out.MinMax, p.AtName("min_max"), diags) {
+		diags.AddAttributeError(p.AtName("min_max"), "Invalid value", "The block sets no attribute, so it would read back as null: set one, or leave the block out.")
+	}
+	switch {
+	case m.MappedValues.IsNull() || m.MappedValues.IsUnknown():
+	case m.MappedValues.ValueBool():
 		out.MappedValues = map[string]interface{}{}
+	default:
+		diags.AddAttributeError(p.AtName("mapped_values"), "Invalid value", "this marker must be true when set; omit it otherwise")
 	}
 	return out
 }
@@ -65,6 +76,9 @@ func flattenChart(ctx context.Context, p path.Path, v *fake_boards_service.Chart
 	// The overrides read some missing or empty values in another way.
 	n := *v
 	v = &n
+	if isEmptyObject(v.MinMax, p.AtName("min_max"), diags) {
+		v.MinMax = nil
+	}
 	out.Title = types.StringPointerValue(v.Title)
 	out.ColorsBy = flattenChartColorsBy(ctx, p.AtName("colors_by"), v.ColorsBy, diags)
 	out.Aggregation = flattenChartAggregation(ctx, p.AtName("aggregation"), v.Aggregation, diags)
@@ -72,12 +86,19 @@ func flattenChart(ctx context.Context, p path.Path, v *fake_boards_service.Chart
 	if v.Aggregations != nil {
 		items := make([]ChartAggregationModel, 0, len(v.Aggregations))
 		for i := range v.Aggregations {
-			items = append(items, *flattenChartAggregation(ctx, p.AtName("aggregations").AtListIndex(i), &v.Aggregations[i], diags))
+			m := flattenChartAggregation(ctx, p.AtName("aggregations").AtListIndex(i), &v.Aggregations[i], diags)
+			if m == nil {
+				continue // no arm set: flatten reported it
+			}
+			items = append(items, *m)
 		}
 		out.Aggregations = flattenList(ctx, types.ObjectType{AttrTypes: ChartAggregationAttrTypes()}, items, diags)
 	}
 	out.MinMax = flattenChartMinMax(ctx, p.AtName("min_max"), v.MinMax, diags)
-	out.MappedValues = types.BoolValue(v.MappedValues != nil)
+	out.MappedValues = types.BoolNull()
+	if v.MappedValues != nil {
+		out.MappedValues = types.BoolValue(true)
+	}
 	return out
 }
 
@@ -111,15 +132,18 @@ func expandChartColorsBy(ctx context.Context, p path.Path, value types.String, d
 }
 
 // flattenChartColorsBy returns the name of the set arm of the API oneOf ChartColorsBy
-// (a plain typeString), or null when none is set.
+// (a plain typeString), or null for a missing oneOf. A oneOf with no arm set
+// is an error: the API sent an arm that the SDK does not know.
 func flattenChartColorsBy(ctx context.Context, p path.Path, v *fake_boards_service.ChartColorsBy, diags *diag.Diagnostics) types.String {
 	switch {
 	case v == nil:
+		return types.StringNull()
 	case v.Stack != nil:
 		return types.StringValue("stack")
 	case v.GroupBy != nil:
 		return types.StringValue("group_by")
 	}
+	diags.AddAttributeError(p, "Unsupported API value", "The API returned ChartColorsBy with no field that this provider knows.")
 	return types.StringNull()
 }
 
@@ -142,8 +166,9 @@ func expandChartAggregation(ctx context.Context, p path.Path, m *ChartAggregatio
 }
 
 // flattenChartAggregation returns the typeString object of the API oneOf ChartAggregation:
-// type names the set arm, and the fields of the other arms are null. It is
-// nil when no arm is set.
+// type names the set arm, and the fields of the other arms are null. A oneOf
+// with no arm set is an error: the API sent an arm that the SDK does not
+// know.
 func flattenChartAggregation(ctx context.Context, p path.Path, v *fake_boards_service.ChartAggregation, diags *diag.Diagnostics) *ChartAggregationModel {
 	if v == nil {
 		return nil
@@ -160,6 +185,7 @@ func flattenChartAggregation(ctx context.Context, p path.Path, v *fake_boards_se
 		out.Type = types.StringValue("percentile")
 		flattenChartAggregationArmPercentile(ctx, p, v.Percentile, out, diags)
 	default:
+		diags.AddAttributeError(p, "Unsupported API value", "The API returned ChartAggregation with no field that this provider knows.")
 		return nil
 	}
 	return out
@@ -242,8 +268,12 @@ func expandChartMinMax(ctx context.Context, p path.Path, m *ChartMinMaxModel, di
 		return nil
 	}
 	out := &fake_boards_service.ChartMinMax{}
-	if m.Auto.ValueBool() {
+	switch {
+	case m.Auto.IsNull() || m.Auto.IsUnknown():
+	case m.Auto.ValueBool():
 		out.Auto = map[string]interface{}{}
+	default:
+		diags.AddAttributeError(p.AtName("auto"), "Invalid value", "this marker must be true when set; omit it otherwise")
 	}
 	out.Custom = expandChartMinMaxCustom(ctx, p.AtName("custom"), m.Custom, diags)
 	return out
@@ -468,4 +498,18 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	l, d := types.ListValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return l
+}
+
+// isEmptyObject reports whether v is an object with no fields set (the
+// emptyAsNull override).
+func isEmptyObject(v any, p path.Path, diags *diag.Diagnostics) bool {
+	if reflect.ValueOf(v).IsNil() {
+		return false
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid value", err.Error())
+		return false
+	}
+	return string(b) == "{}"
 }

@@ -34,16 +34,19 @@ import (
 //     They are optional; a validator rejects a field of another arm, and
 //     requires the required fields of the arm.
 //   - expand sends the arm that type names, with its fields. flatten reads the
-//     set arm; the fields of the other arms are null, and a oneOf with no arm
-//     set reads as null.
+//     set arm, and the fields of the other arms are null. A oneOf with no arm
+//     set is an error: the API sent an arm that the SDK does not know, which
+//     the name cannot hold (handwritten resources refuse it too).
 //   - An arm can be skipped (types: {LogsAggregation: {newArm: {skip: true}}}).
 //     Its fields keep the overrides of their own component, except the flags
 //     and defaults.
 //
 // Empty objects as bools (D21). The API sends {"mappedValues": {}}, and
 // Terraform has mapped_values = true. The field override bool: true makes
-// the attribute a Bool: true sends {}, false or null sends nothing, and a
-// present object reads as true.
+// the attribute a Bool: true sends {}, null sends nothing, and a present
+// object reads as true. false is rejected by a validator, and by expand when
+// the value was unknown at plan time: it would be sent as nothing and read
+// back as null, so Terraform would report an inconsistent result.
 
 // typeStringOverride is the typeStrings override of one oneOf component.
 type typeStringOverride struct {

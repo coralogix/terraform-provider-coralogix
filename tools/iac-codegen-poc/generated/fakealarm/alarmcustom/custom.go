@@ -1,21 +1,27 @@
 // Package alarmcustom is handwritten. It has the attributes and converters
 // of the fields that spec/fake/alarm.overrides.yaml marks custom (D21):
 // their Terraform shape has no generator rule, as alerts of_the_last and
-// latency_threshold_ms. The generated package generated/fakealarm calls
-// them; this package must not import it.
+// latency_threshold_ms, and dashboards time_frame (an object). The generated
+// package generated/fakealarm calls them; this package must not import it.
 package alarmcustom
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"regexp"
+	"strconv"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	sdk "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk/go/openapi/gen/fake_boards_service"
 )
@@ -71,6 +77,65 @@ func FlattenMetricRuleOfTheLast(p path.Path, v *sdk.TimeWindow, diags *diag.Diag
 		return types.StringValue(*v.DynamicDuration)
 	}
 	return types.StringNull()
+}
+
+// windowModel is the object of LogsRuleWindow: a fixed time window or a
+// number of seconds.
+type windowModel struct {
+	Fixed   types.String `tfsdk:"fixed"`
+	Seconds types.Int64  `tfsdk:"seconds"`
+}
+
+// LogsRuleWindowAttribute is an object for the API oneOf TimeWindow, with
+// the duration as a number of seconds.
+func LogsRuleWindowAttribute() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional:            true,
+		MarkdownDescription: "The time window: fixed, or a number of seconds.",
+		Attributes: map[string]schema.Attribute{
+			"fixed":   schema.StringAttribute{Optional: true, Validators: []validator.String{stringvalidator.OneOf("5_MINUTES", "1_HOUR")}},
+			"seconds": schema.Int64Attribute{Optional: true},
+		},
+		Validators: []validator.Object{objectvalidator.AtLeastOneOf(path.MatchRelative().AtName("fixed"), path.MatchRelative().AtName("seconds"))},
+	}
+}
+
+// LogsRuleWindowAttrTypes are the attribute types of the object.
+func LogsRuleWindowAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{"fixed": types.StringType, "seconds": types.Int64Type}
+}
+
+// ExpandLogsRuleWindow sends the fixed time window, or the seconds as a
+// duration.
+func ExpandLogsRuleWindow(p path.Path, v types.Object, diags *diag.Diagnostics) *sdk.TimeWindow {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	var m windowModel
+	diags.Append(v.As(context.Background(), &m, basetypes.ObjectAsOptions{})...)
+	if w, ok := windowValues[m.Fixed.ValueString()]; ok {
+		return &sdk.TimeWindow{SpecificValue: &w}
+	}
+	d := strconv.FormatInt(m.Seconds.ValueInt64(), 10) + "s"
+	return &sdk.TimeWindow{DynamicDuration: &d}
+}
+
+// FlattenLogsRuleWindow reads either arm into the object.
+func FlattenLogsRuleWindow(p path.Path, v *sdk.TimeWindow, diags *diag.Diagnostics) types.Object {
+	if v == nil {
+		return types.ObjectNull(LogsRuleWindowAttrTypes())
+	}
+	m := windowModel{Fixed: FlattenMetricRuleOfTheLast(p.AtName("fixed"), &sdk.TimeWindow{SpecificValue: v.SpecificValue}, diags)}
+	if v.DynamicDuration != nil {
+		n, err := strconv.ParseInt(strings.TrimSuffix(*v.DynamicDuration, "s"), 10, 64)
+		if err != nil {
+			diags.AddAttributeError(p.AtName("seconds"), "Invalid API value", fmt.Sprintf("The API returned the duration %q, which is not a number of seconds.", *v.DynamicDuration))
+		}
+		m.Seconds = types.Int64Value(n)
+	}
+	out, d := types.ObjectValueFrom(context.Background(), LogsRuleWindowAttrTypes(), m)
+	diags.Append(d...)
+	return out
 }
 
 // TracingRuleLatencyMsAttribute is a Number, for the decimal string of the

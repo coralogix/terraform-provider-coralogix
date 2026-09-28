@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -46,15 +48,17 @@ func handwrittenAttributes() map[string]schema.Attribute {
 		"delivery": schema.StringAttribute{Optional: true, Computed: true, Default: stringdefault.StaticString("unspecified"),
 			Validators: []validator.String{stringvalidator.OneOf(deliveries...)}},
 		"channels": schema.SetAttribute{Optional: true, ElementType: types.StringType,
-			Validators: []validator.Set{setvalidator.ValueStringsAre(stringvalidator.OneOf(deliveries...))}},
+			Validators: []validator.Set{setvalidator.ValueStringsAre(stringvalidator.OneOf(deliveries...)), setvalidator.SizeAtLeast(1)}},
 		"targets": schema.SetNestedAttribute{Optional: true, NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
 				"connector_id": schema.StringAttribute{Required: true},
 				"tags":         schema.SetAttribute{Optional: true, Computed: true, ElementType: types.StringType},
 			}}},
 		"priority": schema.Int64Attribute{Optional: true,
+			Validators:    []validator.Int64{int64validator.Between(math.MinInt32, math.MaxInt32)},
 			PlanModifiers: []planmodifier.Int64{int64planmodifier.RequiresReplace()}},
-		"weight":   schema.Float64Attribute{Optional: true},
+		"weight": schema.Float64Attribute{Optional: true,
+			Validators: []validator.Float64{float64validator.Between(-math.MaxFloat32, math.MaxFloat32)}},
 		"disabled": schema.BoolAttribute{Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 		"id": schema.StringAttribute{Computed: true,
 			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},

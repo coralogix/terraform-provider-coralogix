@@ -22,6 +22,8 @@ type typesData struct {
 	TimeValidator bool   // an attribute uses rfc3339Validator
 	DefaultObject bool   // an attribute has the default of the defaultObject override
 	TypeString    bool   // an attribute uses typeStringValidator (typestring.go)
+	True          bool   // an attribute uses trueValidator (the bool override)
+	NotEmpty      bool   // an attribute uses notEmptyValidator (emptyAsNull on an object)
 	Command       string // the tfgen arguments that write the package
 	Roots         []*typeRoot
 	Models        []*tfModel
@@ -196,6 +198,8 @@ func (d *typesData) setHelpers() {
 		d.TimeValidator = d.TimeValidator || usesValidator(r.Attributes, timeValidator)
 		d.DefaultObject = d.DefaultObject || usesDefaultObject(r.Attributes)
 		d.TypeString = d.TypeString || usesTypeStringValidator(r.Attributes)
+		d.True = d.True || usesValidator(r.Attributes, trueValidator)
+		d.NotEmpty = d.NotEmpty || usesValidator(r.Attributes, notEmptyValidator)
 	}
 }
 

@@ -1,0 +1,320 @@
+// This file is copied into a copy of the provider by
+// integration/switch.sh, next to the handwritten dashboard widget code. It
+// checks that the switch of the dynamic widget (D21) reads and sends the same
+// values as the handwritten code, before the handwritten code is removed:
+//   - flatten: the same API widget gives the same Terraform state, or both
+//     refuse it;
+//   - expand: the same state gives the same request JSON.
+// The API widgets are zz_equivalence_fixtures.json (written by
+// integration/dynamic/fixtures.py from the spec) and the dynamic widgets of
+// the provider's dashboard test data.
+
+package dashboard_widgets
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"testing"
+
+	dashboardservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_service"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/schemadump"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_widgets/dynamictypes"
+)
+
+// dynamicCases are the API dynamic widgets, by name.
+func dynamicCases(t *testing.T) map[string]json.RawMessage {
+	t.Helper()
+	out := map[string]json.RawMessage{}
+	b, err := os.ReadFile("zz_equivalence_fixtures.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(b, &out); err != nil {
+		t.Fatal(err)
+	}
+	files, err := filepath.Glob("../../testdata/dashboards/content_json_dynamic_*.json")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no dashboard test data: %v", err)
+	}
+	for _, f := range files {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var tree any
+		if err := json.Unmarshal(b, &tree); err != nil {
+			t.Fatal(err)
+		}
+		for i, w := range dynamicWidgets(tree) {
+			out[fmt.Sprintf("%s %d", filepath.Base(f), i)] = w
+		}
+	}
+	return out
+}
+
+// dynamicWidgets returns every value of a "dynamic" key in the JSON tree.
+func dynamicWidgets(tree any) []json.RawMessage {
+	var out []json.RawMessage
+	switch x := tree.(type) {
+	case map[string]any:
+		if d, ok := x["dynamic"]; ok {
+			b, _ := json.Marshal(d)
+			out = append(out, b)
+		}
+		for _, v := range x {
+			out = append(out, dynamicWidgets(v)...)
+		}
+	case []any:
+		for _, v := range x {
+			out = append(out, dynamicWidgets(v)...)
+		}
+	}
+	return out
+}
+
+func decodeDynamic(t *testing.T, js json.RawMessage) dashboardservice.WidgetsDynamic {
+	t.Helper()
+	var d dashboardservice.WidgetsDynamic
+	if err := json.Unmarshal(js, &d); err != nil {
+		t.Fatalf("%v\n%s", err, js)
+	}
+	return d
+}
+
+func dynamicSchemas() (hw, sw schema.Schema) {
+	return schema.Schema{Attributes: map[string]schema.Attribute{"dynamic": DynamicSchema()}},
+		schema.Schema{Attributes: map[string]schema.Attribute{"dynamic": SwitchedDynamicSchema()}}
+}
+
+type hwDynamicHost struct {
+	Dynamic *DynamicModel `tfsdk:"dynamic"`
+}
+
+type swDynamicHost struct {
+	Dynamic *dynamictypes.WidgetsDynamicModel `tfsdk:"dynamic"`
+}
+
+// hwDynamicState is the state of the handwritten flatten, or the error.
+func hwDynamicState(t *testing.T, s schema.Schema, d dashboardservice.WidgetsDynamic) (tftypes.Value, diag.Diagnostics) {
+	t.Helper()
+	def, diags := FlattenDynamic(context.Background(), &d)
+	if diags.HasError() {
+		return tftypes.Value{}, diags
+	}
+	return dynamicState(t, s, &hwDynamicHost{Dynamic: def.Dynamic}), nil
+}
+
+func swDynamicState(t *testing.T, s schema.Schema, d dashboardservice.WidgetsDynamic) (tftypes.Value, diag.Diagnostics) {
+	t.Helper()
+	m, diags := FlattenSwitchedDynamic(context.Background(), &d)
+	if diags.HasError() {
+		return tftypes.Value{}, diags
+	}
+	return dynamicState(t, s, &swDynamicHost{Dynamic: m}), nil
+}
+
+func TestDynamicEquivalenceFlatten(t *testing.T) {
+	hwSchema, swSchema := dynamicSchemas()
+	for name, js := range dynamicCases(t) {
+		t.Run(name, func(t *testing.T) {
+			d := decodeDynamic(t, js)
+			hw, hwDiags := hwDynamicState(t, hwSchema, d)
+			sw, swDiags := swDynamicState(t, swSchema, d)
+			switch {
+			case hwDiags.HasError() && swDiags.HasError():
+				return // both refuse the widget
+			case hwDiags.HasError() || swDiags.HasError():
+				t.Fatalf("one side fails:\nhandwritten %v\nswitched %v", hwDiags, swDiags)
+			}
+			compareDynamicStates(t, hw, sw)
+		})
+	}
+}
+
+func compareDynamicStates(t *testing.T, hw, sw tftypes.Value) {
+	t.Helper()
+	diffs, err := hw.Diff(sw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range diffs {
+		t.Errorf("state differs at %s: handwritten %v, switched %v", d.Path, d.Value1, d.Value2)
+	}
+}
+
+func TestDynamicEquivalenceExpand(t *testing.T) {
+	ctx := context.Background()
+	hwSchema, swSchema := dynamicSchemas()
+	for name, js := range dynamicCases(t) {
+		t.Run(name, func(t *testing.T) {
+			raw, diags := hwDynamicState(t, hwSchema, decodeDynamic(t, js))
+			if diags.HasError() {
+				t.Skip("the handwritten flatten refuses the widget")
+			}
+			var hwModel hwDynamicHost
+			if diags := (tfsdk.State{Schema: hwSchema, Raw: raw}).Get(ctx, &hwModel); diags.HasError() {
+				t.Fatal(diags)
+			}
+			var swModel swDynamicHost
+			if diags := (tfsdk.State{Schema: swSchema, Raw: raw}).Get(ctx, &swModel); diags.HasError() {
+				t.Fatal(diags)
+			}
+			hwBody, hwDiags := ExpandDynamic(ctx, hwModel.Dynamic)
+			swBody, swDiags := ExpandSwitchedDynamic(ctx, swModel.Dynamic)
+			switch {
+			case hwDiags.HasError() && swDiags.HasError():
+				return
+			case hwDiags.HasError() || swDiags.HasError():
+				t.Fatalf("one side fails:\nhandwritten %v\nswitched %v", hwDiags, swDiags)
+			}
+			// Both sides give a new random id to a part without one.
+			h, s := maskNewIDs(dynamicJSON(t, hwBody), string(js)), maskNewIDs(dynamicJSON(t, swBody), string(js))
+			if h != s {
+				t.Errorf("request differs at %v", dynamicJSONDiffs(t, h, s))
+			}
+		})
+	}
+}
+
+// TestDynamicPlanWithUnknowns checks that an update plan with every computed
+// attribute unknown reads into the switched model and expands.
+func TestDynamicPlanWithUnknowns(t *testing.T) {
+	ctx := context.Background()
+	_, swSchema := dynamicSchemas()
+	for name, js := range dynamicCases(t) {
+		t.Run(name, func(t *testing.T) {
+			raw, diags := swDynamicState(t, swSchema, decodeDynamic(t, js))
+			if diags.HasError() {
+				t.Skip("the switched flatten refuses the widget")
+			}
+			plan, err := schemadump.PlanWithUnknowns(ctx, swSchema, raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var m swDynamicHost
+			if diags := (tfsdk.Plan{Schema: swSchema, Raw: plan}).Get(ctx, &m); diags.HasError() {
+				t.Fatalf("get plan: %v", diags)
+			}
+			if _, diags := ExpandSwitchedDynamic(ctx, m.Dynamic); diags.HasError() {
+				t.Fatalf("expand: %v", diags)
+			}
+		})
+	}
+}
+
+var uuidPattern = regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
+
+// maskNewIDs replaces each UUID in the request JSON s that the API fixture
+// src does not have: a new random id.
+func maskNewIDs(s, src string) string {
+	return uuidPattern.ReplaceAllStringFunc(s, func(id string) string {
+		if strings.Contains(src, id) {
+			return id
+		}
+		return "new-id"
+	})
+}
+
+func dynamicState(t *testing.T, s schema.Schema, v any) tftypes.Value {
+	t.Helper()
+	state := tfsdk.State{Schema: s, Raw: tftypes.NewValue(s.Type().TerraformType(context.Background()), nil)}
+	if diags := state.Set(context.Background(), v); diags.HasError() {
+		t.Fatal(fmt.Sprint(diags))
+	}
+	return state.Raw
+}
+
+// dynamicJSON is the JSON of v without empty arrays: the handwritten code
+// sends a null list as [], the generated code leaves it out, and for the API
+// (protobuf repeated fields) the two are the same.
+func dynamicJSON(t *testing.T, v any) string {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tree any
+	if err := json.Unmarshal(b, &tree); err != nil {
+		t.Fatal(err)
+	}
+	b, err = json.Marshal(dropEmptyDynamicArrays(tree))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+// dynamicJSONDiffs lists the paths where the JSON texts a and b differ, with
+// both values.
+func dynamicJSONDiffs(t *testing.T, a, b string) []string {
+	t.Helper()
+	var x, y any
+	if err := json.Unmarshal([]byte(a), &x); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal([]byte(b), &y); err != nil {
+		t.Fatal(err)
+	}
+	var out []string
+	var walk func(p string, x, y any)
+	walk = func(p string, x, y any) {
+		xm, xok := x.(map[string]any)
+		ym, yok := y.(map[string]any)
+		xl, xlok := x.([]any)
+		yl, ylok := y.([]any)
+		switch {
+		case xok && yok:
+			keys := map[string]bool{}
+			for k := range xm {
+				keys[k] = true
+			}
+			for k := range ym {
+				keys[k] = true
+			}
+			for k := range keys {
+				walk(p+"."+k, xm[k], ym[k])
+			}
+		case xlok && ylok && len(xl) == len(yl):
+			for i := range xl {
+				walk(fmt.Sprintf("%s[%d]", p, i), xl[i], yl[i])
+			}
+		default:
+			xb, _ := json.Marshal(x)
+			yb, _ := json.Marshal(y)
+			if string(xb) != string(yb) {
+				out = append(out, fmt.Sprintf("%s: handwritten %s, switched %s", p, xb, yb))
+			}
+		}
+	}
+	walk("", x, y)
+	return out
+}
+
+func dropEmptyDynamicArrays(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		for k, e := range x {
+			if a, ok := e.([]any); ok && len(a) == 0 {
+				delete(x, k)
+				continue
+			}
+			x[k] = dropEmptyDynamicArrays(e)
+		}
+	case []any:
+		for i := range x {
+			x[i] = dropEmptyDynamicArrays(x[i])
+		}
+	}
+	return v
+}

@@ -135,9 +135,8 @@ func TestUnwrapExpand(t *testing.T) {
 		{"empty values", func() *fakeunwrap.QueryModel {
 			m := nullQuery()
 			m.Source = &fakeunwrap.QuerySourceModel{LuceneQuery: types.StringValue(""), PromqlQuery: types.StringNull()}
-			m.Labels = strSet()
 			return m
-		}(), `{"field":{},"labels":{"value":[]},"source":{"luceneQuery":{"value":""}}}`},
+		}(), `{"field":{},"source":{"luceneQuery":{"value":""}}}`},
 		{"unknown", func() *fakeunwrap.QueryModel {
 			m := nullQuery()
 			m.Color = types.StringUnknown()
@@ -153,6 +152,18 @@ func TestUnwrapExpand(t *testing.T) {
 				t.Errorf("expand = %s, want %s", got, c.want)
 			}
 		})
+	}
+}
+
+// TestUnwrapExpandRefusesEmpty checks that expand refuses an empty set that
+// emptyAsNull would read back as null: the validator refuses a known one, and
+// expand one that was unknown at plan time.
+func TestUnwrapExpandRefusesEmpty(t *testing.T) {
+	m := nullQuery()
+	m.Labels = strSet()
+	_, diags := fakeunwrap.ExpandQuery(context.Background(), path.Root("query"), m)
+	if !diags.HasError() || !diags[0].(interface{ Path() path.Path }).Path().Equal(path.Root("query").AtName("labels")) {
+		t.Errorf("expand of empty labels: %v, want an error at query.labels", diags)
 	}
 }
 

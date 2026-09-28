@@ -29,6 +29,10 @@ import (
 //	func Expand<name>(p path.Path, v types.<type>, diags *diag.Diagnostics) <the SDK field type>
 //	func Flatten<name>(p path.Path, v *<the SDK type>, diags *diag.Diagnostics) types.<type>
 //
+// A custom Object also has the attribute types of its value:
+//
+//	func <name>AttrTypes() map[string]attr.Type
+//
 // The custom package must not import the generated one. shape is the start
 // of the SHA-256 of the API type of the field (model.TypeText): when the API
 // type changes, the generator stops and shows the new type, so the
@@ -41,7 +45,7 @@ type customOverride struct {
 }
 
 // customTypes are the Terraform value types of a custom field.
-var customTypes = []string{"Bool", "Float32", "Float64", "Int32", "Int64", "Number", "String"}
+var customTypes = []string{"Bool", "Float32", "Float64", "Int32", "Int64", "Number", "Object", "String"}
 
 // shapeOf returns the first 12 hex digits of the SHA-256 of the text of t.
 func shapeOf(t *model.Type) string {
@@ -105,6 +109,15 @@ func (o *overrides) checkCustomPackage() []error {
 		return []error{errors.New("overrides: customPackage is set, but no field is custom")}
 	}
 	return nil
+}
+
+// customAttrType is the Terraform attribute type expression of the custom
+// field f: an object has the attribute types of the custom package.
+func customAttrType(f *convField) string {
+	if f.CustomType == "Object" {
+		return "types.ObjectType{AttrTypes: custom." + f.Custom + "AttrTypes()}"
+	}
+	return "types." + f.CustomType + "Type"
 }
 
 // customAttribute returns the handwritten attribute and the model field of

@@ -204,7 +204,6 @@ const (
 	readNullObj   = "nullobject"  // an object with no fields set → null
 	readEmptyObj  = "emptyobject" // a missing object → an empty one (SDKType)
 	readZeroEnum  = "zeroenum"    // a missing enum → its proto zero value (ProtoZero)
-	readFalse     = "false"       // a missing empty object of the bool override → false
 )
 
 // Normalizes reports whether flatten of obj changes a missing or empty
@@ -923,8 +922,6 @@ func (b *convBuilder) missingRule(cf *convField, t *model.Type, slice, mapped bo
 		}
 		cf.ProtoZero = b.qualify(enumConstName(enum.Name, zero))
 		return readZeroEnum, nil
-	case cf.Conv == convEmptyBool:
-		return readFalse, nil
 	case cf.Conv == convObj || cf.Conv == convObjValue:
 		if cf.Value {
 			return "", nil // a value is never missing
@@ -1041,7 +1038,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 	}
 	switch f.Conv {
 	case convCustom:
-		return "types." + f.CustomType + "Type", nil
+		return customAttrType(f), nil
 	case convStrings, convEnumNames:
 		return "types." + f.Collection + "Type{ElemType: types.StringType}", nil
 	case convScalars:

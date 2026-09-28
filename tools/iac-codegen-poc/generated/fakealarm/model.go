@@ -8,7 +8,8 @@ import (
 
 // LogsRuleModel is the Terraform model of the API type LogsRule.
 type LogsRuleModel struct {
-	Query types.String `tfsdk:"query"`
+	Query  types.String `tfsdk:"query"`
+	Window types.Object `tfsdk:"window"`
 }
 
 // MetricRuleModel is the Terraform model of the API type MetricRule.

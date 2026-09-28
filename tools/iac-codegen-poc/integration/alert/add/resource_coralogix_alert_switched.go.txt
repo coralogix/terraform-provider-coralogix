@@ -19,8 +19,6 @@ import (
 	"fmt"
 
 	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -68,26 +66,6 @@ func switchedAlertAttributes() map[string]schema.Attribute {
 		s.Validators = append(s.Validators, stringvalidator.AlsoRequires(path.MatchRoot("group_by")))
 		return s
 	})
-	// An empty value reads back as null (emptyAsNull), so Terraform would
-	// fail the apply with an inconsistent result: reject it in the plan.
-	updateAttribute(attrs, []string{"labels"}, func(a schema.Attribute) schema.Attribute {
-		m := a.(schema.MapAttribute)
-		m.Validators = append(m.Validators, mapvalidator.SizeAtLeast(1))
-		return m
-	})
-	for _, p := range [][]string{{"data_sources"}, {"notification_group", "group_by_keys"}, {"notification_group", "destinations"}} {
-		updateAttribute(attrs, p, func(a schema.Attribute) schema.Attribute {
-			switch l := a.(type) {
-			case schema.ListAttribute:
-				l.Validators = append(l.Validators, listvalidator.SizeAtLeast(1))
-				return l
-			case schema.ListNestedAttribute:
-				l.Validators = append(l.Validators, listvalidator.SizeAtLeast(1))
-				return l
-			}
-			panic(fmt.Sprintf("coralogix_alert schema: %v is a %T, not a list", p, a))
-		})
-	}
 	for _, alertType := range []string{"logs_threshold", "metric_threshold"} {
 		updateAttribute(attrs, []string{"type_definition", alertType, "no_data_policy", "state"}, func(a schema.Attribute) schema.Attribute {
 			s := a.(schema.StringAttribute)

@@ -121,6 +121,11 @@ func expandKeyInlineKeyPermissions(ctx context.Context, p path.Path, m *KeyModel
 	out := &fake_boards_service.KeyPermissions{}
 	out.Permissions = expandStrings[string](ctx, p.AtName("permissions"), m.Permissions, diags)
 	out.Presets = expandStrings[string](ctx, p.AtName("presets"), m.Presets, diags)
+	// emptyAsNull reads an empty value back as null. The validator refuses a
+	// known empty one; this refuses one that was unknown at plan time.
+	if out.Presets != nil && len(out.Presets) == 0 {
+		diags.AddAttributeError(p.AtName("presets"), "Invalid value", "The value is empty, so it would read back as null: set at least one element, or leave it out.")
+	}
 	return out
 }
 
@@ -203,6 +208,11 @@ func expandKeyRotationInlinePermissions(ctx context.Context, p path.Path, m *Key
 	out := &fake_boards_service.KeyPermissions{}
 	out.Permissions = expandStrings[string](ctx, p.AtName("permissions"), m.Permissions, diags)
 	out.Presets = expandStrings[string](ctx, p.AtName("presets"), m.Presets, diags)
+	// emptyAsNull reads an empty value back as null. The validator refuses a
+	// known empty one; this refuses one that was unknown at plan time.
+	if out.Presets != nil && len(out.Presets) == 0 {
+		diags.AddAttributeError(p.AtName("presets"), "Invalid value", "The value is empty, so it would read back as null: set at least one element, or leave it out.")
+	}
 	return out
 }
 
@@ -230,6 +240,11 @@ func expandKeyPermissions(ctx context.Context, p path.Path, m *KeyPermissionsMod
 	out := &fake_boards_service.KeyPermissions{}
 	out.Permissions = expandStrings[string](ctx, p.AtName("permissions"), m.Permissions, diags)
 	out.Presets = expandStrings[string](ctx, p.AtName("presets"), m.Presets, diags)
+	// emptyAsNull reads an empty value back as null. The validator refuses a
+	// known empty one; this refuses one that was unknown at plan time.
+	if out.Presets != nil && len(out.Presets) == 0 {
+		diags.AddAttributeError(p.AtName("presets"), "Invalid value", "The value is empty, so it would read back as null: set at least one element, or leave it out.")
+	}
 	return out
 }
 

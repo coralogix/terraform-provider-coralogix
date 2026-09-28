@@ -7,6 +7,7 @@ package fakechart_test
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 
@@ -121,8 +122,8 @@ func TestChartRoundTrip(t *testing.T) {
 }
 
 // TestChartReads checks how flatten reads each form: the fields of the other
-// arms are null, a oneOf with no arm is null, and a missing mapped_values is
-// false (missingAsZero).
+// arms are null, a oneOf with no arm is an error (an arm the SDK does not
+// know), and a missing empty object shown as a bool is null.
 func TestChartReads(t *testing.T) {
 	m := flatten(t, `{"aggregation":{"percentile":{"percent":95}}}`)
 	a := m.Aggregation
@@ -136,12 +137,17 @@ func TestChartReads(t *testing.T) {
 	if got := flatten(t, `{"aggregation":{"average":{}}}`).Aggregation.Type.ValueString(); got != "avg" {
 		t.Errorf("type of average = %q, want the name avg", got)
 	}
-	m = flatten(t, `{"aggregation":{},"colorsBy":{}}`)
-	if m.Aggregation != nil || !m.ColorsBy.IsNull() {
-		t.Errorf("no arm: aggregation = %+v, colors_by = %v, want null", m.Aggregation, m.ColorsBy)
+	_, diags := fakechart.FlattenChart(context.Background(), path.Root("chart"), decode(t, `{"aggregation":{},"colorsBy":{},"aggregations":[{}]}`))
+	var at []string
+	for _, d := range diags {
+		at = append(at, d.(interface{ Path() path.Path }).Path().String())
 	}
+	if want := []string{"chart.colors_by", "chart.aggregation", "chart.aggregations[0]"}; !slices.Equal(at, want) {
+		t.Errorf("no arm: errors at %v, want %v", at, want)
+	}
+	m = flatten(t, `{"aggregations":[{"count":{}}]}`)
 	m = flatten(t, `{}`)
-	if m.MappedValues.IsNull() || m.MappedValues.ValueBool() || !m.ColorsBy.IsNull() || m.MinMax != nil {
+	if !m.MappedValues.IsNull() || !m.ColorsBy.IsNull() || m.MinMax != nil {
 		t.Errorf("empty: mapped_values = %v, colors_by = %v, min_max = %+v", m.MappedValues, m.ColorsBy, m.MinMax)
 	}
 	if !flatten(t, `{"minMax":{"auto":{}}}`).MinMax.Auto.ValueBool() {
@@ -150,7 +156,8 @@ func TestChartReads(t *testing.T) {
 }
 
 // TestChartExpand checks expand of a model from a configuration: only the
-// fields of the arm that type names are sent, and false sends no object.
+// fields of the arm that type names are sent, and false is an error (the
+// validator misses a value that was unknown at plan time).
 func TestChartExpand(t *testing.T) {
 	m := flatten(t, `{}`)
 	m.Aggregation = &fakechart.ChartAggregationModel{
@@ -159,7 +166,6 @@ func TestChartExpand(t *testing.T) {
 		Labels:  types.ListNull(types.StringType),
 		Percent: types.Float64Value(95),
 	}
-	m.MappedValues = types.BoolValue(false)
 	m.ColorsBy = types.StringValue("group_by")
 	if got, want := expand(t, m), `{"aggregation":{"average":{"field":"f"}},"colorsBy":{"groupBy":{}}}`; got != want {
 		t.Errorf("expand:\n got %s\nwant %s", got, want)
@@ -167,6 +173,11 @@ func TestChartExpand(t *testing.T) {
 	m.ColorsBy, m.Aggregation.Type = types.StringUnknown(), types.StringUnknown()
 	if got, want := expand(t, m), `{"aggregation":{}}`; got != want {
 		t.Errorf("expand of unknown values:\n got %s\nwant %s", got, want)
+	}
+	m.MappedValues = types.BoolValue(false)
+	_, diags := fakechart.ExpandChart(context.Background(), path.Root("chart"), m)
+	if !diags.HasError() || !diags[0].(interface{ Path() path.Path }).Path().Equal(path.Root("chart").AtName("mapped_values")) {
+		t.Errorf("expand of mapped_values false: %v, want an error at chart.mapped_values", diags)
 	}
 }
 
@@ -192,6 +203,11 @@ func TestChartValidators(t *testing.T) {
 		}, `field cannot be set when type is "count". at AttributeName("chart").AttributeName("aggregations").ElementKeyInt(1).AttributeName("field")`},
 		{"an unknown type", func(m *fakechart.ChartModel) { m.Aggregation.Type = types.StringValue("median") }, `AttributeName("aggregation").AttributeName("type")`},
 		{"an unknown color", func(m *fakechart.ChartModel) { m.ColorsBy = types.StringValue("rainbow") }, `AttributeName("colors_by")`},
+		{"false", func(m *fakechart.ChartModel) { m.MappedValues = types.BoolValue(false) },
+			`this marker must be true when set; omit it otherwise at AttributeName("chart").AttributeName("mapped_values")`},
+		{"auto false (F76)", func(m *fakechart.ChartModel) {
+			m.MinMax = &fakechart.ChartMinMaxModel{Auto: types.BoolValue(false), Custom: nil}
+		}, `this marker must be true when set; omit it otherwise at AttributeName("chart").AttributeName("min_max").AttributeName("auto")`},
 		{"auto and custom", func(m *fakechart.ChartModel) {
 			m.MinMax = &fakechart.ChartMinMaxModel{Auto: types.BoolValue(true), Custom: &fakechart.ChartMinMaxCustomModel{}}
 		}, `AttributeName("min_max").AttributeName("auto")`},

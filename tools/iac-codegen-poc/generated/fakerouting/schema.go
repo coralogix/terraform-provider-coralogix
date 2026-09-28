@@ -6,6 +6,8 @@
 package fakerouting
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -45,6 +47,7 @@ func RoutingAttributes() map[string]schema.Attribute {
 			ElementType: types.StringType,
 			Validators: []validator.Set{
 				setvalidator.ValueStringsAre(stringvalidator.OneOf(DeliveryNames...)),
+				setvalidator.SizeAtLeast(1),
 			},
 			MarkdownDescription: "Delivery kinds per channel. A list of enums.",
 		},
@@ -68,13 +71,19 @@ func RoutingAttributes() map[string]schema.Attribute {
 		},
 		"priority": schema.Int64Attribute{
 			Optional: true,
+			Validators: []validator.Int64{
+				int64validator.Between(-2147483648, 2147483647),
+			},
 			PlanModifiers: []planmodifier.Int64{
 				int64planmodifier.RequiresReplace(),
 			},
 			MarkdownDescription: "Priority, an int32.",
 		},
 		"weight": schema.Float64Attribute{
-			Optional:            true,
+			Optional: true,
+			Validators: []validator.Float64{
+				float64validator.Between(-3.4028234663852886e+38, 3.4028234663852886e+38),
+			},
 			MarkdownDescription: "Weight, a float.",
 		},
 		"disabled": schema.BoolAttribute{

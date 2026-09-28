@@ -1,7 +1,7 @@
 // This file is handwritten. It checks the overrides (D21) of
 // spec/fake/alarm.overrides.yaml: an enum that names the set rule
-// (namesArm), and two fields with handwritten converters (custom, in
-// alarmcustom).
+// (namesArm), and three fields with handwritten converters (custom, in
+// alarmcustom), one of them an object.
 
 package fakealarm_test
 
@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/generated/fakealarm"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/generated/fakealarm/alarmcustom"
 	sdk "github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen-poc/testsdk/go/openapi/gen/fake_boards_service"
 )
 
@@ -78,6 +79,10 @@ func TestAlarmSchema(t *testing.T) {
 	if _, ok := metric["of_the_last"].(schema.StringAttribute); !ok {
 		t.Errorf("of_the_last = %T, want the handwritten StringAttribute", metric["of_the_last"])
 	}
+	logs := rule["logs_rule"].(schema.SingleNestedAttribute).Attributes
+	if _, ok := logs["window"].(schema.SingleNestedAttribute).Attributes["seconds"]; !ok {
+		t.Errorf("window = %#v, want the handwritten object", logs["window"])
+	}
 	if _, ok := tracing["latency_ms"].(schema.NumberAttribute); !ok {
 		t.Errorf("latency_ms = %T, want the handwritten NumberAttribute", tracing["latency_ms"])
 	}
@@ -88,6 +93,8 @@ func TestAlarmSchema(t *testing.T) {
 func TestAlarmRoundTrip(t *testing.T) {
 	for _, js := range []string{
 		`{"logsRule":{"query":"q"},"name":"a","type":"ALARM_TYPE_LOGS_RULE_OR_UNSPECIFIED"}`,
+		`{"logsRule":{"window":{"specificValue":"TIME_WINDOW_VALUE_HOURS_1"}},"type":"ALARM_TYPE_LOGS_RULE_OR_UNSPECIFIED"}`,
+		`{"logsRule":{"window":{"dynamicDuration":"90s"}},"type":"ALARM_TYPE_LOGS_RULE_OR_UNSPECIFIED"}`,
 		`{"metricRule":{"ofTheLast":{"specificValue":"TIME_WINDOW_VALUE_HOURS_1"},"threshold":1.5},"type":"ALARM_TYPE_METRIC_RULE"}`,
 		`{"metricRule":{"ofTheLast":{"dynamicDuration":"90s"}},"type":"ALARM_TYPE_METRIC_RULE"}`,
 		`{"tracingRule":{"latencyMs":"123456789012345678"},"type":"ALARM_TYPE_TRACING_RULE"}`,
@@ -105,6 +112,11 @@ func TestAlarmRoundTrip(t *testing.T) {
 	m := flatten(t, `{"metricRule":{"ofTheLast":{"specificValue":"TIME_WINDOW_VALUE_HOURS_1"}}}`)
 	if got := m.Rule.MetricRule.OfTheLast.ValueString(); got != "1_HOUR" {
 		t.Errorf("of_the_last = %q, want 1_HOUR", got)
+	}
+	// A custom Object: the handwritten object shape.
+	m = flatten(t, `{"logsRule":{"window":{"dynamicDuration":"90s"}}}`)
+	if got := m.Rule.LogsRule.Window.Attributes()["seconds"]; !got.Equal(types.Int64Value(90)) {
+		t.Errorf("window.seconds = %v, want 90", got)
 	}
 }
 
@@ -151,7 +163,7 @@ func TestAlarmValidators(t *testing.T) {
 		{"a fixed window", func(m *fakealarm.AlarmModel) { m.Rule.MetricRule.OfTheLast = types.StringValue("5_MINUTES") }, ""},
 		{"a bad window", func(m *fakealarm.AlarmModel) { m.Rule.MetricRule.OfTheLast = types.StringValue("soon") }, `AttributeName("of_the_last")`},
 		{"two rules", func(m *fakealarm.AlarmModel) {
-			m.Rule.LogsRule = &fakealarm.LogsRuleModel{Query: types.StringValue("q")}
+			m.Rule.LogsRule = &fakealarm.LogsRuleModel{Query: types.StringValue("q"), Window: types.ObjectNull(alarmcustom.LogsRuleWindowAttrTypes())}
 		}, `AttributeName("logs_rule")`},
 	} {
 		t.Run(c.name, func(t *testing.T) {

@@ -1,0 +1,1567 @@
+{
+ "TestDynamicWidgetBarsFullFidelityRoundTrip_horizontal_bars": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "horizontalBars": {
+    "allowAbbreviation": true,
+    "categoryFields": [
+     {
+      "keypath": [
+       "applicationname"
+      ],
+      "scope": "DATASET_SCOPE_LABEL"
+     }
+    ],
+    "colorScheme": "red",
+    "colorsBy": {
+     "groupBy": {}
+    },
+    "customUnit": "rpm",
+    "decimalPrecision": 3,
+    "displayOnBar": true,
+    "groupNameTemplate": "group",
+    "hashColors": true,
+    "legend": {
+     "columns": [
+      "LEGEND_COLUMN_MAX"
+     ],
+     "groupByQuery": false,
+     "isVisible": true,
+     "placement": "LEGEND_PLACEMENT_BOTTOM"
+    },
+    "maxBarsPerChart": 15,
+    "maxSlicesPerBar": 4,
+    "scaleType": "SCALE_TYPE_LINEAR",
+    "sortBy": "SORT_BY_TYPE_NAME",
+    "stackNameTemplate": "stack",
+    "subCategoryFields": [
+     {
+      "keypath": [
+       "severity"
+      ],
+      "scope": "DATASET_SCOPE_METADATA"
+     }
+    ],
+    "unit": "UNIT_MILLISECONDS",
+    "valueField": {
+     "keypath": [
+      "duration"
+     ],
+     "scope": "DATASET_SCOPE_METADATA"
+    },
+    "yAxisMax": 50,
+    "yAxisMin": 5,
+    "yAxisViewBy": "Y_AXIS_VIEW_BY_CATEGORY"
+   }
+  }
+ },
+ "TestDynamicWidgetBarsFullFidelityRoundTrip_horizontal_bars_multi": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "horizontalBarsMulti": {
+    "allowAbbreviation": false,
+    "categoryFields": [
+     {
+      "keypath": [
+       "applicationname"
+      ],
+      "scope": "DATASET_SCOPE_LABEL"
+     }
+    ],
+    "colorScheme": "blue",
+    "colorsBy": {
+     "aggregation": {}
+    },
+    "customUnit": "rpm",
+    "decimalPrecision": 0,
+    "displayOnBar": false,
+    "groupNameTemplate": "group",
+    "hashColors": false,
+    "legend": {
+     "columns": [
+      "LEGEND_COLUMN_MAX"
+     ],
+     "groupByQuery": false,
+     "isVisible": true,
+     "placement": "LEGEND_PLACEMENT_BOTTOM"
+    },
+    "maxBarsPerChart": 25,
+    "queryFieldSettings": [
+     {
+      "queryId": "9d1b7a4e-0000-4000-8000-00000000ab01",
+      "valueField": {
+       "keypath": [
+        "duration"
+       ],
+       "scope": "DATASET_SCOPE_METADATA"
+      }
+     }
+    ],
+    "scaleType": "SCALE_TYPE_LINEAR",
+    "sortOrder": {
+     "orderDirection": "ORDER_DIRECTION_DESC",
+     "strategy": {
+      "queryValue": {
+       "queryId": "9d1b7a4e-0000-4000-8000-00000000ab01"
+      }
+     }
+    },
+    "unit": "UNIT_USD",
+    "yAxisMax": 12.5,
+    "yAxisMin": 0,
+    "yAxisViewBy": "Y_AXIS_VIEW_BY_VALUE"
+   }
+  }
+ },
+ "TestDynamicWidgetBarsFullFidelityRoundTrip_vertical_bars": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "verticalBars": {
+    "allowAbbreviation": true,
+    "barValueDisplay": "BAR_VALUE_DISPLAY_TOP",
+    "categoryFields": [
+     {
+      "keypath": [
+       "applicationname"
+      ],
+      "scope": "DATASET_SCOPE_LABEL"
+     }
+    ],
+    "colorScheme": "classic",
+    "colorsBy": {
+     "stack": {}
+    },
+    "customUnit": "rpm",
+    "decimalPrecision": 2,
+    "groupNameTemplate": "group",
+    "hashColors": true,
+    "legend": {
+     "columns": [
+      "LEGEND_COLUMN_MAX"
+     ],
+     "groupByQuery": false,
+     "isVisible": true,
+     "placement": "LEGEND_PLACEMENT_BOTTOM"
+    },
+    "maxBarsPerChart": 20,
+    "maxSlicesPerBar": 5,
+    "scaleType": "SCALE_TYPE_LINEAR",
+    "sortBy": "SORT_BY_TYPE_VALUE",
+    "stackNameTemplate": "stack",
+    "subCategoryFields": [
+     {
+      "keypath": [
+       "severity"
+      ],
+      "scope": "DATASET_SCOPE_METADATA"
+     }
+    ],
+    "unit": "UNIT_SECONDS",
+    "valueField": {
+     "keypath": [
+      "duration"
+     ],
+     "scope": "DATASET_SCOPE_METADATA"
+    },
+    "yAxisMax": 99.5,
+    "yAxisMin": 0
+   }
+  }
+ },
+ "TestDynamicWidgetBarsFullFidelityRoundTrip_vertical_bars_multi": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "verticalBarsMulti": {
+    "allowAbbreviation": false,
+    "barValueDisplay": "BAR_VALUE_DISPLAY_INSIDE",
+    "categoryFields": [
+     {
+      "keypath": [
+       "applicationname"
+      ],
+      "scope": "DATASET_SCOPE_LABEL"
+     }
+    ],
+    "colorScheme": "cold",
+    "colorsBy": {
+     "query": {}
+    },
+    "customUnit": "rpm",
+    "decimalPrecision": 1,
+    "groupNameTemplate": "group",
+    "hashColors": false,
+    "legend": {
+     "columns": [
+      "LEGEND_COLUMN_MAX"
+     ],
+     "groupByQuery": false,
+     "isVisible": true,
+     "placement": "LEGEND_PLACEMENT_BOTTOM"
+    },
+    "maxBarsPerChart": 10,
+    "queryFieldSettings": [
+     {
+      "queryId": "9d1b7a4e-0000-4000-8000-00000000ab01",
+      "valueField": {
+       "keypath": [
+        "duration"
+       ],
+       "scope": "DATASET_SCOPE_METADATA"
+      }
+     }
+    ],
+    "scaleType": "SCALE_TYPE_LOGARITHMIC",
+    "sortOrder": {
+     "orderDirection": "ORDER_DIRECTION_ASC",
+     "strategy": {
+      "category": {}
+     }
+    },
+    "unit": "UNIT_BYTES",
+    "yAxisMax": 1000,
+    "yAxisMin": -10.25
+   }
+  }
+ },
+ "TestDynamicWidgetGaugeAndPieFullFidelityRoundTrip_gauge": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "gauge": {
+    "allowAbbreviation": true,
+    "arcDisplay": {
+     "thresholdArc": true,
+     "valueArc": false
+    },
+    "categoryFields": [
+     {
+      "keypath": [
+       "applicationname"
+      ],
+      "scope": "DATASET_SCOPE_LABEL"
+     }
+    ],
+    "customUnit": "rpm",
+    "decimalPrecision": 2,
+    "displaySeriesName": true,
+    "legend": {
+     "columns": [
+      "LEGEND_COLUMN_MAX"
+     ],
+     "groupByQuery": false,
+     "isVisible": true,
+     "placement": "LEGEND_PLACEMENT_BOTTOM"
+    },
+    "legendBy": "LEGEND_BY_THRESHOLDS",
+    "max": 1000,
+    "min": 0,
+    "showInnerArc": true,
+    "showMinMax": false,
+    "showOuterArc": true,
+    "thresholdType": "THRESHOLD_TYPE_ABSOLUTE",
+    "thresholds": [
+     {
+      "color": "#ff0000",
+      "from": 10,
+      "label": "high"
+     }
+    ],
+    "unit": "UNIT_SECONDS",
+    "valueField": {
+     "keypath": [
+      "duration"
+     ],
+     "scope": "DATASET_SCOPE_METADATA"
+    },
+    "valueFields": [
+     {
+      "keypath": [
+       "value"
+      ],
+      "scope": "DATASET_SCOPE_USER_DATA"
+     }
+    ]
+   }
+  }
+ },
+ "TestDynamicWidgetGaugeAndPieFullFidelityRoundTrip_pie_chart": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "pieChart": {
+    "allowAbbreviation": false,
+    "categoryFields": [
+     {
+      "keypath": [
+       "applicationname"
+      ],
+      "scope": "DATASET_SCOPE_LABEL"
+     }
+    ],
+    "colorScheme": "classic",
+    "customUnit": "rpm",
+    "decimalPrecision": 1,
+    "groupNameTemplate": "group",
+    "hashColors": true,
+    "labelDefinition": {
+     "isVisible": true,
+     "labelSource": "LABEL_SOURCE_INNER",
+     "showName": true,
+     "showPercentage": false,
+     "showValue": true
+    },
+    "legend": {
+     "columns": [
+      "LEGEND_COLUMN_MAX"
+     ],
+     "groupByQuery": false,
+     "isVisible": true,
+     "placement": "LEGEND_PLACEMENT_BOTTOM"
+    },
+    "maxSlicesPerChart": 10,
+    "maxSlicesPerStack": 5,
+    "minSlicePercentage": 2,
+    "showTotal": true,
+    "stackNameTemplate": "stack",
+    "subCategoryFields": [
+     {
+      "keypath": [
+       "severity"
+      ],
+      "scope": "DATASET_SCOPE_METADATA"
+     }
+    ],
+    "unit": "UNIT_BYTES",
+    "valueField": {
+     "keypath": [
+      "duration"
+     ],
+     "scope": "DATASET_SCOPE_METADATA"
+    }
+   }
+  }
+ },
+ "TestDynamicWidgetLogsStatRoundTrip": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "stat": {
+    "thresholdType": "THRESHOLD_TYPE_ABSOLUTE",
+    "thresholds": [
+     {
+      "color": "#ff0000",
+      "from": 10,
+      "label": "high"
+     }
+    ],
+    "unit": "UNIT_BYTES",
+    "valueField": {
+     "keypath": [
+      "duration"
+     ],
+     "scope": "DATASET_SCOPE_METADATA"
+    }
+   }
+  }
+ },
+ "TestDynamicWidgetMetricsQueryFullFidelityRoundTrip": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "rate by service",
+    "query": {
+     "metrics": {
+      "editorMode": "METRICS_QUERY_EDITOR_MODE_TEXT",
+      "promqlQuery": {
+       "value": "rate(x[5m])"
+      },
+      "promqlQueryType": "PROM_QL_QUERY_TYPE_INSTANT",
+      "seriesLimitType": "METRICS_SERIES_LIMIT_TYPE_BY_SERIES_COUNT"
+     }
+    }
+   }
+  ],
+  "visualization": {
+   "stat": {
+    "thresholds": [],
+    "unit": "UNIT_BYTES"
+   }
+  }
+ },
+ "TestDynamicWidgetSpansAndDataPrimeQueryFullFidelityRoundTrip": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "spans",
+    "query": {
+     "spans": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "filters": [
+       {
+        "field": {
+         "metadataField": "METADATA_FIELD_APPLICATION_NAME"
+        },
+        "operator": {
+         "equals": {
+          "selection": {
+           "list": {
+            "values": [
+             "api"
+            ]
+           }
+          }
+         }
+        }
+       },
+       {
+        "observationField": {
+         "keypath": [
+          "servicename"
+         ],
+         "relationType": "SPAN_RELATION_TYPE_NONE_UNSPECIFIED",
+         "scope": "DATASET_SCOPE_LABEL"
+        },
+        "operator": {
+         "notEquals": {
+          "selection": {
+           "list": {
+            "values": [
+             "codex-app-server"
+            ]
+           }
+          }
+         }
+        }
+       }
+      ],
+      "groupBy": [
+       {
+        "keypath": [
+         "service",
+         "name"
+        ],
+        "relationType": "SPAN_RELATION_TYPE_PARENT",
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "*"
+      }
+     }
+    }
+   },
+   {
+    "id": "query-2",
+    "name": "data prime",
+    "query": {
+     "dataprime": {
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "dataprimeQuery": {
+       "text": "source logs | limit 10"
+      }
+     }
+    }
+   }
+  ],
+  "visualization": {
+   "stat": {
+    "thresholds": [],
+    "unit": "UNIT_BYTES"
+   }
+  }
+ },
+ "TestDynamicWidgetSpatialFullFidelityRoundTrip_geomap": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "geomap": {
+    "aggregation": {
+     "count": {}
+    },
+    "allowAbbreviation": true,
+    "color": {
+     "size": "COLOR_SOLID_TYPE_BLUE"
+    },
+    "config": {
+     "coordinateConfig": {
+      "latitudeField": {
+       "keypath": [
+        "lat"
+       ],
+       "scope": "DATASET_SCOPE_USER_DATA"
+      },
+      "longitudeField": {
+       "keypath": [
+        "lon"
+       ],
+       "scope": "DATASET_SCOPE_USER_DATA"
+      }
+     }
+    },
+    "customUnit": "rpm",
+    "decimalPrecision": 1,
+    "minMax": {
+     "custom": {
+      "max": 50,
+      "min": 5
+     }
+    },
+    "tooltip": {
+     "labels": [
+      {
+       "keypath": [
+        "applicationname"
+       ],
+       "scope": "DATASET_SCOPE_LABEL"
+      }
+     ],
+     "messageTemplate": "value = {{_count}}"
+    },
+    "unit": "UNIT_USD"
+   }
+  }
+ },
+ "TestDynamicWidgetSpatialFullFidelityRoundTrip_geomap_field_based_aggregation": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "geomap": {
+    "aggregation": {
+     "sum": {
+      "field": {
+       "keypath": [
+        "duration"
+       ],
+       "scope": "DATASET_SCOPE_METADATA"
+      }
+     }
+    },
+    "color": {
+     "colorRange": "COLOR_GRADIENT_TYPE_GREEN"
+    },
+    "config": {
+     "awsRegionConfig": {
+      "awsRegionField": {
+       "keypath": [
+        "region"
+       ],
+       "scope": "DATASET_SCOPE_USER_DATA"
+      }
+     }
+    }
+   }
+  }
+ },
+ "TestDynamicWidgetSpatialFullFidelityRoundTrip_heatmap": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "heatmap": {
+    "allowAbbreviation": false,
+    "colorAxisMax": 99.5,
+    "colorAxisMin": -10.25,
+    "colorRange": "COLOR_GRADIENT_TYPE_BLUE",
+    "customUnit": "rpm",
+    "decimalPrecision": 3,
+    "histogramBucketUnit": "HEATMAP_HISTOGRAM_BUCKET_UNIT_SECONDS",
+    "scaleType": "SCALE_TYPE_LINEAR",
+    "showNumbers": true,
+    "tooltip": {
+     "labels": [
+      {
+       "keypath": [
+        "applicationname"
+       ],
+       "scope": "DATASET_SCOPE_LABEL"
+      }
+     ],
+     "messageTemplate": "value = {{_count}}"
+    },
+    "unit": "UNIT_BYTES",
+    "valueField": {
+     "keypath": [
+      "duration"
+     ],
+     "scope": "DATASET_SCOPE_METADATA"
+    },
+    "xAxisFields": [
+     {
+      "keypath": [
+       "timestamp"
+      ],
+      "scope": "DATASET_SCOPE_METADATA"
+     }
+    ],
+    "xAxisTimeFormat": "X_AXIS_TIME_FORMAT_HH_MM",
+    "yAxisFields": [
+     {
+      "keypath": [
+       "severity"
+      ],
+      "scope": "DATASET_SCOPE_METADATA"
+     }
+    ]
+   }
+  }
+ },
+ "TestDynamicWidgetSpatialFullFidelityRoundTrip_hexagon_bins": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "hexagonBins": {
+    "allowAbbreviation": true,
+    "categoryFields": [
+     {
+      "keypath": [
+       "applicationname"
+      ],
+      "scope": "DATASET_SCOPE_LABEL"
+     }
+    ],
+    "customUnit": "rpm",
+    "decimalPrecision": 2,
+    "legend": {
+     "columns": [
+      "LEGEND_COLUMN_MAX"
+     ],
+     "groupByQuery": false,
+     "isVisible": true,
+     "placement": "LEGEND_PLACEMENT_BOTTOM"
+    },
+    "legendBy": "LEGEND_BY_THRESHOLDS",
+    "max": 1000,
+    "min": 0,
+    "thresholdType": "THRESHOLD_TYPE_ABSOLUTE",
+    "thresholds": [
+     {
+      "color": "#ff0000",
+      "from": 10,
+      "label": "high"
+     }
+    ],
+    "unit": "UNIT_SECONDS",
+    "valueField": {
+     "keypath": [
+      "duration"
+     ],
+     "scope": "DATASET_SCOPE_METADATA"
+    }
+   }
+  }
+ },
+ "TestDynamicWidgetStatCardColourMappingArmsRoundTrip_regex": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "statCard": {
+    "categoryFields": [
+     {
+      "keypath": [
+       "category"
+      ],
+      "scope": "DATASET_SCOPE_USER_DATA"
+     }
+    ],
+    "colorLabelMapping": {
+     "colorBy": "COLOR_APPLY_TARGET_VALUE",
+     "regex": {
+      "sections": [
+       {
+        "color": "COLOR_SOLID_TYPE_GREEN",
+        "mapTo": "OK",
+        "value": "200"
+       }
+      ]
+     }
+    },
+    "valueFields": [
+     {
+      "keypath": [
+       "value"
+      ],
+      "scope": "DATASET_SCOPE_METADATA"
+     }
+    ]
+   }
+  }
+ },
+ "TestDynamicWidgetStatCardColourMappingArmsRoundTrip_value": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "statCard": {
+    "categoryFields": [
+     {
+      "keypath": [
+       "category"
+      ],
+      "scope": "DATASET_SCOPE_USER_DATA"
+     }
+    ],
+    "colorLabelMapping": {
+     "colorBy": "COLOR_APPLY_TARGET_VALUE",
+     "value": {
+      "sections": [
+       {
+        "color": "COLOR_SOLID_TYPE_GREEN",
+        "mapTo": "OK",
+        "value": "200"
+       }
+      ]
+     }
+    },
+    "valueFields": [
+     {
+      "keypath": [
+       "value"
+      ],
+      "scope": "DATASET_SCOPE_METADATA"
+     }
+    ]
+   }
+  }
+ },
+ "TestDynamicWidgetStatCardFullFidelityRoundTrip": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "statCard": {
+    "allowAbbreviation": true,
+    "categoryFields": [
+     {
+      "keypath": [
+       "category"
+      ],
+      "scope": "DATASET_SCOPE_USER_DATA"
+     }
+    ],
+    "colorLabelMapping": {
+     "colorBy": "COLOR_APPLY_TARGET_BACKGROUND",
+     "range": {
+      "minMax": {
+       "custom": {
+        "max": 50,
+        "min": 5
+       }
+      },
+      "thresholdType": "THRESHOLD_TYPE_RELATIVE",
+      "thresholds": [
+       {
+        "color": "#ff0000",
+        "from": 10,
+        "label": "high"
+       }
+      ]
+     }
+    },
+    "customUnit": "cards",
+    "decimalPrecision": 2,
+    "label": {
+     "mappedValues": {},
+     "templateText": "text-label",
+     "templateVariables": [
+      {
+       "observationField": {
+        "keypath": [
+         "tvar"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      }
+     ]
+    },
+    "legend": {
+     "columns": [
+      "LEGEND_COLUMN_MAX"
+     ],
+     "groupByQuery": false,
+     "isVisible": true,
+     "placement": "LEGEND_PLACEMENT_BOTTOM"
+    },
+    "legendBy": "LEGEND_BY_GROUPS",
+    "primaryValue": {
+     "observationField": {
+      "keypath": [
+       "primary"
+      ],
+      "scope": "DATASET_SCOPE_USER_DATA"
+     },
+     "templateText": "text-primary",
+     "templateVariables": [
+      {
+       "observationField": {
+        "keypath": [
+         "tvar"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      }
+     ]
+    },
+    "title": {
+     "mappedValues": {},
+     "templateText": "text-title",
+     "templateVariables": [
+      {
+       "observationField": {
+        "keypath": [
+         "tvar"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      }
+     ]
+    },
+    "unit": "UNIT_USD",
+    "valueFields": [
+     {
+      "keypath": [
+       "value"
+      ],
+      "scope": "DATASET_SCOPE_METADATA"
+     }
+    ]
+   }
+  }
+ },
+ "TestDynamicWidgetStatCardMinMaxAutoRoundTrip": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "statCard": {
+    "colorLabelMapping": {
+     "colorBy": "COLOR_APPLY_TARGET_UNSPECIFIED",
+     "range": {
+      "minMax": {
+       "auto": {}
+      },
+      "thresholdType": "THRESHOLD_TYPE_UNSPECIFIED",
+      "thresholds": []
+     }
+    },
+    "legendBy": "LEGEND_BY_UNSPECIFIED",
+    "unit": "UNIT_UNSPECIFIED"
+   }
+  }
+ },
+ "TestDynamicWidgetStatFullFidelityRoundTrip": {
+  "interpretation": "INTERPRETATION_SINGLE_VALUE_KPI_STAT",
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "stat": {
+    "allowAbbreviation": true,
+    "categoryFields": [
+     {
+      "keypath": [
+       "category"
+      ],
+      "scope": "DATASET_SCOPE_USER_DATA"
+     }
+    ],
+    "customUnit": "widgets",
+    "decimalPrecision": 3,
+    "displaySeriesName": true,
+    "legend": {
+     "columns": [
+      "LEGEND_COLUMN_MIN"
+     ],
+     "groupByQuery": true,
+     "isVisible": true,
+     "placement": "LEGEND_PLACEMENT_BOTTOM"
+    },
+    "legendBy": "LEGEND_BY_THRESHOLDS",
+    "max": 100,
+    "min": 0,
+    "thresholdBy": "THRESHOLD_BY_BACKGROUND",
+    "thresholdType": "THRESHOLD_TYPE_ABSOLUTE",
+    "thresholds": [
+     {
+      "color": "#ff0000",
+      "from": 10,
+      "label": "high"
+     }
+    ],
+    "unit": "UNIT_BYTES",
+    "valueField": {
+     "keypath": [
+      "duration"
+     ],
+     "scope": "DATASET_SCOPE_METADATA"
+    },
+    "valueFields": [
+     {
+      "keypath": [
+       "duration2"
+      ],
+      "scope": "DATASET_SCOPE_METADATA"
+     }
+    ]
+   }
+  }
+ },
+ "TestDynamicWidgetTableFullFidelityRoundTrip": {
+  "queryDefinitions": [
+   {
+    "id": "query-1",
+    "name": "errors by service",
+    "query": {
+     "logs": {
+      "aggregation": [
+       {
+        "count": {}
+       }
+      ],
+      "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+      "groupBy": [
+       {
+        "keypath": [
+         "service"
+        ],
+        "scope": "DATASET_SCOPE_USER_DATA"
+       }
+      ],
+      "luceneQuery": {
+       "value": "level:error"
+      }
+     }
+    }
+   }
+  ],
+  "timeFrame": {
+   "relativeTimeFrame": "900s"
+  },
+  "visualization": {
+   "table": {
+    "columns": [
+     {
+      "field": {
+       "keypath": [
+        "severity"
+       ],
+       "scope": "DATASET_SCOPE_METADATA"
+      }
+     },
+     {
+      "field": {
+       "keypath": [
+        "responsetime"
+       ],
+       "scope": "DATASET_SCOPE_USER_DATA"
+      }
+     }
+    ],
+    "rules": [
+     {
+      "description": "scoped by field",
+      "id": {
+       "value": "rule-field"
+      },
+      "name": "field rule",
+      "properties": [
+       {
+        "definition": {
+         "columnDisplayName": "Severity"
+        },
+        "id": {
+         "value": "prop-display-name"
+        }
+       },
+       {
+        "definition": {
+         "alignment": "TEXT_ALIGNMENT_CENTER"
+        },
+        "id": {
+         "value": "prop-alignment"
+        }
+       },
+       {
+        "definition": {
+         "units": {
+          "allowAbbreviation": true,
+          "customUnit": "reqs",
+          "decimalPrecision": 3,
+          "max": 99,
+          "min": 1,
+          "unit": "UNIT_MILLISECONDS"
+         }
+        },
+        "id": {
+         "value": "prop-units"
+        }
+       }
+      ],
+      "ruleScope": {
+       "field": {
+        "keypath": [
+         "severity"
+        ],
+        "scope": "DATASET_SCOPE_METADATA"
+       }
+      }
+     },
+     {
+      "description": "scoped by regex",
+      "id": {
+       "value": "rule-regex"
+      },
+      "name": "regex rule",
+      "properties": [
+       {
+        "definition": {
+         "regexExtract": "([0-9]+)"
+        },
+        "id": {
+         "value": "prop-regex-extract"
+        }
+       },
+       {
+        "definition": {
+         "link": {
+          "actions": [
+           {
+            "id": {
+             "value": "action-id"
+            },
+            "name": "open trace",
+            "shouldOpenInNewWindow": true,
+            "url": "https://example.com/trace"
+           }
+          ]
+         }
+        },
+        "id": {
+         "value": "prop-link"
+        }
+       },
+       {
+        "definition": {
+         "valuesAlias": "alias"
+        },
+        "id": {
+         "value": "prop-values-alias"
+        }
+       }
+      ],
+      "ruleScope": {
+       "regex": "^resp.*"
+      }
+     },
+     {
+      "description": "scoped by field type",
+      "id": {
+       "value": "rule-field-type"
+      },
+      "name": "field type rule",
+      "properties": [
+       {
+        "definition": {
+         "valuesMapping": {
+          "mappings": [
+           {
+            "inputValue": "500",
+            "replaceValue": "server error",
+            "type": "VALUES_MAPPING_TYPE_VALUE"
+           }
+          ]
+         }
+        },
+        "id": {
+         "value": "prop-values-mapping"
+        }
+       },
+       {
+        "definition": {
+         "thresholds": {
+          "max": 1000,
+          "min": 0,
+          "type": "THRESHOLD_TYPE_ABSOLUTE",
+          "values": [
+           {
+            "color": "#ff0000",
+            "from": 10,
+            "label": "high"
+           }
+          ]
+         }
+        },
+        "id": {
+         "value": "prop-thresholds"
+        }
+       }
+      ],
+      "ruleScope": {
+       "fieldType": "FIELD_DATA_TYPE_NUMBER"
+      }
+     }
+    ],
+    "settings": {
+     "columnWidths": [
+      {
+       "columnName": "severity",
+       "width": 120
+      }
+     ],
+     "rowStyle": "ROW_STYLE_TWO_LINE"
+    }
+   }
+  }
+ }
+}

@@ -110,8 +110,12 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 {{- else if eq .Conv "objectvalue"}}
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, objectAs[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags), diags){{$r}}
 {{- else if eq .Conv "emptybool"}}
-	if m.{{.Model}}.ValueBool() {
+	switch {
+	case m.{{.Model}}.IsNull() || m.{{.Model}}.IsUnknown():
+	case m.{{.Model}}.ValueBool():
 		out.{{.SDK}} = map[string]interface{}{}
+	default:
+		diags.AddAttributeError({{$p}}, "Invalid value", "this marker must be true when set; omit it otherwise")
 	}
 {{- else if eq .Conv "empty"}}
 	if m.{{.Model}} != nil {
@@ -148,6 +152,19 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 		for i := range items {
 			out.{{.SDK}} = append(out.{{.SDK}}, *expand{{.Object.Func}}(ctx, {{$p}}{{if eq .Collection "List"}}.AtListIndex(i){{end}}, &items[i], diags))
 		}
+	}
+{{- end}}
+{{- if eq .Read "nullobject"}}
+	// emptyAsNull reads an empty object back as null. The validator refuses a
+	// known empty one; this refuses one that was unknown at plan time.
+	if isEmptyObject(out.{{.SDK}}, {{$p}}, diags) {
+		diags.AddAttributeError({{$p}}, "Invalid value", "The block sets no attribute, so it would read back as null: set one, or leave the block out.")
+	}
+{{- else if eq .Read "nulllist"}}
+	// emptyAsNull reads an empty value back as null. The validator refuses a
+	// known empty one; this refuses one that was unknown at plan time.
+	if out.{{.SDK}} != nil && len(out.{{.SDK}}) == 0 {
+		diags.AddAttributeError({{$p}}, "Invalid value", "The value is empty, so it would read back as null: set at least one element, or leave it out.")
 	}
 {{- end}}
 {{- end}}
@@ -201,8 +218,6 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	out.{{.Model}} = custom.Flatten{{.Custom}}({{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "objectvalue"}}
 	out.{{.Model}} = objectValue(ctx, {{.Object.AttrTypesFunc}}(), flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags), diags)
-{{- else if and (eq .Conv "emptybool") (eq .Read "false")}}
-	out.{{.Model}} = types.BoolValue(v.{{.SDK}} != nil)
 {{- else if eq .Conv "emptybool"}}
 	out.{{.Model}} = types.BoolNull()
 	if v.{{.SDK}} != nil {
@@ -224,7 +239,15 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 		items := make(map[string]{{.Object.Model}}, len(v.{{.SDK}}))
 		for k := range v.{{.SDK}} {
 			item := v.{{.SDK}}[k]
+{{- if .Object.TypeString}}
+			m := flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
+			if m == nil {
+				continue // no arm set: flatten reported it
+			}
+			items[k] = *m
+{{- else}}
 			items[k] = *flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
+{{- end}}
 		}
 		out.{{.Model}} = flattenMap(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
 	}
@@ -242,7 +265,15 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.M
 	if v.{{.SDK}} != nil {
 		items := make([]{{.Object.Model}}, 0, len(v.{{.SDK}}))
 		for i := range v.{{.SDK}} {
+{{- if .Object.TypeString}}
+			m := flatten{{.Object.Func}}(ctx, {{$p}}{{if eq .Collection "List"}}.AtListIndex(i){{end}}, &v.{{.SDK}}[i], diags)
+			if m == nil {
+				continue // no arm set: flatten reported it
+			}
+			items = append(items, *m)
+{{- else}}
 			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}{{if eq .Collection "List"}}.AtListIndex(i){{end}}, &v.{{.SDK}}[i], diags))
+{{- end}}
 		}
 		out.{{.Model}} = flatten{{.Collection}}(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
 	}
@@ -367,21 +398,25 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 {{end}}
 {{- if and .Flatten .TypeString .TypeString.Plain}}
 // flatten{{.Func}} returns the name of the set arm of the API oneOf {{.SDK}}
-// (a plain typeString), or null when none is set.
+// (a plain typeString), or null for a missing oneOf. A oneOf with no arm set
+// is an error: the API sent an arm that the SDK does not know.
 func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, diags *diag.Diagnostics) types.String {
 	switch {
 	case v == nil:
+		return types.StringNull()
 {{- range .TypeString.Arms}}
 	case v.{{.SDK}} != nil:
 		return types.StringValue({{printf "%q" .Name}})
 {{- end}}
 	}
+	diags.AddAttributeError(p, "Unsupported API value", "The API returned {{.SDK}} with no field that this provider knows.")
 	return types.StringNull()
 }
 {{else if and .Flatten .TypeString}}
 // flatten{{.Func}} returns the typeString object of the API oneOf {{.SDK}}:
-// type names the set arm, and the fields of the other arms are null. It is
-// nil when no arm is set.
+// type names the set arm, and the fields of the other arms are null. A oneOf
+// with no arm set is an error: the API sent an arm that the SDK does not
+// know.
 func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, diags *diag.Diagnostics) *{{.Model}} {
 	if v == nil {
 		return nil
@@ -399,6 +434,7 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, di
 {{- end}}
 {{- end}}
 	default:
+		diags.AddAttributeError(p, "Unsupported API value", "The API returned {{.SDK}} with no field that this provider knows.")
 		return nil
 	}
 	return out
@@ -910,7 +946,7 @@ func isEmptyObject(v any, p path.Path, diags *diag.Diagnostics) bool {
 	}
 	b, err := json.Marshal(v)
 	if err != nil {
-		diags.AddAttributeError(p, "Invalid API value", err.Error())
+		diags.AddAttributeError(p, "Invalid value", err.Error())
 		return false
 	}
 	return string(b) == "{}"

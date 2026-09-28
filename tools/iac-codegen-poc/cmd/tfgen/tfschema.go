@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -555,8 +556,58 @@ func (b *tfBuilder) override(a *tfAttr, schema string, f *model.Field, t *model.
 		a.Modifiers = append(a.Modifiers, pkg+"RequiresReplace()")
 	}
 	a.DeprecationMessage, a.Sensitive = ov.DeprecationMessage, ov.Sensitive
+	if !ov.ReadOnly {
+		a.Validators = append(a.Validators, b.stableValidators(ov, a, f.Type)...)
+	}
 	return nil
 }
+
+// stableValidators are the validators that keep a configuration to values
+// that the overrides send and read back the same, so a plan cannot end in
+// an inconsistent result after apply:
+//   - bool: false (trueValidator);
+//   - emptyAsNull on a list, set, or map: an empty value, which reads back as
+//     null (SizeAtLeast(1), unless the spec has a minimum);
+//   - emptyAsNull on an object: an object with no attribute set, which reads
+//     back as null (notEmptyValidator, unless an attribute has a default).
+//     Expand also refuses an empty value that was unknown at plan time;
+//   - a number that wideNumbers or wide makes Int64 or Float64: a value out
+//     of the range of the API int32 or float, which expand rejects.
+func (b *tfBuilder) stableValidators(ov fieldOverride, a *tfAttr, t *model.Type) []string {
+	var vals []string
+	if ov.Bool {
+		vals = append(vals, trueValidator)
+	}
+	if ov.EmptyAsNull {
+		vals = append(vals, notEmptyValidators(a, t)...)
+	}
+	if (b.ov.wide() || ov.Wide) && isNarrow(t) && t.Minimum == nil && t.Maximum == nil {
+		switch t.Kind {
+		case model.Integer:
+			vals = append(vals, fmt.Sprintf("int64validator.Between(%d, %d)", math.MinInt32, math.MaxInt32))
+		case model.Number:
+			vals = append(vals, fmt.Sprintf("float64validator.Between(%s, %s)", formatFloat(-math.MaxFloat32), formatFloat(math.MaxFloat32)))
+		}
+	}
+	return vals
+}
+
+// notEmptyValidators reject the empty value of the attribute a of type t,
+// which emptyAsNull reads back as null.
+func notEmptyValidators(a *tfAttr, t *model.Type) []string {
+	switch {
+	case (a.ValueKind == "List" || a.ValueKind == "Set" || a.ValueKind == "Map") && (t.MinItems == nil || *t.MinItems < 1):
+		return []string{strings.ToLower(a.ValueKind) + "validator.SizeAtLeast(1)"}
+	case a.Kind == "SingleNested" && !slices.ContainsFunc(a.Attributes, func(c *tfAttr) bool { return c.Default != "" }):
+		return []string{notEmptyValidator}
+	}
+	return nil
+}
+
+// notEmptyValidator is the validator of an object that emptyAsNull reads
+// back as null when no attribute is set. The framework AtLeastOneOf counts
+// the object itself, so it also fails for a null object.
+const notEmptyValidator = "notEmptyValidator{}"
 
 // readOnlyTree makes every attribute inside a read-only one Computed only,
 // with no validators, defaults, or plan modifiers: the server sets all of
@@ -584,6 +635,10 @@ func (b *tfBuilder) checkDefault(t *model.Type, value string) error {
 	}
 	return nil
 }
+
+// trueValidator is the validator of the bool override: false would read back
+// as null (typestring.go).
+const trueValidator = "trueValidator{}"
 
 // timeValidator is the validator of a timestamp attribute. The schema
 // template emits its type when an attribute uses it (usesValidator).

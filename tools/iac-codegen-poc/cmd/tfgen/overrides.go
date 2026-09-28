@@ -106,8 +106,8 @@ type fieldOverride struct {
 	// the defaults of its fields, and null for the fields without one. Like
 	// default, it makes the attribute Optional and Computed.
 	DefaultObject bool `yaml:"defaultObject"`
-	// Bool shows an empty object field as a Bool: true sends {}, and a
-	// present object reads as true (see typestring.go).
+	// Bool shows an empty object field as a Bool: true sends {}, false is an
+	// error, and a present object reads as true (see typestring.go).
 	Bool bool `yaml:"bool"`
 }
 
@@ -357,8 +357,8 @@ func checkField(ov fieldOverride, f *model.Field) error {
 // defaultObject, and bool.
 func checkShape(ov fieldOverride, t *model.Type) error {
 	switch {
-	case ov.Bool && (t.Kind != model.Object || len(t.Fields) != 0 || ov.DefaultObject || ov.EmptyAsNull):
-		return fmt.Errorf("bool needs an empty object with no defaultObject or emptyAsNull, the field is a %s with %d fields", t.Kind, len(t.Fields))
+	case ov.Bool && (t.Kind != model.Object || len(t.Fields) != 0 || ov.DefaultObject || ov.EmptyAsNull || ov.MissingAsZero):
+		return fmt.Errorf("bool needs an empty object with no defaultObject, emptyAsNull, or missingAsZero, the field is a %s with %d fields", t.Kind, len(t.Fields))
 	case ov.Set && t.Kind != model.List:
 		return fmt.Errorf("set: the field is a %s, not a list", t.Kind)
 	case ov.Wide && !isNarrow(t):

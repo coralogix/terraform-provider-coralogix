@@ -37,6 +37,7 @@ func AlarmAttributes() map[string]schema.Attribute {
 							Optional:            true,
 							MarkdownDescription: "The query.",
 						},
+						"window": custom.LogsRuleWindowAttribute(),
 					},
 					MarkdownDescription: "A logs rule.",
 				},

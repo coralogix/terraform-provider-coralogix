@@ -455,9 +455,10 @@ func TestTypeStringRejects(t *testing.T) {
 			`ChartAverage.field and ChartPercentile.field are both "field", but their API types or overrides differ`},
 		{"missingAsZero on a use", "typeStrings: {ChartColorsBy: {plain: true}}\ntypes: {Chart: {colorsBy: {missingAsZero: true}}}", "ChartColorsBy is a typeString: missingAsZero is not supported"},
 		{"bool on a use", "typeStrings: {ChartColorsBy: {plain: true}}\ntypes: {Chart: {colorsBy: {bool: true}}}", "ChartColorsBy is a typeString: bool is not supported"},
-		{"bool on an object with fields", "types: {Chart: {minMax: {bool: true}}}", "bool needs an empty object with no defaultObject or emptyAsNull, the field is a oneOf with 2 fields"},
-		{"bool on a scalar", "types: {Chart: {title: {bool: true}}}", "bool needs an empty object with no defaultObject or emptyAsNull, the field is a string"},
-		{"bool and emptyAsNull", "types: {Chart: {mappedValues: {bool: true, emptyAsNull: true}}}", "bool needs an empty object with no defaultObject or emptyAsNull"},
+		{"bool on an object with fields", "types: {Chart: {minMax: {bool: true}}}", "bool needs an empty object with no defaultObject, emptyAsNull, or missingAsZero, the field is a oneOf with 2 fields"},
+		{"bool on a scalar", "types: {Chart: {title: {bool: true}}}", "bool needs an empty object with no defaultObject, emptyAsNull, or missingAsZero, the field is a string"},
+		{"bool and emptyAsNull", "types: {Chart: {mappedValues: {bool: true, emptyAsNull: true}}}", "bool needs an empty object with no defaultObject, emptyAsNull, or missingAsZero"},
+		{"bool and missingAsZero", "types: {Chart: {mappedValues: {bool: true, missingAsZero: true}}}", "bool needs an empty object with no defaultObject, emptyAsNull, or missingAsZero"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			p := filepath.Join(t.TempDir(), "overrides.yaml")

@@ -80,6 +80,7 @@ func expandLogsRule(ctx context.Context, p path.Path, m *LogsRuleModel, diags *d
 	}
 	out := &fake_boards_service.LogsRule{}
 	out.Query = expandString(m.Query)
+	out.Window = custom.ExpandLogsRuleWindow(p.AtName("window"), m.Window, diags)
 	return out
 }
 
@@ -89,6 +90,7 @@ func flattenLogsRule(ctx context.Context, p path.Path, v *fake_boards_service.Lo
 	}
 	out := &LogsRuleModel{}
 	out.Query = types.StringPointerValue(v.Query)
+	out.Window = custom.FlattenLogsRuleWindow(p.AtName("window"), v.Window, diags)
 	return out
 }
 
@@ -96,7 +98,8 @@ func flattenLogsRule(ctx context.Context, p path.Path, v *fake_boards_service.Lo
 // a types.Object, or a list or map of them.
 func LogsRuleAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"query": types.StringType,
+		"query":  types.StringType,
+		"window": types.ObjectType{AttrTypes: custom.LogsRuleWindowAttrTypes()},
 	}
 }
 
