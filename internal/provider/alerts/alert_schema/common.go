@@ -652,13 +652,6 @@ func dataprimeQuerySchema() schema.SingleNestedAttribute {
 	}
 }
 
-// analyticsNoDataPolicySchema is deliberately a separate helper from
-// noDataPolicySchema(): the shared one is Optional+Computed with
-// UseStateForUnknown(), which is right for alert types whose backend echoes a
-// policy back, and it is also called from the frozen v1/v2 schemas. The
-// analytics API never materializes an omitted no_data_policy on read, so plain
-// Optional is correct here — and it keeps removing the block from HCL able to
-// clear the value, which Optional+Computed would silently prevent.
 // analyticsNoDataPolicyNotEmpty rejects a no_data_policy block that sets none of
 // its (all-optional) children. Such a block would otherwise round-trip as null on
 // read — extractNoDataPolicy collapses an all-null policy to nil and the API omits

@@ -146,13 +146,12 @@ func planAlertResourceChange(ctx context.Context, t *testing.T, object tftypes.O
 	return planned
 }
 
-// TestPlanAnalyticsMinimalConfigIsStable is the regression test for the claim that
-// justifies plain Optional (rather than Optional+Computed) on every analytics leaf:
-// re-planning a config whose optionals are all unset, against the state a previous
-// apply wrote, must produce no diff. An Optional+Computed leaf, or a no_data_policy
-// that flattened an absent policy to an object of null attributes, would fail here.
-// It also pins that the analytics arms take the plain group_by path — planning
-// group_by as null rather than unknown.
+// TestPlanAnalyticsMinimalConfigIsStable checks that a config with only the required
+// fields set and every optional leaf unset re-plans with no diff against the state a
+// previous apply wrote. A plain Optional leaf that flattened an absent value to a
+// zero value, or a no_data_policy flattened to an object of null attributes, would
+// fail here. It also pins that the analytics arms take the plain group_by path —
+// planning group_by as null rather than unknown.
 func TestPlanAnalyticsMinimalConfigIsStable(t *testing.T) {
 	ctx := context.Background()
 	object := alertResourceObjectType(ctx, t)

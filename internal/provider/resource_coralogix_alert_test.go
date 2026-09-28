@@ -1728,8 +1728,7 @@ func TestAccCoralogixResourceAlert_analytics_immediate(t *testing.T) {
 					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_immediate.no_data_policy.state"),
 				),
 			},
-			// The minimal config must not drift: this is the claim that justifies
-			// plain Optional (rather than Optional+Computed) on every analytics leaf.
+			// The minimal config must not drift on re-plan.
 			{
 				Config: testAccCoralogixResourceAlertAnalyticsImmediateMinimal(),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
