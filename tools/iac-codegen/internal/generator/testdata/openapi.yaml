@@ -1,0 +1,155 @@
+openapi: 3.0.3
+info:
+  title: Synthetic things API
+  version: 1.0.0
+paths:
+  /things:
+    post:
+      tags: [Things Service]
+      operationId: ThingsService_CreateThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateThingRequest
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                enabled:
+                  type: boolean
+                  x-coralogix-presence: true
+                count:
+                  type: integer
+                  format: int64
+                  x-coralogix-presence: true
+                ordered:
+                  type: array
+                  x-coralogix-presence: true
+                  items: {type: string}
+                unordered:
+                  type: array
+                  uniqueItems: true
+                  x-coralogix-collection: set
+                  x-coralogix-presence: true
+                  items: {type: string}
+                labels:
+                  type: object
+                  x-coralogix-presence: true
+                  additionalProperties: {type: string}
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+  /things/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Things Service]
+      operationId: ThingsService_GetThing
+      responses:
+        '200':
+          description: Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+    patch:
+      tags: [Things Service]
+      operationId: ThingsService_UpdateThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: UpdateThingRequest
+              type: object
+              properties:
+                name:
+                  type: string
+                  x-coralogix-presence: true
+                enabled:
+                  type: boolean
+                  x-coralogix-presence: true
+                count:
+                  type: integer
+                  format: int64
+                  x-coralogix-presence: true
+                ordered:
+                  type: array
+                  x-coralogix-presence: true
+                  items: {type: string}
+                unordered:
+                  type: array
+                  uniqueItems: true
+                  x-coralogix-collection: set
+                  x-coralogix-presence: true
+                  items: {type: string}
+                labels:
+                  type: object
+                  x-coralogix-presence: true
+                  additionalProperties: {type: string}
+                updateMask:
+                  type: string
+                  pattern: '^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*$'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+    delete:
+      tags: [Things Service]
+      operationId: ThingsService_DeleteThing
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteThingResponse'
+components:
+  schemas:
+    Thing:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          description: The server-assigned identifier.
+        name:
+          type: string
+          description: The display name.
+        enabled:
+          type: boolean
+          description: Whether the thing is enabled.
+        count:
+          type: integer
+          format: int64
+          description: A signed counter.
+        ordered:
+          type: array
+          items: {type: string}
+          description: Ordered values.
+        unordered:
+          type: array
+          uniqueItems: true
+          x-coralogix-collection: set
+          items: {type: string}
+          description: Unordered unique values.
+        labels:
+          type: object
+          additionalProperties: {type: string}
+          description: String labels by key.
+    DeleteThingResponse:
+      type: object
