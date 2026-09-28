@@ -296,6 +296,43 @@ func extractIdsFromEnrichment(d *schema.ResourceData) []uint32 {
 	return result
 }
 
+// addEnrichmentsFn and deleteEnrichmentsFn are the seams the update flow calls
+// into the Enrichments client through. They default to the real client calls and
+// are overridable in unit tests so the remove -> add -> rollback flow can be
+// driven without a live backend. This resource predates the plugin-framework
+// resource struct used by coralogix_data_enrichments, so the seam is at package
+// level rather than on a struct.
+var (
+	addEnrichmentsFn = func(ctx context.Context, meta interface{}, req *cxsdk.AddEnrichmentsRequest) (any, error) {
+		return meta.(*clientset.ClientSet).Enrichments().Add(ctx, req)
+	}
+	deleteEnrichmentsFn = func(ctx context.Context, meta interface{}, req *cxsdk.DeleteEnrichmentsRequest) error {
+		return meta.(*clientset.ClientSet).Enrichments().Delete(ctx, req)
+	}
+)
+
+// extractOldEnrichmentRequest rebuilds the enrichment request from the *old*
+// (pre-change) configuration, using the same block dispatch as
+// extractEnrichmentRequest. It is used to best-effort roll back the delete when
+// the subsequent add fails, so the resource is not left with all of its
+// enrichments removed.
+func extractOldEnrichmentRequest(d *schema.ResourceData) []*cxsdk.EnrichmentRequestModel {
+	if oldGeoIp, _ := d.GetChange("geo_ip"); len(oldGeoIp.([]interface{})) != 0 {
+		return expandGeoIp(oldGeoIp.([]interface{})[0])
+	}
+	if oldSuspiciousIp, _ := d.GetChange("suspicious_ip"); len(oldSuspiciousIp.([]interface{})) != 0 {
+		return expandSuspiciousIp(oldSuspiciousIp.([]interface{})[0])
+	}
+	if oldAws, _ := d.GetChange("aws"); len(oldAws.([]interface{})) != 0 {
+		return expandAws(oldAws.([]interface{})[0])
+	}
+	if oldCustom, _ := d.GetChange("custom"); len(oldCustom.([]interface{})) != 0 {
+		enrichment, _ := expandCustom(oldCustom.([]interface{})[0])
+		return enrichment
+	}
+	return nil
+}
+
 func resourceCoralogixEnrichmentUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	ids := extractIdsFromEnrichment(d)
 	enrichmentReq, _, err := extractEnrichmentRequest(d)
@@ -303,16 +340,41 @@ func resourceCoralogixEnrichmentUpdate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 	log.Print("[INFO] Updating enrichment")
+	// oldReq captures the enrichment set that is about to be deleted, derived
+	// from the old (pre-change) configuration. If the subsequent Add fails we
+	// best-effort re-add this set so the update is not left in a partially
+	// applied (all enrichments deleted) state. Mirrors the coralogix_data_enrichments
+	// rollback (#765).
+	oldReq := extractOldEnrichmentRequest(d)
 	deleteReq := &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: utils.Uint32SliceToWrappedUint32Slice(ids)}
-	if err = meta.(*clientset.ClientSet).Enrichments().Delete(ctx, deleteReq); err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.DeleteEnrichmentsRPC, protojson.Format(deleteReq)))
+	if len(ids) > 0 {
+		if err = deleteEnrichmentsFn(ctx, meta, deleteReq); err != nil {
+			log.Printf("[ERROR] Received error: %s", err.Error())
+			return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.DeleteEnrichmentsRPC, protojson.Format(deleteReq)))
+		}
 	}
 	createReq := &cxsdk.AddEnrichmentsRequest{RequestEnrichments: enrichmentReq}
-	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().Add(ctx, createReq)
+	enrichmentResp, err := addEnrichmentsFn(ctx, meta, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.AddEnrichmentsRPC, protojson.Format(createReq)))
+		// The Add failed after the previous enrichments were already deleted.
+		// Best-effort rollback: re-add the old set so we do not leave the
+		// resource with all of its enrichments deleted. If the rollback itself
+		// fails we log it and report it as a separate diagnostic, without
+		// masking the original Add error. No Read/refresh runs on the error path.
+		addErr := diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.AddEnrichmentsRPC, protojson.Format(createReq)))
+		if len(ids) > 0 {
+			rollbackReq := &cxsdk.AddEnrichmentsRequest{RequestEnrichments: oldReq}
+			if _, rollbackErr := addEnrichmentsFn(ctx, meta, rollbackReq); rollbackErr != nil {
+				log.Printf("[ERROR] failed to roll back deleted enrichments after a failed enrichment update: %s (original error: %s)", rollbackErr.Error(), err.Error())
+				addErr = append(addErr, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to roll back deleted enrichments after a failed enrichment update; the resource may have no enrichments configured until the next apply",
+					Detail:   utils.FormatRpcErrors(rollbackErr, cxsdk.AddEnrichmentsRPC, protojson.Format(rollbackReq)),
+				})
+			}
+		}
+		return addErr
 	}
 	log.Printf("[INFO] Received enrichment: %s", enrichmentResp)
 	return resourceCoralogixEnrichmentRead(ctx, d, meta)
