@@ -1,0 +1,565 @@
+package generator
+
+import (
+	"bytes"
+	"errors"
+	"flag"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"reflect"
+	"slices"
+	"strings"
+	"testing"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
+)
+
+var updateGolden = flag.Bool("update", false, "replace the committed golden output")
+
+func TestGoldenOutput(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	first := filepath.Join(t.TempDir(), "thing")
+	second := filepath.Join(t.TempDir(), "thing")
+	options := Options{Resource: "Thing", OutputDir: first}
+	if err := generateFromInput(options, input, sdkDir); err != nil {
+		t.Fatal(err)
+	}
+	options.OutputDir = second
+	if err := generateFromInput(options, input, sdkDir); err != nil {
+		t.Fatal(err)
+	}
+	if diff := compareDirectories(first, second); diff != "" {
+		t.Fatalf("two generations differ:\n%s", diff)
+	}
+	golden := filepath.Join("testdata", "golden", "thing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(first, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, first); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutput -update:\n%s", diff)
+	}
+	entries, err := os.ReadDir(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		data, err := os.ReadFile(filepath.Join(first, entry.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.HasPrefix(data, []byte(version.Header+"\n")) {
+			t.Errorf("%s lacks exact header", entry.Name())
+		}
+	}
+}
+
+func TestEligibilityFailurePreservesOutput(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 1)
+	out := filepath.Join(t.TempDir(), "thing")
+	if err := os.Mkdir(out, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	prior := []byte(version.Header + "\npackage thing\n\nconst preserved = true\n")
+	if err := os.WriteFile(filepath.Join(out, "prior.go"), prior, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, sdkDir)
+	var eligibility *EligibilityError
+	if !errors.As(err, &eligibility) {
+		t.Fatalf("got %v, want EligibilityError", err)
+	}
+	got, readErr := os.ReadFile(filepath.Join(out, "prior.go"))
+	if readErr != nil || !bytes.Equal(got, prior) {
+		t.Fatalf("prior output changed: data=%q err=%v", got, readErr)
+	}
+}
+
+func TestCheckUsesGenerateEligibilityAndWritesNothing(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 1)
+	work := t.TempDir()
+	candidate := filepath.Join(work, "candidate.yaml")
+	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	before, err := directoryFiles(work)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkErr := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate})
+	generated := filepath.Join(work, "generated")
+	generateErr := generateFromInput(Options{Resource: "Thing", OutputDir: generated}, input, sdkDir)
+	if checkErr == nil || generateErr == nil {
+		t.Fatalf("check error = %v, generate error = %v; want eligibility errors", checkErr, generateErr)
+	}
+	if checkErr.Error() != generateErr.Error() {
+		t.Fatalf("eligibility decisions differ:\ncheck:\n%s\ngenerate:\n%s", checkErr, generateErr)
+	}
+	if _, err := os.Stat(generated); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("generated output exists after rejected check: %v", err)
+	}
+	after, err := directoryFiles(work)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(before, after) {
+		t.Fatalf("check changed files: before=%v after=%v", before, after)
+	}
+}
+
+func TestCheckAcceptsEligibleCandidateWithoutWriting(t *testing.T) {
+	input, _ := syntheticInput(t)
+	work := t.TempDir()
+	candidate := filepath.Join(work, "candidate.yaml")
+	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	before, err := directoryFiles(work)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Check(CheckOptions{Resource: "thing", OpenAPIPath: candidate}); err != nil {
+		t.Fatal(err)
+	}
+	after, err := directoryFiles(work)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(before, after) {
+		t.Fatalf("check changed files: before=%v after=%v", before, after)
+	}
+}
+
+func TestCheckAndGenerateShareSDKShapeEligibility(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("tags: [Things Service]"), []byte("tags: [Other Service]"), 1)
+	work := t.TempDir()
+	candidate := filepath.Join(work, "candidate.yaml")
+	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	checkErr := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate})
+	generateErr := generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(work, "generated")}, input, sdkDir)
+	if checkErr == nil || generateErr == nil {
+		t.Fatalf("check error = %v, generate error = %v; want tag eligibility errors", checkErr, generateErr)
+	}
+	if checkErr.Error() != generateErr.Error() {
+		t.Fatalf("SDK shape decisions differ:\ncheck:\n%s\ngenerate:\n%s", checkErr, generateErr)
+	}
+	if !strings.Contains(checkErr.Error(), "OPERATION_TAG_INCOMPATIBLE") {
+		t.Fatalf("check error lacks OPERATION_TAG_INCOMPATIBLE: %v", checkErr)
+	}
+}
+
+func TestCheckReportsAllIssuesInStableOrder(t *testing.T) {
+	input, _ := syntheticInput(t)
+	input.OpenAPI = bytes.ReplaceAll(input.OpenAPI, []byte("x-coralogix-presence: true"), []byte("x-removed-presence: true"))
+	input.OpenAPI = bytes.ReplaceAll(input.OpenAPI, []byte("x-coralogix-collection: set"), []byte("x-removed-collection: set"))
+	candidate := filepath.Join(t.TempDir(), "candidate.yaml")
+	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	first := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate})
+	second := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate})
+	var eligibility *EligibilityError
+	if !errors.As(first, &eligibility) {
+		t.Fatalf("got %v, want EligibilityError", first)
+	}
+	if len(eligibility.Report) < 3 {
+		t.Fatalf("got %d issues, want at least 3: %v", len(eligibility.Report), first)
+	}
+	if first.Error() != second.Error() {
+		t.Fatalf("reports differ:\nfirst:\n%s\nsecond:\n%s", first, second)
+	}
+	if !reflect.DeepEqual(eligibility.Report, eligibility.Report.Normalize()) {
+		t.Fatalf("report is not normalized: %#v", eligibility.Report)
+	}
+}
+
+func TestPublicationFailureRestoresOutput(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "thing")
+	if err := os.Mkdir(out, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	prior := []byte(version.Header + "\npackage thing\n\nconst prior = true\n")
+	if err := os.WriteFile(filepath.Join(out, "prior.go"), prior, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	realRename := renamePath
+	calls := 0
+	renamePath = func(oldPath, newPath string) error {
+		calls++
+		if calls == 2 {
+			return errors.New("injected publication failure")
+		}
+		return realRename(oldPath, newPath)
+	}
+	t.Cleanup(func() { renamePath = realRename })
+	err := publish(out, map[string][]byte{"next.go": []byte(version.Header + "\npackage thing\n")})
+	if err == nil || !strings.Contains(err.Error(), "injected publication failure") {
+		t.Fatalf("got %v, want injected failure", err)
+	}
+	got, readErr := os.ReadFile(filepath.Join(out, "prior.go"))
+	if readErr != nil || !bytes.Equal(got, prior) {
+		t.Fatalf("prior output was not restored: data=%q err=%v", got, readErr)
+	}
+}
+
+func TestFormattingFailurePreservesOutput(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	out := filepath.Join(t.TempDir(), "thing")
+	if err := os.Mkdir(out, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	prior := []byte(version.Header + "\npackage thing\n\nconst prior = true\n")
+	if err := os.WriteFile(filepath.Join(out, "prior.go"), prior, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	realFormat := formatGenerated
+	formatGenerated = func(string, []byte) ([]byte, error) { return nil, errors.New("injected formatting failure") }
+	t.Cleanup(func() { formatGenerated = realFormat })
+	err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, sdkDir)
+	if err == nil || !strings.Contains(err.Error(), "injected formatting failure") {
+		t.Fatalf("got %v, want formatting failure", err)
+	}
+	got, readErr := os.ReadFile(filepath.Join(out, "prior.go"))
+	if readErr != nil || !bytes.Equal(got, prior) {
+		t.Fatalf("prior output changed: data=%q err=%v", got, readErr)
+	}
+}
+
+func TestExistingNonGeneratedDirectoryIsRejected(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "thing")
+	if err := os.Mkdir(out, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "user.go"), []byte("package thing\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := publish(out, map[string][]byte{"next.go": []byte(version.Header + "\npackage thing\n")})
+	if err == nil || !strings.Contains(err.Error(), "not generator-owned") {
+		t.Fatalf("got %v, want ownership error", err)
+	}
+}
+
+func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
+	convert, err := os.ReadFile(filepath.Join("testdata", "golden", "thing", "convert.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mask, err := os.ReadFile(filepath.Join("testdata", "golden", "thing", "mask.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, fragment := range []string{
+		"if v.IsNull() || v.IsUnknown() {\n\t\treturn nil",
+		"b := v.ValueBool()\n\treturn &b",
+		"s := v.ValueString()\n\treturn &s",
+		"out := []T{}",
+		"types.ListNull(types.StringType)",
+		"types.SetNull(types.StringType)",
+		"types.MapNull(types.StringType)",
+	} {
+		if !bytes.Contains(convert, []byte(fragment)) {
+			t.Errorf("convert.go lacks semantic contract fragment %q", fragment)
+		}
+	}
+	for _, fragment := range []string{
+		"if p.Equal(s)",
+		"return append(mask, at)",
+		"pArm == nil:\n\t\treturn append(mask, at+\".\"+sArm.api)",
+		"if diags.HasError() || len(mask) == 0",
+	} {
+		if !bytes.Contains(mask, []byte(fragment)) {
+			t.Errorf("mask.go lacks update contract fragment %q", fragment)
+		}
+	}
+}
+
+func TestGeneratedRuntimeSemantics(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	out := filepath.Join(t.TempDir(), "thing")
+	if err := generateFromInput(Options{Resource: "thing", OutputDir: out}, input, sdkDir); err != nil {
+		t.Fatal(err)
+	}
+	semantics, err := os.ReadFile(filepath.Join("testdata", "semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	module := fmt.Sprintf(`module example.com/generated-thing
+
+go 1.26.0
+
+require (
+	example.com/iac-test-sdk v0.0.0
+	github.com/hashicorp/terraform-plugin-framework v1.17.0
+)
+
+replace example.com/iac-test-sdk => %s
+`, sdkDir)
+	if err := os.WriteFile(filepath.Join(out, "go.mod"), []byte(module), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command("go", "mod", "tidy")
+	command.Dir = out
+	command.Env = append(os.Environ(), "GOWORK=off")
+	output, err := command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("prepare generated resource test module: %v\n%s", err, output)
+	}
+	command = exec.Command("go", "test", "./...")
+	command.Dir = out
+	command.Env = append(os.Environ(), "GOWORK=off")
+	output, err = command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("generated resource tests: %v\n%s", err, output)
+	}
+}
+
+func TestSDKIssuesAreAggregated(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	brokenSDK := filepath.Join(t.TempDir(), "sdk")
+	if err := copyTree(sdkDir, brokenSDK); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(brokenSDK, "go", "openapi", "gen", "things_service", "things.go")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = bytes.ReplaceAll(data, []byte("Enabled"), []byte("MissingEnabled"))
+	data = bytes.ReplaceAll(data, []byte("Count"), []byte("MissingCount"))
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input.SDKDir = brokenSDK
+	err = generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "thing")}, input, brokenSDK)
+	var eligibility *EligibilityError
+	if !errors.As(err, &eligibility) {
+		t.Fatalf("got %v, want EligibilityError", err)
+	}
+	count := 0
+	for _, item := range eligibility.Report {
+		if item.Code == "SDK_SYMBOL_MISSING" {
+			count++
+		}
+	}
+	if count < 4 {
+		t.Fatalf("got %d SDK issues, want several:\n%s", count, eligibility)
+	}
+}
+
+func TestOptionalSDKValuesNeedPointers(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	brokenSDK := filepath.Join(t.TempDir(), "sdk")
+	if err := copyTree(sdkDir, brokenSDK); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(brokenSDK, "go", "openapi", "gen", "things_service", "things.go")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = bytes.ReplaceAll(data, []byte("*bool"), []byte("bool"))
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input.SDKDir = brokenSDK
+	err = generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "thing")}, input, brokenSDK)
+	var eligibility *EligibilityError
+	if !errors.As(err, &eligibility) || !strings.Contains(eligibility.Error(), "type is bool, want *bool") {
+		t.Fatalf("got %v, want pointer-presence eligibility error", err)
+	}
+}
+
+func TestFullReplaceGeneration(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	text := strings.Replace(string(input.OpenAPI), "    patch:\n", "    put:\n", 1)
+	text = strings.Replace(text, "ThingsService_UpdateThing", "ThingsService_ReplaceThing", 1)
+	start := strings.Index(text, "                updateMask:\n")
+	end := strings.Index(text[start:], "      responses:\n")
+	if start < 0 || end < 0 {
+		t.Fatal("cannot locate updateMask block")
+	}
+	input.OpenAPI = []byte(text[:start] + text[start+end:])
+	putSDK := filepath.Join(t.TempDir(), "sdk")
+	if err := copyTree(sdkDir, putSDK); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(putSDK, "go", "openapi", "gen", "things_service", "things.go")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = bytes.ReplaceAll(data, []byte("ApiThingsServiceUpdateThingRequest"), []byte("ApiThingsServiceReplaceThingRequest"))
+	data = bytes.ReplaceAll(data, []byte("ThingsServiceUpdateThing"), []byte("ThingsServiceReplaceThing"))
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input.SDKDir = putSDK
+	out := filepath.Join(t.TempDir(), "thing")
+	if err := generateFromInput(Options{Resource: "thing", OutputDir: out}, input, putSDK); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(out, "replace.go")); err != nil {
+		t.Fatalf("replace.go: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(out, "mask.go")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("mask.go exists for PUT: %v", err)
+	}
+	replace, err := os.ReadFile(filepath.Join(out, "replace.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(replace, []byte("if !p.Equal(s)")) || !bytes.Contains(replace, []byte("if diags.HasError() || !changed")) {
+		t.Fatal("replace.go does not suppress an unchanged update")
+	}
+}
+
+func TestMaskPatternContract(t *testing.T) {
+	valid, leaf, err := maskRule(`^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*$`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !leaf || !valid("object.field") || valid("*") {
+		t.Fatalf("mask rule returned leaf=%t object.field=%t *=%t", leaf, valid("object.field"), valid("*"))
+	}
+	for _, bad := range []string{`^.*$`, `[`} {
+		if _, _, err := maskRule(bad); err == nil {
+			t.Errorf("maskRule(%q) accepted an unsafe pattern", bad)
+		}
+	}
+}
+
+func TestSDKLoadingIsOffline(t *testing.T) {
+	t.Setenv("GOPROXY", "https://proxy.invalid")
+	t.Setenv("GOSUMDB", "sum.invalid")
+	env := offlineGoEnv()
+	if got := environmentValue(env, "GOPROXY"); got != "off" {
+		t.Fatalf("GOPROXY = %q, want off", got)
+	}
+	if got := environmentValue(env, "GOSUMDB"); got != "off" {
+		t.Fatalf("GOSUMDB = %q, want off", got)
+	}
+}
+
+func environmentValue(env []string, name string) string {
+	prefix := name + "="
+	for _, item := range env {
+		if strings.HasPrefix(item, prefix) {
+			return strings.TrimPrefix(item, prefix)
+		}
+	}
+	return ""
+}
+
+func syntheticInput(t *testing.T) (source.Input, string) {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", "openapi.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sdkDir, err := filepath.Abs(filepath.Join("testdata", "sdk"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return source.Input{SDKDir: sdkDir, SDKModule: "example.com/iac-test-sdk", OpenAPI: data}, sdkDir
+}
+
+func compareDirectories(wantDir, gotDir string) string {
+	want, wantErr := directoryFiles(wantDir)
+	got, gotErr := directoryFiles(gotDir)
+	if wantErr != nil || gotErr != nil {
+		return fmt.Sprintf("read directories: want=%v got=%v", wantErr, gotErr)
+	}
+	var added, removed, changed []string
+	for name, data := range got {
+		wantData, ok := want[name]
+		switch {
+		case !ok:
+			added = append(added, name)
+		case !bytes.Equal(data, wantData):
+			changed = append(changed, name)
+		}
+	}
+	for name := range want {
+		if _, ok := got[name]; !ok {
+			removed = append(removed, name)
+		}
+	}
+	slices.Sort(added)
+	slices.Sort(removed)
+	slices.Sort(changed)
+	if len(added)+len(removed)+len(changed) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("added: %v\nremoved: %v\nchanged: %v", added, removed, changed)
+}
+
+func directoryFiles(dir string) (map[string][]byte, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string][]byte, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+		if err != nil {
+			return nil, err
+		}
+		out[entry.Name()] = data
+	}
+	return out, nil
+}
+
+func copyDirectory(from, to string) error {
+	if err := os.MkdirAll(to, 0o755); err != nil {
+		return err
+	}
+	files, err := directoryFiles(from)
+	if err != nil {
+		return err
+	}
+	for name, data := range files {
+		if err := os.WriteFile(filepath.Join(to, name), data, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func copyTree(from, to string) error {
+	return filepath.WalkDir(from, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relative, err := filepath.Rel(from, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(to, relative)
+		if entry.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, 0o644)
+	})
+}

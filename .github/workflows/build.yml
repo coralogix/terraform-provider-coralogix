@@ -48,3 +48,25 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Run unit tests
         run: make test
+
+  iac-codegen:
+    name: IaC generator
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install Go
+        uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+        with:
+          go-version: 1.26.x
+      - name: Test generator
+        working-directory: tools/iac-codegen
+        run: |
+          go test ./...
+          go vet ./...
+      - name: Require generator version change
+        if: github.event_name == 'pull_request'
+        run: tools/iac-codegen/scripts/check-version-change.sh '${{ github.event.pull_request.base.sha }}'
