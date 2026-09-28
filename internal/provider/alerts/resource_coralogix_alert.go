@@ -4027,9 +4027,8 @@ func flattenDataprimeQuery(ctx context.Context, query *alerts.DataprimeAlertQuer
 	})
 }
 
-// flattenAnalyticsNoDataPolicy differs from flattenNoDataPolicy: an absent policy
-// flattens to a null object rather than an object of null attributes. The analytics
-// no_data_policy is plain Optional, so a null in config has to stay null in state.
+// flattenAnalyticsNoDataPolicy returns a null object for an absent policy (rather than
+// an object of null attributes), so a never-set no_data_policy reads back as null.
 func flattenAnalyticsNoDataPolicy(ctx context.Context, noDataPolicy *alerts.NoDataPolicy) (types.Object, diag.Diagnostics) {
 	if noDataPolicy == nil {
 		return types.ObjectNull(alertschema.NoDataPolicyAttr()), nil
