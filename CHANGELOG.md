@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.19.0
+
 #### resource/coralogix_events2metric
 - FIX: Histogram `buckets` no longer show a perpetual diff (and Replace) for decimals like `0.0003`. Flatten now maps each float32 bucket back to its shortest round-tripping decimal, so state converges to the configured value instead of drifting.
 
