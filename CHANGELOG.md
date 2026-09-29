@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_events2metric
+- FIX: Histogram `buckets` no longer show a perpetual diff (and Replace) for decimals like `0.0003`. Flatten now maps each float32 bucket back to its shortest round-tripping decimal, so state converges to the configured value instead of drifting.
+
 #### resource/coralogix_user
 - CHORE: Migrate off SCIM to the Users OpenAPI (`/aaa/users/v2`). HCL is unchanged: same attributes, and `id` stays the user UUID, so existing state refreshes without a migration and import by id still works.
 - CHORE: `emails` is derived from `user_name` as one primary `work` entry, which is what SCIM returned. `groups` comes from the user's group ids.
