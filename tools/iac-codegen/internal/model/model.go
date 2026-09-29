@@ -33,8 +33,8 @@ type Resource struct {
 	// Create path, and the Update body has the id in the property IDParam.
 	// That property is not a resource field.
 	IDInBody bool
-	// UpdateMask is the Update body property that holds the update mask, ""
-	// for a full replace. It is not a resource field.
+	// UpdateMask is the optional Update query parameter that holds the update
+	// mask, or "" for a full replace. It is not a resource field.
 	UpdateMask string
 	// UpdateMaskPattern is the "pattern" of the update mask string, "" when
 	// the spec has none. It shows which mask paths the API accepts.

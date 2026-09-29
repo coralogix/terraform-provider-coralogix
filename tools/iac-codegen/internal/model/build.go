@@ -16,7 +16,7 @@ import (
 const (
 	componentPrefix = "#/components/schemas/"
 	jsonMedia       = "application/json"
-	updateMaskField = "updateMask" // contract: Update is PATCH with an updateMask
+	updateMaskField = "updateMask" // contract: PATCH has an updateMask query parameter
 	extPresence     = "x-coralogix-presence"
 	extCollection   = "x-coralogix-collection"
 )
@@ -434,7 +434,7 @@ func (r *Resource) readFields(doc *v3.Document, ops map[verb]foundOp) error {
 	if err != nil {
 		return err
 	}
-	if err := r.checkBodies(createBody, updateBody, getSchema); err != nil {
+	if err := r.checkBodies(createBody, updateBody, getSchema, ops[opUpdate]); err != nil {
 		return err
 	}
 	names := propertyNames(getSchema)
@@ -532,8 +532,8 @@ func (r *Resource) fieldSchemas(doc *v3.Document, ops map[verb]foundOp) (createB
 }
 
 // checkBodies checks the update mask, the id fields, and the required lists.
-func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema) error {
-	if err := r.checkUpdateBody(updateBody); err != nil {
+func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema, update foundOp) error {
+	if err := r.checkUpdateContract(updateBody, update); err != nil {
 		return err
 	}
 	for _, loc := range []location{{"create body", createBody}, {r.Name, getSchema}} {
@@ -552,23 +552,73 @@ func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema) e
 	return nil
 }
 
-// checkUpdateBody checks the properties of the Update body that are not
-// resource fields: the update mask of a PATCH, which a full replace (PUT)
-// does not have, and the id when the Update path has none.
-func (r *Resource) checkUpdateBody(updateBody *base.Schema) error {
-	mask := updateBody.Properties.GetOrZero(updateMaskField)
-	switch {
-	case r.Replace && mask != nil:
-		return fmt.Errorf("update body: a full replace (PUT) has no %s property", updateMaskField)
-	case !r.Replace && mask == nil:
-		return fmt.Errorf("update body: no %s property", updateMaskField)
-	case !r.Replace:
-		ms, err := schemaOf(mask)
-		if err != nil || !slices.Equal(ms.Type, []string{"string"}) {
-			return fmt.Errorf("update body: %s must be a string", updateMaskField)
-		}
-		r.UpdateMaskPattern = ms.Pattern
+// checkUpdateContract checks the PATCH updateMask query parameter and the id
+// body property used when the Update path has no id. A full replace has no
+// update mask.
+func (r *Resource) checkUpdateContract(updateBody *base.Schema, update foundOp) error {
+	if err := r.checkUpdateMask(updateBody, update); err != nil {
+		return err
 	}
+	return r.checkUpdateID(updateBody)
+}
+
+func (r *Resource) checkUpdateMask(updateBody *base.Schema, update foundOp) error {
+	bodyMask := updateBody.Properties.GetOrZero(updateMaskField)
+	params := namedParameters(update, updateMaskField)
+	if r.Replace {
+		return checkNoUpdateMask(bodyMask, params)
+	}
+	if bodyMask != nil {
+		return fmt.Errorf("update body: %s must be a query parameter, not a body property", updateMaskField)
+	}
+	if len(params) == 0 {
+		return fmt.Errorf("update parameters: no %s query parameter", updateMaskField)
+	}
+	if len(params) > 1 {
+		return fmt.Errorf("update parameters: %d %s parameters, want 1", len(params), updateMaskField)
+	}
+	return r.readUpdateMask(params[0])
+}
+
+func checkNoUpdateMask(bodyMask *base.SchemaProxy, params []*v3.Parameter) error {
+	if bodyMask != nil {
+		return fmt.Errorf("update body: a full replace (PUT) has no %s property", updateMaskField)
+	}
+	if len(params) != 0 {
+		return fmt.Errorf("update parameters: a full replace (PUT) has no %s parameter", updateMaskField)
+	}
+	return nil
+}
+
+func (r *Resource) readUpdateMask(mask *v3.Parameter) error {
+	if mask.In != "query" {
+		return fmt.Errorf("update parameters: %s is in %q, want query", updateMaskField, mask.In)
+	}
+	if mask.Required != nil && *mask.Required {
+		return fmt.Errorf("update parameters: %s must be optional", updateMaskField)
+	}
+	if mask.Schema == nil {
+		return fmt.Errorf("update parameters: %s has no schema", updateMaskField)
+	}
+	ms, err := schemaOf(mask.Schema)
+	if err != nil || !slices.Equal(ms.Type, []string{"string"}) {
+		return fmt.Errorf("update parameters: %s must have a string schema", updateMaskField)
+	}
+	r.UpdateMaskPattern = ms.Pattern
+	return nil
+}
+
+func namedParameters(op foundOp, name string) []*v3.Parameter {
+	var params []*v3.Parameter
+	for _, p := range slices.Concat(op.item.Parameters, op.op.Parameters) {
+		if p.Name == name {
+			params = append(params, p)
+		}
+	}
+	return params
+}
+
+func (r *Resource) checkUpdateID(updateBody *base.Schema) error {
 	if !r.IDInBody {
 		return nil
 	}
@@ -584,14 +634,15 @@ func (r *Resource) checkUpdateBody(updateBody *base.Schema) error {
 }
 
 // requestProperty returns the property name of a request body when it is a
-// resource field, else nil. These properties are not resource fields: the
-// update mask, the id in the Update body (IDInBody), and a readOnly property.
+// resource field, else nil. The id in the Update body (IDInBody) and a
+// readOnly property are not resource fields. A PATCH update mask is a query
+// parameter, not a body property.
 // A readOnly property is set by the server (proto OUTPUT_ONLY). A full
 // replace often sends the whole resource, so its body also has them, for
 // example createTime.
 func (r *Resource) requestProperty(body *base.Schema, name string, update bool) (*base.SchemaProxy, error) {
 	p := body.Properties.GetOrZero(name)
-	if p == nil || name == updateMaskField || update && r.IDInBody && name == r.IDParam {
+	if p == nil || update && r.IDInBody && name == r.IDParam {
 		return nil, nil
 	}
 	s, err := schemaOf(p)

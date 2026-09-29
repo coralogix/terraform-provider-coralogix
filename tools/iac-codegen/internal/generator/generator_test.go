@@ -62,6 +62,28 @@ func TestGoldenOutput(t *testing.T) {
 	}
 }
 
+func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	out := filepath.Join(t.TempDir(), "thing")
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, sdkDir); err != nil {
+		t.Fatal(err)
+	}
+	mask, err := os.ReadFile(filepath.Join(out, "mask.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(mask, []byte("body.UpdateMask")) || !bytes.Contains(mask, []byte("return body, strings.Join(mask, \",\"), diags")) {
+		t.Fatalf("mask.go does not return the mask separately from the body:\n%s", mask)
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(resource, []byte(".UpdateThingRequest(*body).UpdateMask(mask).Execute()")) {
+		t.Fatalf("resource.go does not send updateMask through the query setter:\n%s", resource)
+	}
+}
+
 func TestEligibilityFailurePreservesOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 1)
@@ -465,10 +487,10 @@ func TestFullReplaceGeneration(t *testing.T) {
 	input, loadDir := copiedSyntheticInput(t)
 	text := strings.Replace(string(input.OpenAPI), "    patch:\n", "    put:\n", 1)
 	text = strings.Replace(text, "ThingsService_UpdateThing", "ThingsService_ReplaceThing", 1)
-	start := strings.Index(text, "                updateMask:\n")
-	end := strings.Index(text[start:], "      responses:\n")
+	start := strings.Index(text, "      parameters:\n")
+	end := strings.Index(text[start:], "      requestBody:\n")
 	if start < 0 || end < 0 {
-		t.Fatal("cannot locate updateMask block")
+		t.Fatal("cannot locate updateMask query parameter")
 	}
 	input.OpenAPI = []byte(text[:start] + text[start+end:])
 	putSDK := input.SDKDir

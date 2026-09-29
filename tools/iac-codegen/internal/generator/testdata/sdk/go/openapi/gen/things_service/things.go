@@ -25,13 +25,12 @@ type CreateThingRequest struct {
 }
 
 type UpdateThingRequest struct {
-	Name       *string
-	Enabled    *bool
-	Count      *int64
-	Ordered    []string
-	Unordered  []string
-	Labels     map[string]string
-	UpdateMask *string
+	Name      *string
+	Enabled   *bool
+	Count     *int64
+	Ordered   []string
+	Unordered []string
+	Labels    map[string]string
 }
 
 type ThingsServiceAPIService struct{}
@@ -68,6 +67,11 @@ func (ApiThingsServiceCreateThingRequest) CreateThingRequest(createThingRequest 
 
 func (ApiThingsServiceUpdateThingRequest) UpdateThingRequest(updateThingRequest UpdateThingRequest) ApiThingsServiceUpdateThingRequest {
 	_ = updateThingRequest
+	return ApiThingsServiceUpdateThingRequest{}
+}
+
+func (ApiThingsServiceUpdateThingRequest) UpdateMask(updateMask string) ApiThingsServiceUpdateThingRequest {
+	_ = updateMask
 	return ApiThingsServiceUpdateThingRequest{}
 }
 

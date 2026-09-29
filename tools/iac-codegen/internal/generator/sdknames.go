@@ -36,6 +36,7 @@ type rule string
 const (
 	ruleTag               rule = "tag"                   // the operation tag
 	ruleOperationID       rule = "operationId"           // the operationId
+	ruleParameter         rule = "parameter"             // an operation parameter
 	ruleComponent         rule = "component"             // the component schema name
 	ruleProperty          rule = "property"              // the property name
 	ruleEnumValue         rule = "enum value"            // the component name and the enum value
@@ -167,16 +168,10 @@ func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]s
 	return s.refs, nil
 }
 
-// updateExtras adds the Update body fields that are not resource fields: the
-// update mask of a PATCH, and the id when the Update path has none.
+// updateExtras adds the id body field used when the Update path has no id.
 func (s *resolver) updateExtras(r *model.Resource) error {
-	str := &model.Type{Kind: model.String}
-	if !r.Replace {
-		if err := s.field("update.body."+r.UpdateMask, s.bodies["update"], r.UpdateMask, str, false); err != nil {
-			return err
-		}
-	}
 	if r.IDInBody {
+		str := &model.Type{Kind: model.String}
 		return s.field("update.body."+r.IDParam, s.bodies["update"], r.IDParam, str, true)
 	}
 	return nil
@@ -231,6 +226,10 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 	s.add(sdkRef{Path: path, Kind: kindMethod, Owner: client, Name: method,
 		Want: "func(" + params + ") " + builder, Rule: ruleOperationID})
 	s.add(sdkRef{Path: path, Kind: kindType, Name: builder, Rule: ruleOperationID})
+	if name == "update" && !r.Replace {
+		s.add(sdkRef{Path: path + ".mask", Kind: kindMethod, Owner: builder, Name: goFieldName(r.UpdateMask),
+			Want: "func(" + lowerFirst(r.UpdateMask) + " string) " + builder, Rule: ruleParameter})
+	}
 
 	switch op.Body {
 	case "":

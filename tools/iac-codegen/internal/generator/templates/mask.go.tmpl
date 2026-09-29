@@ -223,29 +223,26 @@ func setArm(g []string, v map[string]attr.Value) string {
 }
 {{- end}}
 
-// updateRequest returns the Update body of the plan, with the update mask.
-// The body has every Update field. The server does not change a field that
-// is not in the mask. updateRequest returns nil when no Update field
-// changed. Then the caller sends no request: the mask cannot be empty, and
-// it is never "*".
-func updateRequest(ctx context.Context, plan, state tfData) (*{{.SDKName}}.{{.Update.SDK}}, diag.Diagnostics) {
+// updateRequest returns the Update body and updateMask query parameter. The
+// body has every Update field. The server does not change a field that is not
+// in the mask. updateRequest returns nil when no Update field changed. Then
+// the caller sends no request: the mask cannot be empty, and it is never "*".
+func updateRequest(ctx context.Context, plan, state tfData) (*{{.SDKName}}.{{.Update.SDK}}, string, diag.Diagnostics) {
 	mask, diags := updateMask(ctx, plan, state)
 	if diags.HasError() || len(mask) == 0 {
-		return nil, diags
+		return nil, "", diags
 	}
 	var m {{.Update.Model}}
 	diags.Append(plan.Get(ctx, &m)...)
 	if diags.HasError() {
-		return nil, diags
+		return nil, "", diags
 	}
 	body, d := expandUpdate(ctx, &m)
 	diags.Append(d...)
 	if diags.HasError() {
-		return nil, diags
+		return nil, "", diags
 	}
-	s := strings.Join(mask, ",")
-	body.{{.UpdateMask}} = &s
-	return body, diags
+	return body, strings.Join(mask, ","), diags
 }
 {{- end}}
 

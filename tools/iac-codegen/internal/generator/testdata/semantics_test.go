@@ -118,9 +118,9 @@ func TestUpdateClearArmSwitchAndNoOp(t *testing.T) {
 		"unordered": types.SetNull(types.StringType),
 		"labels":    types.MapNull(types.StringType),
 	}
-	body, diags := updateRequest(context.Background(), fakeData{values: values}, fakeData{values: values})
-	if diags.HasError() || body != nil {
-		t.Fatalf("unchanged update = %#v, %v", body, diags)
+	body, mask, diags := updateRequest(context.Background(), fakeData{values: values}, fakeData{values: values})
+	if diags.HasError() || body != nil || mask != "" {
+		t.Fatalf("unchanged update = %#v, mask %q, %v", body, mask, diags)
 	}
 }
 
