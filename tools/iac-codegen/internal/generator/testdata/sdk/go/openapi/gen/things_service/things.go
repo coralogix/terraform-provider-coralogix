@@ -3,34 +3,63 @@ package things_service
 import (
 	"context"
 	"net/http"
+	"time"
 )
 
+type ThingKind string
+
+const (
+	THINGKIND_THING_KIND_UNSPECIFIED ThingKind = "THING_KIND_UNSPECIFIED"
+	THINGKIND_THING_KIND_STANDARD    ThingKind = "THING_KIND_STANDARD"
+	THINGKIND_THING_KIND_ADVANCED    ThingKind = "THING_KIND_ADVANCED"
+)
+
+type ThingConfig struct {
+	Http  *HttpThingConfig
+	Queue *QueueThingConfig
+}
+
+type HttpThingConfig struct {
+	Endpoint string
+}
+
+type QueueThingConfig struct {
+	Topic string
+}
+
 type Thing struct {
-	Id        *string
-	Name      *string
-	Enabled   *bool
-	Count     *int64
-	Ordered   []string
-	Unordered []string
-	Labels    map[string]string
+	Id           *string
+	Name         *string
+	Description  *string
+	Enabled      *bool
+	Kind         *ThingKind
+	Config       *ThingConfig
+	Destinations []string
+	Tags         []string
+	Labels       map[string]string
+	CreateTime   *time.Time
+	UpdateTime   *time.Time
 }
 
 type CreateThingRequest struct {
-	Name      string
-	Enabled   *bool
-	Count     *int64
-	Ordered   []string
-	Unordered []string
-	Labels    map[string]string
+	Name         string
+	Description  *string
+	Enabled      *bool
+	Kind         ThingKind
+	Config       ThingConfig
+	Destinations []string
+	Tags         []string
+	Labels       map[string]string
 }
 
 type UpdateThingRequest struct {
-	Name      *string
-	Enabled   *bool
-	Count     *int64
-	Ordered   []string
-	Unordered []string
-	Labels    map[string]string
+	Name         *string
+	Description  *string
+	Enabled      *bool
+	Config       *ThingConfig
+	Destinations []string
+	Tags         []string
+	Labels       map[string]string
 }
 
 type ThingsServiceAPIService struct{}

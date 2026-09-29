@@ -19,6 +19,8 @@ const (
 	updateMaskField = "updateMask" // contract: PATCH has an updateMask query parameter
 	extPresence     = "x-coralogix-presence"
 	extCollection   = "x-coralogix-collection"
+	// A decimal uint64 with at most 18 digits always fits in Terraform Int64.
+	terraformInt64SafeDecimalDigits int64 = 18
 )
 
 // Load parses an OpenAPI 3 document.
@@ -891,16 +893,28 @@ func checkSupported(s *base.Schema) error {
 		return errors.New("const is not supported")
 	case s.Nullable != nil && *s.Nullable:
 		return errors.New("nullable is not supported")
+	}
+	if err := checkUnsupportedSchemaKeywords(s); err != nil {
+		return err
+	}
+	if s.Discriminator != nil && !discriminatorField(s) {
+		return errors.New("discriminator is supported only as a string field beside a oneOf, with no mapping")
+	}
+	return nil
+}
+
+func checkUnsupportedSchemaKeywords(s *base.Schema) error {
+	switch {
 	case s.PatternProperties != nil && s.PatternProperties.Len() != 0:
 		return errors.New("patternProperties is not supported")
 	case s.MinProperties != nil || s.MaxProperties != nil:
 		return errors.New("minProperties and maxProperties are not supported")
 	case s.ExclusiveMinimum != nil || s.ExclusiveMaximum != nil:
 		return errors.New("exclusiveMinimum and exclusiveMaximum are not supported")
+	case s.Format == "uint64" && (!slices.Equal(s.Type, []string{"string"}) || s.MaxLength == nil || *s.MaxLength > terraformInt64SafeDecimalDigits):
+		return fmt.Errorf("uint64 needs string type and maxLength at most %d to fit Terraform Int64", terraformInt64SafeDecimalDigits)
 	case len(s.PrefixItems) != 0:
 		return errors.New("prefixItems is not supported")
-	case s.Discriminator != nil && !discriminatorField(s):
-		return errors.New("discriminator is supported only as a string field beside a oneOf, with no mapping")
 	}
 	return nil
 }
