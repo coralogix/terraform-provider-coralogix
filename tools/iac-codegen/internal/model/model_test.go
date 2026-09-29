@@ -409,6 +409,40 @@ func TestGetResponseIDMustBeRequired(t *testing.T) {
 	}
 }
 
+func TestRequestRequirednessContract(t *testing.T) {
+	doc, err := Load(validSpec(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+		t.Fatalf("Create-required and Update-optional must be eligible: %v", report)
+	}
+
+	spec := optionalCreateRequiredUpdateSpec(t, string(validSpec(t)))
+	doc, err = Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_REQUIREDNESS_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain FIELD_REQUIREDNESS_UNSUPPORTED", codes)
+	}
+}
+
+func optionalCreateRequiredUpdateSpec(t *testing.T, spec string) string {
+	t.Helper()
+	spec = strings.Replace(spec,
+		"              required: [name]\n              properties:\n                name:\n                  type: string\n",
+		"              properties:\n                name:\n                  type: string\n                  x-coralogix-presence: true\n", 1)
+	spec = strings.Replace(spec,
+		"              title: UpdateThingRequest\n              type: object\n              properties:\n",
+		"              title: UpdateThingRequest\n              type: object\n              required: [name]\n              properties:\n", 1)
+	spec = strings.Replace(spec, "      required: [id, name, enabled]\n", "      required: [id, enabled]\n", 1)
+	if !strings.Contains(spec, "title: UpdateThingRequest\n              type: object\n              required: [name]") {
+		t.Fatal("cannot build requiredness fixture")
+	}
+	return spec
+}
+
 func TestResourceIDTypes(t *testing.T) {
 	for _, format := range []string{"int32", "int64"} {
 		t.Run(format, func(t *testing.T) {

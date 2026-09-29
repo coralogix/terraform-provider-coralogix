@@ -209,6 +209,29 @@ func TestCheckAndGenerateRejectWrappedResponse(t *testing.T) {
 	}
 }
 
+func TestCheckAndGenerateRejectOptionalCreateRequiredUpdate(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	input.OpenAPI = optionalCreateRequiredUpdateOpenAPI(t, input.OpenAPI)
+	work := t.TempDir()
+	candidate := filepath.Join(work, "candidate.yaml")
+	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	checkErr := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate})
+	generated := filepath.Join(work, "generated")
+	generateErr := generateFromInput(Options{Resource: "Thing", OutputDir: generated}, input, sdkDir)
+	if checkErr == nil || generateErr == nil || checkErr.Error() != generateErr.Error() {
+		t.Fatalf("check and generate decisions differ:\ncheck: %v\ngenerate: %v", checkErr, generateErr)
+	}
+	var eligibility *EligibilityError
+	if !errors.As(checkErr, &eligibility) || !hasReportCode(eligibility.Report, "FIELD_REQUIREDNESS_UNSUPPORTED") {
+		t.Fatalf("check error = %v, want FIELD_REQUIREDNESS_UNSUPPORTED", checkErr)
+	}
+	if _, err := os.Stat(generated); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("generated output exists after requiredness rejection: %v", err)
+	}
+}
+
 func TestIntegerResourceIDs(t *testing.T) {
 	tests := []struct {
 		format string
@@ -294,6 +317,21 @@ func integerIDOpenAPI(t *testing.T, spec []byte, format string) []byte {
 	value = strings.Replace(value, responseID, responseIntegerID, 1)
 	if !strings.Contains(value, pathIntegerID) || !strings.Contains(value, responseIntegerID) {
 		t.Fatalf("cannot convert synthetic ID to %s", format)
+	}
+	return []byte(value)
+}
+
+func optionalCreateRequiredUpdateOpenAPI(t *testing.T, spec []byte) []byte {
+	t.Helper()
+	value := strings.Replace(string(spec),
+		"              required: [name]\n              properties:\n                name:\n                  type: string\n",
+		"              properties:\n                name:\n                  type: string\n                  x-coralogix-presence: true\n", 1)
+	value = strings.Replace(value,
+		"              title: UpdateThingRequest\n              type: object\n              properties:\n",
+		"              title: UpdateThingRequest\n              type: object\n              required: [name]\n              properties:\n", 1)
+	value = strings.Replace(value, "      required: [id, name, enabled]\n", "      required: [id, enabled]\n", 1)
+	if !strings.Contains(value, "title: UpdateThingRequest\n              type: object\n              required: [name]") {
+		t.Fatal("cannot build requiredness fixture")
 	}
 	return []byte(value)
 }
