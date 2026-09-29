@@ -105,7 +105,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.RequiresReplace()")
 		}
 		out.Attributes = append(out.Attributes, a)
-		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type))
+		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type, f.Behavior == model.Computed))
 	}
 	for _, g := range r.Groups {
 		var arms []string
@@ -366,7 +366,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(f.Name, f.Type))
+		fields = append(fields, b.modelField(f.Name, f.Type, false))
 	}
 	groups := t.Groups
 	if t.Kind == model.OneOf {
@@ -384,7 +384,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	return attrs, nil
 }
 
-func (b *tfBuilder) modelField(name string, t *model.Type) tfModelField {
+func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfModelField {
 	var goType string
 	switch t.Kind {
 	case model.String, model.Enum:
@@ -408,7 +408,11 @@ func (b *tfBuilder) modelField(name string, t *model.Type) tfModelField {
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		goType = "*" + modelTypeName(t.Schema)
+		if computed {
+			goType = "types.Object"
+		} else {
+			goType = "*" + modelTypeName(t.Schema)
+		}
 	}
 	return tfModelField{Name: camelize(name), Type: goType, TFName: tfName(name)}
 }

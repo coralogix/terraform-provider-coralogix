@@ -157,13 +157,109 @@ func TestPresenceContract(t *testing.T) {
 	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
 		t.Fatal(report)
 	}
-	data = []byte(strings.Replace(string(data), "                  x-coralogix-presence: true\n", "", 1))
+	data = []byte(strings.Replace(string(data),
+		"                description:\n                  type: string\n                  x-coralogix-presence: true\n",
+		"                description:\n                  type: string\n", 1))
 	doc, err = Load(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
 		t.Fatalf("codes %v do not contain FIELD_PRESENCE_UNKNOWN", codes)
+	}
+}
+
+func TestRequiredScalarPresenceContract(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"                name:\n                  type: string\n                  x-coralogix-presence: true\n",
+		"                name:\n                  type: string\n", 1)
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "REQUIRED_SCALAR_PRESENCE_UNKNOWN") {
+		t.Fatalf("codes %v do not contain REQUIRED_SCALAR_PRESENCE_UNKNOWN", codes)
+	}
+}
+
+func TestRequiredDeclarationContract(t *testing.T) {
+	tests := map[string]struct {
+		old string
+		new string
+	}{
+		"request root": {
+			old: "              title: UpdateThingRequest\n              type: object\n              required: []\n              properties:\n",
+			new: "              title: UpdateThingRequest\n              type: object\n              properties:\n",
+		},
+		"nested object": {
+			old: "    ThingConfig:\n      type: object\n      required: []\n      properties:\n",
+			new: "    ThingConfig:\n      type: object\n      properties:\n",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec := strings.Replace(string(validSpec(t)), test.old, test.new, 1)
+			doc, err := Load([]byte(spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "REQUIRED_DECLARATION_MISSING") {
+				t.Fatalf("codes %v do not contain REQUIRED_DECLARATION_MISSING", codes)
+			}
+		})
+	}
+}
+
+func TestRequestSchemasMustBeSeparate(t *testing.T) {
+	spec := replaceOperationBodySchema(t, string(validSpec(t)), "ThingsService_CreateThing", "              $ref: '#/components/schemas/Thing'\n")
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "REQUEST_SCHEMA_REUSED") {
+		t.Fatalf("codes %v do not contain REQUEST_SCHEMA_REUSED", codes)
+	}
+}
+
+func TestEnumZeroIsExact(t *testing.T) {
+	doc, err := Load(validSpec(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resource, err := Build(doc, "Thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	index := slices.IndexFunc(resource.Fields, func(field *ResourceField) bool { return field.Name == "kind" })
+	if index < 0 {
+		t.Fatal("kind field not found")
+	}
+	typeValue := resource.Fields[index].Type
+	if typeValue.EnumZero != "THING_KIND_UNSPECIFIED" || !slices.Contains(typeValue.Values, "THING_KIND_P5_OR_UNSPECIFIED") {
+		t.Fatalf("enum = zero %q, values %v", typeValue.EnumZero, typeValue.Values)
+	}
+
+	spec := strings.Replace(string(validSpec(t)), "THING_KIND_UNSPECIFIED", "THING_KIND_NOT_SET", 1)
+	doc, err = Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, problems := Survey(doc, "Thing")
+	if len(problems) == 0 || !strings.Contains(fmt.Sprint(problems), "must be <PREFIX>_UNSPECIFIED") {
+		t.Fatalf("problems = %v, want exact enum zero error", problems)
+	}
+}
+
+func TestNestedOneOfNeedsDottedUpdateMask(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$'",
+		"pattern: '^[a-z][A-Za-z0-9]*$'", 1)
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", codes)
 	}
 }
 
@@ -505,7 +601,7 @@ func TestUpdateIDInBodyIsIneligible(t *testing.T) {
 }
 
 func TestGetResponseIDMustBeRequired(t *testing.T) {
-	spec := strings.Replace(string(validSpec(t)), "      required: [id, name, enabled, kind, config, createTime, updateTime]\n", "      required: [name, enabled, kind, config, createTime, updateTime]\n", 1)
+	spec := strings.Replace(string(validSpec(t)), "      required: [id, name, enabled, kind, config, status, createTime, updateTime]\n", "      required: [name, enabled, kind, config, status, createTime, updateTime]\n", 1)
 	doc, err := Load([]byte(spec))
 	if err != nil {
 		t.Fatal(err)
@@ -537,16 +633,36 @@ func TestRequestRequirednessContract(t *testing.T) {
 func optionalCreateRequiredUpdateSpec(t *testing.T, spec string) string {
 	t.Helper()
 	spec = strings.Replace(spec,
-		"              required: [name, kind, config]\n              properties:\n                name:\n                  type: string\n",
-		"              required: [kind, config]\n              properties:\n                name:\n                  type: string\n                  x-coralogix-presence: true\n", 1)
+		"              required: [name, kind, config]\n",
+		"              required: [kind, config]\n", 1)
 	spec = strings.Replace(spec,
-		"              title: UpdateThingRequest\n              type: object\n              properties:\n",
+		"              title: UpdateThingRequest\n              type: object\n              required: []\n              properties:\n",
 		"              title: UpdateThingRequest\n              type: object\n              required: [name]\n              properties:\n", 1)
-	spec = strings.Replace(spec, "      required: [id, name, enabled, kind, config, createTime, updateTime]\n", "      required: [id, enabled, kind, config, createTime, updateTime]\n", 1)
+	spec = strings.Replace(spec, "      required: [id, name, enabled, kind, config, status, createTime, updateTime]\n", "      required: [id, enabled, kind, config, status, createTime, updateTime]\n", 1)
 	if !strings.Contains(spec, "title: UpdateThingRequest\n              type: object\n              required: [name]") {
 		t.Fatal("cannot build requiredness fixture")
 	}
 	return spec
+}
+
+func replaceOperationBodySchema(t *testing.T, spec, operationID, replacement string) string {
+	t.Helper()
+	operation := strings.Index(spec, "operationId: "+operationID)
+	if operation < 0 {
+		t.Fatalf("operation %s not found", operationID)
+	}
+	const schemaMarker = "            schema:\n"
+	schema := strings.Index(spec[operation:], schemaMarker)
+	if schema < 0 {
+		t.Fatalf("request schema for %s not found", operationID)
+	}
+	schema += operation + len(schemaMarker)
+	responses := strings.Index(spec[schema:], "      responses:\n")
+	if responses < 0 {
+		t.Fatalf("responses for %s not found", operationID)
+	}
+	responses += schema
+	return spec[:schema] + replacement + spec[responses:]
 }
 
 func TestResourceIDTypes(t *testing.T) {
@@ -639,7 +755,7 @@ func collectionUpdateSpec(t *testing.T, spec, method string) string {
 	update := spec[start:end]
 	spec = spec[:start] + spec[end:]
 	spec = spec[:item] + update + spec[item:]
-	marker := "              type: object\n              properties:\n"
+	marker := "              type: object\n              required: []\n              properties:\n"
 	replacement := "              type: object\n              required: [id]\n              properties:\n                id:\n                  type: string\n"
 	operation := "operationId: ThingsService_" + map[string]string{"patch": "Update", "put": "Replace"}[method] + "Thing"
 	position := strings.Index(spec, operation)

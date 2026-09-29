@@ -8,7 +8,6 @@ import (
 	"math"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -317,8 +316,8 @@ func flattenUint64(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 
 	return types.Int64Value(int64(n))
 }
 
-func flattenEnum[T ~string](v *T) types.String {
-	if v == nil || strings.HasSuffix(string(*v), "_UNSPECIFIED") {
+func flattenEnum[T ~string](v *T, zero string) types.String {
+	if v == nil || string(*v) == zero {
 		return types.StringNull()
 	}
 	return types.StringValue(string(*v))
@@ -345,31 +344,31 @@ func flattenStringsList[T ~string](ctx context.Context, v []T, diags *diag.Diagn
 	return flattenList(ctx, types.StringType, toStrings(v), diags)
 }
 
-func invalidEnumElement(p path.Path, value string, diags *diag.Diagnostics) {
-	if strings.HasSuffix(value, "_UNSPECIFIED") {
+func invalidEnumElement(p path.Path, value, zero string, diags *diag.Diagnostics) {
+	if value == zero {
 		diags.AddAttributeError(p, "Invalid API enum value", fmt.Sprintf("The API returned protobuf zero enum value %q in a collection. The API must omit this element or return a concrete enum value.", value))
 	}
 }
 
-func flattenEnumsSet[T ~string](ctx context.Context, p path.Path, v []T, diags *diag.Diagnostics) types.Set {
+func flattenEnumsSet[T ~string](ctx context.Context, p path.Path, v []T, zero string, diags *diag.Diagnostics) types.Set {
 	if v == nil {
 		return types.SetNull(types.StringType)
 	}
 	items := toStrings(v)
 	sort.Strings(items)
 	for _, value := range items {
-		invalidEnumElement(p, value, diags)
+		invalidEnumElement(p, value, zero, diags)
 	}
 	return flattenSet(ctx, types.StringType, items, diags)
 }
 
-func flattenEnumsList[T ~string](ctx context.Context, p path.Path, v []T, diags *diag.Diagnostics) types.List {
+func flattenEnumsList[T ~string](ctx context.Context, p path.Path, v []T, zero string, diags *diag.Diagnostics) types.List {
 	if v == nil {
 		return types.ListNull(types.StringType)
 	}
 	items := toStrings(v)
 	for index, value := range items {
-		invalidEnumElement(p.AtListIndex(index), value, diags)
+		invalidEnumElement(p.AtListIndex(index), value, zero, diags)
 	}
 	return flattenList(ctx, types.StringType, items, diags)
 }
@@ -443,7 +442,7 @@ func flattenStringMap[T ~string](ctx context.Context, v map[string]T, diags *dia
 	return flattenMap(ctx, types.StringType, items, diags)
 }
 
-func flattenEnumMap[T ~string](ctx context.Context, p path.Path, v map[string]T, diags *diag.Diagnostics) types.Map {
+func flattenEnumMap[T ~string](ctx context.Context, p path.Path, v map[string]T, zero string, diags *diag.Diagnostics) types.Map {
 	if v == nil {
 		return types.MapNull(types.StringType)
 	}
@@ -455,7 +454,7 @@ func flattenEnumMap[T ~string](ctx context.Context, p path.Path, v map[string]T,
 	}
 	sort.Strings(keys)
 	for _, key := range keys {
-		invalidEnumElement(p.AtMapKey(key), items[key], diags)
+		invalidEnumElement(p.AtMapKey(key), items[key], zero, diags)
 	}
 	return flattenMap(ctx, types.StringType, items, diags)
 }
@@ -630,22 +629,40 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "time"}}
 	out.{{.Model}} = flattenTime({{$v}})
 {{- else if eq .Conv "enum"}}
-	out.{{.Model}} = flattenEnum({{$v}})
+	out.{{.Model}} = flattenEnum({{$v}}, {{printf "%q" .EnumZero}})
 {{- else if eq .Conv "object"}}
+	{{- if .ObjectValue}}
+	out.{{.Model}} = types.ObjectNull({{.Object.AttrTypesFunc}}())
+	if nested := flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, {{.Object.AttrTypesFunc}}(), *nested)
+		diags.Append(valueDiags...)
+		out.{{.Model}} = value
+	}
+	{{- else}}
 	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags)
+	{{- end}}
 {{- else if eq .Conv "empty"}}
+	{{- if .ObjectValue}}
+	out.{{.Model}} = types.ObjectNull(map[string]attr.Type{})
+	if v.{{.SDK}} != nil {
+		value, valueDiags := types.ObjectValue(map[string]attr.Type{}, map[string]attr.Value{})
+		diags.Append(valueDiags...)
+		out.{{.Model}} = value
+	}
+	{{- else}}
 	if v.{{.SDK}} != nil {
 		out.{{.Model}} = &{{.Object.Model}}{}
 	}
+	{{- end}}
 {{- else if eq .Conv "strings"}}
 	{{- if .Enum}}
-	out.{{.Model}} = flattenEnums{{.Collection}}(ctx, {{$p}}, v.{{.SDK}}, diags)
+	out.{{.Model}} = flattenEnums{{.Collection}}(ctx, {{$p}}, v.{{.SDK}}, {{printf "%q" .EnumZero}}, diags)
 	{{- else}}
 	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, v.{{.SDK}}, diags)
 	{{- end}}
 {{- else if eq .Conv "stringmap"}}
 	{{- if .Enum}}
-	out.{{.Model}} = flattenEnumMap(ctx, {{$p}}, v.{{.SDK}}, diags)
+	out.{{.Model}} = flattenEnumMap(ctx, {{$p}}, v.{{.SDK}}, {{printf "%q" .EnumZero}}, diags)
 	{{- else}}
 	out.{{.Model}} = flattenStringMap(ctx, v.{{.SDK}}, diags)
 	{{- end}}

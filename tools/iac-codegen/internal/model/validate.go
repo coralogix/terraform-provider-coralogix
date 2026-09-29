@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -55,6 +56,8 @@ func Validate(doc *v3.Document, name string, ids OperationIDs) issue.Report {
 		report = append(report, componentNameCollisions(t)...)
 	}
 	if len(ops) == len(verbs) {
+		report = append(report, requestSchemaSeparationIssues(name, ops)...)
+		report = append(report, requiredDeclarationIssues(name, ops)...)
 		report = append(report, validateFieldContracts(name, ops)...)
 		report = append(report, responseWrapperIssues(name, ops)...)
 	}
@@ -67,6 +70,120 @@ func Validate(doc *v3.Document, name string, ids OperationIDs) issue.Report {
 		}
 	}
 	return report.Normalize()
+}
+
+func requestSchemaSeparationIssues(name string, ops map[verb]foundOp) issue.Report {
+	create, createErr := rootSchemaIdentity(bodyProxy(ops[opCreate].op))
+	update, updateErr := rootSchemaIdentity(bodyProxy(ops[opUpdate].op))
+	resource, resourceErr := rootSchemaIdentity(responseResourceProxy(ops[opGet].op, name))
+	if createErr != nil || updateErr != nil || resourceErr != nil {
+		return nil
+	}
+	createLocation := "paths.create." + ops[opCreate].op.OperationId + ".requestBody"
+	updateLocation := "paths.update." + ops[opUpdate].op.OperationId + ".requestBody"
+	var report issue.Report
+	if create == resource {
+		report = append(report, reusedRequestSchemaIssue(createLocation, "Create", "resource response"))
+	}
+	if update == resource {
+		report = append(report, reusedRequestSchemaIssue(updateLocation, "Update", "resource response"))
+	}
+	if create == update {
+		report = append(report, reusedRequestSchemaIssue(updateLocation, "Update", "Create"))
+	}
+	return report
+}
+
+func rootSchemaIdentity(proxy *base.SchemaProxy) (string, error) {
+	if proxy == nil {
+		return "", fmt.Errorf("missing schema")
+	}
+	schema, err := schemaOf(proxy)
+	if err != nil {
+		return "", err
+	}
+	inner, err := singleAllOf(schema, "schema")
+	if err == nil {
+		return rootSchemaIdentity(inner)
+	}
+	if reference := proxy.GetReference(); reference != "" {
+		return "reference:" + reference, nil
+	}
+	return fmt.Sprintf("inline:%p", schema.GoLow()), nil
+}
+
+func reusedRequestSchemaIssue(location, role, reused string) issue.Issue {
+	return issue.Issue{
+		Code:        "REQUEST_SCHEMA_REUSED",
+		Location:    location,
+		Message:     fmt.Sprintf("The %s request reuses the %s schema.", role, reused),
+		Remediation: "Define separate Create, Update, and resource response schemas. Inline request schemas with distinct identities are supported.",
+	}
+}
+
+func requiredDeclarationIssues(name string, ops map[verb]foundOp) issue.Report {
+	seen := map[*base.Schema]bool{}
+	roots := []struct {
+		location string
+		proxy    *base.SchemaProxy
+	}{
+		{"paths.create." + ops[opCreate].op.OperationId + ".requestBody", bodyProxy(ops[opCreate].op)},
+		{"paths.update." + ops[opUpdate].op.OperationId + ".requestBody", bodyProxy(ops[opUpdate].op)},
+		{"components.schemas." + name, responseResourceProxy(ops[opGet].op, name)},
+	}
+	var report issue.Report
+	for _, root := range roots {
+		report = append(report, requiredDeclarationIssuesAt(root.location, root.proxy, seen)...)
+	}
+	return report
+}
+
+func requiredDeclarationIssuesAt(location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+	if proxy == nil {
+		return nil
+	}
+	schema, err := schemaOf(proxy)
+	if err != nil || seen[schema] {
+		return nil
+	}
+	seen[schema] = true
+	location = referencedSchemaLocation(proxy, location)
+	var report issue.Report
+	if fixedObject(schema) && (schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()) {
+		report = append(report, issue.Issue{
+			Code:        "REQUIRED_DECLARATION_MISSING",
+			Location:    location,
+			Message:     "The object does not declare which fields are required.",
+			Remediation: "Add an explicit required list. Use required: [] when every field is optional.",
+		})
+	}
+	for index, inner := range schema.AllOf {
+		report = append(report, requiredDeclarationIssuesAt(fmt.Sprintf("%s.allOf[%d]", location, index), inner, seen)...)
+	}
+	for _, field := range propertyNames(schema) {
+		report = append(report, requiredDeclarationIssuesAt(location+"."+field, propertyOf(schema, field), seen)...)
+	}
+	if schema.Items != nil && schema.Items.IsA() {
+		report = append(report, requiredDeclarationIssuesAt(location+"[]", schema.Items.A, seen)...)
+	}
+	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
+		report = append(report, requiredDeclarationIssuesAt(location+"{}", schema.AdditionalProperties.A, seen)...)
+	}
+	return report
+}
+
+func referencedSchemaLocation(proxy *base.SchemaProxy, fallback string) string {
+	if name, err := componentName(proxy.GetReference()); err == nil {
+		return "components.schemas." + name
+	}
+	return fallback
+}
+
+func fixedObject(schema *base.Schema) bool {
+	if !slices.Equal(schema.Type, []string{"object"}) {
+		return false
+	}
+	return schema.AdditionalProperties == nil || !schema.AdditionalProperties.IsA() && !schema.AdditionalProperties.B
 }
 
 func validateOperations(doc *v3.Document, name string, ids OperationIDs) (map[verb]foundOp, issue.Report) {
@@ -610,22 +727,78 @@ func fieldTypeIssues(location string, candidates ...*base.SchemaProxy) issue.Rep
 }
 
 func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base.SchemaProxy) issue.Report {
-	if proxy == nil || slices.Contains(parent.Required, field) {
+	if proxy == nil {
 		return nil
 	}
 	schema, err := schemaOf(proxy)
 	if err != nil {
 		return nil
 	}
+	required := slices.Contains(parent.Required, field)
+	if required && !scalarZeroValueValid(schema) {
+		return nil
+	}
 	presence := schema.Extensions.GetOrZero(extPresence)
 	if presence != nil && presence.Value == "true" {
 		return nil
+	}
+	if required {
+		return issue.Report{{
+			Code:        "REQUIRED_SCALAR_PRESENCE_UNKNOWN",
+			Location:    location,
+			Message:     "The required scalar accepts its zero value but does not preserve field presence.",
+			Remediation: "Use a presence-tracking protobuf scalar and expose x-coralogix-presence: true in OpenAPI.",
+		}}
 	}
 	code := "FIELD_PRESENCE_UNKNOWN"
 	if slices.Equal(schema.Type, []string{"array"}) || slices.Equal(schema.Type, []string{"object"}) && schema.AdditionalProperties != nil {
 		code = "COLLECTION_NULL_EMPTY_AMBIGUOUS"
 	}
 	return issue.Report{{Code: code, Location: location, Message: "The optional request field does not state whether omission differs from an explicit zero or empty value.", Remediation: "Add x-coralogix-presence: true to the source API contract."}}
+}
+
+func scalarZeroValueValid(schema *base.Schema) bool {
+	if inner, err := singleAllOf(schema, "schema"); err == nil {
+		resolved, resolveErr := schemaOf(inner)
+		return resolveErr == nil && scalarZeroValueValid(resolved)
+	}
+	if len(schema.Enum) != 0 || len(schema.Type) != 1 {
+		return false
+	}
+	switch schema.Type[0] {
+	case "boolean":
+		return true
+	case "integer", "number":
+		return numericZeroValueValid(schema)
+	case "string":
+		return stringZeroValueValid(schema)
+	default:
+		return false
+	}
+}
+
+func numericZeroValueValid(schema *base.Schema) bool {
+	return (schema.Minimum == nil || *schema.Minimum <= 0) && (schema.Maximum == nil || *schema.Maximum >= 0)
+}
+
+func stringZeroValueValid(schema *base.Schema) bool {
+	value := ""
+	switch schema.Format {
+	case "":
+	case "int64", "uint64":
+		value = "0"
+	default:
+		return false
+	}
+	length := int64(len([]rune(value)))
+	if schema.MinLength != nil && length < *schema.MinLength || schema.MaxLength != nil && length > *schema.MaxLength {
+		return false
+	}
+	if schema.Pattern == "" {
+		return true
+	}
+	re, err := regexp.Compile(schema.Pattern)
+	return err == nil && re.MatchString(value)
 }
 
 func nestedPresenceIssues(location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
@@ -728,10 +901,61 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 
 func validateBuiltResource(r *Resource) issue.Report {
 	var report issue.Report
-	if !r.Replace && r.UpdateMaskPattern == "" {
+	if r.Replace {
+		return nil
+	}
+	if r.UpdateMaskPattern == "" {
 		report = append(report, issue.Issue{Code: "UPDATE_MASK_CONTRACT_MISSING", Location: "paths.update." + r.Update.OperationID, Message: "The PATCH update mask has no pattern that defines accepted mask paths.", Remediation: "Add the authoritative update-mask path pattern to the source API contract."})
+		return report
+	}
+	_, leaf, err := UpdateMaskRule(r.UpdateMaskPattern)
+	if err != nil {
+		return append(report, issue.Issue{Code: "UPDATE_MASK_CONTRACT_INVALID", Location: "paths.update." + r.Update.OperationID, Message: err.Error() + ".", Remediation: "Use a mask pattern that accepts field names, rejects *, and defines whether dotted paths are supported."})
+	}
+	if leaf {
+		return report
+	}
+	for _, field := range r.Fields {
+		if field.Update == nil {
+			continue
+		}
+		paths := oneOfMaskPaths(field.Name, field.Type)
+		if len(paths) == 0 {
+			continue
+		}
+		report = append(report, issue.Issue{
+			Code:        "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
+			Location:    "components.schemas." + r.Name + "." + field.Name,
+			Message:     fmt.Sprintf("The update mask accepts only top-level paths, but changing this oneOf needs an arm path such as %q.", paths[0]),
+			Remediation: "Allow dotted update-mask paths so the generator can send the selected oneOf arm.",
+		})
 	}
 	return report
+}
+
+func oneOfMaskPaths(prefix string, t *Type) []string {
+	if t == nil {
+		return nil
+	}
+	var paths []string
+	if t.Kind == OneOf {
+		for _, field := range t.Fields {
+			paths = append(paths, prefix+"."+field.Name)
+		}
+		return paths
+	}
+	if t.Kind != Object {
+		return nil
+	}
+	for _, group := range t.Groups {
+		for _, arm := range group.Arms {
+			paths = append(paths, prefix+"."+arm)
+		}
+	}
+	for _, field := range t.Fields {
+		paths = append(paths, oneOfMaskPaths(prefix+"."+field.Name, field.Type)...)
+	}
+	return paths
 }
 
 func nameCollisions(location string, t *Type) issue.Report {
@@ -832,26 +1056,50 @@ func GoName(name string) string {
 
 func schemaIssue(err error) issue.Issue {
 	message := err.Error()
-	code := "UNION_SHAPE_UNSUPPORTED"
+	code := schemaIssueCode(message)
+	return issue.Issue{Code: code, Location: firstLocation(message), Message: message, Remediation: "Correct the source OpenAPI contract to use a supported, deterministic schema shape."}
+}
+
+func schemaIssueCode(message string) string {
+	if code := structuralSchemaIssueCode(message); code != "" {
+		return code
+	}
+	if code := constraintSchemaIssueCode(message); code != "" {
+		return code
+	}
+	return "UNION_SHAPE_UNSUPPORTED"
+}
+
+func structuralSchemaIssueCode(message string) string {
 	switch {
 	case strings.Contains(message, "recursive schema"):
-		code = "SCHEMA_RECURSIVE"
+		return "SCHEMA_RECURSIVE"
 	case strings.Contains(message, "additionalProperties") || strings.Contains(message, "map without"):
-		code = "MAP_VALUE_TYPE_UNSUPPORTED"
+		return "MAP_VALUE_TYPE_UNSUPPORTED"
 	case strings.Contains(message, "uniqueItems") || strings.Contains(message, extCollection):
-		code = "COLLECTION_SEMANTICS_UNKNOWN"
-	case strings.Contains(message, "minProperties") || strings.Contains(message, "maxProperties"):
-		code = "OBJECT_PROPERTY_COUNT_UNSUPPORTED"
-	case strings.Contains(message, "exclusiveMinimum") || strings.Contains(message, "exclusiveMaximum"):
-		code = "NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED"
-	case strings.Contains(message, "uint64") && strings.Contains(message, "Terraform Int64"):
-		code = "UINT64_RANGE_UNSUPPORTED"
+		return "COLLECTION_SEMANTICS_UNKNOWN"
 	case strings.Contains(message, "nullable"):
-		code = "FIELD_NULLABILITY_AMBIGUOUS"
+		return "FIELD_NULLABILITY_AMBIGUOUS"
 	case strings.Contains(message, "$ref") || strings.Contains(message, "reference"):
-		code = "REFERENCE_UNRESOLVED"
+		return "REFERENCE_UNRESOLVED"
+	default:
+		return ""
 	}
-	return issue.Issue{Code: code, Location: firstLocation(message), Message: message, Remediation: "Correct the source OpenAPI contract to use a supported, deterministic schema shape."}
+}
+
+func constraintSchemaIssueCode(message string) string {
+	switch {
+	case strings.Contains(message, "minProperties") || strings.Contains(message, "maxProperties"):
+		return "OBJECT_PROPERTY_COUNT_UNSUPPORTED"
+	case strings.Contains(message, "exclusiveMinimum") || strings.Contains(message, "exclusiveMaximum"):
+		return "NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED"
+	case strings.Contains(message, "uint64") && strings.Contains(message, "Terraform Int64"):
+		return "UINT64_RANGE_UNSUPPORTED"
+	case strings.Contains(message, "enum") && (strings.Contains(message, "UNSPECIFIED") || strings.Contains(message, "zero value") || strings.Contains(message, "zero-value prefix")):
+		return "ENUM_ZERO_INVALID"
+	default:
+		return ""
+	}
 }
 
 func buildIssue(err error) issue.Issue {

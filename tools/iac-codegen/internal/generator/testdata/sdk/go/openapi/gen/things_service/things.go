@@ -9,9 +9,10 @@ import (
 type ThingKind string
 
 const (
-	THINGKIND_THING_KIND_UNSPECIFIED ThingKind = "THING_KIND_UNSPECIFIED"
-	THINGKIND_THING_KIND_STANDARD    ThingKind = "THING_KIND_STANDARD"
-	THINGKIND_THING_KIND_ADVANCED    ThingKind = "THING_KIND_ADVANCED"
+	THINGKIND_THING_KIND_UNSPECIFIED       ThingKind = "THING_KIND_UNSPECIFIED"
+	THINGKIND_THING_KIND_STANDARD          ThingKind = "THING_KIND_STANDARD"
+	THINGKIND_THING_KIND_ADVANCED          ThingKind = "THING_KIND_ADVANCED"
+	THINGKIND_THING_KIND_P5_OR_UNSPECIFIED ThingKind = "THING_KIND_P5_OR_UNSPECIFIED"
 )
 
 type ThingConfig struct {
@@ -27,6 +28,10 @@ type QueueThingConfig struct {
 	Topic string
 }
 
+type ThingStatus struct {
+	Health string
+}
+
 type Thing struct {
 	Id           *string
 	Name         *string
@@ -34,6 +39,7 @@ type Thing struct {
 	Enabled      *bool
 	Kind         *ThingKind
 	Config       *ThingConfig
+	Status       *ThingStatus
 	Destinations []string
 	Tags         []string
 	Labels       map[string]string
@@ -62,16 +68,20 @@ type UpdateThingRequest struct {
 	Labels       map[string]string
 }
 
-type ThingsServiceAPIService struct{}
+type ThingsServiceAPIService struct {
+	CreateCalls int
+}
 
-type ApiThingsServiceCreateThingRequest struct{}
+type ApiThingsServiceCreateThingRequest struct {
+	client *ThingsServiceAPIService
+}
 type ApiThingsServiceGetThingRequest struct{}
 type ApiThingsServiceUpdateThingRequest struct{}
 type ApiThingsServiceDeleteThingRequest struct{}
 
-func (*ThingsServiceAPIService) ThingsServiceCreateThing(ctx context.Context) ApiThingsServiceCreateThingRequest {
+func (s *ThingsServiceAPIService) ThingsServiceCreateThing(ctx context.Context) ApiThingsServiceCreateThingRequest {
 	_ = ctx
-	return ApiThingsServiceCreateThingRequest{}
+	return ApiThingsServiceCreateThingRequest{client: s}
 }
 
 func (*ThingsServiceAPIService) ThingsServiceGetThing(ctx context.Context, id string) ApiThingsServiceGetThingRequest {
@@ -89,9 +99,9 @@ func (*ThingsServiceAPIService) ThingsServiceDeleteThing(ctx context.Context, id
 	return ApiThingsServiceDeleteThingRequest{}
 }
 
-func (ApiThingsServiceCreateThingRequest) CreateThingRequest(createThingRequest CreateThingRequest) ApiThingsServiceCreateThingRequest {
+func (r ApiThingsServiceCreateThingRequest) CreateThingRequest(createThingRequest CreateThingRequest) ApiThingsServiceCreateThingRequest {
 	_ = createThingRequest
-	return ApiThingsServiceCreateThingRequest{}
+	return r
 }
 
 func (ApiThingsServiceUpdateThingRequest) UpdateThingRequest(updateThingRequest UpdateThingRequest) ApiThingsServiceUpdateThingRequest {
@@ -104,7 +114,10 @@ func (ApiThingsServiceUpdateThingRequest) UpdateMask(updateMask string) ApiThing
 	return ApiThingsServiceUpdateThingRequest{}
 }
 
-func (ApiThingsServiceCreateThingRequest) Execute() (*Thing, *http.Response, error) {
+func (r ApiThingsServiceCreateThingRequest) Execute() (*Thing, *http.Response, error) {
+	if r.client != nil {
+		r.client.CreateCalls++
+	}
 	return nil, nil, nil
 }
 

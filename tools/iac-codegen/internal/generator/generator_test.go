@@ -72,7 +72,7 @@ func TestGoldenCanonicalAPIContract(t *testing.T) {
 	for _, fragment := range []string{
 		`"description": schema.StringAttribute{`,
 		`serverDefaultModifier{value: types.BoolValue(true)}`,
-		`stringvalidator.OneOf("THING_KIND_STANDARD", "THING_KIND_ADVANCED")`,
+		`stringvalidator.OneOf("THING_KIND_STANDARD", "THING_KIND_ADVANCED", "THING_KIND_P5_OR_UNSPECIFIED")`,
 		`stringplanmodifier.RequiresReplace()`,
 		`"config": schema.SingleNestedAttribute{`,
 		`objectvalidator.ExactlyOneOf`,
@@ -111,9 +111,9 @@ func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 
 func TestEnumCollectionFlatteningUsesGuardedHelpers(t *testing.T) {
 	fields := []*convField{
-		{TFName: "statuses", Model: "Statuses", SDK: "Statuses", Conv: convStrings, Collection: "List", Enum: true},
-		{TFName: "status_set", Model: "StatusSet", SDK: "StatusSet", Conv: convStrings, Collection: "Set", Enum: true},
-		{TFName: "status_map", Model: "StatusMap", SDK: "StatusMap", Conv: convStringMap, Enum: true},
+		{TFName: "statuses", Model: "Statuses", SDK: "Statuses", Conv: convStrings, Collection: "List", Enum: true, EnumZero: "STATUS_UNSPECIFIED"},
+		{TFName: "status_set", Model: "StatusSet", SDK: "StatusSet", Conv: convStrings, Collection: "Set", Enum: true, EnumZero: "STATUS_UNSPECIFIED"},
+		{TFName: "status_map", Model: "StatusMap", SDK: "StatusMap", Conv: convStringMap, Enum: true, EnumZero: "STATUS_UNSPECIFIED"},
 	}
 	var rendered bytes.Buffer
 	for _, field := range fields {
@@ -122,9 +122,9 @@ func TestEnumCollectionFlatteningUsesGuardedHelpers(t *testing.T) {
 		}
 	}
 	for _, want := range []string{
-		`flattenEnumsList(ctx, p.AtName("statuses"), v.Statuses, diags)`,
-		`flattenEnumsSet(ctx, p.AtName("status_set"), v.StatusSet, diags)`,
-		`flattenEnumMap(ctx, p.AtName("status_map"), v.StatusMap, diags)`,
+		`flattenEnumsList(ctx, p.AtName("statuses"), v.Statuses, "STATUS_UNSPECIFIED", diags)`,
+		`flattenEnumsSet(ctx, p.AtName("status_set"), v.StatusSet, "STATUS_UNSPECIFIED", diags)`,
+		`flattenEnumMap(ctx, p.AtName("status_map"), v.StatusMap, "STATUS_UNSPECIFIED", diags)`,
 	} {
 		if !strings.Contains(rendered.String(), want) {
 			t.Errorf("generated conversion does not contain %q", want)
@@ -187,9 +187,69 @@ func TestCheckUsesGenerateEligibilityAndWritesNothing(t *testing.T) {
 	}
 }
 
+func TestContractGapsUseSharedFailClosedValidation(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	base := string(input.OpenAPI)
+	tests := map[string]struct {
+		spec string
+		code string
+	}{
+		"reused request schema": {
+			spec: replaceOperationBodySchema(t, base, "ThingsService_CreateThing", "              $ref: '#/components/schemas/Thing'\n"),
+			code: "REQUEST_SCHEMA_REUSED",
+		},
+		"missing required declaration": {
+			spec: strings.Replace(base,
+				"              title: UpdateThingRequest\n              type: object\n              required: []\n              properties:\n",
+				"              title: UpdateThingRequest\n              type: object\n              properties:\n", 1),
+			code: "REQUIRED_DECLARATION_MISSING",
+		},
+		"missing required scalar presence": {
+			spec: strings.Replace(base,
+				"                name:\n                  type: string\n                  x-coralogix-presence: true\n",
+				"                name:\n                  type: string\n", 1),
+			code: "REQUIRED_SCALAR_PRESENCE_UNKNOWN",
+		},
+		"invalid enum zero": {
+			spec: strings.Replace(base, "THING_KIND_UNSPECIFIED", "THING_KIND_NOT_SET", 1),
+			code: "ENUM_ZERO_INVALID",
+		},
+		"top-level mask for nested oneOf": {
+			spec: strings.Replace(base,
+				"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$'",
+				"pattern: '^[a-z][A-Za-z0-9]*$'", 1),
+			code: "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			work := t.TempDir()
+			candidate := filepath.Join(work, "candidate.yaml")
+			if err := os.WriteFile(candidate, []byte(test.spec), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			checkErr := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate})
+			generated := filepath.Join(work, "generated")
+			generateInput := input
+			generateInput.OpenAPI = []byte(test.spec)
+			generateErr := generateFromInput(Options{Resource: "Thing", OutputDir: generated}, generateInput, sdkDir)
+			var eligibility *EligibilityError
+			if !errors.As(checkErr, &eligibility) || !hasReportCode(eligibility.Report, test.code) {
+				t.Fatalf("check error = %v, want %s", checkErr, test.code)
+			}
+			if generateErr == nil || checkErr.Error() != generateErr.Error() {
+				t.Fatalf("check and generate decisions differ:\ncheck: %v\ngenerate: %v", checkErr, generateErr)
+			}
+			if _, err := os.Stat(generated); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("generated output exists after rejection: %v", err)
+			}
+		})
+	}
+}
+
 func TestCheckAndGenerateRejectOptionalResponseID(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
-	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("      required: [id, name, enabled, kind, config, createTime, updateTime]\n"), []byte("      required: [name, enabled, kind, config, createTime, updateTime]\n"), 1)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("      required: [id, name, enabled, kind, config, status, createTime, updateTime]\n"), []byte("      required: [name, enabled, kind, config, status, createTime, updateTime]\n"), 1)
 	work := t.TempDir()
 	candidate := filepath.Join(work, "candidate.yaml")
 	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
@@ -348,12 +408,12 @@ func integerIDOpenAPI(t *testing.T, spec []byte, format string) []byte {
 func optionalCreateRequiredUpdateOpenAPI(t *testing.T, spec []byte) []byte {
 	t.Helper()
 	value := strings.Replace(string(spec),
-		"              required: [name, kind, config]\n              properties:\n                name:\n                  type: string\n",
-		"              required: [kind, config]\n              properties:\n                name:\n                  type: string\n                  x-coralogix-presence: true\n", 1)
+		"              required: [name, kind, config]\n",
+		"              required: [kind, config]\n", 1)
 	value = strings.Replace(value,
-		"              title: UpdateThingRequest\n              type: object\n              properties:\n",
+		"              title: UpdateThingRequest\n              type: object\n              required: []\n              properties:\n",
 		"              title: UpdateThingRequest\n              type: object\n              required: [name]\n              properties:\n", 1)
-	value = strings.Replace(value, "      required: [id, name, enabled, kind, config, createTime, updateTime]\n", "      required: [id, enabled, kind, config, createTime, updateTime]\n", 1)
+	value = strings.Replace(value, "      required: [id, name, enabled, kind, config, status, createTime, updateTime]\n", "      required: [id, enabled, kind, config, status, createTime, updateTime]\n", 1)
 	if !strings.Contains(value, "title: UpdateThingRequest\n              type: object\n              required: [name]") {
 		t.Fatal("cannot build requiredness fixture")
 	}
@@ -492,16 +552,18 @@ func setOfObjectsSpec(spec string) string {
       type: object
       required: [value]
       properties:
-        value: {type: string}
+        value:
+          type: string
+          x-coralogix-presence: true
 `
 }
 
 func invalidGeneratedIdentifierSpec(t *testing.T, spec string) string {
 	t.Helper()
-	createField := "                name:\n                  type: string"
+	createField := "                name:\n                  type: string\n                  x-coralogix-presence: true"
 	createWithDetail := createField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/v3.FilterOperator'"
 	spec = replaceAfter(t, spec, "operationId: ThingsService_CreateThing", createField, createWithDetail)
-	updateField := createField + "\n                  x-coralogix-presence: true"
+	updateField := createField
 	updateWithDetail := updateField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/v3.FilterOperator'"
 	spec = replaceAfter(t, spec, "operationId: ThingsService_UpdateThing", updateField, updateWithDetail)
 	responseField := "        name:\n          type: string\n          description: The display name."
@@ -558,6 +620,26 @@ func replaceAfter(t *testing.T, value, marker, old, replacement string) string {
 		t.Fatalf("cannot find %q after %q", old, marker)
 	}
 	return value[:index] + tail
+}
+
+func replaceOperationBodySchema(t *testing.T, spec, operationID, replacement string) string {
+	t.Helper()
+	operation := strings.Index(spec, "operationId: "+operationID)
+	if operation < 0 {
+		t.Fatalf("operation %s not found", operationID)
+	}
+	const schemaMarker = "            schema:\n"
+	schema := strings.Index(spec[operation:], schemaMarker)
+	if schema < 0 {
+		t.Fatalf("request schema for %s not found", operationID)
+	}
+	schema += operation + len(schemaMarker)
+	responses := strings.Index(spec[schema:], "      responses:\n")
+	if responses < 0 {
+		t.Fatalf("responses for %s not found", operationID)
+	}
+	responses += schema
+	return spec[:schema] + replacement + spec[responses:]
 }
 
 func TestCheckReportsAllIssuesInStableOrder(t *testing.T) {
@@ -767,6 +849,26 @@ func TestComputedObjectDescendantsAreComputed(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertComputedTree(t, data.Attributes[0])
+	if got := data.Models[0].Fields[0].Type; got != "types.Object" {
+		t.Fatalf("computed object model type = %q, want types.Object", got)
+	}
+}
+
+func TestComputedOneOfUsesUnknownCapableModelType(t *testing.T) {
+	choice := &model.Type{Kind: model.OneOf, Schema: "ServerChoice", Fields: []*model.Field{
+		{Name: "first", Type: &model.Type{Kind: model.String}},
+		{Name: "second", Type: &model.Type{Kind: model.String}},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{{
+		Name: "choice", Type: choice, Behavior: model.Computed, Get: &model.Attrs{Required: true}, InGet: true,
+	}}}
+	data, err := buildTFResource(resource, "thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := data.Models[0].Fields[0].Type; got != "types.Object" {
+		t.Fatalf("computed oneOf model type = %q, want types.Object", got)
+	}
 }
 
 func assertComputedTree(t *testing.T, attr *tfAttr) {
