@@ -3,7 +3,6 @@ package generator
 import (
 	"fmt"
 	"strings"
-	"unicode"
 
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 
@@ -390,13 +389,7 @@ func goFieldName(property string) string { return camelize(property) }
 // joins the parts with the first letter in upper case. It keeps the case of
 // the other letters: "AI Evaluations Service" → "AIEvaluationsService".
 func camelize(s string) string {
-	var b strings.Builder
-	for part := range strings.FieldsFuncSeq(s, func(r rune) bool {
-		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
-	}) {
-		b.WriteString(strings.ToUpper(part[:1]) + part[1:])
-	}
-	return b.String()
+	return model.GoName(s)
 }
 
 func lowerFirst(s string) string { return strings.ToLower(s[:1]) + s[1:] }

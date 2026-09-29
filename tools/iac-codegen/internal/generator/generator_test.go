@@ -391,6 +391,7 @@ func TestCheckRejectsRendererUnsupportedShapes(t *testing.T) {
 		"set of objects":               {setOfObjectsSpec(base), "RENDERER_SHAPE_UNSUPPORTED"},
 		"invalid generated identifier": {invalidGeneratedIdentifierSpec(t, base), "RENDERER_OUTPUT_INVALID"},
 		"acronym name collision":       {acronymNameCollisionSpec(t, base), "TERRAFORM_NAME_COLLISION"},
+		"Go field name collision":      {goNameCollisionSpec(t, base), "GO_NAME_COLLISION"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -488,6 +489,13 @@ func acronymNameCollisionSpec(t *testing.T, spec string) string {
 	t.Helper()
 	field := "        name:\n          type: string\n          description: The display name."
 	fields := field + "\n        HTTPServer:\n          type: string\n        httpServer:\n          type: string"
+	return replaceAfter(t, spec, "    Thing:", field, fields)
+}
+
+func goNameCollisionSpec(t *testing.T, spec string) string {
+	t.Helper()
+	field := "        name:\n          type: string\n          description: The display name."
+	fields := field + "\n        foo-bar:\n          type: string\n        foo_bar:\n          type: string"
 	return replaceAfter(t, spec, "    Thing:", field, fields)
 }
 
