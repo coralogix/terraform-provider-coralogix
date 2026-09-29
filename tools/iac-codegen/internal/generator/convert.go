@@ -114,6 +114,9 @@ type convField struct {
 	// ElemType is the Terraform element type of scalars and scalarmap, for
 	// example "types.Int32Type".
 	ElemType string
+	// Enum is true for a collection or map whose string values are enum
+	// values. Response conversion then rejects protobuf zero sentinels.
+	Enum bool
 	// Value is true when the SDK field is a value, not a pointer. The SDK
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
@@ -453,7 +456,7 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		if err != nil {
 			return "", err
 		}
-		cf.Conv, cf.SDKType = convStrings, b.qualify(enum.Name)
+		cf.Conv, cf.SDKType, cf.Enum = convStrings, b.qualify(enum.Name), true
 		return "[]" + enum.Name, nil
 	case model.Bool, model.Number, model.Integer:
 		goType, elem, ok := scalarElem(t.Elem)
@@ -601,7 +604,7 @@ func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		cf.Conv, cf.SDKType = convStringMap, b.qualify(enum.Name)
+		cf.Conv, cf.SDKType, cf.Enum = convStringMap, b.qualify(enum.Name), true
 		return "map[string]" + enum.Name, nil
 	case e.Kind == model.Integer && e.WireString && e.Format == "uint64":
 		cf.Conv = convUint64Map

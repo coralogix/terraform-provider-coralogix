@@ -84,6 +84,29 @@ func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 	}
 }
 
+func TestEnumCollectionFlatteningUsesGuardedHelpers(t *testing.T) {
+	fields := []*convField{
+		{TFName: "statuses", Model: "Statuses", SDK: "Statuses", Conv: convStrings, Collection: "List", Enum: true},
+		{TFName: "status_set", Model: "StatusSet", SDK: "StatusSet", Conv: convStrings, Collection: "Set", Enum: true},
+		{TFName: "status_map", Model: "StatusMap", SDK: "StatusMap", Conv: convStringMap, Enum: true},
+	}
+	var rendered bytes.Buffer
+	for _, field := range fields {
+		if err := templates.ExecuteTemplate(&rendered, "flattenField", field); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, want := range []string{
+		`flattenEnumsList(ctx, p.AtName("statuses"), v.Statuses, diags)`,
+		`flattenEnumsSet(ctx, p.AtName("status_set"), v.StatusSet, diags)`,
+		`flattenEnumMap(ctx, p.AtName("status_map"), v.StatusMap, diags)`,
+	} {
+		if !strings.Contains(rendered.String(), want) {
+			t.Errorf("generated conversion does not contain %q", want)
+		}
+	}
+}
+
 func TestEligibilityFailurePreservesOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 1)
