@@ -25,7 +25,7 @@ func ResolveResource(doc *v3.Document, selection string) (string, issue.Report) 
 	}
 	var matches []string
 	for name := range doc.Components.Schemas.FromOldest() {
-		if terraformName(name) == selection {
+		if TerraformName(name) == selection {
 			matches = append(matches, name)
 		}
 	}
@@ -746,7 +746,7 @@ func nameCollisions(location string, t *Type) issue.Report {
 	}
 	seen := map[string]string{}
 	for _, field := range t.Fields {
-		name := terraformName(field.Name)
+		name := TerraformName(field.Name)
 		if previous, ok := seen[name]; ok && previous != field.Name {
 			report = append(report, issue.Issue{Code: "TERRAFORM_NAME_COLLISION", Location: location, Message: fmt.Sprintf("Fields %q and %q both normalize to %q.", previous, field.Name, name), Remediation: "Rename a source API field so every Terraform name is unique."})
 		} else {
@@ -757,15 +757,23 @@ func nameCollisions(location string, t *Type) issue.Report {
 	return report
 }
 
-func terraformName(name string) string {
-	var out []rune
-	for i, r := range name {
+// TerraformName converts an OpenAPI name to the exact Terraform name used by
+// validation and rendering. Acronym runs stay together: HTTPServer becomes
+// http_server.
+func TerraformName(name string) string {
+	var out strings.Builder
+	runes := []rune(name)
+	for i, r := range runes {
 		if unicode.IsUpper(r) && i > 0 {
-			out = append(out, '_')
+			previousLower := !unicode.IsUpper(runes[i-1])
+			nextLower := i+1 < len(runes) && unicode.IsLower(runes[i+1])
+			if previousLower || nextLower {
+				out.WriteByte('_')
+			}
 		}
-		out = append(out, unicode.ToLower(r))
+		out.WriteRune(unicode.ToLower(r))
 	}
-	return string(out)
+	return out.String()
 }
 
 func schemaIssue(err error) issue.Issue {
