@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"example.com/iac-test-sdk/go/openapi/gen/things_service"
 )
 
 func TestScalarPresence(t *testing.T) {
@@ -34,6 +36,66 @@ func TestUnspecifiedEnumFlattensToNull(t *testing.T) {
 	active := status("STATUS_ACTIVE")
 	if got := flattenEnum(&active); got.ValueString() != string(active) {
 		t.Fatalf("active enum = %v, want %q", got, active)
+	}
+}
+
+func TestUnspecifiedEnumCollectionsReturnDiagnostics(t *testing.T) {
+	type status string
+	values := []status{"STATUS_ACTIVE", "STATUS_UNSPECIFIED"}
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	flattenEnumsList(ctx, path.Root("list"), values, &diags)
+	flattenEnumsSet(ctx, path.Root("set"), values, &diags)
+	flattenEnumMap(ctx, path.Root("map"), map[string]status{"value": "STATUS_UNSPECIFIED"}, &diags)
+	if len(diags.Errors()) != 3 {
+		t.Fatalf("enum collection diagnostics = %v, want three errors", diags)
+	}
+}
+
+func TestOptionalGetPresenceRoundTrips(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	omitted := flattenThing(ctx, path.Root("thing"), &things_service.Thing{}, &diags)
+	if !omitted.Count.IsNull() || !omitted.Ordered.IsNull() || !omitted.Unordered.IsNull() || !omitted.Labels.IsNull() {
+		t.Fatalf("omitted optional fields = %#v, want null values", omitted)
+	}
+
+	zero := int64(0)
+	explicit := flattenThing(ctx, path.Root("thing"), &things_service.Thing{
+		Count:     &zero,
+		Ordered:   []string{},
+		Unordered: []string{},
+		Labels:    map[string]string{},
+	}, &diags)
+	if explicit.Count.IsNull() || explicit.Count.ValueInt64() != 0 || explicit.Ordered.IsNull() || explicit.Unordered.IsNull() || explicit.Labels.IsNull() {
+		t.Fatalf("explicit zero and empty fields = %#v, want present values", explicit)
+	}
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+
+	values := map[string]attr.Value{
+		"name":      types.StringNull(),
+		"enabled":   types.BoolNull(),
+		"count":     types.Int64Null(),
+		"ordered":   types.ListNull(types.StringType),
+		"unordered": types.SetNull(types.StringType),
+		"labels":    types.MapNull(types.StringType),
+	}
+	state := cloneValues(values)
+	state["count"] = types.Int64Value(0)
+	mask, updateDiags := updateMask(context.Background(), fakeData{values}, fakeData{values}, fakeData{state})
+	body, bodyDiags := expandUpdate(context.Background(), &ThingModel{
+		Name:      types.StringNull(),
+		Enabled:   types.BoolNull(),
+		Count:     types.Int64Null(),
+		Ordered:   types.ListNull(types.StringType),
+		Unordered: types.SetNull(types.StringType),
+		Labels:    types.MapNull(types.StringType),
+	})
+	updateDiags.Append(bodyDiags...)
+	if updateDiags.HasError() || body == nil || body.Count != nil || len(mask) != 1 || mask[0] != "count" {
+		t.Fatalf("cleared optional field = body %#v, mask %v, diagnostics %v", body, mask, updateDiags)
 	}
 }
 
