@@ -7,7 +7,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
 )
@@ -27,26 +30,80 @@ func TestScalarPresence(t *testing.T) {
 func TestUnspecifiedEnumFlattensToNull(t *testing.T) {
 	type status string
 	unspecified := status("STATUS_UNSPECIFIED")
-	if got := flattenEnum(&unspecified); !got.IsNull() {
+	if got := flattenEnum(&unspecified, "STATUS_UNSPECIFIED"); !got.IsNull() {
 		t.Fatalf("unspecified enum = %v, want null", got)
 	}
 	active := status("STATUS_ACTIVE")
-	if got := flattenEnum(&active); got.ValueString() != string(active) {
+	if got := flattenEnum(&active, "STATUS_UNSPECIFIED"); got.ValueString() != string(active) {
 		t.Fatalf("active enum = %v, want %q", got, active)
+	}
+	business := status("STATUS_P5_OR_UNSPECIFIED")
+	if got := flattenEnum(&business, "STATUS_UNSPECIFIED"); got.ValueString() != string(business) {
+		t.Fatalf("business enum = %v, want %q", got, business)
 	}
 }
 
 func TestUnspecifiedEnumCollectionsReturnDiagnostics(t *testing.T) {
 	type status string
-	values := []status{"STATUS_ACTIVE", "STATUS_UNSPECIFIED"}
+	values := []status{"STATUS_ACTIVE", "STATUS_P5_OR_UNSPECIFIED", "STATUS_UNSPECIFIED"}
 	ctx := context.Background()
 	var diags diag.Diagnostics
-	flattenEnumsList(ctx, path.Root("list"), values, &diags)
-	flattenEnumsSet(ctx, path.Root("set"), values, &diags)
-	flattenEnumMap(ctx, path.Root("map"), map[string]status{"value": "STATUS_UNSPECIFIED"}, &diags)
+	flattenEnumsList(ctx, path.Root("list"), values, "STATUS_UNSPECIFIED", &diags)
+	flattenEnumsSet(ctx, path.Root("set"), values, "STATUS_UNSPECIFIED", &diags)
+	flattenEnumMap(ctx, path.Root("map"), map[string]status{"value": "STATUS_UNSPECIFIED"}, "STATUS_UNSPECIFIED", &diags)
 	if len(diags.Errors()) != 3 {
 		t.Fatalf("enum collection diagnostics = %v, want three errors", diags)
 	}
+}
+
+func TestComputedObjectUnknownDoesNotBlockCreate(t *testing.T) {
+	ctx := context.Background()
+	s := Schema()
+	terraformType := s.Type().TerraformType(ctx)
+	root, ok := terraformType.(tftypes.Object)
+	if !ok {
+		t.Fatalf("schema type = %T, want tftypes.Object", terraformType)
+	}
+	configValues := nullTFValues(root)
+	configValues["name"] = tftypes.NewValue(root.AttributeTypes["name"], "created")
+	configValues["kind"] = tftypes.NewValue(root.AttributeTypes["kind"], "THING_KIND_STANDARD")
+	configType := root.AttributeTypes["config"].(tftypes.Object)
+	httpType := configType.AttributeTypes["http"].(tftypes.Object)
+	configValues["config"] = tftypes.NewValue(configType, map[string]tftypes.Value{
+		"http": tftypes.NewValue(httpType, map[string]tftypes.Value{
+			"endpoint": tftypes.NewValue(httpType.AttributeTypes["endpoint"], "https://example.com"),
+		}),
+		"queue": tftypes.NewValue(configType.AttributeTypes["queue"], nil),
+	})
+	planValues := cloneTFValues(configValues)
+	planValues["status"] = tftypes.NewValue(root.AttributeTypes["status"], tftypes.UnknownValue)
+
+	client := &things_service.ThingsServiceAPIService{}
+	r := &Resource{client: client}
+	var response frameworkresource.CreateResponse
+	r.Create(ctx, frameworkresource.CreateRequest{
+		Config: tfsdk.Config{Schema: s, Raw: tftypes.NewValue(terraformType, configValues)},
+		Plan:   tfsdk.Plan{Schema: s, Raw: tftypes.NewValue(terraformType, planValues)},
+	}, &response)
+	if client.CreateCalls != 1 {
+		t.Fatalf("Create API calls = %d, want 1; diagnostics: %v", client.CreateCalls, response.Diagnostics)
+	}
+}
+
+func nullTFValues(object tftypes.Object) map[string]tftypes.Value {
+	values := make(map[string]tftypes.Value, len(object.AttributeTypes))
+	for name, valueType := range object.AttributeTypes {
+		values[name] = tftypes.NewValue(valueType, nil)
+	}
+	return values
+}
+
+func cloneTFValues(values map[string]tftypes.Value) map[string]tftypes.Value {
+	clone := make(map[string]tftypes.Value, len(values))
+	for name, value := range values {
+		clone[name] = value
+	}
+	return clone
 }
 
 func TestOptionalGetPresenceRoundTrips(t *testing.T) {

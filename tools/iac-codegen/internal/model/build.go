@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/pb33f/libopenapi/datamodel"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 const (
@@ -1174,11 +1176,13 @@ func stringType(t *Type, s *base.Schema) error {
 	case len(s.Enum) != 0:
 		t.Kind = Enum
 		t.MinLength, t.MaxLength = nil, nil
-		for _, n := range s.Enum {
-			// Contract: the enum zero value is *_UNSPECIFIED. It is not a valid value.
-			if !strings.HasSuffix(n.Value, "_UNSPECIFIED") {
-				t.Values = append(t.Values, n.Value)
-			}
+		zero, err := enumZero(s.Enum)
+		if err != nil {
+			return err
+		}
+		t.EnumZero = zero
+		for _, n := range s.Enum[1:] {
+			t.Values = append(t.Values, n.Value)
 		}
 		if len(t.Values) == 0 {
 			return errors.New("enum has no values")
@@ -1190,4 +1194,45 @@ func stringType(t *Type, s *base.Schema) error {
 		t.Kind = String
 	}
 	return nil
+}
+
+// enumZero returns the exact protobuf zero value. The zero value is first,
+// ends in _UNSPECIFIED, and supplies the prefix of every business value.
+// A later business value may also end in _UNSPECIFIED.
+func enumZero(values []*yaml.Node) (string, error) {
+	if len(values) < 2 {
+		return "", errors.New("enum needs one zero value and at least one business value")
+	}
+	zero := values[0].Value
+	prefix, ok := strings.CutSuffix(zero, "_UNSPECIFIED")
+	if !ok || prefix == "" {
+		return "", fmt.Errorf("first enum value %q must be <PREFIX>_UNSPECIFIED", zero)
+	}
+	for _, value := range values[1:] {
+		if value.Value == zero {
+			return "", fmt.Errorf("enum zero value %q is repeated", zero)
+		}
+		if !strings.HasPrefix(value.Value, prefix+"_") {
+			return "", fmt.Errorf("enum value %q does not use zero-value prefix %q", value.Value, prefix)
+		}
+	}
+	return zero, nil
+}
+
+var topLevelMaskEntry = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+// UpdateMaskRule returns the check for one mask path and whether the API
+// accepts dotted paths. Validation and rendering use this one decision.
+func UpdateMaskRule(pattern string) (valid func(string) bool, leaf bool, err error) {
+	if pattern == "" {
+		return topLevelMaskEntry.MatchString, false, nil
+	}
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, false, fmt.Errorf("update mask pattern %q: %w", pattern, err)
+	}
+	if !re.MatchString("a") || re.MatchString("*") {
+		return nil, false, fmt.Errorf("update mask pattern %q must accept a field name and reject *", pattern)
+	}
+	return re.MatchString, re.MatchString("a.b"), nil
 }

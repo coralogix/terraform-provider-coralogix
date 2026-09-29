@@ -2,7 +2,6 @@ package generator
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
@@ -52,10 +51,6 @@ type maskField struct {
 	// Groups are the oneOf groups among Children, as Terraform names.
 	Groups [][]string
 }
-
-// maskEntry is one entry of the update mask when the spec has no pattern
-// (F23): a top-level name. The contract allows no "*".
-var maskEntry = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 // convObject is one pair of Terraform model struct and SDK struct.
 type convObject struct {
@@ -116,7 +111,9 @@ type convField struct {
 	ElemType string
 	// Enum is true for a collection or map whose string values are enum
 	// values. Response conversion then rejects protobuf zero sentinels.
-	Enum bool
+	Enum        bool
+	EnumZero    string // exact protobuf zero sentinel for enum conversion
+	ObjectValue bool   // a computed object stored as unknown-capable types.Object
 	// Value is true when the SDK field is a value, not a pointer. The SDK
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
@@ -192,6 +189,7 @@ func buildConv(r *model.Resource, refs []sdkRef) (*convData, error) {
 			if err != nil {
 				return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
 			}
+			b.markComputedObjectValue(cf, f, root.path == "fields")
 			obj.Fields = append(obj.Fields, cf)
 		}
 		if err := b.mark(obj, root.expand); err != nil {
@@ -217,6 +215,21 @@ func buildConv(r *model.Resource, refs []sdkRef) (*convData, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+// markComputedObjectValue makes a directly nested computed field capable of
+// holding the unknown value that Terraform plans before Create.
+func (b *convBuilder) markComputedObjectValue(cf *convField, f *model.ResourceField, response bool) {
+	if !response || f.Behavior != model.Computed {
+		return
+	}
+	if f.Type.Kind != model.Object && f.Type.Kind != model.OneOf {
+		return
+	}
+	cf.ObjectValue = true
+	if cf.Conv == convObj && !contains(b.listed, cf.Object) {
+		b.listed = append(b.listed, cf.Object)
+	}
 }
 
 // replaceFields sets the Update fields of a full replace. The body has all of
@@ -294,17 +307,7 @@ func (d *convData) HasGroups() bool {
 // dotted paths. With a pattern, a path is valid when the pattern accepts it
 // as a whole mask. Without one, only a top-level name is valid (F23).
 func maskRule(pattern string) (valid func(string) bool, leaf bool, err error) {
-	if pattern == "" {
-		return maskEntry.MatchString, false, nil
-	}
-	re, err := regexp.Compile(pattern)
-	if err != nil {
-		return nil, false, fmt.Errorf("update mask pattern %q: %w", pattern, err)
-	}
-	if !re.MatchString("a") || re.MatchString("*") {
-		return nil, false, fmt.Errorf("update mask pattern %q must accept a field name and reject *", pattern)
-	}
-	return re.MatchString, re.MatchString("a.b"), nil
+	return model.UpdateMaskRule(pattern)
 }
 
 // maskTree returns the mask node of the Update field name of type t.
@@ -387,7 +390,7 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		cf.Conv, cf.SDKType = convEnum, b.qualify(enum.Name)
+		cf.Conv, cf.SDKType, cf.EnumZero = convEnum, b.qualify(enum.Name), t.EnumZero
 		return "*" + enum.Name, nil
 	case model.Object, model.OneOf:
 		if len(t.Fields) == 0 {
@@ -456,7 +459,7 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		if err != nil {
 			return "", err
 		}
-		cf.Conv, cf.SDKType, cf.Enum = convStrings, b.qualify(enum.Name), true
+		cf.Conv, cf.SDKType, cf.Enum, cf.EnumZero = convStrings, b.qualify(enum.Name), true, t.Elem.EnumZero
 		return "[]" + enum.Name, nil
 	case model.Bool, model.Number, model.Integer:
 		goType, elem, ok := scalarElem(t.Elem)
@@ -604,7 +607,7 @@ func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		cf.Conv, cf.SDKType, cf.Enum = convStringMap, b.qualify(enum.Name), true
+		cf.Conv, cf.SDKType, cf.Enum, cf.EnumZero = convStringMap, b.qualify(enum.Name), true, e.EnumZero
 		return "map[string]" + enum.Name, nil
 	case e.Kind == model.Integer && e.WireString && e.Format == "uint64":
 		cf.Conv = convUint64Map
