@@ -12,7 +12,7 @@ import (
 	"{{.Conv.SDKPkg}}"
 )
 {{with .Conv}}
-// tfData is a tfsdk.Plan or a tfsdk.State.
+// tfData is a tfsdk.Config, tfsdk.Plan, or tfsdk.State.
 type tfData interface {
 	Get(ctx context.Context, target interface{}) diag.Diagnostics
 	GetAttribute(ctx context.Context, p path.Path, target interface{}) diag.Diagnostics
@@ -20,29 +20,37 @@ type tfData interface {
 
 // updateFields are the Terraform attributes of the Update fields, in model
 // order.
-var updateFields = []string{
+var updateFields = []struct {
+	attr          string
+	serverDefault bool
+}{
 {{- range .UpdateFields}}
-	{{printf "%q" .}},
+	{attr: {{printf "%q" .TFName}}, serverDefault: {{.ServerDefault}}},
 {{- end}}
 }
 
 // updateChanged reports whether an Update field has a different value in the
 // plan and in the state. It uses Terraform equality, so the order of a Set
 // does not matter.
-func updateChanged(ctx context.Context, plan, state tfData) (bool, diag.Diagnostics) {
+func updateChanged(ctx context.Context, config, plan, state tfData) (bool, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	for _, a := range updateFields {
-		var p, s attr.Value
-		diags.Append(plan.GetAttribute(ctx, path.Root(a), &p)...)
-		diags.Append(state.GetAttribute(ctx, path.Root(a), &s)...)
-		if diags.HasError() {
-			return false, diags
+	changed := false
+	for _, field := range updateFields {
+		var c, p, s attr.Value
+		var fieldDiags diag.Diagnostics
+		fieldDiags.Append(config.GetAttribute(ctx, path.Root(field.attr), &c)...)
+		fieldDiags.Append(plan.GetAttribute(ctx, path.Root(field.attr), &p)...)
+		fieldDiags.Append(state.GetAttribute(ctx, path.Root(field.attr), &s)...)
+		diags.Append(fieldDiags...)
+		if fieldDiags.HasError() {
+			continue
 		}
+		validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)
 		if !p.Equal(s) {
-			return true, diags
+			changed = true
 		}
 	}
-	return false, diags
+	return changed, diags
 }
 
 // updateRequest returns the Update body of the plan. The Update is a full
@@ -50,8 +58,8 @@ func updateChanged(ctx context.Context, plan, state tfData) (bool, diag.Diagnost
 // mask. A value that the plan clears (null) is not in the body, and the
 // server clears it. updateRequest returns nil when no Update field changed.
 // Then the caller sends no request (D14).
-func updateRequest(ctx context.Context, plan, state tfData) (*{{.SDKName}}.{{.Update.SDK}}, diag.Diagnostics) {
-	changed, diags := updateChanged(ctx, plan, state)
+func updateRequest(ctx context.Context, config, plan, state tfData) (*{{.SDKName}}.{{.Update.SDK}}, diag.Diagnostics) {
+	changed, diags := updateChanged(ctx, config, plan, state)
 	if diags.HasError() || !changed {
 		return nil, diags
 	}

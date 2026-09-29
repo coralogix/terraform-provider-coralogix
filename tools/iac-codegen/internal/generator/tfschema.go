@@ -12,14 +12,16 @@ import (
 
 // tfResource is the template data for the Terraform schema and model files.
 type tfResource struct {
-	Package          string
-	VersionHeader    string
-	Model            string // Go type of the resource model, for example "WidgetModel"
-	Attributes       []*tfAttr
-	ConfigValidators []string // Go expressions of type resource.ConfigValidator
-	Models           []*tfModel
-	Conv             *convData // expand and flatten
-	CRUD             *crudData // CRUD, import, and the provider data
+	Package            string
+	VersionHeader      string
+	Model              string // Go type of the resource model, for example "WidgetModel"
+	Attributes         []*tfAttr
+	ConfigValidators   []string // Go expressions of type resource.ConfigValidator
+	Models             []*tfModel
+	Conv               *convData // expand and flatten
+	CRUD               *crudData // CRUD, import, and the provider data
+	HasServerDefaults  bool
+	ServerDefaultKinds []string // Terraform scalar kinds that need reset planning
 }
 
 // tfAttr is one Terraform schema attribute.
@@ -79,8 +81,19 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 		}
 		if hasServerDefault(f) {
 			// The user may override this value. When it is omitted, the server
-			// supplies the declared default and Get always returns it.
+			// supplies the declared default and Get always returns it. The plan
+			// modifier makes removal unknown until Update clears the value and
+			// Get returns that default.
+			value, err := serverDefaultValue(f.Type, *f.Create.Default)
+			if err != nil {
+				return nil, fmt.Errorf("%s: server default: %w", f.Name, err)
+			}
 			a.Computed = true
+			a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
+			out.HasServerDefaults = true
+			if !containsString(out.ServerDefaultKinds, a.ValueKind) {
+				out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
+			}
 		}
 		switch f.Behavior {
 		case model.Computed:
@@ -107,8 +120,64 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 	return out, nil
 }
 
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
 func hasServerDefault(f *model.ResourceField) bool {
 	return f.Create != nil && !f.Create.Required && f.Create.Default != nil && f.Get != nil && f.Get.Required
+}
+
+// serverDefaultValue returns the typed Terraform value used only to detect
+// whether state already equals the declared server default. It is not a
+// Terraform static default and is never inserted into an API request.
+func serverDefaultValue(t *model.Type, value string) (string, error) {
+	switch t.Kind {
+	case model.String:
+		return fmt.Sprintf("types.StringValue(%q)", value), nil
+	case model.Enum:
+		for _, candidate := range t.Values {
+			if candidate == value {
+				return fmt.Sprintf("types.StringValue(%q)", value), nil
+			}
+		}
+		return "", fmt.Errorf("%q is not one of %v", value, t.Values)
+	case model.Bool:
+		parsed, err := strconv.ParseBool(value)
+		if err != nil {
+			return "", fmt.Errorf("%q is not a boolean", value)
+		}
+		return fmt.Sprintf("types.BoolValue(%t)", parsed), nil
+	case model.Number:
+		bits := 64
+		kind := "Float64"
+		if t.Format == "float" {
+			bits, kind = 32, "Float32"
+		}
+		parsed, err := strconv.ParseFloat(value, bits)
+		if err != nil {
+			return "", fmt.Errorf("%q is not a %s", value, t.Format)
+		}
+		return fmt.Sprintf("types.%sValue(%s)", kind, strconv.FormatFloat(parsed, 'g', -1, bits)), nil
+	case model.Integer:
+		bits := 64
+		kind := "Int64"
+		if t.Format == "int32" {
+			bits, kind = 32, "Int32"
+		}
+		parsed, err := strconv.ParseInt(value, 10, bits)
+		if err != nil {
+			return "", fmt.Errorf("%q is not a supported %s", value, t.Format)
+		}
+		return fmt.Sprintf("types.%sValue(%d)", kind, parsed), nil
+	default:
+		return "", fmt.Errorf("%s defaults are not supported", t.Kind)
+	}
 }
 
 // addGroupValidators adds a validator to each arm of the oneOf groups of an

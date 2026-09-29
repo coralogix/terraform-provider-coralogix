@@ -324,10 +324,6 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 
 func TestDeclaredServerDefaultIsOptionalComputed(t *testing.T) {
 	input, loadDir := syntheticInput(t)
-	input.OpenAPI = bytes.ReplaceAll(input.OpenAPI,
-		[]byte("                enabled:\n                  type: boolean\n                  x-coralogix-presence: true"),
-		[]byte("                enabled:\n                  type: boolean\n                  default: false\n                  x-coralogix-presence: true"))
-	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("      required: [id, name]"), []byte("      required: [id, name, enabled]"), 1)
 	out := filepath.Join(t.TempDir(), "thing")
 	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
 		t.Fatal(err)
@@ -336,12 +332,20 @@ func TestDeclaredServerDefaultIsOptionalComputed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fragment := "\"enabled\": schema.BoolAttribute{\n\t\t\t\tOptional:            true,\n\t\t\t\tComputed:            true,"
-	if !bytes.Contains(schema, []byte(fragment)) {
+	start := bytes.Index(schema, []byte("\"enabled\": schema.BoolAttribute{"))
+	end := bytes.Index(schema, []byte("\"count\": schema.Int64Attribute{"))
+	if start < 0 || end <= start {
+		t.Fatalf("cannot find enabled attribute in schema:\n%s", schema)
+	}
+	enabled := schema[start:end]
+	if !bytes.Contains(enabled, []byte("Optional: true")) || !bytes.Contains(enabled, []byte("Computed: true")) {
 		t.Fatalf("schema does not render the declared server default as Optional + Computed:\n%s", schema)
 	}
-	if bytes.Contains(schema, []byte("Default:")) {
+	if bytes.Contains(enabled, []byte("Default:")) {
 		t.Fatal("schema renders a Terraform static default")
+	}
+	if !bytes.Contains(enabled, []byte("serverDefaultModifier{value: types.BoolValue(false)}")) {
+		t.Fatal("schema does not render server-default reset planning")
 	}
 }
 
@@ -519,7 +523,9 @@ func TestFullReplaceGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(replace, []byte("if !p.Equal(s)")) || !bytes.Contains(replace, []byte("if diags.HasError() || !changed")) {
+	if !bytes.Contains(replace, []byte("if !p.Equal(s)")) ||
+		!bytes.Contains(replace, []byte("validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)")) ||
+		!bytes.Contains(replace, []byte("if diags.HasError() || !changed")) {
 		t.Fatal("replace.go does not suppress an unchanged update")
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
+	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
 
@@ -67,10 +68,77 @@ func TestPresenceContract(t *testing.T) {
 	}
 }
 
+func TestNestedPresenceContract(t *testing.T) {
+	doc := loadComponent(t, `
+    Nested:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+`)
+	proxy := doc.Components.Schemas.GetOrZero("Nested")
+	if codes := reportCodes(nestedPresenceIssues("request.config", proxy, map[*base.Schema]bool{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
+		t.Fatalf("codes %v do not contain FIELD_PRESENCE_UNKNOWN", codes)
+	}
+
+	doc = loadComponent(t, `
+    Nested:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          x-coralogix-presence: true
+`)
+	proxy = doc.Components.Schemas.GetOrZero("Nested")
+	if report := nestedPresenceIssues("request.config", proxy, map[*base.Schema]bool{}); len(report) != 0 {
+		t.Fatal(report)
+	}
+
+	doc = loadComponent(t, `
+    Choice:
+      type: object
+      properties:
+        a: {type: string}
+        b: {type: string}
+      oneOf:
+        - required: [a]
+        - required: [b]
+`)
+	proxy = doc.Components.Schemas.GetOrZero("Choice")
+	if report := nestedPresenceIssues("request.choice", proxy, map[*base.Schema]bool{}); len(report) != 0 {
+		t.Fatalf("oneOf arms use their union presence and need no annotation: %v", report)
+	}
+}
+
+func TestRequiredLifecycleParametersAreIneligible(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"      operationId: ThingsService_CreateThing\n",
+		"      operationId: ThingsService_CreateThing\n      parameters:\n        - name: tenantId\n          in: query\n          required: true\n          schema: {type: string}\n        - name: If-Match\n          in: header\n          required: true\n          schema: {type: string}\n", 1)
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	report := Validate(doc, "Thing", OperationIDs{})
+	count := 0
+	for _, item := range report {
+		if item.Code == "REQUIRED_PARAMETER_UNSUPPORTED" {
+			count++
+		}
+	}
+	if count != 2 {
+		t.Fatalf("got %d required-parameter issues, want 2: %v", count, report)
+	}
+	if _, err := Build(doc, "Thing"); err == nil || !strings.Contains(err.Error(), "required query parameter \"tenantId\"") {
+		t.Fatalf("Build error = %v, want unsupported required parameter", err)
+	}
+}
+
 func TestServerDefaultContract(t *testing.T) {
 	base := string(validSpec(t))
-	requiredGet := strings.Replace(base, "      required: [id, name]", "      required: [id, name, enabled]", 1)
-	doc, err := Load([]byte(requiredGet))
+	defaultBlock := "                enabled:\n                  type: boolean\n                  default: false\n                  x-coralogix-presence: true"
+	noDefaultBlock := "                enabled:\n                  type: boolean\n                  x-coralogix-presence: true"
+	undeclared := strings.ReplaceAll(base, defaultBlock, noDefaultBlock)
+	doc, err := Load([]byte(undeclared))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,10 +146,7 @@ func TestServerDefaultContract(t *testing.T) {
 		t.Fatalf("codes %v do not contain FIELD_SERVER_DEFAULT_UNDECLARED", codes)
 	}
 
-	declared := strings.ReplaceAll(requiredGet,
-		"                enabled:\n                  type: boolean\n                  x-coralogix-presence: true",
-		"                enabled:\n                  type: boolean\n                  default: false\n                  x-coralogix-presence: true")
-	doc, err = Load([]byte(declared))
+	doc, err = Load([]byte(base))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,15 +154,22 @@ func TestServerDefaultContract(t *testing.T) {
 		t.Fatal(report)
 	}
 
-	inconsistent := strings.Replace(requiredGet,
-		"                enabled:\n                  type: boolean\n                  x-coralogix-presence: true",
-		"                enabled:\n                  type: boolean\n                  default: false\n                  x-coralogix-presence: true", 1)
+	inconsistent := strings.Replace(base, defaultBlock, noDefaultBlock, 1)
 	doc, err = Load([]byte(inconsistent))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_DEFAULT_CONTRACT_INCONSISTENT") {
 		t.Fatalf("codes %v do not contain FIELD_DEFAULT_CONTRACT_INCONSISTENT", codes)
+	}
+
+	invalid := strings.ReplaceAll(base, "default: false", "default: not-a-boolean")
+	doc, err = Load([]byte(invalid))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_DEFAULT_INVALID") {
+		t.Fatalf("codes %v do not contain FIELD_DEFAULT_INVALID", codes)
 	}
 }
 
@@ -131,8 +203,8 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 
 func TestRootOneOfMustMatchEveryLifecycle(t *testing.T) {
 	base := string(validSpec(t))
-	group := "\n              oneOf:\n                - required: [enabled]\n                - required: [count]"
-	responseGroup := "\n      oneOf:\n        - required: [enabled]\n        - required: [count]"
+	group := "\n              oneOf:\n                - required: [count]\n                - required: [ordered]"
+	responseGroup := "\n      oneOf:\n        - required: [count]\n        - required: [ordered]"
 	mismatch := strings.Replace(base, "    Thing:\n      type: object", "    Thing:\n      type: object"+responseGroup, 1)
 	doc, err := Load([]byte(mismatch))
 	if err != nil {
@@ -156,7 +228,7 @@ func TestRootOneOfMustMatchEveryLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(resource.Groups) != 1 || !slices.Equal(resource.Groups[0].Arms, []string{"enabled", "count"}) {
+	if len(resource.Groups) != 1 || !slices.Equal(resource.Groups[0].Arms, []string{"count", "ordered"}) {
 		t.Fatalf("root groups = %#v", resource.Groups)
 	}
 }
@@ -246,13 +318,13 @@ func TestPatchUpdateContract(t *testing.T) {
 		t.Fatalf("legacy body-mask codes %v do not contain CLEAR_BEHAVIOR_UNKNOWN", codes)
 	}
 
-	requiredQuery := strings.Replace(string(data), "          in: query\n", "          in: query\n          required: true\n", 1)
-	doc, err = Load([]byte(requiredQuery))
+	optionalQuery := strings.Replace(string(data), "          required: true\n", "", 1)
+	doc, err = Load([]byte(optionalQuery))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "CLEAR_BEHAVIOR_UNKNOWN") {
-		t.Fatalf("required query-mask codes %v do not contain CLEAR_BEHAVIOR_UNKNOWN", codes)
+		t.Fatalf("optional query-mask codes %v do not contain CLEAR_BEHAVIOR_UNKNOWN", codes)
 	}
 }
 
