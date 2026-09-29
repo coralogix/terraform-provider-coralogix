@@ -896,6 +896,10 @@ func checkSupported(s *base.Schema) error {
 		return errors.New("nullable is not supported")
 	case s.PatternProperties != nil && s.PatternProperties.Len() != 0:
 		return errors.New("patternProperties is not supported")
+	case s.MinProperties != nil || s.MaxProperties != nil:
+		return errors.New("minProperties and maxProperties are not supported")
+	case s.ExclusiveMinimum != nil || s.ExclusiveMaximum != nil:
+		return errors.New("exclusiveMinimum and exclusiveMaximum are not supported")
 	case len(s.PrefixItems) != 0:
 		return errors.New("prefixItems is not supported")
 	case s.Discriminator != nil && !discriminatorField(s):

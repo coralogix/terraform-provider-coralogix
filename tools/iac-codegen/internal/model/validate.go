@@ -654,6 +654,10 @@ func schemaIssue(err error) issue.Issue {
 		code = "MAP_VALUE_TYPE_UNSUPPORTED"
 	case strings.Contains(message, "uniqueItems") || strings.Contains(message, extCollection):
 		code = "COLLECTION_SEMANTICS_UNKNOWN"
+	case strings.Contains(message, "minProperties") || strings.Contains(message, "maxProperties"):
+		code = "OBJECT_PROPERTY_COUNT_UNSUPPORTED"
+	case strings.Contains(message, "exclusiveMinimum") || strings.Contains(message, "exclusiveMaximum"):
+		code = "NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED"
 	case strings.Contains(message, "nullable"):
 		code = "FIELD_NULLABILITY_AMBIGUOUS"
 	case strings.Contains(message, "$ref") || strings.Contains(message, "reference"):
@@ -672,6 +676,10 @@ func buildIssue(err error) issue.Issue {
 		code = "FIELD_TYPE_INCONSISTENT"
 	case strings.Contains(message, "unsupported field location"):
 		code = "FIELD_LIFECYCLE_UNSUPPORTED"
+	case strings.Contains(message, "minProperties") || strings.Contains(message, "maxProperties"):
+		code = "OBJECT_PROPERTY_COUNT_UNSUPPORTED"
+	case strings.Contains(message, "exclusiveMinimum") || strings.Contains(message, "exclusiveMaximum"):
+		code = "NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED"
 	}
 	return issue.Issue{Code: code, Location: firstLocation(message), Message: message, Remediation: "Correct the source API contract so the complete resource lifecycle is deterministic."}
 }
