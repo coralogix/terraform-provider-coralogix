@@ -25,6 +25,18 @@ func TestScalarPresence(t *testing.T) {
 	}
 }
 
+func TestUnspecifiedEnumFlattensToNull(t *testing.T) {
+	type status string
+	unspecified := status("STATUS_UNSPECIFIED")
+	if got := flattenEnum(&unspecified); !got.IsNull() {
+		t.Fatalf("unspecified enum = %v, want null", got)
+	}
+	active := status("STATUS_ACTIVE")
+	if got := flattenEnum(&active); got.ValueString() != string(active) {
+		t.Fatalf("active enum = %v, want %q", got, active)
+	}
+}
+
 func TestCollectionPresenceAndStability(t *testing.T) {
 	t.Run("list presence and order", testListPresenceAndOrder)
 	t.Run("set stability", testSetStability)

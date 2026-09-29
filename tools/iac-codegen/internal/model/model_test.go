@@ -201,6 +201,38 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 	}
 }
 
+func TestObjectPropertyCountsAreIneligible(t *testing.T) {
+	base := string(validSpec(t))
+	for _, keyword := range []string{"minProperties: 1", "maxProperties: 2"} {
+		t.Run(keyword, func(t *testing.T) {
+			spec := strings.Replace(base, "    Thing:\n      type: object\n", "    Thing:\n      type: object\n      "+keyword+"\n", 1)
+			doc, err := Load([]byte(spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "OBJECT_PROPERTY_COUNT_UNSUPPORTED") {
+				t.Fatalf("codes %v do not contain OBJECT_PROPERTY_COUNT_UNSUPPORTED", codes)
+			}
+		})
+	}
+}
+
+func TestExclusiveNumericBoundsAreIneligible(t *testing.T) {
+	base := string(validSpec(t))
+	for _, bound := range []string{"minimum: 0\n                  exclusiveMinimum: true", "maximum: 10\n                  exclusiveMaximum: true"} {
+		t.Run(bound, func(t *testing.T) {
+			spec := strings.Replace(base, "                  type: integer\n                  format: int64\n", "                  type: integer\n                  format: int64\n                  "+bound+"\n", 1)
+			doc, err := Load([]byte(spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED") {
+				t.Fatalf("codes %v do not contain NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED", codes)
+			}
+		})
+	}
+}
+
 func TestRootOneOfMustMatchEveryLifecycle(t *testing.T) {
 	base := string(validSpec(t))
 	group := "\n              oneOf:\n                - required: [count]\n                - required: [ordered]"
