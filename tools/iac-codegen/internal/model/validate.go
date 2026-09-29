@@ -289,7 +289,16 @@ func validateFieldContract(name, field string, create, update, get *base.Schema)
 	if _, err := Classify(cp != nil, up != nil, gp != nil); err != nil {
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
 	}
-	report := fieldTypeIssues(location, gp, cp, up)
+	var report issue.Report
+	if cp != nil && up != nil && !slices.Contains(create.Required, field) && slices.Contains(update.Required, field) {
+		report = append(report, issue.Issue{
+			Code:        "FIELD_REQUIREDNESS_UNSUPPORTED",
+			Location:    location,
+			Message:     "The field is optional in Create but required in Update.",
+			Remediation: "Make the field optional in Update, or require it in Create so Terraform always has a value to send.",
+		})
+	}
+	report = append(report, fieldTypeIssues(location, gp, cp, up)...)
 	report = append(report, fieldDefaultContractIssues(location, field, create, update, get, cp, up, gp)...)
 	report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
 	report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
