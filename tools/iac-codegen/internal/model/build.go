@@ -290,7 +290,7 @@ func (r *Resource) readTargets(ops map[verb]foundOp) error {
 func (r *Resource) readBodyTitles(doc *v3.Document, ops map[verb]foundOp) {
 	for v, o := range map[verb]*Operation{opCreate: &r.Create, opUpdate: &r.Update} {
 		proxy := bodyProxy(ops[v].op)
-		if o.Body != "inline" || proxy.Schema() == nil {
+		if o.Body != "inline" || proxy == nil || proxy.Schema() == nil {
 			continue
 		}
 		o.BodyTitle = proxy.Schema().Title
@@ -322,7 +322,7 @@ func idParam(f foundOp) (string, error) {
 }
 
 func bodyProxy(op *v3.Operation) *base.SchemaProxy {
-	if op.RequestBody == nil {
+	if op == nil || op.RequestBody == nil || op.RequestBody.Content == nil {
 		return nil
 	}
 	media := op.RequestBody.Content.GetOrZero(jsonMedia)
@@ -335,7 +335,7 @@ func bodyProxy(op *v3.Operation) *base.SchemaProxy {
 func bodyName(op *v3.Operation) (string, error) {
 	proxy := bodyProxy(op)
 	switch {
-	case proxy == nil && op.RequestBody != nil:
+	case proxy == nil && op != nil && op.RequestBody != nil:
 		return "", fmt.Errorf("request body has no %s schema", jsonMedia)
 	case proxy == nil:
 		return "", nil
@@ -360,11 +360,11 @@ func emptyResponse(out Response, proxy *base.SchemaProxy) (Response, error) {
 // response reads the 200 response. With wrapped, it must return the resource:
 // the resource itself (Direct), or one field that wraps it.
 func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
-	if op.Responses == nil || op.Responses.Codes == nil {
+	if op == nil || op.Responses == nil || op.Responses.Codes == nil {
 		return Response{}, errors.New("no responses")
 	}
 	resp := op.Responses.Codes.GetOrZero("200")
-	if resp == nil || resp.Content.GetOrZero(jsonMedia) == nil || resp.Content.GetOrZero(jsonMedia).Schema == nil {
+	if resp == nil || resp.Content == nil || resp.Content.GetOrZero(jsonMedia) == nil || resp.Content.GetOrZero(jsonMedia).Schema == nil {
 		return Response{}, fmt.Errorf("no 200 %s response schema", jsonMedia)
 	}
 	proxy := resp.Content.GetOrZero(jsonMedia).Schema
@@ -391,7 +391,7 @@ func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 	if len(keys) != 1 {
 		return Response{}, fmt.Errorf("response %s has properties %v, want one that wraps %s", name, keys, r.Name)
 	}
-	inner, err := componentName(unwrapRef(s.Properties.GetOrZero(keys[0])))
+	inner, err := componentName(unwrapRef(propertyOf(s, keys[0])))
 	if err != nil {
 		return Response{}, fmt.Errorf("response %s.%s: %w", name, keys[0], err)
 	}
@@ -404,6 +404,9 @@ func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 
 // unwrapRef returns the $ref of a property that is "$ref: X" or "allOf: [$ref: X]".
 func unwrapRef(proxy *base.SchemaProxy) string {
+	if proxy == nil {
+		return ""
+	}
 	if proxy.IsReference() {
 		return proxy.GetReference()
 	}
@@ -422,6 +425,9 @@ func componentName(ref string) (string, error) {
 }
 
 func schemaOf(proxy *base.SchemaProxy) (*base.Schema, error) {
+	if proxy == nil {
+		return nil, errors.New("missing schema")
+	}
 	s := proxy.Schema()
 	if s == nil {
 		if err := proxy.GetBuildError(); err != nil {
@@ -433,10 +439,17 @@ func schemaOf(proxy *base.SchemaProxy) (*base.Schema, error) {
 }
 
 func propertyNames(s *base.Schema) []string {
-	if s.Properties == nil {
+	if s == nil || s.Properties == nil {
 		return nil
 	}
 	return slices.Collect(s.Properties.KeysFromOldest())
+}
+
+func propertyOf(s *base.Schema, name string) *base.SchemaProxy {
+	if s == nil || s.Properties == nil {
+		return nil
+	}
+	return s.Properties.GetOrZero(name)
 }
 
 // location is one of the three schemas where a resource field can appear.
@@ -553,11 +566,11 @@ func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema, u
 		return err
 	}
 	for _, loc := range []location{{"create body", createBody}, {r.Name, getSchema}} {
-		if loc.schema.Properties.GetOrZero(updateMaskField) != nil {
+		if propertyOf(loc.schema, updateMaskField) != nil {
 			return fmt.Errorf("%s: unexpected %s property", loc.name, updateMaskField)
 		}
 	}
-	if !r.Singleton && getSchema.Properties.GetOrZero(r.IDParam) == nil {
+	if !r.Singleton && propertyOf(getSchema, r.IDParam) == nil {
 		return fmt.Errorf("%s: no field %q for the id path parameter", r.Name, r.IDParam)
 	}
 	for _, loc := range []location{{"create body", createBody}, {"update body", updateBody}, {r.Name, getSchema}} {
@@ -579,7 +592,7 @@ func (r *Resource) checkUpdateContract(updateBody *base.Schema, update foundOp) 
 }
 
 func (r *Resource) checkUpdateMask(updateBody *base.Schema, update foundOp) error {
-	bodyMask := updateBody.Properties.GetOrZero(updateMaskField)
+	bodyMask := propertyOf(updateBody, updateMaskField)
 	params := namedParameters(update, updateMaskField)
 	if r.Replace {
 		return checkNoUpdateMask(bodyMask, params)
@@ -638,7 +651,7 @@ func (r *Resource) checkUpdateID(updateBody *base.Schema) error {
 	if !r.IDInBody {
 		return nil
 	}
-	id := updateBody.Properties.GetOrZero(r.IDParam)
+	id := propertyOf(updateBody, r.IDParam)
 	if id == nil {
 		return fmt.Errorf("update body: the Update path has no id, and the body has no %q property", r.IDParam)
 	}
@@ -657,7 +670,7 @@ func (r *Resource) checkUpdateID(updateBody *base.Schema) error {
 // replace often sends the whole resource, so its body also has them, for
 // example createTime.
 func (r *Resource) requestProperty(body *base.Schema, name string, update bool) (*base.SchemaProxy, error) {
-	p := body.Properties.GetOrZero(name)
+	p := propertyOf(body, name)
 	if p == nil || update && r.IDInBody && name == r.IDParam {
 		return nil, nil
 	}
@@ -680,7 +693,7 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 	if err != nil {
 		return nil, fmt.Errorf("update body: %w", err)
 	}
-	gp := getSchema.Properties.GetOrZero(name)
+	gp := propertyOf(getSchema, name)
 	behavior, err := Classify(cp != nil, up != nil, gp != nil)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", name, err)
@@ -738,8 +751,11 @@ func description(proxy *base.SchemaProxy) (string, error) {
 
 // checkRequired checks that each name in "required" is a property.
 func checkRequired(s *base.Schema) error {
+	if s == nil {
+		return errors.New("missing schema")
+	}
 	for _, n := range s.Required {
-		if s.Properties.GetOrZero(n) == nil {
+		if propertyOf(s, n) == nil {
 			return fmt.Errorf("required %q is not a property", n)
 		}
 	}
@@ -831,6 +847,9 @@ func (w walk) keep(err error) bool {
 // pushRef adds the $ref of proxy to the stack. A $ref that is already in the
 // stack is a loop.
 func pushRef(proxy *base.SchemaProxy, path string, w walk) (walk, error) {
+	if proxy == nil {
+		return w, nil
+	}
 	ref := proxy.GetReference()
 	if ref == "" {
 		return w, nil
@@ -916,7 +935,7 @@ func discriminatorField(s *base.Schema) bool {
 	if d.Mapping != nil && d.Mapping.Len() != 0 || s.Properties == nil || len(s.OneOf) == 0 {
 		return false
 	}
-	p := s.Properties.GetOrZero(d.PropertyName)
+	p := propertyOf(s, d.PropertyName)
 	if p == nil {
 		return false
 	}
@@ -1022,7 +1041,7 @@ func oneOfGroups(s *base.Schema, path string, fields []*Field) ([]OneOfGroup, er
 func objectFields(s *base.Schema, path string, w walk) ([]*Field, error) {
 	var fields []*Field
 	for _, name := range propertyNames(s) {
-		proxy := s.Properties.GetOrZero(name)
+		proxy := propertyOf(s, name)
 		ft, err := typeOf(proxy, path+"."+name, w)
 		if err != nil {
 			if !w.keep(err) {

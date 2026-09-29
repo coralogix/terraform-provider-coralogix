@@ -143,7 +143,36 @@ func validateOpenAPI(data []byte, resourceName string, operationIDs model.Operat
 	if err != nil {
 		return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", "resource", err, "Use OpenAPI shapes that have deterministic generated Go SDK names and types.")
 	}
+	if report = rendererIssues(resource, refs); len(report) != 0 {
+		return nil, &EligibilityError{Report: report.Normalize()}
+	}
 	return &validatedResource{resource: resource, refs: refs}, nil
+}
+
+// rendererIssues runs the same builders that generate uses, without rendering
+// or writing files. This keeps candidate checks aligned with generation when a
+// valid model or deterministic SDK shape still cannot become Terraform code.
+func rendererIssues(resource *model.Resource, refs []sdkRef) issue.Report {
+	checks := []struct {
+		location string
+		run      func() error
+	}{
+		{"renderer.schema", func() error { _, err := buildTFResource(resource, "generated"); return err }},
+		{"renderer.conversion", func() error { _, err := buildConv(resource, refs); return err }},
+		{"renderer.crud", func() error { _, err := buildCRUD(resource, refs); return err }},
+	}
+	var report issue.Report
+	for _, check := range checks {
+		if err := check.run(); err != nil {
+			report = append(report, issue.Issue{
+				Code:        "RENDERER_SHAPE_UNSUPPORTED",
+				Location:    check.location,
+				Message:     err.Error(),
+				Remediation: "Use a resource shape that the generic Terraform renderer supports.",
+			})
+		}
+	}
+	return report
 }
 
 func eligibilityIssue(code, location string, err error, remediation string) error {
