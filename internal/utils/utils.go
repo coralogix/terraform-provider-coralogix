@@ -345,11 +345,16 @@ func Float32SliceTypeList(ctx context.Context, arr []float32) (types.List, diag.
 	}
 	result := make([]attr.Value, 0, len(arr))
 	for _, v := range arr {
-		if float32(int(v)) != v {
-			result = append(result, types.Float64Value(float64(v*10000)/float64(10000)))
-		} else {
-			result = append(result, types.Float64Value(float64(v)))
-		}
+		// buckets travel the wire as float32 (the API contract) but are modeled as
+		// Float64 in state. Widening a float32 straight to float64 surfaces the
+		// float32 rounding error (e.g. float32(0.0003) = 0.0003000000142…), which
+		// then never matches the configured double and produces a perpetual diff.
+		// FormatFloat with bitSize 32 yields the shortest decimal that round-trips
+		// to this float32 (e.g. "0.0003"); ParseFloat(…, 64) re-parses that decimal
+		// as a double, recovering the user's configured value for human-entered
+		// decimals and staying idempotent for arbitrary backend values.
+		f, _ := strconv.ParseFloat(strconv.FormatFloat(float64(v), 'g', -1, 32), 64)
+		result = append(result, types.Float64Value(f))
 	}
 	return types.ListValueFrom(ctx, types.Float64Type, result)
 }
