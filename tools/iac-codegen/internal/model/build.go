@@ -459,7 +459,7 @@ func (r *Resource) readFields(doc *v3.Document, ops map[verb]foundOp) error {
 		}
 		r.Fields = append(r.Fields, f)
 	}
-	groups, err := r.rootGroups(getSchema)
+	groups, err := r.rootGroups(createBody)
 	if err != nil {
 		return fmt.Errorf("%s: %w", r.Name, err)
 	}
@@ -467,15 +467,15 @@ func (r *Resource) readFields(doc *v3.Document, ops map[verb]foundOp) error {
 	return nil
 }
 
-// rootGroups returns the oneOf groups among the top-level fields: the oneOf of
-// the resource schema and of its allOf entries. An arm is an optional
+// rootGroups returns the oneOf groups among the configurable top-level fields:
+// the oneOf of the Create request and of its allOf entries. An arm is an optional
 // top-level field, and a field is in at most one group.
-func (r *Resource) rootGroups(getSchema *base.Schema) ([]OneOfGroup, error) {
-	if len(getSchema.OneOf) == 0 && !groupsOnlyAllOf(getSchema) {
+func (r *Resource) rootGroups(requestSchema *base.Schema) ([]OneOfGroup, error) {
+	if len(requestSchema.OneOf) == 0 && !groupsOnlyAllOf(requestSchema) {
 		return nil, nil
 	}
-	schemas := []*base.Schema{getSchema}
-	for _, proxy := range getSchema.AllOf {
+	schemas := []*base.Schema{requestSchema}
+	for _, proxy := range requestSchema.AllOf {
 		e, err := schemaOf(proxy)
 		if err != nil {
 			return nil, err

@@ -67,6 +67,100 @@ func TestPresenceContract(t *testing.T) {
 	}
 }
 
+func TestServerDefaultContract(t *testing.T) {
+	base := string(validSpec(t))
+	requiredGet := strings.Replace(base, "      required: [id, name]", "      required: [id, name, enabled]", 1)
+	doc, err := Load([]byte(requiredGet))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_SERVER_DEFAULT_UNDECLARED") {
+		t.Fatalf("codes %v do not contain FIELD_SERVER_DEFAULT_UNDECLARED", codes)
+	}
+
+	declared := strings.ReplaceAll(requiredGet,
+		"                enabled:\n                  type: boolean\n                  x-coralogix-presence: true",
+		"                enabled:\n                  type: boolean\n                  default: false\n                  x-coralogix-presence: true")
+	doc, err = Load([]byte(declared))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+		t.Fatal(report)
+	}
+
+	inconsistent := strings.Replace(requiredGet,
+		"                enabled:\n                  type: boolean\n                  x-coralogix-presence: true",
+		"                enabled:\n                  type: boolean\n                  default: false\n                  x-coralogix-presence: true", 1)
+	doc, err = Load([]byte(inconsistent))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_DEFAULT_CONTRACT_INCONSISTENT") {
+		t.Fatalf("codes %v do not contain FIELD_DEFAULT_CONTRACT_INCONSISTENT", codes)
+	}
+}
+
+func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
+	base := string(validSpec(t))
+	tests := map[string]struct {
+		spec string
+		code string
+	}{
+		"write only": {
+			spec: strings.Replace(base, "        enabled:\n          type: boolean\n", "        enabled:\n          type: boolean\n          writeOnly: true\n", 1),
+			code: "FIELD_WRITE_ONLY_UNSUPPORTED",
+		},
+		"pattern": {
+			spec: strings.Replace(base, "        name:\n          type: string\n", "        name:\n          type: string\n          pattern: '^[a-z]+$'\n", 1),
+			code: "STRING_PATTERN_UNSUPPORTED",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			doc, err := Load([]byte(test.spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, test.code) {
+				t.Fatalf("codes %v do not contain %s", codes, test.code)
+			}
+		})
+	}
+}
+
+func TestRootOneOfMustMatchEveryLifecycle(t *testing.T) {
+	base := string(validSpec(t))
+	group := "\n              oneOf:\n                - required: [enabled]\n                - required: [count]"
+	responseGroup := "\n      oneOf:\n        - required: [enabled]\n        - required: [count]"
+	mismatch := strings.Replace(base, "    Thing:\n      type: object", "    Thing:\n      type: object"+responseGroup, 1)
+	doc, err := Load([]byte(mismatch))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "ROOT_ONEOF_LIFECYCLE_INCONSISTENT") {
+		t.Fatalf("codes %v do not contain ROOT_ONEOF_LIFECYCLE_INCONSISTENT", codes)
+	}
+
+	matching := strings.Replace(base, "              title: CreateThingRequest\n              type: object", "              title: CreateThingRequest\n              type: object"+group, 1)
+	matching = strings.Replace(matching, "              title: UpdateThingRequest\n              type: object", "              title: UpdateThingRequest\n              type: object"+group, 1)
+	matching = strings.Replace(matching, "    Thing:\n      type: object", "    Thing:\n      type: object"+responseGroup, 1)
+	doc, err = Load([]byte(matching))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+		t.Fatal(report)
+	}
+	resource, err := Build(doc, "Thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resource.Groups) != 1 || !slices.Equal(resource.Groups[0].Arms, []string{"enabled", "count"}) {
+		t.Fatalf("root groups = %#v", resource.Groups)
+	}
+}
+
 func TestCollectionContracts(t *testing.T) {
 	doc := loadComponent(t, `
     Collections:

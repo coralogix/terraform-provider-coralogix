@@ -300,15 +300,26 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 	}
 }
 
-func TestRequestDefaultIsIneligible(t *testing.T) {
+func TestDeclaredServerDefaultIsOptionalComputed(t *testing.T) {
 	input, loadDir := syntheticInput(t)
-	input.OpenAPI = bytes.Replace(input.OpenAPI,
+	input.OpenAPI = bytes.ReplaceAll(input.OpenAPI,
 		[]byte("                enabled:\n                  type: boolean\n                  x-coralogix-presence: true"),
-		[]byte("                enabled:\n                  type: boolean\n                  default: false\n                  x-coralogix-presence: true"), 1)
-	err := generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "thing")}, input, loadDir)
-	var eligibility *EligibilityError
-	if !errors.As(err, &eligibility) || !strings.Contains(eligibility.Error(), "FIELD_DEFAULT_UNSUPPORTED") {
-		t.Fatalf("got %v, want request-default eligibility error", err)
+		[]byte("                enabled:\n                  type: boolean\n                  default: false\n                  x-coralogix-presence: true"))
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("      required: [id, name]"), []byte("      required: [id, name, enabled]"), 1)
+	out := filepath.Join(t.TempDir(), "thing")
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fragment := "\"enabled\": schema.BoolAttribute{\n\t\t\t\tOptional:            true,\n\t\t\t\tComputed:            true,"
+	if !bytes.Contains(schema, []byte(fragment)) {
+		t.Fatalf("schema does not render the declared server default as Optional + Computed:\n%s", schema)
+	}
+	if bytes.Contains(schema, []byte("Default:")) {
+		t.Fatal("schema renders a Terraform static default")
 	}
 }
 
