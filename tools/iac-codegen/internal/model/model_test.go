@@ -381,6 +381,53 @@ func TestPutUpdateContract(t *testing.T) {
 	}
 }
 
+func TestUpdateIDInBodyIsIneligible(t *testing.T) {
+	for _, method := range []string{"patch", "put"} {
+		t.Run(method, func(t *testing.T) {
+			spec := collectionUpdateSpec(t, string(validSpec(t)), method)
+			doc, err := Load([]byte(spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			codes := reportCodes(Validate(doc, "Thing", OperationIDs{}))
+			if !slices.Contains(codes, "UPDATE_ID_IN_BODY_UNSUPPORTED") {
+				t.Fatalf("codes %v do not contain UPDATE_ID_IN_BODY_UNSUPPORTED", codes)
+			}
+		})
+	}
+}
+
+func collectionUpdateSpec(t *testing.T, spec, method string) string {
+	t.Helper()
+	if method == "put" {
+		spec = strings.Replace(spec, "    patch:\n", "    put:\n", 1)
+		spec = strings.Replace(spec, "ThingsService_UpdateThing", "ThingsService_ReplaceThing", 1)
+		spec = removeMaskQuery(t, spec)
+	}
+	start := strings.Index(spec, "    "+method+":\n")
+	end := strings.Index(spec[start:], "    delete:\n")
+	item := strings.Index(spec, "  /things/{id}:\n")
+	if start < 0 || end < 0 || item < 0 {
+		t.Fatal("cannot locate Update operation")
+	}
+	end += start
+	update := spec[start:end]
+	spec = spec[:start] + spec[end:]
+	spec = spec[:item] + update + spec[item:]
+	marker := "              type: object\n              properties:\n"
+	replacement := "              type: object\n              required: [id]\n              properties:\n                id:\n                  type: string\n"
+	operation := "operationId: ThingsService_" + map[string]string{"patch": "Update", "put": "Replace"}[method] + "Thing"
+	position := strings.Index(spec, operation)
+	if position < 0 {
+		t.Fatalf("cannot locate %s", operation)
+	}
+	tail := strings.Replace(spec[position:], marker, replacement, 1)
+	if tail == spec[position:] {
+		t.Fatal("cannot add Update body id")
+	}
+	return spec[:position] + tail
+}
+
 func removeMaskQuery(t *testing.T, spec string) string {
 	t.Helper()
 	start := strings.Index(spec, "      parameters:\n")

@@ -29,10 +29,6 @@ type Resource struct {
 	// every Update field, and the server clears a field that the body does
 	// not have. It has no update mask. False: PATCH with an update mask.
 	Replace bool
-	// IDInBody is true when the Update path has no id: Update is on the
-	// Create path, and the Update body has the id in the property IDParam.
-	// That property is not a resource field.
-	IDInBody bool
 	// UpdateMask is the optional Update query parameter that holds the update
 	// mask, or "" for a full replace. It is not a resource field.
 	UpdateMask string

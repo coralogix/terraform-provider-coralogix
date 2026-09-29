@@ -230,21 +230,15 @@ func (r *Resource) readOperations(ops map[verb]foundOp) error {
 	return r.readTargets(ops)
 }
 
-// itemOperations returns the operations besides Get that have the id in the
-// path: Delete, and Update unless it is on the Create path with no path
-// parameters. Then the Update body has the id (IDInBody), as in a PUT on the
-// collection (for example E2M and Slo).
+// itemOperations returns the operations besides Get that must have the id in
+// the path. Body-only Update ids exist in older APIs, but are outside the first
+// generator PR. Migration support can add that contract separately.
 func (r *Resource) itemOperations(ops map[verb]foundOp) ([]verb, error) {
 	upd := ops[opUpdate]
-	if len(pathParams(upd)) != 0 {
-		return []verb{opUpdate, opDelete}, nil
+	if len(pathParams(upd)) == 0 {
+		return nil, fmt.Errorf("%s: the id must be a required path parameter; an id in the request body is not supported", opUpdate)
 	}
-	if upd.path != ops[opCreate].path {
-		return nil, fmt.Errorf("%s: path %s has no id; want the Get path %s, or the Create path %s with the id in the body",
-			opUpdate, upd.path, ops[opGet].path, ops[opCreate].path)
-	}
-	r.IDInBody = true
-	return []verb{opDelete}, nil
+	return []verb{opUpdate, opDelete}, nil
 }
 
 // checkSingleton checks a singleton (D18): Create, Get, Update, and Delete on
@@ -467,12 +461,9 @@ func (r *Resource) readFields(doc *v3.Document, ops map[verb]foundOp) error {
 		return err
 	}
 	names := propertyNames(getSchema)
-	for _, body := range []struct {
-		schema *base.Schema
-		update bool
-	}{{createBody, false}, {updateBody, true}} {
-		for _, n := range propertyNames(body.schema) {
-			p, err := r.requestProperty(body.schema, n, body.update)
+	for _, body := range []*base.Schema{createBody, updateBody} {
+		for _, n := range propertyNames(body) {
+			p, err := requestProperty(body, n)
 			if err != nil {
 				return fmt.Errorf("%s: %w", r.Name, err)
 			}
@@ -581,14 +572,10 @@ func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema, u
 	return nil
 }
 
-// checkUpdateContract checks the PATCH updateMask query parameter and the id
-// body property used when the Update path has no id. A full replace has no
-// update mask.
+// checkUpdateContract checks the PATCH updateMask query parameter. A full
+// replace has no update mask.
 func (r *Resource) checkUpdateContract(updateBody *base.Schema, update foundOp) error {
-	if err := r.checkUpdateMask(updateBody, update); err != nil {
-		return err
-	}
-	return r.checkUpdateID(updateBody)
+	return r.checkUpdateMask(updateBody, update)
 }
 
 func (r *Resource) checkUpdateMask(updateBody *base.Schema, update foundOp) error {
@@ -647,31 +634,15 @@ func namedParameters(op foundOp, name string) []*v3.Parameter {
 	return params
 }
 
-func (r *Resource) checkUpdateID(updateBody *base.Schema) error {
-	if !r.IDInBody {
-		return nil
-	}
-	id := propertyOf(updateBody, r.IDParam)
-	if id == nil {
-		return fmt.Errorf("update body: the Update path has no id, and the body has no %q property", r.IDParam)
-	}
-	s, err := schemaOf(id)
-	if err != nil || !slices.Equal(s.Type, []string{"string"}) || s.ReadOnly != nil && *s.ReadOnly {
-		return fmt.Errorf("update body: the id %q must be a string that is not readOnly", r.IDParam)
-	}
-	return nil
-}
-
 // requestProperty returns the property name of a request body when it is a
-// resource field, else nil. The id in the Update body (IDInBody) and a
-// readOnly property are not resource fields. A PATCH update mask is a query
-// parameter, not a body property.
+// resource field, else nil. A PATCH update mask is a query parameter, not a
+// body property. A readOnly property is not a request field.
 // A readOnly property is set by the server (proto OUTPUT_ONLY). A full
 // replace often sends the whole resource, so its body also has them, for
 // example createTime.
-func (r *Resource) requestProperty(body *base.Schema, name string, update bool) (*base.SchemaProxy, error) {
+func requestProperty(body *base.Schema, name string) (*base.SchemaProxy, error) {
 	p := propertyOf(body, name)
-	if p == nil || update && r.IDInBody && name == r.IDParam {
+	if p == nil {
 		return nil, nil
 	}
 	s, err := schemaOf(p)
@@ -685,11 +656,11 @@ func (r *Resource) requestProperty(body *base.Schema, name string, update bool) 
 }
 
 func (r *Resource) resourceField(name string, createBody, updateBody, getSchema *base.Schema) (*ResourceField, error) {
-	cp, err := r.requestProperty(createBody, name, false)
+	cp, err := requestProperty(createBody, name)
 	if err != nil {
 		return nil, fmt.Errorf("create body: %w", err)
 	}
-	up, err := r.requestProperty(updateBody, name, true)
+	up, err := requestProperty(updateBody, name)
 	if err != nil {
 		return nil, fmt.Errorf("update body: %w", err)
 	}

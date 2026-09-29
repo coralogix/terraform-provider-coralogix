@@ -141,9 +141,6 @@ func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]s
 			}
 		}
 	}
-	if err := s.updateExtras(r); err != nil {
-		return nil, err
-	}
 	// The provider clientset is handwritten. Its accessor name usually drops
 	// " Service" from the tag (F17); when it does not, the check finds the
 	// accessor by its type. The SDK cxsdk package owns the API error helpers.
@@ -168,15 +165,6 @@ func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]s
 	return s.refs, nil
 }
 
-// updateExtras adds the id body field used when the Update path has no id.
-func (s *resolver) updateExtras(r *model.Resource) error {
-	if r.IDInBody {
-		str := &model.Type{Kind: model.String}
-		return s.field("update.body."+r.IDParam, s.bodies["update"], r.IDParam, str, true)
-	}
-	return nil
-}
-
 // operations adds the SDK names of the four operations.
 func (s *resolver) operations(r *model.Resource, client string) error {
 	ops := []struct {
@@ -186,7 +174,7 @@ func (s *resolver) operations(r *model.Resource, client string) error {
 	}{
 		{"create", r.Create, false},
 		{"get", r.Get, true},
-		{"update", r.Update, !r.IDInBody},
+		{"update", r.Update, true},
 		{"delete", r.Delete, true},
 	}
 	for _, o := range ops {

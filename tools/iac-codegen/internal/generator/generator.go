@@ -172,6 +172,17 @@ func rendererIssues(resource *model.Resource, refs []sdkRef) issue.Report {
 			})
 		}
 	}
+	if len(report) != 0 {
+		return report
+	}
+	if _, err := render(resource, refs, "generated"); err != nil {
+		report = append(report, issue.Issue{
+			Code:        "RENDERER_OUTPUT_INVALID",
+			Location:    "renderer.output",
+			Message:     err.Error(),
+			Remediation: "Use names and shapes that render as valid formatted Go code.",
+		})
+	}
 	return report
 }
 

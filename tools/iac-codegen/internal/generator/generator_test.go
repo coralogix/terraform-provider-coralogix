@@ -210,28 +210,32 @@ func TestCheckAndGenerateShareSDKShapeEligibility(t *testing.T) {
 func TestCheckRejectsRendererUnsupportedShapes(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	base := string(input.OpenAPI)
-	tests := map[string]string{
-		"request date-time": requestDateTimeSpec(base),
-		"set of objects":    setOfObjectsSpec(base),
+	tests := map[string]struct {
+		spec string
+		code string
+	}{
+		"request date-time":            {requestDateTimeSpec(base), "RENDERER_SHAPE_UNSUPPORTED"},
+		"set of objects":               {setOfObjectsSpec(base), "RENDERER_SHAPE_UNSUPPORTED"},
+		"invalid generated identifier": {invalidGeneratedIdentifierSpec(t, base), "RENDERER_OUTPUT_INVALID"},
 	}
-	for name, spec := range tests {
+	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			work := t.TempDir()
 			candidate := filepath.Join(work, "candidate.yaml")
-			if err := os.WriteFile(candidate, []byte(spec), 0o644); err != nil {
+			if err := os.WriteFile(candidate, []byte(test.spec), 0o644); err != nil {
 				t.Fatal(err)
 			}
 			checkErr := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate})
 			generated := filepath.Join(work, "generated")
 			generateInput := input
-			generateInput.OpenAPI = []byte(spec)
+			generateInput.OpenAPI = []byte(test.spec)
 			generateErr := generateFromInput(Options{Resource: "Thing", OutputDir: generated}, generateInput, sdkDir)
 			var eligibility *EligibilityError
 			if !errors.As(checkErr, &eligibility) {
 				t.Fatalf("check error = %v, want EligibilityError", checkErr)
 			}
-			if !hasReportCode(eligibility.Report, "RENDERER_SHAPE_UNSUPPORTED") {
-				t.Fatalf("report = %v, want RENDERER_SHAPE_UNSUPPORTED", eligibility.Report)
+			if !hasReportCode(eligibility.Report, test.code) {
+				t.Fatalf("report = %v, want %s", eligibility.Report, test.code)
 			}
 			if generateErr == nil || checkErr.Error() != generateErr.Error() {
 				t.Fatalf("check and generate decisions differ:\ncheck: %v\ngenerate: %v", checkErr, generateErr)
@@ -279,6 +283,26 @@ func setOfObjectsSpec(spec string) string {
 	spec = strings.Replace(spec, "x-coralogix-collection: set\n          items: {type: string}", "x-coralogix-collection: set\n          items: {$ref: '#/components/schemas/Detail'}", 1)
 	return spec + `
     Detail:
+      type: object
+      required: [value]
+      properties:
+        value: {type: string}
+`
+}
+
+func invalidGeneratedIdentifierSpec(t *testing.T, spec string) string {
+	t.Helper()
+	createField := "                name:\n                  type: string"
+	createWithDetail := createField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/v3.FilterOperator'"
+	spec = replaceAfter(t, spec, "operationId: ThingsService_CreateThing", createField, createWithDetail)
+	updateField := createField + "\n                  x-coralogix-presence: true"
+	updateWithDetail := updateField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/v3.FilterOperator'"
+	spec = replaceAfter(t, spec, "operationId: ThingsService_UpdateThing", updateField, updateWithDetail)
+	responseField := "        name:\n          type: string\n          description: The display name."
+	responseWithDetail := responseField + "\n        detail:\n          $ref: '#/components/schemas/v3.FilterOperator'"
+	spec = replaceAfter(t, spec, "    Thing:", responseField, responseWithDetail)
+	return spec + `
+    v3.FilterOperator:
       type: object
       required: [value]
       properties:
@@ -429,6 +453,7 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 	for _, fragment := range []string{
 		`req.ProviderData.(*clientset.ClientSet)`,
 		`if cxsdk.Code(err) == http.StatusNotFound {`,
+		`resp.Diagnostics.AddWarning("Resource disappeared during read"`,
 		`resp.Diagnostics.AddWarning("Resource disappeared during update"`,
 		`resp.State.RemoveResource(ctx)`,
 	} {

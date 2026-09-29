@@ -165,7 +165,16 @@ func validateFieldContracts(name string, ops map[verb]foundOp) issue.Report {
 	slices.Sort(names)
 	names = slices.Compact(names)
 	var report issue.Report
+	bodyOnlyID := ""
+	if len(pathParams(ops[opUpdate])) == 0 {
+		if params := pathParams(ops[opGet]); len(params) == 1 {
+			bodyOnlyID = params[0].Name
+		}
+	}
 	for _, field := range names {
+		if field == bodyOnlyID {
+			continue // Build reports the unsupported Update identity contract.
+		}
 		report = append(report, validateFieldContract(name, field, create, update, get)...)
 	}
 	report = append(report, rootGroupContractIssues(name, create, update, get)...)
@@ -675,7 +684,11 @@ func schemaIssue(err error) issue.Issue {
 func buildIssue(err error) issue.Issue {
 	message := err.Error()
 	code := "RESOURCE_LIFECYCLE_INCOMPLETE"
+	remediation := "Correct the source API contract so the complete resource lifecycle is deterministic."
 	switch {
+	case strings.Contains(message, "id in the request body is not supported"):
+		code = "UPDATE_ID_IN_BODY_UNSUPPORTED"
+		remediation = "Put the resource id in the Update path. Add body-id compatibility only during existing-resource migration."
 	case strings.Contains(message, "update mask") || strings.Contains(message, updateMaskField):
 		code = "CLEAR_BEHAVIOR_UNKNOWN"
 	case strings.Contains(message, "type differs"):
@@ -687,7 +700,7 @@ func buildIssue(err error) issue.Issue {
 	case strings.Contains(message, "exclusiveMinimum") || strings.Contains(message, "exclusiveMaximum"):
 		code = "NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED"
 	}
-	return issue.Issue{Code: code, Location: firstLocation(message), Message: message, Remediation: "Correct the source API contract so the complete resource lifecycle is deterministic."}
+	return issue.Issue{Code: code, Location: firstLocation(message), Message: message, Remediation: remediation}
 }
 
 func firstLocation(message string) string {

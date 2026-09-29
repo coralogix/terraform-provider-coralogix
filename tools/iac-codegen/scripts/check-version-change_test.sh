@@ -11,6 +11,7 @@ new_repo() {
   git -C "$repo" init -q
   git -C "$repo" config user.email test@example.com
   git -C "$repo" config user.name Test
+  git -C "$repo" config commit.gpgsign false
 }
 
 write_version() {
