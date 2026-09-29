@@ -30,7 +30,7 @@ func expandCreate(ctx context.Context, m *{{.Create.Model}}) (*{{$sdk}}.{{.Creat
 // null value is not sent, and the server clears it (a full replace).
 {{- else}}
 // expandUpdate returns the Update request body with every Update field. A
-// null value is not sent. updateRequest sets the update mask.
+// null value is not sent. updateRequest returns the update mask separately.
 {{- end}}
 func expandUpdate(ctx context.Context, m *{{.Update.Model}}) (*{{$sdk}}.{{.Update.SDK}}, diag.Diagnostics) {
 	var diags diag.Diagnostics

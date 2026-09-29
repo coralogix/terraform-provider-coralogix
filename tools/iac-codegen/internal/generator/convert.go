@@ -18,8 +18,6 @@ type convData struct {
 	// the resource (flatten).
 	Create, Update, Resource *convObject
 	Objects                  []*convObject // all objects, roots first
-	// UpdateMask is the SDK field of the update mask in the Update body.
-	UpdateMask string
 	// MaskFields are the Update fields, in model order. The update mask
 	// lists the API names of the fields that changed (D8).
 	MaskFields []*maskField
@@ -201,7 +199,7 @@ func buildConv(r *model.Resource, refs []sdkRef) (*convData, error) {
 	if r.Replace {
 		return out, replaceFields(r, out)
 	}
-	if err := buildMask(r, ix, out); err != nil {
+	if err := buildMask(r, out); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -223,17 +221,8 @@ func replaceFields(r *model.Resource, out *convData) error {
 }
 
 // buildMask sets the update mask data. Only the Update fields can be in the
-// mask, so application, subsystem, and target never are (D9). The SDK name
-// of the mask comes from the checked refs.
-func buildMask(r *model.Resource, ix *refIndex, out *convData) error {
-	ref, err := ix.fieldRef("update.body." + r.UpdateMask)
-	if err != nil {
-		return err
-	}
-	if ref.Want != "*string" {
-		return fmt.Errorf("SDK field %s has type %s, the update mask needs *string", ref.sdkName(), ref.Want)
-	}
-	out.UpdateMask = ref.Name
+// mask, so application, subsystem, and target never are (D9).
+func buildMask(r *model.Resource, out *convData) error {
 	valid, leaf, err := maskRule(r.UpdateMaskPattern)
 	if err != nil {
 		return err

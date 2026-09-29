@@ -139,9 +139,6 @@ func validateFieldContracts(name string, ops map[verb]foundOp) issue.Report {
 	names = slices.Compact(names)
 	var report issue.Report
 	for _, field := range names {
-		if field == updateMaskField {
-			continue
-		}
 		report = append(report, validateFieldContract(name, field, create, update, get)...)
 	}
 	report = append(report, rootGroupContractIssues(name, create, update, get)...)

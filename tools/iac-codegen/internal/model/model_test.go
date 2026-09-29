@@ -211,7 +211,7 @@ func TestCollectionContracts(t *testing.T) {
 	}
 }
 
-func TestPatchAndPutUpdateContracts(t *testing.T) {
+func TestPatchUpdateContract(t *testing.T) {
 	data := validSpec(t)
 	doc, err := Load(data)
 	if err != nil {
@@ -225,7 +225,7 @@ func TestPatchAndPutUpdateContracts(t *testing.T) {
 		t.Fatalf("PATCH resource = replace %t, mask %q", resource.Replace, resource.UpdateMask)
 	}
 
-	withoutPattern := strings.Replace(string(data), "                  pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$'\n", "", 1)
+	withoutPattern := strings.Replace(string(data), "            pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$'\n", "", 1)
 	doc, err = Load([]byte(withoutPattern))
 	if err != nil {
 		t.Fatal(err)
@@ -234,28 +234,60 @@ func TestPatchAndPutUpdateContracts(t *testing.T) {
 		t.Fatalf("codes %v do not contain UPDATE_MASK_CONTRACT_MISSING", codes)
 	}
 
+	legacyBody := removeMaskQuery(t, string(data))
+	legacyBody = strings.Replace(legacyBody,
+		"                labels:\n                  type: object\n                  x-coralogix-presence: true\n                  additionalProperties: {type: string}\n",
+		"                labels:\n                  type: object\n                  x-coralogix-presence: true\n                  additionalProperties: {type: string}\n                updateMask:\n                  type: string\n                  pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$'\n", 1)
+	doc, err = Load([]byte(legacyBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "CLEAR_BEHAVIOR_UNKNOWN") {
+		t.Fatalf("legacy body-mask codes %v do not contain CLEAR_BEHAVIOR_UNKNOWN", codes)
+	}
+
+	requiredQuery := strings.Replace(string(data), "          in: query\n", "          in: query\n          required: true\n", 1)
+	doc, err = Load([]byte(requiredQuery))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "CLEAR_BEHAVIOR_UNKNOWN") {
+		t.Fatalf("required query-mask codes %v do not contain CLEAR_BEHAVIOR_UNKNOWN", codes)
+	}
+}
+
+func TestPutUpdateContract(t *testing.T) {
+	data := validSpec(t)
 	put := strings.Replace(string(data), "    patch:\n", "    put:\n", 1)
 	put = strings.Replace(put, "ThingsService_UpdateThing", "ThingsService_ReplaceThing", 1)
-	start := strings.Index(put, "                updateMask:\n")
-	end := strings.Index(put[start:], "      responses:\n")
-	if start < 0 || end < 0 {
-		t.Fatal("cannot locate updateMask block")
-	}
-	put = put[:start] + put[start+end:]
-	doc, err = Load([]byte(put))
+	put = removeMaskQuery(t, put)
+	doc, err := Load([]byte(put))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
 		t.Fatal(report)
 	}
-	resource, err = Build(doc, "Thing")
+	resource, err := Build(doc, "Thing")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !resource.Replace || resource.UpdateMask != "" {
 		t.Fatalf("PUT resource = replace %t, mask %q", resource.Replace, resource.UpdateMask)
 	}
+}
+
+func removeMaskQuery(t *testing.T, spec string) string {
+	t.Helper()
+	start := strings.Index(spec, "      parameters:\n")
+	if start < 0 {
+		t.Fatal("cannot locate updateMask query parameter")
+	}
+	end := strings.Index(spec[start:], "      requestBody:\n")
+	if end < 0 {
+		t.Fatal("cannot locate updateMask query parameter")
+	}
+	return spec[:start] + spec[start+end:]
 }
 
 func TestSchemaIssuesAreAggregatedAndSorted(t *testing.T) {

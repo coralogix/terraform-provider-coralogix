@@ -66,6 +66,12 @@ paths:
     patch:
       tags: [Things Service]
       operationId: ThingsService_UpdateThing
+      parameters:
+        - name: updateMask
+          in: query
+          schema:
+            type: string
+            pattern: '^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*$'
       requestBody:
         required: true
         content:
@@ -98,9 +104,6 @@ paths:
                   type: object
                   x-coralogix-presence: true
                   additionalProperties: {type: string}
-                updateMask:
-                  type: string
-                  pattern: '^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*$'
       responses:
         '200':
           description: Updated
