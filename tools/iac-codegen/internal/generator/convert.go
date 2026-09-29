@@ -21,6 +21,9 @@ type convData struct {
 	// MaskFields are the Update fields, in model order. The update mask
 	// lists the API names of the fields that changed (D8).
 	MaskFields []*maskField
+	// CreateFields are the Create fields checked for unknown values before
+	// the generated resource calls the API.
+	CreateFields []*maskField
 	// LeafMask is true when the spec pattern of the update mask accepts
 	// dotted paths. Then the mask names the changed leaves (contract 2.1).
 	LeafMask bool
@@ -31,7 +34,7 @@ type convData struct {
 	// update mask. UpdateFields are the Terraform names of the Update fields:
 	// when none of them changed, Update sends no request (D14).
 	Replace      bool
-	UpdateFields []string
+	UpdateFields []*maskField
 }
 
 // maskField is one top-level Update field. With leaf masks, it is also a
@@ -39,10 +42,13 @@ type convData struct {
 // a oneOf. A node without children is compared as a whole: a scalar, a list,
 // a set, a map, or an object with no fields.
 type maskField struct {
-	TFName   string // Terraform attribute name, to read the plan and the state
-	API      string // API property name, the update mask entry
-	OneOf    bool
-	Children []*maskField
+	TFName string // Terraform attribute name, to read the plan and the state
+	API    string // API property name, the update mask entry
+	OneOf  bool
+	// ServerDefault permits one planned unknown value: removing this field
+	// resets it to its declared server default.
+	ServerDefault bool
+	Children      []*maskField
 	// Groups are the oneOf groups among Children, as Terraform names.
 	Groups [][]string
 }
@@ -196,6 +202,11 @@ func buildConv(r *model.Resource, refs []sdkRef) (*convData, error) {
 		}
 	}
 	out.Objects = b.objects
+	for _, f := range r.Fields {
+		if f.Create != nil {
+			out.CreateFields = append(out.CreateFields, &maskField{TFName: tfName(f.Name), ServerDefault: hasServerDefault(f)})
+		}
+	}
 	if r.Replace {
 		return out, replaceFields(r, out)
 	}
@@ -211,7 +222,7 @@ func replaceFields(r *model.Resource, out *convData) error {
 	out.Replace = true
 	for _, f := range r.Fields {
 		if f.Update != nil {
-			out.UpdateFields = append(out.UpdateFields, tfName(f.Name))
+			out.UpdateFields = append(out.UpdateFields, &maskField{TFName: tfName(f.Name), ServerDefault: hasServerDefault(f)})
 		}
 	}
 	if len(out.UpdateFields) == 0 {
@@ -236,6 +247,7 @@ func buildMask(r *model.Resource, out *convData) error {
 		if leaf {
 			mf = maskTree(f.Name, f.Type)
 		}
+		mf.ServerDefault = hasServerDefault(f)
 		if err := checkMaskPaths(mf, "", valid); err != nil {
 			return err
 		}

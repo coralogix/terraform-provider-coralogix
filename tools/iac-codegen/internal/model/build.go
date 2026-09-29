@@ -149,8 +149,24 @@ func findOperations(doc *v3.Document, name string, ids OperationIDs) (map[verb]f
 		if !slices.Contains(verbMethods[v], f.method) {
 			return nil, fmt.Errorf("%s: %s is %s, want %s", v, f.op.OperationId, f.method, strings.Join(verbMethods[v], " or "))
 		}
+		if params := unsupportedRequiredParameters(v, f); len(params) != 0 {
+			return nil, fmt.Errorf("%s: required %s parameter %q is not supported", v, params[0].In, params[0].Name)
+		}
 	}
 	return found, nil
+}
+
+func unsupportedRequiredParameters(role verb, op foundOp) []*v3.Parameter {
+	var params []*v3.Parameter
+	for _, p := range slices.Concat(op.item.Parameters, op.op.Parameters) {
+		if role == opUpdate && p.In == "query" && p.Name == updateMaskField {
+			continue
+		}
+		if p.In != "path" && p.Required != nil && *p.Required {
+			params = append(params, p)
+		}
+	}
+	return params
 }
 
 func matchingOperations(doc *v3.Document, name string, role verb, explicit string) []foundOp {
@@ -594,8 +610,8 @@ func (r *Resource) readUpdateMask(mask *v3.Parameter) error {
 	if mask.In != "query" {
 		return fmt.Errorf("update parameters: %s is in %q, want query", updateMaskField, mask.In)
 	}
-	if mask.Required != nil && *mask.Required {
-		return fmt.Errorf("update parameters: %s must be optional", updateMaskField)
+	if mask.Required == nil || !*mask.Required {
+		return fmt.Errorf("update parameters: %s must be required", updateMaskField)
 	}
 	if mask.Schema == nil {
 		return fmt.Errorf("update parameters: %s has no schema", updateMaskField)

@@ -118,10 +118,61 @@ func TestUpdateClearArmSwitchAndNoOp(t *testing.T) {
 		"unordered": types.SetNull(types.StringType),
 		"labels":    types.MapNull(types.StringType),
 	}
-	body, mask, diags := updateRequest(context.Background(), fakeData{values: values}, fakeData{values: values})
+	data := fakeData{values: values}
+	body, mask, diags := updateRequest(context.Background(), data, data, data)
 	if diags.HasError() || body != nil || mask != "" {
 		t.Fatalf("unchanged update = %#v, mask %q, %v", body, mask, diags)
 	}
+}
+
+func TestServerDefaultResetAndUnknownGuard(t *testing.T) {
+	if unknown, preserve := serverDefaultPlan(types.BoolNull(), types.BoolValue(true), types.BoolValue(false)); !unknown || preserve {
+		t.Fatalf("removed override = unknown %t, preserve %t", unknown, preserve)
+	}
+	if unknown, preserve := serverDefaultPlan(types.BoolNull(), types.BoolValue(false), types.BoolValue(false)); unknown || !preserve {
+		t.Fatalf("settled default = unknown %t, preserve %t", unknown, preserve)
+	}
+	if unknown, preserve := serverDefaultPlan(types.BoolUnknown(), types.BoolValue(true), types.BoolValue(false)); unknown || preserve {
+		t.Fatalf("unknown configuration = unknown %t, preserve %t", unknown, preserve)
+	}
+
+	base := map[string]attr.Value{
+		"name":      types.StringNull(),
+		"count":     types.Int64Null(),
+		"ordered":   types.ListNull(types.StringType),
+		"unordered": types.SetNull(types.StringType),
+		"labels":    types.MapNull(types.StringType),
+	}
+	config, plan, state := cloneValues(base), cloneValues(base), cloneValues(base)
+	config["enabled"] = types.BoolNull()
+	plan["enabled"] = types.BoolUnknown()
+	state["enabled"] = types.BoolValue(true)
+	mask, diags := updateMask(context.Background(), fakeData{config}, fakeData{plan}, fakeData{state})
+	if diags.HasError() || len(mask) != 1 || mask[0] != "enabled" {
+		t.Fatalf("server-default reset mask = %v, %v", mask, diags)
+	}
+
+	config["enabled"] = types.BoolUnknown()
+	_, diags = updateMask(context.Background(), fakeData{config}, fakeData{plan}, fakeData{state})
+	if !diags.HasError() {
+		t.Fatal("unknown configured update value was accepted")
+	}
+
+	createConfig, createPlan := cloneValues(base), cloneValues(base)
+	createConfig["name"], createPlan["name"] = types.StringUnknown(), types.StringUnknown()
+	createConfig["count"], createPlan["count"] = types.Int64Unknown(), types.Int64Unknown()
+	createConfig["enabled"], createPlan["enabled"] = types.BoolNull(), types.BoolUnknown()
+	if diags := validateCreate(context.Background(), fakeData{createConfig}, fakeData{createPlan}); !diags.HasError() || len(diags) != 2 {
+		t.Fatalf("unknown Create diagnostics = %v, want two errors", diags)
+	}
+}
+
+func cloneValues(values map[string]attr.Value) map[string]attr.Value {
+	clone := make(map[string]attr.Value, len(values)+1)
+	for name, value := range values {
+		clone[name] = value
+	}
+	return clone
 }
 
 type fakeData struct {

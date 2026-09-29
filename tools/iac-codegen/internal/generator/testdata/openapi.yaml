@@ -20,6 +20,7 @@ paths:
                   type: string
                 enabled:
                   type: boolean
+                  default: false
                   x-coralogix-presence: true
                 count:
                   type: integer
@@ -69,6 +70,7 @@ paths:
       parameters:
         - name: updateMask
           in: query
+          required: true
           schema:
             type: string
             pattern: '^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*$'
@@ -85,6 +87,7 @@ paths:
                   x-coralogix-presence: true
                 enabled:
                   type: boolean
+                  default: false
                   x-coralogix-presence: true
                 count:
                   type: integer
@@ -125,7 +128,7 @@ components:
   schemas:
     Thing:
       type: object
-      required: [id, name]
+      required: [id, name, enabled]
       properties:
         id:
           type: string

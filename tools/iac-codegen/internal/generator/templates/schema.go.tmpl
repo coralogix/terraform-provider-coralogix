@@ -3,6 +3,10 @@
 package {{.Package}}
 
 import (
+{{- if .HasServerDefaults}}
+	"context"
+{{- end}}
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
@@ -14,6 +18,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+{{- if .HasServerDefaults}}
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+{{- end}}
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -42,6 +49,46 @@ func ConfigValidators() []resource.ConfigValidator {
 {{- end}}
 	}
 }
+
+{{- if .HasServerDefaults}}
+// serverDefaultModifier distinguishes removal from a steady server default.
+// It never inserts the default into configuration or an API request. When a
+// user removes a different value, it makes the plan unknown. Update then sends
+// the field in the update mask without a body value, and the API resets it.
+type serverDefaultModifier struct{ value attr.Value }
+
+func (m serverDefaultModifier) Description(context.Context) string {
+	return "Resets a removed value to the server default."
+}
+
+func (m serverDefaultModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
+	if config.IsUnknown() || !config.IsNull() || state.IsNull() || state.IsUnknown() {
+		return false, false
+	}
+	if state.Equal(declared) {
+		return false, true
+	}
+	return true, false
+}
+
+{{range .ServerDefaultKinds}}
+func (m serverDefaultModifier) PlanModify{{.}}(_ context.Context, req planmodifier.{{.}}Request, resp *planmodifier.{{.}}Response) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
+	if unknown {
+		resp.PlanValue = types.{{.}}Unknown()
+	} else if preserve {
+		resp.PlanValue = req.StateValue
+	}
+}
+{{end}}
+{{- end}}
 
 {{define "attribute" -}}
 schema.{{.Kind}}Attribute{

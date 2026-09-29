@@ -71,6 +71,10 @@ func (r *Resource) ImportState(ctx context.Context, req resource.ImportStateRequ
 }
 
 func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	resp.Diagnostics.Append(validateCreate(ctx, req.Config, req.Plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	var plan {{.Model}}
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
@@ -137,9 +141,9 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		return
 	}
 {{- if .Replace}}
-	body, diags := updateRequest(ctx, req.Plan, req.State)
+body, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 {{- else}}
-	body, mask, diags := updateRequest(ctx, req.Plan, req.State)
+body, mask, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 {{- end}}
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

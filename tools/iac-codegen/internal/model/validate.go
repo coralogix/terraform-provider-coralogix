@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
@@ -98,9 +100,9 @@ func validateOperations(doc *v3.Document, name string, ids OperationIDs) (map[ve
 			report = append(report, issue.Issue{Code: "OPERATION_NOT_FOUND", Location: location, Message: fmt.Sprintf("No %s operation matches %s.", role, wanted), Remediation: "Fix the source API contract or select the exact operation ID."})
 		case 1:
 			candidate := candidates[0]
-			if !slices.Contains(verbMethods[role], candidate.method) {
-				report = append(report, issue.Issue{Code: "OPERATION_METHOD_INCOMPATIBLE", Location: location + "." + candidate.op.OperationId, Message: fmt.Sprintf("The method is %s. The %s operation needs %s.", candidate.method, role, strings.Join(verbMethods[role], " or ")), Remediation: "Use the required HTTP method in the source API contract."})
-			} else {
+			candidateIssues := operationCandidateIssues(location, role, candidate)
+			report = append(report, candidateIssues...)
+			if len(candidateIssues) == 0 {
 				found[role] = candidate
 			}
 		default:
@@ -116,6 +118,31 @@ func validateOperations(doc *v3.Document, name string, ids OperationIDs) (map[ve
 		report = append(report, issue.Issue{Code: "RESOURCE_LIFECYCLE_INCOMPLETE", Location: "paths", Message: "The resource does not have one eligible operation for every lifecycle step.", Remediation: "Provide one Create, Get, Update or Replace, and Delete operation."})
 	}
 	return found, report
+}
+
+func operationCandidateIssues(location string, role verb, candidate foundOp) issue.Report {
+	if !slices.Contains(verbMethods[role], candidate.method) {
+		return issue.Report{{
+			Code:        "OPERATION_METHOD_INCOMPATIBLE",
+			Location:    location + "." + candidate.op.OperationId,
+			Message:     fmt.Sprintf("The method is %s. The %s operation needs %s.", candidate.method, role, strings.Join(verbMethods[role], " or ")),
+			Remediation: "Use the required HTTP method in the source API contract.",
+		}}
+	}
+	return requiredParameterIssues(location, role, candidate)
+}
+
+func requiredParameterIssues(location string, role verb, op foundOp) issue.Report {
+	var report issue.Report
+	for _, p := range unsupportedRequiredParameters(role, op) {
+		report = append(report, issue.Issue{
+			Code:        "REQUIRED_PARAMETER_UNSUPPORTED",
+			Location:    fmt.Sprintf("%s.%s.parameters.%s.%s", location, op.op.OperationId, p.In, p.Name),
+			Message:     fmt.Sprintf("The operation requires the unsupported %s parameter %q.", p.In, p.Name),
+			Remediation: "Remove the required parameter or wait until the generator can model and send it.",
+		})
+	}
+	return report
 }
 
 func validateFieldContracts(name string, ops map[verb]foundOp) issue.Report {
@@ -157,6 +184,8 @@ func validateFieldContract(name, field string, create, update, get *base.Schema)
 	report = append(report, fieldDefaultContractIssues(location, field, create, update, get, cp, up, gp)...)
 	report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
 	report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
+	report = append(report, nestedPresenceIssues(location+".create", cp, map[*base.Schema]bool{})...)
+	report = append(report, nestedPresenceIssues(location+".update", up, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(location+".create", cp, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(location+".update", up, map[*base.Schema]bool{})...)
 	report = append(report, unsupportedSchemaIssues(location+".create", cp, map[*base.Schema]bool{})...)
@@ -169,6 +198,8 @@ func fieldDefaultContractIssues(location, field string, create, update, get *bas
 	var report issue.Report
 	createDefault := schemaDefault(cp)
 	updateDefault := schemaDefault(up)
+	report = append(report, defaultValueIssues(location+".create", cp)...)
+	report = append(report, defaultValueIssues(location+".update", up)...)
 	createOptional := cp != nil && !slices.Contains(create.Required, field)
 	getRequired := gp != nil && slices.Contains(get.Required, field)
 	if createOptional && getRequired && createDefault == nil {
@@ -191,6 +222,106 @@ func fieldDefaultContractIssues(location, field string, create, update, get *bas
 		report = append(report, nestedDefaultIssues(location+"."+candidate.name, candidate.proxy, true, map[*base.Schema]bool{})...)
 	}
 	return report
+}
+
+func defaultValueIssues(location string, proxy *base.SchemaProxy) issue.Report {
+	if proxy == nil {
+		return nil
+	}
+	schema, err := schemaOf(proxy)
+	if err != nil || schema.Default == nil || len(schema.Type) != 1 {
+		return nil
+	}
+	if err := validateScalarDefault(schema); err != nil {
+		return issue.Report{{
+			Code:        "FIELD_DEFAULT_INVALID",
+			Location:    location,
+			Message:     "The declared default is invalid: " + err.Error() + ".",
+			Remediation: "Declare a scalar default that has the field type and satisfies its limits.",
+		}}
+	}
+	return nil
+}
+
+func validateScalarDefault(schema *base.Schema) error {
+	switch schema.Type[0] {
+	case "string":
+		return validateStringDefault(schema)
+	case "boolean":
+		return validateBooleanDefault(schema)
+	case "integer":
+		return validateIntegerDefault(schema)
+	case "number":
+		return validateNumberDefault(schema)
+	default:
+		return fmt.Errorf("defaults for %s fields are not supported", schema.Type[0])
+	}
+}
+
+func validateStringDefault(schema *base.Schema) error {
+	node := schema.Default
+	if node.Tag != "!!str" {
+		return fmt.Errorf("%q is not a string", node.Value)
+	}
+	length := int64(utf8.RuneCountInString(node.Value))
+	if schema.MinLength != nil && length < *schema.MinLength || schema.MaxLength != nil && length > *schema.MaxLength {
+		return fmt.Errorf("the string %q does not satisfy the length limits", node.Value)
+	}
+	for _, candidate := range schema.Enum {
+		if candidate.Tag == node.Tag && candidate.Value == node.Value {
+			return nil
+		}
+	}
+	if len(schema.Enum) != 0 {
+		return fmt.Errorf("%q is not an enum value", node.Value)
+	}
+	return nil
+}
+
+func validateBooleanDefault(schema *base.Schema) error {
+	node := schema.Default
+	if node.Tag != "!!bool" {
+		return fmt.Errorf("%q is not a boolean", node.Value)
+	}
+	if _, err := strconv.ParseBool(node.Value); err != nil {
+		return fmt.Errorf("%q is not a boolean", node.Value)
+	}
+	return nil
+}
+
+func validateIntegerDefault(schema *base.Schema) error {
+	node := schema.Default
+	if node.Tag != "!!int" {
+		return fmt.Errorf("%q is not an integer", node.Value)
+	}
+	bits := 64
+	if schema.Format == "int32" {
+		bits = 32
+	}
+	value, err := strconv.ParseInt(node.Value, 10, bits)
+	if err != nil || schema.Format == "uint64" && value < 0 {
+		return fmt.Errorf("%q is not a supported %s integer", node.Value, schema.Format)
+	}
+	return defaultNumberLimits(schema, float64(value))
+}
+
+func validateNumberDefault(schema *base.Schema) error {
+	node := schema.Default
+	if node.Tag != "!!int" && node.Tag != "!!float" {
+		return fmt.Errorf("%q is not a number", node.Value)
+	}
+	value, err := strconv.ParseFloat(node.Value, 64)
+	if err != nil {
+		return fmt.Errorf("%q is not a number", node.Value)
+	}
+	return defaultNumberLimits(schema, value)
+}
+
+func defaultNumberLimits(schema *base.Schema, value float64) error {
+	if schema.Minimum != nil && value < *schema.Minimum || schema.Maximum != nil && value > *schema.Maximum {
+		return fmt.Errorf("the numeric default %s does not satisfy the range limits", schema.Default.Value)
+	}
+	return nil
 }
 
 func schemaDefault(proxy *base.SchemaProxy) *string {
@@ -373,6 +504,61 @@ func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base
 		code = "COLLECTION_NULL_EMPTY_AMBIGUOUS"
 	}
 	return issue.Report{{Code: code, Location: location, Message: "The optional request field does not state whether omission differs from an explicit zero or empty value.", Remediation: "Add x-coralogix-presence: true to the source API contract."}}
+}
+
+func nestedPresenceIssues(location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+	if proxy == nil {
+		return nil
+	}
+	schema, err := schemaOf(proxy)
+	if err != nil || seen[schema] {
+		return nil
+	}
+	seen[schema] = true
+	var report issue.Report
+	grouped := groupedFields(schema)
+	for _, name := range propertyNames(schema) {
+		child := schema.Properties.GetOrZero(name)
+		childSchema, childErr := schemaOf(child)
+		if childErr == nil && childSchema.ReadOnly != nil && *childSchema.ReadOnly {
+			continue
+		}
+		if !grouped[name] {
+			report = append(report, fieldPresenceIssue(location+"."+name, name, schema, child)...)
+		}
+		report = append(report, nestedPresenceIssues(location+"."+name, child, seen)...)
+	}
+	if schema.Items != nil && schema.Items.IsA() {
+		report = append(report, nestedPresenceIssues(location+"[]", schema.Items.A, seen)...)
+	}
+	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
+		report = append(report, nestedPresenceIssues(location+"{}", schema.AdditionalProperties.A, seen)...)
+	}
+	return report
+}
+
+func groupedFields(schema *base.Schema) map[string]bool {
+	grouped := map[string]bool{}
+	schemas := []*base.Schema{schema}
+	for _, proxy := range schema.AllOf {
+		entry, err := schemaOf(proxy)
+		if err == nil {
+			schemas = append(schemas, entry)
+		}
+	}
+	for _, entry := range schemas {
+		if len(entry.OneOf) == 0 {
+			continue
+		}
+		group, err := oneOfArms(entry)
+		if err != nil {
+			continue
+		}
+		for _, name := range group.Arms {
+			grouped[name] = true
+		}
+	}
+	return grouped
 }
 
 func requestContractProperty(parent *base.Schema, name string) *base.SchemaProxy {
