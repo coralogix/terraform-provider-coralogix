@@ -144,6 +144,7 @@ func validateFieldContracts(name string, ops map[verb]foundOp) issue.Report {
 		}
 		report = append(report, validateFieldContract(name, field, create, update, get)...)
 	}
+	report = append(report, rootGroupContractIssues(name, create, update, get)...)
 	return report
 }
 
@@ -156,16 +157,58 @@ func validateFieldContract(name, field string, create, update, get *base.Schema)
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
 	}
 	report := fieldTypeIssues(location, gp, cp, up)
-	report = append(report, requestDefaultIssues(location+".create", cp, map[*base.Schema]bool{})...)
-	report = append(report, requestDefaultIssues(location+".update", up, map[*base.Schema]bool{})...)
+	report = append(report, fieldDefaultContractIssues(location, field, create, update, get, cp, up, gp)...)
 	report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
 	report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
 	report = append(report, nestedReadOnlyIssues(location+".create", cp, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(location+".update", up, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(location+".create", cp, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(location+".update", up, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(location+".get", gp, map[*base.Schema]bool{})...)
 	return report
 }
 
-func requestDefaultIssues(location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+func fieldDefaultContractIssues(location, field string, create, update, get *base.Schema, cp, up, gp *base.SchemaProxy) issue.Report {
+	var report issue.Report
+	createDefault := schemaDefault(cp)
+	updateDefault := schemaDefault(up)
+	createOptional := cp != nil && !slices.Contains(create.Required, field)
+	getRequired := gp != nil && slices.Contains(get.Required, field)
+	if createOptional && getRequired && createDefault == nil {
+		report = append(report, issue.Issue{Code: "FIELD_SERVER_DEFAULT_UNDECLARED", Location: location, Message: "The field is optional in Create but required in Get, so the server supplies a value without a declared default.", Remediation: "Declare the exact OpenAPI default, or separate the client-owned request field from the server-owned response field."})
+	}
+	if createDefault != nil {
+		switch {
+		case !createOptional || !getRequired:
+			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field and a required Get field.", Remediation: "Make the field optional in Create, required in Get, and let the server return the declared default."})
+		case up != nil && (slices.Contains(update.Required, field) || updateDefault == nil || *updateDefault != *createDefault):
+			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The mutable field does not declare the same optional default in Create and Update.", Remediation: "Declare the same typed OpenAPI default on the optional Create and Update fields."})
+		}
+	} else if updateDefault != nil {
+		report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The Update field declares a default that Create does not declare.", Remediation: "Declare the same typed OpenAPI default on the optional Create and Update fields."})
+	}
+	for _, candidate := range []struct {
+		name  string
+		proxy *base.SchemaProxy
+	}{{"create", cp}, {"update", up}} {
+		report = append(report, nestedDefaultIssues(location+"."+candidate.name, candidate.proxy, true, map[*base.Schema]bool{})...)
+	}
+	return report
+}
+
+func schemaDefault(proxy *base.SchemaProxy) *string {
+	if proxy == nil {
+		return nil
+	}
+	schema, err := schemaOf(proxy)
+	if err != nil || schema.Default == nil {
+		return nil
+	}
+	value := schema.Default.Value
+	return &value
+}
+
+func nestedDefaultIssues(location string, proxy *base.SchemaProxy, root bool, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -175,24 +218,92 @@ func requestDefaultIssues(location string, proxy *base.SchemaProxy, seen map[*ba
 	}
 	seen[schema] = true
 	var report issue.Report
-	if schema.Default != nil {
-		report = append(report, issue.Issue{
-			Code:        "FIELD_DEFAULT_UNSUPPORTED",
-			Location:    location,
-			Message:     "The request field has an OpenAPI default. Terraform must preserve the difference between omission and an explicit value.",
-			Remediation: "Remove the request default. A future contract can allow it only when omission and the default are proven equivalent.",
-		})
+	if !root && schema.Default != nil {
+		report = append(report, issue.Issue{Code: "NESTED_FIELD_DEFAULT_UNSUPPORTED", Location: location, Message: "A nested request field declares a server default.", Remediation: "Move the defaulted value to a top-level field or wait for nested server-default support."})
 	}
 	for _, name := range propertyNames(schema) {
-		report = append(report, requestDefaultIssues(location+"."+name, schema.Properties.GetOrZero(name), seen)...)
+		report = append(report, nestedDefaultIssues(location+"."+name, schema.Properties.GetOrZero(name), false, seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, requestDefaultIssues(location+"[]", schema.Items.A, seen)...)
+		report = append(report, nestedDefaultIssues(location+"[]", schema.Items.A, false, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, requestDefaultIssues(location+"{}", schema.AdditionalProperties.A, seen)...)
+		report = append(report, nestedDefaultIssues(location+"{}", schema.AdditionalProperties.A, false, seen)...)
 	}
 	return report
+}
+
+func unsupportedSchemaIssues(location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+	if proxy == nil {
+		return nil
+	}
+	schema, err := schemaOf(proxy)
+	if err != nil || seen[schema] {
+		return nil
+	}
+	seen[schema] = true
+	var report issue.Report
+	if schema.WriteOnly != nil && *schema.WriteOnly {
+		report = append(report, issue.Issue{Code: "FIELD_WRITE_ONLY_UNSUPPORTED", Location: location, Message: "The field is writeOnly, but this generator cannot preserve or rotate a value that the API does not return.", Remediation: "Use a handwritten resource until generic write-only state and version handling is supported."})
+	}
+	if schema.Pattern != "" {
+		report = append(report, issue.Issue{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field declares the unsupported pattern %q.", schema.Pattern), Remediation: "Remove the pattern or wait for generated regular-expression validation support."})
+	}
+	for _, name := range propertyNames(schema) {
+		report = append(report, unsupportedSchemaIssues(location+"."+name, schema.Properties.GetOrZero(name), seen)...)
+	}
+	if schema.Items != nil && schema.Items.IsA() {
+		report = append(report, unsupportedSchemaIssues(location+"[]", schema.Items.A, seen)...)
+	}
+	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
+		report = append(report, unsupportedSchemaIssues(location+"{}", schema.AdditionalProperties.A, seen)...)
+	}
+	return report
+}
+
+func rootGroupContractIssues(name string, create, update, get *base.Schema) issue.Report {
+	createGroups, createErr := rootContractGroups(create)
+	updateGroups, updateErr := rootContractGroups(update)
+	getGroups, getErr := rootContractGroups(get)
+	if createErr != nil || updateErr != nil || getErr != nil {
+		return nil // The schema survey and build report malformed oneOf shapes.
+	}
+	if reflect.DeepEqual(createGroups, updateGroups) && reflect.DeepEqual(createGroups, getGroups) {
+		return nil
+	}
+	return issue.Report{{
+		Code:        "ROOT_ONEOF_LIFECYCLE_INCONSISTENT",
+		Location:    "components.schemas." + name,
+		Message:     fmt.Sprintf("The root oneOf groups differ across Create=%v, Update=%v, and Get=%v.", createGroups, updateGroups, getGroups),
+		Remediation: "Use the same root oneOf groups in Create, Update, and Get. Keep server-only unions outside the configurable resource shape.",
+	}}
+}
+
+func rootContractGroups(schema *base.Schema) ([]OneOfGroup, error) {
+	schemas := []*base.Schema{schema}
+	for _, proxy := range schema.AllOf {
+		entry, err := schemaOf(proxy)
+		if err != nil {
+			return nil, err
+		}
+		schemas = append(schemas, entry)
+	}
+	var groups []OneOfGroup
+	for _, entry := range schemas {
+		if len(entry.OneOf) == 0 {
+			continue
+		}
+		group, err := oneOfArms(entry)
+		if err != nil {
+			return nil, err
+		}
+		slices.Sort(group.Arms)
+		groups = append(groups, group)
+	}
+	slices.SortFunc(groups, func(a, b OneOfGroup) int {
+		return strings.Compare(strings.Join(a.Arms, "\x00"), strings.Join(b.Arms, "\x00"))
+	})
+	return groups, nil
 }
 
 func nestedReadOnlyIssues(location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {

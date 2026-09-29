@@ -77,6 +77,11 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
+		if hasServerDefault(f) {
+			// The user may override this value. When it is omitted, the server
+			// supplies the declared default and Get always returns it.
+			a.Computed = true
+		}
 		switch f.Behavior {
 		case model.Computed:
 			// Validators check the configuration, which is always null here.
@@ -100,6 +105,10 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 	out.ConfigValidators = b.validators
 	out.Models = b.models
 	return out, nil
+}
+
+func hasServerDefault(f *model.ResourceField) bool {
+	return f.Create != nil && !f.Create.Required && f.Create.Default != nil && f.Get != nil && f.Get.Required
 }
 
 // addGroupValidators adds a validator to each arm of the oneOf groups of an
