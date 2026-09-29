@@ -175,7 +175,7 @@ func validateFieldContracts(name string, ops map[verb]foundOp) issue.Report {
 func validateFieldContract(name, field string, create, update, get *base.Schema) issue.Report {
 	cp := requestContractProperty(create, field)
 	up := requestContractProperty(update, field)
-	gp := get.Properties.GetOrZero(field)
+	gp := propertyOf(get, field)
 	location := "components.schemas." + name + "." + field
 	if _, err := Classify(cp != nil, up != nil, gp != nil); err != nil {
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
@@ -350,7 +350,7 @@ func nestedDefaultIssues(location string, proxy *base.SchemaProxy, root bool, se
 		report = append(report, issue.Issue{Code: "NESTED_FIELD_DEFAULT_UNSUPPORTED", Location: location, Message: "A nested request field declares a server default.", Remediation: "Move the defaulted value to a top-level field or wait for nested server-default support."})
 	}
 	for _, name := range propertyNames(schema) {
-		report = append(report, nestedDefaultIssues(location+"."+name, schema.Properties.GetOrZero(name), false, seen)...)
+		report = append(report, nestedDefaultIssues(location+"."+name, propertyOf(schema, name), false, seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
 		report = append(report, nestedDefaultIssues(location+"[]", schema.Items.A, false, seen)...)
@@ -378,7 +378,7 @@ func unsupportedSchemaIssues(location string, proxy *base.SchemaProxy, seen map[
 		report = append(report, issue.Issue{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field declares the unsupported pattern %q.", schema.Pattern), Remediation: "Remove the pattern or wait for generated regular-expression validation support."})
 	}
 	for _, name := range propertyNames(schema) {
-		report = append(report, unsupportedSchemaIssues(location+"."+name, schema.Properties.GetOrZero(name), seen)...)
+		report = append(report, unsupportedSchemaIssues(location+"."+name, propertyOf(schema, name), seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
 		report = append(report, unsupportedSchemaIssues(location+"[]", schema.Items.A, seen)...)
@@ -408,6 +408,9 @@ func rootGroupContractIssues(name string, create, update, get *base.Schema) issu
 }
 
 func rootContractGroups(schema *base.Schema) ([]OneOfGroup, error) {
+	if schema == nil {
+		return nil, fmt.Errorf("missing schema")
+	}
 	schemas := []*base.Schema{schema}
 	for _, proxy := range schema.AllOf {
 		entry, err := schemaOf(proxy)
@@ -445,7 +448,7 @@ func nestedReadOnlyIssues(location string, proxy *base.SchemaProxy, seen map[*ba
 	seen[schema] = true
 	var report issue.Report
 	for _, name := range propertyNames(schema) {
-		child := schema.Properties.GetOrZero(name)
+		child := propertyOf(schema, name)
 		childSchema, childErr := schemaOf(child)
 		if childErr != nil {
 			continue
@@ -518,7 +521,7 @@ func nestedPresenceIssues(location string, proxy *base.SchemaProxy, seen map[*ba
 	var report issue.Report
 	grouped := groupedFields(schema)
 	for _, name := range propertyNames(schema) {
-		child := schema.Properties.GetOrZero(name)
+		child := propertyOf(schema, name)
 		childSchema, childErr := schemaOf(child)
 		if childErr == nil && childSchema.ReadOnly != nil && *childSchema.ReadOnly {
 			continue
@@ -562,7 +565,7 @@ func groupedFields(schema *base.Schema) map[string]bool {
 }
 
 func requestContractProperty(parent *base.Schema, name string) *base.SchemaProxy {
-	proxy := parent.Properties.GetOrZero(name)
+	proxy := propertyOf(parent, name)
 	if proxy == nil {
 		return nil
 	}
@@ -581,6 +584,9 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 	if resp == nil {
 		return nil
 	}
+	if resp.Content == nil {
+		return nil
+	}
 	media := resp.Content.GetOrZero(jsonMedia)
 	if media == nil || media.Schema == nil {
 		return nil
@@ -593,7 +599,7 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 		return nil
 	}
 	for _, field := range propertyNames(s) {
-		proxy := s.Properties.GetOrZero(field)
+		proxy := propertyOf(s, field)
 		if unwrapRef(proxy) == componentPrefix+name {
 			return proxy
 		}

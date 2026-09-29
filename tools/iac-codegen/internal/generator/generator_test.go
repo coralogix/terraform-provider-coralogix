@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
@@ -204,6 +205,98 @@ func TestCheckAndGenerateShareSDKShapeEligibility(t *testing.T) {
 	if !strings.Contains(checkErr.Error(), "OPERATION_TAG_INCOMPATIBLE") {
 		t.Fatalf("check error lacks OPERATION_TAG_INCOMPATIBLE: %v", checkErr)
 	}
+}
+
+func TestCheckRejectsRendererUnsupportedShapes(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	base := string(input.OpenAPI)
+	tests := map[string]string{
+		"request date-time": requestDateTimeSpec(base),
+		"set of objects":    setOfObjectsSpec(base),
+	}
+	for name, spec := range tests {
+		t.Run(name, func(t *testing.T) {
+			work := t.TempDir()
+			candidate := filepath.Join(work, "candidate.yaml")
+			if err := os.WriteFile(candidate, []byte(spec), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			checkErr := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate})
+			generated := filepath.Join(work, "generated")
+			generateInput := input
+			generateInput.OpenAPI = []byte(spec)
+			generateErr := generateFromInput(Options{Resource: "Thing", OutputDir: generated}, generateInput, sdkDir)
+			var eligibility *EligibilityError
+			if !errors.As(checkErr, &eligibility) {
+				t.Fatalf("check error = %v, want EligibilityError", checkErr)
+			}
+			if !hasReportCode(eligibility.Report, "RENDERER_SHAPE_UNSUPPORTED") {
+				t.Fatalf("report = %v, want RENDERER_SHAPE_UNSUPPORTED", eligibility.Report)
+			}
+			if generateErr == nil || checkErr.Error() != generateErr.Error() {
+				t.Fatalf("check and generate decisions differ:\ncheck: %v\ngenerate: %v", checkErr, generateErr)
+			}
+			if _, err := os.Stat(generated); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("generated output exists after renderer rejection: %v", err)
+			}
+		})
+	}
+}
+
+func hasReportCode(report issue.Report, code string) bool {
+	return slices.ContainsFunc(report, func(item issue.Issue) bool { return item.Code == code })
+}
+
+func TestCheckRejectsMissingSchemasWithoutPanic(t *testing.T) {
+	input, _ := syntheticInput(t)
+	base := string(input.OpenAPI)
+	getWithoutSchema := replaceAfter(t, base, "operationId: ThingsService_GetThing", "            application/json:\n              schema:\n                $ref: '#/components/schemas/Thing'", "            application/json: {}")
+	deleteWithoutSchema := replaceAfter(t, base, "operationId: ThingsService_DeleteThing", "            application/json:\n              schema:\n                $ref: '#/components/schemas/DeleteThingResponse'", "            application/json: {}")
+	tests := map[string]string{
+		"missing create body":   strings.Replace(base, "      requestBody:\n", "      x-removed-request-body:\n", 1),
+		"missing update body":   replaceAfter(t, base, "operationId: ThingsService_UpdateThing", "      requestBody:\n", "      x-removed-request-body:\n"),
+		"missing get schema":    getWithoutSchema,
+		"missing delete schema": deleteWithoutSchema,
+	}
+	for name, spec := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := validateOpenAPI([]byte(spec), "Thing", model.OperationIDs{}, input.SDKModule, input.ProviderModule)
+			var eligibility *EligibilityError
+			if !errors.As(err, &eligibility) || len(eligibility.Report) == 0 {
+				t.Fatalf("error = %v, want a structured eligibility report", err)
+			}
+		})
+	}
+}
+
+func requestDateTimeSpec(spec string) string {
+	spec = strings.ReplaceAll(spec, "                name:\n                  type: string", "                name:\n                  type: string\n                  format: date-time")
+	return strings.Replace(spec, "        name:\n          type: string", "        name:\n          type: string\n          format: date-time", 1)
+}
+
+func setOfObjectsSpec(spec string) string {
+	spec = strings.ReplaceAll(spec, "x-coralogix-collection: set\n                  x-coralogix-presence: true\n                  items: {type: string}", "x-coralogix-collection: set\n                  x-coralogix-presence: true\n                  items: {$ref: '#/components/schemas/Detail'}")
+	spec = strings.Replace(spec, "x-coralogix-collection: set\n          items: {type: string}", "x-coralogix-collection: set\n          items: {$ref: '#/components/schemas/Detail'}", 1)
+	return spec + `
+    Detail:
+      type: object
+      required: [value]
+      properties:
+        value: {type: string}
+`
+}
+
+func replaceAfter(t *testing.T, value, marker, old, replacement string) string {
+	t.Helper()
+	index := strings.Index(value, marker)
+	if index < 0 {
+		t.Fatalf("cannot find marker %q", marker)
+	}
+	tail := strings.Replace(value[index:], old, replacement, 1)
+	if tail == value[index:] {
+		t.Fatalf("cannot find %q after %q", old, marker)
+	}
+	return value[:index] + tail
 }
 
 func TestCheckReportsAllIssuesInStableOrder(t *testing.T) {
