@@ -209,7 +209,11 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 	builder := "Api" + method + "Request"
 	params := "ctx context.Context"
 	if withID {
-		params += ", " + r.IDParam + " string"
+		idType, err := valueType(r.IDType)
+		if err != nil {
+			return fmt.Errorf("%s.id: %w", path, err)
+		}
+		params += ", " + r.IDParam + " " + idType
 	}
 	s.add(sdkRef{Path: path, Kind: kindMethod, Owner: client, Name: method,
 		Want: "func(" + params + ") " + builder, Rule: ruleOperationID})

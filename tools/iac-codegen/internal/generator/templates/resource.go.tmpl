@@ -6,6 +6,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+{{- if .CRUD.IDBits}}
+	"strconv"
+{{- end}}
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -67,7 +70,16 @@ func (r *Resource) Configure(_ context.Context, req resource.ConfigureRequest, r
 
 // ImportState sets the id. The Read after the import sets the other attributes.
 func (r *Resource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+{{- if .IDBits}}
+	id, err := strconv.ParseInt(req.ID, 10, {{.IDBits}})
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid import ID", fmt.Sprintf("The import ID %q is not a valid {{.IDGoType}}.", req.ID))
+		return
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), {{.IDGoType}}(id))...)
+{{- else}}
 	resource.ImportStatePassthroughID(ctx, path.Root({{printf "%q" .IDAttr}}), req, resp)
+{{- end}}
 }
 
 func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -99,7 +111,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), TypeName)...)
 	}
 {{- else}}
-	if diags.HasError() && v != nil && {{if .IDValue}}v.{{.IDField}} != ""{{else}}v.{{.IDField}} != nil{{end}} {
+	if diags.HasError() && v != nil{{if not .IDValue}} && v.{{.IDField}} != nil{{end}} {
 		// The resource exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), {{if not .IDValue}}*{{end}}v.{{.IDField}})...)
@@ -117,12 +129,12 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 	v, err := r.get(ctx, id)
 	if {{$cx}}.{{.APICode}}(err) == http.StatusNotFound {
 		resp.Diagnostics.AddWarning("Resource disappeared during read",
-			fmt.Sprintf("%s with id %s was not found. Terraform removed it from state.", TypeName, id))
+			fmt.Sprintf("%s with id %v was not found. Terraform removed it from state.", TypeName, id))
 		resp.State.RemoveResource(ctx)
 		return
 	}
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %s: %s", id, err))
+		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
 	resp.Diagnostics.Append(setState(ctx, v, &resp.State)...)
@@ -160,12 +172,12 @@ body, mask, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 	}
 	if {{$cx}}.{{.APICode}}(err) == http.StatusNotFound {
 		resp.Diagnostics.AddWarning("Resource disappeared during update",
-			fmt.Sprintf("The API did not find %s with id %s. Terraform removed it from state.", TypeName, id))
+			fmt.Sprintf("The API did not find %s with id %v. Terraform removed it from state.", TypeName, id))
 		resp.State.RemoveResource(ctx)
 		return
 	}
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to update "+TypeName, fmt.Sprintf("id %s: %s", id, err))
+		resp.Diagnostics.AddError("Unable to update "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
 	resp.Diagnostics.Append(setState(ctx, v, &resp.State)...)
@@ -180,7 +192,7 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 	}
 	err := r.delete(ctx, id)
 	if err != nil && {{$cx}}.{{.APICode}}(err) != http.StatusNotFound {
-		resp.Diagnostics.AddError("Unable to delete "+TypeName, fmt.Sprintf("id %s: %s", id, err))
+		resp.Diagnostics.AddError("Unable to delete "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 	}
 }
 
@@ -197,7 +209,7 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.Create.SD
 	return {{if .Create.Response}}out.{{.Create.Response}}{{else}}out{{end}}, nil
 }
 
-func (r *Resource) get(ctx context.Context, id string) (*{{$sdk}}.{{.Resource}}, error) {
+func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Resource}}, error) {
 	out, httpResp, err := r.client.{{.Get.Method}}(ctx{{if not .Singleton}}, id{{end}}).Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
@@ -208,7 +220,7 @@ func (r *Resource) get(ctx context.Context, id string) (*{{$sdk}}.{{.Resource}},
 	return {{if .Get.Response}}out.{{.Get.Response}}{{else}}out{{end}}, nil
 }
 
-func (r *Resource) update(ctx context.Context, id string, body *{{$sdk}}.{{$.Conv.Update.SDK}}{{if not .Replace}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
+func (r *Resource) update(ctx context.Context, id {{.IDGoType}}, body *{{$sdk}}.{{$.Conv.Update.SDK}}{{if not .Replace}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
 	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if not .Singleton}}, id{{end}}).{{.Update.Body}}(*body){{if not .Replace}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
@@ -219,7 +231,7 @@ func (r *Resource) update(ctx context.Context, id string, body *{{$sdk}}.{{$.Con
 	return {{if .Update.Response}}out.{{.Update.Response}}{{else}}out{{end}}, nil
 }
 
-func (r *Resource) delete(ctx context.Context, id string) error {
+func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {
 	_, httpResp, err := r.client.{{.Delete.Method}}(ctx{{if not .Singleton}}, id{{end}}).Execute()
 	return {{$cx}}.{{.NewAPIError}}(httpResp, err)
 }
@@ -239,9 +251,9 @@ func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, state *tfsdk.State
 }
 
 // stateID returns the id in the state.
-func stateID(ctx context.Context, state tfsdk.State) (string, diag.Diagnostics) {
-	var id types.String
+func stateID(ctx context.Context, state tfsdk.State) ({{.IDGoType}}, diag.Diagnostics) {
+	var id types.{{.IDTFType}}
 	diags := state.GetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), &id)
-	return id.ValueString(), diags
+	return id.Value{{.IDTFType}}(), diags
 }
 {{- end}}

@@ -163,6 +163,141 @@ func TestCheckUsesGenerateEligibilityAndWritesNothing(t *testing.T) {
 	}
 }
 
+func TestCheckAndGenerateRejectOptionalResponseID(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("      required: [id, name, enabled]\n"), []byte("      required: [name, enabled]\n"), 1)
+	work := t.TempDir()
+	candidate := filepath.Join(work, "candidate.yaml")
+	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	checkErr := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate})
+	generated := filepath.Join(work, "generated")
+	generateErr := generateFromInput(Options{Resource: "Thing", OutputDir: generated}, input, sdkDir)
+	if checkErr == nil || generateErr == nil || checkErr.Error() != generateErr.Error() {
+		t.Fatalf("check and generate decisions differ:\ncheck: %v\ngenerate: %v", checkErr, generateErr)
+	}
+	var eligibility *EligibilityError
+	if !errors.As(checkErr, &eligibility) || !hasReportCode(eligibility.Report, "RESOURCE_ID_OPTIONAL") {
+		t.Fatalf("check error = %v, want RESOURCE_ID_OPTIONAL", checkErr)
+	}
+	if _, err := os.Stat(generated); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("generated output exists after optional-id rejection: %v", err)
+	}
+}
+
+func TestCheckAndGenerateRejectWrappedResponse(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	input.OpenAPI = wrappedCreateResponse(input.OpenAPI)
+	work := t.TempDir()
+	candidate := filepath.Join(work, "candidate.yaml")
+	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	checkErr := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate})
+	generated := filepath.Join(work, "generated")
+	generateErr := generateFromInput(Options{Resource: "Thing", OutputDir: generated}, input, sdkDir)
+	if checkErr == nil || generateErr == nil || checkErr.Error() != generateErr.Error() {
+		t.Fatalf("check and generate decisions differ:\ncheck: %v\ngenerate: %v", checkErr, generateErr)
+	}
+	var eligibility *EligibilityError
+	if !errors.As(checkErr, &eligibility) || !hasReportCode(eligibility.Report, "RESPONSE_WRAPPER_UNSUPPORTED") {
+		t.Fatalf("check error = %v, want RESPONSE_WRAPPER_UNSUPPORTED", checkErr)
+	}
+	if _, err := os.Stat(generated); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("generated output exists after wrapper rejection: %v", err)
+	}
+}
+
+func TestIntegerResourceIDs(t *testing.T) {
+	tests := []struct {
+		format string
+		goType string
+		tfType string
+		bits   string
+	}{
+		{format: "int32", goType: "int32", tfType: "Int32", bits: "32"},
+		{format: "int64", goType: "int64", tfType: "Int64", bits: "64"},
+	}
+	for _, test := range tests {
+		t.Run(test.format, func(t *testing.T) {
+			input, loadDir := copiedSyntheticInput(t)
+			input.OpenAPI = integerIDOpenAPI(t, input.OpenAPI, test.format)
+			candidate := filepath.Join(t.TempDir(), "candidate.yaml")
+			if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate}); err != nil {
+				t.Fatalf("check rejected %s ID: %v", test.format, err)
+			}
+
+			sdkPath := filepath.Join(input.SDKDir, "go", "openapi", "gen", "things_service", "things.go")
+			sdk, err := os.ReadFile(sdkPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sdk = bytes.Replace(sdk, []byte("Id        *string"), []byte("Id        *"+test.goType), 1)
+			sdk = bytes.ReplaceAll(sdk, []byte("id string"), []byte("id "+test.goType))
+			if err := os.WriteFile(sdkPath, sdk, 0o644); err != nil {
+				t.Fatal(err)
+			}
+
+			out := filepath.Join(t.TempDir(), "thing")
+			if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
+				t.Fatal(err)
+			}
+			schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, fragment := range []string{
+				"schema." + test.tfType + "Attribute",
+				strings.ToLower(test.tfType) + "planmodifier.UseStateForUnknown()",
+			} {
+				if !bytes.Contains(schema, []byte(fragment)) {
+					t.Errorf("schema.go lacks %q", fragment)
+				}
+			}
+			for _, fragment := range []string{
+				"strconv.ParseInt(req.ID, 10, " + test.bits + ")",
+				"func (r *Resource) get(ctx context.Context, id " + test.goType + ")",
+				"var id types." + test.tfType,
+				"return id.Value" + test.tfType + "(), diags",
+			} {
+				if !bytes.Contains(resource, []byte(fragment)) {
+					t.Errorf("resource.go lacks %q", fragment)
+				}
+			}
+			compileGenerated(t, out, input)
+		})
+	}
+}
+
+func wrappedCreateResponse(spec []byte) []byte {
+	value := strings.Replace(string(spec), "$ref: '#/components/schemas/Thing'", "$ref: '#/components/schemas/CreateThingResponse'", 1)
+	value = strings.Replace(value, "    DeleteThingResponse:\n", "    CreateThingResponse:\n      type: object\n      required: [thing]\n      properties:\n        thing:\n          $ref: '#/components/schemas/Thing'\n    DeleteThingResponse:\n", 1)
+	return []byte(value)
+}
+
+func integerIDOpenAPI(t *testing.T, spec []byte, format string) []byte {
+	t.Helper()
+	value := string(spec)
+	pathID := "        schema:\n          type: string\n    get:\n"
+	pathIntegerID := fmt.Sprintf("        schema:\n          type: integer\n          format: %s\n    get:\n", format)
+	value = strings.Replace(value, pathID, pathIntegerID, 1)
+	responseID := "        id:\n          type: string\n          description: The server-assigned identifier.\n"
+	responseIntegerID := fmt.Sprintf("        id:\n          type: integer\n          format: %s\n          description: The server-assigned identifier.\n", format)
+	value = strings.Replace(value, responseID, responseIntegerID, 1)
+	if !strings.Contains(value, pathIntegerID) || !strings.Contains(value, responseIntegerID) {
+		t.Fatalf("cannot convert synthetic ID to %s", format)
+	}
+	return []byte(value)
+}
+
 func TestCheckAcceptsEligibleCandidateWithoutWriting(t *testing.T) {
 	input, _ := syntheticInput(t)
 	work := t.TempDir()
@@ -513,6 +648,37 @@ func TestOptionalOneOfUsesNestedValidators(t *testing.T) {
 	}
 }
 
+func TestComputedObjectDescendantsAreComputed(t *testing.T) {
+	leaf := &model.Type{Kind: model.Object, Schema: "ServerLeaf", Fields: []*model.Field{{
+		Name: "code", Type: &model.Type{Kind: model.String, MinLength: int64Pointer(1)}, Attrs: model.Attrs{Required: true},
+	}}}
+	details := &model.Type{Kind: model.Object, Schema: "ServerDetails", Fields: []*model.Field{
+		{Name: "state", Type: &model.Type{Kind: model.String, MinLength: int64Pointer(1)}, Attrs: model.Attrs{Required: true}},
+		{Name: "items", Type: &model.Type{Kind: model.List, Elem: leaf, MinItems: int64Pointer(1)}, Attrs: model.Attrs{Required: true}},
+		{Name: "byKey", Type: &model.Type{Kind: model.Map, Elem: leaf}, Attrs: model.Attrs{Required: true}},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{{
+		Name: "details", Type: details, Behavior: model.Computed, Get: &model.Attrs{Required: true}, InGet: true,
+	}}}
+	data, err := buildTFResource(resource, "thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertComputedTree(t, data.Attributes[0])
+}
+
+func assertComputedTree(t *testing.T, attr *tfAttr) {
+	t.Helper()
+	if attr.Required || attr.Optional || !attr.Computed || len(attr.Validators) != 0 {
+		t.Errorf("%s flags=(required=%t optional=%t computed=%t) validators=%v, want computed-only without validators", attr.Name, attr.Required, attr.Optional, attr.Computed, attr.Validators)
+	}
+	for _, child := range attr.Attributes {
+		assertComputedTree(t, child)
+	}
+}
+
+func int64Pointer(value int64) *int64 { return &value }
+
 func TestGeneratedRuntimeSemantics(t *testing.T) {
 	input, loadDir := syntheticInput(t)
 	out := filepath.Join(t.TempDir(), "thing")
@@ -526,6 +692,11 @@ func TestGeneratedRuntimeSemantics(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
 		t.Fatal(err)
 	}
+	compileGenerated(t, out, input)
+}
+
+func compileGenerated(t *testing.T, out string, input source.Input) {
+	t.Helper()
 	module := fmt.Sprintf(`module github.com/coralogix/terraform-provider-coralogix/generated-test
 
 go 1.26.0
