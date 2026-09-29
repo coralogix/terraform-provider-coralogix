@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"unicode"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
@@ -502,17 +501,5 @@ func formatInt(f float64) string   { return strconv.FormatInt(int64(f), 10) }
 
 // tfName is the Terraform name for a property name: "sqlReadOnly" → "sql_read_only".
 func tfName(property string) string {
-	var b strings.Builder
-	runes := []rune(property)
-	for i, r := range runes {
-		if unicode.IsUpper(r) && i > 0 {
-			prevLower := !unicode.IsUpper(runes[i-1])
-			nextLower := i+1 < len(runes) && unicode.IsLower(runes[i+1])
-			if prevLower || nextLower {
-				b.WriteByte('_')
-			}
-		}
-		b.WriteRune(unicode.ToLower(r))
-	}
-	return b.String()
+	return model.TerraformName(property)
 }

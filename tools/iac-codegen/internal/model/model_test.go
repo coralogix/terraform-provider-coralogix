@@ -50,6 +50,35 @@ func TestResolveResourceName(t *testing.T) {
 	}
 }
 
+func TestTerraformNameKeepsAcronymsTogether(t *testing.T) {
+	for input, want := range map[string]string{
+		"HTTPServer":  "http_server",
+		"httpServer":  "http_server",
+		"sqlReadOnly": "sql_read_only",
+	} {
+		if got := TerraformName(input); got != want {
+			t.Errorf("TerraformName(%q) = %q, want %q", input, got, want)
+		}
+	}
+}
+
+func TestAcronymTerraformNameCollisionIsIneligible(t *testing.T) {
+	doc := loadComponent(t, `
+    Collision:
+      type: object
+      properties:
+        HTTPServer: {type: string}
+        httpServer: {type: string}
+`)
+	typeValue, problems := Survey(doc, "Collision")
+	if len(problems) != 0 {
+		t.Fatal(problems)
+	}
+	if codes := reportCodes(nameCollisions("components.schemas.Collision", typeValue)); !slices.Contains(codes, "TERRAFORM_NAME_COLLISION") {
+		t.Fatalf("codes %v do not contain TERRAFORM_NAME_COLLISION", codes)
+	}
+}
+
 func TestPresenceContract(t *testing.T) {
 	data := validSpec(t)
 	doc, err := Load(data)
