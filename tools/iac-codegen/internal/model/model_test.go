@@ -79,6 +79,26 @@ func TestAcronymTerraformNameCollisionIsIneligible(t *testing.T) {
 	}
 }
 
+func TestGoNameCollisionIsIneligible(t *testing.T) {
+	doc := loadComponent(t, `
+    Collision:
+      type: object
+      properties:
+        foo-bar: {type: string}
+        foo_bar: {type: string}
+`)
+	typeValue, problems := Survey(doc, "Collision")
+	if len(problems) != 0 {
+		t.Fatal(problems)
+	}
+	if codes := reportCodes(nameCollisions("components.schemas.Collision", typeValue)); !slices.Contains(codes, "GO_NAME_COLLISION") {
+		t.Fatalf("codes %v do not contain GO_NAME_COLLISION", codes)
+	}
+	if GoName("foo-bar") != "FooBar" || GoName("foo_bar") != "FooBar" {
+		t.Fatal("GoName does not match generated field naming")
+	}
+}
+
 func TestPresenceContract(t *testing.T) {
 	data := validSpec(t)
 	doc, err := Load(data)

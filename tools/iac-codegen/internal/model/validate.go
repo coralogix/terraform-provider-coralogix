@@ -744,13 +744,20 @@ func nameCollisions(location string, t *Type) issue.Report {
 	if t.Kind != Object && t.Kind != OneOf {
 		return nil
 	}
-	seen := map[string]string{}
+	terraformNames := map[string]string{}
+	goNames := map[string]string{}
 	for _, field := range t.Fields {
-		name := TerraformName(field.Name)
-		if previous, ok := seen[name]; ok && previous != field.Name {
-			report = append(report, issue.Issue{Code: "TERRAFORM_NAME_COLLISION", Location: location, Message: fmt.Sprintf("Fields %q and %q both normalize to %q.", previous, field.Name, name), Remediation: "Rename a source API field so every Terraform name is unique."})
+		terraformName := TerraformName(field.Name)
+		if previous, ok := terraformNames[terraformName]; ok && previous != field.Name {
+			report = append(report, issue.Issue{Code: "TERRAFORM_NAME_COLLISION", Location: location, Message: fmt.Sprintf("Fields %q and %q both normalize to %q.", previous, field.Name, terraformName), Remediation: "Rename a source API field so every Terraform name is unique."})
 		} else {
-			seen[name] = field.Name
+			terraformNames[terraformName] = field.Name
+		}
+		goName := GoName(field.Name)
+		if previous, ok := goNames[goName]; ok && previous != field.Name {
+			report = append(report, issue.Issue{Code: "GO_NAME_COLLISION", Location: location, Message: fmt.Sprintf("Fields %q and %q both generate the Go name %q.", previous, field.Name, goName), Remediation: "Rename a source API field so every generated Go field name is unique."})
+		} else {
+			goNames[goName] = field.Name
 		}
 		report = append(report, nameCollisions(location+"."+field.Name, field.Type)...)
 	}
@@ -772,6 +779,18 @@ func TerraformName(name string) string {
 			}
 		}
 		out.WriteRune(unicode.ToLower(r))
+	}
+	return out.String()
+}
+
+// GoName converts an OpenAPI name to the exact Go name used by SDK and model
+// field rendering: foo-bar and foo_bar both become FooBar.
+func GoName(name string) string {
+	var out strings.Builder
+	for part := range strings.FieldsFuncSeq(name, func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	}) {
+		out.WriteString(strings.ToUpper(part[:1]) + part[1:])
 	}
 	return out.String()
 }
