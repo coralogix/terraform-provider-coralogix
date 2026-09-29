@@ -63,6 +63,30 @@ func TestGoldenOutput(t *testing.T) {
 	}
 }
 
+func TestGoldenCanonicalAPIContract(t *testing.T) {
+	schemaData, err := os.ReadFile(filepath.Join("testdata", "golden", "thing", "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	schemaText := string(schemaData)
+	for _, fragment := range []string{
+		`"description": schema.StringAttribute{`,
+		`serverDefaultModifier{value: types.BoolValue(true)}`,
+		`stringvalidator.OneOf("THING_KIND_STANDARD", "THING_KIND_ADVANCED")`,
+		`stringplanmodifier.RequiresReplace()`,
+		`"config": schema.SingleNestedAttribute{`,
+		`objectvalidator.ExactlyOneOf`,
+		`"destinations": schema.ListAttribute{`,
+		`"tags": schema.SetAttribute{`,
+		`"create_time": schema.StringAttribute{`,
+		`"update_time": schema.StringAttribute{`,
+	} {
+		if !strings.Contains(schemaText, fragment) {
+			t.Errorf("canonical golden schema lacks %q", fragment)
+		}
+	}
+}
+
 func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	out := filepath.Join(t.TempDir(), "thing")
@@ -165,7 +189,7 @@ func TestCheckUsesGenerateEligibilityAndWritesNothing(t *testing.T) {
 
 func TestCheckAndGenerateRejectOptionalResponseID(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
-	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("      required: [id, name, enabled]\n"), []byte("      required: [name, enabled]\n"), 1)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("      required: [id, name, enabled, kind, config, createTime, updateTime]\n"), []byte("      required: [name, enabled, kind, config, createTime, updateTime]\n"), 1)
 	work := t.TempDir()
 	candidate := filepath.Join(work, "candidate.yaml")
 	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
@@ -259,7 +283,7 @@ func TestIntegerResourceIDs(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			sdk = bytes.Replace(sdk, []byte("Id        *string"), []byte("Id        *"+test.goType), 1)
+			sdk = bytes.Replace(sdk, []byte("Id           *string"), []byte("Id           *"+test.goType), 1)
 			sdk = bytes.ReplaceAll(sdk, []byte("id string"), []byte("id "+test.goType))
 			if err := os.WriteFile(sdkPath, sdk, 0o644); err != nil {
 				t.Fatal(err)
@@ -324,12 +348,12 @@ func integerIDOpenAPI(t *testing.T, spec []byte, format string) []byte {
 func optionalCreateRequiredUpdateOpenAPI(t *testing.T, spec []byte) []byte {
 	t.Helper()
 	value := strings.Replace(string(spec),
-		"              required: [name]\n              properties:\n                name:\n                  type: string\n",
-		"              properties:\n                name:\n                  type: string\n                  x-coralogix-presence: true\n", 1)
+		"              required: [name, kind, config]\n              properties:\n                name:\n                  type: string\n",
+		"              required: [kind, config]\n              properties:\n                name:\n                  type: string\n                  x-coralogix-presence: true\n", 1)
 	value = strings.Replace(value,
 		"              title: UpdateThingRequest\n              type: object\n              properties:\n",
 		"              title: UpdateThingRequest\n              type: object\n              required: [name]\n              properties:\n", 1)
-	value = strings.Replace(value, "      required: [id, name, enabled]\n", "      required: [id, enabled]\n", 1)
+	value = strings.Replace(value, "      required: [id, name, enabled, kind, config, createTime, updateTime]\n", "      required: [id, enabled, kind, config, createTime, updateTime]\n", 1)
 	if !strings.Contains(value, "title: UpdateThingRequest\n              type: object\n              required: [name]") {
 		t.Fatal("cannot build requiredness fixture")
 	}
@@ -392,6 +416,8 @@ func TestCheckRejectsRendererUnsupportedShapes(t *testing.T) {
 		"invalid generated identifier": {invalidGeneratedIdentifierSpec(t, base), "RENDERER_OUTPUT_INVALID"},
 		"acronym name collision":       {acronymNameCollisionSpec(t, base), "TERRAFORM_NAME_COLLISION"},
 		"Go field name collision":      {goNameCollisionSpec(t, base), "GO_NAME_COLLISION"},
+		"Go component name collision":  {goComponentNameCollisionSpec(t, base), "GO_COMPONENT_NAME_COLLISION"},
+		"unbounded uint64":             {unboundedUint64Spec(base), "UINT64_RANGE_UNSUPPORTED"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -453,6 +479,11 @@ func requestDateTimeSpec(spec string) string {
 	return strings.Replace(spec, "        name:\n          type: string", "        name:\n          type: string\n          format: date-time", 1)
 }
 
+func unboundedUint64Spec(spec string) string {
+	spec = strings.ReplaceAll(spec, "                name:\n                  type: string", "                name:\n                  type: string\n                  format: uint64")
+	return strings.Replace(spec, "        name:\n          type: string", "        name:\n          type: string\n          format: uint64", 1)
+}
+
 func setOfObjectsSpec(spec string) string {
 	spec = strings.ReplaceAll(spec, "x-coralogix-collection: set\n                  x-coralogix-presence: true\n                  items: {type: string}", "x-coralogix-collection: set\n                  x-coralogix-presence: true\n                  items: {$ref: '#/components/schemas/Detail'}")
 	spec = strings.Replace(spec, "x-coralogix-collection: set\n          items: {type: string}", "x-coralogix-collection: set\n          items: {$ref: '#/components/schemas/Detail'}", 1)
@@ -497,6 +528,23 @@ func goNameCollisionSpec(t *testing.T, spec string) string {
 	field := "        name:\n          type: string\n          description: The display name."
 	fields := field + "\n        foo-bar:\n          type: string\n        foo_bar:\n          type: string"
 	return replaceAfter(t, spec, "    Thing:", field, fields)
+}
+
+func goComponentNameCollisionSpec(t *testing.T, spec string) string {
+	t.Helper()
+	field := "        name:\n          type: string\n          description: The display name."
+	fields := field + "\n        firstDetail:\n          $ref: '#/components/schemas/FooBar'\n        secondDetail:\n          $ref: '#/components/schemas/fooBar'"
+	spec = replaceAfter(t, spec, "    Thing:", field, fields)
+	return spec + `
+    FooBar:
+      type: object
+      properties:
+        value: {type: string}
+    fooBar:
+      type: object
+      properties:
+        value: {type: string}
+`
 }
 
 func replaceAfter(t *testing.T, value, marker, old, replacement string) string {
@@ -663,7 +711,7 @@ func TestDeclaredServerDefaultIsOptionalComputed(t *testing.T) {
 		t.Fatal(err)
 	}
 	start := bytes.Index(schema, []byte("\"enabled\": schema.BoolAttribute{"))
-	end := bytes.Index(schema, []byte("\"count\": schema.Int64Attribute{"))
+	end := bytes.Index(schema, []byte("\"kind\": schema.StringAttribute{"))
 	if start < 0 || end <= start {
 		t.Fatalf("cannot find enabled attribute in schema:\n%s", schema)
 	}
@@ -674,7 +722,7 @@ func TestDeclaredServerDefaultIsOptionalComputed(t *testing.T) {
 	if bytes.Contains(enabled, []byte("Default:")) {
 		t.Fatal("schema renders a Terraform static default")
 	}
-	if !bytes.Contains(enabled, []byte("serverDefaultModifier{value: types.BoolValue(false)}")) {
+	if !bytes.Contains(enabled, []byte("serverDefaultModifier{value: types.BoolValue(true)}")) {
 		t.Fatal("schema does not render server-default reset planning")
 	}
 }
@@ -792,7 +840,7 @@ func TestSDKIssuesAreAggregated(t *testing.T) {
 		t.Fatal(err)
 	}
 	data = bytes.ReplaceAll(data, []byte("Enabled"), []byte("MissingEnabled"))
-	data = bytes.ReplaceAll(data, []byte("Count"), []byte("MissingCount"))
+	data = bytes.ReplaceAll(data, []byte("Destinations"), []byte("MissingDestinations"))
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		t.Fatal(err)
 	}

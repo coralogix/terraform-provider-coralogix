@@ -19,9 +19,6 @@ func TestScalarPresence(t *testing.T) {
 	if got := expandBool(types.BoolValue(false)); got == nil || *got {
 		t.Fatalf("explicit false = %v", got)
 	}
-	if got := expandInt64(types.Int64Value(0)); got == nil || *got != 0 {
-		t.Fatalf("explicit zero = %v", got)
-	}
 	if got := expandString(types.StringValue("")); got == nil || *got != "" {
 		t.Fatalf("explicit empty string = %v", got)
 	}
@@ -56,45 +53,38 @@ func TestOptionalGetPresenceRoundTrips(t *testing.T) {
 	ctx := context.Background()
 	var diags diag.Diagnostics
 	omitted := flattenThing(ctx, path.Root("thing"), &things_service.Thing{}, &diags)
-	if !omitted.Count.IsNull() || !omitted.Ordered.IsNull() || !omitted.Unordered.IsNull() || !omitted.Labels.IsNull() {
+	if !omitted.Description.IsNull() || !omitted.Destinations.IsNull() || !omitted.Tags.IsNull() || !omitted.Labels.IsNull() {
 		t.Fatalf("omitted optional fields = %#v, want null values", omitted)
 	}
 
-	zero := int64(0)
+	emptyDescription := ""
 	explicit := flattenThing(ctx, path.Root("thing"), &things_service.Thing{
-		Count:     &zero,
-		Ordered:   []string{},
-		Unordered: []string{},
-		Labels:    map[string]string{},
+		Description:  &emptyDescription,
+		Destinations: []string{},
+		Tags:         []string{},
+		Labels:       map[string]string{},
 	}, &diags)
-	if explicit.Count.IsNull() || explicit.Count.ValueInt64() != 0 || explicit.Ordered.IsNull() || explicit.Unordered.IsNull() || explicit.Labels.IsNull() {
-		t.Fatalf("explicit zero and empty fields = %#v, want present values", explicit)
+	if explicit.Description.IsNull() || explicit.Description.ValueString() != "" || explicit.Destinations.IsNull() || explicit.Tags.IsNull() || explicit.Labels.IsNull() {
+		t.Fatalf("explicit empty fields = %#v, want present values", explicit)
 	}
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
 
-	values := map[string]attr.Value{
-		"name":      types.StringNull(),
-		"enabled":   types.BoolNull(),
-		"count":     types.Int64Null(),
-		"ordered":   types.ListNull(types.StringType),
-		"unordered": types.SetNull(types.StringType),
-		"labels":    types.MapNull(types.StringType),
-	}
+	values := requestValues()
 	state := cloneValues(values)
-	state["count"] = types.Int64Value(0)
+	state["description"] = types.StringValue("old description")
 	mask, updateDiags := updateMask(context.Background(), fakeData{values}, fakeData{values}, fakeData{state})
 	body, bodyDiags := expandUpdate(context.Background(), &ThingModel{
-		Name:      types.StringNull(),
-		Enabled:   types.BoolNull(),
-		Count:     types.Int64Null(),
-		Ordered:   types.ListNull(types.StringType),
-		Unordered: types.SetNull(types.StringType),
-		Labels:    types.MapNull(types.StringType),
+		Name:         types.StringNull(),
+		Description:  types.StringNull(),
+		Enabled:      types.BoolNull(),
+		Destinations: types.ListNull(types.StringType),
+		Tags:         types.SetNull(types.StringType),
+		Labels:       types.MapNull(types.StringType),
 	})
 	updateDiags.Append(bodyDiags...)
-	if updateDiags.HasError() || body == nil || body.Count != nil || len(mask) != 1 || mask[0] != "count" {
+	if updateDiags.HasError() || body == nil || body.Description != nil || len(mask) != 1 || mask[0] != "description" {
 		t.Fatalf("cleared optional field = body %#v, mask %v, diagnostics %v", body, mask, updateDiags)
 	}
 }
@@ -108,19 +98,19 @@ func TestCollectionPresenceAndStability(t *testing.T) {
 func testListPresenceAndOrder(t *testing.T) {
 	ctx := context.Background()
 	var diags diag.Diagnostics
-	if got := expandStrings[string](ctx, path.Root("ordered"), types.ListNull(types.StringType), &diags); got != nil {
+	if got := expandStrings[string](ctx, path.Root("destinations"), types.ListNull(types.StringType), &diags); got != nil {
 		t.Fatalf("null list = %#v", got)
 	}
-	if got := expandStrings[string](ctx, path.Root("ordered"), types.ListUnknown(types.StringType), &diags); got != nil {
+	if got := expandStrings[string](ctx, path.Root("destinations"), types.ListUnknown(types.StringType), &diags); got != nil {
 		t.Fatalf("unknown list = %#v", got)
 	}
 	empty := types.ListValueMust(types.StringType, nil)
-	if got := expandStrings[string](ctx, path.Root("ordered"), empty, &diags); got == nil || len(got) != 0 {
+	if got := expandStrings[string](ctx, path.Root("destinations"), empty, &diags); got == nil || len(got) != 0 {
 		t.Fatalf("empty list = %#v", got)
 	}
-	ordered := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("b"), types.StringValue("a")})
-	if got := expandStrings[string](ctx, path.Root("ordered"), ordered, &diags); len(got) != 2 || got[0] != "b" || got[1] != "a" {
-		t.Fatalf("ordered list = %#v", got)
+	destinations := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("b"), types.StringValue("a")})
+	if got := expandStrings[string](ctx, path.Root("destinations"), destinations, &diags); len(got) != 2 || got[0] != "b" || got[1] != "a" {
+		t.Fatalf("destinations list = %#v", got)
 	}
 	if diags.HasError() {
 		t.Fatal(diags)
@@ -139,7 +129,7 @@ func testSetStability(t *testing.T) {
 	if duplicateDiags.HasError() {
 		t.Fatalf("duplicate set = %#v, %v", duplicate, duplicateDiags)
 	}
-	if got := expandStringsSet[string](ctx, path.Root("unordered"), duplicate, &diags); len(got) != 1 || got[0] != "a" {
+	if got := expandStringsSet[string](ctx, path.Root("tags"), duplicate, &diags); len(got) != 1 || got[0] != "a" {
 		t.Fatalf("expanded duplicate set = %#v", got)
 	}
 	if diags.HasError() {
@@ -184,14 +174,7 @@ func TestUpdateClearArmSwitchAndNoOp(t *testing.T) {
 		t.Fatalf("arm-switch mask = %v", got)
 	}
 
-	values := map[string]attr.Value{
-		"name":      types.StringNull(),
-		"enabled":   types.BoolNull(),
-		"count":     types.Int64Null(),
-		"ordered":   types.ListNull(types.StringType),
-		"unordered": types.SetNull(types.StringType),
-		"labels":    types.MapNull(types.StringType),
-	}
+	values := requestValues()
 	data := fakeData{values: values}
 	body, mask, diags := updateRequest(context.Background(), data, data, data)
 	if diags.HasError() || body != nil || mask != "" {
@@ -200,27 +183,21 @@ func TestUpdateClearArmSwitchAndNoOp(t *testing.T) {
 }
 
 func TestServerDefaultResetAndUnknownGuard(t *testing.T) {
-	if unknown, preserve := serverDefaultPlan(types.BoolNull(), types.BoolValue(true), types.BoolValue(false)); !unknown || preserve {
+	if unknown, preserve := serverDefaultPlan(types.BoolNull(), types.BoolValue(false), types.BoolValue(true)); !unknown || preserve {
 		t.Fatalf("removed override = unknown %t, preserve %t", unknown, preserve)
 	}
-	if unknown, preserve := serverDefaultPlan(types.BoolNull(), types.BoolValue(false), types.BoolValue(false)); unknown || !preserve {
+	if unknown, preserve := serverDefaultPlan(types.BoolNull(), types.BoolValue(true), types.BoolValue(true)); unknown || !preserve {
 		t.Fatalf("settled default = unknown %t, preserve %t", unknown, preserve)
 	}
-	if unknown, preserve := serverDefaultPlan(types.BoolUnknown(), types.BoolValue(true), types.BoolValue(false)); unknown || preserve {
+	if unknown, preserve := serverDefaultPlan(types.BoolUnknown(), types.BoolValue(false), types.BoolValue(true)); unknown || preserve {
 		t.Fatalf("unknown configuration = unknown %t, preserve %t", unknown, preserve)
 	}
 
-	base := map[string]attr.Value{
-		"name":      types.StringNull(),
-		"count":     types.Int64Null(),
-		"ordered":   types.ListNull(types.StringType),
-		"unordered": types.SetNull(types.StringType),
-		"labels":    types.MapNull(types.StringType),
-	}
+	base := requestValues()
 	config, plan, state := cloneValues(base), cloneValues(base), cloneValues(base)
 	config["enabled"] = types.BoolNull()
 	plan["enabled"] = types.BoolUnknown()
-	state["enabled"] = types.BoolValue(true)
+	state["enabled"] = types.BoolValue(false)
 	mask, diags := updateMask(context.Background(), fakeData{config}, fakeData{plan}, fakeData{state})
 	if diags.HasError() || len(mask) != 1 || mask[0] != "enabled" {
 		t.Fatalf("server-default reset mask = %v, %v", mask, diags)
@@ -234,10 +211,26 @@ func TestServerDefaultResetAndUnknownGuard(t *testing.T) {
 
 	createConfig, createPlan := cloneValues(base), cloneValues(base)
 	createConfig["name"], createPlan["name"] = types.StringUnknown(), types.StringUnknown()
-	createConfig["count"], createPlan["count"] = types.Int64Unknown(), types.Int64Unknown()
+	createConfig["description"], createPlan["description"] = types.StringUnknown(), types.StringUnknown()
 	createConfig["enabled"], createPlan["enabled"] = types.BoolNull(), types.BoolUnknown()
 	if diags := validateCreate(context.Background(), fakeData{createConfig}, fakeData{createPlan}); !diags.HasError() || len(diags) != 2 {
 		t.Fatalf("unknown Create diagnostics = %v, want two errors", diags)
+	}
+}
+
+func requestValues() map[string]attr.Value {
+	httpType := types.ObjectType{AttrTypes: map[string]attr.Type{"endpoint": types.StringType}}
+	queueType := types.ObjectType{AttrTypes: map[string]attr.Type{"topic": types.StringType}}
+	configType := map[string]attr.Type{"http": httpType, "queue": queueType}
+	return map[string]attr.Value{
+		"name":         types.StringNull(),
+		"description":  types.StringNull(),
+		"enabled":      types.BoolNull(),
+		"kind":         types.StringNull(),
+		"config":       types.ObjectNull(configType),
+		"destinations": types.ListNull(types.StringType),
+		"tags":         types.SetNull(types.StringType),
+		"labels":       types.MapNull(types.StringType),
 	}
 }
 

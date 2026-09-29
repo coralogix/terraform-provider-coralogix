@@ -52,6 +52,7 @@ func Validate(doc *v3.Document, name string, ids OperationIDs) issue.Report {
 	}
 	if t != nil {
 		report = append(report, nameCollisions("components.schemas."+name, t)...)
+		report = append(report, componentNameCollisions(t)...)
 	}
 	if len(ops) == len(verbs) {
 		report = append(report, validateFieldContracts(name, ops)...)
@@ -764,6 +765,40 @@ func nameCollisions(location string, t *Type) issue.Report {
 	return report
 }
 
+func componentNameCollisions(root *Type) issue.Report {
+	generatedNames := map[string]string{}
+	visitedSchemas := map[string]bool{}
+	visitedTypes := map[*Type]bool{}
+	var report issue.Report
+	var walk func(*Type)
+	walk = func(t *Type) {
+		if t == nil || visitedTypes[t] {
+			return
+		}
+		visitedTypes[t] = true
+		if t.Schema != "" && !visitedSchemas[t.Schema] {
+			visitedSchemas[t.Schema] = true
+			generated := GoName(t.Schema)
+			if previous, ok := generatedNames[generated]; ok && previous != t.Schema {
+				report = append(report, issue.Issue{
+					Code:        "GO_COMPONENT_NAME_COLLISION",
+					Location:    "components.schemas",
+					Message:     fmt.Sprintf("Components %q and %q both generate the Go name %q.", previous, t.Schema, generated),
+					Remediation: "Rename a source API component so every generated Go type name is unique.",
+				})
+			} else {
+				generatedNames[generated] = t.Schema
+			}
+		}
+		walk(t.Elem)
+		for _, field := range t.Fields {
+			walk(field.Type)
+		}
+	}
+	walk(root)
+	return report
+}
+
 // TerraformName converts an OpenAPI name to the exact Terraform name used by
 // validation and rendering. Acronym runs stay together: HTTPServer becomes
 // http_server.
@@ -809,6 +844,8 @@ func schemaIssue(err error) issue.Issue {
 		code = "OBJECT_PROPERTY_COUNT_UNSUPPORTED"
 	case strings.Contains(message, "exclusiveMinimum") || strings.Contains(message, "exclusiveMaximum"):
 		code = "NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED"
+	case strings.Contains(message, "uint64") && strings.Contains(message, "Terraform Int64"):
+		code = "UINT64_RANGE_UNSUPPORTED"
 	case strings.Contains(message, "nullable"):
 		code = "FIELD_NULLABILITY_AMBIGUOUS"
 	case strings.Contains(message, "$ref") || strings.Contains(message, "reference"):

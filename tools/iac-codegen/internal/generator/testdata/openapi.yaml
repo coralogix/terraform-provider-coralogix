@@ -14,23 +14,26 @@ paths:
             schema:
               title: CreateThingRequest
               type: object
-              required: [name]
+              required: [name, kind, config]
               properties:
                 name:
                   type: string
+                description:
+                  type: string
+                  x-coralogix-presence: true
                 enabled:
                   type: boolean
-                  default: false
+                  default: true
                   x-coralogix-presence: true
-                count:
-                  type: integer
-                  format: int64
-                  x-coralogix-presence: true
-                ordered:
+                kind:
+                  $ref: '#/components/schemas/ThingKind'
+                config:
+                  $ref: '#/components/schemas/ThingConfig'
+                destinations:
                   type: array
                   x-coralogix-presence: true
                   items: {type: string}
-                unordered:
+                tags:
                   type: array
                   uniqueItems: true
                   x-coralogix-collection: set
@@ -85,19 +88,22 @@ paths:
                 name:
                   type: string
                   x-coralogix-presence: true
+                description:
+                  type: string
+                  x-coralogix-presence: true
                 enabled:
                   type: boolean
-                  default: false
+                  default: true
                   x-coralogix-presence: true
-                count:
-                  type: integer
-                  format: int64
+                config:
                   x-coralogix-presence: true
-                ordered:
+                  allOf:
+                    - $ref: '#/components/schemas/ThingConfig'
+                destinations:
                   type: array
                   x-coralogix-presence: true
                   items: {type: string}
-                unordered:
+                tags:
                   type: array
                   uniqueItems: true
                   x-coralogix-collection: set
@@ -128,7 +134,7 @@ components:
   schemas:
     Thing:
       type: object
-      required: [id, name, enabled]
+      required: [id, name, enabled, kind, config, createTime, updateTime]
       properties:
         id:
           type: string
@@ -136,26 +142,62 @@ components:
         name:
           type: string
           description: The display name.
+        description:
+          type: string
+          description: An optional description that can be cleared.
         enabled:
           type: boolean
           description: Whether the thing is enabled.
-        count:
-          type: integer
-          format: int64
-          description: A signed counter.
-        ordered:
+        kind:
+          $ref: '#/components/schemas/ThingKind'
+        config:
+          $ref: '#/components/schemas/ThingConfig'
+        destinations:
           type: array
           items: {type: string}
-          description: Ordered values.
-        unordered:
+          description: Ordered destinations.
+        tags:
           type: array
           uniqueItems: true
           x-coralogix-collection: set
           items: {type: string}
-          description: Unordered unique values.
+          description: Unordered unique tags.
         labels:
           type: object
           additionalProperties: {type: string}
           description: String labels by key.
+        createTime:
+          type: string
+          format: date-time
+          description: The server-generated creation time.
+        updateTime:
+          type: string
+          format: date-time
+          description: The server-generated update time.
+    ThingKind:
+      type: string
+      enum: [THING_KIND_UNSPECIFIED, THING_KIND_STANDARD, THING_KIND_ADVANCED]
+    ThingConfig:
+      type: object
+      properties:
+        http:
+          $ref: '#/components/schemas/HttpThingConfig'
+        queue:
+          $ref: '#/components/schemas/QueueThingConfig'
+      oneOf:
+        - required: [http]
+        - required: [queue]
+    HttpThingConfig:
+      type: object
+      required: [endpoint]
+      properties:
+        endpoint:
+          type: string
+    QueueThingConfig:
+      type: object
+      required: [topic]
+      properties:
+        topic:
+          type: string
     DeleteThingResponse:
       type: object

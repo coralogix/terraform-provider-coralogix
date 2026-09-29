@@ -99,6 +99,55 @@ func TestGoNameCollisionIsIneligible(t *testing.T) {
 	}
 }
 
+func TestComponentGoNameCollisionIsIneligible(t *testing.T) {
+	doc := loadComponent(t, `
+    Root:
+      type: object
+      properties:
+        first: {$ref: '#/components/schemas/FooBar'}
+        second: {$ref: '#/components/schemas/fooBar'}
+    FooBar:
+      type: object
+      properties:
+        value: {type: string}
+    fooBar:
+      type: object
+      properties:
+        value: {type: string}
+`)
+	typeValue, problems := Survey(doc, "Root")
+	if len(problems) != 0 {
+		t.Fatal(problems)
+	}
+	if codes := reportCodes(componentNameCollisions(typeValue)); !slices.Contains(codes, "GO_COMPONENT_NAME_COLLISION") {
+		t.Fatalf("codes %v do not contain GO_COMPONENT_NAME_COLLISION", codes)
+	}
+}
+
+func TestUint64RequiresTerraformInt64Bound(t *testing.T) {
+	tests := map[string]struct {
+		maxLength string
+		eligible  bool
+	}{
+		"missing bound": {eligible: false},
+		"18 digits":     {maxLength: "      maxLength: 18\n", eligible: true},
+		"19 digits":     {maxLength: "      maxLength: 19\n", eligible: false},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			doc := loadComponent(t, fmt.Sprintf(`
+    Counter:
+      type: string
+      format: uint64
+%s`, test.maxLength))
+			_, problems := Survey(doc, "Counter")
+			if (len(problems) == 0) != test.eligible {
+				t.Fatalf("problems = %v, eligible = %t", problems, test.eligible)
+			}
+		})
+	}
+}
+
 func TestPresenceContract(t *testing.T) {
 	data := validSpec(t)
 	doc, err := Load(data)
@@ -185,7 +234,7 @@ func TestRequiredLifecycleParametersAreIneligible(t *testing.T) {
 
 func TestServerDefaultContract(t *testing.T) {
 	base := string(validSpec(t))
-	defaultBlock := "                enabled:\n                  type: boolean\n                  default: false\n                  x-coralogix-presence: true"
+	defaultBlock := "                enabled:\n                  type: boolean\n                  default: true\n                  x-coralogix-presence: true"
 	noDefaultBlock := "                enabled:\n                  type: boolean\n                  x-coralogix-presence: true"
 	undeclared := strings.ReplaceAll(base, defaultBlock, noDefaultBlock)
 	doc, err := Load([]byte(undeclared))
@@ -213,7 +262,7 @@ func TestServerDefaultContract(t *testing.T) {
 		t.Fatalf("codes %v do not contain FIELD_DEFAULT_CONTRACT_INCONSISTENT", codes)
 	}
 
-	invalid := strings.ReplaceAll(base, "default: false", "default: not-a-boolean")
+	invalid := strings.ReplaceAll(base, "default: true", "default: not-a-boolean")
 	doc, err = Load([]byte(invalid))
 	if err != nil {
 		t.Fatal(err)
@@ -268,15 +317,23 @@ func TestObjectPropertyCountsAreIneligible(t *testing.T) {
 }
 
 func TestExclusiveNumericBoundsAreIneligible(t *testing.T) {
-	base := string(validSpec(t))
-	for _, bound := range []string{"minimum: 0\n                  exclusiveMinimum: true", "maximum: 10\n                  exclusiveMaximum: true"} {
-		t.Run(bound, func(t *testing.T) {
-			spec := strings.Replace(base, "                  type: integer\n                  format: int64\n", "                  type: integer\n                  format: int64\n                  "+bound+"\n", 1)
-			doc, err := Load([]byte(spec))
-			if err != nil {
-				t.Fatal(err)
+	tests := map[string]string{
+		"exclusive minimum": "      minimum: 0\n      exclusiveMinimum: true\n",
+		"exclusive maximum": "      maximum: 10\n      exclusiveMaximum: true\n",
+	}
+	for name, bound := range tests {
+		t.Run(name, func(t *testing.T) {
+			doc := loadComponent(t, fmt.Sprintf(`
+    Counter:
+      type: integer
+      format: int64
+%s`, bound))
+			_, problems := Survey(doc, "Counter")
+			var report issue.Report
+			for _, problem := range problems {
+				report = append(report, schemaIssue(problem))
 			}
-			if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED") {
+			if codes := reportCodes(report); !slices.Contains(codes, "NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED") {
 				t.Fatalf("codes %v do not contain NUMERIC_EXCLUSIVE_BOUND_UNSUPPORTED", codes)
 			}
 		})
@@ -285,8 +342,8 @@ func TestExclusiveNumericBoundsAreIneligible(t *testing.T) {
 
 func TestRootOneOfMustMatchEveryLifecycle(t *testing.T) {
 	base := string(validSpec(t))
-	group := "\n              oneOf:\n                - required: [count]\n                - required: [ordered]"
-	responseGroup := "\n      oneOf:\n        - required: [count]\n        - required: [ordered]"
+	group := "\n              oneOf:\n                - required: [description]\n                - required: [destinations]"
+	responseGroup := "\n      oneOf:\n        - required: [description]\n        - required: [destinations]"
 	mismatch := strings.Replace(base, "    Thing:\n      type: object", "    Thing:\n      type: object"+responseGroup, 1)
 	doc, err := Load([]byte(mismatch))
 	if err != nil {
@@ -310,7 +367,7 @@ func TestRootOneOfMustMatchEveryLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(resource.Groups) != 1 || !slices.Equal(resource.Groups[0].Arms, []string{"count", "ordered"}) {
+	if len(resource.Groups) != 1 || !slices.Equal(resource.Groups[0].Arms, []string{"description", "destinations"}) {
 		t.Fatalf("root groups = %#v", resource.Groups)
 	}
 }
@@ -448,7 +505,7 @@ func TestUpdateIDInBodyIsIneligible(t *testing.T) {
 }
 
 func TestGetResponseIDMustBeRequired(t *testing.T) {
-	spec := strings.Replace(string(validSpec(t)), "      required: [id, name, enabled]\n", "      required: [name, enabled]\n", 1)
+	spec := strings.Replace(string(validSpec(t)), "      required: [id, name, enabled, kind, config, createTime, updateTime]\n", "      required: [name, enabled, kind, config, createTime, updateTime]\n", 1)
 	doc, err := Load([]byte(spec))
 	if err != nil {
 		t.Fatal(err)
@@ -480,12 +537,12 @@ func TestRequestRequirednessContract(t *testing.T) {
 func optionalCreateRequiredUpdateSpec(t *testing.T, spec string) string {
 	t.Helper()
 	spec = strings.Replace(spec,
-		"              required: [name]\n              properties:\n                name:\n                  type: string\n",
-		"              properties:\n                name:\n                  type: string\n                  x-coralogix-presence: true\n", 1)
+		"              required: [name, kind, config]\n              properties:\n                name:\n                  type: string\n",
+		"              required: [kind, config]\n              properties:\n                name:\n                  type: string\n                  x-coralogix-presence: true\n", 1)
 	spec = strings.Replace(spec,
 		"              title: UpdateThingRequest\n              type: object\n              properties:\n",
 		"              title: UpdateThingRequest\n              type: object\n              required: [name]\n              properties:\n", 1)
-	spec = strings.Replace(spec, "      required: [id, name, enabled]\n", "      required: [id, enabled]\n", 1)
+	spec = strings.Replace(spec, "      required: [id, name, enabled, kind, config, createTime, updateTime]\n", "      required: [id, enabled, kind, config, createTime, updateTime]\n", 1)
 	if !strings.Contains(spec, "title: UpdateThingRequest\n              type: object\n              required: [name]") {
 		t.Fatal("cannot build requiredness fixture")
 	}
