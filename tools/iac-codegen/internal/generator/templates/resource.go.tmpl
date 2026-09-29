@@ -116,6 +116,8 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 	}
 	v, err := r.get(ctx, id)
 	if {{$cx}}.{{.APICode}}(err) == http.StatusNotFound {
+		resp.Diagnostics.AddWarning("Resource disappeared during read",
+			fmt.Sprintf("%s with id %s was not found. Terraform removed it from state.", TypeName, id))
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -207,10 +209,7 @@ func (r *Resource) get(ctx context.Context, id string) (*{{$sdk}}.{{.Resource}},
 }
 
 func (r *Resource) update(ctx context.Context, id string, body *{{$sdk}}.{{$.Conv.Update.SDK}}{{if not .Replace}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
-{{- if .UpdateID}}
-	body.{{.UpdateID}} = {{if not .UpdateIDValue}}&{{end}}id // the Update path has no id, so the body has it
-{{- end}}
-	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if not (or .Singleton .UpdateID)}}, id{{end}}).{{.Update.Body}}(*body){{if not .Replace}}.{{.UpdateMask}}(mask){{end}}.Execute()
+	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if not .Singleton}}, id{{end}}).{{.Update.Body}}(*body){{if not .Replace}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}

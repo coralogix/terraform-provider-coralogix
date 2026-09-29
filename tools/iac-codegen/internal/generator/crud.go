@@ -22,14 +22,9 @@ type crudData struct {
 	// UpdateMask is the SDK request-builder method for the PATCH updateMask
 	// query parameter. It is empty for a full replace.
 	UpdateMask string
-	// UpdateID is the SDK field of the id in the Update body, when the
-	// Update path has no id (E11). UpdateIDValue: it is a string, not a
-	// *string.
-	UpdateID      string
-	UpdateIDValue bool
-	SDKName       string // package name of the resource SDK package
-	Client        string // SDK client type
-	Resource      string // SDK type of the resource
+	SDKName    string // package name of the resource SDK package
+	Client     string // SDK client type
+	Resource   string // SDK type of the resource
 	// The provider clientset supplies provider data and the checked service
 	// accessor. The SDK cxsdk package supplies API error helpers.
 	ProviderPkg, ProviderName string
@@ -85,7 +80,7 @@ func buildCRUD(r *model.Resource, refs []sdkRef) (*crudData, error) {
 		}
 		out.IDAttr, out.IDField, out.IDValue = tfName(r.IDParam), id.Name, id.Want == "string"
 	}
-	if err := updateExtras(ix, r, out); err != nil {
+	if err := updateExtras(ix, r.Replace, out); err != nil {
 		return nil, err
 	}
 	if err := providerNames(ix, client.Name, out); err != nil {
@@ -109,18 +104,8 @@ func buildCRUD(r *model.Resource, refs []sdkRef) (*crudData, error) {
 	return out, nil
 }
 
-func updateExtras(ix *refIndex, r *model.Resource, out *crudData) error {
-	if r.IDInBody {
-		id, err := ix.fieldRef("update.body." + r.IDParam)
-		if err != nil {
-			return err
-		}
-		if id.Want != "*string" && id.Want != "string" {
-			return fmt.Errorf("SDK field %s has type %s, the id needs *string or string", id.sdkName(), id.Want)
-		}
-		out.UpdateID, out.UpdateIDValue = id.Name, id.Want == "string"
-	}
-	if r.Replace {
+func updateExtras(ix *refIndex, replace bool, out *crudData) error {
+	if replace {
 		return nil
 	}
 	builder, err := ix.typeRef("update")
