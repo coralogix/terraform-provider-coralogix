@@ -21,6 +21,9 @@ type Resource struct {
 	// IDParam is the path parameter of Get, Update, and Delete. The Get
 	// response has a field with the same name. It is "" for a singleton.
 	IDParam string
+	// IDType is the type shared by the path parameter and response ID field.
+	// It is nil for a singleton.
+	IDType *Type
 	// Singleton is true when Get has no path parameter: there is one
 	// resource per company (D18). Create, Get, Update, and Delete use one
 	// path.

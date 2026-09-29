@@ -64,6 +64,13 @@ func BuildWithOperationIDs(doc *v3.Document, name string, ids OperationIDs) (*Re
 	if err := r.readFields(doc, ops); err != nil {
 		return nil, err
 	}
+	if !r.Singleton {
+		index := slices.IndexFunc(r.Fields, func(field *ResourceField) bool { return field.Name == r.IDParam })
+		if index < 0 {
+			return nil, fmt.Errorf("%s: no field %q for the id path parameter", r.Name, r.IDParam)
+		}
+		r.IDType = r.Fields[index].Type
+	}
 	return r, nil
 }
 

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -395,6 +396,90 @@ func TestUpdateIDInBodyIsIneligible(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetResponseIDMustBeRequired(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)), "      required: [id, name, enabled]\n", "      required: [name, enabled]\n", 1)
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "RESOURCE_ID_OPTIONAL") {
+		t.Fatalf("codes %v do not contain RESOURCE_ID_OPTIONAL", codes)
+	}
+}
+
+func TestResourceIDTypes(t *testing.T) {
+	for _, format := range []string{"int32", "int64"} {
+		t.Run(format, func(t *testing.T) {
+			doc, err := Load(integerIDSpec(t, validSpec(t), format))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+				t.Fatal(report)
+			}
+			resource, err := Build(doc, "Thing")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if resource.IDType == nil || resource.IDType.Kind != Integer || resource.IDType.Format != format {
+				t.Fatalf("ID type = %#v, want integer/%s", resource.IDType, format)
+			}
+		})
+	}
+
+	t.Run("unsupported", func(t *testing.T) {
+		spec := string(validSpec(t))
+		spec = strings.Replace(spec, "        schema:\n          type: string\n    get:\n", "        schema:\n          type: boolean\n    get:\n", 1)
+		spec = strings.Replace(spec, "        id:\n          type: string\n          description: The server-assigned identifier.\n", "        id:\n          type: boolean\n          description: The server-assigned identifier.\n", 1)
+		doc, err := Load([]byte(spec))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "RESOURCE_ID_TYPE_UNSUPPORTED") {
+			t.Fatalf("codes %v do not contain RESOURCE_ID_TYPE_UNSUPPORTED", codes)
+		}
+	})
+
+	t.Run("inconsistent", func(t *testing.T) {
+		spec := integerIDSpec(t, validSpec(t), "int32")
+		spec = []byte(strings.Replace(string(spec), "        id:\n          type: integer\n          format: int32\n", "        id:\n          type: integer\n          format: int64\n", 1))
+		doc, err := Load(spec)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "RESOURCE_ID_TYPE_INCONSISTENT") {
+			t.Fatalf("codes %v do not contain RESOURCE_ID_TYPE_INCONSISTENT", codes)
+		}
+	})
+}
+
+func TestWrappedResourceResponsesAreIneligible(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)), "$ref: '#/components/schemas/Thing'", "$ref: '#/components/schemas/CreateThingResponse'", 1)
+	spec = strings.Replace(spec, "    DeleteThingResponse:\n", "    CreateThingResponse:\n      type: object\n      required: [thing]\n      properties:\n        thing:\n          $ref: '#/components/schemas/Thing'\n    DeleteThingResponse:\n", 1)
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "RESPONSE_WRAPPER_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain RESPONSE_WRAPPER_UNSUPPORTED", codes)
+	}
+}
+
+func integerIDSpec(t *testing.T, spec []byte, format string) []byte {
+	t.Helper()
+	value := string(spec)
+	pathID := "        schema:\n          type: string\n    get:\n"
+	pathIntegerID := fmt.Sprintf("        schema:\n          type: integer\n          format: %s\n    get:\n", format)
+	value = strings.Replace(value, pathID, pathIntegerID, 1)
+	responseID := "        id:\n          type: string\n          description: The server-assigned identifier.\n"
+	responseIntegerID := fmt.Sprintf("        id:\n          type: integer\n          format: %s\n          description: The server-assigned identifier.\n", format)
+	value = strings.Replace(value, responseID, responseIntegerID, 1)
+	if !strings.Contains(value, pathIntegerID) || !strings.Contains(value, responseIntegerID) {
+		t.Fatalf("cannot convert synthetic ID to %s", format)
+	}
+	return []byte(value)
 }
 
 func collectionUpdateSpec(t *testing.T, spec, method string) string {

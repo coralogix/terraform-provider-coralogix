@@ -13,7 +13,10 @@ type crudData struct {
 	Model    string // Terraform model struct of the resource
 	IDAttr   string // Terraform attribute of the id
 	IDField  string // SDK field of the id in the resource
-	IDValue  bool   // the id field is a string, not a *string (F18)
+	IDValue  bool   // the SDK id field is a value, not a pointer (F18)
+	IDGoType string // string, int32, or int64
+	IDTFType string // String, Int32, or Int64
+	IDBits   int    // 0 for string; 32 or 64 for integer import parsing
 	// Singleton: no id in the path (D18). The id attribute is the fixed value
 	// TypeName, and the API calls take no id.
 	Singleton bool
@@ -64,21 +67,16 @@ func buildCRUD(r *model.Resource, refs []sdkRef) (*crudData, error) {
 		TypeName:  tfName(r.Name),
 		Model:     modelTypeName(r.Name),
 		IDAttr:    "id",
+		IDGoType:  "string",
+		IDTFType:  "String",
 		Singleton: r.Singleton,
 		Replace:   r.Replace,
 		SDKName:   ix.pkg.Name,
 		Client:    client.Name,
 		Resource:  resource.Name,
 	}
-	if !r.Singleton {
-		id, err := ix.fieldRef("fields." + r.IDParam)
-		if err != nil {
-			return nil, err
-		}
-		if id.Want != "*string" && id.Want != "string" {
-			return nil, fmt.Errorf("SDK field %s has type %s, the id needs *string or string", id.sdkName(), id.Want)
-		}
-		out.IDAttr, out.IDField, out.IDValue = tfName(r.IDParam), id.Name, id.Want == "string"
+	if err := resourceIDData(r, ix, out); err != nil {
+		return nil, err
 	}
 	if err := updateExtras(ix, r.Replace, out); err != nil {
 		return nil, err
@@ -102,6 +100,36 @@ func buildCRUD(r *model.Resource, refs []sdkRef) (*crudData, error) {
 		}
 	}
 	return out, nil
+}
+
+func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
+	if r.Singleton {
+		return nil
+	}
+	idGoType, err := valueType(r.IDType)
+	if err != nil {
+		return fmt.Errorf("resource id: %w", err)
+	}
+	switch idGoType {
+	case "string":
+		out.IDTFType = "String"
+	case "int32":
+		out.IDTFType, out.IDBits = "Int32", 32
+	case "int64":
+		out.IDTFType, out.IDBits = "Int64", 64
+	default:
+		return fmt.Errorf("resource id: Go type %s is not supported", idGoType)
+	}
+	out.IDGoType = idGoType
+	id, err := ix.fieldRef("fields." + r.IDParam)
+	if err != nil {
+		return err
+	}
+	if id.Want != "*"+idGoType && id.Want != idGoType {
+		return fmt.Errorf("SDK field %s has type %s, the id needs *%s or %s", id.sdkName(), id.Want, idGoType, idGoType)
+	}
+	out.IDAttr, out.IDField, out.IDValue = tfName(r.IDParam), id.Name, id.Want == idGoType
+	return nil
 }
 
 func updateExtras(ix *refIndex, replace bool, out *crudData) error {

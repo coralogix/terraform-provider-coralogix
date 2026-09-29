@@ -22,6 +22,7 @@ type tfResource struct {
 	CRUD               *crudData // CRUD, import, and the provider data
 	HasServerDefaults  bool
 	ServerDefaultKinds []string // Terraform scalar kinds that need reset planning
+	PlanModifierPkgs   []string // lower-case Terraform value kinds with standard plan modifiers
 }
 
 // tfAttr is one Terraform schema attribute.
@@ -97,8 +98,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 		}
 		switch f.Behavior {
 		case model.Computed:
-			// Validators check the configuration, which is always null here.
-			a.Required, a.Optional, a.Computed, a.Validators = false, false, true, nil
+			markComputed(a)
 			if f.Name == r.IDParam {
 				a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 			}
@@ -117,7 +117,35 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 	}
 	out.ConfigValidators = b.validators
 	out.Models = b.models
+	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	return out, nil
+}
+
+// markComputed makes a server-owned attribute and every nested attribute
+// state-only. Validators inspect configuration, which is always null here.
+func markComputed(a *tfAttr) {
+	a.Required, a.Optional, a.Computed, a.Validators = false, false, true, nil
+	for _, child := range a.Attributes {
+		markComputed(child)
+	}
+}
+
+func planModifierPackages(attrs []*tfAttr) []string {
+	var packages []string
+	for _, attr := range attrs {
+		pkg := strings.ToLower(attr.ValueKind) + "planmodifier"
+		for _, modifier := range attr.Modifiers {
+			if strings.Contains(modifier, pkg+".") && !containsString(packages, pkg) {
+				packages = append(packages, pkg)
+			}
+		}
+		for _, nested := range planModifierPackages(attr.Attributes) {
+			if !containsString(packages, nested) {
+				packages = append(packages, nested)
+			}
+		}
+	}
+	return packages
 }
 
 func containsString(values []string, target string) bool {

@@ -55,6 +55,7 @@ func Validate(doc *v3.Document, name string, ids OperationIDs) issue.Report {
 	}
 	if len(ops) == len(verbs) {
 		report = append(report, validateFieldContracts(name, ops)...)
+		report = append(report, responseWrapperIssues(name, ops)...)
 	}
 	if len(ops) == len(verbs) {
 		r, err := BuildWithOperationIDs(doc, name, ids)
@@ -177,7 +178,106 @@ func validateFieldContracts(name string, ops map[verb]foundOp) issue.Report {
 		}
 		report = append(report, validateFieldContract(name, field, create, update, get)...)
 	}
+	report = append(report, resourceIDIssues(name, ops, get)...)
 	report = append(report, rootGroupContractIssues(name, create, update, get)...)
+	return report
+}
+
+func resourceIDIssues(name string, ops map[verb]foundOp, get *base.Schema) issue.Report {
+	params := pathParams(ops[opGet])
+	if len(params) != 1 {
+		return nil // Build reports an unsupported resource identity shape.
+	}
+	id := params[0].Name
+	property := propertyOf(get, id)
+	if property == nil {
+		return nil
+	}
+	location := "components.schemas." + name + "." + id
+	var report issue.Report
+	if !slices.Contains(get.Required, id) {
+		report = append(report, issue.Issue{
+			Code:        "RESOURCE_ID_OPTIONAL",
+			Location:    location,
+			Message:     fmt.Sprintf("The Get response does not require the resource id field %q.", id),
+			Remediation: "List the resource id field in the Get response schema's required fields.",
+		})
+	}
+	resourceType, err := typeOf(property, location, walk{})
+	if err != nil {
+		return report
+	}
+	resourceKind, supported := supportedIDType(resourceType)
+	if !supported {
+		report = append(report, unsupportedIDTypeIssue(location, resourceType))
+		return report
+	}
+	for _, role := range []verb{opGet, opUpdate, opDelete} {
+		op := ops[role]
+		params := pathParams(op)
+		if len(params) != 1 {
+			continue // Build reports the unsupported parameter count.
+		}
+		parameter := params[0]
+		parameterLocation := fmt.Sprintf("paths.%s.%s.parameters.%s", strings.ToLower(string(role)), op.op.OperationId, parameter.Name)
+		parameterType, err := typeOf(parameter.Schema, parameterLocation, walk{})
+		if err != nil {
+			report = append(report, issue.Issue{Code: "RESOURCE_ID_TYPE_UNSUPPORTED", Location: parameterLocation, Message: err.Error(), Remediation: "Use a string, int32, or int64 resource ID."})
+			continue
+		}
+		parameterKind, supported := supportedIDType(parameterType)
+		switch {
+		case !supported:
+			report = append(report, unsupportedIDTypeIssue(parameterLocation, parameterType))
+		case parameterKind != resourceKind:
+			report = append(report, issue.Issue{Code: "RESOURCE_ID_TYPE_INCONSISTENT", Location: parameterLocation, Message: fmt.Sprintf("The path ID type is %s, but the response ID field type is %s.", parameterKind, resourceKind), Remediation: "Use the same ID type in Get, Update, Delete, and the resource response."})
+		}
+	}
+	return report
+}
+
+func supportedIDType(t *Type) (string, bool) {
+	switch {
+	case t.Kind == String && t.Format != "date-time":
+		return "string", true
+	case t.Kind == Integer && !t.WireString && (t.Format == "int32" || t.Format == "int64"):
+		return t.Format, true
+	default:
+		return fmt.Sprintf("%s/%s", t.Kind, t.Format), false
+	}
+}
+
+func unsupportedIDTypeIssue(location string, t *Type) issue.Issue {
+	kind, _ := supportedIDType(t)
+	return issue.Issue{Code: "RESOURCE_ID_TYPE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The resource ID type %s is not supported.", kind), Remediation: "Use a string, int32, or int64 resource ID."}
+}
+
+func responseWrapperIssues(name string, ops map[verb]foundOp) issue.Report {
+	var report issue.Report
+	for _, role := range []verb{opCreate, opGet, opUpdate} {
+		op := ops[role]
+		if op.op == nil || op.op.Responses == nil || op.op.Responses.Codes == nil {
+			continue
+		}
+		response := op.op.Responses.Codes.GetOrZero("200")
+		if response == nil || response.Content == nil {
+			continue
+		}
+		media := response.Content.GetOrZero(jsonMedia)
+		if media == nil || media.Schema == nil || !media.Schema.IsReference() {
+			continue
+		}
+		component, err := componentName(media.Schema.GetReference())
+		if err != nil || component == name {
+			continue
+		}
+		report = append(report, issue.Issue{
+			Code:        "RESPONSE_WRAPPER_UNSUPPORTED",
+			Location:    fmt.Sprintf("paths.%s.%s.responses.200", strings.ToLower(string(role)), op.op.OperationId),
+			Message:     fmt.Sprintf("The success response is %s instead of the direct %s resource.", component, name),
+			Remediation: "Return the resource directly in REST. Set google.api.http response_body to the resource field in the protobuf response message.",
+		})
+	}
 	return report
 }
 
