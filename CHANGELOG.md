@@ -1,5 +1,8 @@
 # Unreleased
 
+#### provider
+- CHORE: Bump `coralogix-management-sdk`. The SDK no longer sets or sends OpenAPI default values, and it adds the optional alert `caseSettings` model. The provider does not use either, so there are no user-facing behaviour changes.
+
 # Release 3.19.0
 
 #### resource/coralogix_events2metric
