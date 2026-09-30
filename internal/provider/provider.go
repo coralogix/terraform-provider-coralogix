@@ -445,5 +445,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		parsing_rules.NewParsingRulesResource,
 		enrichment_rules.NewDataEnrichmentsResource,
 		fleet.NewFleetConfigurationGroupResource,
+		fleet.NewFleetConfigurationOverlayResource,
 	}
 }

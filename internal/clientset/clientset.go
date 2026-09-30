@@ -34,6 +34,7 @@ import (
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 	e2ms "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/events2metrics_service"
 	cfggroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/fleet_manager_configuration_groups"
+	cfgoverlays "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/fleet_manager_configuration_overlays"
 	viewsfolders "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/folders_for_views_service"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
@@ -85,6 +86,7 @@ type ClientSet struct {
 	customRole            *roless.RoleManagementServiceAPIService
 	scopes                *scopess.ScopesServiceAPIService
 	configurationGroups   *cfggroups.FleetManagerConfigurationGroupsAPIService
+	configurationOverlays *cfgoverlays.FleetManagerConfigurationOverlaysAPIService
 	connectors            *connectors.ConnectorsServiceAPIService
 	presets               *presets.PresetsServiceAPIService
 	globalRouters         *globalRouters.GlobalRoutersServiceAPIService
@@ -137,6 +139,10 @@ func (c *ClientSet) DataSet() *cxsdk.DataSetClient {
 
 func (c *ClientSet) ConfigurationGroups() *cfggroups.FleetManagerConfigurationGroupsAPIService {
 	return c.configurationGroups
+}
+
+func (c *ClientSet) ConfigurationOverlays() *cfgoverlays.FleetManagerConfigurationOverlaysAPIService {
+	return c.configurationOverlays
 }
 
 func (c *ClientSet) Dashboards() *dashboardservice.DashboardServiceAPIService {
@@ -252,6 +258,18 @@ func newConfigurationGroupsClient(region, apiKey string) *cfggroups.FleetManager
 	return cfggroups.NewAPIClient(cfg).FleetManagerConfigurationGroupsAPI
 }
 
+func newConfigurationOverlaysClient(region, apiKey string) *cfgoverlays.FleetManagerConfigurationOverlaysAPIService {
+	cfg := cfgoverlays.NewConfiguration()
+	url, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
+	if !found {
+		url = cxsdkOpenapi.URLFromDomain(region)
+	}
+	cfg.Servers = cfgoverlays.ServerConfigurations{{URL: url}}
+	cfg.AddDefaultHeader("Authorization", "Bearer "+apiKey)
+	cfg.AddDefaultHeader("x-cx-sdk-version", "terraform-"+TF_PROVIDER_VERSION)
+	return cfgoverlays.NewAPIClient(cfg).FleetManagerConfigurationOverlaysAPI
+}
+
 func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 	grpcCreator := newTerraformSDKCallPropertiesCreator(apiKey, TF_PROVIDER_VERSION, grpcTarget)
 	apikeyCPC := NewCallPropertiesCreator(grpcTarget, apiKey)
@@ -293,6 +311,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		archiveRetentions:     cs.ArchiveRetentions(),
 		dashboards:            cs.Dashboards(),
 		configurationGroups:   newConfigurationGroupsClient(region, apiKey),
+		configurationOverlays: newConfigurationOverlaysClient(region, apiKey),
 		recordingRuleGroups:   cs.RecordingRules(),
 		archiveLogs:           cs.ArchiveLogs(),
 		tcoPolicies:           cs.TCOPolicies(),

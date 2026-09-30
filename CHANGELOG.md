@@ -1,5 +1,11 @@
 # Unreleased
 
+#### resource/coralogix_fleet_configuration_overlay
+- FEAT: Add private-preview (Beta) resource for Fleet Manager configuration overlays: raw OpenTelemetry Collector YAML merged into targeted remote configurations. Updates send only changed fields, so metadata-only changes do not create a new overlay version. Destroy deactivates, then archives.
+
+#### provider
+- CHORE: Bump `coralogix-management-sdk` for the Fleet Manager configuration overlays client.
+
 # Release 3.19.0
 
 #### resource/coralogix_events2metric
