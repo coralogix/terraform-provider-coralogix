@@ -163,6 +163,57 @@ func TestKeysThatTheContractDoesNotStateAreNotStale(t *testing.T) {
 	}
 }
 
+// An override can say that an id travels in a request body that has no id. The generated call
+// could not name the resource, and the override would have no effect. The generator fails closed.
+func TestBodyIDOverridesNeedTheIDInTheBody(t *testing.T) {
+	spec := strings.Replace(string(legacySpec(t)), "        id:\n          type: string\n          pattern: '^[a-z][a-z0-9_-]*$'\n", "", 1)
+	if spec == string(legacySpec(t)) {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	const head = "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: thing\n"
+	tests := map[string]struct {
+		api  string
+		want string
+	}{
+		"client-set id":  {"  clientSetID: true\n", "CLIENT_SET_ID_NOT_IN_CREATE"},
+		"update id body": {"  updateIDInBody: true\n", "UPDATE_ID_NOT_IN_BODY"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := validateOpenAPIWith([]byte(spec), "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, head+test.api))
+			if !slices.Contains(eligibilityCodes(t, err), test.want) {
+				t.Fatalf("err = %v, want %s", err, test.want)
+			}
+		})
+	}
+	// With the id in the bodies, the same overrides are accepted.
+	file := mustParse(t, head+"  clientSetID: true\n  updateIDInBody: true\n")
+	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+	for _, code := range eligibilityCodes(t, err) {
+		if code == "CLIENT_SET_ID_NOT_IN_CREATE" || code == "UPDATE_ID_NOT_IN_BODY" {
+			t.Fatalf("err = %v, want no %s", err, code)
+		}
+	}
+}
+
+// validators.inferred: false removes the limits of the contract. A oneOf group validator states
+// the structure of the request, so it stays.
+func TestInferredFalseKeepsOneOfGroupValidators(t *testing.T) {
+	limit := "stringvalidator.LengthAtLeast(3)"
+	group := `stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("b"))`
+	out := &tfResource{Attributes: []*tfAttr{{
+		Name: "a", Kind: "String", ValueKind: "String",
+		Validators: []string{limit, group}, GroupValidators: []string{group},
+	}}}
+	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\n")
+	if err := applyOverrides(out, file); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.Attributes[0].Validators; !slices.Equal(got, []string{group}) {
+		t.Fatalf("validators = %v, want only the group validator", got)
+	}
+}
+
 func TestOverridesMustMatchTheSelectedResource(t *testing.T) {
 	file := mustParse(t, strings.Replace(legacyOverrides, "resource: LegacyThing", "resource: OtherThing", 1))
 	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
