@@ -1,0 +1,35 @@
+# What the generated acceptance test needs for coralogix_global_router, besides the schema.
+# The test sets every attribute, imports, changes them, and sets the minimal config.
+resource: GlobalRouter
+
+# A router needs a connector for its targets. A generic HTTPS connector needs no integration, so
+# the test needs no environment variable besides the API key.
+prerequisites: |
+  resource "coralogix_connector" "http" {
+    id               = "@{run}-http"
+    name             = "@{run}-http"
+    type             = "generic_https"
+    description      = "generic-https connector for the global router test"
+    connector_config = {
+      fields = [
+        { field_name = "url", value = "https://api.staging.coralogix.net/mgmt/testing/tools/httpbin/post" },
+        { field_name = "method", value = "post" },
+      ]
+    }
+  }
+
+values:
+  rules[].condition: '"alertDef.priority == \"P1\""'
+  rules[].targets[].connector_id: coralogix_connector.http.id
+  fallback_targets[].target.connector_id: coralogix_connector.http.id
+
+skip:
+  - fallback                          # deprecated; the API refuses it next to fallback_targets
+  - rules[].targets[].preset_id       # a preset is not needed for the connector
+  - fallback_targets[].target.preset_id
+
+# The API refuses a router without routing labels.
+minimal:
+  - routing_labels
+
+upgradeFrom: "3.19.0"

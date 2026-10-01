@@ -101,6 +101,36 @@ Existing mode does not keep the prior form of an empty value. `flatten` and the 
 
 A resource in this mode exports `Flatten` for a handwritten data source. A frozen prior schema stays in its own package.
 
+## Acceptance tests
+
+With an `acceptance.yaml` in the output directory, `generate` also writes `acceptance_test.go`: an external test package (`<package>_test`) that runs against a real tenant. It builds the provider itself, so it needs no helper from the provider tests. Without the file, the generator writes no test. `--acceptance <file>` names another file.
+
+```yaml
+resource: GlobalRouter          # must match --resource
+env: [SLACK_INTEGRATION_ID]     # variables the config reads; the test stops if one is missing
+prerequisites: |                # HCL that goes before the resource; @{run} and @{env.NAME} work
+  resource "coralogix_connector" "http" { id = "@{run}-http" ... }
+values:                         # an HCL expression for a field, instead of a made-up value
+  rules[].targets[].connector_id: coralogix_connector.http.id
+skip: [fallback]                # fields that no config sets (a deprecated field, for example)
+minimal: [routing_labels]       # optional fields that the minimal config must set
+upgradeFrom: "3.19.0"           # a released provider for the upgrade test
+```
+
+The test makes its configs from the final schema, after the behavior overrides:
+
+1. The full config sets every attribute the user can set. It checks each value.
+2. An import step compares the imported state with the state (`ImportStateVerify`).
+3. The update config changes the strings, numbers, and bools. An immutable attribute keeps its value.
+4. The minimal config sets only the required attributes, and the ones listed in `minimal`. Optional attributes that the server does not fill must leave the state.
+5. A last import step.
+
+After every apply, the framework plans again and fails on a non-empty plan. The made-up values are: the first accepted value of an enum (not `unspecified`), `true` and `false`, `1` and `2`, and `@{run}-<attribute>` for a string. One arm of a `oneOf` group is set. The generator fails on a kind of attribute it cannot make, and asks for a value in `acceptance.yaml`. A path in `values`, `skip`, or `minimal` that matches no attribute is an error. A `values` path names the attributes from the resource down, with `[]` for each list or set element: `rules[].targets[].connector_id`.
+
+With `upgradeFrom`, a second test creates the full config with that released provider, plans it with this build (no change expected), updates, and imports. Set `CORALOGIX_<RESOURCE>_UPGRADE_ACC=1` and `TF_ACC_PROVIDER_NAMESPACE=coralogix` to run it. It is skipped otherwise.
+
+Not covered: a check that the resource is gone after destroy, a oneOf group among the top-level fields, and checks on the elements of a set.
+
 ## Versioned output
 
 Every generated Go file starts with this header:
