@@ -281,12 +281,11 @@ func scalarValue(a *tfAttr, mode accMode) (hcl, state string) {
 	return strconv.Quote(v), v
 }
 
-// stringValue is the first accepted value of an enum, or a plain unique string.
+// stringValue is the first accepted value of an enum, or a plain unique string. An enum keeps its
+// value in the update config: the valid values of other fields can depend on it (a rule condition
+// depends on the entity type), and the test cannot know how.
 func stringValue(a *tfAttr, updated bool) string {
 	if values := enumValues(a); len(values) != 0 {
-		if updated && len(values) > 1 {
-			return values[1]
-		}
 		return values[0]
 	}
 	if updated {

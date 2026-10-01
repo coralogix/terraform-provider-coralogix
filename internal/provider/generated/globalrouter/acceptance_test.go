@@ -105,7 +105,7 @@ const updatedConfig = `resource "coralogix_global_router" "test" {
   entity_labels = { key = "@{run}-entity_labels-updated" }
   fallback_targets = [
     {
-      entity_type = "cases"
+      entity_type = "alerts"
       target = {
         connector_id = coralogix_connector.http.id
         custom_details = { key = "@{run}-custom_details-updated" }
@@ -122,7 +122,7 @@ const updatedConfig = `resource "coralogix_global_router" "test" {
     {
       condition = "alertDef.priority == \"P1\""
       custom_details = { key = "@{run}-custom_details-updated" }
-      entity_type = "cases"
+      entity_type = "alerts"
       name = "@{run}-name-updated"
       targets = [
         {
@@ -174,7 +174,7 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "disabled", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "entity_labels.key", render(run, "@{run}-entity_labels-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.#", "1"),
-		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.entity_type", "cases"),
+		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.target.custom_details.key", render(run, "@{run}-custom_details-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", render(run, "@{run}-environment-updated")),
@@ -182,7 +182,7 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", render(run, "@{run}-team-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.custom_details.key", render(run, "@{run}-custom_details-updated")),
-		resource.TestCheckResourceAttr(resourceAddress, "rules.0.entity_type", "cases"),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.name", render(run, "@{run}-name-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.targets.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.targets.0.custom_details.key", render(run, "@{run}-custom_details-updated")),

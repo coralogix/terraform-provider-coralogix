@@ -47,9 +47,9 @@ func TestAcceptanceMakesPlainValuesByMode(t *testing.T) {
 		},
 		"updated": {
 			accUpdated,
-			[]string{`enabled = false`, `kind = "beta"`, `limit = 2`, `name = "@{run}-name-updated"`, `region = "@{run}-region"`},
+			[]string{`enabled = false`, `kind = "alpha"`, `limit = 2`, `name = "@{run}-name-updated"`, `region = "@{run}-region"`},
 			[]string{"id ="},
-			[]string{"enabled=false", "kind=beta", "limit=2"},
+			[]string{"enabled=false", "kind=alpha", "limit=2"},
 		},
 		"minimal": {
 			accMinimal,
