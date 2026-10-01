@@ -326,6 +326,34 @@ func TestEnumValidatorFollowsTheEnumsLine(t *testing.T) {
 	}
 }
 
+// computed: false makes a field optional. On a field that the contract makes server-owned, nothing
+// would be left: the schema would have no mode, and the Framework cannot build it.
+func TestComputedFalseOnAServerOwnedFieldIsRejected(t *testing.T) {
+	text := strings.Replace(legacyOverrides, "      id: {description: The id.}\n", "      id: {description: The id.}\n      createTime: {computed: false}\n", 1)
+	if text == legacyOverrides {
+		t.Fatal("the test overrides did not change: update the replaced text")
+	}
+	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
+	if err == nil || !strings.Contains(err.Error(), "without a mode") {
+		t.Fatalf("err = %v, want an error about an attribute without a mode", err)
+	}
+}
+
+// An enums line maps Terraform values to API values for a single enum field. A list, set, or map of
+// the enum casts the strings as they are, so the generator rejects the combination.
+func TestEnumLineOnACollectionIsRejected(t *testing.T) {
+	spec := strings.Replace(string(thingSpec(t)), "        tags:\n          type: array\n          uniqueItems: true",
+		"        kinds:\n          type: array\n          items: {$ref: '#/components/schemas/ThingKind'}\n          x-coralogix-presence: true\n        tags:\n          type: array\n          uniqueItems: true", 1)
+	if spec == string(thingSpec(t)) {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	file := mustParse(t, "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  ThingKind:\n    zero: unspecified\n    values: [THING_KIND_STANDARD, THING_KIND_ADVANCED]\n    rejected: [THING_KIND_P5_OR_UNSPECIFIED]\n")
+	_, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "applies to a single enum field") {
+		t.Fatalf("err = %v, want an error about an enums line on a collection", err)
+	}
+}
+
 func TestOverridesMustMatchTheSelectedResource(t *testing.T) {
 	file := mustParse(t, strings.Replace(legacyOverrides, "resource: LegacyThing", "resource: OtherThing", 1))
 	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)

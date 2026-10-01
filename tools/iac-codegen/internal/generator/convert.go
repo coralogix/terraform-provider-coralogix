@@ -12,6 +12,9 @@ import (
 // and flatten (SDK response → Terraform model). Every SDK name comes from
 // the checked sdkRefs.
 type convData struct {
+	// IDGuard is the model field of the resource id when flatten must check that the response
+	// has it, or "".
+	IDGuard string
 	SDKPkg  string // import path of the SDK package
 	SDKName string // package name
 	// The root objects: the Create body and the Update body (expand), and
@@ -210,6 +213,11 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 	}
 	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r}
 	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Existing: r.Policy.Existing}
+	if r.Policy.ClientSetID && !r.Singleton {
+		// The contract may not require the id in the response (a proto3 optional field), so
+		// flatten checks it. Without the id, Read, Update, and Delete would have no identity.
+		out.IDGuard = camelize(r.IDParam)
+	}
 
 	roots := []convRoot{
 		{&out.Create, "create.body", true, func(f *model.ResourceField) bool { return f.Create != nil }},
@@ -679,6 +687,9 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		cf.Conv, cf.SDKType = convStrings, "string"
 		return "[]string", nil
 	case model.Enum:
+		if err := b.rejectEnumLine(t.Elem.Schema); err != nil {
+			return "", err
+		}
 		enum, err := b.ix.schemaRef(t.Elem.Schema)
 		if err != nil {
 			return "", err
@@ -827,6 +838,9 @@ func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 		cf.Conv, cf.SDKType = convStringMap, "string"
 		return "map[string]string", nil
 	case e.Kind == model.Enum:
+		if err := b.rejectEnumLine(e.Schema); err != nil {
+			return "", err
+		}
 		enum, err := b.ix.schemaRef(e.Schema)
 		if err != nil {
 			return "", err
@@ -849,6 +863,16 @@ func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 		return "map[string]" + obj.SDK, nil
 	}
 	return "", fmt.Errorf("map of %s is not supported", typeName(t.Elem))
+}
+
+// rejectEnumLine stops an enums line from applying to the items of a list or set, or the values of
+// a map. Those conversions cast the Terraform strings to the SDK enum as they are, so the
+// Terraform values that the line states would reach the API unchanged and drift on refresh.
+func (b *convBuilder) rejectEnumLine(schema string) error {
+	if b.resource.Policy.EnumOverride(schema) {
+		return fmt.Errorf("the enums line of %s applies to a single enum field, not to a list, set, or map of it", schema)
+	}
+	return nil
 }
 
 // scalarElem returns the Go type and the Terraform element type of a bool or

@@ -273,6 +273,9 @@ func (l Field) check() error {
 	default:
 		return fmt.Errorf("default is %T, want a string or a bool", l.Default)
 	}
+	if l.Required && l.Computed != nil && *l.Computed {
+		return errors.New("a required field cannot be computed")
+	}
 	if l.Description != nil && l.MarkdownDescription != nil {
 		return errors.New("set description or markdownDescription, not both")
 	}

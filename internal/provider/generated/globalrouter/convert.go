@@ -95,6 +95,9 @@ func flatten(ctx context.Context, v *global_routers_service.GlobalRouter, prior 
 		return nil, diags
 	}
 	out := flattenGlobalRouter(ctx, path.Empty(), v, prior, &diags)
+	if out.Id.IsNull() {
+		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
+	}
 	return out, diags
 }
 
