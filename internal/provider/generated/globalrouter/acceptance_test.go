@@ -266,7 +266,8 @@ func TestAccCoralogixResourceGlobalRouterGenerated(t *testing.T) {
 }
 
 const (
-	upgradeEnv     = "CORALOGIX_GLOBAL_ROUTER_UPGRADE_ACC"
+	// One variable switches on the upgrade tests of every generated resource.
+	upgradeEnv     = "CORALOGIX_GENERATED_UPGRADE_ACC"
 	upgradeSource  = "registry.terraform.io/coralogix/coralogix"
 	upgradeVersion = "= 3.19.0"
 )
@@ -319,7 +320,7 @@ func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, nex
 
 // TestAccCoralogixResourceGlobalRouterGeneratedUpgrade creates the resource with provider 3.19.0, then plans
 // the same config with this build. A user who upgrades must see no change, and a later update must
-// work. Set the variable that upgradeEnv names, and TF_ACC_PROVIDER_NAMESPACE=coralogix, to run it.
+// work. Set CORALOGIX_GENERATED_UPGRADE_ACC=1 and TF_ACC_PROVIDER_NAMESPACE=coralogix to run it.
 func TestAccCoralogixResourceGlobalRouterGeneratedUpgrade(t *testing.T) {
 	requireUpgradeAcceptance(t)
 
