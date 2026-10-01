@@ -20,7 +20,7 @@
       ]
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -76,9 +76,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -108,15 +105,7 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "change condition",
@@ -139,7 +128,7 @@
       ]
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -196,9 +185,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -228,15 +214,7 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "change name",
@@ -259,7 +237,7 @@
       ]
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -316,9 +294,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -348,15 +323,7 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "custom_details set",
@@ -382,7 +349,7 @@
       ]
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -444,9 +411,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -478,14 +442,7 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "custom_details change",
@@ -512,7 +469,7 @@
       ]
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -576,9 +533,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -611,14 +565,7 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "custom_details empty",
@@ -642,7 +589,7 @@
       ]
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -699,9 +646,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -731,14 +675,7 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "custom_details set again",
@@ -764,7 +701,7 @@
       ]
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -826,9 +763,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -860,14 +794,7 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "custom_details remove",
@@ -890,66 +817,37 @@
       ]
     },
     "plan": {
-      "description": null,
+      "description": "",
       "disabled": false,
-      "entity_labels": "(unknown)",
+      "entity_labels": {},
       "fallback": null,
       "fallback_targets": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": "ra",
       "routing_labels": {
         "environment": "ra",
-        "service": "(unknown)",
-        "team": "(unknown)"
+        "service": null,
+        "team": null
       },
       "rules": [
         {
           "condition": "true",
-          "custom_details": "(unknown)",
+          "custom_details": {
+            "k": "v"
+          },
           "entity_type": "alerts",
           "name": "two",
           "targets": [
             {
               "connector_id": "c1",
-              "custom_details": "(unknown)",
+              "custom_details": null,
               "preset_id": null
             }
           ]
         }
       ]
     },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
-        "body": {
-          "router": {
-            "disabled": false,
-            "id": "00000000-0000-4000-8000-000000000001",
-            "name": "ra",
-            "routingLabels": {
-              "environment": "ra"
-            },
-            "rules": [
-              {
-                "condition": "true",
-                "entityType": "ALERTS",
-                "name": "two",
-                "targets": [
-                  {
-                    "connectorId": "c1"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "status": 200
-      }
-    ],
-    "inconsistentResult": [
-      "description"
-    ],
+    "noChange": true,
     "state": {
       "description": "",
       "disabled": false,
@@ -966,7 +864,9 @@
       "rules": [
         {
           "condition": "true",
-          "custom_details": {},
+          "custom_details": {
+            "k": "v"
+          },
           "entity_type": "alerts",
           "name": "two",
           "targets": [
@@ -978,16 +878,7 @@
           ]
         }
       ]
-    },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
-    ]
+    }
   },
   {
     "step": "refresh",
@@ -1014,7 +905,9 @@
       "rules": [
         {
           "condition": "true",
-          "custom_details": {},
+          "custom_details": {
+            "k": "v"
+          },
           "entity_type": "alerts",
           "name": "two",
           "targets": [
@@ -1044,7 +937,7 @@
       ]
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -1089,16 +982,13 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
       "entity_labels": {},
       "fallback": null,
       "fallback_targets": null,
-      "id": "00000000-0000-4000-8000-000000000010",
+      "id": "00000000-0000-4000-8000-000000000009",
       "name": "rb",
       "routing_labels": {
         "environment": "rb",
@@ -1115,15 +1005,7 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "rule with empty targets",
@@ -1142,7 +1024,7 @@
       ]
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -1187,16 +1069,13 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
       "entity_labels": {},
       "fallback": null,
       "fallback_targets": null,
-      "id": "00000000-0000-4000-8000-000000000011",
+      "id": "00000000-0000-4000-8000-000000000010",
       "name": "rc",
       "routing_labels": {
         "environment": "rc",
@@ -1213,13 +1092,6 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")"
-    ]
+    "replanEmpty": true
   }
 ]

@@ -188,6 +188,13 @@ func flattenFallbackTarget(ctx context.Context, p path.Path, v *global_routers_s
 	return out
 }
 
+// sameFallbackTarget reports whether two SDK values are equal. It compares the fields that the resource
+// manages. A missing value and an empty one are equal.
+func sameFallbackTarget(a, b *global_routers_service.FallbackTarget) bool {
+	return pointerValue(a.EntityType) == pointerValue(b.EntityType) &&
+		sameObject(a.Target, b.Target, sameRoutingTarget)
+}
+
 func fallbackTargetAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"entity_type": types.StringType,
@@ -310,18 +317,26 @@ func flattenGlobalRouter(ctx context.Context, p path.Path, v *global_routers_ser
 	out.Disabled = types.BoolPointerValue(v.Disabled)
 	out.EntityLabels = flattenStringMap(ctx, v.EntityLabels, diags)
 	out.Fallback = types.ListNull(types.ObjectType{AttrTypes: routingTargetAttrTypes()})
-	if len(v.Fallback) != 0 {
-		items := make([]RoutingTargetModel, 0, len(v.Fallback))
-		for i := range v.Fallback {
-			items = append(items, *flattenRoutingTarget(ctx, p.AtName("fallback").AtListIndex(i), &v.Fallback[i], diags))
+	srcFallback := v.Fallback
+	if prior != nil {
+		srcFallback = keepOrder(ctx, srcFallback, prior.Fallback, expandRoutingTarget, sameRoutingTarget)
+	}
+	if len(srcFallback) != 0 {
+		items := make([]RoutingTargetModel, 0, len(srcFallback))
+		for i := range srcFallback {
+			items = append(items, *flattenRoutingTarget(ctx, p.AtName("fallback").AtListIndex(i), &srcFallback[i], diags))
 		}
 		out.Fallback = flattenList(ctx, types.ObjectType{AttrTypes: routingTargetAttrTypes()}, items, diags)
 	}
 	out.FallbackTargets = types.ListNull(types.ObjectType{AttrTypes: fallbackTargetAttrTypes()})
-	if len(v.FallbackTargets) != 0 {
-		items := make([]FallbackTargetModel, 0, len(v.FallbackTargets))
-		for i := range v.FallbackTargets {
-			items = append(items, *flattenFallbackTarget(ctx, p.AtName("fallback_targets").AtListIndex(i), &v.FallbackTargets[i], diags))
+	srcFallbackTargets := v.FallbackTargets
+	if prior != nil {
+		srcFallbackTargets = keepOrder(ctx, srcFallbackTargets, prior.FallbackTargets, expandFallbackTarget, sameFallbackTarget)
+	}
+	if len(srcFallbackTargets) != 0 {
+		items := make([]FallbackTargetModel, 0, len(srcFallbackTargets))
+		for i := range srcFallbackTargets {
+			items = append(items, *flattenFallbackTarget(ctx, p.AtName("fallback_targets").AtListIndex(i), &srcFallbackTargets[i], diags))
 		}
 		out.FallbackTargets = flattenList(ctx, types.ObjectType{AttrTypes: fallbackTargetAttrTypes()}, items, diags)
 	}

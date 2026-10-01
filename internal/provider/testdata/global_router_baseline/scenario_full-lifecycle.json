@@ -192,7 +192,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c4",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": "p4"
           }
         }
@@ -265,7 +265,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c4",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": "p4"
           }
         }
@@ -477,7 +477,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c4",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": "p4"
           }
         }

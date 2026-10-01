@@ -243,42 +243,7 @@
       }
     },
     "plan": {
-      "description": null,
-      "disabled": false,
-      "entity_labels": "(unknown)",
-      "fallback": null,
-      "fallback_targets": null,
-      "id": "00000000-0000-4000-8000-000000000001",
-      "name": "d1",
-      "routing_labels": {
-        "environment": "d1",
-        "service": "(unknown)",
-        "team": "(unknown)"
-      },
-      "rules": "(unknown)"
-    },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
-        "body": {
-          "router": {
-            "disabled": false,
-            "id": "00000000-0000-4000-8000-000000000001",
-            "name": "d1",
-            "routingLabels": {
-              "environment": "d1"
-            }
-          }
-        },
-        "status": 200
-      }
-    ],
-    "inconsistentResult": [
-      "description"
-    ],
-    "state": {
-      "description": "",
+      "description": "again",
       "disabled": false,
       "entity_labels": {},
       "fallback": null,
@@ -292,14 +257,22 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\")"
-    ]
+    "noChange": true,
+    "state": {
+      "description": "again",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "d1",
+      "routing_labels": {
+        "environment": "d1",
+        "service": null,
+        "team": null
+      },
+      "rules": []
+    }
   },
   {
     "step": "refresh",
@@ -311,7 +284,7 @@
       }
     ],
     "state": {
-      "description": "",
+      "description": "again",
       "disabled": false,
       "entity_labels": {},
       "fallback": null,
@@ -393,7 +366,7 @@
       }
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -423,9 +396,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -441,13 +411,6 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\")"
-    ]
+    "replanEmpty": true
   }
 ]

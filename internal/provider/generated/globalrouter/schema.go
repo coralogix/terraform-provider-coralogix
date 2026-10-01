@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -22,6 +21,7 @@ func Schema() schema.Schema {
 		Attributes: map[string]schema.Attribute{
 			"description": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
 				MarkdownDescription: "Description of the GlobalRouter.",
 			},
 			"disabled": schema.BoolAttribute{
@@ -151,7 +151,6 @@ func Schema() schema.Schema {
 						"entity_type": schema.StringAttribute{
 							Optional: true,
 							Computed: true,
-							Default:  stringdefault.StaticString("unspecified"),
 							Validators: []validator.String{
 								stringvalidator.OneOf("alerts", "cases", "test_notifications", "unspecified"),
 							},

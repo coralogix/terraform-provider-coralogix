@@ -192,7 +192,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c4",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": "p4"
           }
         }
@@ -280,7 +280,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c4",
-            "custom_details": "(unknown)",
+            "custom_details": null,
             "preset_id": "p4"
           }
         }
@@ -292,40 +292,45 @@
         "service": "api",
         "team": "sre"
       },
-      "rules": "(unknown)"
-    },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
-        "body": {
-          "router": {
-            "description": "primary router",
-            "disabled": true,
-            "entityLabels": {
-              "team": "a"
+      "rules": [
+        {
+          "condition": "alert.priority == 'P1'",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "critical",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p1"
             },
-            "fallbackTargets": [
-              {
-                "entityType": "CASES",
-                "target": {
-                  "connectorId": "c4",
-                  "presetId": "p4"
-                }
-              }
-            ],
-            "id": "00000000-0000-4000-8000-000000000001",
-            "name": "main",
-            "routingLabels": {
-              "environment": "prod",
-              "service": "api",
-              "team": "sre"
+            {
+              "connector_id": "c2",
+              "custom_details": null,
+              "preset_id": null
             }
-          }
+          ]
         },
-        "status": 200
-      }
-    ],
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "cases",
+          "name": "cases",
+          "targets": [
+            {
+              "connector_id": "c3",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "noChange": true,
     "state": {
       "description": "primary router",
       "disabled": true,
@@ -338,7 +343,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c4",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": "p4"
           }
         }
@@ -350,9 +355,44 @@
         "service": "api",
         "team": "sre"
       },
-      "rules": []
-    },
-    "replanEmpty": true
+      "rules": [
+        {
+          "condition": "alert.priority == 'P1'",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "critical",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p1"
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        },
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "cases",
+          "name": "cases",
+          "targets": [
+            {
+              "connector_id": "c3",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    }
   },
   {
     "step": "update: entity_labels removed from the config",
@@ -419,7 +459,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c4",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": "p4"
           }
         }
@@ -482,7 +522,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c4",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": "p4"
           }
         }
@@ -628,7 +668,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c4",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": "p4"
           }
         }

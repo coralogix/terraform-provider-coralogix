@@ -1,6 +1,6 @@
 (schema)  version=1
     markdown: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in Beta stage."
-description  StringAttribute optional
+description  StringAttribute optional computed
     markdown: "Description of the GlobalRouter."
 disabled  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to false
@@ -49,7 +49,6 @@ rules[].condition  StringAttribute required
 rules[].custom_details  MapAttribute optional computed elem=basetypes.StringType
     description: "Custom details for the rule."
 rules[].entity_type  StringAttribute optional computed
-    default: stringdefault.staticStringDefault value defaults to unspecified
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
     validator: stringvalidator.oneOfValidator value must be one of: ["alerts" "cases" "test_notifications" "unspecified"]
 rules[].name  StringAttribute required

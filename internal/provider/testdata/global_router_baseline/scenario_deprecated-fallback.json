@@ -79,12 +79,12 @@
       "fallback": [
         {
           "connector_id": "c1",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": null
         },
         {
           "connector_id": "c2",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": "p2"
         }
       ],

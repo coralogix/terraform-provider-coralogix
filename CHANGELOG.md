@@ -6,6 +6,10 @@
 
 #### resource/coralogix_global_router
 - CHORE: The resource is generated from the API contract. The schema, the docs text, and the behavior are unchanged, except for the changes below.
+- FIX: A rule without `entity_type` no longer fails. The provider sends no value, and the API uses `ALERTS`. Before, the provider sent `unspecified`, and the API refused it.
+- FIX: A router without `description` no longer fails with "inconsistent result after apply". `description` is now `Optional` and `Computed`. To clear it, set `description = ""`.
+- FIX: `fallback` and `fallback_targets` keep the order of the configuration when the API returns the same items in another order. Before, a reorder failed the apply.
+- FIX: Removing `rules` from the configuration keeps the existing rules, as removing `entity_labels` does. Before, it removed all rules. To remove all rules, set `rules = []`.
 - CHORE: Error messages have new wording.
 
 # Release 3.19.0

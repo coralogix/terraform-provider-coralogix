@@ -36,7 +36,7 @@
         {
           "condition": "true",
           "custom_details": "(unknown)",
-          "entity_type": "unspecified",
+          "entity_type": "(unknown)",
           "name": "r",
           "targets": [
             {
@@ -63,7 +63,6 @@
             "rules": [
               {
                 "condition": "true",
-                "entityType": "ENTITY_TYPE_UNSPECIFIED",
                 "name": "r",
                 "targets": [
                   {
@@ -74,13 +73,39 @@
             ]
           }
         },
-        "status": 400
+        "status": 200
       }
     ],
-    "applyDiagnostics": [
-      "error: Unable to create global_router | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Valid entity_type must be provided\\\"}\"}"
-    ],
-    "state": null
+    "state": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "et1",
+      "routing_labels": {
+        "environment": "et1",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "replanEmpty": true
   },
   {
     "step": "create: entity_type unspecified",
@@ -251,7 +276,7 @@
       "entity_labels": {},
       "fallback": null,
       "fallback_targets": null,
-      "id": "00000000-0000-4000-8000-000000000001",
+      "id": "00000000-0000-4000-8000-000000000003",
       "name": "et3",
       "routing_labels": {
         "environment": "et3",
