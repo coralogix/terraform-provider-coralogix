@@ -5,10 +5,12 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -51,6 +53,19 @@ func scopeRawResponseHandler(status int, body string) http.HandlerFunc {
 		w.WriteHeader(status)
 		_, _ = w.Write([]byte(body))
 	}
+}
+
+// scopeErrorText joins the summary and detail of every error diagnostic, so a
+// test can assert that the API's own message survived into what the user sees.
+func scopeErrorText(errs []diag.Diagnostic) string {
+	var b strings.Builder
+	for _, d := range errs {
+		b.WriteString(d.Summary())
+		b.WriteString("\n")
+		b.WriteString(d.Detail())
+		b.WriteString("\n")
+	}
+	return b.String()
 }
 
 // scopeCapturePanic runs fn and returns the recovered panic value, or nil. Each
@@ -165,7 +180,19 @@ func TestScopeReadDoesNotPanicOnAPIFailure(t *testing.T) {
 		wantResourceError    bool
 		wantResourceGone     bool
 		wantDataSourceError  bool
+		// wantErrorContains, when set, must appear in the error diagnostics of
+		// both the resource and the data source.
+		wantErrorContains string
 	}{
+		{
+			name:                 "401_unauthorized_surfaces_the_api_message",
+			handler:              scopeRawResponseHandler(http.StatusUnauthorized, `{"message":"invalid api key"}`),
+			wantResourceWarnings: 0,
+			wantResourceError:    true,
+			wantResourceGone:     false,
+			wantDataSourceError:  true,
+			wantErrorContains:    "invalid api key",
+		},
 		{
 			name:                 "403_forbidden_surfaces_the_api_error",
 			handler:              scopeRawResponseHandler(http.StatusForbidden, `{"message":"permission denied"}`),
@@ -173,6 +200,7 @@ func TestScopeReadDoesNotPanicOnAPIFailure(t *testing.T) {
 			wantResourceError:    true,
 			wantResourceGone:     false,
 			wantDataSourceError:  true,
+			wantErrorContains:    "permission denied",
 		},
 		{
 			name:                 "404_removes_the_resource_and_errors_the_data_source",
@@ -197,6 +225,7 @@ func TestScopeReadDoesNotPanicOnAPIFailure(t *testing.T) {
 			wantResourceError:    true,
 			wantResourceGone:     false,
 			wantDataSourceError:  true,
+			wantErrorContains:    "boom",
 		},
 		{
 			name:                 "transport_failure_has_no_http_response_to_inspect",
@@ -228,10 +257,20 @@ func TestScopeReadDoesNotPanicOnAPIFailure(t *testing.T) {
 			if got := resourceResp.State.Raw.IsNull(); got != tc.wantResourceGone {
 				t.Errorf("resource removed from state = %v, want %v", got, tc.wantResourceGone)
 			}
+			if tc.wantErrorContains != "" {
+				if got := scopeErrorText(resourceResp.Diagnostics.Errors()); !strings.Contains(got, tc.wantErrorContains) {
+					t.Errorf("resource error does not carry the API message %q; got:\n%s", tc.wantErrorContains, got)
+				}
+			}
 
 			dataSourceResp := readScopeDataSource(t, ctx, newClient(), scopeUnitTestID)
 			if got := dataSourceResp.Diagnostics.HasError(); got != tc.wantDataSourceError {
 				t.Errorf("data source hasError = %v, want %v (%v)", got, tc.wantDataSourceError, dataSourceResp.Diagnostics.Errors())
+			}
+			if tc.wantErrorContains != "" {
+				if got := scopeErrorText(dataSourceResp.Diagnostics.Errors()); !strings.Contains(got, tc.wantErrorContains) {
+					t.Errorf("data source error does not carry the API message %q; got:\n%s", tc.wantErrorContains, got)
+				}
 			}
 			// A data source must never remove anything from state.
 			if dataSourceResp.State.Raw.IsNull() != true && dataSourceResp.Diagnostics.HasError() {
