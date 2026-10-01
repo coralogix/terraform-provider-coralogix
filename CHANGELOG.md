@@ -14,7 +14,11 @@
 - FIX: A router without `description` no longer fails with "inconsistent result after apply". `description` is now `Optional` and `Computed`. To clear it, set `description = ""`.
 - FIX: `fallback` and `fallback_targets` keep the order of the configuration when the API returns the same items in another order. Before, a reorder failed the apply.
 - FIX: Removing `rules` from the configuration keeps the existing rules, as removing `entity_labels` does. Before, it removed all rules. To remove all rules, set `rules = []`.
+- FEAT: Add the computed attributes `create_time` and `update_time`.
 - CHORE: Error messages have new wording.
+
+#### data-source/coralogix_global_router
+- FEAT: Add the computed attributes `create_time` and `update_time`.
 
 # Release 3.19.0
 

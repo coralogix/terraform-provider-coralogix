@@ -7,6 +7,7 @@ import (
 )
 
 type GlobalRouterModel struct {
+	CreateTime      types.String        `tfsdk:"create_time"`
 	Description     types.String        `tfsdk:"description"`
 	Disabled        types.Bool          `tfsdk:"disabled"`
 	EntityLabels    types.Map           `tfsdk:"entity_labels"`
@@ -16,6 +17,7 @@ type GlobalRouterModel struct {
 	Name            types.String        `tfsdk:"name"`
 	RoutingLabels   *RoutingLabelsModel `tfsdk:"routing_labels"`
 	Rules           types.List          `tfsdk:"rules"`
+	UpdateTime      types.String        `tfsdk:"update_time"`
 }
 
 type RoutingTargetModel struct {

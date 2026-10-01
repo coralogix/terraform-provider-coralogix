@@ -313,6 +313,7 @@ func flattenGlobalRouter(ctx context.Context, p path.Path, v *global_routers_ser
 		return nil
 	}
 	out := &GlobalRouterModel{}
+	out.CreateTime = flattenTime(v.CreateTime)
 	out.Description = types.StringPointerValue(v.Description)
 	out.Disabled = types.BoolPointerValue(v.Disabled)
 	out.EntityLabels = flattenStringMap(ctx, v.EntityLabels, diags)
@@ -363,6 +364,7 @@ func flattenGlobalRouter(ctx context.Context, p path.Path, v *global_routers_ser
 		}
 		out.Rules = flattenList(ctx, types.ObjectType{AttrTypes: routingRuleAttrTypes()}, items, diags)
 	}
+	out.UpdateTime = flattenTime(v.UpdateTime)
 	return out
 }
 

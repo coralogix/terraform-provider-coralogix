@@ -70,9 +70,9 @@ types:
         computed: true
       # The released resource has no top-level entity type.
       entityType: {skip: true}
-      # TEMPORARY: computed in a later commit, when they become part of the resource.
-      createTime: {skip: true}
-      updateTime: {skip: true}
+      # The server sets the times. They are new attributes, so the contract describes them.
+      createTime: {readOnly: true, useStateForUnknown: true} # PINNED-SDK: the contract will mark the field readOnly
+      updateTime: {readOnly: true} # PINNED-SDK
 
   RoutingRule:
     required: [] # PINNED-SDK

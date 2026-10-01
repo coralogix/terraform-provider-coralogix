@@ -30,6 +30,7 @@
       ]
     },
     "plan": {
+      "create_time": "(unknown)",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -69,7 +70,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -110,6 +112,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -149,7 +152,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:01Z"
     },
     "replanEmpty": true
   },
@@ -184,6 +188,7 @@
       ]
     },
     "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -223,7 +228,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -265,6 +271,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -304,7 +311,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:02Z"
     },
     "replanEmpty": true
   },
@@ -349,6 +357,7 @@
       ]
     },
     "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -401,7 +410,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -453,6 +463,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -505,7 +516,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:03Z"
     },
     "replanEmpty": true
   },
@@ -540,6 +552,7 @@
       ]
     },
     "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -579,7 +592,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -621,6 +635,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -660,7 +675,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:04Z"
     },
     "replanEmpty": true
   },
@@ -674,6 +690,7 @@
       "rules": []
     },
     "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -686,7 +703,8 @@
         "service": "(unknown)",
         "team": "(unknown)"
       },
-      "rules": []
+      "rules": [],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -706,6 +724,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -718,7 +737,8 @@
         "service": null,
         "team": null
       },
-      "rules": []
+      "rules": [],
+      "update_time": "2026-01-01T00:00:05Z"
     },
     "replanEmpty": true
   },
@@ -743,6 +763,7 @@
       ]
     },
     "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -769,7 +790,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -801,6 +823,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -827,7 +850,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:06Z"
     },
     "replanEmpty": true
   },
@@ -841,6 +865,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -867,7 +892,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:06Z"
     }
   }
 ]

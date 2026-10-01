@@ -51,6 +51,8 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", name),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "disabled", "true"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "fallback_targets.#", "1"),
+					resource.TestCheckResourceAttrSet(globalRouterResourceName, "create_time"),
+					resource.TestCheckResourceAttrSet(globalRouterResourceName, "update_time"),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "fallback_targets.*", map[string]string{
 						"entity_type":         "alerts",
 						"target.connector_id": fmt.Sprintf("http-%v", name),
