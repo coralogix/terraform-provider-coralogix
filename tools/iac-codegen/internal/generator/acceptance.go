@@ -43,8 +43,10 @@ type acceptanceData struct {
 	Env                    []string
 	Prerequisites          string
 	Full, Updated, Minimal *accStep
-	UpgradeFrom            string
-	UpgradeEnv             string
+	// UpgradeMinimal is the minimal config plus the fields that the released provider needs.
+	UpgradeMinimal *accStep
+	UpgradeFrom    string
+	UpgradeEnv     string
 }
 
 type accMode int
@@ -58,10 +60,12 @@ const (
 // accSynth makes the configs from the schema of the resource. A value comes from the acceptance
 // file, or the synthesizer makes a plain one from the kind of the attribute.
 type accSynth struct {
-	file   *acceptance.File
-	idAttr string
-	known  map[string]bool // every attribute path that the walk saw
-	used   map[string]bool // every value path that a config used
+	file *acceptance.File
+	// minimal are the optional fields that the minimal config sets.
+	minimal []string
+	idAttr  string
+	known   map[string]bool // every attribute path that the walk saw
+	used    map[string]bool // every value path that a config used
 }
 
 var quoted = regexp.MustCompile(`"([^"]*)"`)
@@ -72,7 +76,7 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		return nil, errors.New("acceptance test: a oneOf group among the top-level fields is not supported")
 	}
 	typeName := res.CRUD.TypeName
-	s := &accSynth{file: file, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, used: map[string]bool{}}
+	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, used: map[string]bool{}}
 	out := &acceptanceData{
 		Package:        res.Package,
 		VersionHeader:  version.Header,
@@ -97,6 +101,15 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		*step.into = &accStep{Config: resourceBlock("coralogix_"+typeName, body), Checks: checks}
 	}
 	out.Minimal.Absent = s.absent(res.Attributes)
+	if file.UpgradeFrom != "" {
+		s.minimal = append(slices.Clone(file.Minimal), file.UpgradeMinimal...)
+		body, checks, err := s.attrs(res.Attributes, "", "", accMinimal, true)
+		if err != nil {
+			return nil, fmt.Errorf("acceptance test: %w", err)
+		}
+		out.UpgradeMinimal = &accStep{Config: resourceBlock("coralogix_"+typeName, body), Checks: checks}
+		s.minimal = file.Minimal
+	}
 	if err := s.checkFile(); err != nil {
 		return nil, err
 	}
@@ -106,7 +119,7 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 // checkFile fails when the acceptance file names a field that the walk did not see, or a value
 // that no config used. A stale line cannot stay.
 func (s *accSynth) checkFile() error {
-	for name, paths := range map[string][]string{"skip": s.file.Skip, "minimal": s.file.Minimal} {
+	for name, paths := range map[string][]string{"skip": s.file.Skip, "minimal": s.file.Minimal, "upgradeMinimal": s.file.UpgradeMinimal} {
 		for _, path := range paths {
 			if !s.known[path] {
 				return fmt.Errorf("%s: %q is not an attribute of the resource", name, path)
@@ -157,7 +170,7 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 	case a.Required:
 		return true
 	}
-	return mode != accMinimal || slices.Contains(s.file.Minimal, key)
+	return mode != accMinimal || slices.Contains(s.minimal, key)
 }
 
 // attrs makes the "name = value" lines of the attributes of one object, and the checks.
@@ -207,7 +220,7 @@ func immutable(a *tfAttr) bool {
 
 // value makes the HCL value of an attribute and the checks on it.
 func (s *accSynth) value(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
-	if mode == accMinimal && slices.Contains(s.file.Minimal, key) {
+	if mode == accMinimal && slices.Contains(s.minimal, key) {
 		mode = accFull
 	}
 	if immutable(a) && mode == accUpdated {

@@ -18,12 +18,13 @@ values:
   rules[].targets[].connector_id: coralogix_connector.slack.id
 skip: [fallback]
 minimal: [routing_labels]
+upgradeMinimal: [description]
 upgradeFrom: "3.19.0"
 `))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.Resource != "GlobalRouter" || len(f.Env) != 2 || f.UpgradeFrom != "3.19.0" || f.Skip[0] != "fallback" || f.Minimal[0] != "routing_labels" {
+	if f.Resource != "GlobalRouter" || len(f.Env) != 2 || f.UpgradeFrom != "3.19.0" || f.Skip[0] != "fallback" || f.Minimal[0] != "routing_labels" || f.UpgradeMinimal[0] != "description" {
 		t.Fatalf("file = %+v", f)
 	}
 	if got := f.ValuePaths(); len(got) != 1 || got[0] != "rules[].targets[].connector_id" {
@@ -47,6 +48,7 @@ func TestParseRejectsWhatCannotWork(t *testing.T) {
 		"empty value":         {"resource: R\nvalues:\n  name: \"\"\n", "is empty"},
 		"bad skip path":       {"resource: R\nskip: [Bad]\n", "not a field path"},
 		"bad minimal path":    {"resource: R\nminimal: [a.B]\n", "not a field path"},
+		"bad upgradeMinimal":  {"resource: R\nupgradeMinimal: [Bad]\n", "not a field path"},
 		"bad version":         {"resource: R\nupgradeFrom: latest\n", "want a release"},
 		"backtick":            {"resource: R\nprerequisites: \"a`b\"\n", "backtick"},
 	}

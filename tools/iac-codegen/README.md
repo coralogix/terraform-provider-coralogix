@@ -114,20 +114,18 @@ values:                         # an HCL expression for a field, instead of a ma
   rules[].targets[].connector_id: coralogix_connector.http.id
 skip: [fallback]                # fields that no config sets (a deprecated field, for example)
 minimal: [routing_labels]       # optional fields that the minimal config must set
+upgradeMinimal: [description]    # optional fields the released provider needs to create the resource
 upgradeFrom: "3.19.0"           # a released provider for the upgrade test
 ```
 
-The test makes its configs from the final schema, after the behavior overrides:
+The test makes its configs from the final schema, after the behavior overrides. Each lifecycle is a subtest on its own resource, so a failure in one does not hide the others:
 
-1. The full config sets every attribute the user can set. It checks each value.
-2. An import step compares the imported state with the state (`ImportStateVerify`).
-3. The update config changes the strings, numbers, and bools. An immutable attribute and an enum keep their values, because the valid values of other fields can depend on an enum.
-4. The minimal config sets only the required attributes, and the ones listed in `minimal`. Optional attributes that the server does not fill must leave the state.
-5. A last import step.
+- `full-lifecycle`: the full config sets every attribute the user can set, and the test checks each value. Then an import step compares the imported state with the state (`ImportStateVerify`). The update config changes the strings, numbers, and bools. An immutable attribute and an enum keep their values, because the valid values of other fields can depend on an enum. Then another import.
+- `minimal-lifecycle`: the minimal config sets only the required attributes, and the ones listed in `minimal`. Optional attributes that the server does not fill must leave the state. Then an import, the full config, and the minimal config again.
 
 After every apply, the framework plans again and fails on a non-empty plan. The made-up values are: the first accepted value of an enum (not `unspecified`), `true` and `false`, `1` and `2`, and `@{run}-<attribute>` for a string. One arm of a `oneOf` group is set. The generator fails on a kind of attribute it cannot make, and asks for a value in `acceptance.yaml`. A path in `values`, `skip`, or `minimal` that matches no attribute is an error. A `values` path names the attributes from the resource down, with `[]` for each list or set element: `rules[].targets[].connector_id`.
 
-With `upgradeFrom`, a second test creates the full config with that released provider, plans it with this build (no change expected), updates, and imports. Set `CORALOGIX_<RESOURCE>_UPGRADE_ACC=1` and `TF_ACC_PROVIDER_NAMESPACE=coralogix` to run it. It is skipped otherwise.
+With `upgradeFrom`, a second test has two subtests. `upgrade-full` creates the full config with that released provider, plans it with this build (no change expected), updates to the updated config, and imports. `upgrade-minimal` does the same from the minimal config plus the fields in `upgradeMinimal`, and updates to the full config. Set `CORALOGIX_<RESOURCE>_UPGRADE_ACC=1` and `TF_ACC_PROVIDER_NAMESPACE=coralogix` to run it. It is skipped otherwise.
 
 Not covered: a check that the resource is gone after destroy, a oneOf group among the top-level fields, and checks on the elements of a set.
 

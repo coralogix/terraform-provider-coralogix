@@ -15,7 +15,7 @@ func testSynth(t *testing.T, fileText string) *accSynth {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &accSynth{file: file, idAttr: "id", known: map[string]bool{}, used: map[string]bool{}}
+	return &accSynth{file: file, minimal: file.Minimal, idAttr: "id", known: map[string]bool{}, used: map[string]bool{}}
 }
 
 func sampleAttrs() []*tfAttr {

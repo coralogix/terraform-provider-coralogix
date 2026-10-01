@@ -32,4 +32,8 @@ skip:
 minimal:
   - routing_labels
 
+# Provider 3.19.0 cannot create a router without a description.
+upgradeMinimal:
+  - description
+
 upgradeFrom: "3.19.0"
