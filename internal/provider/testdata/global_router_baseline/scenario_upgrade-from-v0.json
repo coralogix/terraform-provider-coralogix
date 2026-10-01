@@ -56,7 +56,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_global_router \"\\\"does-not-exist\\\"\" is in state, but no longer exists in Coralogix backend | \"does-not-exist\" will be recreated when you apply",
+      "warning: Resource disappeared during state upgrade | global_router with id does-not-exist was not found. Terraform removed it from state.",
       "error: Missing Upgraded Resource State | After attempting a resource state upgrade to version 0, the provider did not return any state data. Preventing the unexpected loss of resource state data. This is always an issue with the Terraform Provider and should be reported to the provider developer."
     ],
     "state": null

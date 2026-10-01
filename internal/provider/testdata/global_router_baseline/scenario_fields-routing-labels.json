@@ -530,7 +530,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_global_router | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Routing labels cannot be empty.\\\"}\"}\noperation - Create"
+      "error: Unable to create global_router | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Routing labels cannot be empty.\\\"}\"}"
     ],
     "state": null
   },
@@ -564,7 +564,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_global_router | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Routing labels cannot be empty.\\\"}\"}\noperation - Create"
+      "error: Unable to create global_router | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Routing labels cannot be empty.\\\"}\"}"
     ],
     "state": null
   },
@@ -665,7 +665,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_global_router | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Routing labels cannot be empty.\\\"}\"}\noperation - Replace"
+      "error: Unable to update global_router | id 00000000-0000-4000-8000-000000000004: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Routing labels cannot be empty.\\\"}\"}"
     ],
     "state": {
       "description": "",

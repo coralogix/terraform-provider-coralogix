@@ -8,6 +8,10 @@
 - FEAT: Add the fail-closed beta generator and local candidate eligibility checks for complete Terraform Plugin Framework resources.
 - FEAT: Add existing-resource mode. A `behavior-overrides.yaml` file lists where a released resource differs from the API contract, and the generator keeps that behavior. A line that matches nothing in the contract is an error.
 
+#### resource/coralogix_global_router
+- CHORE: The resource is generated from the API contract. The schema, the docs text, and the behavior are unchanged, except for the changes below.
+- CHORE: Error messages have new wording.
+
 # Release 3.19.0
 
 #### resource/coralogix_events2metric

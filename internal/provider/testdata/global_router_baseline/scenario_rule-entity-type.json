@@ -78,7 +78,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_global_router | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Valid entity_type must be provided\\\"}\"}\noperation - Create"
+      "error: Unable to create global_router | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Valid entity_type must be provided\\\"}\"}"
     ],
     "state": null
   },
@@ -162,7 +162,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_global_router | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Valid entity_type must be provided\\\"}\"}\noperation - Create"
+      "error: Unable to create global_router | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Valid entity_type must be provided\\\"}\"}"
     ],
     "state": null
   },

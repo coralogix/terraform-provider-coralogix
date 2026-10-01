@@ -1,0 +1,138 @@
+# Where coralogix_global_router differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the
+# API contract, and the contract must say how (for example with x-coralogix-presence).
+# A new API field never needs a line here.
+#
+# Lines marked TEMPORARY keep a bug of the released resource. The commit that fixes the bug
+# deletes them.
+#
+# Lines marked PINNED-SDK state facts that the API contract will declare after the SDK that
+# has them is pinned. The generator reports each of them as unused at that point. Delete them then.
+resource: GlobalRouter
+mode: existing
+
+markdownDescription: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in Beta stage."
+
+schema:
+  version: 1
+  upgrade:
+    # State of version 0 is upgraded by reading the router from the API.
+    0: {priorSchema: github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/global_router_schema.V0, strategy: refresh}
+
+# The contract has limits (maxLength, minLength, ...) that the released resource never checked.
+# A validator for them would reject configs that work today.
+validators:
+  inferred: false
+
+api:
+  # Create and Update send {"router": {...}}.
+  requestWrapper: router
+  # Update is PUT on the collection path. The id is router.id in the body.
+  updateIDInBody: true
+  # The user can set the id, for example router_default.
+  clientSetID: true
+
+types:
+  GlobalRouter:
+    required: [] # PINNED-SDK: the pinned contract declares no required list
+    fields:
+      id:
+        markdownDescription: "The ID of the GlobalRouter. Use `router_default` for the default; leave empty for auto generated or provide your own (unique) id."
+        useStateForUnknown: true
+      name:
+        markdownDescription: "Name of the GlobalRouter."
+        required: true # PINNED-SDK: the contract will require the name
+      description:
+        markdownDescription: "Description of the GlobalRouter."
+        computed: false # TEMPORARY: the API returns "" for an omitted value, so this fails after apply
+      routingLabels:
+        markdownDescription: "Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique. Labels matching is linked with AND, so an alert has to have all labels specified below."
+        readEmptyAs: "null"
+      rules:
+        description: "Routing rules for the GlobalRouter."
+        computed: true
+      fallback:
+        description: "Fallback routing targets. Removing the block clears them."
+        deprecation: "Use `fallback_targets` instead, which supports per-entity-type fallback."
+        readEmptyAs: "null"
+        validators: [{sizeAtLeast: 1}]
+      fallbackTargets:
+        description: "Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. Omit the block to clear the fallback targets."
+        readEmptyAs: "null"
+        validators: [{sizeAtLeast: 1}]
+      disabled:
+        markdownDescription: "Disables the router without deleting it. Defaults to false."
+        computed: true
+        default: false
+      entityLabels:
+        description: ""
+        computed: true
+      # The released resource has no top-level entity type.
+      entityType: {skip: true}
+      # TEMPORARY: computed in a later commit, when they become part of the resource.
+      createTime: {skip: true}
+      updateTime: {skip: true}
+
+  RoutingRule:
+    required: [] # PINNED-SDK
+    fields:
+      entityType:
+        description: ""
+        computed: true
+        useStateForUnknown: true
+        default: unspecified # TEMPORARY: the API refuses ENTITY_TYPE_UNSPECIFIED, so a rule without entity_type fails
+        validators: [{oneOf: [alerts, cases, test_notifications, unspecified]}]
+      name:
+        description: "Name of the routing rule."
+        required: true # PINNED-SDK
+      condition:
+        description: ""
+        required: true # PINNED-SDK
+      targets:
+        description: "Routing targets for the rule."
+        computed: true
+        keepPriorOrder: true
+      customDetails:
+        description: "Custom details for the rule."
+        computed: true
+
+  RoutingTarget:
+    required: [] # PINNED-SDK
+    fields:
+      connectorId:
+        description: "ID of the connector."
+        required: true # PINNED-SDK
+      presetId:
+        description: "ID of the preset."
+      customDetails:
+        description: "Custom details for the target."
+        computed: true
+      # The server makes a new id on every write. It would show a diff on every update.
+      id: {skip: true}
+
+  RoutingLabels:
+    # The contract does not declare a required list for the labels. All are optional.
+    required: []
+    fields:
+      environment: {description: "", computed: true}
+      service: {description: "", computed: true}
+      team: {description: "", computed: true}
+
+  FallbackTarget:
+    required: [] # PINNED-SDK
+    fields:
+      entityType:
+        description: "The entity type this fallback applies to."
+        required: true # PINNED-SDK
+        validators: [{oneOf: [alerts, cases, test_notifications, unspecified]}]
+      target:
+        description: "The fallback routing target."
+        required: true # PINNED-SDK
+
+enums:
+  # ENTITY_TYPE_UNSPECIFIED was the Terraform value "unspecified" in the released resource.
+  # OLLY_SCHEDULED_TASKS is not accepted: the backend refuses it for global routing.
+  notification_center.EntityType:
+    zero: unspecified
+    values: [ALERTS, CASES, TEST_NOTIFICATIONS]

@@ -21,7 +21,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/globalrouter"
 	globalrouterschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/global_router_schema"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils/schemadump"
 )
@@ -46,7 +46,7 @@ type (
 
 func TestGlobalRouterBaselineSchema(t *testing.T) {
 	var current resource.SchemaResponse
-	notifications.NewGlobalRouterResource().Schema(context.Background(), resource.SchemaRequest{}, &current)
+	globalrouter.NewResource().Schema(context.Background(), resource.SchemaRequest{}, &current)
 
 	checkGolden(t, "schema_current.txt", []byte(schemadump.Text(current.Schema)))
 	// Version 0 stays frozen so that stored state can still be read.
