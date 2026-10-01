@@ -228,6 +228,15 @@ func TestScopeReadDoesNotPanicOnAPIFailure(t *testing.T) {
 			wantErrorContains:    "boom",
 		},
 		{
+			name:                 "429_too_many_requests",
+			handler:              scopeRawResponseHandler(http.StatusTooManyRequests, `{"message":"rate limit exceeded"}`),
+			wantResourceWarnings: 0,
+			wantResourceError:    true,
+			wantResourceGone:     false,
+			wantDataSourceError:  true,
+			wantErrorContains:    "rate limit exceeded",
+		},
+		{
 			name:                 "transport_failure_has_no_http_response_to_inspect",
 			transportFailure:     true,
 			wantResourceWarnings: 0,
