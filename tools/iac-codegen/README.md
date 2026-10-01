@@ -121,7 +121,7 @@ The test makes its configs from the final schema, after the behavior overrides:
 
 1. The full config sets every attribute the user can set. It checks each value.
 2. An import step compares the imported state with the state (`ImportStateVerify`).
-3. The update config changes the strings, numbers, and bools. An immutable attribute keeps its value.
+3. The update config changes the strings, numbers, and bools. An immutable attribute and an enum keep their values, because the valid values of other fields can depend on an enum.
 4. The minimal config sets only the required attributes, and the ones listed in `minimal`. Optional attributes that the server does not fill must leave the state.
 5. A last import step.
 

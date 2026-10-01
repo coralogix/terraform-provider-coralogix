@@ -78,7 +78,7 @@ const updatedConfig = `resource "coralogix_legacy_thing" "test" {
   rules = [
     {
       name = "@{run}-name-updated"
-      kind = "beta"
+      kind = "alpha"
       targets = [
         {
           connector_id = coralogix_other.dependency.id
@@ -112,7 +112,7 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.name", render(run, "@{run}-name-updated")),
-		resource.TestCheckResourceAttr(resourceAddress, "rules.0.kind", "beta"),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.kind", "alpha"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.targets.#", "1"),
 	)
 }
