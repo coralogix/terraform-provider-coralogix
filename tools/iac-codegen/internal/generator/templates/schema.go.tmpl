@@ -38,11 +38,17 @@ import (
 // Schema is the Terraform schema of the resource.
 func Schema() schema.Schema {
 	return schema.Schema{
+{{- if .SchemaVersion}}
+		Version: {{.SchemaVersion}},
+{{- end}}
 		Attributes: map[string]schema.Attribute{
 {{- range .Attributes}}
 			{{printf "%q" .Name}}: {{template "attribute" .}},
 {{- end}}
 		},
+{{- if .ResourceMarkdownDescription}}
+		MarkdownDescription: {{printf "%q" .ResourceMarkdownDescription}},
+{{- end}}
 	}
 }
 
@@ -109,15 +115,18 @@ schema.{{.Kind}}Attribute{
 {{- if .ElementType}}
 	ElementType: {{.ElementType}},
 {{- end}}
+{{- if .Default}}
+	Default: {{.Default}},
+{{- end}}
+{{- if .DeprecationMessage}}
+	DeprecationMessage: {{printf "%q" .DeprecationMessage}},
+{{- end}}
 {{- if .Validators}}
 	Validators: []validator.{{.ValueKind}}{
 	{{- range .Validators}}
 		{{.}},
 	{{- end}}
 	},
-{{- end}}
-{{- if .Default}}
-	Default: {{.Default}},
 {{- end}}
 {{- if .Modifiers}}
 	PlanModifiers: []planmodifier.{{.ValueKind}}{
@@ -133,7 +142,7 @@ schema.{{.Kind}}Attribute{
 		Attributes: {{template "attributes" .Attributes}},
 	},
 {{- end}}
-	MarkdownDescription: {{printf "%q" .Description}},
+	{{if .PlainDescription}}Description{{else}}MarkdownDescription{{end}}: {{printf "%q" .Description}},
 }
 {{- end}}
 

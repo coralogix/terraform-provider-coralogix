@@ -14,6 +14,7 @@ import (
 	"golang.org/x/tools/go/ast/astutil"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
 //go:embed templates/*.tmpl
@@ -33,15 +34,16 @@ var generatedFiles = map[string]string{
 var formatGenerated = formatSource
 
 // render returns the generated files of the resource, by file name.
-func render(r *model.Resource, refs []sdkRef, pkg string) (map[string][]byte, error) {
-	data, err := buildTFResource(r, pkg)
+// renderWith is render for a resource with a behavior-overrides file (nil for a new resource).
+func renderWith(r *model.Resource, refs []sdkRef, pkg string, file *overrides.File) (map[string][]byte, error) {
+	data, err := buildTFResourceWith(r, pkg, file)
 	if err != nil {
 		return nil, err
 	}
-	if data.Conv, err = buildConv(r, refs); err != nil {
+	if data.Conv, err = buildConvWith(r, refs, file); err != nil {
 		return nil, err
 	}
-	if data.CRUD, err = buildCRUD(r, refs); err != nil {
+	if data.CRUD, err = buildCRUDWith(r, refs, file); err != nil {
 		return nil, err
 	}
 	files := maps.Clone(generatedFiles)

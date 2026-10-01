@@ -1,0 +1,88 @@
+package overrides
+
+import (
+	"reflect"
+	"strings"
+	"testing"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+)
+
+const valid = `
+resource: Thing
+mode: existing
+validators:
+  inferred: false
+api:
+  requestWrapper: thing
+  updateIDInBody: true
+  clientSetID: true
+types:
+  Labels:
+    required: []
+  Target:
+    fields:
+      id: {skip: true}
+enums:
+  Kind: {zero: unspecified}
+`
+
+func TestParseAndPolicy(t *testing.T) {
+	f, err := Parse([]byte(valid))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := model.Policy{
+		Existing:       true,
+		RequestWrapper: "thing",
+		UpdateIDInBody: true,
+		ClientSetID:    true,
+		EnumAnyPrefix:  []string{"Kind"},
+		EmptyRequired:  []string{"Labels"},
+		Skip:           []string{"Target.id"},
+		Released:       []string{"Target.id"},
+
+		NoInferredValidators: true,
+	}
+	if got := f.Policy(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("policy = %+v, want %+v", got, want)
+	}
+	var lines []string
+	for _, l := range f.Lines() {
+		lines = append(lines, l.String())
+	}
+	if got, want := strings.Join(lines, ","), "enums.Kind,types.Labels.required,types.Target.fields.id"; got != want {
+		t.Fatalf("lines = %s, want %s", got, want)
+	}
+}
+
+func TestParseIsStrict(t *testing.T) {
+	tests := map[string]struct {
+		text string
+		want string
+	}{
+		"empty file":      {"", "empty"},
+		"unknown key":     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nbogus: 1\n", "bogus"},
+		"unknown nested":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrappr: x\n", "requestWrappr"},
+		"no resource":     {"mode: existing\n", "resource is required"},
+		"wrong mode":      {"resource: Thing\nmode: new\n", `mode is "new"`},
+		"no mode":         {"resource: Thing\n", `mode is ""`},
+		"no validators":   {"resource: Thing\nmode: existing\n", "validators.inferred: false is required"},
+		"inferred true":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: true\n", "validators.inferred: false is required"},
+		"bad readEmptyAs": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {readEmptyAs: zero}\n", "readEmptyAs"},
+		"bad default":     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: [a]}\n", "default is"},
+		"two validators":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {validators: [{oneOf: [a], sizeAtLeast: 1}]}\n", "exactly one"},
+		"empty line":      {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {}\n", "sets nothing"},
+		"skip and more":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, computed: true}\n", "skipped field"},
+		"required list":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    required: [a]\n", "only the empty list"},
+		"type with no op": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T: {}\n", "has no override"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(test.text))
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}

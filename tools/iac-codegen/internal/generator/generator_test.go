@@ -21,6 +21,34 @@ import (
 
 var updateGolden = flag.Bool("update", false, "replace the committed golden output")
 
+// The golden output of a resource that users already have. It uses every key of the
+// behavior-overrides file.
+func TestGoldenOutputExistingResource(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "legacything")
+	options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	golden := filepath.Join("testdata", "golden", "legacything")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputExistingResource -update:\n%s", diff)
+	}
+}
+
 func TestGoldenOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	first := filepath.Join(t.TempDir(), "thing")

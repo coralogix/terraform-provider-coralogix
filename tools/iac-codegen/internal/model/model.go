@@ -38,6 +38,8 @@ type Resource struct {
 	// UpdateMaskPattern is the "pattern" of the update mask string, "" when
 	// the spec has none. It shows which mask paths the API accepts.
 	UpdateMaskPattern string
+	// Policy is the rule set that Build used. It is the zero value for a new resource.
+	Policy Policy
 	// Groups are the oneOf groups among the top-level fields.
 	Groups []OneOfGroup
 	// Fields are the top-level resource fields: the Get fields in spec order,
