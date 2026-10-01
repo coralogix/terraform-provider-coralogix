@@ -1,0 +1,64 @@
+[
+  {
+    "step": "upgrade",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "old"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "written by v0",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "old",
+      "routing_labels": {
+        "environment": "old",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {},
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "step": "upgrade an id that does not exist",
+    "config": {
+      "id": "does-not-exist",
+      "name": "old"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/does-not-exist",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_global_router \"\\\"does-not-exist\\\"\" is in state, but no longer exists in Coralogix backend | \"does-not-exist\" will be recreated when you apply",
+      "error: Missing Upgraded Resource State | After attempting a resource state upgrade to version 0, the provider did not return any state data. Preventing the unexpected loss of resource state data. This is always an issue with the Terraform Provider and should be reported to the provider developer."
+    ],
+    "state": null
+  }
+]

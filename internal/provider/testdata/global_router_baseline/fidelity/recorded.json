@@ -1,0 +1,983 @@
+{
+  "recordedAt": "2026-09-30",
+  "cases": [
+    {
+      "name": "minimal-lifecycle",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R1}}",
+              "name": "{{R1}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-1"
+              }
+            }
+          },
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:20.262951Z",
+              "description": "",
+              "disabled": true,
+              "entityLabels": {},
+              "fallback": [],
+              "fallbackTargets": [],
+              "id": "{{R1}}",
+              "name": "{{R1}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-1"
+              },
+              "rules": [],
+              "updateTime": "2026-09-30T15:34:20.262951Z"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{R1}}",
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:20.262951Z",
+              "description": "",
+              "disabled": true,
+              "entityLabels": {},
+              "fallback": [],
+              "fallbackTargets": [],
+              "id": "{{R1}}",
+              "name": "{{R1}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-1"
+              },
+              "rules": [],
+              "updateTime": "2026-09-30T15:34:20.262951Z"
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R1}}",
+              "name": "renamed",
+              "routingLabels": {
+                "environment": "{{RUN}}-1"
+              }
+            }
+          },
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:20.262951Z",
+              "description": "",
+              "disabled": true,
+              "entityLabels": {},
+              "fallback": [],
+              "fallbackTargets": [],
+              "id": "{{R1}}",
+              "name": "renamed",
+              "routingLabels": {
+                "environment": "{{RUN}}-1"
+              },
+              "rules": [],
+              "updateTime": "2026-09-30T15:34:20.515610Z"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{R1}}",
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:20.262951Z",
+              "description": "",
+              "disabled": true,
+              "entityLabels": {},
+              "fallback": [],
+              "fallbackTargets": [],
+              "id": "{{R1}}",
+              "name": "renamed",
+              "routingLabels": {
+                "environment": "{{RUN}}-1"
+              },
+              "rules": [],
+              "updateTime": "2026-09-30T15:34:20.515610Z"
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{R1}}",
+          "status": 200,
+          "response": {}
+        },
+        {
+          "method": "GET",
+          "path": "/{{R1}}",
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: {\"reason\":\"Global router with id '{{R1}}' not found\"}"
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{R1}}",
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "rules-targets-fallback-targets",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "description": "d",
+              "disabled": true,
+              "entityLabels": {
+                "k": "v"
+              },
+              "fallbackTargets": [
+                {
+                  "entityType": "ALERTS",
+                  "target": {
+                    "connectorId": "{{C1}}"
+                  }
+                }
+              ],
+              "id": "{{R2}}",
+              "name": "{{R2}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-2",
+                "service": "{{RUN}}-2"
+              },
+              "rules": [
+                {
+                  "condition": "{{NEVER}}",
+                  "name": "r1",
+                  "targets": [
+                    {
+                      "connectorId": "{{C1}}"
+                    },
+                    {
+                      "connectorId": "{{C2}}",
+                      "customDetails": {
+                        "k": "v"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "condition": "{{NEVER}}",
+                  "customDetails": {
+                    "a": "b"
+                  },
+                  "entityType": "ALERTS",
+                  "name": "r2",
+                  "targets": [
+                    {
+                      "connectorId": "{{C3}}"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:21.085570Z",
+              "description": "d",
+              "disabled": true,
+              "entityLabels": {
+                "k": "v"
+              },
+              "fallback": [],
+              "fallbackTargets": [
+                {
+                  "entityType": "ALERTS",
+                  "target": {
+                    "connectorId": "{{C1}}",
+                    "customDetails": {},
+                    "id": "7470586f-7310-4f7c-bb09-f028a92dcbda"
+                  }
+                }
+              ],
+              "id": "{{R2}}",
+              "name": "{{R2}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-2",
+                "service": "{{RUN}}-2"
+              },
+              "rules": [
+                {
+                  "condition": "{{NEVER}}",
+                  "customDetails": {},
+                  "entityType": "ALERTS",
+                  "name": "r1",
+                  "targets": [
+                    {
+                      "connectorId": "{{C1}}",
+                      "customDetails": {},
+                      "id": "0dde6002-7d0c-4b0b-8cbb-7058c6aa98a3"
+                    },
+                    {
+                      "connectorId": "{{C2}}",
+                      "customDetails": {
+                        "k": "v"
+                      },
+                      "id": "849c0895-459a-49b9-a518-346d4de6121e"
+                    }
+                  ]
+                },
+                {
+                  "condition": "{{NEVER}}",
+                  "customDetails": {
+                    "a": "b"
+                  },
+                  "entityType": "ALERTS",
+                  "name": "r2",
+                  "targets": [
+                    {
+                      "connectorId": "{{C3}}",
+                      "customDetails": {},
+                      "id": "5d42f150-0e24-4109-874c-e5768bc18e2b"
+                    }
+                  ]
+                }
+              ],
+              "updateTime": "2026-09-30T15:34:21.085570Z"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{R2}}",
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:21.085570Z",
+              "description": "d",
+              "disabled": true,
+              "entityLabels": {
+                "k": "v"
+              },
+              "fallback": [],
+              "fallbackTargets": [
+                {
+                  "entityType": "ALERTS",
+                  "target": {
+                    "connectorId": "{{C1}}",
+                    "customDetails": {},
+                    "id": "7470586f-7310-4f7c-bb09-f028a92dcbda"
+                  }
+                }
+              ],
+              "id": "{{R2}}",
+              "name": "{{R2}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-2",
+                "service": "{{RUN}}-2"
+              },
+              "rules": [
+                {
+                  "condition": "{{NEVER}}",
+                  "customDetails": {},
+                  "entityType": "ALERTS",
+                  "name": "r1",
+                  "targets": [
+                    {
+                      "connectorId": "{{C1}}",
+                      "customDetails": {},
+                      "id": "0dde6002-7d0c-4b0b-8cbb-7058c6aa98a3"
+                    },
+                    {
+                      "connectorId": "{{C2}}",
+                      "customDetails": {
+                        "k": "v"
+                      },
+                      "id": "849c0895-459a-49b9-a518-346d4de6121e"
+                    }
+                  ]
+                },
+                {
+                  "condition": "{{NEVER}}",
+                  "customDetails": {
+                    "a": "b"
+                  },
+                  "entityType": "ALERTS",
+                  "name": "r2",
+                  "targets": [
+                    {
+                      "connectorId": "{{C3}}",
+                      "customDetails": {},
+                      "id": "5d42f150-0e24-4109-874c-e5768bc18e2b"
+                    }
+                  ]
+                }
+              ],
+              "updateTime": "2026-09-30T15:34:21.085570Z"
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R2}}",
+              "name": "{{R2}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-2"
+              }
+            }
+          },
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:21.085570Z",
+              "description": "",
+              "disabled": true,
+              "entityLabels": {},
+              "fallback": [],
+              "fallbackTargets": [],
+              "id": "{{R2}}",
+              "name": "{{R2}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-2"
+              },
+              "rules": [],
+              "updateTime": "2026-09-30T15:34:21.369621Z"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{R2}}",
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:21.085570Z",
+              "description": "",
+              "disabled": true,
+              "entityLabels": {},
+              "fallback": [],
+              "fallbackTargets": [],
+              "id": "{{R2}}",
+              "name": "{{R2}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-2"
+              },
+              "rules": [],
+              "updateTime": "2026-09-30T15:34:21.369621Z"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "deprecated-fallback",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "fallback": [
+                {
+                  "connectorId": "{{C1}}"
+                },
+                {
+                  "connectorId": "{{C2}}"
+                }
+              ],
+              "id": "{{R3}}",
+              "name": "{{R3}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-3"
+              },
+              "rules": [
+                {
+                  "condition": "{{NEVER}}",
+                  "entityType": "ALERTS",
+                  "name": "r1",
+                  "targets": [
+                    {
+                      "connectorId": "{{C1}}"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:21.610545Z",
+              "description": "",
+              "disabled": true,
+              "entityLabels": {},
+              "fallback": [
+                {
+                  "connectorId": "{{C1}}",
+                  "customDetails": {},
+                  "id": "d622eb7d-ea5c-4c1b-9289-7ccfee2ba38e"
+                },
+                {
+                  "connectorId": "{{C2}}",
+                  "customDetails": {},
+                  "id": "588acb77-f5c3-4fcc-aedf-bce9d3b5a270"
+                }
+              ],
+              "fallbackTargets": [],
+              "id": "{{R3}}",
+              "name": "{{R3}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-3"
+              },
+              "rules": [
+                {
+                  "condition": "{{NEVER}}",
+                  "customDetails": {},
+                  "entityType": "ALERTS",
+                  "name": "r1",
+                  "targets": [
+                    {
+                      "connectorId": "{{C1}}",
+                      "customDetails": {},
+                      "id": "918ebddb-c077-47f8-a701-7176f9d1bc64"
+                    }
+                  ]
+                }
+              ],
+              "updateTime": "2026-09-30T15:34:21.610545Z"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{R3}}",
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:21.610545Z",
+              "description": "",
+              "disabled": true,
+              "entityLabels": {},
+              "fallback": [
+                {
+                  "connectorId": "{{C1}}",
+                  "customDetails": {},
+                  "id": "d622eb7d-ea5c-4c1b-9289-7ccfee2ba38e"
+                },
+                {
+                  "connectorId": "{{C2}}",
+                  "customDetails": {},
+                  "id": "588acb77-f5c3-4fcc-aedf-bce9d3b5a270"
+                }
+              ],
+              "fallbackTargets": [],
+              "id": "{{R3}}",
+              "name": "{{R3}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-3"
+              },
+              "rules": [
+                {
+                  "condition": "{{NEVER}}",
+                  "customDetails": {},
+                  "entityType": "ALERTS",
+                  "name": "r1",
+                  "targets": [
+                    {
+                      "connectorId": "{{C1}}",
+                      "customDetails": {},
+                      "id": "918ebddb-c077-47f8-a701-7176f9d1bc64"
+                    }
+                  ]
+                }
+              ],
+              "updateTime": "2026-09-30T15:34:21.610545Z"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "validation",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {},
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"router is required\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {}
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"GlobalRouter.name must not be empty\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R6}}",
+              "name": "",
+              "routingLabels": {
+                "environment": "{{RUN}}-v6"
+              }
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"GlobalRouter.name must not be empty\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R7}}",
+              "name": "{{R7}}"
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Routing labels cannot be empty.\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R8}}",
+              "name": "{{R8}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-v8"
+              },
+              "rules": [
+                {
+                  "condition": "{{NEVER}}",
+                  "entityType": "ALERTS",
+                  "targets": [
+                    {
+                      "connectorId": "{{C1}}"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Every rule must have a name\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R9}}",
+              "name": "{{R9}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-v9"
+              },
+              "rules": [
+                {
+                  "entityType": "ALERTS",
+                  "name": "r1",
+                  "targets": [
+                    {
+                      "connectorId": "{{C1}}"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"RoutingRule.condition must not be empty\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R10}}",
+              "name": "{{R10}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-v10"
+              },
+              "rules": [
+                {
+                  "condition": "{{NEVER}}",
+                  "entityType": "ENTITY_TYPE_UNSPECIFIED",
+                  "name": "r1",
+                  "targets": [
+                    {
+                      "connectorId": "{{C1}}"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Valid entity_type must be provided\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R11}}",
+              "name": "{{R11}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-v11"
+              },
+              "rules": [
+                {
+                  "condition": "{{NEVER}}",
+                  "entityType": "NOT_AN_ENUM_VALUE",
+                  "name": "r1",
+                  "targets": [
+                    {
+                      "connectorId": "{{C1}}"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line 1:220): invalid value for enum field entityType: \"NOT_AN_ENUM_VALUE\""
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R12}}",
+              "name": "{{R12}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-v12"
+              },
+              "rules": [
+                {
+                  "condition": "{{NEVER}}",
+                  "entityType": "ALERTS",
+                  "name": "r1",
+                  "targets": [
+                    {
+                      "presetId": "p"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"'' is not a valid identifier\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "fallbackTargets": [
+                {
+                  "target": {
+                    "connectorId": "{{C1}}"
+                  }
+                }
+              ],
+              "id": "{{R13}}",
+              "name": "{{R13}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-v13"
+              }
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Valid entity_type must be provided\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "fallbackTargets": [
+                {
+                  "entityType": "ALERTS"
+                }
+              ],
+              "id": "{{R14}}",
+              "name": "{{R14}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-v14"
+              }
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"fallback_target.target must be defined\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "fallback": [
+                {
+                  "connectorId": "{{C1}}"
+                }
+              ],
+              "fallbackTargets": [
+                {
+                  "entityType": "ALERTS",
+                  "target": {
+                    "connectorId": "{{C1}}"
+                  }
+                }
+              ],
+              "id": "{{R15}}",
+              "name": "{{R15}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-v15"
+              }
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Only one type of fallback can be provided.\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "bogus": 1,
+              "disabled": true,
+              "id": "{{R16}}",
+              "name": "{{R16}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-v16"
+              }
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line 1:12): unknown field \"bogus\""
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R17}}",
+              "name": "{{R17}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-v17"
+              }
+            }
+          },
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: {\"reason\":\"Global router with id '{{R17}}' not found\"}"
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "name": "no id",
+              "routingLabels": {
+                "environment": "{{RUN}}-4"
+              }
+            }
+          },
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: {\"reason\":\"Global router with id 'c3652e1b-aa74-4b08-bdb1-c156ba4f2cda' not found\"}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "duplicate-id-and-generated-id",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R5}}",
+              "name": "{{R5}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-5"
+              }
+            }
+          },
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:23.110870Z",
+              "description": "",
+              "disabled": true,
+              "entityLabels": {},
+              "fallback": [],
+              "fallbackTargets": [],
+              "id": "{{R5}}",
+              "name": "{{R5}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-5"
+              },
+              "rules": [],
+              "updateTime": "2026-09-30T15:34:23.110870Z"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "id": "{{R5}}",
+              "name": "{{R5}}",
+              "routingLabels": {
+                "environment": "{{RUN}}-5"
+              }
+            }
+          },
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Global router with name '{{R5}}' already exists\"}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "router": {
+              "disabled": true,
+              "name": "generated",
+              "routingLabels": {
+                "environment": "{{RUN}}-6"
+              }
+            }
+          },
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:23.359313Z",
+              "description": "",
+              "disabled": true,
+              "entityLabels": {},
+              "fallback": [],
+              "fallbackTargets": [],
+              "id": "{{GEN}}",
+              "name": "generated",
+              "routingLabels": {
+                "environment": "{{RUN}}-6"
+              },
+              "rules": [],
+              "updateTime": "2026-09-30T15:34:23.359313Z"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{GEN}}",
+          "status": 200,
+          "response": {
+            "router": {
+              "createTime": "2026-09-30T15:34:23.359313Z",
+              "description": "",
+              "disabled": true,
+              "entityLabels": {},
+              "fallback": [],
+              "fallbackTargets": [],
+              "id": "{{GEN}}",
+              "name": "generated",
+              "routingLabels": {
+                "environment": "{{RUN}}-6"
+              },
+              "rules": [],
+              "updateTime": "2026-09-30T15:34:23.359313Z"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made outside Terraform",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": {},
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "routing_labels": {
+        "environment": "prod",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {},
+              "preset_id": null
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": {},
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "drift": [
+      "AttributeName(\"description\")",
+      "AttributeName(\"disabled\")",
+      "AttributeName(\"entity_labels\")",
+      "AttributeName(\"fallback_targets\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0)",
+      "AttributeName(\"name\")",
+      "AttributeName(\"routing_labels\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"environment\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
+      "AttributeName(\"rules\")",
+      "AttributeName(\"rules\").ElementKeyInt(0)"
+    ]
+  },
+  {
+    "step": "plan the matching config",
+    "config": {
+      "description": "made outside Terraform",
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "seeded",
+      "routing_labels": {
+        "environment": "prod"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1"
+            },
+            {
+              "connector_id": "c2",
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": "made outside Terraform",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": {},
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "routing_labels": {
+        "environment": "prod",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {},
+              "preset_id": null
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": {},
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "noChange": true,
+    "state": {
+      "description": "made outside Terraform",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": {},
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "routing_labels": {
+        "environment": "prod",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {},
+              "preset_id": null
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": {},
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

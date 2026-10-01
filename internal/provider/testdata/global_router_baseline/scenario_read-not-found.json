@@ -1,0 +1,74 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "description": "d",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone"
+      }
+    },
+    "plan": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "name": "gone",
+            "routingLabels": {
+              "environment": "gone"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone",
+        "service": null,
+        "team": null
+      },
+      "rules": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: router was deleted outside Terraform",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_global_router \"00000000-0000-4000-8000-000000000001\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000000001 will be recreated when you apply"
+    ],
+    "state": null
+  }
+]

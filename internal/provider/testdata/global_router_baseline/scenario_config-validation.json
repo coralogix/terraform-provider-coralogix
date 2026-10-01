@@ -1,0 +1,157 @@
+[
+  {
+    "step": "missing name",
+    "config": {},
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"name\")] | Must set a configuration value for the name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "entity_type olly_scheduled_tasks",
+    "config": {
+      "description": "d",
+      "name": "v",
+      "routing_labels": {
+        "environment": "v"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "olly_scheduled_tasks",
+          "name": "r"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"entity_type\")] | Attribute rules[0].entity_type value must be one of: [\"alerts\" \"cases\" \"test_notifications\" \"unspecified\"], got: \"olly_scheduled_tasks\""
+    ],
+    "state": null
+  },
+  {
+    "step": "entity_type ALERTS in upper case",
+    "config": {
+      "description": "d",
+      "name": "v",
+      "routing_labels": {
+        "environment": "v"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "ALERTS",
+          "name": "r"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"entity_type\")] | Attribute rules[0].entity_type value must be one of: [\"alerts\" \"cases\" \"test_notifications\" \"unspecified\"], got: \"ALERTS\""
+    ],
+    "state": null
+  },
+  {
+    "step": "rule without condition",
+    "config": {
+      "description": "d",
+      "name": "v",
+      "routing_labels": {
+        "environment": "v"
+      },
+      "rules": [
+        {
+          "name": "r"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"condition\")] | Must set a configuration value for the rules[0].condition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "rule without name",
+    "config": {
+      "description": "d",
+      "name": "v",
+      "routing_labels": {
+        "environment": "v"
+      },
+      "rules": [
+        {
+          "condition": "true"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"name\")] | Must set a configuration value for the rules[0].name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "target without connector_id",
+    "config": {
+      "description": "d",
+      "name": "v",
+      "routing_labels": {
+        "environment": "v"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"connector_id\")] | Must set a configuration value for the rules[0].targets[0].connector_id attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "fallback_targets without target",
+    "config": {
+      "description": "d",
+      "fallback_targets": [
+        {
+          "entity_type": "alerts"
+        }
+      ],
+      "name": "v",
+      "routing_labels": {
+        "environment": "v"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\")] | Must set a configuration value for the fallback_targets[0].target attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "fallback_targets entity_type olly_scheduled_tasks",
+    "config": {
+      "description": "d",
+      "fallback_targets": [
+        {
+          "entity_type": "olly_scheduled_tasks",
+          "target": {
+            "connector_id": "c"
+          }
+        }
+      ],
+      "name": "v",
+      "routing_labels": {
+        "environment": "v"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"entity_type\")] | Attribute fallback_targets[0].entity_type value must be one of: [\"alerts\" \"cases\" \"test_notifications\" \"unspecified\"], got: \"olly_scheduled_tasks\""
+    ],
+    "state": null
+  }
+]

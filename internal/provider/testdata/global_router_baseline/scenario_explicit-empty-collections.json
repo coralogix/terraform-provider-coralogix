@@ -1,0 +1,183 @@
+[
+  {
+    "step": "create: empty fallback_targets",
+    "config": {
+      "description": "d",
+      "fallback_targets": [],
+      "name": "e1",
+      "routing_labels": {
+        "environment": "e1"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"fallback_targets\")] | Attribute fallback_targets list must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "create: empty fallback",
+    "config": {
+      "description": "d",
+      "fallback": [],
+      "name": "e2",
+      "routing_labels": {
+        "environment": "e2"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"fallback\")] | Attribute fallback list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"fallback\")] | Use `fallback_targets` instead, which supports per-entity-type fallback."
+    ],
+    "state": null
+  },
+  {
+    "step": "create: empty rules, entity_labels, custom_details",
+    "config": {
+      "description": "d",
+      "entity_labels": {},
+      "name": "e3",
+      "routing_labels": {
+        "environment": "e3"
+      },
+      "rules": []
+    },
+    "plan": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "e3",
+      "routing_labels": {
+        "environment": "e3",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": []
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "name": "e3",
+            "routingLabels": {
+              "environment": "e3"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "e3",
+      "routing_labels": {
+        "environment": "e3",
+        "service": null,
+        "team": null
+      },
+      "rules": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create: empty targets and custom_details in a rule",
+    "config": {
+      "description": "d",
+      "name": "e4",
+      "routing_labels": {
+        "environment": "e4"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": []
+        }
+      ]
+    },
+    "plan": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "e4",
+      "routing_labels": {
+        "environment": "e4",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": []
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "name": "e4",
+            "routingLabels": {
+              "environment": "e4"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "entityType": "ALERTS",
+                "name": "r"
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "e4",
+      "routing_labels": {
+        "environment": "e4",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": []
+        }
+      ]
+    },
+    "replanEmpty": true
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "step": "import an id that does not exist",
+    "state": null
+  },
+  {
+    "step": "import an id that does not exist (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/does-not-exist",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_global_router \"does-not-exist\" is in state, but no longer exists in Coralogix backend | does-not-exist will be recreated when you apply"
+    ],
+    "state": null
+  }
+]
