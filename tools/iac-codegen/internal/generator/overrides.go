@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -12,7 +13,6 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
-	"go.yaml.in/yaml/v4"
 )
 
 // overridesPath returns the file to read: the explicit path, else the file in the
@@ -94,7 +94,7 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File) is
 	for _, line := range file.Lines() {
 		if problem := lineProblem(doc, line); problem != nil {
 			report = append(report, issue.Issue{
-				Code:        "OVERRIDE_UNUSED",
+				Code:        cmp.Or(problem.code, "OVERRIDE_UNUSED"),
 				Location:    overrides.FileName + ":" + line.String(),
 				Message:     problem.message,
 				Remediation: problem.remediation(line),
@@ -107,8 +107,10 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File) is
 // lineIssue says what is wrong with one line of the file. stale names the keys of a field line
 // that the contract now states. It is empty when the whole line is wrong.
 type lineIssue struct {
+	code    string // OVERRIDE_UNUSED when empty
 	message string
 	stale   []string
+	fix     string // what to do, when the issue is not about a stale line
 }
 
 func wholeLine(err error) *lineIssue {
@@ -121,6 +123,9 @@ func wholeLine(err error) *lineIssue {
 // remediation tells what to delete. A field line can set several keys, and the contract can
 // state only some of them. The other keys still keep the released behavior.
 func (i *lineIssue) remediation(line overrides.Line) string {
+	if i.fix != "" {
+		return i.fix
+	}
 	if len(i.stale) == 0 {
 		return "Delete the line: the API contract no longer differs here, or fix the name."
 	}
@@ -145,7 +150,7 @@ func lineProblem(doc *v3.Document, line overrides.Line) *lineIssue {
 	}
 	switch line.Kind {
 	case overrides.KindEnum:
-		return wholeLine(enumLineProblem(schema, line))
+		return enumLineProblem(schema, line)
 	case overrides.KindEmptyRequired:
 		if !hasNoRequiredList(schema) {
 			return wholeLine(fmt.Errorf("component %q declares a required list, so no override is needed", line.Component))
@@ -156,16 +161,36 @@ func lineProblem(doc *v3.Document, line overrides.Line) *lineIssue {
 	return nil
 }
 
-func enumLineProblem(schema *base.Schema, line overrides.Line) error {
+// enumLineProblem checks an enums line. Each value that the file names must be in the contract,
+// and each value of the contract must be accepted or rejected, so a new API value needs a decision.
+func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if len(schema.Enum) == 0 {
-		return fmt.Errorf("component %q is not an enum", line.Component)
+		return wholeLine(fmt.Errorf("component %q is not an enum", line.Component))
 	}
-	for _, value := range line.EnumValues {
-		if !slices.ContainsFunc(schema.Enum, func(n *yaml.Node) bool { return n.Value == value }) {
-			return fmt.Errorf("enum %q has no value %q", line.Component, value)
+	contract := make([]string, 0, len(schema.Enum))
+	for _, n := range schema.Enum {
+		contract = append(contract, n.Value)
+	}
+	for _, value := range slices.Concat(line.EnumValues, line.EnumRejected) {
+		if !slices.Contains(contract, value) {
+			return wholeLine(fmt.Errorf("enum %q has no value %q", line.Component, value))
 		}
 	}
-	return nil
+	var undecided []string
+	for i, value := range contract {
+		zero := i == 0 && strings.HasSuffix(value, "_UNSPECIFIED")
+		if !zero && !slices.Contains(line.EnumValues, value) && !slices.Contains(line.EnumRejected, value) {
+			undecided = append(undecided, value)
+		}
+	}
+	if len(undecided) == 0 {
+		return nil
+	}
+	return &lineIssue{
+		code:    "ENUM_VALUE_UNDECIDED",
+		message: fmt.Sprintf("the contract of enum %q has values that the file neither accepts nor rejects: %s", line.Component, strings.Join(undecided, ", ")),
+		fix:     "Add each value to values (the resource accepts it) or to rejected (it does not).",
+	}
 }
 
 // fieldLineProblem checks a field line. The field must exist. A readOnly or required key is

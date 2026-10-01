@@ -124,4 +124,4 @@ components:
         id: {type: string, readOnly: true}
     legacy.Kind:
       type: string
-      enum: [KIND_UNSPECIFIED, ALPHA, BETA]
+      enum: [KIND_UNSPECIFIED, ALPHA, BETA, GAMMA]

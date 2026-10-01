@@ -13,5 +13,6 @@ description: "Use when a handwritten resource that users already have becomes ge
 3. **Write `behavior-overrides.yaml`** in the output directory: one line per released field behavior. Run `tfgen check --overrides`. Add `PINNED-SDK` lines for facts the pinned SDK lacks.
 4. **Generate, register, delete the handwritten code.** The golden diff must show only wording of messages.
 5. **Fix confirmed bugs in a separate step.** The golden diff must show only the fixes. Do not keep a bug with an override line.
+6. **Later API changes.** A new optional field generates without a line only if the contract has `x-coralogix-presence: true`; otherwise the generator stops, so ask for the annotation or probe a read and write a line. A new enum value stops the generator until it is in `values` or `rejected`.
 
 **Why:** Terraform plan modifiers, defaults, and null/empty reads decide whether an upgrade is silent. A schema dump and a second plan after apply catch what a compile cannot.

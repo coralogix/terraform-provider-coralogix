@@ -12,6 +12,7 @@ const (
 	LEGACYKIND_KIND_UNSPECIFIED LegacyKind = "KIND_UNSPECIFIED"
 	LEGACYKIND_ALPHA            LegacyKind = "ALPHA"
 	LEGACYKIND_BETA             LegacyKind = "BETA"
+	LEGACYKIND_GAMMA            LegacyKind = "GAMMA"
 )
 
 type LegacyTarget struct {

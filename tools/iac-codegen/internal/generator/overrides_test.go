@@ -51,7 +51,7 @@ types:
       connectorId: {description: The connector.}
       id: {skip: true}
 enums:
-  legacy.Kind: {zero: unspecified, values: [ALPHA, BETA]}
+  legacy.Kind: {zero: unspecified, values: [ALPHA, BETA], rejected: [GAMMA]}
 `
 
 func mustParse(t *testing.T, text string) *overrides.File {
@@ -267,6 +267,62 @@ func TestReadEmptyAsOnOtherKindsIsRejected(t *testing.T) {
 				t.Fatalf("err = %v, want an issue about readEmptyAs", err)
 			}
 		})
+	}
+}
+
+// A value of the contract must be accepted or rejected. A new API value stops the generator until
+// someone decides, so it cannot be silently refused or silently accepted.
+func TestEnumValueOfTheContractNeedsADecision(t *testing.T) {
+	const head = "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  legacy.Kind:\n    zero: unspecified\n"
+	tests := map[string]struct {
+		lines string
+		want  string
+	}{
+		"value without a decision": {"    values: [ALPHA, BETA]\n", "ENUM_VALUE_UNDECIDED"},
+		"rejected value is gone":   {"    values: [ALPHA, BETA]\n    rejected: [GAMMA, DELTA]\n", "OVERRIDE_UNUSED"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, head+test.lines))
+			if !slices.Contains(eligibilityCodes(t, err), test.want) {
+				t.Fatalf("err = %v, want %s", err, test.want)
+			}
+		})
+	}
+	// With a decision for every value, the line is accepted.
+	file := mustParse(t, head+"    values: [ALPHA, BETA]\n    rejected: [GAMMA]\n")
+	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+	for _, code := range eligibilityCodes(t, err) {
+		if code == "ENUM_VALUE_UNDECIDED" || code == "OVERRIDE_UNUSED" {
+			t.Fatalf("err = %v, want no %s", err, code)
+		}
+	}
+}
+
+// The enum validator takes its values from the enums line, in sorted order. Adding a value to the
+// line changes the validator too, so the two lists cannot drift.
+func TestEnumValidatorFollowsTheEnumsLine(t *testing.T) {
+	attr := &tfAttr{Name: "kind", Kind: "String", ValueKind: "String", EnumSchema: "legacy.Kind"}
+	tests := map[string]struct {
+		file string
+		want string
+	}{
+		"two values and the zero": {"enums:\n  legacy.Kind: {zero: unspecified, values: [BETA, ALPHA]}\n", `stringvalidator.OneOf("alpha", "beta", "unspecified")`},
+		"a new value":             {"enums:\n  legacy.Kind: {zero: unspecified, values: [ALPHA, BETA, GAMMA]}\n", `stringvalidator.OneOf("alpha", "beta", "gamma", "unspecified")`},
+		"no zero value":           {"enums:\n  legacy.Kind: {values: [ALPHA]}\n", `stringvalidator.OneOf("alpha")`},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\n"+test.file)
+			got, err := enumValidatorExpr(attr, file)
+			if err != nil || got != test.want {
+				t.Fatalf("got %q, %v, want %q", got, err, test.want)
+			}
+		})
+	}
+	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\n")
+	if _, err := enumValidatorExpr(&tfAttr{Name: "name", Kind: "String", ValueKind: "String"}, file); err == nil {
+		t.Fatal("want an error for a field that is not an enum")
 	}
 }
 
