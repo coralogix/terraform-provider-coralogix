@@ -87,7 +87,7 @@ components:
       required: []
     LegacyThing:
       type: object
-      required: [name]
+      required: []
       properties:
         id:
           type: string
@@ -106,7 +106,7 @@ components:
         env: {type: string}
     LegacyRule:
       type: object
-      required: [name]
+      required: []
       properties:
         name: {type: string}
         kind:
@@ -118,7 +118,7 @@ components:
           items: {$ref: '#/components/schemas/LegacyTarget'}
     LegacyTarget:
       type: object
-      required: [connectorId]
+      required: []
       properties:
         connectorId: {type: string, pattern: '^[a-zA-Z0-9][a-zA-Z0-9_-]*$'}
         id: {type: string, readOnly: true}

@@ -114,6 +114,55 @@ func TestStaleOverrideLinesAreErrors(t *testing.T) {
 	}
 }
 
+// A field line can set several keys, and the contract can state only some of them. The message
+// names the stale key and the keys to keep, so that a user does not delete a key that is still needed.
+func TestStaleKeyIsNamedNotTheLine(t *testing.T) {
+	spec := strings.Replace(string(legacySpec(t)), "      required: []\n      properties:\n        id:", "      required: [name]\n      properties:\n        id:", 1)
+	if spec == string(legacySpec(t)) {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	tests := map[string]struct {
+		field string
+		want  []string
+	}{
+		"required next to a description": {
+			"name: {markdownDescription: The name., required: true}",
+			[]string{"types.LegacyThing.fields.name", `the contract already states that "name" is required`, "Delete only the key required. Keep markdownDescription"},
+		},
+		"readOnly next to useStateForUnknown": {
+			"createTime: {readOnly: true, useStateForUnknown: true}",
+			[]string{"types.LegacyThing.fields.createTime", `the contract already states that "createTime" is readOnly`, "Delete only the key readOnly. Keep useStateForUnknown"},
+		},
+		"the only key": {
+			"name: {required: true}",
+			[]string{"types.LegacyThing.fields.name", "Delete the line: the API contract now states everything that it sets."},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      "+test.field+"\n")
+			_, err := validateOpenAPIWith([]byte(spec), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+			if err == nil || !strings.Contains(err.Error(), "OVERRIDE_UNUSED") {
+				t.Fatalf("err = %v, want OVERRIDE_UNUSED", err)
+			}
+			for _, want := range test.want {
+				if !strings.Contains(err.Error(), want) {
+					t.Errorf("err = %v\nwant it to contain %q", err, want)
+				}
+			}
+		})
+	}
+}
+
+// A required or readOnly key is needed while the contract does not state the fact.
+func TestKeysThatTheContractDoesNotStateAreNotStale(t *testing.T) {
+	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      name: {required: true}\n      labels: {readOnly: true}\n")
+	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err != nil && strings.Contains(err.Error(), "OVERRIDE_UNUSED") {
+		t.Fatalf("err = %v, want no OVERRIDE_UNUSED", err)
+	}
+}
+
 func TestOverridesMustMatchTheSelectedResource(t *testing.T) {
 	file := mustParse(t, strings.Replace(legacyOverrides, "resource: LegacyThing", "resource: OtherThing", 1))
 	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
