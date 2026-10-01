@@ -214,6 +214,62 @@ func TestInferredFalseKeepsOneOfGroupValidators(t *testing.T) {
 	}
 }
 
+func thingSpec(t *testing.T) []byte {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", "openapi.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+// Every call after Create names the resource by its id. A resource without the id attribute
+// cannot read, update, delete, or import, so the generator rejects the skip with a clear issue.
+func TestSkippingTheResourceIDIsRejected(t *testing.T) {
+	text := strings.Replace(legacyOverrides, "id: {description: The id.}", "id: {skip: true}", 1)
+	if text == legacyOverrides {
+		t.Fatal("the test overrides did not change: update the replaced text")
+	}
+	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
+	if !slices.Contains(eligibilityCodes(t, err), "RESOURCE_ID_SKIPPED") {
+		t.Fatalf("err = %v, want RESOURCE_ID_SKIPPED", err)
+	}
+}
+
+// Skipping an arm of a oneOf group changes what the group means. The generator rejects it. A group
+// of arms only used to give a one-arm group that required the arm. A group next to normal fields
+// used to stop the generator with a nil pointer.
+func TestSkippingAOneOfArmIsRejected(t *testing.T) {
+	const skip = "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  ThingConfig:\n    fields:\n      queue: {skip: true}\n"
+	mixed := strings.Replace(string(thingSpec(t)), "      required: []\n      properties:\n        http:", "      required: []\n      properties:\n        label: {type: string, x-coralogix-presence: true}\n        http:", 1)
+	if mixed == string(thingSpec(t)) {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	tests := map[string][]byte{"only arms": thingSpec(t), "arms next to a field": []byte(mixed)}
+	for name, spec := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := validateOpenAPIWith(spec, "Thing", model.OperationIDs{}, "sdk", "provider", mustParse(t, skip))
+			if !slices.Contains(eligibilityCodes(t, err), "ONEOF_ARM_SKIPPED") {
+				t.Fatalf("err = %v, want ONEOF_ARM_SKIPPED", err)
+			}
+		})
+	}
+}
+
+// readEmptyAs is rendered for an object and for a list or set of objects. On another kind it
+// would do nothing, so the generator rejects it.
+func TestReadEmptyAsOnOtherKindsIsRejected(t *testing.T) {
+	for _, field := range []string{"destinations", "labels", "enabled"} {
+		t.Run(field, func(t *testing.T) {
+			text := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      " + field + ": {readEmptyAs: \"null\"}\n"
+			_, err := validateOpenAPIWith(thingSpec(t), "Thing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
+			if err == nil || !strings.Contains(err.Error(), "readEmptyAs") {
+				t.Fatalf("err = %v, want an issue about readEmptyAs", err)
+			}
+		})
+	}
+}
+
 func TestOverridesMustMatchTheSelectedResource(t *testing.T) {
 	file := mustParse(t, strings.Replace(legacyOverrides, "resource: LegacyThing", "resource: OtherThing", 1))
 	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)

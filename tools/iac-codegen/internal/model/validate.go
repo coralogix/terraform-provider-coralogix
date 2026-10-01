@@ -59,6 +59,7 @@ func ValidateWithPolicy(doc *v3.Document, name string, ids OperationIDs, p Polic
 	if t != nil {
 		report = append(report, nameCollisions("components.schemas."+name, t)...)
 		report = append(report, componentNameCollisions(t)...)
+		report = append(report, skippedArmIssues(p, t)...)
 	}
 	if len(ops) == len(verbs) {
 		report = append(report, requestSchemaSeparationIssues(p, name, ops)...)
@@ -318,6 +319,7 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 	}
 	report = append(report, resourceIDIssues(p, name, ops, get)...)
 	report = append(report, bodyIDIssues(p, ops, create, update)...)
+	report = append(report, skippedIDIssues(p, name, ops)...)
 	report = append(report, rootGroupContractIssues(name, create, update, get)...)
 	return report
 }
@@ -349,6 +351,69 @@ func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) i
 		})
 	}
 	return report
+}
+
+// skippedIDIssues reports a skip override on the resource id. Every call after Create names the
+// resource by its id, so a resource without the id attribute cannot read, update, delete, or import.
+func skippedIDIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
+	params := pathParams(ops[opGet])
+	if len(params) != 1 || !p.skips(name, params[0].Name) {
+		return nil
+	}
+	return issue.Report{{
+		Code:        "RESOURCE_ID_SKIPPED",
+		Location:    "components.schemas." + name + "." + params[0].Name,
+		Message:     fmt.Sprintf("The override skips the resource id field %q. Read, Update, Delete, and import need it.", params[0].Name),
+		Remediation: "Delete the skip line of the resource id from the overrides.",
+	}}
+}
+
+// skippedArmIssues reports a skip override on an arm of a oneOf group. Skipping an arm changes
+// what the group means: the remaining arm would become required, or the schema could not be built.
+func skippedArmIssues(p Policy, root *Type) issue.Report {
+	var report issue.Report
+	seen := map[*Type]bool{}
+	var visit func(t *Type)
+	visit = func(t *Type) {
+		if t == nil || seen[t] {
+			return
+		}
+		seen[t] = true
+		visit(t.Elem)
+		if t.Kind != Object && t.Kind != OneOf {
+			return
+		}
+		for _, arm := range oneOfArmNames(t) {
+			if p.skips(t.Schema, arm) {
+				report = append(report, issue.Issue{
+					Code:        "ONEOF_ARM_SKIPPED",
+					Location:    "components.schemas." + t.Schema + "." + arm,
+					Message:     fmt.Sprintf("The override skips %q, an arm of a oneOf group of %s.", arm, t.Schema),
+					Remediation: "Delete the skip line, or skip the parent field of the whole group.",
+				})
+			}
+		}
+		for _, f := range t.Fields {
+			visit(f.Type)
+		}
+	}
+	visit(root)
+	return report
+}
+
+// oneOfArmNames returns the field names that are arms of a oneOf group of the type.
+func oneOfArmNames(t *Type) []string {
+	var arms []string
+	if t.Kind == OneOf {
+		for _, f := range t.Fields {
+			arms = append(arms, f.Name)
+		}
+	}
+	for _, g := range t.Groups {
+		arms = append(arms, g.Arms...)
+	}
+	slices.Sort(arms)
+	return slices.Compact(arms)
 }
 
 func resourceIDIssues(p Policy, name string, ops map[verb]foundOp, get *base.Schema) issue.Report {

@@ -314,6 +314,9 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
 		}
 		b.markComputedObjectValue(cf, f, root.path == "fields")
+		if err := checkReadEmptyAs(cf); err != nil {
+			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+		}
 		obj.Fields = append(obj.Fields, cf)
 	}
 	if err := b.mark(obj, root.expand); err != nil {
@@ -354,6 +357,19 @@ func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkRef) (*con
 		out.UpdateBody = ref.Name
 	}
 	return &convObject{Func: camelize(ref.Name), Model: modelTypeName(r.Name), SDK: ref.Name}, root.path, nil
+}
+
+// checkReadEmptyAs rejects readEmptyAs where the renderer has no such normalization. The flag
+// works for an object that is a pointer, and for a list or set of objects. Elsewhere it would
+// do nothing, and the released normalization that the line states would be missing.
+func checkReadEmptyAs(cf *convField) error {
+	if !cf.ReadEmptyAsNull {
+		return nil
+	}
+	if (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects {
+		return nil
+	}
+	return fmt.Errorf("readEmptyAs: \"null\" is supported for an object and for a list or set of objects, not for the %s field %s", cf.Conv, cf.TFName)
 }
 
 // markComputedObjectValue makes a directly nested computed field capable of
@@ -566,6 +582,9 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type) (*conv
 	}
 	want, err := b.fieldConv(cf, t)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkReadEmptyAs(cf); err != nil {
 		return nil, err
 	}
 	// The SDK type must be the one the conversion writes, or its value type.
