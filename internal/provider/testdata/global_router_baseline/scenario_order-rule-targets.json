@@ -1,0 +1,336 @@
+[
+  {
+    "step": "create: response has reversed targets",
+    "config": {
+      "description": "d",
+      "name": "o",
+      "routing_labels": {
+        "environment": "o"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1"
+            },
+            {
+              "connector_id": "c2"
+            },
+            {
+              "connector_id": "c3"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "o",
+      "routing_labels": {
+        "environment": "o",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": "(unknown)",
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            },
+            {
+              "connector_id": "c3",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "name": "o",
+            "routingLabels": {
+              "environment": "o"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1"
+                  },
+                  {
+                    "connectorId": "c2"
+                  },
+                  {
+                    "connectorId": "c3"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "o",
+      "routing_labels": {
+        "environment": "o",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": null,
+              "preset_id": null
+            },
+            {
+              "connector_id": "c3",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: response has reversed targets",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "o",
+      "routing_labels": {
+        "environment": "o",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": null,
+              "preset_id": null
+            },
+            {
+              "connector_id": "c3",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "step": "update: same config",
+    "config": {
+      "description": "x",
+      "name": "o",
+      "routing_labels": {
+        "environment": "o"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1"
+            },
+            {
+              "connector_id": "c2"
+            },
+            {
+              "connector_id": "c3"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": "x",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "o",
+      "routing_labels": {
+        "environment": "o",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": "(unknown)",
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            },
+            {
+              "connector_id": "c3",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "x",
+            "disabled": false,
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "o",
+            "routingLabels": {
+              "environment": "o"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1"
+                  },
+                  {
+                    "connectorId": "c2"
+                  },
+                  {
+                    "connectorId": "c3"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "x",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "o",
+      "routing_labels": {
+        "environment": "o",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": null,
+              "preset_id": null
+            },
+            {
+              "connector_id": "c3",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "replanEmpty": true
+  }
+]

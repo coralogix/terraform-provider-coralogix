@@ -1,0 +1,530 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "description": "primary router",
+      "disabled": true,
+      "entity_labels": {
+        "team": "a"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c4",
+            "preset_id": "p4"
+          }
+        }
+      ],
+      "name": "main",
+      "routing_labels": {
+        "environment": "prod",
+        "service": "api",
+        "team": "sre"
+      },
+      "rules": [
+        {
+          "condition": "alert.priority == 'P1'",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "critical",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p1"
+            },
+            {
+              "connector_id": "c2"
+            }
+          ]
+        },
+        {
+          "condition": "true",
+          "entity_type": "cases",
+          "name": "cases",
+          "targets": [
+            {
+              "connector_id": "c3"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": "primary router",
+      "disabled": true,
+      "entity_labels": {
+        "team": "a"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c4",
+            "custom_details": "(unknown)",
+            "preset_id": "p4"
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "main",
+      "routing_labels": {
+        "environment": "prod",
+        "service": "api",
+        "team": "sre"
+      },
+      "rules": [
+        {
+          "condition": "alert.priority == 'P1'",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "critical",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p1"
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        },
+        {
+          "condition": "true",
+          "custom_details": "(unknown)",
+          "entity_type": "cases",
+          "name": "cases",
+          "targets": [
+            {
+              "connector_id": "c3",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "primary router",
+            "disabled": true,
+            "entityLabels": {
+              "team": "a"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c4",
+                  "presetId": "p4"
+                }
+              }
+            ],
+            "name": "main",
+            "routingLabels": {
+              "environment": "prod",
+              "service": "api",
+              "team": "sre"
+            },
+            "rules": [
+              {
+                "condition": "alert.priority == 'P1'",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "critical",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p1"
+                  },
+                  {
+                    "connectorId": "c2"
+                  }
+                ]
+              },
+              {
+                "condition": "true",
+                "entityType": "CASES",
+                "name": "cases",
+                "targets": [
+                  {
+                    "connectorId": "c3"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "primary router",
+      "disabled": true,
+      "entity_labels": {
+        "team": "a"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c4",
+            "custom_details": {},
+            "preset_id": "p4"
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "routing_labels": {
+        "environment": "prod",
+        "service": "api",
+        "team": "sre"
+      },
+      "rules": [
+        {
+          "condition": "alert.priority == 'P1'",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "critical",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p1"
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        },
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "cases",
+          "name": "cases",
+          "targets": [
+            {
+              "connector_id": "c3",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "primary router",
+      "disabled": true,
+      "entity_labels": {
+        "team": "a"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c4",
+            "custom_details": {},
+            "preset_id": "p4"
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "routing_labels": {
+        "environment": "prod",
+        "service": "api",
+        "team": "sre"
+      },
+      "rules": [
+        {
+          "condition": "alert.priority == 'P1'",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "critical",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p1"
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        },
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "cases",
+          "name": "cases",
+          "targets": [
+            {
+              "connector_id": "c3",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "step": "update: drop the second rule, change description",
+    "config": {
+      "description": "changed",
+      "disabled": true,
+      "entity_labels": {
+        "team": "a"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c4",
+            "preset_id": "p4"
+          }
+        }
+      ],
+      "name": "main",
+      "routing_labels": {
+        "environment": "prod",
+        "service": "api",
+        "team": "sre"
+      },
+      "rules": [
+        {
+          "condition": "alert.priority == 'P1'",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "critical",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p1"
+            },
+            {
+              "connector_id": "c2"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": "changed",
+      "disabled": true,
+      "entity_labels": {
+        "team": "a"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c4",
+            "custom_details": "(unknown)",
+            "preset_id": "p4"
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "routing_labels": {
+        "environment": "prod",
+        "service": "api",
+        "team": "sre"
+      },
+      "rules": [
+        {
+          "condition": "alert.priority == 'P1'",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "critical",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p1"
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "changed",
+            "disabled": true,
+            "entityLabels": {
+              "team": "a"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c4",
+                  "presetId": "p4"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "main",
+            "routingLabels": {
+              "environment": "prod",
+              "service": "api",
+              "team": "sre"
+            },
+            "rules": [
+              {
+                "condition": "alert.priority == 'P1'",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "critical",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p1"
+                  },
+                  {
+                    "connectorId": "c2"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "changed",
+      "disabled": true,
+      "entity_labels": {
+        "team": "a"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c4",
+            "custom_details": {},
+            "preset_id": "p4"
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "routing_labels": {
+        "environment": "prod",
+        "service": "api",
+        "team": "sre"
+      },
+      "rules": [
+        {
+          "condition": "alert.priority == 'P1'",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "critical",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p1"
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

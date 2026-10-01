@@ -1,0 +1,62 @@
+{
+  "comment": "Requests that a recorder sends to the real backend, and the offline test sends to the fake. Tokens: {{RUN}} run id, {{R1}}..{{R5}} router ids, {{C1}}..{{C3}} connector ids, {{NEVER}} a condition that cannot match, {{GEN}} an id that the server made (set by 'capture'). Every router is disabled and has labels that are unique to the run.",
+  "cases": [
+    {
+      "name": "minimal-lifecycle",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R1}}", "name": "{{R1}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-1"}}}},
+        {"method": "GET", "path": "/{{R1}}"},
+        {"method": "PUT", "path": "", "body": {"router": {"id": "{{R1}}", "name": "renamed", "disabled": true, "routingLabels": {"environment": "{{RUN}}-1"}}}},
+        {"method": "GET", "path": "/{{R1}}"},
+        {"method": "DELETE", "path": "/{{R1}}"},
+        {"method": "GET", "path": "/{{R1}}"},
+        {"method": "DELETE", "path": "/{{R1}}"}
+      ]
+    },
+    {
+      "name": "rules-targets-fallback-targets",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R2}}", "name": "{{R2}}", "description": "d", "disabled": true, "entityLabels": {"k": "v"}, "routingLabels": {"environment": "{{RUN}}-2", "service": "{{RUN}}-2"}, "rules": [{"name": "r1", "condition": "{{NEVER}}", "targets": [{"connectorId": "{{C1}}"}, {"connectorId": "{{C2}}", "customDetails": {"k": "v"}}]}, {"name": "r2", "condition": "{{NEVER}}", "entityType": "ALERTS", "customDetails": {"a": "b"}, "targets": [{"connectorId": "{{C3}}"}]}], "fallbackTargets": [{"entityType": "ALERTS", "target": {"connectorId": "{{C1}}"}}]}}},
+        {"method": "GET", "path": "/{{R2}}"},
+        {"method": "PUT", "path": "", "body": {"router": {"id": "{{R2}}", "name": "{{R2}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-2"}}}},
+        {"method": "GET", "path": "/{{R2}}"}
+      ]
+    },
+    {
+      "name": "deprecated-fallback",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R3}}", "name": "{{R3}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-3"}, "rules": [{"name": "r1", "condition": "{{NEVER}}", "entityType": "ALERTS", "targets": [{"connectorId": "{{C1}}"}]}], "fallback": [{"connectorId": "{{C1}}"}, {"connectorId": "{{C2}}"}]}}},
+        {"method": "GET", "path": "/{{R3}}"}
+      ]
+    },
+    {
+      "name": "validation",
+      "steps": [
+        {"method": "POST", "path": "", "body": {}},
+        {"method": "POST", "path": "", "body": {"router": {}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R6}}", "name": "", "disabled": true, "routingLabels": {"environment": "{{RUN}}-v6"}}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R7}}", "name": "{{R7}}", "disabled": true}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R8}}", "name": "{{R8}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-v8"}, "rules": [{"condition": "{{NEVER}}", "entityType": "ALERTS", "targets": [{"connectorId": "{{C1}}"}]}]}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R9}}", "name": "{{R9}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-v9"}, "rules": [{"name": "r1", "entityType": "ALERTS", "targets": [{"connectorId": "{{C1}}"}]}]}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R10}}", "name": "{{R10}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-v10"}, "rules": [{"name": "r1", "condition": "{{NEVER}}", "entityType": "ENTITY_TYPE_UNSPECIFIED", "targets": [{"connectorId": "{{C1}}"}]}]}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R11}}", "name": "{{R11}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-v11"}, "rules": [{"name": "r1", "condition": "{{NEVER}}", "entityType": "NOT_AN_ENUM_VALUE", "targets": [{"connectorId": "{{C1}}"}]}]}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R12}}", "name": "{{R12}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-v12"}, "rules": [{"name": "r1", "condition": "{{NEVER}}", "entityType": "ALERTS", "targets": [{"presetId": "p"}]}]}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R13}}", "name": "{{R13}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-v13"}, "fallbackTargets": [{"target": {"connectorId": "{{C1}}"}}]}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R14}}", "name": "{{R14}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-v14"}, "fallbackTargets": [{"entityType": "ALERTS"}]}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R15}}", "name": "{{R15}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-v15"}, "fallback": [{"connectorId": "{{C1}}"}], "fallbackTargets": [{"entityType": "ALERTS", "target": {"connectorId": "{{C1}}"}}]}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R16}}", "name": "{{R16}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-v16"}, "bogus": 1}}},
+        {"method": "PUT", "path": "", "body": {"router": {"id": "{{R17}}", "name": "{{R17}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-v17"}}}},
+        {"method": "PUT", "path": "", "body": {"router": {"name": "no id", "disabled": true, "routingLabels": {"environment": "{{RUN}}-4"}}}}
+      ]
+    },
+    {
+      "name": "duplicate-id-and-generated-id",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R5}}", "name": "{{R5}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-5"}}}},
+        {"method": "POST", "path": "", "body": {"router": {"id": "{{R5}}", "name": "{{R5}}", "disabled": true, "routingLabels": {"environment": "{{RUN}}-5"}}}},
+        {"method": "POST", "path": "", "capture": "GEN", "body": {"router": {"name": "generated", "disabled": true, "routingLabels": {"environment": "{{RUN}}-6"}}}},
+        {"method": "GET", "path": "/{{GEN}}"}
+      ]
+    }
+  ]
+}

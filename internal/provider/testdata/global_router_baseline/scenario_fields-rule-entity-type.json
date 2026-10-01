@@ -1,0 +1,878 @@
+[
+  {
+    "step": "create alerts",
+    "config": {
+      "name": "r-alerts",
+      "routing_labels": {
+        "environment": "r-alerts"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": null,
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "r-alerts",
+      "routing_labels": {
+        "environment": "r-alerts",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": "(unknown)",
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "name": "r-alerts",
+            "routingLabels": {
+              "environment": "r-alerts"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "description"
+    ],
+    "state": {
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "r-alerts",
+      "routing_labels": {
+        "environment": "r-alerts",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"description\")",
+      "AttributeName(\"entity_labels\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
+    ]
+  },
+  {
+    "step": "refresh alerts",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "r-alerts",
+      "routing_labels": {
+        "environment": "r-alerts",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "step": "create cases",
+    "config": {
+      "name": "r-cases",
+      "routing_labels": {
+        "environment": "r-cases"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": null,
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "r-cases",
+      "routing_labels": {
+        "environment": "r-cases",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": "(unknown)",
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "name": "r-cases",
+            "routingLabels": {
+              "environment": "r-cases"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "entityType": "CASES",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "description"
+    ],
+    "state": {
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000003",
+      "name": "r-cases",
+      "routing_labels": {
+        "environment": "r-cases",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"description\")",
+      "AttributeName(\"entity_labels\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
+    ]
+  },
+  {
+    "step": "refresh cases",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000003",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000003",
+      "name": "r-cases",
+      "routing_labels": {
+        "environment": "r-cases",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "step": "create test_notifications",
+    "config": {
+      "name": "r-test_notifications",
+      "routing_labels": {
+        "environment": "r-test_notifications"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "test_notifications",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": null,
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "r-test_notifications",
+      "routing_labels": {
+        "environment": "r-test_notifications",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": "(unknown)",
+          "entity_type": "test_notifications",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "name": "r-test_notifications",
+            "routingLabels": {
+              "environment": "r-test_notifications"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "entityType": "TEST_NOTIFICATIONS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "description"
+    ],
+    "state": {
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000005",
+      "name": "r-test_notifications",
+      "routing_labels": {
+        "environment": "r-test_notifications",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "test_notifications",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"description\")",
+      "AttributeName(\"entity_labels\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
+    ]
+  },
+  {
+    "step": "refresh test_notifications",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000005",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000005",
+      "name": "r-test_notifications",
+      "routing_labels": {
+        "environment": "r-test_notifications",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "test_notifications",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "step": "create alerts",
+    "config": {
+      "name": "r-chg",
+      "routing_labels": {
+        "environment": "r-chg"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": null,
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "r-chg",
+      "routing_labels": {
+        "environment": "r-chg",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": "(unknown)",
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "name": "r-chg",
+            "routingLabels": {
+              "environment": "r-chg"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "description"
+    ],
+    "state": {
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000007",
+      "name": "r-chg",
+      "routing_labels": {
+        "environment": "r-chg",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"description\")",
+      "AttributeName(\"entity_labels\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
+    ]
+  },
+  {
+    "step": "change to cases",
+    "config": {
+      "name": "r-chg",
+      "routing_labels": {
+        "environment": "r-chg"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": null,
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000007",
+      "name": "r-chg",
+      "routing_labels": {
+        "environment": "r-chg",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": "(unknown)",
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "id": "00000000-0000-4000-8000-000000000007",
+            "name": "r-chg",
+            "routingLabels": {
+              "environment": "r-chg"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "entityType": "CASES",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "description"
+    ],
+    "state": {
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000007",
+      "name": "r-chg",
+      "routing_labels": {
+        "environment": "r-chg",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": null,
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"description\")",
+      "AttributeName(\"entity_labels\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")"
+    ]
+  },
+  {
+    "step": "unspecified",
+    "config": {
+      "name": "r-un",
+      "routing_labels": {
+        "environment": "r-un"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "entity_type": "unspecified",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": null,
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "r-un",
+      "routing_labels": {
+        "environment": "r-un",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": "(unknown)",
+          "entity_type": "unspecified",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "name": "r-un",
+            "routingLabels": {
+              "environment": "r-un"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "entityType": "ENTITY_TYPE_UNSPECIFIED",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_global_router | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Valid entity_type must be provided\\\"}\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "omitted",
+    "config": {
+      "name": "r-om",
+      "routing_labels": {
+        "environment": "r-om"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "description": null,
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "r-om",
+      "routing_labels": {
+        "environment": "r-om",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": "(unknown)",
+          "entity_type": "unspecified",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": "(unknown)",
+              "preset_id": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "name": "r-om",
+            "routingLabels": {
+              "environment": "r-om"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "entityType": "ENTITY_TYPE_UNSPECIFIED",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_global_router | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Valid entity_type must be provided\\\"}\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

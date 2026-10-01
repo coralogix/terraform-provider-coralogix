@@ -1,0 +1,173 @@
+[
+  {
+    "step": "create with id",
+    "config": {
+      "description": "d",
+      "id": "my-router",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine"
+      }
+    },
+    "plan": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "my-router",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "id": "my-router",
+            "name": "mine",
+            "routingLabels": {
+              "environment": "mine"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "my-router",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine",
+        "service": null,
+        "team": null
+      },
+      "rules": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update",
+    "config": {
+      "description": "changed",
+      "id": "my-router",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine"
+      }
+    },
+    "plan": {
+      "description": "changed",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "my-router",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "changed",
+            "disabled": false,
+            "id": "my-router",
+            "name": "mine",
+            "routingLabels": {
+              "environment": "mine"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "changed",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "my-router",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine",
+        "service": null,
+        "team": null
+      },
+      "rules": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/my-router",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "changed",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "my-router",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine",
+        "service": null,
+        "team": null
+      },
+      "rules": []
+    },
+    "drift": [
+      "AttributeName(\"description\")",
+      "AttributeName(\"disabled\")",
+      "AttributeName(\"entity_labels\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"routing_labels\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"environment\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
+      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
+      "AttributeName(\"rules\")"
+    ]
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/my-router",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]
