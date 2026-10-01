@@ -46,7 +46,6 @@ type acceptanceData struct {
 	// UpgradeMinimal is the minimal config plus the fields that the released provider needs.
 	UpgradeMinimal *accStep
 	UpgradeFrom    string
-	UpgradeEnv     string
 }
 
 type accMode int
@@ -88,7 +87,6 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		Env:            file.Env,
 		Prerequisites:  strings.TrimSpace(file.Prerequisites),
 		UpgradeFrom:    file.UpgradeFrom,
-		UpgradeEnv:     "CORALOGIX_" + strings.ToUpper(typeName) + "_UPGRADE_ACC",
 	}
 	for _, step := range []struct {
 		mode accMode
