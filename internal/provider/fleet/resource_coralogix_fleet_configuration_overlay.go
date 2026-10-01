@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"slices"
 	"sort"
+	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -55,18 +56,18 @@ var (
 )
 
 type FleetConfigurationOverlayResourceModel struct {
-	ID                      types.String `tfsdk:"id"`
-	Name                    types.String `tfsdk:"name"`
-	Description             types.String `tfsdk:"description"`
-	Tags                    types.List   `tfsdk:"tags"`
-	PriorityOrder           types.Int64  `tfsdk:"priority_order"`
-	RawOverlayConfiguration types.String `tfsdk:"raw_overlay_configuration"`
-	Active                  types.Bool   `tfsdk:"active"`
-	Targets                 types.Set    `tfsdk:"targets"`
-	Version                 types.String `tfsdk:"version"`
-	VersionID               types.String `tfsdk:"version_id"`
-	OverlayHash             types.String `tfsdk:"overlay_hash"`
-	CreatedBy               types.String `tfsdk:"created_by"`
+	ID                  types.String `tfsdk:"id"`
+	Name                types.String `tfsdk:"name"`
+	Description         types.String `tfsdk:"description"`
+	Tags                types.List   `tfsdk:"tags"`
+	PriorityOrder       types.Int64  `tfsdk:"priority_order"`
+	CustomConfiguration types.String `tfsdk:"custom_configuration"`
+	Active              types.Bool   `tfsdk:"active"`
+	Targets             types.Set    `tfsdk:"targets"`
+	Version             types.String `tfsdk:"version"`
+	VersionID           types.String `tfsdk:"version_id"`
+	OverlayHash         types.String `tfsdk:"overlay_hash"`
+	CreatedBy           types.String `tfsdk:"created_by"`
 }
 
 func NewFleetConfigurationOverlayResource() resource.Resource {
@@ -102,11 +103,11 @@ func (r *FleetConfigurationOverlayResource) Schema(_ context.Context, _ resource
 	versionModifiers := []planmodifier.String{UseStateForUnknownWhenOverlayVersionUnchanged{}}
 	resp.Schema = schema.Schema{
 		Version: 0,
-		MarkdownDescription: "Fleet Manager configuration overlay: a raw OpenTelemetry Collector YAML fragment that Fleet Manager merges into the targeted remote configurations of configuration groups. " +
+		MarkdownDescription: "Fleet Manager configuration overlay: a custom OpenTelemetry Collector YAML fragment that Fleet Manager merges into the targeted remote configurations of configuration groups. " +
 			"Changing the YAML or the targets creates a new overlay version. Changing only the name, description, tags, priority or `active` does not. " +
 			"Destroy deactivates the overlay and then archives it.\n\n" +
 			"Known limitations:\n" +
-			"- Targets are remote configuration IDs of one configuration family version. Any change to the targeted `coralogix_fleet_configuration_group` family mints new remote configuration IDs, and the overlay stops applying until its `targets` are updated to the new IDs.\n" +
+			"- Targets are remote configuration IDs of one configuration family version, and those IDs are not stable. A change to the targeted `coralogix_fleet_configuration_group` family, the deactivation of any overlay on that group (including this one), and every scheduled window mint a new family with new remote configuration IDs. The old IDs stop being accepted as targets, so an overlay stops applying, and re-activating it fails until `targets` is updated to the group's current remote configuration IDs.\n" +
 			"- While an overlay is active, the targeted `coralogix_fleet_configuration_group` reads the overlay-generated family as its latest family and plans a change on every run. Manage the group and an active overlay together only after this is resolved in the backend.\n" +
 			"- Overlays managed by Terraform must not have schedules configured in the Coralogix UI.\n" +
 			"- The API has no concurrency control; the last write wins.\n\n" +
@@ -149,9 +150,9 @@ func (r *FleetConfigurationOverlayResource) Schema(_ context.Context, _ resource
 				Validators: []validator.Int64{
 					int64validator.Between(math.MinInt32, math.MaxInt32),
 				},
-				MarkdownDescription: "Merge precedence on a shared remote configuration: higher values win, and the newer overlay wins a tie. Raw overlays apply after preset overlays. Defaults to 0.",
+				MarkdownDescription: "Merge precedence on a shared remote configuration: higher values win, and the newer overlay wins a tie. Custom overlays apply after preset overlays. Defaults to 0.",
 			},
-			"raw_overlay_configuration": schema.StringAttribute{
+			"custom_configuration": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(1, maxOverlayConfigurationBytes),
@@ -301,7 +302,7 @@ func (r *FleetConfigurationOverlayResource) Update(ctx context.Context, req reso
 		return
 	}
 
-	updateReq, changed, diags := expandOverlayUpdateRequest(ctx, plan, prior)
+	updateReq, updateMask, diags := expandOverlayUpdateRequest(ctx, plan, prior)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -309,11 +310,12 @@ func (r *FleetConfigurationOverlayResource) Update(ctx context.Context, req reso
 
 	id := prior.ID.ValueString()
 	var overlay *cfgoverlays.ConfigurationOverlay
-	if changed {
+	if len(updateMask) > 0 {
 		// Send only changed fields: resending the same YAML or targets mints a
 		// new overlay version.
 		result, httpResponse, err := r.client.
 			ConfigurationOverlayServiceUpdateConfigurationOverlay(ctx, id).
+			UpdateMask(strings.Join(updateMask, ",")).
 			ConfigurationOverlayServiceUpdateConfigurationOverlayRequest(updateReq).
 			Execute()
 		if err != nil {
@@ -324,7 +326,7 @@ func (r *FleetConfigurationOverlayResource) Update(ctx context.Context, req reso
 		}
 		overlay = &result.Overlay
 	} else {
-		// Only null vs empty representation changed; the API rejects empty updates.
+		// Only null vs empty representation changed; nothing to send.
 		result, httpResponse, err := r.client.
 			ConfigurationOverlayServiceGetConfigurationOverlay(ctx, id).
 			Execute()
@@ -358,12 +360,11 @@ func (r *FleetConfigurationOverlayResource) Delete(ctx context.Context, req reso
 	// stays inactive in Coralogix and in Terraform state; retrying destroy archives.
 	if !state.Active.IsNull() && state.Active.ValueBool() {
 		deactivateReq := cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequest{
-			Overlay: &cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequestOverlay{
-				Active: cfgoverlays.PtrBool(false),
-			},
+			Active: cfgoverlays.PtrBool(false),
 		}
 		_, httpResponse, err := r.client.
 			ConfigurationOverlayServiceUpdateConfigurationOverlay(ctx, id).
+			UpdateMask("active").
 			ConfigurationOverlayServiceUpdateConfigurationOverlayRequest(deactivateReq).
 			Execute()
 		if err != nil {
@@ -395,8 +396,17 @@ func (r *FleetConfigurationOverlayResource) ImportState(ctx context.Context, req
 }
 
 func expandOverlayCreateRequest(ctx context.Context, plan *FleetConfigurationOverlayResourceModel) (cfgoverlays.ConfigurationOverlayServiceCreateConfigurationOverlayRequest, diag.Diagnostics) {
+	targetIDs, diags := expandStringSet(ctx, plan.Targets)
+	targets := make([]cfgoverlays.ConfigurationOverlayTargetCreate, 0, len(targetIDs))
+	for _, targetID := range targetIDs {
+		targets = append(targets, cfgoverlays.ConfigurationOverlayTargetCreate{RemoteConfigurationId: targetID})
+	}
+
 	overlay := cfgoverlays.ConfigurationOverlayCreate{
-		Raw: cfgoverlays.RawOverlayPayload{Configuration: plan.RawOverlayConfiguration.ValueString()},
+		Custom: cfgoverlays.CustomConfigurationOverlayCreate{
+			Configuration: plan.CustomConfiguration.ValueString(),
+			Targets:       targets,
+		},
 	}
 	if !plan.Name.IsNull() && !plan.Name.IsUnknown() {
 		overlay.SetName(plan.Name.ValueString())
@@ -404,7 +414,8 @@ func expandOverlayCreateRequest(ctx context.Context, plan *FleetConfigurationOve
 	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		overlay.SetDescription(plan.Description.ValueString())
 	}
-	tags, diags := expandStringList(ctx, plan.Tags)
+	tags, tagDiags := expandStringList(ctx, plan.Tags)
+	diags.Append(tagDiags...)
 	if tags != nil {
 		overlay.SetTags(tags)
 	}
@@ -415,87 +426,77 @@ func expandOverlayCreateRequest(ctx context.Context, plan *FleetConfigurationOve
 		overlay.SetActive(plan.Active.ValueBool())
 	}
 
-	targetIDs, targetDiags := expandStringSet(ctx, plan.Targets)
-	diags.Append(targetDiags...)
-	targets := make([]cfgoverlays.ConfigurationOverlayTargetCreate, 0, len(targetIDs))
-	for _, targetID := range targetIDs {
-		targets = append(targets, cfgoverlays.ConfigurationOverlayTargetCreate{RemoteConfigurationId: targetID})
-	}
-
-	return cfgoverlays.ConfigurationOverlayServiceCreateConfigurationOverlayRequest{
-		Overlay: overlay,
-		Targets: targets,
-	}, diags
+	return cfgoverlays.ConfigurationOverlayServiceCreateConfigurationOverlayRequest{Overlay: overlay}, diags
 }
 
-// expandOverlayUpdateRequest builds a PATCH body holding only the fields that
-// differ between plan and prior state. It reports whether anything changed.
-func expandOverlayUpdateRequest(ctx context.Context, plan, prior *FleetConfigurationOverlayResourceModel) (cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequest, bool, diag.Diagnostics) {
-	overlay := cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequestOverlay{}
-	overlayChanged := false
+// expandOverlayUpdateRequest builds a PATCH body and update mask holding only
+// the fields that differ between plan and prior state. A masked field left out
+// of the body is cleared by the API, which is how removed attributes clear.
+func expandOverlayUpdateRequest(ctx context.Context, plan, prior *FleetConfigurationOverlayResourceModel) (cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequest, []string, diag.Diagnostics) {
+	updateReq := cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequest{}
+	var mask []string
 
-	// The API clears name and description on an empty string and ignores omitted fields.
 	if !plan.Name.Equal(prior.Name) {
-		overlay.SetName(plan.Name.ValueString())
-		overlayChanged = true
+		mask = append(mask, "name")
+		if !plan.Name.IsNull() {
+			updateReq.SetName(plan.Name.ValueString())
+		}
 	}
 	if !plan.Description.Equal(prior.Description) {
-		overlay.SetDescription(plan.Description.ValueString())
-		overlayChanged = true
+		mask = append(mask, "description")
+		if !plan.Description.IsNull() {
+			updateReq.SetDescription(plan.Description.ValueString())
+		}
 	}
 	if !plan.PriorityOrder.Equal(prior.PriorityOrder) {
-		overlay.SetPriorityOrder(int32(plan.PriorityOrder.ValueInt64()))
-		overlayChanged = true
+		mask = append(mask, "priorityOrder")
+		updateReq.SetPriorityOrder(int32(plan.PriorityOrder.ValueInt64()))
 	}
 	if !plan.Active.Equal(prior.Active) {
-		overlay.SetActive(plan.Active.ValueBool())
-		overlayChanged = true
-	}
-	if !yamlStringsEqual(plan.RawOverlayConfiguration.ValueString(), prior.RawOverlayConfiguration.ValueString()) {
-		overlay.Raw = &cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequestOverlayRaw{
-			Configuration: plan.RawOverlayConfiguration.ValueString(),
-		}
-		overlayChanged = true
+		mask = append(mask, "active")
+		updateReq.SetActive(plan.Active.ValueBool())
 	}
 
-	var diags diag.Diagnostics
-	planTags, tagDiags := expandStringList(ctx, plan.Tags)
-	diags.Append(tagDiags...)
+	planTags, diags := expandStringList(ctx, plan.Tags)
 	priorTags, tagDiags := expandStringList(ctx, prior.Tags)
 	diags.Append(tagDiags...)
 	if !slices.Equal(planTags, priorTags) {
-		overlay.Tags = &cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequestOverlayTags{
-			Values: nonNilStrings(planTags),
-		}
-		overlayChanged = true
+		mask = append(mask, "tags")
+		updateReq.Tags = planTags
 	}
 
-	updateReq := cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequest{}
-	if overlayChanged {
-		updateReq.Overlay = &overlay
+	custom, customMask, customDiags := expandCustomOverlayUpdate(ctx, plan, prior)
+	diags.Append(customDiags...)
+	if len(customMask) > 0 {
+		mask = append(mask, customMask...)
+		updateReq.Custom = custom
 	}
 
-	targetsReplace, targetsChanged, targetDiags := expandTargetsReplace(ctx, plan.Targets, prior.Targets)
-	diags.Append(targetDiags...)
-	if targetsChanged {
-		updateReq.TargetReplacement = targetsReplace
-	}
-
-	return updateReq, overlayChanged || targetsChanged, diags
+	return updateReq, mask, diags
 }
 
-func expandTargetsReplace(ctx context.Context, plan, prior types.Set) (*cfgoverlays.ConfigurationOverlayTargetsReplace, bool, diag.Diagnostics) {
-	planIDs, diags := expandStringSet(ctx, plan)
-	priorIDs, priorDiags := expandStringSet(ctx, prior)
+// expandCustomOverlayUpdate sends the YAML only on a semantic change and the
+// targets only when the set changed: either one mints a new overlay version.
+func expandCustomOverlayUpdate(ctx context.Context, plan, prior *FleetConfigurationOverlayResourceModel) (*cfgoverlays.CustomConfigurationOverlayUpdate, []string, diag.Diagnostics) {
+	custom := &cfgoverlays.CustomConfigurationOverlayUpdate{}
+	var mask []string
+
+	if !yamlStringsEqual(plan.CustomConfiguration.ValueString(), prior.CustomConfiguration.ValueString()) {
+		mask = append(mask, "custom.configuration")
+		custom.SetConfiguration(plan.CustomConfiguration.ValueString())
+	}
+
+	planIDs, diags := expandStringSet(ctx, plan.Targets)
+	priorIDs, priorDiags := expandStringSet(ctx, prior.Targets)
 	diags.Append(priorDiags...)
-	if slices.Equal(planIDs, priorIDs) {
-		return nil, false, diags
+	if !slices.Equal(planIDs, priorIDs) {
+		mask = append(mask, "custom.targets")
+		for _, targetID := range planIDs {
+			custom.Targets = append(custom.Targets, cfgoverlays.ConfigurationOverlayTargetReplace{RemoteConfigurationId: targetID})
+		}
 	}
-	targets := make([]cfgoverlays.ConfigurationOverlayTargetReplace, 0, len(planIDs))
-	for _, targetID := range planIDs {
-		targets = append(targets, cfgoverlays.ConfigurationOverlayTargetReplace{RemoteConfigurationId: targetID})
-	}
-	return &cfgoverlays.ConfigurationOverlayTargetsReplace{Targets: targets}, true, diags
+
+	return custom, mask, diags
 }
 
 // expandStringSet returns the set's values sorted, so two sets compare with slices.Equal.
@@ -509,13 +510,6 @@ func expandStringSet(ctx context.Context, set types.Set) ([]string, diag.Diagnos
 	return values, diags
 }
 
-func nonNilStrings(values []string) []string {
-	if values == nil {
-		return []string{}
-	}
-	return values
-}
-
 func flattenConfigurationOverlay(ctx context.Context, plan *FleetConfigurationOverlayResourceModel, overlay *cfgoverlays.ConfigurationOverlay) (*FleetConfigurationOverlayResourceModel, diag.Diagnostics) {
 	if overlay == nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Empty configuration overlay", "API returned no configuration overlay")}
@@ -525,10 +519,10 @@ func flattenConfigurationOverlay(ctx context.Context, plan *FleetConfigurationOv
 	}
 	// Versions are newest first; archived versions are omitted.
 	latest := overlay.Versions[0]
-	if latest.Raw == nil {
+	if latest.Custom == nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Unsupported configuration overlay",
-			fmt.Sprintf("Configuration overlay %s is a preset overlay. coralogix_fleet_configuration_overlay manages raw YAML overlays only.", overlay.GetId()),
+			fmt.Sprintf("Configuration overlay %s is a preset overlay. coralogix_fleet_configuration_overlay manages custom YAML overlays only.", overlay.GetId()),
 		)}
 	}
 	if plan == nil {
@@ -546,18 +540,18 @@ func flattenConfigurationOverlay(ctx context.Context, plan *FleetConfigurationOv
 	}
 
 	return &FleetConfigurationOverlayResourceModel{
-		ID:                      types.StringValue(overlay.GetId()),
-		Name:                    flattenConfiguredString(overlay.Name, plan.Name),
-		Description:             flattenConfiguredString(overlay.Description, plan.Description),
-		Tags:                    tags,
-		PriorityOrder:           types.Int64Value(priority),
-		RawOverlayConfiguration: echoYAML(plan.RawOverlayConfiguration.ValueString(), latest.Raw.Configuration),
-		Active:                  types.BoolValue(overlay.GetActive()),
-		Targets:                 flattenOverlayTargets(latest.Targets, plan.Targets),
-		Version:                 types.StringValue(latest.Version),
-		VersionID:               types.StringValue(latest.Id),
-		OverlayHash:             types.StringValue(latest.GetOverlayHash()),
-		CreatedBy:               types.StringValue(overlay.GetCreatedBy()),
+		ID:                  types.StringValue(overlay.GetId()),
+		Name:                flattenConfiguredString(overlay.Name, plan.Name),
+		Description:         flattenConfiguredString(overlay.Description, plan.Description),
+		Tags:                tags,
+		PriorityOrder:       types.Int64Value(priority),
+		CustomConfiguration: echoYAML(plan.CustomConfiguration.ValueString(), latest.Custom.Configuration),
+		Active:              types.BoolValue(overlay.GetActive()),
+		Targets:             flattenOverlayTargets(latest.Custom.Targets, plan.Targets),
+		Version:             types.StringValue(latest.Version),
+		VersionID:           types.StringValue(latest.Id),
+		OverlayHash:         types.StringValue(latest.GetOverlayHash()),
+		CreatedBy:           types.StringValue(overlay.GetCreatedBy()),
 	}, diags
 }
 
@@ -594,7 +588,7 @@ func (m UseStateForUnknownWhenOverlayVersionUnchanged) PlanModifyString(ctx cont
 	if !req.PlanValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
 		return
 	}
-	if !yamlAttrUnchanged(ctx, req, path.Root("raw_overlay_configuration")) {
+	if !yamlAttrUnchanged(ctx, req, path.Root("custom_configuration")) {
 		return
 	}
 	var planTargets, stateTargets types.Set

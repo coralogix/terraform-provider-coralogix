@@ -3,18 +3,18 @@
 page_title: "coralogix_fleet_configuration_overlay Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Fleet Manager configuration overlay: a raw OpenTelemetry Collector YAML fragment that Fleet Manager merges into the targeted remote configurations of configuration groups. Changing the YAML or the targets creates a new overlay version. Changing only the name, description, tags, priority or active does not. Destroy deactivates the overlay and then archives it.
+  Fleet Manager configuration overlay: a custom OpenTelemetry Collector YAML fragment that Fleet Manager merges into the targeted remote configurations of configuration groups. Changing the YAML or the targets creates a new overlay version. Changing only the name, description, tags, priority or active does not. Destroy deactivates the overlay and then archives it.
   Known limitations:
-  Targets are remote configuration IDs of one configuration family version. Any change to the targeted coralogix_fleet_configuration_group family mints new remote configuration IDs, and the overlay stops applying until its targets are updated to the new IDs.While an overlay is active, the targeted coralogix_fleet_configuration_group reads the overlay-generated family as its latest family and plans a change on every run. Manage the group and an active overlay together only after this is resolved in the backend.Overlays managed by Terraform must not have schedules configured in the Coralogix UI.The API has no concurrency control; the last write wins.
+  Targets are remote configuration IDs of one configuration family version, and those IDs are not stable. A change to the targeted coralogix_fleet_configuration_group family, the deactivation of any overlay on that group (including this one), and every scheduled window mint a new family with new remote configuration IDs. The old IDs stop being accepted as targets, so an overlay stops applying, and re-activating it fails until targets is updated to the group's current remote configuration IDs.While an overlay is active, the targeted coralogix_fleet_configuration_group reads the overlay-generated family as its latest family and plans a change on every run. Manage the group and an active overlay together only after this is resolved in the backend.Overlays managed by Terraform must not have schedules configured in the Coralogix UI.The API has no concurrency control; the last write wins.
   Note: This resource is in private preview (Beta).
 ---
 
 # coralogix_fleet_configuration_overlay (Resource)
 
-Fleet Manager configuration overlay: a raw OpenTelemetry Collector YAML fragment that Fleet Manager merges into the targeted remote configurations of configuration groups. Changing the YAML or the targets creates a new overlay version. Changing only the name, description, tags, priority or `active` does not. Destroy deactivates the overlay and then archives it.
+Fleet Manager configuration overlay: a custom OpenTelemetry Collector YAML fragment that Fleet Manager merges into the targeted remote configurations of configuration groups. Changing the YAML or the targets creates a new overlay version. Changing only the name, description, tags, priority or `active` does not. Destroy deactivates the overlay and then archives it.
 
 Known limitations:
-- Targets are remote configuration IDs of one configuration family version. Any change to the targeted `coralogix_fleet_configuration_group` family mints new remote configuration IDs, and the overlay stops applying until its `targets` are updated to the new IDs.
+- Targets are remote configuration IDs of one configuration family version, and those IDs are not stable. A change to the targeted `coralogix_fleet_configuration_group` family, the deactivation of any overlay on that group (including this one), and every scheduled window mint a new family with new remote configuration IDs. The old IDs stop being accepted as targets, so an overlay stops applying, and re-activating it fails until `targets` is updated to the group's current remote configuration IDs.
 - While an overlay is active, the targeted `coralogix_fleet_configuration_group` reads the overlay-generated family as its latest family and plans a change on every run. Manage the group and an active overlay together only after this is resolved in the backend.
 - Overlays managed by Terraform must not have schedules configured in the Coralogix UI.
 - The API has no concurrency control; the last write wins.
@@ -73,7 +73,7 @@ resource "coralogix_fleet_configuration_overlay" "debug_verbosity" {
   tags           = ["debugging"]
   priority_order = 10
 
-  raw_overlay_configuration = <<-EOT
+  custom_configuration = <<-EOT
     exporters:
       debug:
         verbosity: detailed
@@ -94,14 +94,14 @@ resource "coralogix_fleet_configuration_overlay" "debug_verbosity" {
 
 ### Required
 
-- `raw_overlay_configuration` (String) OpenTelemetry Collector YAML fragment merged into each targeted remote configuration. Must not configure the OpAMP extension (`extensions.opamp`). The API stores it normalized (sorted keys, no comments); semantically equal YAML does not plan a change. Integers beyond float64 precision may show a permanent diff.
+- `custom_configuration` (String) OpenTelemetry Collector YAML fragment merged into each targeted remote configuration. Must not configure the OpAMP extension (`extensions.opamp`). The API stores it normalized (sorted keys, no comments); semantically equal YAML does not plan a change. Integers beyond float64 precision may show a permanent diff.
 
 ### Optional
 
 - `active` (Boolean) Whether the latest overlay version is applied to its targets. Requires at least one target when true. Defaults to false.
 - `description` (String) Human-readable description.
 - `name` (String) Display name, unique among unarchived overlays.
-- `priority_order` (Number) Merge precedence on a shared remote configuration: higher values win, and the newer overlay wins a tie. Raw overlays apply after preset overlays. Defaults to 0.
+- `priority_order` (Number) Merge precedence on a shared remote configuration: higher values win, and the newer overlay wins a tie. Custom overlays apply after preset overlays. Defaults to 0.
 - `tags` (List of String) Tags attached to the configuration overlay.
 - `targets` (Set of String) Remote configuration IDs to apply the overlay to, e.g. `coralogix_fleet_configuration_group.example.family.remote_configuration[0].id`. Use remote configuration IDs, not configuration group IDs; their family must be active.
 

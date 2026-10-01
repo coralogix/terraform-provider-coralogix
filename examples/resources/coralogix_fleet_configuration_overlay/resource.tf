@@ -47,7 +47,7 @@ resource "coralogix_fleet_configuration_overlay" "debug_verbosity" {
   tags           = ["debugging"]
   priority_order = 10
 
-  raw_overlay_configuration = <<-EOT
+  custom_configuration = <<-EOT
     exporters:
       debug:
         verbosity: detailed
