@@ -274,11 +274,14 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	}
 
 	if result == nil || len(result.Scopes) == 0 {
-		resp.Diagnostics.AddWarning(
-			fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
-			fmt.Sprintf("%s will be recreated when you apply", id),
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to read coralogix_scope %q", id),
+			fmt.Sprintf("The read succeeded but returned no scopes for %s. That can mean the scope was deleted "+
+				"outside Terraform, but an empty result is not a confirmed deletion — the lookup may also have been "+
+				"filtered by the permissions of the API key in use. The scope is kept in state rather than dropped. "+
+				"If it really was deleted, remove it with `terraform state rm`; otherwise check that the API key is "+
+				"permitted to read scopes.", id),
 		)
-		resp.State.RemoveResource(ctx)
 		return
 	}
 

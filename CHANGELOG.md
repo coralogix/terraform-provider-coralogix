@@ -1,7 +1,7 @@
 # Unreleased
 
 #### resource/coralogix_scope
-- FIX: `Read` no longer panics when the scopes API call fails. The error was checked alongside the response body (`err != nil && len(result.Scopes) == 0`), so the nil response model was dereferenced on exactly the failure paths the guard was meant to cover. The error is now handled on its own — 404 warns and removes the resource from state, anything else surfaces the API error — and the response is checked separately, so a successful-but-empty response no longer indexes an empty list.
+- FIX: `Read` no longer panics when the scopes API call fails. The error was checked alongside the response body (`err != nil && len(result.Scopes) == 0`), so the nil response model was dereferenced on exactly the failure paths the guard was meant to cover. The error is now handled on its own — 404 warns and removes the resource from state, anything else surfaces the API error — and the response is checked separately, so a successful-but-empty response no longer indexes an empty list. A successful response carrying no scopes is reported as an error and leaves the resource in state, since an empty result is not a confirmed deletion.
 - FIX: `Read` returns early when the state entry carries no scope id instead of looking up an empty id.
 - FIX: `Create` and `Update` report an error instead of panicking when the API answers with an empty response body.
 

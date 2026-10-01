@@ -166,7 +166,7 @@ func readScopeDataSource(t *testing.T, ctx context.Context, client *scopess.Scop
 // usable response model. The client leaves *GetScopesResponse nil on every error
 // path, and can also answer 200 with an empty scopes list, so each of these used
 // to dereference nil and crash the provider process; the expected behaviour is a
-// diagnostic (plus state removal for the resource on a vanished scope) instead.
+// diagnostic instead, and for the resource, state removal only on a confirmed 404.
 func TestScopeReadDoesNotPanicOnAPIFailure(t *testing.T) {
 	ctx := context.Background()
 
@@ -211,11 +211,15 @@ func TestScopeReadDoesNotPanicOnAPIFailure(t *testing.T) {
 			wantDataSourceError:  true,
 		},
 		{
-			name:                 "200_with_an_empty_scopes_list_is_a_vanished_scope",
+			// An empty list is not a confirmed deletion — it can also be a
+			// permission-filtered lookup — so the resource is kept in state and
+			// the ambiguity is reported, rather than silently dropping a scope
+			// that may still exist. Only a 404 above removes it.
+			name:                 "200_with_an_empty_scopes_list_keeps_the_resource_in_state",
 			handler:              scopeRawResponseHandler(http.StatusOK, `{"scopes":[]}`),
-			wantResourceWarnings: 1,
-			wantResourceError:    false,
-			wantResourceGone:     true,
+			wantResourceWarnings: 0,
+			wantResourceError:    true,
+			wantResourceGone:     false,
 			wantDataSourceError:  true,
 		},
 		{
