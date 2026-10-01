@@ -67,7 +67,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_global_router \"00000000-0000-4000-8000-000000000001\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000000001 will be recreated when you apply"
+      "warning: Resource disappeared during read | global_router with id 00000000-0000-4000-8000-000000000001 was not found. Terraform removed it from state."
     ],
     "state": null
   }

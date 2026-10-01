@@ -13,7 +13,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_global_router \"does-not-exist\" is in state, but no longer exists in Coralogix backend | does-not-exist will be recreated when you apply"
+      "warning: Resource disappeared during read | global_router with id does-not-exist was not found. Terraform removed it from state."
     ],
     "state": null
   }

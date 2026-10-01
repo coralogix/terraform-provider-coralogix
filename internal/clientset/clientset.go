@@ -223,6 +223,10 @@ func (c *ClientSet) TeamGroups() *teamGroupss.TeamGroupsManagementServiceAPIServ
 	return c.teamGroups
 }
 
+func (c *ClientSet) GlobalRouters() *globalRouters.GlobalRoutersServiceAPIService {
+	return c.globalRouters
+}
+
 func (c *ClientSet) GetNotifications() (*connectors.ConnectorsServiceAPIService, *globalRouters.GlobalRoutersServiceAPIService, *presets.PresetsServiceAPIService) {
 	return c.connectors, c.globalRouters, c.presets
 

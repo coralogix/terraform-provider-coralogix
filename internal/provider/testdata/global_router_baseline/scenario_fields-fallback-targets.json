@@ -370,7 +370,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_global_router | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Valid entity_type must be provided\\\"}\"}\noperation - Replace"
+      "error: Unable to update global_router | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Valid entity_type must be provided\\\"}\"}"
     ],
     "state": {
       "description": "",
