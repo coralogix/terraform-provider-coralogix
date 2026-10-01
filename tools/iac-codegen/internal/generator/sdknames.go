@@ -104,7 +104,7 @@ func resourceTag(doc *v3.Document, r *model.Resource) (string, error) {
 // the names exist.
 func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]sdkRef, error) {
 	pkgName := strings.ToLower(strings.ReplaceAll(tag, " ", "_"))
-	s := &resolver{pkg: sdkGenRoot(module) + "/" + pkgName, seen: map[string]bool{}, bodies: map[string]string{}}
+	s := &resolver{pkg: sdkGenRoot(module) + "/" + pkgName, seen: map[string]bool{}, bodies: map[string]string{}, policy: r.Policy}
 	client := camelize(tag) + "APIService"
 	s.add(sdkRef{Path: "resource", Kind: kindPackage, Name: pkgName, Rule: ruleTag})
 	s.add(sdkRef{Path: "resource", Kind: kindType, Name: client, Rule: ruleTag})
@@ -126,19 +126,8 @@ func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]s
 			return nil, err
 		}
 	}
-	for _, f := range r.Fields {
-		if f.Create != nil {
-			if err := s.field("create.body."+f.Name, s.bodies["create"], f.Name, f.Type, f.Create.Required); err != nil {
-				return nil, err
-			}
-		}
-	}
-	for _, f := range r.Fields {
-		if f.Update != nil {
-			if err := s.field("update.body."+f.Name, s.bodies["update"], f.Name, f.Type, f.Update.Required); err != nil {
-				return nil, err
-			}
-		}
+	if err := s.bodyFields(r, resource); err != nil {
+		return nil, err
 	}
 	// The provider clientset is handwritten. Its accessor name usually drops
 	// " Service" from the tag (F17); when it does not, the check finds the
@@ -164,6 +153,34 @@ func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]s
 	return s.refs, nil
 }
 
+// bodyFields adds the SDK fields of the Create and Update bodies. A body that wraps the resource has
+// one field that holds it. The resource fields are then the fields of the resource type, which the
+// "fields" names cover.
+func (s *resolver) bodyFields(r *model.Resource, resource string) error {
+	if wrapper := r.Policy.RequestWrapper; wrapper != "" {
+		for _, name := range []string{"create", "update"} {
+			s.add(sdkRef{Path: name + ".body." + wrapper, Kind: kindField, Owner: s.bodies[name], Name: goFieldName(wrapper),
+				Want: "*" + resource, WantValue: resource, Rule: ruleProperty})
+		}
+		return nil
+	}
+	for _, f := range r.Fields {
+		if f.Create != nil {
+			if err := s.field("create.body."+f.Name, s.bodies["create"], f.Name, f.Type, f.Create.Required); err != nil {
+				return err
+			}
+		}
+	}
+	for _, f := range r.Fields {
+		if f.Update != nil {
+			if err := s.field("update.body."+f.Name, s.bodies["update"], f.Name, f.Type, f.Update.Required); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // operations adds the SDK names of the four operations.
 func (s *resolver) operations(r *model.Resource, client string) error {
 	ops := []struct {
@@ -178,7 +195,8 @@ func (s *resolver) operations(r *model.Resource, client string) error {
 	}
 	for _, o := range ops {
 		// A singleton has no id in the path (D18).
-		if err := s.operation(r, o.name, o.op, client, o.id && !r.Singleton); err != nil {
+		withID := o.id && !r.Singleton && (o.name != "update" || !r.Policy.UpdateIDInBody)
+		if err := s.operation(r, o.name, o.op, client, withID); err != nil {
 			return err
 		}
 	}
@@ -191,6 +209,7 @@ type resolver struct {
 	refs   []sdkRef
 	seen   map[string]bool   // component schemas already walked
 	bodies map[string]string // operation name → request body type
+	policy model.Policy
 }
 
 func (s *resolver) add(ref sdkRef) {
@@ -296,6 +315,10 @@ func (s *resolver) nested(path string, t *model.Type) error {
 		s.add(sdkRef{Path: path, Kind: kindType, Name: name, Rule: ruleComponent, Schema: t.Schema})
 		for _, v := range t.Values {
 			s.add(sdkRef{Path: path + "." + v, Kind: kindConst, Name: strings.ToUpper(name) + "_" + v, Rule: ruleEnumValue})
+		}
+		if s.policy.EnumOverride(t.Schema) {
+			// The overrides map the zero value to a Terraform value, so the SDK must have it.
+			s.add(sdkRef{Path: path + "." + t.EnumZero, Kind: kindConst, Name: strings.ToUpper(name) + "_" + t.EnumZero, Rule: ruleEnumValue})
 		}
 	case model.Object, model.OneOf:
 		// An object with no fields has no SDK type (F16).

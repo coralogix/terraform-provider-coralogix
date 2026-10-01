@@ -53,11 +53,16 @@ func Build(doc *v3.Document, name string) (*Resource, error) {
 
 // BuildWithOperationIDs builds a resource with optional explicit lifecycle operation IDs.
 func BuildWithOperationIDs(doc *v3.Document, name string, ids OperationIDs) (*Resource, error) {
+	return BuildWithPolicy(doc, name, ids, Policy{})
+}
+
+// BuildWithPolicy builds a resource under the given rule set.
+func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Policy) (*Resource, error) {
 	ops, err := findOperations(doc, name, ids)
 	if err != nil {
 		return nil, err
 	}
-	r := &Resource{Name: name, Replace: ops[opUpdate].method == "PUT"}
+	r := &Resource{Name: name, Replace: ops[opUpdate].method == "PUT", Policy: policy}
 	if !r.Replace {
 		r.UpdateMask = updateMaskField
 	}
@@ -75,6 +80,7 @@ func BuildWithOperationIDs(doc *v3.Document, name string, ids OperationIDs) (*Re
 		}
 		r.IDType = r.Fields[index].Type
 	}
+	r.pruneSkipped()
 	return r, nil
 }
 
@@ -106,6 +112,11 @@ type foundOp struct {
 // starts with its path. It is for measuring which shapes a spec uses that
 // the model does not support.
 func Survey(doc *v3.Document, name string) (*Type, []error) {
+	return SurveyWithPolicy(doc, name, Policy{})
+}
+
+// SurveyWithPolicy is Survey under the given rule set.
+func SurveyWithPolicy(doc *v3.Document, name string, policy Policy) (*Type, []error) {
 	if doc.Components == nil || doc.Components.Schemas == nil {
 		return nil, []error{errors.New("spec has no component schemas")}
 	}
@@ -114,7 +125,7 @@ func Survey(doc *v3.Document, name string) (*Type, []error) {
 		return nil, []error{fmt.Errorf("component %s not found", name)}
 	}
 	var issues []error
-	w := walk{stack: []string{"#/components/schemas/" + name}, issues: &issues}
+	w := walk{stack: []string{"#/components/schemas/" + name}, issues: &issues, policy: &policy}
 	t, err := typeOf(proxy, name, w)
 	if err != nil {
 		return nil, append(issues, err)
@@ -246,6 +257,15 @@ func (r *Resource) readOperations(ops map[verb]foundOp) error {
 // generator PR. Migration support can add that contract separately.
 func (r *Resource) itemOperations(ops map[verb]foundOp) ([]verb, error) {
 	upd := ops[opUpdate]
+	if r.Policy.UpdateIDInBody {
+		if n := len(pathParams(upd)); n != 0 {
+			return nil, fmt.Errorf("%s: the id is in the request body, but the path has %d parameters", opUpdate, n)
+		}
+		if upd.path != ops[opCreate].path {
+			return nil, fmt.Errorf("%s: path %s, want %s (as in create)", opUpdate, upd.path, ops[opCreate].path)
+		}
+		return []verb{opDelete}, nil
+	}
 	if len(pathParams(upd)) == 0 {
 		return nil, fmt.Errorf("%s: the id must be a required path parameter; an id in the request body is not supported", opUpdate)
 	}
@@ -474,7 +494,7 @@ func (r *Resource) readFields(doc *v3.Document, ops map[verb]foundOp) error {
 	names := propertyNames(getSchema)
 	for _, body := range []*base.Schema{createBody, updateBody} {
 		for _, n := range propertyNames(body) {
-			p, err := requestProperty(body, n)
+			p, err := r.requestProperty(body, n)
 			if err != nil {
 				return fmt.Errorf("%s: %w", r.Name, err)
 			}
@@ -543,10 +563,10 @@ func (r *Resource) rootGroups(requestSchema *base.Schema) ([]OneOfGroup, error) 
 // fieldSchemas returns the three schemas where a resource field can appear:
 // the Create body, the Update body, and the resource component (Get).
 func (r *Resource) fieldSchemas(doc *v3.Document, ops map[verb]foundOp) (createBody, updateBody, getSchema *base.Schema, err error) {
-	if createBody, err = schemaOf(bodyProxy(ops[opCreate].op)); err != nil {
+	if createBody, err = schemaOf(r.Policy.requestBody(ops[opCreate].op)); err != nil {
 		return nil, nil, nil, fmt.Errorf("create body: %w", err)
 	}
-	if updateBody, err = schemaOf(bodyProxy(ops[opUpdate].op)); err != nil {
+	if updateBody, err = schemaOf(r.Policy.requestBody(ops[opUpdate].op)); err != nil {
 		return nil, nil, nil, fmt.Errorf("update body: %w", err)
 	}
 	if doc.Components == nil || doc.Components.Schemas == nil {
@@ -651,6 +671,13 @@ func namedParameters(op foundOp, name string) []*v3.Parameter {
 // A readOnly property is set by the server (proto OUTPUT_ONLY). A full
 // replace often sends the whole resource, so its body also has them, for
 // example createTime.
+func (r *Resource) requestProperty(body *base.Schema, name string) (*base.SchemaProxy, error) {
+	if r.Policy.readOnly(r.Name, name) {
+		return nil, nil // the server sets the field, so it is not in a request
+	}
+	return requestProperty(body, name)
+}
+
 func requestProperty(body *base.Schema, name string) (*base.SchemaProxy, error) {
 	p := propertyOf(body, name)
 	if p == nil {
@@ -667,11 +694,11 @@ func requestProperty(body *base.Schema, name string) (*base.SchemaProxy, error) 
 }
 
 func (r *Resource) resourceField(name string, createBody, updateBody, getSchema *base.Schema) (*ResourceField, error) {
-	cp, err := requestProperty(createBody, name)
+	cp, err := r.requestProperty(createBody, name)
 	if err != nil {
 		return nil, fmt.Errorf("create body: %w", err)
 	}
-	up, err := requestProperty(updateBody, name)
+	up, err := r.requestProperty(updateBody, name)
 	if err != nil {
 		return nil, fmt.Errorf("update body: %w", err)
 	}
@@ -685,7 +712,7 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}
 	// The Get type comes first: Classify ensures that the field is in Get.
-	if f.Type, err = typeOf(gp, name, walk{}); err != nil {
+	if f.Type, err = typeOf(gp, name, walk{policy: &r.Policy}); err != nil {
 		return nil, err
 	}
 	getAttrs, err := attrsOf(getSchema, name, gp)
@@ -705,7 +732,7 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		if loc.proxy == nil {
 			continue
 		}
-		t, err := typeOf(loc.proxy, name, walk{})
+		t, err := typeOf(loc.proxy, name, walk{policy: &r.Policy})
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", loc.name, err)
 		}
@@ -814,6 +841,8 @@ type walk struct {
 	// issues collects the errors of Survey. With issues, the walk records an
 	// error and goes on. Without, it stops at the first error.
 	issues *[]error
+	// policy is the rule set. nil is the strict rule set for new resources.
+	policy *Policy
 }
 
 // keep records err when the walk collects errors, and reports whether the
@@ -866,7 +895,7 @@ func fillType(t *Type, s *base.Schema, path string, w walk) error {
 	case "array":
 		return arrayType(t, s, path, w)
 	case "string":
-		err = stringType(t, s)
+		err = stringType(t, s, w)
 	case "boolean":
 		t.Kind = Bool
 	case "number":
@@ -1178,13 +1207,13 @@ func arrayType(t *Type, s *base.Schema, path string, w walk) error {
 	return nil
 }
 
-func stringType(t *Type, s *base.Schema) error {
+func stringType(t *Type, s *base.Schema, w walk) error {
 	t.MinLength, t.MaxLength = s.MinLength, s.MaxLength
 	switch {
 	case len(s.Enum) != 0:
 		t.Kind = Enum
 		t.MinLength, t.MaxLength = nil, nil
-		zero, err := enumZero(s.Enum)
+		zero, err := enumZero(s.Enum, w.policy != nil && w.policy.enumAnyPrefix(t.Schema))
 		if err != nil {
 			return err
 		}
@@ -1206,8 +1235,9 @@ func stringType(t *Type, s *base.Schema) error {
 
 // enumZero returns the exact protobuf zero value. The zero value is first,
 // ends in _UNSPECIFIED, and supplies the prefix of every business value.
-// A later business value may also end in _UNSPECIFIED.
-func enumZero(values []*yaml.Node) (string, error) {
+// A later business value may also end in _UNSPECIFIED. With anyPrefix (existing
+// resources), a business value need not use the prefix.
+func enumZero(values []*yaml.Node, anyPrefix bool) (string, error) {
 	if len(values) < 2 {
 		return "", errors.New("enum needs one zero value and at least one business value")
 	}
@@ -1220,7 +1250,7 @@ func enumZero(values []*yaml.Node) (string, error) {
 		if value.Value == zero {
 			return "", fmt.Errorf("enum zero value %q is repeated", zero)
 		}
-		if !strings.HasPrefix(value.Value, prefix+"_") {
+		if !anyPrefix && !strings.HasPrefix(value.Value, prefix+"_") {
 			return "", fmt.Errorf("enum value %q does not use zero-value prefix %q", value.Value, prefix)
 		}
 	}

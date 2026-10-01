@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
 
@@ -26,6 +27,10 @@ type tfResource struct {
 	// ComputedPaths are the paths of the computed attributes, with list and map
 	// steps left out, as in Conv.OneOfArms.
 	ComputedPaths []string
+	// SchemaVersion and ResourceMarkdownDescription are the released schema version and the
+	// released description of the resource. Both come from the behavior-overrides file.
+	SchemaVersion               int64
+	ResourceMarkdownDescription string
 }
 
 // tfAttr is one Terraform schema attribute.
@@ -40,8 +45,14 @@ type tfAttr struct {
 	ElementType string   // Set, List: the element type, for example "types.StringType"
 	Validators  []string // Go expressions
 	Modifiers   []string // plan modifiers, Go expressions
-	Default     string   // a static default, a Go expression; only for a computed-only attribute
 	Attributes  []*tfAttr
+	// Component and Property name the API field of the attribute: the OpenAPI component
+	// of its parent object, and the property. The behavior-overrides file uses them.
+	Component, Property string
+	// PlainDescription: the docs text is Description, not MarkdownDescription.
+	PlainDescription   bool
+	DeprecationMessage string
+	Default            string // Go expression of a static default, or ""
 }
 
 // tfModel is one Go struct of the Terraform model.
@@ -64,52 +75,25 @@ type tfModelField struct {
 //     the other arms only when its parent object is present.
 //   - uint64 → Int64 (D7). Enum → String with the API values (D12).
 func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
+	return buildTFResourceWith(r, pkg, nil)
+}
+
+// buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
+// (nil for a new resource).
+func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
 	b := &tfBuilder{seen: map[string]bool{}}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
 	root := &tfModel{Name: out.Model}
 	b.models = append(b.models, root)
 	if r.Singleton {
-		for _, f := range r.Fields {
-			if tfName(f.Name) == "id" {
-				return nil, fmt.Errorf("%s: a singleton with an id field is not supported: the id attribute is fixed", f.Name)
-			}
+		if err := addSingletonID(out, root, r); err != nil {
+			return nil, err
 		}
-		// A static default puts the fixed id in the plan, so Create does not
-		// show it as unknown. The user still cannot set it.
-		out.Attributes = append(out.Attributes, &tfAttr{Name: "id", Kind: "String", ValueKind: "String", Computed: true,
-			Description: "The fixed id of this singleton: there is one per company.",
-			Default:     "stringdefault.StaticString(TypeName)"})
-		root.Fields = append(root.Fields, tfModelField{Name: "Id", Type: "types.String", TFName: "id"})
 	}
 	for _, f := range r.Fields {
-		a, err := b.attribute(attrPath{"root", tfName(f.Name)}, f.Name, f.Description, f.Type, fieldAttrs(f))
+		a, err := b.resourceAttribute(out, r, f)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
-		}
-		if hasServerDefault(f) {
-			// The user may override this value. When it is omitted, the server
-			// supplies the declared default and Get always returns it. The plan
-			// modifier makes removal unknown until Update clears the value and
-			// Get returns that default.
-			value, err := serverDefaultValue(f.Type, *f.Create.Default)
-			if err != nil {
-				return nil, fmt.Errorf("%s: server default: %w", f.Name, err)
-			}
-			a.Computed = true
-			a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
-			out.HasServerDefaults = true
-			if !containsString(out.ServerDefaultKinds, a.ValueKind) {
-				out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
-			}
-		}
-		switch f.Behavior {
-		case model.Computed:
-			markComputed(a)
-			if f.Name == r.IDParam {
-				a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
-			}
-		case model.Immutable:
-			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.RequiresReplace()")
 		}
 		out.Attributes = append(out.Attributes, a)
 		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type, f.Behavior == model.Computed))
@@ -123,6 +107,11 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 	}
 	out.ConfigValidators = b.validators
 	out.Models = b.models
+	if file != nil {
+		if err := applyOverrides(out, file); err != nil {
+			return nil, err
+		}
+	}
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
 	out.ComputedPaths = computedPaths(nil, "", out.Attributes)
@@ -157,6 +146,151 @@ func defaultPackages(attrs []*tfAttr) []string {
 		}
 	}
 	return packages
+}
+
+// addSingletonID adds the fixed id attribute of a singleton (D18).
+func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
+	for _, f := range r.Fields {
+		if tfName(f.Name) == "id" {
+			return fmt.Errorf("%s: a singleton with an id field is not supported: the id attribute is fixed", f.Name)
+		}
+	}
+	// A static default puts the fixed id in the plan, so Create does not
+	// show it as unknown. The user still cannot set it.
+	out.Attributes = append(out.Attributes, &tfAttr{Name: "id", Kind: "String", ValueKind: "String", Computed: true,
+		Description: "The fixed id of this singleton: there is one per company.",
+		Default:     "stringdefault.StaticString(TypeName)"})
+	root.Fields = append(root.Fields, tfModelField{Name: "Id", Type: "types.String", TFName: "id"})
+	return nil
+}
+
+// resourceAttribute builds the attribute of a top-level field: its type, its server default, a
+// client-set id, and the plan modifiers of its behavior.
+func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField) (*tfAttr, error) {
+	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f))
+	if err != nil {
+		return nil, err
+	}
+	if serverDefault(r, f) {
+		// The user may override this value. When it is omitted, the server
+		// supplies the declared default and Get always returns it. The plan
+		// modifier makes removal unknown until Update clears the value and
+		// Get returns that default.
+		value, err := serverDefaultValue(f.Type, *f.Create.Default)
+		if err != nil {
+			return nil, fmt.Errorf("server default: %w", err)
+		}
+		a.Computed = true
+		a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
+		out.HasServerDefaults = true
+		if !containsString(out.ServerDefaultKinds, a.ValueKind) {
+			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
+		}
+	}
+	if r.Policy.ClientSetID && f.Name == r.IDParam {
+		// The user can set the id. Without a value, the server makes one.
+		a.Required, a.Optional, a.Computed = false, true, true
+	}
+	switch f.Behavior {
+	case model.Computed:
+		markComputed(a)
+		if f.Name == r.IDParam {
+			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
+		}
+	case model.Immutable:
+		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.RequiresReplace()")
+	}
+	return a, nil
+}
+
+// applyOverrides applies the behavior-overrides file to the attributes. A field with a line
+// keeps the released behavior that the line states.
+func applyOverrides(out *tfResource, file *overrides.File) error {
+	out.SchemaVersion = file.Schema.Version
+	out.ResourceMarkdownDescription = file.MarkdownDescription
+	var walk func(attrs []*tfAttr) error
+	walk = func(attrs []*tfAttr) error {
+		for _, a := range attrs {
+			if file.Validators.Inferred != nil && !*file.Validators.Inferred {
+				a.Validators = nil // no limit of the contract becomes a validator
+			}
+			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
+				if err := applyField(a, line); err != nil {
+					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
+				}
+			}
+			if err := walk(a.Attributes); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return walk(out.Attributes)
+}
+
+func applyField(a *tfAttr, l overrides.Field) error {
+	if l.Required {
+		a.Required, a.Optional = true, false
+	}
+	if l.Description != nil {
+		a.Description, a.PlainDescription = *l.Description, true
+	}
+	if l.MarkdownDescription != nil {
+		a.Description, a.PlainDescription = *l.MarkdownDescription, false
+	}
+	a.DeprecationMessage = l.Deprecation
+	if l.Computed != nil {
+		a.Computed = *l.Computed
+	}
+	if l.UseStateForUnknown {
+		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
+	}
+	if l.Default != nil {
+		expr, err := defaultExpr(a, l.Default)
+		if err != nil {
+			return err
+		}
+		a.Default = expr
+	}
+	for _, v := range l.Validators {
+		expr, err := validatorExpr(a, v)
+		if err != nil {
+			return err
+		}
+		a.Validators = append(a.Validators, expr)
+	}
+	return nil
+}
+
+// defaultExpr is the Go expression of a static default of the attribute.
+func defaultExpr(a *tfAttr, value any) (string, error) {
+	switch v := value.(type) {
+	case string:
+		if a.Kind == "String" {
+			return fmt.Sprintf("stringdefault.StaticString(%q)", v), nil
+		}
+	case bool:
+		if a.Kind == "Bool" {
+			return fmt.Sprintf("booldefault.StaticBool(%t)", v), nil
+		}
+	}
+	return "", fmt.Errorf("a default of type %T does not fit a %s attribute", value, a.Kind)
+}
+
+// validatorExpr is the Go expression of a released validator.
+func validatorExpr(a *tfAttr, v overrides.Validator) (string, error) {
+	pkg := strings.ToLower(a.ValueKind) + "validator"
+	switch {
+	case len(v.OneOf) != 0 && a.ValueKind == "String":
+		quoted := make([]string, 0, len(v.OneOf))
+		for _, one := range v.OneOf {
+			quoted = append(quoted, strconv.Quote(one))
+		}
+		return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
+	case v.SizeAtLeast != nil && (a.ValueKind == "List" || a.ValueKind == "Set" || a.ValueKind == "Map"):
+		return fmt.Sprintf("%s.SizeAtLeast(%d)", pkg, *v.SizeAtLeast), nil
+	}
+	return "", fmt.Errorf("the validator does not fit a %s attribute", a.ValueKind)
 }
 
 // markComputed makes a server-owned attribute and every nested attribute
@@ -324,8 +458,8 @@ func (p attrPath) expr() string {
 	return s
 }
 
-func (b *tfBuilder) attribute(p attrPath, name, desc string, t *model.Type, attrs model.Attrs) (*tfAttr, error) {
-	a := &tfAttr{Name: tfName(name), Description: desc, Required: attrs.Required, Optional: !attrs.Required}
+func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs) (*tfAttr, error) {
+	a := &tfAttr{Name: tfName(name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
 	if err := b.setType(a, p, t); err != nil {
 		return nil, err
 	}
@@ -400,7 +534,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	var fields []tfModelField
 	for _, f := range t.Fields {
 		child := append(append(attrPath{}, p...), tfName(f.Name))
-		a, err := b.attribute(child, f.Name, f.Description, f.Type, f.Attrs)
+		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, f.Attrs)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}

@@ -1,0 +1,67 @@
+# The behavior-overrides file of the synthetic legacy resource. It uses every key of the file.
+resource: LegacyThing
+mode: existing
+
+markdownDescription: "A resource that users already have."
+
+schema:
+  version: 2
+  upgrade:
+    1: {priorSchema: example.com/iac-test-sdk/legacyprior.V1, strategy: refresh}
+
+validators:
+  inferred: false
+
+api:
+  requestWrapper: thing
+  updateIDInBody: true
+  clientSetID: true
+
+types:
+  LegacyThing:
+    fields:
+      id:
+        markdownDescription: "The id. Leave it empty for a generated one."
+        useStateForUnknown: true
+      name:
+        markdownDescription: "The name."
+        required: true
+      createTime:
+        useStateForUnknown: true
+      labels:
+        description: "The labels."
+        readEmptyAs: "null"
+      rules:
+        description: "The rules."
+        computed: true
+  LegacyRule:
+    fields:
+      name:
+        description: "The rule name."
+        required: true
+      kind:
+        computed: true
+        default: alpha
+        useStateForUnknown: true
+        deprecation: "Use another field."
+        validators: [{oneOf: [alpha, beta, unspecified]}]
+      targets:
+        description: "The targets."
+        computed: true
+        keepPriorOrder: true
+        validators: [{sizeAtLeast: 1}]
+  LegacyLabels:
+    required: []
+    fields:
+      env: {description: "", computed: true}
+  LegacyTarget:
+    fields:
+      connectorId:
+        description: "The connector."
+        required: true
+      id: {skip: true}
+
+enums:
+  legacy.Kind:
+    zero: unspecified
+    values: [ALPHA, BETA]

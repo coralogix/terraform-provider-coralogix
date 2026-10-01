@@ -19,6 +19,9 @@ import (
 	"{{.Conv.SDKPkg}}"
 	"{{.CRUD.ProviderPkg}}"
 	"{{.CRUD.CXPkg}}"
+{{- range .CRUD.Upgrades}}
+	{{.Alias}} "{{.ImportPath}}"
+{{- end}}
 )
 {{with .CRUD}}
 {{- $sdk := .SDKName}}
@@ -32,6 +35,9 @@ var (
 	_ resource.ResourceWithConfigure        = (*Resource)(nil)
 	_ resource.ResourceWithConfigValidators = (*Resource)(nil)
 	_ resource.ResourceWithImportState      = (*Resource)(nil)
+{{- if .Upgrades}}
+	_ resource.ResourceWithUpgradeState     = (*Resource)(nil)
+{{- end}}
 )
 
 // Resource is the Terraform resource. The provider data must be a
@@ -168,7 +174,7 @@ body, mask, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 	if body == nil {
 		v, err = r.get(ctx, id)
 	} else {
-		v, err = r.update(ctx, id, body{{if not .Replace}}, mask{{end}})
+		v, err = r.update(ctx{{if not .UpdateIDInBody}}, id{{end}}, body{{if not .Replace}}, mask{{end}})
 	}
 	if {{$cx}}.{{.APICode}}(err) == http.StatusNotFound {
 		resp.Diagnostics.AddWarning("Resource disappeared during update",
@@ -198,7 +204,7 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 
 // The API calls. Each returns the error with its HTTP status and body.
 
-func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.Create.SDK}}) (*{{$sdk}}.{{.Resource}}, error) {
+func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBody}}) (*{{$sdk}}.{{.Resource}}, error) {
 	out, httpResp, err := r.client.{{.Create.Method}}(ctx).{{.Create.Body}}(*body).Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
@@ -220,8 +226,8 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 	return {{if .Get.Response}}out.{{.Get.Response}}{{else}}out{{end}}, nil
 }
 
-func (r *Resource) update(ctx context.Context, id {{.IDGoType}}, body *{{$sdk}}.{{$.Conv.Update.SDK}}{{if not .Replace}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
-	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if not .Singleton}}, id{{end}}).{{.Update.Body}}(*body){{if not .Replace}}.{{.UpdateMask}}(mask){{end}}.Execute()
+func (r *Resource) update(ctx context.Context{{if not .UpdateIDInBody}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if not .Replace}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
+	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if not .Replace}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
@@ -240,8 +246,11 @@ func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {
 // is empty in both the response and prior keeps its form from prior: the plan
 // after Create or Update, or the state before Read. flatten
 // returns an error when the response has no resource.
+{{- if .Upgrades}} A state upgrade has no
+// prior of this schema version, so it passes nil.
+{{- end}}
 func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, state *tfsdk.State) diag.Diagnostics {
-	m, diags := flatten(ctx, v)
+	m, diags := flatten(ctx, v{{if $.Conv.HasPrior}}, priorModel(ctx, prior){{end}})
 	if diags.HasError() {
 		return diags
 	}
@@ -252,9 +261,74 @@ func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, stat
 	if diags.HasError() {
 		return diags
 	}
+{{- if .Upgrades}}
+	if prior == nil {
+		return diags
+	}
+{{- end}}
 	diags.Append(keepPriorEmpty(ctx, prior, state)...)
 	return diags
 }
+
+{{- if $.Conv.HasPrior}}
+
+// priorModel returns the model in the state or the plan, or nil when there is none or it
+// cannot be read. The prior only keeps the order of lists that the API does not order.
+func priorModel(ctx context.Context, data tfData) *{{.Model}} {
+	var m {{.Model}}
+	if data == nil || data.Get(ctx, &m).HasError() {
+		return nil
+	}
+	return &m
+}
+{{- end}}
+{{- if .Existing}}
+
+// Flatten returns the Terraform model of a resource in an API response, for a data source that
+// uses the schema and the model of this resource. It has no prior model.
+func Flatten(ctx context.Context, v *{{$sdk}}.{{.Resource}}) (*{{.Model}}, diag.Diagnostics) {
+	return flatten(ctx, v{{if $.Conv.HasPrior}}, nil{{end}})
+}
+{{- end}}
+{{- if .Upgrades}}
+
+// UpgradeState upgrades the state of an older schema version. The prior schema only decodes the
+// old state. The upgrader reads the resource from the API, so it does not translate any value.
+func (r *Resource) UpgradeState(context.Context) map[int64]resource.StateUpgrader {
+{{- range .Upgrades}}
+	prior{{.Version}} := {{.Alias}}.{{.Func}}()
+{{- end}}
+	return map[int64]resource.StateUpgrader{
+{{- range .Upgrades}}
+		{{.Version}}: {PriorSchema: &prior{{.Version}}, StateUpgrader: r.upgradeByRefresh},
+{{- end}}
+	}
+}
+
+func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	if req.State == nil {
+		resp.Diagnostics.AddError("Missing prior state", "The state upgrade request has no prior state.")
+		return
+	}
+	id, diags := stateID(ctx, *req.State)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	v, err := r.get(ctx, id)
+	if {{$cx}}.{{.APICode}}(err) == http.StatusNotFound {
+		resp.Diagnostics.AddWarning("Resource disappeared during state upgrade",
+			fmt.Sprintf("%s with id %v was not found. Terraform removed it from state.", TypeName, id))
+		resp.State.RemoveResource(ctx)
+		return
+	}
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
+		return
+	}
+	resp.Diagnostics.Append(setState(ctx, v, nil, &resp.State)...)
+}
+{{- end}}
 
 // stateID returns the id in the state.
 func stateID(ctx context.Context, state tfsdk.State) ({{.IDGoType}}, diag.Diagnostics) {

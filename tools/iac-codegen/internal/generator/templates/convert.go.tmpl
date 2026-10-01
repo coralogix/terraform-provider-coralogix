@@ -5,7 +5,10 @@ package {{.Package}}
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math"
+	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -20,6 +23,29 @@ import (
 )
 {{with .Conv}}
 {{- $sdk := .SDKName}}
+{{- range .EnumMaps}}
+{{- $type := .SDKType}}
+
+// {{.Name}}ToAPI maps the Terraform values of the enum to its API values.
+var {{.Name}}ToAPI = map[string]{{$type}}{
+{{- range .Values}}
+	{{printf "%q" .TF}}: {{$type}}({{printf "%q" .API}}),
+{{- end}}
+}
+
+// {{.Name}}FromAPI maps the API values of the enum to its Terraform values.
+var {{.Name}}FromAPI = map[{{$type}}]string{
+{{- range .Values}}
+	{{$type}}({{printf "%q" .API}}): {{printf "%q" .TF}},
+{{- end}}
+}
+{{- end}}
+
+{{- if .Existing}}
+// validateRequestValue accepts every planned value. An unknown value of a computed attribute is
+// left out of the request, and the server supplies it, as the released resource did.
+func validateRequestValue(_ path.Path, _, _ attr.Value, _ bool, _ *diag.Diagnostics) {}
+{{- else}}
 // validateRequestValue prevents an unknown planned value from becoming an
 // omitted API value. The only safe exception is an unknown value created by
 // removal of a field with a declared server default.
@@ -35,6 +61,7 @@ func validateRequestValue(p path.Path, config, plan attr.Value, serverDefault bo
 		diags.AddAttributeError(at, "Unknown value before API call", "Terraform could not determine this value before the API call. Apply again after its dependencies are known.")
 	}
 }
+{{- end}}
 
 var createFields = []struct {
 	attr          string
@@ -61,7 +88,7 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 	return diags
 }
 
-func unknownValuePaths(p path.Path, value attr.Value) []path.Path {
+{{if not .Existing}}func unknownValuePaths(p path.Path, value attr.Value) []path.Path {
 	if value == nil || value.IsNull() {
 		return nil
 	}
@@ -103,11 +130,15 @@ func sortedValueKeys(values map[string]attr.Value) []string {
 	return keys
 }
 
-// expandCreate returns the Create request body. A null value is not sent.
-func expandCreate(ctx context.Context, m *{{.Create.Model}}) (*{{$sdk}}.{{.Create.SDK}}, diag.Diagnostics) {
+{{end}}// expandCreate returns the Create request body. A null value is not sent.
+func expandCreate(ctx context.Context, m *{{.Create.Model}}) (*{{$sdk}}.{{.CreateBody}}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expand{{.Create.Func}}(ctx, path.Empty(), m, &diags)
+{{- if .CreateWrap}}
+	return &{{$sdk}}.{{.CreateBody}}{ {{.CreateWrap.Field}}: {{if .CreateWrap.Value}}valueOf(out){{else}}out{{end}} }, diags
+{{- else}}
 	return out, diags
+{{- end}}
 }
 
 {{if .Replace -}}
@@ -117,21 +148,25 @@ func expandCreate(ctx context.Context, m *{{.Create.Model}}) (*{{$sdk}}.{{.Creat
 // expandUpdate returns the Update request body with every Update field. A
 // null value is not sent. updateRequest returns the update mask separately.
 {{- end}}
-func expandUpdate(ctx context.Context, m *{{.Update.Model}}) (*{{$sdk}}.{{.Update.SDK}}, diag.Diagnostics) {
+func expandUpdate(ctx context.Context, m *{{.Update.Model}}) (*{{$sdk}}.{{.UpdateBody}}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expand{{.Update.Func}}(ctx, path.Empty(), m, &diags)
+{{- if .UpdateWrap}}
+	return &{{$sdk}}.{{.UpdateBody}}{ {{.UpdateWrap.Field}}: {{if .UpdateWrap.Value}}valueOf(out){{else}}out{{end}} }, diags
+{{- else}}
 	return out, diags
+{{- end}}
 }
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}) (*{{.Resource.Model}}, diag.Diagnostics) {
+func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}{{if .HasPrior}}, prior *{{.Resource.Model}}{{end}}) (*{{.Resource.Model}}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no {{.Resource.SDK}}.")
 		return nil, diags
 	}
-	out := flatten{{.Resource.Func}}(ctx, path.Empty(), v, &diags)
+	out := flatten{{.Resource.Func}}(ctx, path.Empty(), v, {{if .HasPrior}}prior, {{end}}&diags)
 	return out, diags
 }
 
@@ -301,7 +336,7 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 }
 {{end}}
 {{- if .Flatten}}
-func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, diags *diag.Diagnostics) *{{.Model}} {
+func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, {{if .NeedsPrior}}prior *{{.Model}}, {{end}}diags *diag.Diagnostics) *{{.Model}} {
 	if v == nil {
 		return nil
 	}
@@ -310,6 +345,14 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, di
 {{- template "flattenField" .}}
 {{- end}}
 	return out
+}
+{{end}}
+{{- if .Same}}
+// same{{.Func}} reports whether two SDK values are equal. It compares the fields that the resource
+// manages. A missing value and an empty one are equal.
+func same{{.Func}}(a, b *{{$sdk}}.{{.SDK}}) bool {
+	return {{range $i, $c := .SameChecks}}{{if $i}} &&
+		{{end}}{{$c}}{{else}}true{{end}}
 }
 {{end}}
 {{- if .AttrTypes}}
@@ -470,12 +513,124 @@ func flattenUint64(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 
 	return types.Int64Value(int64(n))
 }
 
+{{- if .Conv.EnumMaps}}
+
+// expandEnumMapped returns the API value of a Terraform value. A value that the map lacks is an error.
+func expandEnumMapped[T ~string](p path.Path, v types.String, toAPI map[string]T, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	e, ok := toAPI[v.ValueString()]
+	if !ok {
+		diags.AddAttributeError(p, "Unsupported value", fmt.Sprintf("The value %q is not supported.", v.ValueString()))
+		return nil
+	}
+	return &e
+}
+
+// flattenEnumMapped returns the Terraform value of an API value. A value that the map lacks is an error.
+func flattenEnumMapped[T ~string](p path.Path, v *T, fromAPI map[T]string, diags *diag.Diagnostics) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	s, ok := fromAPI[*v]
+	if !ok {
+		diags.AddAttributeError(p, "Unsupported API value", fmt.Sprintf("The API returned %q, which this resource does not support.", string(*v)))
+		return types.StringNull()
+	}
+	return types.StringValue(s)
+}
+{{- end}}
+
 func flattenEnum[T ~string](v *T, zero string) types.String {
 	if v == nil || string(*v) == zero {
 		return types.StringNull()
 	}
 	return types.StringValue(string(*v))
 }
+
+{{- if .Conv.UsesPrior}}
+
+// priorItems returns the items of the prior list, or nil when it cannot be read. The prior only
+// keeps an order, so a prior that cannot be read is not an error.
+func priorItems[T any](ctx context.Context, v elements) []T {
+	var scratch diag.Diagnostics
+	items := expandElements[T](ctx, path.Empty(), v, &scratch)
+	if scratch.HasError() {
+		return nil
+	}
+	return items
+}
+
+// keepOrder returns the items in the order of the prior list, when the API returned the same items in
+// another order. It expands the prior list to SDK values and compares them with same. The prior only
+// keeps an order, so a prior that cannot be read is not an error.
+func keepOrder[M, S any](ctx context.Context, items []S, prior types.List, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) []S {
+	var scratch diag.Diagnostics
+	models := priorItems[M](ctx, prior)
+	var priorSDK []S // nil for a prior list that is null: an empty API list then reads as null, as before
+	if models != nil {
+		priorSDK = make([]S, 0, len(models))
+	}
+	for i := range models {
+		priorSDK = append(priorSDK, *expand(ctx, path.Empty(), &models[i], &scratch))
+	}
+	if scratch.HasError() {
+		return items
+	}
+	return orderLike(items, priorSDK, same)
+}
+
+// orderLike returns prior when it holds the same items as items, in another order. Otherwise
+// the items really changed, and the API order stays, so the plan shows the change.
+func orderLike[T any](items, prior []T, same func(a, b *T) bool) []T {
+	if items == nil || len(items) != len(prior) {
+		return items // a missing list stays missing
+	}
+	used := make([]bool, len(prior))
+	for i := range items {
+		found := false
+		for j := range prior {
+			if !used[j] && same(&items[i], &prior[j]) {
+				used[j], found = true, true
+				break
+			}
+		}
+		if !found {
+			return items
+		}
+	}
+	return prior
+}
+
+// pointerValue returns the value of p, or the zero value for nil. A missing value equals an empty one.
+func pointerValue[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
+}
+
+func sameObject[T any](a, b *T, same func(a, b *T) bool) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return same(a, b)
+}
+
+func sameList[T any](a, b []T, same func(a, b *T) bool) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !same(&a[i], &b[i]) {
+			return false
+		}
+	}
+	return true
+}
+{{- end}}
 
 func flattenTime(v *time.Time) types.String {
 	if v == nil {
@@ -723,6 +878,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.SDK}} = expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
 {{- else if eq .Conv "uint64"}}
 	out.{{.SDK}} = {{$l}}expandUint64({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if and (eq .Conv "enum") .EnumMap}}
+	out.{{.SDK}} = {{$l}}expandEnumMapped({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags){{$r}}
 {{- else if eq .Conv "enum"}}
 	out.{{.SDK}} = {{$l}}expandEnum[{{.SDKType}}](m.{{.Model}}){{$r}}
 {{- else if eq .Conv "object"}}
@@ -782,6 +939,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "time"}}
 	out.{{.Model}} = flattenTime({{$v}})
+{{- else if and (eq .Conv "enum") .EnumMap}}
+	out.{{.Model}} = flattenEnumMapped({{$p}}, {{$v}}, {{.EnumMap.Name}}FromAPI, diags)
 {{- else if eq .Conv "enum"}}
 	out.{{.Model}} = flattenEnum({{$v}}, {{printf "%q" .EnumZero}})
 {{- else if eq .Conv "object"}}
@@ -793,7 +952,20 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		out.{{.Model}} = value
 	}
 	{{- else}}
+	{{- if .Object.NeedsPrior}}
+	var prior{{.Model}} *{{.Object.Model}}
+	if prior != nil {
+		prior{{.Model}} = prior.{{.Model}}
+	}
+	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, prior{{.Model}}, diags)
+	{{- else}}
 	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, {{$v}}, diags)
+	{{- end}}
+	{{- if .ReadEmptyAsNull}}
+	if out.{{.Model}} != nil && reflect.DeepEqual(*out.{{.Model}}, {{.Object.Model}}{}) {
+		out.{{.Model}} = nil
+	}
+	{{- end}}
 	{{- end}}
 {{- else if eq .Conv "empty"}}
 	{{- if .ObjectValue}}
@@ -833,11 +1005,33 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		out.{{.Model}} = flattenMap(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
 	}
 {{- else if eq .Conv "objects"}}
+	{{- $src := printf "v.%s" .SDK}}{{if .KeepPriorOrder}}{{$src = printf "src%s" .Model}}{{end}}
 	out.{{.Model}} = types.{{.Collection}}Null(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
-	if v.{{.SDK}} != nil {
-		items := make([]{{.Object.Model}}, 0, len(v.{{.SDK}}))
-		for i := range v.{{.SDK}} {
-			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &v.{{.SDK}}[i], diags))
+	{{- if .KeepPriorOrder}}
+	{{$src}} := v.{{.SDK}}
+	if prior != nil {
+		{{$src}} = keepOrder(ctx, {{$src}}, prior.{{.Model}}, expand{{.Object.Func}}, same{{.Object.Func}})
+	}
+	{{- end}}
+	if {{if .ReadEmptyAsNull}}len({{$src}}) != 0{{else}}{{$src}} != nil{{end}} {
+		items := make([]{{.Object.Model}}, 0, len({{$src}}))
+		{{- if .Object.NeedsPrior}}
+		var prior{{.Model}} []{{.Object.Model}}
+		if prior != nil {
+			prior{{.Model}} = priorItems[{{.Object.Model}}](ctx, prior.{{.Model}})
+		}
+		{{- end}}
+		for i := range {{$src}} {
+			{{- if .Object.NeedsPrior}}
+			// The prior item at the same index keeps the order of its own lists.
+			var priorItem *{{.Object.Model}}
+			if i < len(prior{{.Model}}) {
+				priorItem = &prior{{.Model}}[i]
+			}
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &{{$src}}[i], priorItem, diags))
+			{{- else}}
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &{{$src}}[i], diags))
+			{{- end}}
 		}
 		out.{{.Model}} = flatten{{.Collection}}(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
 	}

@@ -2,6 +2,7 @@
 
 #### tools/iac-codegen
 - FEAT: Add the fail-closed beta generator and local candidate eligibility checks for complete Terraform Plugin Framework resources.
+- FEAT: Add existing-resource mode. A `behavior-overrides.yaml` file lists where a released resource differs from the API contract, and the generator keeps that behavior. A line that matches nothing in the contract is an error.
 
 # Release 3.19.0
 
