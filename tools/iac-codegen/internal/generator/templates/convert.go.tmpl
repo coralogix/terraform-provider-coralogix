@@ -167,6 +167,11 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}{{if .HasPrior}},
 		return nil, diags
 	}
 	out := flatten{{.Resource.Func}}(ctx, path.Empty(), v, {{if .HasPrior}}prior, {{end}}&diags)
+{{- if .IDGuard}}
+	if out.{{.IDGuard}}.IsNull() {
+		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
+	}
+{{- end}}
 	return out, diags
 }
 

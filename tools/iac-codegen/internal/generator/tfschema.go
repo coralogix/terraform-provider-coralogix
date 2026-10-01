@@ -226,6 +226,9 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				if err := applyField(a, line, file); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
+				if err := checkAttrMode(a); err != nil {
+					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
+				}
 			}
 			if err := walk(a.Attributes); err != nil {
 				return err
@@ -266,6 +269,19 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 			return err
 		}
 		a.Validators = append(a.Validators, expr)
+	}
+	return nil
+}
+
+// checkAttrMode rejects an attribute that the Framework cannot build: one that is neither required,
+// optional, nor computed, or one that is required and computed. A line can cause it, for example
+// computed: false on a field that the contract makes server-owned.
+func checkAttrMode(a *tfAttr) error {
+	switch {
+	case a.Required && a.Computed:
+		return errors.New("the line makes the attribute required and computed: required: true needs a field that the user sets")
+	case !a.Required && !a.Optional && !a.Computed:
+		return errors.New("the line leaves the attribute without a mode: computed: false needs a field that the user can set, and the contract makes this field server-owned")
 	}
 	return nil
 }
