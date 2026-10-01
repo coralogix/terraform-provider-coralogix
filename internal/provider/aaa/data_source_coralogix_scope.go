@@ -111,6 +111,14 @@ func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
+	if result.Scopes[0].GetId() == "" {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to read coralogix_scope %q", id),
+			"The read returned a scope with no id.",
+		)
+		return
+	}
+
 	state := flattenScope(result.Scopes[0])
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)

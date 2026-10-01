@@ -398,3 +398,108 @@ func TestScopeReadFlattensASuccessfulResponse(t *testing.T) {
 		assertScope(t, got)
 	})
 }
+
+// TestScopeRejectsResponsesWithoutAnID covers 2xx responses that decode cleanly
+// but carry no usable scope. The response models type Scope as a value and every
+// field inside it as a pointer, so `{"scope":null}` and `{"scope":{}}` both
+// produce a non-nil response with a zero-valued scope. Writing that to state
+// records an empty id, and a scope with no id can be neither read nor deleted —
+// Terraform would report a successful apply for a resource it can never manage
+// again. (`{}` needs no guard: the generated UnmarshalJSON rejects it for a
+// missing required property, which surfaces on the error path instead.)
+func TestScopeRejectsResponsesWithoutAnID(t *testing.T) {
+	ctx := context.Background()
+
+	bodies := []struct{ name, body string }{
+		{"scope_null", `{"scope":null}`},
+		{"scope_empty_object", `{"scope":{}}`},
+	}
+
+	for _, tc := range bodies {
+		t.Run("create_"+tc.name, func(t *testing.T) {
+			r := &ScopeResource{client: scopeClientForHandler(t, scopeRawResponseHandler(http.StatusOK, tc.body))}
+
+			schemaResp := &resource.SchemaResponse{}
+			r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
+			plan := tfsdk.Plan{Schema: schemaResp.Schema}
+			if diags := plan.Set(ctx, scopeStateModel("")); diags.HasError() {
+				t.Fatalf("failed to seed plan: %v", diags)
+			}
+
+			resp := &resource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema}}
+			if rec := scopeCapturePanic(func() {
+				r.Create(ctx, resource.CreateRequest{Plan: plan}, resp)
+			}); rec != nil {
+				t.Fatalf("ScopeResource.Create panicked: %v", rec)
+			}
+
+			if !resp.Diagnostics.HasError() {
+				t.Error("create accepted a response with no scope id")
+			}
+			if !resp.State.Raw.IsNull() {
+				var m ScopeResourceModel
+				if diags := resp.State.Get(ctx, &m); !diags.HasError() && m.ID.ValueString() == "" {
+					t.Error("create wrote an empty id into state")
+				}
+			}
+		})
+
+		t.Run("update_"+tc.name, func(t *testing.T) {
+			r := &ScopeResource{client: scopeClientForHandler(t, scopeRawResponseHandler(http.StatusOK, tc.body))}
+
+			schemaResp := &resource.SchemaResponse{}
+			r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
+			model := scopeStateModel(scopeUnitTestID)
+
+			plan := tfsdk.Plan{Schema: schemaResp.Schema}
+			if diags := plan.Set(ctx, model); diags.HasError() {
+				t.Fatalf("failed to seed plan: %v", diags)
+			}
+			resp := &resource.UpdateResponse{State: tfsdk.State{Schema: schemaResp.Schema}}
+			if diags := resp.State.Set(ctx, model); diags.HasError() {
+				t.Fatalf("failed to seed response state: %v", diags)
+			}
+
+			if rec := scopeCapturePanic(func() {
+				r.Update(ctx, resource.UpdateRequest{Plan: plan}, resp)
+			}); rec != nil {
+				t.Fatalf("ScopeResource.Update panicked: %v", rec)
+			}
+
+			if !resp.Diagnostics.HasError() {
+				t.Error("update accepted a response with no scope id")
+			}
+			// Prior state must survive untouched rather than be overwritten.
+			var m ScopeResourceModel
+			if diags := resp.State.Get(ctx, &m); diags.HasError() {
+				t.Fatalf("reading state back: %v", diags)
+			}
+			if m.ID.ValueString() != scopeUnitTestID {
+				t.Errorf("update clobbered the id in state: got %q, want %q", m.ID.ValueString(), scopeUnitTestID)
+			}
+		})
+	}
+
+	// A scope element present but id-less on the read path poisons state the
+	// same way, so both readers reject it too.
+	t.Run("read_scope_without_id", func(t *testing.T) {
+		const body = `{"scopes":[{"displayName":"x","defaultExpression":"<v1>true","teamId":7,"filters":[]}]}`
+
+		resourceResp := readScopeResource(t, ctx, scopeClientForHandler(t, scopeRawResponseHandler(http.StatusOK, body)), scopeUnitTestID)
+		if !resourceResp.Diagnostics.HasError() {
+			t.Error("resource read accepted a scope with no id")
+		}
+		var m ScopeResourceModel
+		if diags := resourceResp.State.Get(ctx, &m); diags.HasError() {
+			t.Fatalf("reading state back: %v", diags)
+		}
+		if m.ID.ValueString() != scopeUnitTestID {
+			t.Errorf("resource read clobbered the id in state: got %q, want %q", m.ID.ValueString(), scopeUnitTestID)
+		}
+
+		dataSourceResp := readScopeDataSource(t, ctx, scopeClientForHandler(t, scopeRawResponseHandler(http.StatusOK, body)), scopeUnitTestID)
+		if !dataSourceResp.Diagnostics.HasError() {
+			t.Error("data source read accepted a scope with no id")
+		}
+	})
+}

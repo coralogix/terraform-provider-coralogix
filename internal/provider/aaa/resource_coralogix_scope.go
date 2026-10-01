@@ -171,8 +171,11 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	if result == nil {
-		resp.Diagnostics.AddError("Error creating coralogix_scope", "the Coralogix API returned an empty response")
+	if result == nil || result.Scope.GetId() == "" {
+		resp.Diagnostics.AddError("Error creating coralogix_scope",
+			"the Coralogix API reported success but returned no scope id. Nothing is written to state, because a scope "+
+				"without an id can be neither read nor deleted. The scope may still have been created — check Coralogix "+
+				"before retrying.")
 		return
 	}
 
@@ -285,6 +288,14 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
+	if result.Scopes[0].GetId() == "" {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to read coralogix_scope %q", id),
+			"The read returned a scope with no id. State is left unchanged rather than overwritten with an empty id.",
+		)
+		return
+	}
+
 	state := flattenScope(result.Scopes[0])
 
 	diags = resp.State.Set(ctx, state)
@@ -322,8 +333,10 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	if result == nil {
-		resp.Diagnostics.AddError("Error updating coralogix_scope", "the Coralogix API returned an empty response")
+	if result == nil || result.Scope.GetId() == "" {
+		resp.Diagnostics.AddError("Error updating coralogix_scope",
+			fmt.Sprintf("the Coralogix API reported success but returned no scope id for %s. State is left unchanged "+
+				"rather than overwritten with an empty id; re-run to refresh it.", id))
 		return
 	}
 
