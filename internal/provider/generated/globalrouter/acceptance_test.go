@@ -143,6 +143,17 @@ const minimalConfig = `resource "coralogix_global_router" "test" {
   }
 }`
 
+// upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
+const upgradeMinimalConfig = `resource "coralogix_global_router" "test" {
+  description = "@{run}-description"
+  name = "@{run}-name"
+  routing_labels = {
+    environment = "@{run}-environment"
+    service = "@{run}-service"
+    team = "@{run}-team"
+  }
+}`
+
 func config(run, resourceBlock string) string {
 	return render(run, prerequisites+"\n\n"+resourceBlock)
 }
@@ -198,21 +209,59 @@ func minimalChecks(run string) resource.TestCheckFunc {
 	)
 }
 
-// TestAccCoralogixResourceGlobalRouterGenerated creates the resource with every attribute, imports it,
-// changes the attributes, and then sets only the required ones. After each apply, the framework
-// plans again and fails when the plan is not empty.
+func upgradeMinimalChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", render(run, "@{run}-environment")),
+		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.service", render(run, "@{run}-service")),
+		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", render(run, "@{run}-team")),
+	)
+}
+
+func newRun() string { return "acc-" + uuid.NewString()[:8] }
+
+// importStep imports the resource and compares the imported state with the state.
+var importStep = resource.TestStep{
+	ResourceName:      resourceAddress,
+	ImportState:       true,
+	ImportStateVerify: true,
+}
+
+// TestAccCoralogixResourceGlobalRouterGenerated runs one lifecycle per subtest, each on its own resource,
+// so that a failure in one does not hide the others. After every apply, the framework plans again and
+// fails when the plan is not empty.
 func TestAccCoralogixResourceGlobalRouterGenerated(t *testing.T) {
-	run := "acc-" + uuid.NewString()[:8]
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { preCheck(t) },
-		ProtoV6ProviderFactories: providerFactories,
-		Steps: []resource.TestStep{
-			{Config: config(run, fullConfig), Check: fullChecks(run)},
-			{ResourceName: resourceAddress, ImportState: true, ImportStateVerify: true},
-			{Config: config(run, updatedConfig), Check: updatedChecks(run)},
-			{Config: config(run, minimalConfig), Check: minimalChecks(run)},
-			{ResourceName: resourceAddress, ImportState: true, ImportStateVerify: true},
-		},
+	// full-lifecycle sets every attribute, imports, changes the attributes, and imports again.
+	t.Run("full-lifecycle", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				importStep,
+				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
+				importStep,
+			},
+		})
+	})
+
+	// minimal-lifecycle creates the resource with only the required attributes, imports it, sets every
+	// attribute, and removes them again.
+	t.Run("minimal-lifecycle", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { preCheck(t) },
+			ProtoV6ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
+				importStep,
+				{Config: config(run, fullConfig), Check: fullChecks(run)},
+				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
+				importStep,
+			},
+		})
 	})
 }
 
@@ -222,52 +271,72 @@ const (
 	upgradeVersion = "= 3.19.0"
 )
 
-// TestAccCoralogixResourceGlobalRouterGeneratedUpgrade creates the resource with provider 3.19.0,
-// then plans the same config with this build. A user who upgrades must see no change, and a later
-// update must work. Set the variable that upgradeEnv names, and TF_ACC_PROVIDER_NAMESPACE=coralogix, to run it.
-func TestAccCoralogixResourceGlobalRouterGeneratedUpgrade(t *testing.T) {
+func requireUpgradeAcceptance(t *testing.T) {
+	t.Helper()
 	if os.Getenv(upgradeEnv) == "" {
 		t.Skipf("set %s=1 to run the registry-backed upgrade test", upgradeEnv)
 	}
 	if namespace := os.Getenv(resource.EnvTfAccProviderNamespace); namespace != "coralogix" {
 		t.Fatalf("set %s=coralogix to run the registry-backed upgrade test", resource.EnvTfAccProviderNamespace)
 	}
-	run := "acc-" + uuid.NewString()[:8]
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() { preCheck(t) },
-		Steps: []resource.TestStep{
-			{
-				Config: config(run, fullConfig),
-				ExternalProviders: map[string]resource.ExternalProvider{
-					"coralogix": {Source: upgradeSource, VersionConstraint: upgradeVersion},
-				},
-				Check: fullChecks(run),
+}
+
+// upgradeSteps creates the resource with the released provider, then plans the same config with this
+// build and expects no change, updates to the config next, and imports.
+func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, next string, nextChecks resource.TestCheckFunc) []resource.TestStep {
+	importWithBuild := importStep
+	importWithBuild.ProtoV6ProviderFactories = providerFactories
+	return []resource.TestStep{
+		{
+			Config: config(run, initial),
+			ExternalProviders: map[string]resource.ExternalProvider{
+				"coralogix": {Source: upgradeSource, VersionConstraint: upgradeVersion},
 			},
-			{
-				// This build reads the state of the released provider and plans no change.
-				Config:                   config(run, fullConfig),
-				ProtoV6ProviderFactories: providerFactories,
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)},
-					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
-				},
-				Check: fullChecks(run),
-			},
-			{
-				Config:                   config(run, updatedConfig),
-				ProtoV6ProviderFactories: providerFactories,
-				ConfigPlanChecks: resource.ConfigPlanChecks{
-					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionUpdate)},
-					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
-				},
-				Check: updatedChecks(run),
-			},
-			{
-				ResourceName:             resourceAddress,
-				ImportState:              true,
-				ImportStateVerify:        true,
-				ProtoV6ProviderFactories: providerFactories,
-			},
+			Check: initialChecks,
 		},
+		{
+			// This build reads the state of the released provider and plans no change.
+			Config:                   config(run, initial),
+			ProtoV6ProviderFactories: providerFactories,
+			ConfigPlanChecks: resource.ConfigPlanChecks{
+				PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)},
+				PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+			},
+			Check: initialChecks,
+		},
+		{
+			Config:                   config(run, next),
+			ProtoV6ProviderFactories: providerFactories,
+			ConfigPlanChecks: resource.ConfigPlanChecks{
+				PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionUpdate)},
+				PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+			},
+			Check: nextChecks,
+		},
+		importWithBuild,
+	}
+}
+
+// TestAccCoralogixResourceGlobalRouterGeneratedUpgrade creates the resource with provider 3.19.0, then plans
+// the same config with this build. A user who upgrades must see no change, and a later update must
+// work. Set the variable that upgradeEnv names, and TF_ACC_PROVIDER_NAMESPACE=coralogix, to run it.
+func TestAccCoralogixResourceGlobalRouterGeneratedUpgrade(t *testing.T) {
+	requireUpgradeAcceptance(t)
+
+	t.Run("upgrade-full", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck: func() { preCheck(t) },
+			Steps:    upgradeSteps(run, fullConfig, fullChecks(run), updatedConfig, updatedChecks(run)),
+		})
+	})
+
+	// upgrade-minimal starts from the fewest attributes that the released provider accepts.
+	t.Run("upgrade-minimal", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck: func() { preCheck(t) },
+			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run)),
+		})
 	})
 }

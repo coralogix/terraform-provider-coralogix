@@ -12,4 +12,6 @@ skip:
   - labels.env
 minimal:
   - labels
+upgradeMinimal:
+  - rules
 upgradeFrom: "1.2.3"

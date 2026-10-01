@@ -48,6 +48,9 @@ type File struct {
 	// Minimal lists the optional fields that the minimal config sets, because the API refuses
 	// the resource without them. Each is set with all of its own attributes.
 	Minimal []string `yaml:"minimal"`
+	// UpgradeMinimal lists the optional fields that the released provider needs to create the
+	// resource, on top of minimal. The minimal upgrade test sets them.
+	UpgradeMinimal []string `yaml:"upgradeMinimal"`
 	// UpgradeFrom is a released provider version. The upgrade test creates the resource with it
 	// and plans with this build. Empty: no upgrade test.
 	UpgradeFrom string `yaml:"upgradeFrom"`
@@ -120,7 +123,7 @@ func (f *File) checkValues() error {
 }
 
 func (f *File) checkPaths() error {
-	for name, paths := range map[string][]string{"skip": f.Skip, "minimal": f.Minimal} {
+	for name, paths := range map[string][]string{"skip": f.Skip, "minimal": f.Minimal, "upgradeMinimal": f.UpgradeMinimal} {
 		for _, path := range paths {
 			if !fieldPath.MatchString(path) {
 				return fmt.Errorf("%s: %q is not a field path such as rules[].targets[].preset_id", name, path)
