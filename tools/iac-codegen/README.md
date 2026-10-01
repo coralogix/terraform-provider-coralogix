@@ -91,6 +91,8 @@ The file is strict:
 
 Keys of a field line: `skip`, `readOnly`, `required`, `description`, `markdownDescription`, `deprecation`, `computed`, `useStateForUnknown`, `default` (a string or a bool), `readEmptyAs: "null"`, `keepPriorOrder`, and `validators` (`oneOf`, `sizeAtLeast`). Other keys: `markdownDescription` of the resource, `schema.version` and `schema.upgrade.<n>` (the frozen prior schema as `<import path>.<Func>`, upgraded by reading the resource), `types.<Type>.required: []`, and `enums.<Enum>` with `zero` and `values`.
 
+`validators.inferred: false` removes the limits of the contract. A `oneOf` group validator states the structure of the request, so it stays. `clientSetID` needs the id property in the Create body, and `updateIDInBody` needs it in the Update body. Otherwise the generator reports an issue.
+
 Existing mode relaxes these rules of the contract: a response that wraps the resource, a request that wraps the resource and shares its schema, the id in the Update body, a client-set id, enum values without the zero prefix, a missing `required` list on a named object, and nested server defaults. It also turns off the presence and default checks for a field with a line. It does not generate regular-expression validators. It ignores a string pattern.
 
 A resource in this mode exports `Flatten` for a handwritten data source. A frozen prior schema stays in its own package.

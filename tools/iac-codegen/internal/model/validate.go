@@ -317,7 +317,37 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 		report = append(report, validateFieldContract(p, name, field, create, update, get)...)
 	}
 	report = append(report, resourceIDIssues(p, name, ops, get)...)
+	report = append(report, bodyIDIssues(p, ops, create, update)...)
 	report = append(report, rootGroupContractIssues(name, create, update, get)...)
+	return report
+}
+
+// bodyIDIssues checks the ids that a behavior-overrides policy says travel in a request body.
+// Without the id property, the generated call sends nothing that names the resource, and the
+// override has no effect. The generator fails closed, so a stale or wrong override is an error.
+func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) issue.Report {
+	params := pathParams(ops[opGet])
+	if len(params) != 1 {
+		return nil // A singleton has no id, and Build reports an unsupported identity shape.
+	}
+	id := params[0].Name
+	var report issue.Report
+	if p.ClientSetID && propertyOf(create, id) == nil {
+		report = append(report, issue.Issue{
+			Code:        "CLIENT_SET_ID_NOT_IN_CREATE",
+			Location:    "paths.create." + ops[opCreate].op.OperationId + ".requestBody",
+			Message:     fmt.Sprintf("The override clientSetID says that the user can choose the id, but the Create body has no %q property.", id),
+			Remediation: "Delete clientSetID from the overrides, or add the id property to the Create body.",
+		})
+	}
+	if p.UpdateIDInBody && propertyOf(update, id) == nil {
+		report = append(report, issue.Issue{
+			Code:        "UPDATE_ID_NOT_IN_BODY",
+			Location:    "paths.update." + ops[opUpdate].op.OperationId + ".requestBody",
+			Message:     fmt.Sprintf("The override updateIDInBody says that Update sends the id in the body, but the Update body has no %q property.", id),
+			Remediation: "Delete updateIDInBody from the overrides, or add the id property to the Update body.",
+		})
+	}
 	return report
 }
 

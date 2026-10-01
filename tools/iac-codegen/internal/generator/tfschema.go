@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -44,8 +45,11 @@ type tfAttr struct {
 	Description string
 	ElementType string   // Set, List: the element type, for example "types.StringType"
 	Validators  []string // Go expressions
-	Modifiers   []string // plan modifiers, Go expressions
-	Attributes  []*tfAttr
+	// GroupValidators are the oneOf group validators. They state the structure of the request, not a
+	// limit, so they stay when the behavior-overrides file removes the inferred validators.
+	GroupValidators []string
+	Modifiers       []string // plan modifiers, Go expressions
+	Attributes      []*tfAttr
 	// Component and Property name the API field of the attribute: the OpenAPI component
 	// of its parent object, and the property. The behavior-overrides file uses them.
 	Component, Property string
@@ -212,7 +216,8 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	walk = func(attrs []*tfAttr) error {
 		for _, a := range attrs {
 			if file.Validators.Inferred != nil && !*file.Validators.Inferred {
-				a.Validators = nil // no limit of the contract becomes a validator
+				// No limit of the contract becomes a validator. A oneOf group validator is not a limit.
+				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
 				if err := applyField(a, line); err != nil {
@@ -400,7 +405,9 @@ func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup) {
 				}
 			}
 			pkg := strings.ToLower(a.ValueKind) + "validator"
-			a.Validators = append(a.Validators, groupValidator(pkg, g, false)+"("+strings.Join(others, ", ")+")")
+			validator := groupValidator(pkg, g, false) + "(" + strings.Join(others, ", ") + ")"
+			a.Validators = append(a.Validators, validator)
+			a.GroupValidators = append(a.GroupValidators, validator)
 		}
 	}
 }
