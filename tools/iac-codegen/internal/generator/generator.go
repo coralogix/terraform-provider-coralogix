@@ -25,6 +25,9 @@ type Options struct {
 	// OverridesPath is the behavior-overrides file of a resource that users
 	// already have. "" uses the file in OutputDir, when it exists.
 	OverridesPath string
+	// AcceptancePath is the acceptance file. "" uses the file in OutputDir, when it exists. With a
+	// file, the generator also writes acceptance_test.go.
+	AcceptancePath string
 }
 
 // CheckOptions selects one resource in a local candidate OpenAPI document.
@@ -103,7 +106,11 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if report := sdkIssues(validated.refs, loaded, input); len(report) != 0 {
 		return &EligibilityError{Report: report.Normalize()}
 	}
-	files, err := renderWith(validated.resource, validated.refs, pkg, validated.overrides)
+	accFile, err := readAcceptance(options)
+	if err != nil {
+		return err
+	}
+	files, err := renderAll(validated.resource, validated.refs, pkg, validated.overrides, accFile, input.ProviderModule)
 	if err != nil {
 		return fmt.Errorf("render resource: %w", err)
 	}
@@ -111,6 +118,9 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 		return err
 	}
 	if err := keepOverrides(options, files); err != nil {
+		return err
+	}
+	if err := keepAcceptance(options, files); err != nil {
 		return err
 	}
 	return publish(options.OutputDir, files)

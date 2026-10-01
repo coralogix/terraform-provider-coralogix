@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/acceptance"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
@@ -48,7 +49,7 @@ func stageOutput(parent, output string, files map[string][]byte) (string, error)
 	}
 	slices.Sort(names)
 	for _, name := range names {
-		if filepath.Base(name) != name || filepath.Ext(name) != ".go" && name != overrides.FileName {
+		if filepath.Base(name) != name || filepath.Ext(name) != ".go" && !inputFile(name) {
 			_ = os.RemoveAll(stage)
 			return "", fmt.Errorf("invalid generated file name %q", name)
 		}
@@ -109,7 +110,7 @@ func checkOwned(path string) error {
 		return fmt.Errorf("output %s exists but is not generator-owned", path)
 	}
 	for _, entry := range entries {
-		if entry.Name() == overrides.FileName && !entry.IsDir() {
+		if inputFile(entry.Name()) && !entry.IsDir() {
 			continue // the one file that people write; publish keeps it
 		}
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".go" || strings.Contains(entry.Name(), string(filepath.Separator)) {
@@ -125,4 +126,10 @@ func checkOwned(path string) error {
 		}
 	}
 	return nil
+}
+
+// inputFile reports whether the name is a file that people write and that the generator reads.
+// Publish keeps these files.
+func inputFile(name string) bool {
+	return name == overrides.FileName || name == acceptance.FileName
 }

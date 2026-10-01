@@ -42,6 +42,12 @@ type File struct {
 	// Values maps the path of a field to an HCL expression. A path names the attributes from the
 	// resource down, and [] marks a list or set element: rules[].targets[].connector_id.
 	Values map[string]string `yaml:"values"`
+	// Skip lists the fields that the test configs leave out, for example a deprecated field that
+	// the API refuses next to its replacement. A path has the same form as in values.
+	Skip []string `yaml:"skip"`
+	// Minimal lists the optional fields that the minimal config sets, because the API refuses
+	// the resource without them. Each is set with all of its own attributes.
+	Minimal []string `yaml:"minimal"`
 	// UpgradeFrom is a released provider version. The upgrade test creates the resource with it
 	// and plans with this build. Empty: no upgrade test.
 	UpgradeFrom string `yaml:"upgradeFrom"`
@@ -75,6 +81,16 @@ func (f *File) check() error {
 	if f.Resource == "" {
 		return errors.New("resource is required")
 	}
+	steps := []func() error{f.checkEnv, f.checkValues, f.checkPaths, f.checkVersionAndText}
+	for _, step := range steps {
+		if err := step(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (f *File) checkEnv() error {
 	seen := map[string]bool{}
 	for _, name := range f.Env {
 		if !envName.MatchString(name) {
@@ -85,9 +101,10 @@ func (f *File) check() error {
 		}
 		seen[name] = true
 	}
-	if err := f.checkPlaceholders("prerequisites", f.Prerequisites); err != nil {
-		return err
-	}
+	return f.checkPlaceholders("prerequisites", f.Prerequisites)
+}
+
+func (f *File) checkValues() error {
 	for _, path := range f.valuePaths() {
 		if !fieldPath.MatchString(path) {
 			return fmt.Errorf("values: %q is not a field path such as rules[].targets[].connector_id", path)
@@ -99,6 +116,21 @@ func (f *File) check() error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (f *File) checkPaths() error {
+	for name, paths := range map[string][]string{"skip": f.Skip, "minimal": f.Minimal} {
+		for _, path := range paths {
+			if !fieldPath.MatchString(path) {
+				return fmt.Errorf("%s: %q is not a field path such as rules[].targets[].preset_id", name, path)
+			}
+		}
+	}
+	return nil
+}
+
+func (f *File) checkVersionAndText() error {
 	if f.UpgradeFrom != "" && !version.MatchString(f.UpgradeFrom) {
 		return fmt.Errorf("upgradeFrom is %q, want a release such as 3.19.0", f.UpgradeFrom)
 	}

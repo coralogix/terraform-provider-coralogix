@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/tools/go/ast/astutil"
 
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/acceptance"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
@@ -36,6 +37,12 @@ var formatGenerated = formatSource
 // render returns the generated files of the resource, by file name.
 // renderWith is render for a resource with a behavior-overrides file (nil for a new resource).
 func renderWith(r *model.Resource, refs []sdkRef, pkg string, file *overrides.File) (map[string][]byte, error) {
+	return renderAll(r, refs, pkg, file, nil, "")
+}
+
+// renderAll is renderWith that also writes the acceptance test, when acc is not nil. providerModule
+// is the module path of the provider; the test imports its provider package.
+func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.File, acc *acceptance.File, providerModule string) (map[string][]byte, error) {
 	data, err := buildTFResourceWith(r, pkg, file)
 	if err != nil {
 		return nil, err
@@ -63,6 +70,15 @@ func renderWith(r *model.Resource, refs []sdkRef, pkg string, file *overrides.Fi
 			return nil, err
 		}
 		out[file] = src
+	}
+	if acc != nil {
+		accData, err := buildAcceptance(data, providerModule, acc)
+		if err != nil {
+			return nil, err
+		}
+		if out["acceptance_test.go"], err = renderAcceptance(accData); err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }

@@ -1,0 +1,174 @@
+{{.VersionHeader}}
+
+package {{.Package}}_test
+
+import (
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+
+	"{{.ProviderImport}}"
+)
+
+const resourceAddress = {{printf "%q" .Address}}
+
+// requiredEnv are the variables that the test config reads, besides the API key.
+var requiredEnv = []string{ {{- range .Env}}{{printf "%q" .}}, {{end -}} }
+
+var providerFactories = map[string]func() (tfprotov6.ProviderServer, error){
+	"coralogix": func() (tfprotov6.ProviderServer, error) {
+		return providerserver.NewProtocol6WithError(provider.NewCoralogixProvider())()
+	},
+}
+
+func preCheck(t *testing.T) {
+	t.Helper()
+	if os.Getenv("CORALOGIX_API_KEY") == "" {
+		t.Fatal("CORALOGIX_API_KEY must be set for acceptance tests")
+	}
+	if os.Getenv("CORALOGIX_ENV") == "" && os.Getenv("CORALOGIX_DOMAIN") == "" {
+		t.Fatal("CORALOGIX_ENV or CORALOGIX_DOMAIN must be set for acceptance tests")
+	}
+	for _, name := range requiredEnv {
+		if os.Getenv(name) == "" {
+			t.Fatalf("%s must be set for acceptance tests", name)
+		}
+	}
+}
+
+// render replaces @{run} and @{env.NAME}.
+func render(run, text string) string {
+	pairs := []string{"@{run}", run}
+	for _, name := range requiredEnv {
+		pairs = append(pairs, "@{env."+name+"}", os.Getenv(name))
+	}
+	return strings.NewReplacer(pairs...).Replace(text)
+}
+
+const prerequisites = `{{.Prerequisites}}`
+
+const fullConfig = `{{.Full.Config}}`
+
+const updatedConfig = `{{.Updated.Config}}`
+
+const minimalConfig = `{{.Minimal.Config}}`
+
+func config(run, resourceBlock string) string {
+	return render(run, prerequisites+"\n\n"+resourceBlock)
+}
+
+func fullChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+{{- range .Full.Checks}}
+		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+{{- end}}
+	)
+}
+
+func updatedChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+{{- range .Updated.Checks}}
+		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+{{- end}}
+	)
+}
+
+func minimalChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+{{- range .Minimal.Checks}}
+		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+{{- end}}
+{{- range .Minimal.Absent}}
+		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .}}),
+{{- end}}
+	)
+}
+{{if .IDCustom}}
+func importID(s *terraform.State) (string, error) {
+	return s.RootModule().Resources[resourceAddress].Primary.Attributes[{{printf "%q" .IDAttr}}], nil
+}
+{{end}}
+// TestAccCoralogixResource{{.Name}}Generated creates the resource with every attribute, imports it,
+// changes the attributes, and then sets only the required ones. After each apply, the framework
+// plans again and fails when the plan is not empty.
+func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
+	run := "acc-" + uuid.NewString()[:8]
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { preCheck(t) },
+		ProtoV6ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{Config: config(run, fullConfig), Check: fullChecks(run)},
+			{ResourceName: resourceAddress, ImportState: true, ImportStateVerify: true{{if .IDCustom}}, ImportStateIdFunc: importID{{end}}},
+			{Config: config(run, updatedConfig), Check: updatedChecks(run)},
+			{Config: config(run, minimalConfig), Check: minimalChecks(run)},
+			{ResourceName: resourceAddress, ImportState: true, ImportStateVerify: true{{if .IDCustom}}, ImportStateIdFunc: importID{{end}}},
+		},
+	})
+}
+{{if .UpgradeFrom}}
+const (
+	upgradeEnv      = {{printf "%q" .UpgradeEnv}}
+	upgradeSource   = "registry.terraform.io/coralogix/coralogix"
+	upgradeVersion  = "= {{.UpgradeFrom}}"
+)
+
+// TestAccCoralogixResource{{.Name}}GeneratedUpgrade creates the resource with provider {{.UpgradeFrom}},
+// then plans the same config with this build. A user who upgrades must see no change, and a later
+// update must work. Set the variable that upgradeEnv names, and TF_ACC_PROVIDER_NAMESPACE=coralogix, to run it.
+func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
+	if os.Getenv(upgradeEnv) == "" {
+		t.Skipf("set %s=1 to run the registry-backed upgrade test", upgradeEnv)
+	}
+	if namespace := os.Getenv(resource.EnvTfAccProviderNamespace); namespace != "coralogix" {
+		t.Fatalf("set %s=coralogix to run the registry-backed upgrade test", resource.EnvTfAccProviderNamespace)
+	}
+	run := "acc-" + uuid.NewString()[:8]
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() { preCheck(t) },
+		Steps: []resource.TestStep{
+			{
+				Config: config(run, fullConfig),
+				ExternalProviders: map[string]resource.ExternalProvider{
+					"coralogix": {Source: upgradeSource, VersionConstraint: upgradeVersion},
+				},
+				Check: fullChecks(run),
+			},
+			{
+				// This build reads the state of the released provider and plans no change.
+				Config:                   config(run, fullConfig),
+				ProtoV6ProviderFactories: providerFactories,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: fullChecks(run),
+			},
+			{
+				Config:                   config(run, updatedConfig),
+				ProtoV6ProviderFactories: providerFactories,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionUpdate)},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: updatedChecks(run),
+			},
+			{
+				ResourceName:             resourceAddress,
+				ImportState:              true,
+				ImportStateVerify:        true,
+				ProtoV6ProviderFactories: providerFactories,
+				{{- if .IDCustom}}
+				ImportStateIdFunc: importID,
+				{{- end}}
+			},
+		},
+	})
+}
+{{end}}
