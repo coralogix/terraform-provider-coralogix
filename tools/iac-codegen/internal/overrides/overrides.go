@@ -140,6 +140,9 @@ type Field struct {
 type Validator struct {
 	OneOf       []string `yaml:"oneOf"`
 	SizeAtLeast *int     `yaml:"sizeAtLeast"`
+	// Enum: true accepts the Terraform values of the enum of the field, as the enums line of
+	// the enum states them. The list of values has one source, so it cannot drift.
+	Enum bool `yaml:"enum"`
 }
 
 // Enum overrides one enum component.
@@ -148,8 +151,11 @@ type Enum struct {
 	// A new resource uses null for it. A released resource kept a value in its state.
 	Zero string `yaml:"zero"`
 	// Values are the enum values that the resource accepts. The Terraform value is the
-	// lower case of the API value. Other values of the contract are not accepted.
+	// lower case of the API value.
 	Values []string `yaml:"values"`
+	// Rejected are the values of the contract that the resource does not accept. The generator
+	// reports a value of the contract that is in neither list, so a new API value needs a decision.
+	Rejected []string `yaml:"rejected"`
 }
 
 // Parse reads the file. An unknown key or a wrong value is an error.
@@ -176,16 +182,14 @@ func (f *File) check() error {
 	if f.Mode != ModeExisting {
 		return fmt.Errorf("mode is %q, want %q", f.Mode, ModeExisting)
 	}
-	for version, u := range f.Schema.Upgrade {
-		if version >= f.Schema.Version {
-			return fmt.Errorf("schema.upgrade.%d: the version must be older than schema.version %d", version, f.Schema.Version)
-		}
-		if _, _, ok := u.PriorSchemaFunc(); !ok || u.Strategy != "refresh" {
-			return fmt.Errorf("schema.upgrade.%d: priorSchema must be <import path>.<Func>, and strategy must be \"refresh\"", version)
-		}
+	if err := f.Schema.checkUpgrades(); err != nil {
+		return err
 	}
 	if f.Validators.Inferred == nil || *f.Validators.Inferred {
 		return errors.New("validators.inferred: false is required: a released resource does not turn contract limits into validators")
+	}
+	if err := f.checkEnums(); err != nil {
+		return err
 	}
 	for name, t := range f.Types {
 		if t.Required != nil && len(*t.Required) != 0 {
@@ -197,6 +201,31 @@ func (f *File) check() error {
 		for field, line := range t.Fields {
 			if err := line.check(); err != nil {
 				return fmt.Errorf("types.%s.fields.%s: %w", name, field, err)
+			}
+		}
+	}
+	return nil
+}
+
+// checkUpgrades checks that each upgrade reads an older version through a prior schema function.
+func (s Schema) checkUpgrades() error {
+	for version, u := range s.Upgrade {
+		if version >= s.Version {
+			return fmt.Errorf("schema.upgrade.%d: the version must be older than schema.version %d", version, s.Version)
+		}
+		if _, _, ok := u.PriorSchemaFunc(); !ok || u.Strategy != "refresh" {
+			return fmt.Errorf("schema.upgrade.%d: priorSchema must be <import path>.<Func>, and strategy must be \"refresh\"", version)
+		}
+	}
+	return nil
+}
+
+// checkEnums checks that no value is accepted and rejected at the same time.
+func (f *File) checkEnums() error {
+	for _, name := range sortedKeys(f.Enums) {
+		for _, v := range f.Enums[name].Rejected {
+			if slices.Contains(f.Enums[name].Values, v) {
+				return fmt.Errorf("enums.%s: %q is in values and in rejected", name, v)
 			}
 		}
 	}
@@ -268,8 +297,11 @@ func checkValidators(validators []Validator) error {
 		if v.SizeAtLeast != nil {
 			set++
 		}
+		if v.Enum {
+			set++
+		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf and sizeAtLeast")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, and enum")
 		}
 	}
 	return nil
@@ -309,7 +341,7 @@ func (f *File) Policy() model.Policy {
 func (f *File) Lines() []Line {
 	var out []Line
 	for _, name := range sortedKeys(f.Enums) {
-		out = append(out, Line{Kind: KindEnum, Component: name, EnumValues: f.Enums[name].Values})
+		out = append(out, Line{Kind: KindEnum, Component: name, EnumValues: f.Enums[name].Values, EnumRejected: f.Enums[name].Rejected})
 	}
 	for _, name := range sortedKeys(f.Types) {
 		t := f.Types[name]
@@ -338,10 +370,12 @@ type Line struct {
 	Kind       Kind
 	Component  string
 	Field      string
-	EnumValues []string // for an enum line: the values that the file names
-	ReadOnly   bool     // for a field line: the file says that the server sets the field
-	Required   bool     // for a field line: the file says that the field is required
-	Keys       []string // for a field line: every key that the line sets
+	EnumValues []string // for an enum line: the values that the resource accepts
+	// EnumRejected are the values of the contract that the resource does not accept.
+	EnumRejected []string
+	ReadOnly     bool     // for a field line: the file says that the server sets the field
+	Required     bool     // for a field line: the file says that the field is required
+	Keys         []string // for a field line: every key that the line sets
 }
 
 // String names the line as it is written in the file.

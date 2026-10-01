@@ -44,7 +44,7 @@ types:
         default: alpha
         useStateForUnknown: true
         deprecation: "Use another field."
-        validators: [{oneOf: [alpha, beta, unspecified]}]
+        validators: [{enum: true}]
       targets:
         description: "The targets."
         computed: true
@@ -59,9 +59,11 @@ types:
       connectorId:
         description: "The connector."
         required: true
+        validators: [{oneOf: [first, second]}]
       id: {skip: true}
 
 enums:
   legacy.Kind:
     zero: unspecified
     values: [ALPHA, BETA]
+    rejected: [GAMMA]

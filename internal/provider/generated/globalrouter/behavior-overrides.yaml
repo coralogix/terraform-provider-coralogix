@@ -1,9 +1,15 @@
 # Where coralogix_global_router differs from the API contract, because users already have it.
 #
 # A field with a line here keeps its released behavior. A field without a line follows the
-# API contract, and the contract must say how (for example with x-coralogix-presence).
-# A new API field never needs a line here.
+# API contract.
 #
+# A new optional API field needs no line only if the contract states its presence
+# (x-coralogix-presence: true, which comes from a proto3 optional field). Without it the
+# generator stops. Then either ask the backend team for the annotation, or probe what a read
+# returns for an omitted value and write a line (for example computed and default, as for disabled).
+#
+# A new value of an enum also needs a decision. Add it to values (the resource accepts it) or to
+# rejected. The generator stops until you do. The validators of the enum fields follow values.
 #
 # Lines marked PINNED-SDK state facts that the API contract will declare after the SDK that
 # has them is pinned. The generator reports each of them as unused at that point and names the
@@ -83,7 +89,7 @@ types:
         description: ""
         computed: true
         useStateForUnknown: true
-        validators: [{oneOf: [alerts, cases, test_notifications, unspecified]}]
+        validators: [{enum: true}]
       name:
         description: "Name of the routing rule."
         required: true # PINNED-SDK
@@ -126,7 +132,7 @@ types:
       entityType:
         description: "The entity type this fallback applies to."
         required: true # PINNED-SDK
-        validators: [{oneOf: [alerts, cases, test_notifications, unspecified]}]
+        validators: [{enum: true}]
       target:
         description: "The fallback routing target."
         required: true # PINNED-SDK
@@ -137,3 +143,4 @@ enums:
   notification_center.EntityType:
     zero: unspecified
     values: [ALERTS, CASES, TEST_NOTIFICATIONS]
+    rejected: [OLLY_SCHEDULED_TASKS]

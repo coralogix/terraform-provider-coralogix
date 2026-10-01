@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -48,8 +49,10 @@ type tfAttr struct {
 	// GroupValidators are the oneOf group validators. They state the structure of the request, not a
 	// limit, so they stay when the behavior-overrides file removes the inferred validators.
 	GroupValidators []string
-	Modifiers       []string // plan modifiers, Go expressions
-	Attributes      []*tfAttr
+	// EnumSchema is the OpenAPI component of the enum of a scalar attribute, or "".
+	EnumSchema string
+	Modifiers  []string // plan modifiers, Go expressions
+	Attributes []*tfAttr
 	// Component and Property name the API field of the attribute: the OpenAPI component
 	// of its parent object, and the property. The behavior-overrides file uses them.
 	Component, Property string
@@ -220,7 +223,7 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
-				if err := applyField(a, line); err != nil {
+				if err := applyField(a, line, file); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
 			}
@@ -233,7 +236,7 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	return walk(out.Attributes)
 }
 
-func applyField(a *tfAttr, l overrides.Field) error {
+func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if l.Required {
 		a.Required, a.Optional = true, false
 	}
@@ -258,7 +261,7 @@ func applyField(a *tfAttr, l overrides.Field) error {
 		a.Default = expr
 	}
 	for _, v := range l.Validators {
-		expr, err := validatorExpr(a, v)
+		expr, err := validatorExpr(a, v, file)
 		if err != nil {
 			return err
 		}
@@ -283,9 +286,11 @@ func defaultExpr(a *tfAttr, value any) (string, error) {
 }
 
 // validatorExpr is the Go expression of a released validator.
-func validatorExpr(a *tfAttr, v overrides.Validator) (string, error) {
+func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (string, error) {
 	pkg := strings.ToLower(a.ValueKind) + "validator"
 	switch {
+	case v.Enum:
+		return enumValidatorExpr(a, file)
 	case len(v.OneOf) != 0 && a.ValueKind == "String":
 		quoted := make([]string, 0, len(v.OneOf))
 		for _, one := range v.OneOf {
@@ -296,6 +301,29 @@ func validatorExpr(a *tfAttr, v overrides.Validator) (string, error) {
 		return fmt.Sprintf("%s.SizeAtLeast(%d)", pkg, *v.SizeAtLeast), nil
 	}
 	return "", fmt.Errorf("the validator does not fit a %s attribute", a.ValueKind)
+}
+
+// enumValidatorExpr is the validator that accepts the Terraform values of the enum of the attribute.
+// The values are the zero value and the lower case of each accepted value, in sorted order. They
+// come from the enums line, so the validator and the conversion maps cannot disagree.
+func enumValidatorExpr(a *tfAttr, file *overrides.File) (string, error) {
+	enum, ok := file.Enums[a.EnumSchema]
+	if a.EnumSchema == "" || a.ValueKind != "String" || !ok {
+		return "", errors.New("the enum validator needs a field of an enum type that has a line under enums")
+	}
+	var values []string
+	if enum.Zero != "" {
+		values = append(values, enum.Zero)
+	}
+	for _, v := range enum.Values {
+		values = append(values, strings.ToLower(v))
+	}
+	slices.Sort(values)
+	quoted := make([]string, 0, len(values))
+	for _, v := range values {
+		quoted = append(quoted, strconv.Quote(v))
+	}
+	return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
 }
 
 // markComputed makes a server-owned attribute and every nested attribute
@@ -481,6 +509,9 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
 			return err
 		}
 		a.Kind, a.ValueKind, a.Validators = kind, kind, vals
+		if t.Kind == model.Enum {
+			a.EnumSchema = t.Schema
+		}
 	case model.Set, model.List, model.Map:
 		return b.collection(a, p, t)
 	case model.Object, model.OneOf:

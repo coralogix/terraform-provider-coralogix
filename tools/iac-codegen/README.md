@@ -81,7 +81,7 @@ types:
         keepPriorOrder: true  # the API does not keep the order of the items
 ```
 
-The rule is: **a field with a line keeps the released behavior that the line states. A field without a line follows the API contract**, and the contract must say how (for example with `x-coralogix-presence`). A new API field never needs a line.
+The rule is: **a field with a line keeps the released behavior that the line states. A field without a line follows the API contract**, and the contract must say how (for example with `x-coralogix-presence`). A new optional API field needs no line only when the contract states its presence. Without that annotation the generator stops with `FIELD_PRESENCE_UNKNOWN` or `COLLECTION_NULL_EMPTY_AMBIGUOUS`. Then ask for the annotation in the API contract (a proto3 `optional` field), or probe what a read returns for an omitted value and write a line. A new value of an enum also stops the generator (`ENUM_VALUE_UNDECIDED`) until the value is in `values` or in `rejected`.
 
 The file is strict:
 
@@ -89,7 +89,7 @@ The file is strict:
 - A line that matches nothing in the contract is an error (`OVERRIDE_UNUSED`). The contract may begin to state the same fact (`readOnly`, `required`, or `required: []`). The generator then names the stale key. If the line sets other keys, keep them: the contract does not state them.
 - Every key of the file changes the generated code, or it is not a key. When a key is added to the reader, the renderer must support it in the same change. The generator never writes code that ignores a line.
 
-Keys of a field line: `skip`, `readOnly`, `required`, `description`, `markdownDescription`, `deprecation`, `computed`, `useStateForUnknown`, `default` (a string or a bool), `readEmptyAs: "null"`, `keepPriorOrder`, and `validators` (`oneOf`, `sizeAtLeast`). Other keys: `markdownDescription` of the resource, `schema.version` and `schema.upgrade.<n>` (the frozen prior schema as `<import path>.<Func>`, upgraded by reading the resource), `types.<Type>.required: []`, and `enums.<Enum>` with `zero` and `values`.
+Keys of a field line: `skip`, `readOnly`, `required`, `description`, `markdownDescription`, `deprecation`, `computed`, `useStateForUnknown`, `default` (a string or a bool), `readEmptyAs: "null"`, `keepPriorOrder`, and `validators` (`oneOf`, `sizeAtLeast`, `enum: true`). `enum: true` accepts the values of the field's enum as the `enums` line states them, so the validator and the conversion maps cannot disagree. Other keys: `markdownDescription` of the resource, `schema.version` and `schema.upgrade.<n>` (the frozen prior schema as `<import path>.<Func>`, upgraded by reading the resource), `types.<Type>.required: []`, and `enums.<Enum>` with `zero`, `values` (accepted), and `rejected` (in the contract, not accepted). Every value of the contract must be in one of the two lists.
 
 `validators.inferred: false` removes the limits of the contract. A `oneOf` group validator states the structure of the request, so it stays. `clientSetID` needs the id property in the Create body, and `updateIDInBody` needs it in the Update body. Otherwise the generator reports an issue.
 

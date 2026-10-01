@@ -78,7 +78,10 @@ func Schema() schema.Schema {
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
 									"connector_id": schema.StringAttribute{
-										Required:    true,
+										Required: true,
+										Validators: []validator.String{
+											stringvalidator.OneOf("first", "second"),
+										},
 										Description: "The connector.",
 									},
 								},

@@ -86,3 +86,17 @@ func TestParseIsStrict(t *testing.T) {
 		})
 	}
 }
+
+func TestAValueIsAcceptedOrRejectedNotBoth(t *testing.T) {
+	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  e.Kind: {values: [A, B], rejected: [B]}\n"))
+	if err == nil || !strings.Contains(err.Error(), "values and in rejected") {
+		t.Fatalf("err = %v, want an error about a value in both lists", err)
+	}
+}
+
+func TestAValidatorSetsExactlyOneKey(t *testing.T) {
+	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {validators: [{enum: true, oneOf: [a]}]}\n"))
+	if err == nil || !strings.Contains(err.Error(), "exactly one") {
+		t.Fatalf("err = %v, want an error about the validator keys", err)
+	}
+}
