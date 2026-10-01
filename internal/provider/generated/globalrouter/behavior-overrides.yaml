@@ -4,8 +4,6 @@
 # API contract, and the contract must say how (for example with x-coralogix-presence).
 # A new API field never needs a line here.
 #
-# Lines marked TEMPORARY keep a bug of the released resource. The commit that fixes the bug
-# deletes them.
 #
 # Lines marked PINNED-SDK state facts that the API contract will declare after the SDK that
 # has them is pinned. The generator reports each of them as unused at that point. Delete them then.
@@ -45,7 +43,7 @@ types:
         required: true # PINNED-SDK: the contract will require the name
       description:
         markdownDescription: "Description of the GlobalRouter."
-        computed: false # TEMPORARY: the API returns "" for an omitted value, so this fails after apply
+        computed: true # the API returns "" for an omitted value
       routingLabels:
         markdownDescription: "Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique. Labels matching is linked with AND, so an alert has to have all labels specified below."
         readEmptyAs: "null"
@@ -56,10 +54,12 @@ types:
         description: "Fallback routing targets. Removing the block clears them."
         deprecation: "Use `fallback_targets` instead, which supports per-entity-type fallback."
         readEmptyAs: "null"
+        keepPriorOrder: true # the API does not keep the order
         validators: [{sizeAtLeast: 1}]
       fallbackTargets:
         description: "Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. Omit the block to clear the fallback targets."
         readEmptyAs: "null"
+        keepPriorOrder: true # the API does not keep the order
         validators: [{sizeAtLeast: 1}]
       disabled:
         markdownDescription: "Disables the router without deleting it. Defaults to false."
@@ -81,7 +81,6 @@ types:
         description: ""
         computed: true
         useStateForUnknown: true
-        default: unspecified # TEMPORARY: the API refuses ENTITY_TYPE_UNSPECIFIED, so a rule without entity_type fails
         validators: [{oneOf: [alerts, cases, test_notifications, unspecified]}]
       name:
         description: "Name of the routing rule."

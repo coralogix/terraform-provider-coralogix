@@ -16,7 +16,7 @@
       "warning: Attribute Deprecated [AttributeName(\"fallback\")] | Use `fallback_targets` instead, which supports per-entity-type fallback."
     ],
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": [
@@ -57,9 +57,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -67,7 +64,7 @@
       "fallback": [
         {
           "connector_id": "c1",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": null
         }
       ],
@@ -81,15 +78,7 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"fallback\").ElementKeyInt(0).AttributeName(\"custom_details\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "preset set",
@@ -109,7 +98,7 @@
       "warning: Attribute Deprecated [AttributeName(\"fallback\")] | Use `fallback_targets` instead, which supports per-entity-type fallback."
     ],
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": [
@@ -152,9 +141,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -162,7 +148,7 @@
       "fallback": [
         {
           "connector_id": "c1",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": "p"
         }
       ],
@@ -176,15 +162,7 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"fallback\").ElementKeyInt(0).AttributeName(\"custom_details\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "custom_details set",
@@ -206,7 +184,7 @@
       "warning: Attribute Deprecated [AttributeName(\"fallback\")] | Use `fallback_targets` instead, which supports per-entity-type fallback."
     ],
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": [
@@ -253,9 +231,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -279,14 +254,7 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "two targets",
@@ -308,7 +276,7 @@
       "warning: Attribute Deprecated [AttributeName(\"fallback\")] | Use `fallback_targets` instead, which supports per-entity-type fallback."
     ],
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": [
@@ -358,9 +326,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -368,12 +333,12 @@
       "fallback": [
         {
           "connector_id": "c1",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": null
         },
         {
           "connector_id": "c2",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": null
         }
       ],
@@ -387,16 +352,7 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"fallback\").ElementKeyInt(0).AttributeName(\"custom_details\")",
-      "AttributeName(\"fallback\").ElementKeyInt(1).AttributeName(\"custom_details\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "reorder in config",
@@ -418,7 +374,7 @@
       "warning: Attribute Deprecated [AttributeName(\"fallback\")] | Use `fallback_targets` instead, which supports per-entity-type fallback."
     ],
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": [
@@ -468,9 +424,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -478,12 +431,12 @@
       "fallback": [
         {
           "connector_id": "c2",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": null
         },
         {
           "connector_id": "c1",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": null
         }
       ],
@@ -497,16 +450,7 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"fallback\").ElementKeyInt(0).AttributeName(\"custom_details\")",
-      "AttributeName(\"fallback\").ElementKeyInt(1).AttributeName(\"custom_details\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "change connector",
@@ -528,7 +472,7 @@
       "warning: Attribute Deprecated [AttributeName(\"fallback\")] | Use `fallback_targets` instead, which supports per-entity-type fallback."
     ],
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": [
@@ -578,9 +522,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -588,12 +529,12 @@
       "fallback": [
         {
           "connector_id": "c3",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": null
         },
         {
           "connector_id": "c1",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": null
         }
       ],
@@ -607,16 +548,7 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"fallback\").ElementKeyInt(0).AttributeName(\"custom_details\")",
-      "AttributeName(\"fallback\").ElementKeyInt(1).AttributeName(\"custom_details\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "remove",
@@ -627,7 +559,7 @@
       }
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -658,9 +590,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -676,14 +605,7 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",

@@ -192,7 +192,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c4",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": "p4"
           }
         }
@@ -255,7 +255,7 @@
       }
     },
     "plan": {
-      "description": null,
+      "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
       "fallback": null,
@@ -288,9 +288,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "description": "",
       "disabled": false,
@@ -306,12 +303,7 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")",
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"rules\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",

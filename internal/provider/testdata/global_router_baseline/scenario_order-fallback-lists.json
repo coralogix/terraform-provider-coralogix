@@ -70,23 +70,19 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "fallback[0].connector_id",
-      "fallback[1].connector_id"
-    ],
     "state": {
       "description": "d",
       "disabled": false,
       "entity_labels": {},
       "fallback": [
         {
-          "connector_id": "c2",
-          "custom_details": {},
+          "connector_id": "c1",
+          "custom_details": null,
           "preset_id": null
         },
         {
-          "connector_id": "c1",
-          "custom_details": {},
+          "connector_id": "c2",
+          "custom_details": null,
           "preset_id": null
         }
       ],
@@ -100,17 +96,7 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"fallback\").ElementKeyInt(0).AttributeName(\"connector_id\")",
-      "AttributeName(\"fallback\").ElementKeyInt(0).AttributeName(\"custom_details\")",
-      "AttributeName(\"fallback\").ElementKeyInt(1).AttributeName(\"connector_id\")",
-      "AttributeName(\"fallback\").ElementKeyInt(1).AttributeName(\"custom_details\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "create fallback_targets: response has reversed order",
@@ -198,12 +184,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "fallback_targets[0].entity_type",
-      "fallback_targets[0].target.connector_id",
-      "fallback_targets[1].entity_type",
-      "fallback_targets[1].target.connector_id"
-    ],
     "state": {
       "description": "d",
       "disabled": false,
@@ -211,18 +191,18 @@
       "fallback": null,
       "fallback_targets": [
         {
-          "entity_type": "cases",
+          "entity_type": "alerts",
           "target": {
-            "connector_id": "c2",
-            "custom_details": {},
+            "connector_id": "c1",
+            "custom_details": null,
             "preset_id": null
           }
         },
         {
-          "entity_type": "alerts",
+          "entity_type": "cases",
           "target": {
-            "connector_id": "c1",
-            "custom_details": {},
+            "connector_id": "c2",
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -236,19 +216,7 @@
       },
       "rules": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"entity_labels\")",
-      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"entity_type\")",
-      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\").AttributeName(\"connector_id\")",
-      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\").AttributeName(\"custom_details\")",
-      "AttributeName(\"fallback_targets\").ElementKeyInt(1).AttributeName(\"entity_type\")",
-      "AttributeName(\"fallback_targets\").ElementKeyInt(1).AttributeName(\"target\").AttributeName(\"connector_id\")",
-      "AttributeName(\"fallback_targets\").ElementKeyInt(1).AttributeName(\"target\").AttributeName(\"custom_details\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"service\")",
-      "AttributeName(\"routing_labels\").AttributeName(\"team\")",
-      "AttributeName(\"rules\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "create in order",
@@ -328,12 +296,12 @@
       "fallback": [
         {
           "connector_id": "c1",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": null
         },
         {
           "connector_id": "c2",
-          "custom_details": {},
+          "custom_details": null,
           "preset_id": null
         }
       ],
@@ -364,13 +332,13 @@
       "entity_labels": {},
       "fallback": [
         {
-          "connector_id": "c2",
-          "custom_details": {},
+          "connector_id": "c1",
+          "custom_details": null,
           "preset_id": null
         },
         {
-          "connector_id": "c1",
-          "custom_details": {},
+          "connector_id": "c2",
+          "custom_details": null,
           "preset_id": null
         }
       ],
@@ -383,10 +351,6 @@
         "team": null
       },
       "rules": []
-    },
-    "drift": [
-      "AttributeName(\"fallback\").ElementKeyInt(0).AttributeName(\"connector_id\")",
-      "AttributeName(\"fallback\").ElementKeyInt(1).AttributeName(\"connector_id\")"
-    ]
+    }
   }
 ]

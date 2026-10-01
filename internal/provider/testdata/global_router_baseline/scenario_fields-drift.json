@@ -142,7 +142,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -197,7 +197,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -377,7 +377,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -554,7 +554,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -609,7 +609,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -789,7 +789,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -966,7 +966,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -1021,7 +1021,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -1202,7 +1202,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -1379,7 +1379,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -1434,7 +1434,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -1614,7 +1614,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -1791,7 +1791,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -1846,7 +1846,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -2026,7 +2026,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -2203,7 +2203,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -2258,7 +2258,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -2438,7 +2438,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -2615,7 +2615,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -2670,7 +2670,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -2850,7 +2850,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -3027,7 +3027,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -3082,7 +3082,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -3263,7 +3263,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -3440,7 +3440,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -3495,7 +3495,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -3669,7 +3669,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -3846,7 +3846,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -3901,7 +3901,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -4083,7 +4083,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -4260,7 +4260,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -4315,7 +4315,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -4494,7 +4494,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -4671,7 +4671,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -4911,7 +4911,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -5088,7 +5088,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -5176,7 +5176,8 @@
       ]
     },
     "drift": [
-      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"entity_type\")"
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"entity_type\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\").AttributeName(\"custom_details\")"
     ]
   },
   {
@@ -5323,7 +5324,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -5500,7 +5501,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
@@ -5732,7 +5733,7 @@
           "entity_type": "cases",
           "target": {
             "connector_id": "c9",
-            "custom_details": {},
+            "custom_details": null,
             "preset_id": null
           }
         }
