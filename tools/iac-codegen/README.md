@@ -86,7 +86,7 @@ The rule is: **a field with a line keeps the released behavior that the line sta
 The file is strict:
 
 - An unknown key is an error.
-- A line that matches nothing in the contract is an error (`OVERRIDE_UNUSED`). The contract may begin to state the same fact. The generator then asks you to delete the line.
+- A line that matches nothing in the contract is an error (`OVERRIDE_UNUSED`). The contract may begin to state the same fact (`readOnly`, `required`, or `required: []`). The generator then names the stale key. If the line sets other keys, keep them: the contract does not state them.
 - Every key of the file changes the generated code, or it is not a key. When a key is added to the reader, the renderer must support it in the same change. The generator never writes code that ignores a line.
 
 Keys of a field line: `skip`, `readOnly`, `required`, `description`, `markdownDescription`, `deprecation`, `computed`, `useStateForUnknown`, `default` (a string or a bool), `readEmptyAs: "null"`, `keepPriorOrder`, and `validators` (`oneOf`, `sizeAtLeast`). Other keys: `markdownDescription` of the resource, `schema.version` and `schema.upgrade.<n>` (the frozen prior schema as `<import path>.<Func>`, upgraded by reading the resource), `types.<Type>.required: []`, and `enums.<Enum>` with `zero` and `values`.

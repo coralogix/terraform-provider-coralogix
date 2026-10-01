@@ -6,7 +6,8 @@
 #
 #
 # Lines marked PINNED-SDK state facts that the API contract will declare after the SDK that
-# has them is pinned. The generator reports each of them as unused at that point. Delete them then.
+# has them is pinned. The generator reports each of them as unused at that point and names the
+# stale key. Delete only that key. The other keys of the line stay: the contract does not state them.
 resource: GlobalRouter
 mode: existing
 
@@ -71,6 +72,7 @@ types:
       # The released resource has no top-level entity type.
       entityType: {skip: true}
       # The server sets the times. They are new attributes, so the contract describes them.
+      # After the SDK bump, delete readOnly only. Keep useStateForUnknown: the generator never adds it.
       createTime: {readOnly: true, useStateForUnknown: true} # PINNED-SDK: the contract will mark the field readOnly
       updateTime: {readOnly: true} # PINNED-SDK
 

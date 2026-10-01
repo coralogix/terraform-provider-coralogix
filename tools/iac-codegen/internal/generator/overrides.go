@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
@@ -95,32 +96,59 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File) is
 			report = append(report, issue.Issue{
 				Code:        "OVERRIDE_UNUSED",
 				Location:    overrides.FileName + ":" + line.String(),
-				Message:     problem.Error(),
-				Remediation: "Delete the line: the API contract no longer differs here, or fix the name.",
+				Message:     problem.message,
+				Remediation: problem.remediation(line),
 			})
 		}
 	}
 	return report.Normalize()
 }
 
-func lineProblem(doc *v3.Document, line overrides.Line) error {
+// lineIssue says what is wrong with one line of the file. stale names the keys of a field line
+// that the contract now states. It is empty when the whole line is wrong.
+type lineIssue struct {
+	message string
+	stale   []string
+}
+
+func wholeLine(err error) *lineIssue {
+	if err == nil {
+		return nil
+	}
+	return &lineIssue{message: err.Error()}
+}
+
+// remediation tells what to delete. A field line can set several keys, and the contract can
+// state only some of them. The other keys still keep the released behavior.
+func (i *lineIssue) remediation(line overrides.Line) string {
+	if len(i.stale) == 0 {
+		return "Delete the line: the API contract no longer differs here, or fix the name."
+	}
+	keep := slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return slices.Contains(i.stale, key) })
+	if len(keep) == 0 {
+		return "Delete the line: the API contract now states everything that it sets."
+	}
+	return fmt.Sprintf("Delete only the key %s. Keep %s: the contract does not state it.", strings.Join(i.stale, ", "), strings.Join(keep, ", "))
+}
+
+func lineProblem(doc *v3.Document, line overrides.Line) *lineIssue {
 	if doc.Components == nil || doc.Components.Schemas == nil {
-		return errors.New("the API contract has no component schemas")
+		return wholeLine(errors.New("the API contract has no component schemas"))
 	}
 	proxy := doc.Components.Schemas.GetOrZero(line.Component)
 	if proxy == nil {
-		return fmt.Errorf("no component %q", line.Component)
+		return wholeLine(fmt.Errorf("no component %q", line.Component))
 	}
 	schema, err := proxy.BuildSchema()
 	if err != nil {
-		return fmt.Errorf("component %q: %w", line.Component, err)
+		return wholeLine(fmt.Errorf("component %q: %w", line.Component, err))
 	}
 	switch line.Kind {
 	case overrides.KindEnum:
-		return enumLineProblem(schema, line)
+		return wholeLine(enumLineProblem(schema, line))
 	case overrides.KindEmptyRequired:
 		if !hasNoRequiredList(schema) {
-			return fmt.Errorf("component %q declares a required list, so no override is needed", line.Component)
+			return wholeLine(fmt.Errorf("component %q declares a required list, so no override is needed", line.Component))
 		}
 	case overrides.KindField:
 		return fieldLineProblem(schema, line)
@@ -140,18 +168,31 @@ func enumLineProblem(schema *base.Schema, line overrides.Line) error {
 	return nil
 }
 
-func fieldLineProblem(schema *base.Schema, line overrides.Line) error {
+// fieldLineProblem checks a field line. The field must exist. A readOnly or required key is
+// stale when the contract states the same fact.
+func fieldLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if schema.Properties == nil || schema.Properties.GetOrZero(line.Field) == nil {
-		return fmt.Errorf("component %q has no field %q", line.Component, line.Field)
+		return wholeLine(fmt.Errorf("component %q has no field %q", line.Component, line.Field))
 	}
-	if !line.ReadOnly {
+	var stale []string
+	if line.ReadOnly && contractReadOnly(schema, line.Field) {
+		stale = append(stale, "readOnly")
+	}
+	if line.Required && slices.Contains(schema.Required, line.Field) {
+		stale = append(stale, "required")
+	}
+	if len(stale) == 0 {
 		return nil
 	}
-	field, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
-	if err == nil && field.ReadOnly != nil && *field.ReadOnly {
-		return fmt.Errorf("the contract already marks %q readOnly", line.Field)
+	return &lineIssue{
+		message: fmt.Sprintf("the contract already states that %q is %s", line.Field, strings.Join(stale, " and ")),
+		stale:   stale,
 	}
-	return nil
+}
+
+func contractReadOnly(schema *base.Schema, field string) bool {
+	built, err := schema.Properties.GetOrZero(field).BuildSchema()
+	return err == nil && built.ReadOnly != nil && *built.ReadOnly
 }
 
 func hasNoRequiredList(schema *base.Schema) bool {

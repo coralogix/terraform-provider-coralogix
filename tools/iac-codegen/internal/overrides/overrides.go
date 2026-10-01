@@ -112,11 +112,11 @@ type Field struct {
 	Description         *string `yaml:"description"`
 	MarkdownDescription *string `yaml:"markdownDescription"`
 	// ReadOnly: true says that the server sets the field, although the contract does not mark
-	// it readOnly yet. The field is read and stored, and never sent. Delete the line when the
+	// it readOnly yet. The field is read and stored, and never sent. Delete this key when the
 	// contract marks the field readOnly.
 	ReadOnly bool `yaml:"readOnly"`
 	// Required: true makes the Terraform attribute Required, although the contract does not
-	// require the field. The SDK type of the field does not change. Delete the line when the
+	// require the field. The SDK type of the field does not change. Delete this key when the
 	// contract requires the field.
 	Required bool `yaml:"required"`
 	// Deprecation is the released deprecation message.
@@ -201,6 +201,29 @@ func (f *File) check() error {
 		}
 	}
 	return nil
+}
+
+// keys returns the names of the keys that the line sets, in the order of the file format.
+func (l Field) keys() []string {
+	var keys []string
+	add := func(set bool, name string) {
+		if set {
+			keys = append(keys, name)
+		}
+	}
+	add(l.Skip, "skip")
+	add(l.Description != nil, "description")
+	add(l.MarkdownDescription != nil, "markdownDescription")
+	add(l.ReadOnly, "readOnly")
+	add(l.Required, "required")
+	add(l.Deprecation != "", "deprecation")
+	add(l.Computed != nil, "computed")
+	add(l.UseStateForUnknown, "useStateForUnknown")
+	add(l.Default != nil, "default")
+	add(l.ReadEmptyAs != "", "readEmptyAs")
+	add(l.KeepPriorOrder, "keepPriorOrder")
+	add(len(l.Validators) != 0, "validators")
+	return keys
 }
 
 func (l Field) empty() bool {
@@ -294,7 +317,8 @@ func (f *File) Lines() []Line {
 			out = append(out, Line{Kind: KindEmptyRequired, Component: name})
 		}
 		for _, field := range sortedKeys(t.Fields) {
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: t.Fields[field].ReadOnly})
+			f := t.Fields[field]
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Keys: f.keys()})
 		}
 	}
 	return out
@@ -316,6 +340,8 @@ type Line struct {
 	Field      string
 	EnumValues []string // for an enum line: the values that the file names
 	ReadOnly   bool     // for a field line: the file says that the server sets the field
+	Required   bool     // for a field line: the file says that the field is required
+	Keys       []string // for a field line: every key that the line sets
 }
 
 // String names the line as it is written in the file.
