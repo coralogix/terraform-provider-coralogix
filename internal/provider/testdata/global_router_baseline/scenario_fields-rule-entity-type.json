@@ -20,6 +20,7 @@
       ]
     },
     "plan": {
+      "create_time": "(unknown)",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -46,7 +47,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -77,6 +79,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -103,7 +106,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:01Z"
     },
     "replanEmpty": true
   },
@@ -117,6 +121,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -143,7 +148,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:01Z"
     }
   },
   {
@@ -167,6 +173,7 @@
       ]
     },
     "plan": {
+      "create_time": "(unknown)",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -193,7 +200,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -224,6 +232,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:02Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -250,7 +259,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:02Z"
     },
     "replanEmpty": true
   },
@@ -264,6 +274,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:02Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -290,7 +301,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:02Z"
     }
   },
   {
@@ -314,6 +326,7 @@
       ]
     },
     "plan": {
+      "create_time": "(unknown)",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -340,7 +353,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -371,6 +385,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:03Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -397,7 +412,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:03Z"
     },
     "replanEmpty": true
   },
@@ -411,6 +427,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:03Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -437,7 +454,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:03Z"
     }
   },
   {
@@ -461,6 +479,7 @@
       ]
     },
     "plan": {
+      "create_time": "(unknown)",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -487,7 +506,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -518,6 +538,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:04Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -544,7 +565,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:04Z"
     },
     "replanEmpty": true
   },
@@ -569,6 +591,7 @@
       ]
     },
     "plan": {
+      "create_time": "2026-01-01T00:00:04Z",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -595,7 +618,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -627,6 +651,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:04Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -653,7 +678,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:05Z"
     },
     "replanEmpty": true
   },
@@ -678,6 +704,7 @@
       ]
     },
     "plan": {
+      "create_time": "(unknown)",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -704,7 +731,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -759,6 +787,7 @@
       ]
     },
     "plan": {
+      "create_time": "(unknown)",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -785,7 +814,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -815,6 +845,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:06Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -841,7 +872,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:06Z"
     },
     "replanEmpty": true
   }

@@ -32,6 +32,7 @@ data "coralogix_global_router" "example_data_by_name" {
 
 ### Read-Only
 
+- `create_time` (String) The create time.
 - `description` (String) Description of the GlobalRouter.
 - `disabled` (Boolean) Disables the router without deleting it. Defaults to false.
 - `entity_labels` (Map of String)
@@ -39,6 +40,7 @@ data "coralogix_global_router" "example_data_by_name" {
 - `fallback_targets` (Attributes List) Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. Omit the block to clear the fallback targets. (see [below for nested schema](#nestedatt--fallback_targets))
 - `routing_labels` (Attributes) Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique. Labels matching is linked with AND, so an alert has to have all labels specified below. (see [below for nested schema](#nestedatt--routing_labels))
 - `rules` (Attributes List) Routing rules for the GlobalRouter. (see [below for nested schema](#nestedatt--rules))
+- `update_time` (String) Timestamp of the last update.
 
 <a id="nestedatt--fallback"></a>
 ### Nested Schema for `fallback`

@@ -56,6 +56,7 @@
       ]
     },
     "plan": {
+      "create_time": "(unknown)",
       "description": "primary router",
       "disabled": true,
       "entity_labels": {
@@ -115,7 +116,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -181,6 +183,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "primary router",
       "disabled": true,
       "entity_labels": {
@@ -240,7 +243,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:01Z"
     },
     "replanEmpty": true
   },
@@ -255,6 +259,7 @@
       }
     },
     "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "(unknown)",
       "disabled": false,
       "entity_labels": "(unknown)",
@@ -267,7 +272,8 @@
         "service": "api",
         "team": "sre"
       },
-      "rules": "(unknown)"
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
     },
     "requests": [
       {
@@ -289,6 +295,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -301,7 +308,8 @@
         "service": "api",
         "team": "sre"
       },
-      "rules": []
+      "rules": [],
+      "update_time": "2026-01-01T00:00:02Z"
     },
     "replanEmpty": true
   },
@@ -315,6 +323,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "",
       "disabled": false,
       "entity_labels": {},
@@ -327,7 +336,8 @@
         "service": "api",
         "team": "sre"
       },
-      "rules": []
+      "rules": [],
+      "update_time": "2026-01-01T00:00:02Z"
     }
   }
 ]

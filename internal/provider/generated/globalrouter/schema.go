@@ -19,6 +19,13 @@ func Schema() schema.Schema {
 	return schema.Schema{
 		Version: 1,
 		Attributes: map[string]schema.Attribute{
+			"create_time": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "The create time.",
+			},
 			"description": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -189,6 +196,10 @@ func Schema() schema.Schema {
 					},
 				},
 				Description: "Routing rules for the GlobalRouter.",
+			},
+			"update_time": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "Timestamp of the last update.",
 			},
 		},
 		MarkdownDescription: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in Beta stage.",

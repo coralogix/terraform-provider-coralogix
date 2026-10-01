@@ -13,6 +13,7 @@
       }
     ],
     "state": {
+      "create_time": "2026-01-01T00:00:01Z",
       "description": "written by v0",
       "disabled": false,
       "entity_labels": {},
@@ -39,7 +40,8 @@
             }
           ]
         }
-      ]
+      ],
+      "update_time": "2026-01-01T00:00:01Z"
     }
   },
   {
