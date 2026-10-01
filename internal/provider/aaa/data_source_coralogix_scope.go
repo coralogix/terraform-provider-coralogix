@@ -17,7 +17,6 @@ package aaa
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -77,12 +76,14 @@ func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	id := data.ID.ValueString()
-
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+	if data == nil || data.ID.IsNull() || data.ID.IsUnknown() || data.ID.ValueString() == "" {
+		resp.Diagnostics.AddError(
+			"Error reading coralogix_scope",
+			"id must be set to a non-empty scope id.",
+		)
 		return
 	}
+	id := data.ID.ValueString()
 
 	rq := d.client.
 		ScopesServiceGetTeamScopesByIds(ctx).Ids([]string{id})
@@ -90,18 +91,26 @@ func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	result, httpResponse, err := rq.
 		Execute()
 
-	if err != nil && len(result.Scopes) == 0 {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+	if err != nil {
+		if isNotFoundResponse(httpResponse) {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("coralogix_scope %q does not exist in Coralogix backend", id),
+				"Check the id, and that the API key is permitted to read scopes.",
 			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
+			return
 		}
+		resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		return
 	}
+
+	if result == nil || len(result.Scopes) == 0 {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("coralogix_scope %q does not exist in Coralogix backend", id),
+			"Check the id, and that the API key is permitted to read scopes.",
+		)
+		return
+	}
+
 	state := flattenScope(result.Scopes[0])
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)

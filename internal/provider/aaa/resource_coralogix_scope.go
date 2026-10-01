@@ -170,6 +170,12 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
+
+	if result == nil {
+		resp.Diagnostics.AddError("Error creating coralogix_scope", "the Coralogix API returned an empty response")
+		return
+	}
+
 	state := flattenScope(result.Scope)
 
 	diags = resp.State.Set(ctx, state)
@@ -238,12 +244,15 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	id := plan.ID.ValueString()
-
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+	if plan == nil || plan.ID.IsNull() || plan.ID.IsUnknown() || plan.ID.ValueString() == "" {
+		resp.Diagnostics.AddWarning(
+			"coralogix_scope has no id in state",
+			"The state entry carries no scope id, so it cannot be read back; it will be recreated when you apply.",
+		)
+		resp.State.RemoveResource(ctx)
 		return
 	}
+	id := plan.ID.ValueString()
 
 	rq := r.client.
 		ScopesServiceGetTeamScopesByIds(ctx).Ids([]string{id})
@@ -251,18 +260,28 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	result, httpResponse, err := rq.
 		Execute()
 
-	if err != nil && len(result.Scopes) == 0 {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+	if err != nil {
+		if isNotFoundResponse(httpResponse) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
+			return
 		}
+		resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		return
 	}
+
+	if result == nil || len(result.Scopes) == 0 {
+		resp.Diagnostics.AddWarning(
+			fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
+			fmt.Sprintf("%s will be recreated when you apply", id),
+		)
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
 	state := flattenScope(result.Scopes[0])
 
 	diags = resp.State.Set(ctx, state)
@@ -297,6 +316,11 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		} else {
 			resp.Diagnostics.AddError("Error updating coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
 		}
+		return
+	}
+
+	if result == nil {
+		resp.Diagnostics.AddError("Error updating coralogix_scope", "the Coralogix API returned an empty response")
 		return
 	}
 
