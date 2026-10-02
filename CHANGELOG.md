@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_integration
+- FIX: A failed integration test on create or update shows the API error details (for example `Unknown field "IncludeUserLabels" provided`) instead of only `400 Bad Request`.
+
 # Release 3.19.0
 
 #### resource/coralogix_events2metric

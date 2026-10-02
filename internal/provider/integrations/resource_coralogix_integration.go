@@ -123,12 +123,12 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	testResult, _, testErr := r.client.IntegrationServiceTestIntegration(ctx).TestIntegrationRequest(integrations.TestIntegrationRequest{
+	testResult, testHttpResponse, testErr := r.client.IntegrationServiceTestIntegration(ctx).TestIntegrationRequest(integrations.TestIntegrationRequest{
 		IntegrationData: rq.Metadata,
 	}).Execute()
 
 	if testErr != nil {
-		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Testing the integration has failed", fmt.Sprintf("API responded with an error: %v", testErr.Error()))}
+		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Testing the integration has failed", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(testHttpResponse, testErr), "Test", nil))}
 		resp.Diagnostics.Append(newDiags...)
 		return
 	}
@@ -436,12 +436,12 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	testResult, _, testErr := r.client.IntegrationServiceTestIntegration(ctx).TestIntegrationRequest(integrations.TestIntegrationRequest{
+	testResult, testHttpResponse, testErr := r.client.IntegrationServiceTestIntegration(ctx).TestIntegrationRequest(integrations.TestIntegrationRequest{
 		IntegrationData: rq.Metadata,
 	}).Execute()
 
 	if testErr != nil {
-		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Testing the integration has failed", fmt.Sprintf("API responded with an error: %v", testErr.Error()))}
+		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Testing the integration has failed", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(testHttpResponse, testErr), "Test", nil))}
 		resp.Diagnostics.Append(newDiags...)
 		return
 	}
