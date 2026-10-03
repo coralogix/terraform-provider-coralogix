@@ -224,6 +224,9 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 	enum := &tfAttr{Name: "kind", Kind: "String", Required: true, Validators: []string{`stringvalidator.OneOf("alpha")`}}
 	name := &tfAttr{Name: "name", Kind: "String", Required: true}
 	region := &tfAttr{Name: "region", Kind: "String", Optional: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}}
+	paused := &tfAttr{Name: "paused", Kind: "Bool", Optional: true, Computed: true, Default: "booldefault.StaticBool(false)"}
+	note := &tfAttr{Name: "note", Kind: "String", Optional: true, Computed: true}
+	label := &tfAttr{Name: "label", Kind: "String", Optional: true}
 	tests := map[string]struct {
 		attrs    []*tfAttr
 		from, to accMode
@@ -232,6 +235,13 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 		"a mutable value changes":     {[]*tfAttr{enum, name, region}, accFull, accUpdated, "plancheck.ResourceActionUpdate"},
 		"nothing changes":             {[]*tfAttr{enum, region}, accFull, accUpdated, "plancheck.ResourceActionNoop"},
 		"an immutable value is added": {[]*tfAttr{enum, name, region}, accMinimal, accFull, "plancheck.ResourceActionReplace"},
+		// The state already holds the default false that the next config sets.
+		"a left-out value is set to its default": {[]*tfAttr{enum, paused}, accMinimal, accUpdated, "plancheck.ResourceActionNoop"},
+		"a left-out value is set to another":     {[]*tfAttr{enum, paused}, accMinimal, accFull, "plancheck.ResourceActionUpdate"},
+		// The state holds what the API returned, which the generator does not know.
+		"a left-out computed value": {[]*tfAttr{enum, note}, accMinimal, accFull, `""`},
+		"a known change wins":       {[]*tfAttr{enum, name, note}, accMinimal, accUpdated, "plancheck.ResourceActionUpdate"},
+		"a left-out plain value":    {[]*tfAttr{enum, label}, accMinimal, accFull, "plancheck.ResourceActionUpdate"},
 	}
 	for testName, test := range tests {
 		t.Run(testName, func(t *testing.T) {
