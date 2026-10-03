@@ -34,6 +34,10 @@ type convData struct {
 	// when none of them changed, Update sends no request (D14).
 	Replace      bool
 	UpdateFields []*maskField
+	// OneOfArms are the Terraform paths of the oneOf arms, with list and map
+	// steps left out. An empty arm selects that arm, so state keeps it apart
+	// from a missing arm (contract 2.8).
+	OneOfArms []string
 }
 
 // maskField is one top-level Update field. With leaf masks, it is also a
@@ -203,6 +207,7 @@ func buildConv(r *model.Resource, refs []sdkRef) (*convData, error) {
 		}
 	}
 	out.Objects = b.objects
+	out.OneOfArms = oneOfArmPaths(r)
 	for _, f := range r.Fields {
 		if f.Create != nil {
 			out.CreateFields = append(out.CreateFields, &maskField{TFName: tfName(f.Name), ServerDefault: hasServerDefault(f)})
@@ -215,6 +220,46 @@ func buildConv(r *model.Resource, refs []sdkRef) (*convData, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+// oneOfArmPaths returns the Terraform paths of every oneOf arm of r, in model
+// order. A list, set, or map step adds nothing to the path.
+func oneOfArmPaths(r *model.Resource) []string {
+	var out []string
+	for _, g := range r.Groups {
+		for _, arm := range g.Arms {
+			out = append(out, tfName(arm))
+		}
+	}
+	for _, f := range r.Fields {
+		out = typeArmPaths(out, tfName(f.Name), f.Type, map[*model.Type]bool{})
+	}
+	return out
+}
+
+func typeArmPaths(out []string, at string, t *model.Type, seen map[*model.Type]bool) []string {
+	if t == nil || seen[t] {
+		return out
+	}
+	seen[t] = true
+	defer delete(seen, t)
+	if t.Elem != nil {
+		return typeArmPaths(out, at, t.Elem, seen)
+	}
+	arms := map[string]bool{}
+	for _, g := range t.Groups {
+		for _, arm := range g.Arms {
+			arms[arm] = true
+		}
+	}
+	for _, f := range t.Fields {
+		child := at + "." + tfName(f.Name)
+		if t.Kind == model.OneOf && f.Name != t.Discriminator || arms[f.Name] {
+			out = append(out, child)
+		}
+		out = typeArmPaths(out, child, f.Type, seen)
+	}
+	return out
 }
 
 // markComputedObjectValue makes a directly nested computed field capable of

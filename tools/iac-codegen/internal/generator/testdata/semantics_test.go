@@ -312,3 +312,83 @@ func (d fakeData) GetAttribute(_ context.Context, p path.Path, target interface{
 	*value = d.values[p.String()]
 	return nil
 }
+
+func TestEmptyValuesKeepPriorForm(t *testing.T) {
+	ctx := context.Background()
+	s := Schema()
+	root := s.Type().TerraformType(ctx).(tftypes.Object)
+	listType := root.AttributeTypes["destinations"].(tftypes.List)
+	setType := root.AttributeTypes["tags"].(tftypes.Set)
+	mapType := root.AttributeTypes["labels"].(tftypes.Map)
+	emptyList := tftypes.NewValue(listType, []tftypes.Value{})
+	emptySet := tftypes.NewValue(setType, []tftypes.Value{})
+	emptyMap := tftypes.NewValue(mapType, map[string]tftypes.Value{})
+	oneTag := tftypes.NewValue(setType, []tftypes.Value{tftypes.NewValue(tftypes.String, "a")})
+	tests := map[string]struct {
+		prior, response, want map[string]tftypes.Value
+	}{
+		"configured empty, API omits": {
+			prior:    map[string]tftypes.Value{"destinations": emptyList, "tags": emptySet, "labels": emptyMap},
+			response: map[string]tftypes.Value{},
+			want:     map[string]tftypes.Value{"destinations": emptyList, "tags": emptySet, "labels": emptyMap},
+		},
+		"not configured, API returns empty": {
+			prior:    map[string]tftypes.Value{},
+			response: map[string]tftypes.Value{"destinations": emptyList, "tags": emptySet, "labels": emptyMap},
+			want:     map[string]tftypes.Value{},
+		},
+		"drift is kept": {
+			prior:    map[string]tftypes.Value{"tags": oneTag},
+			response: map[string]tftypes.Value{"tags": emptySet},
+			want:     map[string]tftypes.Value{"tags": emptySet},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			prior := nullTFValues(root)
+			for k, v := range test.prior {
+				prior[k] = v
+			}
+			response := nullTFValues(root)
+			for k, v := range test.response {
+				response[k] = v
+			}
+			want := nullTFValues(root)
+			for k, v := range test.want {
+				want[k] = v
+			}
+			state := tfsdk.State{Schema: s, Raw: tftypes.NewValue(root, response)}
+			diags := keepPriorEmpty(ctx, tfsdk.Plan{Schema: s, Raw: tftypes.NewValue(root, prior)}, &state)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			if wantRaw := tftypes.NewValue(root, want); !state.Raw.Equal(wantRaw) {
+				t.Fatalf("state = %s, want %s", state.Raw, wantRaw)
+			}
+		})
+	}
+}
+
+func TestEmptyObjectRules(t *testing.T) {
+	ctx := context.Background()
+	httpType := map[string]attr.Type{"endpoint": types.StringType}
+	emptyArm := types.ObjectValueMust(httpType, map[string]attr.Value{"endpoint": types.StringNull()})
+	if emptyValue("config.http", emptyArm) {
+		t.Fatal("an empty oneOf arm selects the arm, so it is not empty")
+	}
+	statusType := map[string]attr.Type{"health": types.StringType}
+	emptyStatus := types.ObjectValueMust(statusType, map[string]attr.Value{"health": types.StringNull()})
+	if !emptyValue("status", emptyStatus) {
+		t.Fatal("an object outside a oneOf with only empty attributes is empty")
+	}
+	var diags diag.Diagnostics
+	if got := priorEmpty(ctx, "status", types.ObjectNull(statusType), emptyStatus, &diags); !got.Equal(emptyStatus) {
+		t.Fatalf("missing object = %v, want the prior empty object", got)
+	}
+	if got := priorEmpty(ctx, "config.http", types.ObjectNull(httpType), emptyArm, &diags); !got.IsNull() {
+		t.Fatalf("missing arm = %v, want null: the API must return an empty arm", got)
+	}
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+}

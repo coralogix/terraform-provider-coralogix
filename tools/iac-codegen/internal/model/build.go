@@ -909,8 +909,8 @@ func checkUnsupportedSchemaKeywords(s *base.Schema) error {
 	switch {
 	case s.PatternProperties != nil && s.PatternProperties.Len() != 0:
 		return errors.New("patternProperties is not supported")
-	case s.MinProperties != nil || s.MaxProperties != nil:
-		return errors.New("minProperties and maxProperties are not supported")
+	case (s.MinProperties != nil || s.MaxProperties != nil) && !isMapSchema(s):
+		return errors.New("minProperties and maxProperties are supported only on a map")
 	case s.ExclusiveMinimum != nil || s.ExclusiveMaximum != nil:
 		return errors.New("exclusiveMinimum and exclusiveMaximum are not supported")
 	case s.Format == "uint64" && (!slices.Equal(s.Type, []string{"string"}) || s.MaxLength == nil || *s.MaxLength > terraformInt64SafeDecimalDigits):
@@ -1136,7 +1136,15 @@ func mapType(t *Type, s *base.Schema, path string, w walk) error {
 		elem = &Type{Kind: String}
 	}
 	t.Kind, t.Elem = Map, elem
+	t.MinItems, t.MaxItems = s.MinProperties, s.MaxProperties
 	return nil
+}
+
+// isMapSchema reports whether s is a map: string keys with one value schema,
+// and no fixed properties.
+func isMapSchema(s *base.Schema) bool {
+	return s.AdditionalProperties != nil && s.AdditionalProperties.IsA() &&
+		(s.Properties == nil || s.Properties.Len() == 0) && len(s.OneOf) == 0
 }
 
 func arrayType(t *Type, s *base.Schema, path string, w walk) error {

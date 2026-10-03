@@ -171,14 +171,98 @@ func TestPresenceContract(t *testing.T) {
 
 func TestRequiredScalarPresenceContract(t *testing.T) {
 	spec := strings.Replace(string(validSpec(t)),
-		"                name:\n                  type: string\n                  x-coralogix-presence: true\n",
-		"                name:\n                  type: string\n", 1)
+		"        endpoint:\n          type: string\n          minLength: 1\n",
+		"        endpoint:\n          type: integer\n", 1)
 	doc, err := Load([]byte(spec))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "REQUIRED_SCALAR_PRESENCE_UNKNOWN") {
 		t.Fatalf("codes %v do not contain REQUIRED_SCALAR_PRESENCE_UNKNOWN", codes)
+	}
+}
+
+func TestRequiredValueCannotBeEmpty(t *testing.T) {
+	tests := map[string]struct {
+		old string
+		new string
+	}{
+		"string": {
+			old: "        endpoint:\n          type: string\n          minLength: 1\n",
+			new: "        endpoint:\n          type: string\n",
+		},
+		"string with presence": {
+			old: "        endpoint:\n          type: string\n          minLength: 1\n",
+			new: "        endpoint:\n          type: string\n          x-coralogix-presence: true\n",
+		},
+		"list": {
+			old: "        endpoint:\n          type: string\n          minLength: 1\n",
+			new: "        endpoint:\n          type: array\n          items: {type: string}\n",
+		},
+		"map": {
+			old: "        endpoint:\n          type: string\n          minLength: 1\n",
+			new: "        endpoint:\n          type: object\n          additionalProperties: {type: string}\n",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec := strings.Replace(string(validSpec(t)), test.old, test.new, 1)
+			doc, err := Load([]byte(spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "REQUIRED_VALUE_CAN_BE_EMPTY") {
+				t.Fatalf("codes %v do not contain REQUIRED_VALUE_CAN_BE_EMPTY", codes)
+			}
+		})
+	}
+}
+
+func TestRequiredValueWithMinimumIsEligible(t *testing.T) {
+	tests := map[string]string{
+		"list": "        endpoint:\n          type: array\n          minItems: 1\n          items: {type: string}\n",
+		"map":  "        endpoint:\n          type: object\n          minProperties: 1\n          maxProperties: 5\n          additionalProperties: {type: string}\n",
+	}
+	for name, field := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec := strings.Replace(string(validSpec(t)), "        endpoint:\n          type: string\n          minLength: 1\n", field, 1)
+			doc, err := Load([]byte(spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+				t.Fatalf("report = %v, want none", report)
+			}
+		})
+	}
+}
+
+func TestPropertyCountOnlyOnMaps(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"    HttpThingConfig:\n      type: object\n",
+		"    HttpThingConfig:\n      type: object\n      minProperties: 1\n", 1)
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "OBJECT_PROPERTY_COUNT_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain OBJECT_PROPERTY_COUNT_UNSUPPORTED", codes)
+	}
+}
+
+// TestCollectionsAndObjectsNeedNoPresence covers the real OpenAPI generator
+// output: it writes x-coralogix-presence only on scalars and enums.
+func TestCollectionsAndObjectsNeedNoPresence(t *testing.T) {
+	spec := string(validSpec(t))
+	if strings.Contains(spec, "type: array\n                  x-coralogix-presence") {
+		t.Fatal("the synthetic spec must not mark collections with presence")
+	}
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+		t.Fatalf("report = %v, want none", report)
 	}
 }
 

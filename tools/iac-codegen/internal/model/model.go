@@ -153,5 +153,5 @@ type Type struct {
 
 	MinLength, MaxLength *int64
 	Minimum, Maximum     *float64
-	MinItems, MaxItems   *int64
+	MinItems, MaxItems   *int64 // List, Set: items. Map: entries (minProperties, maxProperties).
 }
