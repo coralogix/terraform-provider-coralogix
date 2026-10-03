@@ -81,7 +81,7 @@ types:
         keepPriorOrder: true  # the API does not keep the order of the items
 ```
 
-The rule is: **a field with a line keeps the released behavior that the line states. A field without a line follows the API contract**, and the contract must say how (for example with `x-coralogix-presence`). A new optional API field needs no line only when the contract states its presence. Without that annotation the generator stops with `FIELD_PRESENCE_UNKNOWN` or `COLLECTION_NULL_EMPTY_AMBIGUOUS`. Then ask for the annotation in the API contract (a proto3 `optional` field), or probe what a read returns for an omitted value and write a line. A new value of an enum also stops the generator (`ENUM_VALUE_UNDECIDED`) until the value is in `values` or in `rejected`.
+The rule is: **a field with a line keeps the released behavior that the line states. A field without a line follows the API contract**, and the contract must say how (for example with `x-coralogix-presence`). A new optional scalar API field needs no line only when the contract states its presence. Without that annotation the generator stops with `FIELD_PRESENCE_UNKNOWN`. A list, map, or object needs no annotation. Then ask for the annotation in the API contract (a proto3 `optional` field), or probe what a read returns for an omitted value and write a line. A new value of an enum also stops the generator (`ENUM_VALUE_UNDECIDED`) until the value is in `values` or in `rejected`.
 
 The file is strict:
 
@@ -96,6 +96,8 @@ Keys of a field line: `skip`, `readOnly`, `required`, `description`, `markdownDe
 `skip` cannot name the resource id or an arm of a `oneOf` group. `readEmptyAs: "null"` works for an object and for a list or set of objects. The generator reports any other use, because the key would do nothing.
 
 Existing mode relaxes these rules of the contract: a response that wraps the resource, a request that wraps the resource and shares its schema, the id in the Update body, a client-set id, enum values without the zero prefix, a missing `required` list on a named object, and nested server defaults. It also turns off the presence and default checks for a field with a line. It does not generate regular-expression validators. It ignores a string pattern.
+
+Existing mode does not keep the prior form of an empty value. `flatten` and the field lines (`readEmptyAs`, `computed`) decide what a read writes, as in the released resource.
 
 A resource in this mode exports `Flatten` for a handwritten data source. A frozen prior schema stays in its own package.
 
