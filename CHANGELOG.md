@@ -1,5 +1,8 @@
 # Unreleased
 
+#### tools/iac-codegen
+- FEAT: Add the fail-closed beta generator and local candidate eligibility checks for complete Terraform Plugin Framework resources.
+
 # Release 3.19.0
 
 #### resource/coralogix_events2metric

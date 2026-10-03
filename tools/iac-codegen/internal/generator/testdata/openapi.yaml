@@ -1,0 +1,212 @@
+openapi: 3.0.3
+info:
+  title: Synthetic things API
+  version: 1.0.0
+paths:
+  /things:
+    post:
+      tags: [Things Service]
+      operationId: ThingsService_CreateThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateThingRequest
+              type: object
+              required: [name, kind, config]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  x-coralogix-presence: true
+                description:
+                  type: string
+                  x-coralogix-presence: true
+                enabled:
+                  type: boolean
+                  default: true
+                  x-coralogix-presence: true
+                kind:
+                  $ref: '#/components/schemas/ThingKind'
+                config:
+                  $ref: '#/components/schemas/ThingConfig'
+                destinations:
+                  type: array
+                  items: {type: string}
+                tags:
+                  type: array
+                  uniqueItems: true
+                  x-coralogix-collection: set
+                  items: {type: string}
+                labels:
+                  type: object
+                  additionalProperties: {type: string}
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+  /things/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Things Service]
+      operationId: ThingsService_GetThing
+      responses:
+        '200':
+          description: Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+    patch:
+      tags: [Things Service]
+      operationId: ThingsService_UpdateThing
+      parameters:
+        - name: updateMask
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*)*$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: UpdateThingRequest
+              type: object
+              required: []
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  x-coralogix-presence: true
+                description:
+                  type: string
+                  x-coralogix-presence: true
+                enabled:
+                  type: boolean
+                  default: true
+                  x-coralogix-presence: true
+                config:
+                  allOf:
+                    - $ref: '#/components/schemas/ThingConfig'
+                destinations:
+                  type: array
+                  items: {type: string}
+                tags:
+                  type: array
+                  uniqueItems: true
+                  x-coralogix-collection: set
+                  items: {type: string}
+                labels:
+                  type: object
+                  additionalProperties: {type: string}
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+    delete:
+      tags: [Things Service]
+      operationId: ThingsService_DeleteThing
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteThingResponse'
+components:
+  schemas:
+    Thing:
+      type: object
+      required: [id, name, enabled, kind, config, status, createTime, updateTime]
+      properties:
+        id:
+          type: string
+          description: The server-assigned identifier.
+        name:
+          type: string
+          minLength: 1
+          description: The display name.
+        description:
+          type: string
+          description: An optional description that can be cleared.
+        enabled:
+          type: boolean
+          description: Whether the thing is enabled.
+        kind:
+          $ref: '#/components/schemas/ThingKind'
+        config:
+          $ref: '#/components/schemas/ThingConfig'
+        status:
+          $ref: '#/components/schemas/ThingStatus'
+        destinations:
+          type: array
+          items: {type: string}
+          description: Ordered destinations.
+        tags:
+          type: array
+          uniqueItems: true
+          x-coralogix-collection: set
+          items: {type: string}
+          description: Unordered unique tags.
+        labels:
+          type: object
+          additionalProperties: {type: string}
+          description: String labels by key.
+        createTime:
+          type: string
+          format: date-time
+          description: The server-generated creation time.
+        updateTime:
+          type: string
+          format: date-time
+          description: The server-generated update time.
+    ThingKind:
+      type: string
+      enum: [THING_KIND_UNSPECIFIED, THING_KIND_STANDARD, THING_KIND_ADVANCED, THING_KIND_P5_OR_UNSPECIFIED]
+    ThingConfig:
+      type: object
+      required: []
+      properties:
+        http:
+          $ref: '#/components/schemas/HttpThingConfig'
+        queue:
+          $ref: '#/components/schemas/QueueThingConfig'
+      oneOf:
+        - required: [http]
+        - required: [queue]
+    HttpThingConfig:
+      type: object
+      required: [endpoint]
+      properties:
+        endpoint:
+          type: string
+          minLength: 1
+    QueueThingConfig:
+      type: object
+      required: [topic]
+      properties:
+        topic:
+          type: string
+          minLength: 1
+    ThingStatus:
+      type: object
+      required: [health]
+      properties:
+        health:
+          type: string
+    DeleteThingResponse:
+      type: object
