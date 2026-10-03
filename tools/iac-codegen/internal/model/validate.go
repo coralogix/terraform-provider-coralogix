@@ -961,7 +961,7 @@ func validateBuiltResource(r *Resource) issue.Report {
 	}
 	_, leaf, err := UpdateMaskRule(r.UpdateMaskPattern)
 	if err != nil {
-		return append(report, issue.Issue{Code: "UPDATE_MASK_CONTRACT_INVALID", Location: "paths.update." + r.Update.OperationID, Message: err.Error() + ".", Remediation: "Use a mask pattern that accepts field names, rejects *, and defines whether dotted paths are supported."})
+		return append(report, issue.Issue{Code: "UPDATE_MASK_CONTRACT_INVALID", Location: "paths.update." + r.Update.OperationID, Message: err.Error() + ".", Remediation: "Use a mask pattern that accepts field names and comma-separated lists of them, rejects *, and defines whether dotted paths are supported."})
 	}
 	if leaf {
 		return report

@@ -356,10 +356,23 @@ func TestEnumZeroIsExact(t *testing.T) {
 	}
 }
 
+func TestUpdateMaskPatternMustAcceptSeveralPaths(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
+		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$'", 1)
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "UPDATE_MASK_CONTRACT_INVALID") {
+		t.Fatalf("codes %v do not contain UPDATE_MASK_CONTRACT_INVALID", codes)
+	}
+}
+
 func TestNestedOneOfNeedsDottedUpdateMask(t *testing.T) {
 	spec := strings.Replace(string(validSpec(t)),
-		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$'",
-		"pattern: '^[a-z][A-Za-z0-9]*$'", 1)
+		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
+		"pattern: '^[a-z][A-Za-z0-9]*(,[a-z][A-Za-z0-9]*)*$'", 1)
 	doc, err := Load([]byte(spec))
 	if err != nil {
 		t.Fatal(err)
@@ -638,7 +651,7 @@ func TestPatchUpdateContract(t *testing.T) {
 		t.Fatalf("PATCH resource = replace %t, mask %q", resource.Replace, resource.UpdateMask)
 	}
 
-	withoutPattern := strings.Replace(string(data), "            pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$'\n", "", 1)
+	withoutPattern := strings.Replace(string(data), "            pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'\n", "", 1)
 	doc, err = Load([]byte(withoutPattern))
 	if err != nil {
 		t.Fatal(err)
@@ -648,9 +661,13 @@ func TestPatchUpdateContract(t *testing.T) {
 	}
 
 	legacyBody := removeMaskQuery(t, string(data))
+	withoutMask := legacyBody
 	legacyBody = strings.Replace(legacyBody,
-		"                labels:\n                  type: object\n                  x-coralogix-presence: true\n                  additionalProperties: {type: string}\n",
-		"                labels:\n                  type: object\n                  x-coralogix-presence: true\n                  additionalProperties: {type: string}\n                updateMask:\n                  type: string\n                  pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$'\n", 1)
+		"                labels:\n                  type: object\n                  additionalProperties: {type: string}\n",
+		"                labels:\n                  type: object\n                  additionalProperties: {type: string}\n                updateMask:\n                  type: string\n                  pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'\n", 1)
+	if legacyBody == withoutMask {
+		t.Fatal("the legacy body-mask fixture did not change the spec")
+	}
 	doc, err = Load([]byte(legacyBody))
 	if err != nil {
 		t.Fatal(err)
