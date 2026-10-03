@@ -44,11 +44,17 @@ type tfAttr struct {
 	Optional    bool
 	Computed    bool
 	Description string
-	ElementType string   // Set, List: the element type, for example "types.StringType"
-	Validators  []string // Go expressions
+	ElementType string // Set, List: the element type, for example "types.StringType"
+	// ElemValidators are the validators of one element of a collection of plain values, the
+	// arguments of its Value<Kind>sAre validator. The acceptance test makes an element that passes.
+	ElemValidators []string
+	Validators     []string // Go expressions
 	// GroupValidators are the oneOf group validators. They state the structure of the request, not a
 	// limit, so they stay when the behavior-overrides file removes the inferred validators.
 	GroupValidators []string
+	// OneOfGroup names the oneOf group of an arm: its arms, joined. "" when the attribute is no arm.
+	// The acceptance test sets one arm of each group.
+	OneOfGroup string
 	// EnumSchema is the OpenAPI component of the enum of a scalar attribute, or "".
 	EnumSchema string
 	Modifiers  []string // plan modifiers, Go expressions
@@ -452,6 +458,7 @@ func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup) {
 			validator := groupValidator(pkg, g, false) + "(" + strings.Join(others, ", ") + ")"
 			a.Validators = append(a.Validators, validator)
 			a.GroupValidators = append(a.GroupValidators, validator)
+			a.OneOfGroup = strings.Join(g.Arms, ",")
 		}
 	}
 }
@@ -568,7 +575,7 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 		if err != nil {
 			return err
 		}
-		a.Kind, a.ElementType = kind, "types."+elem+"Type"
+		a.Kind, a.ElementType, a.ElemValidators = kind, "types."+elem+"Type", vals
 		if len(vals) > 0 {
 			a.Validators = append(a.Validators, fmt.Sprintf("%s.Value%ssAre(%s)", pkg, elem, strings.Join(vals, ", ")))
 		}

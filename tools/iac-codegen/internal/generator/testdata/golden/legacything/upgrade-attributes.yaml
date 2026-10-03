@@ -1,0 +1,15 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 1.2.3
+attributes:
+    - create_time
+    - id
+    - labels
+    - labels.env
+    - name
+    - rules
+    - rules[].kind
+    - rules[].name
+    - rules[].targets
+    - rules[].targets[].connector_id

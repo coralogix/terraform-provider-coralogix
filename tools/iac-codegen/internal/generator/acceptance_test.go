@@ -1,8 +1,10 @@
 package generator
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -15,7 +17,7 @@ func testSynth(t *testing.T, fileText string) *accSynth {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &accSynth{file: file, minimal: file.Minimal, idAttr: "id", known: map[string]bool{}, used: map[string]bool{}}
+	return &accSynth{file: file, minimal: file.Minimal, idAttr: "id", known: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}}
 }
 
 func sampleAttrs() []*tfAttr {
@@ -88,18 +90,187 @@ func TestAcceptanceMakesPlainValuesByMode(t *testing.T) {
 	}
 }
 
+// A made-up number fits the range validators of the attribute.
+func TestAcceptanceNumbersFitTheirRange(t *testing.T) {
+	tests := map[string]struct {
+		kind, validator string
+		full, updated   string
+	}{
+		"no range":             {"Int64", "", "1", "2"},
+		"range around 1 and 2": {"Int64", "int64validator.Between(-3, 10)", "1", "2"},
+		"minimum above 1":      {"Int32", "int32validator.Between(5, 10)", "5", "6"},
+		"only a minimum":       {"Int64", "int64validator.AtLeast(3)", "3", "4"},
+		"maximum below 2":      {"Int64", "int64validator.AtMost(0)", "0", "-1"},
+		"one number":           {"Int64", "int64validator.Between(5, 5)", "5", "5"},
+		"float default":        {"Float64", "", "1.5", "2.5"},
+		"float range":          {"Float64", "float64validator.Between(0, 1)", "0", "1"},
+		"narrow float range":   {"Float32", "float32validator.Between(0, 0.5)", "0", "0.25"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			a := &tfAttr{Name: "n", Kind: test.kind}
+			if test.validator != "" {
+				a.Validators = []string{test.validator}
+			}
+			full, _ := scalarValue(a, accFull)
+			updated, _ := scalarValue(a, accUpdated)
+			if full != test.full || updated != test.updated {
+				t.Fatalf("values = %s, %s; want %s, %s", full, updated, test.full, test.updated)
+			}
+		})
+	}
+}
+
+// A made-up collection has one element. A size validator that rejects one element needs a value
+// in the acceptance file.
+func TestAcceptanceCollectionsFitTheirSize(t *testing.T) {
+	object := []*tfAttr{{Name: "x", Kind: "String", Required: true}}
+	tests := map[string]struct {
+		attr *tfAttr
+		ok   bool
+	}{
+		"no limit":             {&tfAttr{Kind: "List", ElementType: "types.StringType"}, true},
+		"at least one":         {&tfAttr{Kind: "List", ElementType: "types.StringType", Validators: []string{"listvalidator.SizeAtLeast(1)"}}, true},
+		"at least two":         {&tfAttr{Kind: "Set", ElementType: "types.StringType", Validators: []string{"setvalidator.SizeAtLeast(2)"}}, false},
+		"at most zero":         {&tfAttr{Kind: "Map", ElementType: "types.StringType", Validators: []string{"mapvalidator.SizeAtMost(0)"}}, false},
+		"objects at least one": {&tfAttr{Kind: "ListNested", Attributes: object, Validators: []string{"listvalidator.SizeAtLeast(1)"}}, true},
+		"objects at least two": {&tfAttr{Kind: "ListNested", Attributes: object, Validators: []string{"listvalidator.SizeAtLeast(2)"}}, false},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			test.attr.Name, test.attr.Required = "c", true
+			_, _, err := testSynth(t, "").attrs([]*tfAttr{test.attr}, "", "", accFull, true)
+			if test.ok && err != nil {
+				t.Fatalf("err = %v, want one made-up element", err)
+			}
+			if !test.ok && (err == nil || !strings.Contains(err.Error(), "set the value")) {
+				t.Fatalf("err = %v, want a request for a value", err)
+			}
+			if test.ok {
+				return
+			}
+			if _, _, err := testSynth(t, "values:\n  c: '[]'\n").attrs([]*tfAttr{test.attr}, "", "", accFull, true); err != nil {
+				t.Fatalf("a value in the file must win: %v", err)
+			}
+		})
+	}
+}
+
+// A made-up string fits the length validators of the attribute and keeps @{run} when it can.
+// @{run} is 12 characters.
+func TestAcceptanceStringsFitTheirLength(t *testing.T) {
+	tests := map[string]struct {
+		validator     string
+		full, updated string
+	}{
+		"no limit":            {"", "@{run}-name", "@{run}-name-updated"},
+		"room for both":       {"stringvalidator.LengthBetween(1, 25)", "@{run}-name", "@{run}-name-updated"},
+		"update cut":          {"stringvalidator.LengthAtMost(20)", "@{run}-name", "@{run}uname"},
+		"both cut":            {"stringvalidator.LengthAtMost(15)", "@{run}-na", "@{run}una"},
+		"padded":              {"stringvalidator.LengthAtLeast(30)", "@{run}-namexxxxxxxxxxxxx", "@{run}-name-updatedxxxxx"},
+		"no room for the run": {"stringvalidator.LengthBetween(3, 10)", "aaa", "bbb"},
+		"only the run":        {"stringvalidator.LengthAtMost(12)", "@{run}", "@{run}"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			a := &tfAttr{Name: "name", Kind: "String"}
+			if test.validator != "" {
+				a.Validators = []string{test.validator}
+			}
+			full, updated := stringValue(a, false), stringValue(a, true)
+			if full != test.full || updated != test.updated {
+				t.Fatalf("values = %q, %q; want %q, %q", full, updated, test.full, test.updated)
+			}
+			low, high := lengthRange(a)
+			for _, v := range []string{full, updated} {
+				n := len(strings.ReplaceAll(v, "@{run}", strings.Repeat("r", runLength)))
+				if n < low || n > high {
+					t.Fatalf("%q has length %d, want %d to %d", v, n, low, high)
+				}
+			}
+		})
+	}
+}
+
+// The element of a made-up collection passes the validators of the elements.
+func TestAcceptanceCollectionElementsFitTheirValidators(t *testing.T) {
+	tests := map[string]struct {
+		attr *tfAttr
+		want string
+	}{
+		"enum elements": {&tfAttr{Kind: "List", ElementType: "types.StringType",
+			ElemValidators: []string{`stringvalidator.OneOf("ALPHA", "BETA")`}}, `["ALPHA"]`},
+		"short strings": {&tfAttr{Kind: "Set", ElementType: "types.StringType",
+			ElemValidators: []string{"stringvalidator.LengthAtMost(15)"}}, `["@{run}-ta"]`},
+		"numbers in a range": {&tfAttr{Kind: "Map", ElementType: "types.Int64Type",
+			ElemValidators: []string{"int64validator.AtLeast(5)"}}, `{ key = 5 }`},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			test.attr.Name, test.attr.Required = "tags", true
+			body, _, err := testSynth(t, "").attrs([]*tfAttr{test.attr}, "", "", accFull, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if want := "tags = " + test.want; body != want {
+				t.Fatalf("config = %s, want %s", body, want)
+			}
+		})
+	}
+}
+
+// The step after an upgrade expects the action that its configs cause.
+func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
+	enum := &tfAttr{Name: "kind", Kind: "String", Required: true, Validators: []string{`stringvalidator.OneOf("alpha")`}}
+	name := &tfAttr{Name: "name", Kind: "String", Required: true}
+	region := &tfAttr{Name: "region", Kind: "String", Optional: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}}
+	tests := map[string]struct {
+		attrs    []*tfAttr
+		from, to accMode
+		want     string
+	}{
+		"a mutable value changes":     {[]*tfAttr{enum, name, region}, accFull, accUpdated, "plancheck.ResourceActionUpdate"},
+		"nothing changes":             {[]*tfAttr{enum, region}, accFull, accUpdated, "plancheck.ResourceActionNoop"},
+		"an immutable value is added": {[]*tfAttr{enum, name, region}, accMinimal, accFull, "plancheck.ResourceActionReplace"},
+	}
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+			s := testSynth(t, "")
+			step := func(mode accMode) *accStep {
+				body, _, err := s.attrs(test.attrs, "", "", mode, true)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return &accStep{Config: body}
+			}
+			got, err := s.nextAction(test.attrs, step(test.from), step(test.to), test.from, test.to)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != test.want {
+				t.Fatalf("action = %s, want %s", got, test.want)
+			}
+		})
+	}
+}
+
 func TestAcceptanceTakesOneArmOfAOneOfGroup(t *testing.T) {
 	s := testSynth(t, "")
 	attrs := []*tfAttr{
-		{Name: "http", Kind: "SingleNested", Optional: true, GroupValidators: []string{"x"}, Attributes: []*tfAttr{{Name: "endpoint", Kind: "String", Required: true}}},
-		{Name: "queue", Kind: "SingleNested", Optional: true, GroupValidators: []string{"x"}, Attributes: []*tfAttr{{Name: "topic", Kind: "String", Required: true}}},
+		{Name: "http", Kind: "SingleNested", Optional: true, OneOfGroup: "http,queue", Attributes: []*tfAttr{{Name: "endpoint", Kind: "String", Required: true}}},
+		{Name: "queue", Kind: "SingleNested", Optional: true, OneOfGroup: "http,queue", Attributes: []*tfAttr{{Name: "topic", Kind: "String", Required: true}}},
+		{Name: "daily", Kind: "SingleNested", Optional: true, OneOfGroup: "daily,weekly", Attributes: []*tfAttr{{Name: "hour", Kind: "Int64", Required: true}}},
+		{Name: "weekly", Kind: "SingleNested", Optional: true, OneOfGroup: "daily,weekly", Attributes: []*tfAttr{{Name: "day", Kind: "Int64", Required: true}}},
 	}
 	body, _, err := s.attrs(attrs, "", "", accFull, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(body, "http = {") || strings.Contains(body, "queue") {
-		t.Fatalf("config should hold only the first arm:\n%s", body)
+		t.Fatalf("config should hold only the first arm of the first group:\n%s", body)
+	}
+	if !strings.Contains(body, "daily = {") || strings.Contains(body, "weekly") {
+		t.Fatalf("config should hold only the first arm of the second group:\n%s", body)
 	}
 }
 
@@ -151,6 +322,7 @@ func TestAcceptanceFileMustMatchTheSchema(t *testing.T) {
 			return strings.Replace(s, "coralogix_other.dependency.id\n", "coralogix_other.dependency.id\n  rules[].nope: x\n", 1)
 		}, "is not set by the full config"},
 		"skip of a missing attribute": {func(s string) string { return strings.Replace(s, "  - labels.env\n", "  - labels.nope\n", 1) }, "not an attribute"},
+		"skip of a required one":      {func(s string) string { return strings.Replace(s, "  - labels.env\n", "  - name\n", 1) }, `"name" is required`},
 		"minimal of a missing one":    {func(s string) string { return strings.Replace(s, "  - labels\n", "  - nope\n", 1) }, "not an attribute"},
 		"another resource":            {func(s string) string { return strings.Replace(s, "resource: LegacyThing", "resource: Other", 1) }, "is for resource"},
 	}
@@ -175,6 +347,161 @@ func TestAcceptanceFileMustMatchTheSchema(t *testing.T) {
 			if _, statErr := os.Stat(options.OutputDir); statErr == nil {
 				t.Fatal("the generator wrote output although the acceptance file was wrong")
 			}
+			// check finds the same error before an SDK exists.
+			err = Check(CheckOptions{Resource: "LegacyThing", OpenAPIPath: candidate(t, dir, spec), OverridesPath: options.OverridesPath, AcceptancePath: path})
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("check err = %v, want %q", err, test.want)
+			}
 		})
+	}
+	t.Run("check accepts a valid file", func(t *testing.T) {
+		dir := t.TempDir()
+		options := CheckOptions{Resource: "LegacyThing", OpenAPIPath: candidate(t, dir, spec),
+			OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml"), AcceptancePath: filepath.Join("testdata", "legacy-acceptance.yaml")}
+		if err := Check(options); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
+// candidate writes the OpenAPI spec as a candidate file for Check.
+func candidate(t *testing.T, dir string, spec []byte) string {
+	t.Helper()
+	path := filepath.Join(dir, "candidate.yaml")
+	if err := os.WriteFile(path, spec, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// The upgrade test sends the released provider only the attributes in the upgrade attributes
+// file, nested ones and oneOf arms included. This build gets every attribute.
+func TestAcceptanceUpgradeLeavesOutNewAttributes(t *testing.T) {
+	arm := func(name, child string) *tfAttr {
+		return &tfAttr{Name: name, Kind: "SingleNested", Optional: true, OneOfGroup: "http,queue",
+			Attributes: []*tfAttr{{Name: child, Kind: "String", Required: true}}}
+	}
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "labels", Kind: "Map", ElementType: "types.StringType", Optional: true},
+		{Name: "rules", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
+			{Name: "name", Kind: "String", Required: true},
+			{Name: "kind", Kind: "String", Optional: true},
+		}},
+		{Name: "delivery", Kind: "SingleNested", Optional: true, Attributes: []*tfAttr{arm("http", "endpoint"), arm("queue", "topic")}},
+	}}
+	file, err := acceptance.Parse([]byte("resource: Thing\nupgradeFrom: \"1.0.0\"\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	released := []string{"name", "rules", "rules[].name", "delivery", "delivery.queue", "delivery.queue.topic"}
+	build := func(from string, attrs []string) (*acceptanceData, error) {
+		return buildAcceptance(res, "example.com/provider", file, &acceptance.UpgradeAttributes{From: from, Attributes: attrs})
+	}
+
+	data, err := build("1.0.0", released)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data.UpgradeFull == nil {
+		t.Fatal("the upgrade test needs its own full config")
+	}
+	for _, want := range []string{"labels", "kind", "http", "endpoint"} {
+		if !strings.Contains(data.Full.Config, want) {
+			t.Errorf("full config lacks %q:\n%s", want, data.Full.Config)
+		}
+		if strings.Contains(data.UpgradeFull.Config, want) {
+			t.Errorf("upgrade config has %q, which the released provider does not have:\n%s", want, data.UpgradeFull.Config)
+		}
+	}
+	if !strings.Contains(data.UpgradeFull.Config, "queue") {
+		t.Errorf("upgrade config should take the oneOf arm that the released provider has:\n%s", data.UpgradeFull.Config)
+	}
+	if !slices.Equal(data.UpgradeAttributes.Attributes, released) {
+		t.Errorf("attributes = %v, want the kept list %v", data.UpgradeAttributes.Attributes, released)
+	}
+
+	// A new required attribute inside an object that the release has: no config works with both.
+	_, err = build("1.0.0", []string{"name", "rules", "delivery"})
+	if err == nil || !strings.Contains(err.Error(), `"rules[].name" is required`) {
+		t.Fatalf("err = %v, want a new required attribute", err)
+	}
+
+	// A new upgradeFrom takes the list from the schema again.
+	data, err = build("0.9.0", released)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data.UpgradeFull != nil || data.UpgradeAttributes.From != "1.0.0" || len(data.UpgradeAttributes.Attributes) != 10 {
+		t.Fatalf("upgrade attributes = %+v, want every attribute of the schema for 1.0.0", data.UpgradeAttributes)
+	}
+}
+
+// generate keeps the upgrade attributes file of the last run while upgradeFrom stays the same.
+func TestGenerateKeepsTheUpgradeAttributes(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "legacything")
+	options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml"), AcceptancePath: filepath.Join("testdata", "legacy-acceptance.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(out, acceptance.UpgradeFileName)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// As if the release had no labels: the next run must keep the list and leave labels out.
+	older := strings.Replace(string(data), "    - labels\n", "", 1)
+	if older == string(data) {
+		t.Fatal("no change")
+	}
+	if err := os.WriteFile(path, []byte(older), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	kept, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(kept) != older {
+		t.Fatalf("upgrade attributes = %s, want the kept list", kept)
+	}
+	test, err := os.ReadFile(filepath.Join(out, "acceptance_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(test), "const upgradeFullConfig") {
+		t.Fatal("the upgrade test should have its own full config without labels")
+	}
+}
+
+// After the minimal config removes an Optional+Computed attribute, the test checks the value that
+// the schema states: a default, or the kept value of the full config. Without one, it checks none.
+func TestAcceptanceChecksRemovedComputedAttributes(t *testing.T) {
+	attrs := []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "disabled", Kind: "Bool", Optional: true, Computed: true, Default: "booldefault.StaticBool(false)"},
+		{Name: "tier", Kind: "String", Optional: true, Computed: true, Modifiers: []string{`serverDefaultModifier{value: types.StringValue("basic")}`}},
+		{Name: "limit", Kind: "Int64", Optional: true, Computed: true, Modifiers: []string{"int64planmodifier.UseStateForUnknown()"}},
+		{Name: "description", Kind: "String", Optional: true, Computed: true},
+	}
+	s := testSynth(t, "")
+	_, full, err := s.attrs(attrs, "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaults, kept := s.removed(attrs, full)
+	if got := fmt.Sprint(defaults); got != "[{disabled false} {tier basic}]" {
+		t.Errorf("defaults = %s, want disabled and tier", got)
+	}
+	if got := fmt.Sprint(kept); got != "[{limit 1}]" {
+		t.Errorf("kept = %s, want limit with its full value", got)
 	}
 }

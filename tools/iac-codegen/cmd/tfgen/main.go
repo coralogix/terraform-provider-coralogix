@@ -77,6 +77,7 @@ func runCheck(args []string) int {
 	resource := set.String("resource", "", "OpenAPI component name of the complete resource")
 	openAPI := set.String("openapi", "", "local candidate OpenAPI file")
 	overridesFile := set.String("overrides", "", "behavior-overrides file of a resource that users already have")
+	acceptanceFile := set.String("acceptance", "", "acceptance file; with it the check also builds the acceptance test")
 	operations := addOperationFlags(set)
 	if err := set.Parse(args); err != nil {
 		return 2
@@ -86,10 +87,11 @@ func runCheck(args []string) int {
 		return 2
 	}
 	if err := generator.Check(generator.CheckOptions{
-		Resource:      *resource,
-		OpenAPIPath:   *openAPI,
-		OperationIDs:  operations.ids(),
-		OverridesPath: *overridesFile,
+		Resource:       *resource,
+		OpenAPIPath:    *openAPI,
+		OperationIDs:   operations.ids(),
+		OverridesPath:  *overridesFile,
+		AcceptancePath: *acceptanceFile,
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "tfgen: %s\n", err)
 		return 1

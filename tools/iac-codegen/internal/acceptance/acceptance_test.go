@@ -69,3 +69,26 @@ func TestHCLBraceSyntaxIsNotAPlaceholder(t *testing.T) {
 		t.Fatalf("err = %v, want none", err)
 	}
 }
+
+func TestUpgradeAttributesRoundTrip(t *testing.T) {
+	in := &UpgradeAttributes{From: "3.19.0", Attributes: []string{"rules[].name", "name"}}
+	data, err := in.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := ParseUpgrade(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.From != "3.19.0" || strings.Join(out.Attributes, ",") != "name,rules[].name" {
+		t.Fatalf("read back %+v, want the sorted attributes", out)
+	}
+	for name, text := range map[string]string{
+		"bad from":    "from: latest\nattributes: [name]\n",
+		"unknown key": "from: \"3.19.0\"\nother: x\n",
+	} {
+		if _, err := ParseUpgrade([]byte(text)); err == nil {
+			t.Errorf("%s: want an error", name)
+		}
+	}
+}

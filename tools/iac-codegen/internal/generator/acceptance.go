@@ -3,6 +3,8 @@ package generator
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -30,6 +32,9 @@ type accStep struct {
 	Config string     // the resource block, HCL with @{run} and @{env.NAME}
 	Checks []accCheck // attributes that must have the value
 	Absent []string   // top-level attributes that must not be in the state
+	// Kept are the checks of the step that removes attributes from the full config: an attribute
+	// that keeps its state value still has the value of the full config.
+	Kept []accCheck
 }
 
 // acceptanceData is the template data of the generated acceptance test.
@@ -45,7 +50,15 @@ type acceptanceData struct {
 	Full, Updated, Minimal *accStep
 	// UpgradeMinimal is the minimal config plus the fields that the released provider needs.
 	UpgradeMinimal *accStep
-	UpgradeFrom    string
+	// UpgradeFull is the full config without the attributes that the released provider does not
+	// have. nil when it is the full config.
+	UpgradeFull *accStep
+	UpgradeFrom string
+	// UpgradeAttributes is the upgrade attributes file to write. nil without an upgrade test.
+	UpgradeAttributes *acceptance.UpgradeAttributes
+	// UpgradeFullAction and UpgradeMinimalAction are the plan actions of the step after the upgrade,
+	// to the updated config and to the full config. Go expressions of type plancheck.ResourceActionType.
+	UpgradeFullAction, UpgradeMinimalAction string
 }
 
 type accMode int
@@ -64,18 +77,24 @@ type accSynth struct {
 	minimal []string
 	idAttr  string
 	known   map[string]bool // every attribute path that the walk saw
-	used    map[string]bool // every value path that a config used
+	// required are the attribute paths that the walk saw as Required.
+	required map[string]bool
+	// released are the attributes that the released provider of the upgrade test has. When it is
+	// not nil, the walk leaves out every other attribute.
+	released map[string]bool
+	used     map[string]bool // every value path that a config used
 }
 
 var quoted = regexp.MustCompile(`"([^"]*)"`)
 
 // buildAcceptance makes the data of the acceptance test of a resource.
-func buildAcceptance(res *tfResource, providerModule string, file *acceptance.File) (*acceptanceData, error) {
+// prior is the upgrade attributes file of the last run, or nil.
+func buildAcceptance(res *tfResource, providerModule string, file *acceptance.File, prior *acceptance.UpgradeAttributes) (*acceptanceData, error) {
 	if len(res.ConfigValidators) != 0 {
 		return nil, errors.New("acceptance test: a oneOf group among the top-level fields is not supported")
 	}
 	typeName := res.CRUD.TypeName
-	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, used: map[string]bool{}}
+	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}}
 	out := &acceptanceData{
 		Package:        res.Package,
 		VersionHeader:  version.Header,
@@ -99,19 +118,120 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		*step.into = &accStep{Config: resourceBlock("coralogix_"+typeName, body), Checks: checks}
 	}
 	out.Minimal.Absent = s.absent(res.Attributes)
+	defaults, kept := s.removed(res.Attributes, out.Full.Checks)
+	out.Minimal.Checks = append(out.Minimal.Checks, defaults...)
+	out.Minimal.Kept = kept
 	if file.UpgradeFrom != "" {
-		s.minimal = append(slices.Clone(file.Minimal), file.UpgradeMinimal...)
-		body, checks, err := s.attrs(res.Attributes, "", "", accMinimal, true)
-		if err != nil {
+		if err := s.upgradeSteps(out, res.Attributes, "coralogix_"+typeName, prior); err != nil {
 			return nil, fmt.Errorf("acceptance test: %w", err)
 		}
-		out.UpgradeMinimal = &accStep{Config: resourceBlock("coralogix_"+typeName, body), Checks: checks}
-		s.minimal = file.Minimal
 	}
 	if err := s.checkFile(); err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+// upgradeSteps makes the configs of the upgrade test. The released provider gets only the
+// attributes that it has, so the first config of each upgrade subtest leaves out the newer ones.
+// The next config is applied with this build, so it keeps them.
+func (s *accSynth) upgradeSteps(out *acceptanceData, attrs []*tfAttr, resourceType string, prior *acceptance.UpgradeAttributes) error {
+	schema := map[string]*tfAttr{}
+	schemaAttrs(schema, "", attrs)
+	if prior == nil || prior.From != s.file.UpgradeFrom {
+		// The list is new, or upgradeFrom changed: the schema of now is the schema of the release.
+		prior = &acceptance.UpgradeAttributes{From: s.file.UpgradeFrom, Attributes: slices.Sorted(maps.Keys(schema))}
+	}
+	out.UpgradeAttributes = prior
+	released := map[string]bool{}
+	for _, path := range prior.Attributes {
+		released[path] = true
+	}
+	if err := newRequired(schema, released, prior.From); err != nil {
+		return err
+	}
+	defer func() { s.released, s.minimal = nil, s.file.Minimal }()
+	s.released = released
+	body, checks, err := s.attrs(attrs, "", "", accFull, true)
+	if err != nil {
+		return err
+	}
+	from := out.Full
+	if config := resourceBlock(resourceType, body); config != out.Full.Config {
+		out.UpgradeFull = &accStep{Config: config, Checks: checks}
+		from = out.UpgradeFull
+	}
+	if out.UpgradeFullAction, err = s.nextAction(attrs, from, out.Updated, accFull, accUpdated); err != nil {
+		return err
+	}
+	s.minimal = append(slices.Clone(s.file.Minimal), s.file.UpgradeMinimal...)
+	body, checks, err = s.attrs(attrs, "", "", accMinimal, true)
+	if err != nil {
+		return err
+	}
+	out.UpgradeMinimal = &accStep{Config: resourceBlock(resourceType, body), Checks: checks}
+	out.UpgradeMinimalAction, err = s.nextAction(attrs, out.UpgradeMinimal, out.Full, accMinimal, accFull)
+	return err
+}
+
+// schemaAttrs adds every attribute path of the schema, nested ones and every oneOf arm included,
+// with the path form of the acceptance file: rules[].targets[].connector_id.
+func schemaAttrs(out map[string]*tfAttr, key string, attrs []*tfAttr) {
+	for _, a := range attrs {
+		path := joinPath(key, a.Name)
+		out[path] = a
+		child := path
+		if a.Kind == "ListNested" || a.Kind == "SetNested" {
+			child += "[]"
+		}
+		schemaAttrs(out, child, a.Attributes)
+	}
+}
+
+// newRequired fails on a required attribute that the released provider does not have, inside an
+// object that it has. The first config would leave it out, and this build would reject that config.
+func newRequired(schema map[string]*tfAttr, released map[string]bool, from string) error {
+	for _, path := range slices.Sorted(maps.Keys(schema)) {
+		parent := ""
+		if i := strings.LastIndex(path, "."); i >= 0 {
+			parent = strings.TrimSuffix(path[:i], "[]")
+		}
+		if schema[path].Required && !released[path] && (parent == "" || released[parent]) {
+			return fmt.Errorf("%q is required but the released provider %s does not have it: no config works with both; "+
+				"set upgradeFrom to a release that has it", path, from)
+		}
+	}
+	return nil
+}
+
+// nextAction is the plan action of a step from one config to the next: no-op for the same config,
+// replace when a top-level immutable attribute is added, removed, or changed, and update otherwise.
+// s.minimal and s.released must be those of the first config. The next config has every attribute.
+func (s *accSynth) nextAction(attrs []*tfAttr, from, to *accStep, fromMode, toMode accMode) (string, error) {
+	if from.Config == to.Config {
+		return "plancheck.ResourceActionNoop", nil
+	}
+	released := s.released
+	defer func() { s.released = released }()
+	for _, a := range attrs {
+		if !immutable(a) {
+			continue
+		}
+		s.released = released
+		before, _, err := s.attrs([]*tfAttr{a}, "", "", fromMode, true)
+		if err != nil {
+			return "", err
+		}
+		s.released = nil
+		after, _, err := s.attrs([]*tfAttr{a}, "", "", toMode, true)
+		if err != nil {
+			return "", err
+		}
+		if before != after {
+			return "plancheck.ResourceActionReplace", nil
+		}
+	}
+	return "plancheck.ResourceActionUpdate", nil
 }
 
 // checkFile fails when the acceptance file names a field that the walk did not see, or a value
@@ -121,6 +241,9 @@ func (s *accSynth) checkFile() error {
 		for _, path := range paths {
 			if !s.known[path] {
 				return fmt.Errorf("%s: %q is not an attribute of the resource", name, path)
+			}
+			if name == "skip" && s.required[path] {
+				return fmt.Errorf("skip: %q is required: a config cannot leave it out", path)
 			}
 		}
 	}
@@ -161,6 +284,8 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 	switch {
 	case slices.Contains(s.file.Skip, key):
 		return false
+	case s.released != nil && !s.released[key]:
+		return false // the released provider does not have it
 	case !a.Required && !a.Optional:
 		return false // the server sets it
 	case top && a.Name == s.idAttr && !a.Required:
@@ -175,19 +300,20 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top bool) (string, []accCheck, error) {
 	var lines []string
 	var checks []accCheck
-	groupArm := false
+	armTaken := map[string]bool{} // the oneOf groups that already have an arm
 	for _, a := range attrs {
 		attrKey := joinPath(key, a.Name)
 		s.known[attrKey] = true
+		s.required[attrKey] = a.Required
 		if !s.include(a, attrKey, mode, top) {
 			continue
 		}
-		if len(a.GroupValidators) != 0 && !a.Required {
-			// A oneOf group takes one arm. The test sets the first.
-			if groupArm {
+		if a.OneOfGroup != "" && !a.Required {
+			// A oneOf group takes one arm. The test sets the first arm of each group.
+			if armTaken[a.OneOfGroup] {
 				continue
 			}
-			groupArm = true
+			armTaken[a.OneOfGroup] = true
 		}
 		value, c, err := s.value(a, joinPath(tfPath, a.Name), attrKey, mode)
 		if err != nil {
@@ -210,6 +336,58 @@ func (s *accSynth) absent(attrs []*tfAttr) []string {
 		}
 	}
 	return out
+}
+
+// removed returns what the state holds for the top-level Optional+Computed scalars that the minimal
+// config leaves out, when the schema states it. defaults hold for every minimal step: a static
+// default or a declared server default. kept hold after the full config: an attribute with
+// UseStateForUnknown keeps its value. An attribute with none of these takes what the API returns,
+// which the schema does not state; the empty plan after the apply and the import still check it.
+func (s *accSynth) removed(attrs []*tfAttr, full []accCheck) (defaults, kept []accCheck) {
+	for _, a := range attrs {
+		scalar := slices.Contains([]string{"String", "Bool", "Int64", "Int32", "Float64", "Float32"}, a.Kind)
+		if !scalar || !a.Optional || !a.Computed || s.include(a, a.Name, accMinimal, true) {
+			continue
+		}
+		if value, ok := defaultState(a); ok {
+			defaults = append(defaults, accCheck{a.Name, value})
+			continue
+		}
+		if !slices.ContainsFunc(a.Modifiers, func(m string) bool { return strings.Contains(m, "UseStateForUnknown") }) {
+			continue
+		}
+		if i := slices.IndexFunc(full, func(c accCheck) bool { return c.Path == a.Name }); i >= 0 {
+			kept = append(kept, full[i])
+		}
+	}
+	return defaults, kept
+}
+
+var (
+	// staticDefault matches a static default, such as booldefault.StaticBool(false).
+	staticDefault = regexp.MustCompile(`^\w+default\.Static\w+\((.*)\)$`)
+	// serverDefaultCall matches the plan modifier of a declared server default.
+	serverDefaultCall = regexp.MustCompile(`^serverDefaultModifier\{value: types\.\w+Value\((.*)\)\}$`)
+)
+
+// defaultState returns the state value of an attribute that its config leaves out, when the
+// attribute has a static default or a declared server default.
+func defaultState(a *tfAttr) (string, bool) {
+	exprs := append([]string{a.Default}, a.Modifiers...)
+	for _, expr := range exprs {
+		m := staticDefault.FindStringSubmatch(expr)
+		if m == nil {
+			m = serverDefaultCall.FindStringSubmatch(expr)
+		}
+		if m == nil {
+			continue
+		}
+		if v, err := strconv.Unquote(m[1]); err == nil {
+			return v, true
+		}
+		return m[1], true
+	}
+	return "", false
 }
 
 func immutable(a *tfAttr) bool {
@@ -254,6 +432,9 @@ func objectHCL(body string) string {
 }
 
 func (s *accSynth) nestedCollection(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
+	if err := checkOneElement(a); err != nil {
+		return "", nil, err
+	}
 	element := tfPath + ".0"
 	if a.Kind == "SetNested" {
 		element = tfPath + ".*" // the position of a set element is not known: no element checks
@@ -277,19 +458,106 @@ func scalarValue(a *tfAttr, mode accMode) (hcl, state string) {
 		v := !updated
 		return strconv.FormatBool(v), strconv.FormatBool(v)
 	case "Int64", "Int32":
-		n := 1
+		full, next := numberValues(a, 1)
 		if updated {
-			n = 2
+			full = next
 		}
-		return strconv.Itoa(n), strconv.Itoa(n)
+		v := strconv.FormatInt(int64(full), 10)
+		return v, v
 	case "Float64", "Float32":
+		full, next := numberValues(a, 1.5)
 		if updated {
-			return "2.5", "2.5"
+			full = next
 		}
-		return "1.5", "1.5"
+		v := strconv.FormatFloat(full, 'g', -1, 64)
+		return v, v
 	}
 	v := stringValue(a, updated)
 	return strconv.Quote(v), v
+}
+
+// sizeCall matches a size validator of a collection, such as listvalidator.SizeAtLeast(2).
+var sizeCall = regexp.MustCompile(`^(?:list|set|map)validator\.(SizeAtLeast|SizeAtMost|SizeBetween)\((.*)\)$`)
+
+// checkOneElement returns an error when a size validator of the collection rejects one element,
+// the size of a made-up collection. The test then needs the value in the acceptance file.
+func checkOneElement(a *tfAttr) error {
+	for _, v := range a.Validators {
+		m := sizeCall.FindStringSubmatch(v)
+		if m == nil {
+			continue
+		}
+		var bounds []int
+		for _, arg := range strings.Split(m[2], ",") {
+			n, err := strconv.Atoi(strings.TrimSpace(arg))
+			if err != nil {
+				return fmt.Errorf("cannot read %s: set the value in %s", v, acceptance.FileName)
+			}
+			bounds = append(bounds, n)
+		}
+		fits := m[1] == "SizeAtLeast" && bounds[0] <= 1 ||
+			m[1] == "SizeAtMost" && bounds[0] >= 1 ||
+			m[1] == "SizeBetween" && len(bounds) == 2 && bounds[0] <= 1 && bounds[1] >= 1
+		if !fits {
+			return fmt.Errorf("one made-up element does not pass %s: set the value in %s", v, acceptance.FileName)
+		}
+	}
+	return nil
+}
+
+// rangeCall matches a range validator of a number, such as int64validator.Between(1, 5).
+var rangeCall = regexp.MustCompile(`^(?:int32|int64|float32|float64)validator\.(AtLeast|AtMost|Between)\((.*)\)$`)
+
+// numberValues returns the made-up numbers of the full and the updated config: base and base+1
+// when they fit the range validators of the attribute. Otherwise the start of the range and the
+// next number, or the middle when the next number is outside. A range of one number keeps it.
+func numberValues(a *tfAttr, base float64) (full, updated float64) {
+	low, high := numberRange(a)
+	full, updated = base, base+1
+	switch {
+	case full >= low && updated <= high:
+		return full, updated
+	case !math.IsInf(low, -1):
+		full, updated = low, low+1
+	default:
+		full, updated = high, high-1
+	}
+	if updated > high {
+		updated = (full + high) / 2
+	}
+	if updated < low {
+		updated = (full + low) / 2
+	}
+	return full, updated
+}
+
+// numberRange returns the bounds of the range validators of a number attribute. A missing bound
+// is infinite.
+func numberRange(a *tfAttr) (low, high float64) {
+	low, high = math.Inf(-1), math.Inf(1)
+	for _, v := range a.Validators {
+		m := rangeCall.FindStringSubmatch(v)
+		if m == nil {
+			continue
+		}
+		var bounds []float64
+		for _, arg := range strings.Split(m[2], ",") {
+			n, err := strconv.ParseFloat(strings.TrimSpace(arg), 64)
+			if err != nil {
+				return math.Inf(-1), math.Inf(1)
+			}
+			bounds = append(bounds, n)
+		}
+		switch {
+		case m[1] == "AtLeast" && len(bounds) == 1:
+			low = max(low, bounds[0])
+		case m[1] == "AtMost" && len(bounds) == 1:
+			high = min(high, bounds[0])
+		case m[1] == "Between" && len(bounds) == 2:
+			low, high = max(low, bounds[0]), min(high, bounds[1])
+		}
+	}
+	return low, high
 }
 
 // stringValue is the first accepted value of an enum, or a plain unique string. An enum keeps its
@@ -299,10 +567,70 @@ func stringValue(a *tfAttr, updated bool) string {
 	if values := enumValues(a); len(values) != 0 {
 		return values[0]
 	}
-	if updated {
-		return "@{run}-" + a.Name + "-updated"
+	low, high := lengthRange(a)
+	return madeUpString(a.Name, updated, low, high)
+}
+
+// runLength is the length of @{run} in a test run: "acc-" and 8 characters.
+const runLength = 12
+
+// madeUpString makes "@{run}-<name>", or "@{run}-<name>-updated" in the update config, fit the
+// length range. It keeps @{run}, so the value stays unique per run: a long value is cut after it,
+// and the update starts with "u" instead of "-" so that the two values still differ. A short value
+// is padded with "x". A maximum below the length of @{run} gets a fixed value.
+func madeUpString(name string, updated bool, low, high int) string {
+	if high < runLength {
+		n := min(max(low, 1), high)
+		if updated {
+			return strings.Repeat("b", n)
+		}
+		return strings.Repeat("a", n)
 	}
-	return "@{run}-" + a.Name
+	room := high - runLength
+	tail := "-" + name
+	if updated {
+		tail += "-updated"
+		if len(tail) > room {
+			tail = "u" + name
+		}
+	}
+	tail = tail[:min(len(tail), room)]
+	if short := low - runLength - len(tail); short > 0 {
+		tail += strings.Repeat("x", short)
+	}
+	return "@{run}" + tail
+}
+
+// lengthCall matches a length validator of a string, such as stringvalidator.LengthAtMost(32).
+var lengthCall = regexp.MustCompile(`^stringvalidator\.(LengthAtLeast|LengthAtMost|LengthBetween)\((.*)\)$`)
+
+// lengthRange returns the bounds of the length validators of a string attribute. A missing
+// maximum is math.MaxInt.
+func lengthRange(a *tfAttr) (low, high int) {
+	low, high = 0, math.MaxInt
+	for _, v := range a.Validators {
+		m := lengthCall.FindStringSubmatch(v)
+		if m == nil {
+			continue
+		}
+		var bounds []int
+		for _, arg := range strings.Split(m[2], ",") {
+			n, err := strconv.Atoi(strings.TrimSpace(arg))
+			if err != nil {
+				return 0, math.MaxInt
+			}
+			bounds = append(bounds, n)
+		}
+		switch {
+		case m[1] == "LengthAtLeast" && len(bounds) == 1:
+			low = max(low, bounds[0])
+		case m[1] == "LengthAtMost" && len(bounds) == 1:
+			high = min(high, bounds[0])
+		case m[1] == "LengthBetween" && len(bounds) == 2:
+			low, high = max(low, bounds[0]), min(high, bounds[1])
+		}
+	}
+	return low, high
 }
 
 // enumValues returns the values of the OneOf validator of a string attribute, without the zero
@@ -333,7 +661,10 @@ func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (stri
 	if !ok {
 		return "", nil, fmt.Errorf("elements of type %s are not supported: set the value in %s", a.ElementType, acceptance.FileName)
 	}
-	item, state := scalarValue(&tfAttr{Name: a.Name, Kind: elem}, mode)
+	if err := checkOneElement(a); err != nil {
+		return "", nil, err
+	}
+	item, state := scalarValue(&tfAttr{Name: a.Name, Kind: elem, Validators: a.ElemValidators}, mode)
 	switch a.Kind {
 	case "Map":
 		return "{ key = " + item + " }", []accCheck{{tfPath + ".key", state}}, nil
@@ -350,6 +681,21 @@ func renderAcceptance(data *acceptanceData) ([]byte, error) {
 		return nil, fmt.Errorf("acceptance_test.go: %w", err)
 	}
 	return formatGenerated("acceptance_test.go", []byte(buf.String()))
+}
+
+// readUpgrade reads the upgrade attributes file in dir. It returns nil when there is none.
+func readUpgrade(dir string) (*acceptance.UpgradeAttributes, error) {
+	if dir == "" {
+		return nil, nil
+	}
+	data, err := os.ReadFile(filepath.Join(dir, acceptance.UpgradeFileName))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", acceptance.UpgradeFileName, err)
+	}
+	return acceptance.ParseUpgrade(data)
 }
 
 // readAcceptance reads the acceptance file. It returns nil when there is none.
