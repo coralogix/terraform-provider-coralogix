@@ -1,0 +1,78 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "description": "d",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone"
+      }
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "name": "gone",
+            "routingLabels": {
+              "environment": "gone"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: router was deleted outside Terraform",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | global_router with id 00000000-0000-4000-8000-000000000001 was not found. Terraform removed it from state."
+    ],
+    "state": null
+  }
+]

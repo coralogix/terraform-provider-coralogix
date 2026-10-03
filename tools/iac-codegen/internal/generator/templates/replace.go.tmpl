@@ -58,7 +58,7 @@ func updateChanged(ctx context.Context, config, plan, state tfData) (bool, diag.
 // mask. A value that the plan clears (null) is not in the body, and the
 // server clears it. updateRequest returns nil when no Update field changed.
 // Then the caller sends no request (D14).
-func updateRequest(ctx context.Context, config, plan, state tfData) (*{{.SDKName}}.{{.Update.SDK}}, diag.Diagnostics) {
+func updateRequest(ctx context.Context, config, plan, state tfData) (*{{.SDKName}}.{{.UpdateBody}}, diag.Diagnostics) {
 	changed, diags := updateChanged(ctx, config, plan, state)
 	if diags.HasError() || !changed {
 		return nil, diags

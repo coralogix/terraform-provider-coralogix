@@ -1,0 +1,100 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "minimal",
+      "routing_labels": {
+        "environment": "minimal"
+      }
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "(unknown)",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "minimal",
+      "routing_labels": {
+        "environment": "minimal",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "name": "minimal",
+            "routingLabels": {
+              "environment": "minimal"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "minimal",
+      "routing_labels": {
+        "environment": "minimal",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "minimal",
+      "routing_labels": {
+        "environment": "minimal",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    }
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

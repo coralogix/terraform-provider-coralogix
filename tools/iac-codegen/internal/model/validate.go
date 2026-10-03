@@ -43,26 +43,32 @@ func ResolveResource(doc *v3.Document, selection string) (string, issue.Report) 
 
 // Validate collects every detectable eligibility issue before generation.
 func Validate(doc *v3.Document, name string, ids OperationIDs) issue.Report {
+	return ValidateWithPolicy(doc, name, ids, Policy{})
+}
+
+// ValidateWithPolicy is Validate under the given rule set.
+func ValidateWithPolicy(doc *v3.Document, name string, ids OperationIDs, p Policy) issue.Report {
 	var report issue.Report
 	ops, opIssues := validateOperations(doc, name, ids)
 	report = append(report, opIssues...)
 
-	t, surveyIssues := Survey(doc, name)
+	t, surveyIssues := SurveyWithPolicy(doc, name, p)
 	for _, err := range surveyIssues {
 		report = append(report, schemaIssue(err))
 	}
 	if t != nil {
 		report = append(report, nameCollisions("components.schemas."+name, t)...)
 		report = append(report, componentNameCollisions(t)...)
+		report = append(report, skippedArmIssues(p, t)...)
 	}
 	if len(ops) == len(verbs) {
-		report = append(report, requestSchemaSeparationIssues(name, ops)...)
-		report = append(report, requiredDeclarationIssues(name, ops)...)
-		report = append(report, validateFieldContracts(name, ops)...)
-		report = append(report, responseWrapperIssues(name, ops)...)
+		report = append(report, requestSchemaSeparationIssues(p, name, ops)...)
+		report = append(report, requiredDeclarationIssues(p, name, ops)...)
+		report = append(report, validateFieldContracts(p, name, ops)...)
+		report = append(report, responseWrapperIssues(p, name, ops)...)
 	}
 	if len(ops) == len(verbs) {
-		r, err := BuildWithOperationIDs(doc, name, ids)
+		r, err := BuildWithPolicy(doc, name, ids, p)
 		if err != nil {
 			report = append(report, buildIssue(err))
 		} else {
@@ -72,7 +78,10 @@ func Validate(doc *v3.Document, name string, ids OperationIDs) issue.Report {
 	return report.Normalize()
 }
 
-func requestSchemaSeparationIssues(name string, ops map[verb]foundOp) issue.Report {
+func requestSchemaSeparationIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
+	if p.Existing {
+		return nil // a released payload can be shared by the request and the resource
+	}
 	create, createErr := rootSchemaIdentity(bodyProxy(ops[opCreate].op))
 	update, updateErr := rootSchemaIdentity(bodyProxy(ops[opUpdate].op))
 	resource, resourceErr := rootSchemaIdentity(responseResourceProxy(ops[opGet].op, name))
@@ -121,24 +130,24 @@ func reusedRequestSchemaIssue(location, role, reused string) issue.Issue {
 	}
 }
 
-func requiredDeclarationIssues(name string, ops map[verb]foundOp) issue.Report {
+func requiredDeclarationIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
 	seen := map[*base.Schema]bool{}
 	roots := []struct {
 		location string
 		proxy    *base.SchemaProxy
 	}{
-		{"paths.create." + ops[opCreate].op.OperationId + ".requestBody", bodyProxy(ops[opCreate].op)},
-		{"paths.update." + ops[opUpdate].op.OperationId + ".requestBody", bodyProxy(ops[opUpdate].op)},
+		{"paths.create." + ops[opCreate].op.OperationId + ".requestBody", p.requestBody(ops[opCreate].op)},
+		{"paths.update." + ops[opUpdate].op.OperationId + ".requestBody", p.requestBody(ops[opUpdate].op)},
 		{"components.schemas." + name, responseResourceProxy(ops[opGet].op, name)},
 	}
 	var report issue.Report
 	for _, root := range roots {
-		report = append(report, requiredDeclarationIssuesAt(root.location, root.proxy, seen)...)
+		report = append(report, requiredDeclarationIssuesAt(p, root.location, root.proxy, seen)...)
 	}
 	return report
 }
 
-func requiredDeclarationIssuesAt(location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+func requiredDeclarationIssuesAt(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -149,7 +158,7 @@ func requiredDeclarationIssuesAt(location string, proxy *base.SchemaProxy, seen 
 	seen[schema] = true
 	location = referencedSchemaLocation(proxy, location)
 	var report issue.Report
-	if fixedObject(schema) && (schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()) {
+	if fixedObject(schema) && (schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()) && !p.emptyRequired(referencedComponent(proxy)) {
 		report = append(report, issue.Issue{
 			Code:        "REQUIRED_DECLARATION_MISSING",
 			Location:    location,
@@ -158,18 +167,30 @@ func requiredDeclarationIssuesAt(location string, proxy *base.SchemaProxy, seen 
 		})
 	}
 	for index, inner := range schema.AllOf {
-		report = append(report, requiredDeclarationIssuesAt(fmt.Sprintf("%s.allOf[%d]", location, index), inner, seen)...)
+		report = append(report, requiredDeclarationIssuesAt(p, fmt.Sprintf("%s.allOf[%d]", location, index), inner, seen)...)
 	}
 	for _, field := range propertyNames(schema) {
-		report = append(report, requiredDeclarationIssuesAt(location+"."+field, propertyOf(schema, field), seen)...)
+		report = append(report, requiredDeclarationIssuesAt(p, location+"."+field, propertyOf(schema, field), seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, requiredDeclarationIssuesAt(location+"[]", schema.Items.A, seen)...)
+		report = append(report, requiredDeclarationIssuesAt(p, location+"[]", schema.Items.A, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, requiredDeclarationIssuesAt(location+"{}", schema.AdditionalProperties.A, seen)...)
+		report = append(report, requiredDeclarationIssuesAt(p, location+"{}", schema.AdditionalProperties.A, seen)...)
 	}
 	return report
+}
+
+// referencedComponent returns the component name of a $ref schema, or "".
+func referencedComponent(proxy *base.SchemaProxy) string {
+	if proxy == nil {
+		return ""
+	}
+	name, err := componentName(proxy.GetReference())
+	if err != nil {
+		return ""
+	}
+	return name
 }
 
 func referencedSchemaLocation(proxy *base.SchemaProxy, fallback string) string {
@@ -264,9 +285,9 @@ func requiredParameterIssues(location string, role verb, op foundOp) issue.Repor
 	return report
 }
 
-func validateFieldContracts(name string, ops map[verb]foundOp) issue.Report {
-	create, createErr := schemaOf(bodyProxy(ops[opCreate].op))
-	update, updateErr := schemaOf(bodyProxy(ops[opUpdate].op))
+func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.Report {
+	create, createErr := schemaOf(p.requestBody(ops[opCreate].op))
+	update, updateErr := schemaOf(p.requestBody(ops[opUpdate].op))
 	getProxy := ops[opGet].op
 	_ = getProxy
 	if createErr != nil || updateErr != nil {
@@ -285,7 +306,7 @@ func validateFieldContracts(name string, ops map[verb]foundOp) issue.Report {
 	names = slices.Compact(names)
 	var report issue.Report
 	bodyOnlyID := ""
-	if len(pathParams(ops[opUpdate])) == 0 {
+	if len(pathParams(ops[opUpdate])) == 0 && !p.UpdateIDInBody {
 		if params := pathParams(ops[opGet]); len(params) == 1 {
 			bodyOnlyID = params[0].Name
 		}
@@ -294,14 +315,108 @@ func validateFieldContracts(name string, ops map[verb]foundOp) issue.Report {
 		if field == bodyOnlyID {
 			continue // Build reports the unsupported Update identity contract.
 		}
-		report = append(report, validateFieldContract(name, field, create, update, get)...)
+		report = append(report, validateFieldContract(p, name, field, create, update, get)...)
 	}
-	report = append(report, resourceIDIssues(name, ops, get)...)
+	report = append(report, resourceIDIssues(p, name, ops, get)...)
+	report = append(report, bodyIDIssues(p, ops, create, update)...)
+	report = append(report, skippedIDIssues(p, name, ops)...)
 	report = append(report, rootGroupContractIssues(name, create, update, get)...)
 	return report
 }
 
-func resourceIDIssues(name string, ops map[verb]foundOp, get *base.Schema) issue.Report {
+// bodyIDIssues checks the ids that a behavior-overrides policy says travel in a request body.
+// Without the id property, the generated call sends nothing that names the resource, and the
+// override has no effect. The generator fails closed, so a stale or wrong override is an error.
+func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) issue.Report {
+	params := pathParams(ops[opGet])
+	if len(params) != 1 {
+		return nil // A singleton has no id, and Build reports an unsupported identity shape.
+	}
+	id := params[0].Name
+	var report issue.Report
+	if p.ClientSetID && propertyOf(create, id) == nil {
+		report = append(report, issue.Issue{
+			Code:        "CLIENT_SET_ID_NOT_IN_CREATE",
+			Location:    "paths.create." + ops[opCreate].op.OperationId + ".requestBody",
+			Message:     fmt.Sprintf("The override clientSetID says that the user can choose the id, but the Create body has no %q property.", id),
+			Remediation: "Delete clientSetID from the overrides, or add the id property to the Create body.",
+		})
+	}
+	if p.UpdateIDInBody && propertyOf(update, id) == nil {
+		report = append(report, issue.Issue{
+			Code:        "UPDATE_ID_NOT_IN_BODY",
+			Location:    "paths.update." + ops[opUpdate].op.OperationId + ".requestBody",
+			Message:     fmt.Sprintf("The override updateIDInBody says that Update sends the id in the body, but the Update body has no %q property.", id),
+			Remediation: "Delete updateIDInBody from the overrides, or add the id property to the Update body.",
+		})
+	}
+	return report
+}
+
+// skippedIDIssues reports a skip override on the resource id. Every call after Create names the
+// resource by its id, so a resource without the id attribute cannot read, update, delete, or import.
+func skippedIDIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
+	params := pathParams(ops[opGet])
+	if len(params) != 1 || !p.skips(name, params[0].Name) {
+		return nil
+	}
+	return issue.Report{{
+		Code:        "RESOURCE_ID_SKIPPED",
+		Location:    "components.schemas." + name + "." + params[0].Name,
+		Message:     fmt.Sprintf("The override skips the resource id field %q. Read, Update, Delete, and import need it.", params[0].Name),
+		Remediation: "Delete the skip line of the resource id from the overrides.",
+	}}
+}
+
+// skippedArmIssues reports a skip override on an arm of a oneOf group. Skipping an arm changes
+// what the group means: the remaining arm would become required, or the schema could not be built.
+func skippedArmIssues(p Policy, root *Type) issue.Report {
+	var report issue.Report
+	seen := map[*Type]bool{}
+	var visit func(t *Type)
+	visit = func(t *Type) {
+		if t == nil || seen[t] {
+			return
+		}
+		seen[t] = true
+		visit(t.Elem)
+		if t.Kind != Object && t.Kind != OneOf {
+			return
+		}
+		for _, arm := range oneOfArmNames(t) {
+			if p.skips(t.Schema, arm) {
+				report = append(report, issue.Issue{
+					Code:        "ONEOF_ARM_SKIPPED",
+					Location:    "components.schemas." + t.Schema + "." + arm,
+					Message:     fmt.Sprintf("The override skips %q, an arm of a oneOf group of %s.", arm, t.Schema),
+					Remediation: "Delete the skip line, or skip the parent field of the whole group.",
+				})
+			}
+		}
+		for _, f := range t.Fields {
+			visit(f.Type)
+		}
+	}
+	visit(root)
+	return report
+}
+
+// oneOfArmNames returns the field names that are arms of a oneOf group of the type.
+func oneOfArmNames(t *Type) []string {
+	var arms []string
+	if t.Kind == OneOf {
+		for _, f := range t.Fields {
+			arms = append(arms, f.Name)
+		}
+	}
+	for _, g := range t.Groups {
+		arms = append(arms, g.Arms...)
+	}
+	slices.Sort(arms)
+	return slices.Compact(arms)
+}
+
+func resourceIDIssues(p Policy, name string, ops map[verb]foundOp, get *base.Schema) issue.Report {
 	params := pathParams(ops[opGet])
 	if len(params) != 1 {
 		return nil // Build reports an unsupported resource identity shape.
@@ -313,7 +428,7 @@ func resourceIDIssues(name string, ops map[verb]foundOp, get *base.Schema) issue
 	}
 	location := "components.schemas." + name + "." + id
 	var report issue.Report
-	if !slices.Contains(get.Required, id) {
+	if !slices.Contains(get.Required, id) && !p.ClientSetID {
 		report = append(report, issue.Issue{
 			Code:        "RESOURCE_ID_OPTIONAL",
 			Location:    location,
@@ -370,7 +485,10 @@ func unsupportedIDTypeIssue(location string, t *Type) issue.Issue {
 	return issue.Issue{Code: "RESOURCE_ID_TYPE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The resource ID type %s is not supported.", kind), Remediation: "Use a string, int32, or int64 resource ID."}
 }
 
-func responseWrapperIssues(name string, ops map[verb]foundOp) issue.Report {
+func responseWrapperIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
+	if p.Existing {
+		return nil // a released API can wrap the resource in one response property
+	}
 	var report issue.Report
 	for _, role := range []verb{opCreate, opGet, opUpdate} {
 		op := ops[role]
@@ -399,9 +517,11 @@ func responseWrapperIssues(name string, ops map[verb]foundOp) issue.Report {
 	return report
 }
 
-func validateFieldContract(name, field string, create, update, get *base.Schema) issue.Report {
-	cp := requestContractProperty(create, field)
-	up := requestContractProperty(update, field)
+func validateFieldContract(p Policy, name, field string, create, update, get *base.Schema) issue.Report {
+	cp, up := requestContractProperty(create, field), requestContractProperty(update, field)
+	if p.readOnly(name, field) {
+		cp, up = nil, nil
+	}
 	gp := propertyOf(get, field)
 	location := "components.schemas." + name + "." + field
 	if _, err := Classify(cp != nil, up != nil, gp != nil); err != nil {
@@ -416,26 +536,33 @@ func validateFieldContract(name, field string, create, update, get *base.Schema)
 			Remediation: "Make the field optional in Update, or require it in Create so Terraform always has a value to send.",
 		})
 	}
-	report = append(report, fieldTypeIssues(location, gp, cp, up)...)
-	report = append(report, fieldDefaultContractIssues(location, field, create, update, get, cp, up, gp)...)
-	report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
-	report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
-	report = append(report, nestedPresenceIssues(location+".create", cp, map[*base.Schema]bool{})...)
-	report = append(report, nestedPresenceIssues(location+".update", up, map[*base.Schema]bool{})...)
-	report = append(report, nestedReadOnlyIssues(location+".create", cp, map[*base.Schema]bool{})...)
-	report = append(report, nestedReadOnlyIssues(location+".update", up, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(location+".create", cp, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(location+".update", up, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(location+".get", gp, map[*base.Schema]bool{})...)
+	report = append(report, fieldTypeIssues(p, location, gp, cp, up)...)
+	report = append(report, fieldDefaultContractIssues(p, name, location, field, create, update, get, cp, up, gp)...)
+	// A field with a line in the behavior-overrides file keeps its released behavior, so
+	// the contract need not say whether omission differs from an empty value.
+	if !p.released(name, field) {
+		report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
+		report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
+	}
+	report = append(report, nestedPresenceIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
+	report = append(report, nestedPresenceIssues(p, location+".update", up, map[*base.Schema]bool{})...)
+	report = append(report, nestedReadOnlyIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
+	report = append(report, nestedReadOnlyIssues(p, location+".update", up, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".update", up, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".get", gp, map[*base.Schema]bool{})...)
 	return report
 }
 
-func fieldDefaultContractIssues(location, field string, create, update, get *base.Schema, cp, up, gp *base.SchemaProxy) issue.Report {
+func fieldDefaultContractIssues(p Policy, name, location, field string, create, update, get *base.Schema, cp, up, gp *base.SchemaProxy) issue.Report {
 	var report issue.Report
 	createDefault := schemaDefault(cp)
 	updateDefault := schemaDefault(up)
 	report = append(report, defaultValueIssues(location+".create", cp)...)
 	report = append(report, defaultValueIssues(location+".update", up)...)
+	if p.released(name, field) {
+		return report // a released field keeps its released default; the overrides state it
+	}
 	createOptional := cp != nil && !slices.Contains(create.Required, field)
 	getRequired := gp != nil && slices.Contains(get.Required, field)
 	if createOptional && getRequired && createDefault == nil {
@@ -455,7 +582,7 @@ func fieldDefaultContractIssues(location, field string, create, update, get *bas
 		name  string
 		proxy *base.SchemaProxy
 	}{{"create", cp}, {"update", up}} {
-		report = append(report, nestedDefaultIssues(location+"."+candidate.name, candidate.proxy, true, map[*base.Schema]bool{})...)
+		report = append(report, nestedDefaultIssues(p, location+"."+candidate.name, candidate.proxy, true, map[*base.Schema]bool{})...)
 	}
 	return report
 }
@@ -560,6 +687,10 @@ func defaultNumberLimits(schema *base.Schema, value float64) error {
 	return nil
 }
 
+// permissivePattern is the pattern that the API generator adds to every string. It accepts
+// every value, so it is not a constraint.
+const permissivePattern = `^[\s\S]*$`
+
 func schemaDefault(proxy *base.SchemaProxy) *string {
 	if proxy == nil {
 		return nil
@@ -572,7 +703,7 @@ func schemaDefault(proxy *base.SchemaProxy) *string {
 	return &value
 }
 
-func nestedDefaultIssues(location string, proxy *base.SchemaProxy, root bool, seen map[*base.Schema]bool) issue.Report {
+func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, root bool, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -582,22 +713,22 @@ func nestedDefaultIssues(location string, proxy *base.SchemaProxy, root bool, se
 	}
 	seen[schema] = true
 	var report issue.Report
-	if !root && schema.Default != nil {
+	if !root && schema.Default != nil && !p.Existing {
 		report = append(report, issue.Issue{Code: "NESTED_FIELD_DEFAULT_UNSUPPORTED", Location: location, Message: "A nested request field declares a server default.", Remediation: "Move the defaulted value to a top-level field or wait for nested server-default support."})
 	}
 	for _, name := range propertyNames(schema) {
-		report = append(report, nestedDefaultIssues(location+"."+name, propertyOf(schema, name), false, seen)...)
+		report = append(report, nestedDefaultIssues(p, location+"."+name, propertyOf(schema, name), false, seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, nestedDefaultIssues(location+"[]", schema.Items.A, false, seen)...)
+		report = append(report, nestedDefaultIssues(p, location+"[]", schema.Items.A, false, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, nestedDefaultIssues(location+"{}", schema.AdditionalProperties.A, false, seen)...)
+		report = append(report, nestedDefaultIssues(p, location+"{}", schema.AdditionalProperties.A, false, seen)...)
 	}
 	return report
 }
 
-func unsupportedSchemaIssues(location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -610,17 +741,17 @@ func unsupportedSchemaIssues(location string, proxy *base.SchemaProxy, seen map[
 	if schema.WriteOnly != nil && *schema.WriteOnly {
 		report = append(report, issue.Issue{Code: "FIELD_WRITE_ONLY_UNSUPPORTED", Location: location, Message: "The field is writeOnly, but this generator cannot preserve or rotate a value that the API does not return.", Remediation: "Use a handwritten resource until generic write-only state and version handling is supported."})
 	}
-	if schema.Pattern != "" {
+	if schema.Pattern != "" && schema.Pattern != permissivePattern && !p.Existing {
 		report = append(report, issue.Issue{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field declares the unsupported pattern %q.", schema.Pattern), Remediation: "Remove the pattern or wait for generated regular-expression validation support."})
 	}
 	for _, name := range propertyNames(schema) {
-		report = append(report, unsupportedSchemaIssues(location+"."+name, propertyOf(schema, name), seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"."+name, propertyOf(schema, name), seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, unsupportedSchemaIssues(location+"[]", schema.Items.A, seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"[]", schema.Items.A, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, unsupportedSchemaIssues(location+"{}", schema.AdditionalProperties.A, seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"{}", schema.AdditionalProperties.A, seen)...)
 	}
 	return report
 }
@@ -673,7 +804,7 @@ func rootContractGroups(schema *base.Schema) ([]OneOfGroup, error) {
 	return groups, nil
 }
 
-func nestedReadOnlyIssues(location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -690,28 +821,31 @@ func nestedReadOnlyIssues(location string, proxy *base.SchemaProxy, seen map[*ba
 			continue
 		}
 		childLocation := location + "." + name
+		if p.skips(referencedComponent(proxy), name) {
+			continue // the resource does not manage this field, so it is never sent
+		}
 		if childSchema.ReadOnly != nil && *childSchema.ReadOnly {
 			report = append(report, issue.Issue{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: childLocation, Message: "A nested request field is readOnly and cannot be removed by the current resource renderer.", Remediation: "Use separate request and response schemas so server-only fields are absent from request objects."})
 			continue
 		}
-		report = append(report, nestedReadOnlyIssues(childLocation, child, seen)...)
+		report = append(report, nestedReadOnlyIssues(p, childLocation, child, seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, nestedReadOnlyIssues(location+"[]", schema.Items.A, seen)...)
+		report = append(report, nestedReadOnlyIssues(p, location+"[]", schema.Items.A, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, nestedReadOnlyIssues(location+"{}", schema.AdditionalProperties.A, seen)...)
+		report = append(report, nestedReadOnlyIssues(p, location+"{}", schema.AdditionalProperties.A, seen)...)
 	}
 	return report
 }
 
-func fieldTypeIssues(location string, candidates ...*base.SchemaProxy) issue.Report {
+func fieldTypeIssues(p Policy, location string, candidates ...*base.SchemaProxy) issue.Report {
 	var canonical *Type
 	for _, candidate := range candidates {
 		if candidate == nil {
 			continue
 		}
-		current, err := typeOf(candidate, location, walk{})
+		current, err := typeOf(candidate, location, walk{policy: &p})
 		if err != nil {
 			continue
 		}
@@ -852,7 +986,7 @@ func stringZeroValueValid(schema *base.Schema) bool {
 	return err == nil && re.MatchString(value)
 }
 
-func nestedPresenceIssues(location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+func nestedPresenceIssues(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -869,16 +1003,16 @@ func nestedPresenceIssues(location string, proxy *base.SchemaProxy, seen map[*ba
 		if childErr == nil && childSchema.ReadOnly != nil && *childSchema.ReadOnly {
 			continue
 		}
-		if !grouped[name] {
+		if !grouped[name] && !p.released(referencedComponent(proxy), name) {
 			report = append(report, fieldPresenceIssue(location+"."+name, name, schema, child)...)
 		}
-		report = append(report, nestedPresenceIssues(location+"."+name, child, seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"."+name, child, seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, nestedPresenceIssues(location+"[]", schema.Items.A, seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"[]", schema.Items.A, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, nestedPresenceIssues(location+"{}", schema.AdditionalProperties.A, seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"{}", schema.AdditionalProperties.A, seen)...)
 	}
 	return report
 }

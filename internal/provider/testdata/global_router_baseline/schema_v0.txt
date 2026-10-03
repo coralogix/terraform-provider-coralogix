@@ -1,0 +1,37 @@
+(schema)  version=0
+    markdown: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in alpha stage."
+description  StringAttribute optional
+    description: "Description of the GlobalRouter."
+entity_labels  MapAttribute optional elem=basetypes.StringType
+entity_type  StringAttribute optional computed
+fallback  ListNestedAttribute optional
+    description: "Fallback routing targets."
+fallback[]  NestedObject
+fallback[].connector_id  StringAttribute required
+    description: "ID of the connector."
+fallback[].custom_details  MapAttribute optional elem=basetypes.StringType
+    description: "Custom details for the target."
+fallback[].preset_id  StringAttribute optional
+    description: "ID of the preset."
+id  StringAttribute computed
+    description: "The ID of the GlobalRouter."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+name  StringAttribute required
+    description: "Name of the GlobalRouter."
+rules  ListNestedAttribute optional
+    description: "Routing rules for the GlobalRouter."
+rules[]  NestedObject
+rules[].condition  StringAttribute required
+rules[].custom_details  MapAttribute optional elem=basetypes.StringType
+    description: "Custom details for the rule."
+rules[].name  StringAttribute required
+    description: "Name of the routing rule."
+rules[].targets  ListNestedAttribute optional
+    description: "Routing targets for the rule."
+rules[].targets[]  NestedObject
+rules[].targets[].connector_id  StringAttribute required
+    description: "ID of the connector."
+rules[].targets[].custom_details  MapAttribute optional elem=basetypes.StringType
+    description: "Custom details for the target."
+rules[].targets[].preset_id  StringAttribute optional
+    description: "ID of the preset."

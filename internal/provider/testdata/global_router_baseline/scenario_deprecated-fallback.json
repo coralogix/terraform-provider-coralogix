@@ -1,0 +1,197 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "description": "d",
+      "fallback": [
+        {
+          "connector_id": "c1"
+        },
+        {
+          "connector_id": "c2",
+          "preset_id": "p2"
+        }
+      ],
+      "name": "fb",
+      "routing_labels": {
+        "environment": "fb"
+      }
+    },
+    "validateDiagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"fallback\")] | Use `fallback_targets` instead, which supports per-entity-type fallback."
+    ],
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": [
+        {
+          "connector_id": "c1",
+          "custom_details": "(unknown)",
+          "preset_id": null
+        },
+        {
+          "connector_id": "c2",
+          "custom_details": "(unknown)",
+          "preset_id": "p2"
+        }
+      ],
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "fb",
+      "routing_labels": {
+        "environment": "fb",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "fallback": [
+              {
+                "connectorId": "c1"
+              },
+              {
+                "connectorId": "c2",
+                "presetId": "p2"
+              }
+            ],
+            "name": "fb",
+            "routingLabels": {
+              "environment": "fb"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": [
+        {
+          "connector_id": "c1",
+          "custom_details": null,
+          "preset_id": null
+        },
+        {
+          "connector_id": "c2",
+          "custom_details": null,
+          "preset_id": "p2"
+        }
+      ],
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "fb",
+      "routing_labels": {
+        "environment": "fb",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove fallback",
+    "config": {
+      "description": "d",
+      "name": "fb",
+      "routing_labels": {
+        "environment": "fb"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "fb",
+      "routing_labels": {
+        "environment": "fb",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "fb",
+            "routingLabels": {
+              "environment": "fb"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "fb",
+      "routing_labels": {
+        "environment": "fb",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:02Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "fb",
+      "routing_labels": {
+        "environment": "fb",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:02Z"
+    }
+  }
+]

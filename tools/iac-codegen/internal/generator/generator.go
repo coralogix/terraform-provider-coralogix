@@ -11,6 +11,7 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 	"golang.org/x/tools/go/packages"
@@ -21,6 +22,9 @@ type Options struct {
 	Resource     string
 	OutputDir    string
 	OperationIDs model.OperationIDs
+	// OverridesPath is the behavior-overrides file of a resource that users
+	// already have. "" uses the file in OutputDir, when it exists.
+	OverridesPath string
 }
 
 // CheckOptions selects one resource in a local candidate OpenAPI document.
@@ -28,11 +32,14 @@ type CheckOptions struct {
 	Resource     string
 	OpenAPIPath  string
 	OperationIDs model.OperationIDs
+	// OverridesPath is the behavior-overrides file of a resource that users already have.
+	OverridesPath string
 }
 
 type validatedResource struct {
-	resource *model.Resource
-	refs     []sdkRef
+	resource  *model.Resource
+	refs      []sdkRef
+	overrides *overrides.File // nil for a new resource
 }
 
 // EligibilityError reports all reasons that a resource is not eligible.
@@ -66,7 +73,11 @@ func Check(options CheckOptions) error {
 	if err != nil {
 		return fmt.Errorf("read candidate OpenAPI %s: %w", options.OpenAPIPath, err)
 	}
-	_, err = validateOpenAPI(data, options.Resource, options.OperationIDs, "candidate.invalid/coralogix-management-sdk", source.ProviderModule)
+	file, err := readOverrides(options.OverridesPath)
+	if err != nil {
+		return err
+	}
+	_, err = validateOpenAPIWith(data, options.Resource, options.OperationIDs, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, file)
 	return err
 }
 
@@ -77,7 +88,11 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if err != nil {
 		return err
 	}
-	validated, err := validateOpenAPI(input.OpenAPI, options.Resource, options.OperationIDs, input.SDKModule, input.ProviderModule)
+	file, err := readOverrides(overridesPath(options))
+	if err != nil {
+		return err
+	}
+	validated, err := validateOpenAPIWith(input.OpenAPI, options.Resource, options.OperationIDs, input.SDKModule, input.ProviderModule, file)
 	if err != nil {
 		return err
 	}
@@ -88,11 +103,14 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if report := sdkIssues(validated.refs, loaded, input); len(report) != 0 {
 		return &EligibilityError{Report: report.Normalize()}
 	}
-	files, err := render(validated.resource, validated.refs, pkg)
+	files, err := renderWith(validated.resource, validated.refs, pkg, validated.overrides)
 	if err != nil {
 		return fmt.Errorf("render resource: %w", err)
 	}
 	if err := checkVersionHeaders(files); err != nil {
+		return err
+	}
+	if err := keepOverrides(options, files); err != nil {
 		return err
 	}
 	return publish(options.OutputDir, files)
@@ -116,6 +134,16 @@ func validateOptions(options Options) (string, error) {
 // sdkModule only supplies deterministic expected SDK import names. This function
 // does not load Go packages.
 func validateOpenAPI(data []byte, resourceName string, operationIDs model.OperationIDs, sdkModule, providerModule string) (*validatedResource, error) {
+	return validateOpenAPIWith(data, resourceName, operationIDs, sdkModule, providerModule, nil)
+}
+
+// validateOpenAPIWith is validateOpenAPI for a resource with a behavior-overrides
+// file. file is nil for a new resource.
+func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.OperationIDs, sdkModule, providerModule string, file *overrides.File) (*validatedResource, error) {
+	var policy model.Policy
+	if file != nil {
+		policy = file.Policy()
+	}
 	doc, err := model.Load(data)
 	if err != nil {
 		code := "OPENAPI_INVALID"
@@ -128,10 +156,15 @@ func validateOpenAPI(data []byte, resourceName string, operationIDs model.Operat
 	if len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
-	if report = model.Validate(doc, component, operationIDs); len(report) != 0 {
+	if file != nil {
+		if report = overrideIssues(doc, component, file); len(report) != 0 {
+			return nil, &EligibilityError{Report: report}
+		}
+	}
+	if report = model.ValidateWithPolicy(doc, component, operationIDs, policy); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
-	resource, err := model.BuildWithOperationIDs(doc, component, operationIDs)
+	resource, err := model.BuildWithPolicy(doc, component, operationIDs, policy)
 	if err != nil {
 		return nil, fmt.Errorf("build validated resource: %w", err)
 	}
@@ -143,23 +176,23 @@ func validateOpenAPI(data []byte, resourceName string, operationIDs model.Operat
 	if err != nil {
 		return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", "resource", err, "Use OpenAPI shapes that have deterministic generated Go SDK names and types.")
 	}
-	if report = rendererIssues(resource, refs); len(report) != 0 {
+	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
 	}
-	return &validatedResource{resource: resource, refs: refs}, nil
+	return &validatedResource{resource: resource, refs: refs, overrides: file}, nil
 }
 
 // rendererIssues runs the same builders that generate uses, without rendering
 // or writing files. This keeps candidate checks aligned with generation when a
 // valid model or deterministic SDK shape still cannot become Terraform code.
-func rendererIssues(resource *model.Resource, refs []sdkRef) issue.Report {
+func rendererIssues(resource *model.Resource, refs []sdkRef, file *overrides.File) issue.Report {
 	checks := []struct {
 		location string
 		run      func() error
 	}{
-		{"renderer.schema", func() error { _, err := buildTFResource(resource, "generated"); return err }},
-		{"renderer.conversion", func() error { _, err := buildConv(resource, refs); return err }},
-		{"renderer.crud", func() error { _, err := buildCRUD(resource, refs); return err }},
+		{"renderer.schema", func() error { _, err := buildTFResourceWith(resource, "generated", file); return err }},
+		{"renderer.conversion", func() error { _, err := buildConvWith(resource, refs, file); return err }},
+		{"renderer.crud", func() error { _, err := buildCRUDWith(resource, refs, file); return err }},
 	}
 	var report issue.Report
 	for _, check := range checks {
@@ -175,7 +208,7 @@ func rendererIssues(resource *model.Resource, refs []sdkRef) issue.Report {
 	if len(report) != 0 {
 		return report
 	}
-	if _, err := render(resource, refs, "generated"); err != nil {
+	if _, err := renderWith(resource, refs, "generated", file); err != nil {
 		report = append(report, issue.Issue{
 			Code:        "RENDERER_OUTPUT_INVALID",
 			Location:    "renderer.output",
@@ -223,6 +256,9 @@ func sdkIssues(refs []sdkRef, loaded map[string]*packages.Package, input source.
 
 func checkVersionHeaders(files map[string][]byte) error {
 	for name, data := range files {
+		if filepath.Ext(name) != ".go" {
+			continue
+		}
 		if len(data) < len(version.Header) || string(data[:len(version.Header)]) != version.Header {
 			return fmt.Errorf("render resource: %s lacks generator version header", name)
 		}

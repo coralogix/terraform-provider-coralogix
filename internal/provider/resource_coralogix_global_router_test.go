@@ -51,6 +51,8 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", name),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "disabled", "true"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "fallback_targets.#", "1"),
+					resource.TestCheckResourceAttrSet(globalRouterResourceName, "create_time"),
+					resource.TestCheckResourceAttrSet(globalRouterResourceName, "update_time"),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "fallback_targets.*", map[string]string{
 						"entity_type":         "alerts",
 						"target.connector_id": fmt.Sprintf("http-%v", name),
@@ -107,6 +109,94 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 			},
 		},
 	})
+}
+
+// A router without `description`, and a rule without `entity_type`. The API stores an omitted
+// description as "" and gives the rule the entity type ALERTS, so the attributes are computed.
+// The framework runs a plan after each apply, and it fails when the plan is not empty.
+func TestAccCoralogixResourceGlobalRouterOmittedValues(t *testing.T) {
+	name := uuid.NewString()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceCoralogixGlobalRouterOmittedValues(name, ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(globalRouterResourceName, "description", ""),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "rules.0.entity_type", "alerts"),
+				),
+			},
+			{ResourceName: globalRouterResourceName, ImportState: true, ImportStateVerify: true},
+			{
+				// Setting the description sets it; the rule keeps the entity type that the API chose.
+				Config: testAccResourceCoralogixGlobalRouterOmittedValues(name, "described"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(globalRouterResourceName, "description", "described"),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "rules.0.entity_type", "alerts"),
+				),
+			},
+			{
+				// Removing the line keeps the value; an empty string clears it.
+				Config: testAccResourceCoralogixGlobalRouterOmittedValues(name, `""`),
+				Check:  resource.TestCheckResourceAttr(globalRouterResourceName, "description", ""),
+			},
+		},
+	})
+}
+
+// testAccResourceCoralogixGlobalRouterOmittedValues is a router with one rule and no entity type.
+// description is the HCL value of the description: "" leaves the attribute out, `""` is an empty
+// string, and any other text is a string.
+func testAccResourceCoralogixGlobalRouterOmittedValues(name, description string) string {
+	line := ""
+	switch description {
+	case "":
+	case `""`:
+		line = `description = ""`
+	default:
+		line = fmt.Sprintf("description = %q", description)
+	}
+	return fmt.Sprintf(`
+    resource "coralogix_connector" "generic_https_example" {
+      id               = "http-%[1]v"
+      name             = "http-%[1]v"
+      type             = "generic_https"
+      description      = "generic-https connector example"
+      connector_config = {
+        fields = [
+          {
+            field_name = "url"
+            value      = "https://api.staging.coralogix.net/mgmt/testing/tools/httpbin/post"
+          },
+          {
+            field_name = "method"
+            value      = "post"
+          }
+        ]
+      }
+    }
+
+    resource "coralogix_global_router" "example" {
+      name     = "%[1]v"
+      disabled = true
+      %[2]s
+      routing_labels = {
+        environment = "%[1]v"
+      }
+      rules = [
+        {
+          name      = "rule-name"
+          condition = "alertDef.priority == \"P1\""
+          targets = [
+            {
+              connector_id = coralogix_connector.generic_https_example.id
+            }
+          ]
+        }
+      ]
+    }
+  `, name, line)
 }
 
 func testAccResourceCoralogixGlobalRouter(name string) string {

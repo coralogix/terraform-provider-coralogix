@@ -1,0 +1,130 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "description": "d",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone"
+      }
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "name": "gone",
+            "routingLabels": {
+              "environment": "gone"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: router was deleted outside Terraform",
+    "config": {
+      "description": "changed",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "changed",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "changed",
+            "disabled": false,
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "gone",
+            "routingLabels": {
+              "environment": "gone"
+            }
+          }
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during update | The API did not find global_router with id 00000000-0000-4000-8000-000000000001. Terraform removed it from state.",
+      "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "routing_labels": {
+        "environment": "gone",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    }
+  }
+]

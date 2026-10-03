@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
 var renamePath = os.Rename
@@ -46,7 +48,7 @@ func stageOutput(parent, output string, files map[string][]byte) (string, error)
 	}
 	slices.Sort(names)
 	for _, name := range names {
-		if filepath.Base(name) != name || filepath.Ext(name) != ".go" {
+		if filepath.Base(name) != name || filepath.Ext(name) != ".go" && name != overrides.FileName {
 			_ = os.RemoveAll(stage)
 			return "", fmt.Errorf("invalid generated file name %q", name)
 		}
@@ -107,6 +109,9 @@ func checkOwned(path string) error {
 		return fmt.Errorf("output %s exists but is not generator-owned", path)
 	}
 	for _, entry := range entries {
+		if entry.Name() == overrides.FileName && !entry.IsDir() {
+			continue // the one file that people write; publish keeps it
+		}
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".go" || strings.Contains(entry.Name(), string(filepath.Separator)) {
 			return fmt.Errorf("output %s is not generator-owned: unexpected entry %s", path, entry.Name())
 		}

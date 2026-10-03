@@ -1,0 +1,5910 @@
+[
+  {
+    "step": "create for description",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr0",
+      "routing_labels": {
+        "environment": "dr0"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr0",
+      "routing_labels": {
+        "environment": "dr0",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr0",
+            "routingLabels": {
+              "environment": "dr0"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "dr0",
+      "routing_labels": {
+        "environment": "dr0",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:01Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after description changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "changed",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "dr0",
+      "routing_labels": {
+        "environment": "dr0",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:01Z"
+    },
+    "drift": [
+      "AttributeName(\"description\")"
+    ]
+  },
+  {
+    "step": "plan the same config after description",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr0",
+      "routing_labels": {
+        "environment": "dr0"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "dr0",
+      "routing_labels": {
+        "environment": "dr0",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "dr0",
+            "routingLabels": {
+              "environment": "dr0"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "dr0",
+      "routing_labels": {
+        "environment": "dr0",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:02Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for disabled",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr1",
+      "routing_labels": {
+        "environment": "dr1"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr1",
+      "routing_labels": {
+        "environment": "dr1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr1",
+            "routingLabels": {
+              "environment": "dr1"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:03Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000006",
+      "name": "dr1",
+      "routing_labels": {
+        "environment": "dr1",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:03Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after disabled changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000006",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:03Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000006",
+      "name": "dr1",
+      "routing_labels": {
+        "environment": "dr1",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:03Z"
+    },
+    "drift": [
+      "AttributeName(\"disabled\")"
+    ]
+  },
+  {
+    "step": "plan the same config after disabled",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr1",
+      "routing_labels": {
+        "environment": "dr1"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:03Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000006",
+      "name": "dr1",
+      "routing_labels": {
+        "environment": "dr1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000006",
+            "name": "dr1",
+            "routingLabels": {
+              "environment": "dr1"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:03Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000006",
+      "name": "dr1",
+      "routing_labels": {
+        "environment": "dr1",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:04Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for entity_labels",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr2",
+      "routing_labels": {
+        "environment": "dr2"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr2",
+      "routing_labels": {
+        "environment": "dr2",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr2",
+            "routingLabels": {
+              "environment": "dr2"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:05Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000011",
+      "name": "dr2",
+      "routing_labels": {
+        "environment": "dr2",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:05Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after entity_labels changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000011",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:05Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "z": "1"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000011",
+      "name": "dr2",
+      "routing_labels": {
+        "environment": "dr2",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:05Z"
+    },
+    "drift": [
+      "AttributeName(\"entity_labels\").ElementKeyString(\"a\")",
+      "AttributeName(\"entity_labels\").ElementKeyString(\"z\")"
+    ]
+  },
+  {
+    "step": "plan the same config after entity_labels",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr2",
+      "routing_labels": {
+        "environment": "dr2"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:05Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000011",
+      "name": "dr2",
+      "routing_labels": {
+        "environment": "dr2",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000011",
+            "name": "dr2",
+            "routingLabels": {
+              "environment": "dr2"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:05Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000011",
+      "name": "dr2",
+      "routing_labels": {
+        "environment": "dr2",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:06Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for routing label",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr3",
+      "routing_labels": {
+        "environment": "dr3"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr3",
+      "routing_labels": {
+        "environment": "dr3",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr3",
+            "routingLabels": {
+              "environment": "dr3"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:07Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000016",
+      "name": "dr3",
+      "routing_labels": {
+        "environment": "dr3",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:07Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after routing label changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000016",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:07Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000016",
+      "name": "dr3",
+      "routing_labels": {
+        "environment": "other",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:07Z"
+    },
+    "drift": [
+      "AttributeName(\"routing_labels\").AttributeName(\"environment\")"
+    ]
+  },
+  {
+    "step": "plan the same config after routing label",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr3",
+      "routing_labels": {
+        "environment": "dr3"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:07Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000016",
+      "name": "dr3",
+      "routing_labels": {
+        "environment": "dr3",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000016",
+            "name": "dr3",
+            "routingLabels": {
+              "environment": "dr3"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:07Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000016",
+      "name": "dr3",
+      "routing_labels": {
+        "environment": "dr3",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:08Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for rule name",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr4",
+      "routing_labels": {
+        "environment": "dr4"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr4",
+      "routing_labels": {
+        "environment": "dr4",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr4",
+            "routingLabels": {
+              "environment": "dr4"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:09Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000021",
+      "name": "dr4",
+      "routing_labels": {
+        "environment": "dr4",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:09Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after rule name changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000021",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:09Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000021",
+      "name": "dr4",
+      "routing_labels": {
+        "environment": "dr4",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "renamed",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:09Z"
+    },
+    "drift": [
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"name\")"
+    ]
+  },
+  {
+    "step": "plan the same config after rule name",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr4",
+      "routing_labels": {
+        "environment": "dr4"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:09Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000021",
+      "name": "dr4",
+      "routing_labels": {
+        "environment": "dr4",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000021",
+            "name": "dr4",
+            "routingLabels": {
+              "environment": "dr4"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:09Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000021",
+      "name": "dr4",
+      "routing_labels": {
+        "environment": "dr4",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:10Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for rule condition",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr5",
+      "routing_labels": {
+        "environment": "dr5"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr5",
+      "routing_labels": {
+        "environment": "dr5",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr5",
+            "routingLabels": {
+              "environment": "dr5"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:11Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000026",
+      "name": "dr5",
+      "routing_labels": {
+        "environment": "dr5",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:11Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after rule condition changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000026",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:11Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000026",
+      "name": "dr5",
+      "routing_labels": {
+        "environment": "dr5",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "false",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:11Z"
+    },
+    "drift": [
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"condition\")"
+    ]
+  },
+  {
+    "step": "plan the same config after rule condition",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr5",
+      "routing_labels": {
+        "environment": "dr5"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:11Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000026",
+      "name": "dr5",
+      "routing_labels": {
+        "environment": "dr5",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000026",
+            "name": "dr5",
+            "routingLabels": {
+              "environment": "dr5"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:11Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000026",
+      "name": "dr5",
+      "routing_labels": {
+        "environment": "dr5",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:12Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for rule entity type",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr6",
+      "routing_labels": {
+        "environment": "dr6"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr6",
+      "routing_labels": {
+        "environment": "dr6",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr6",
+            "routingLabels": {
+              "environment": "dr6"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:13Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000031",
+      "name": "dr6",
+      "routing_labels": {
+        "environment": "dr6",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:13Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after rule entity type changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000031",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:13Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000031",
+      "name": "dr6",
+      "routing_labels": {
+        "environment": "dr6",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:13Z"
+    },
+    "drift": [
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"entity_type\")"
+    ]
+  },
+  {
+    "step": "plan the same config after rule entity type",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr6",
+      "routing_labels": {
+        "environment": "dr6"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:13Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000031",
+      "name": "dr6",
+      "routing_labels": {
+        "environment": "dr6",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000031",
+            "name": "dr6",
+            "routingLabels": {
+              "environment": "dr6"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:13Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000031",
+      "name": "dr6",
+      "routing_labels": {
+        "environment": "dr6",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:14Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for rule custom_details",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr7",
+      "routing_labels": {
+        "environment": "dr7"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr7",
+      "routing_labels": {
+        "environment": "dr7",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr7",
+            "routingLabels": {
+              "environment": "dr7"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:15Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000036",
+      "name": "dr7",
+      "routing_labels": {
+        "environment": "dr7",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:15Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after rule custom_details changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000036",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:15Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000036",
+      "name": "dr7",
+      "routing_labels": {
+        "environment": "dr7",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "n": "m"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:15Z"
+    },
+    "drift": [
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\").ElementKeyString(\"k\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\").ElementKeyString(\"n\")"
+    ]
+  },
+  {
+    "step": "plan the same config after rule custom_details",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr7",
+      "routing_labels": {
+        "environment": "dr7"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:15Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000036",
+      "name": "dr7",
+      "routing_labels": {
+        "environment": "dr7",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000036",
+            "name": "dr7",
+            "routingLabels": {
+              "environment": "dr7"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:15Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000036",
+      "name": "dr7",
+      "routing_labels": {
+        "environment": "dr7",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:16Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for rule removed",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr8",
+      "routing_labels": {
+        "environment": "dr8"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr8",
+      "routing_labels": {
+        "environment": "dr8",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr8",
+            "routingLabels": {
+              "environment": "dr8"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:17Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000041",
+      "name": "dr8",
+      "routing_labels": {
+        "environment": "dr8",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:17Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after rule removed changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000041",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:17Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000041",
+      "name": "dr8",
+      "routing_labels": {
+        "environment": "dr8",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:17Z"
+    },
+    "drift": [
+      "AttributeName(\"rules\")",
+      "AttributeName(\"rules\").ElementKeyInt(0)",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"condition\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"custom_details\").ElementKeyString(\"k\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"entity_type\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"name\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0)",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"connector_id\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\").ElementKeyString(\"x\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"preset_id\")"
+    ]
+  },
+  {
+    "step": "plan the same config after rule removed",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr8",
+      "routing_labels": {
+        "environment": "dr8"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:17Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000041",
+      "name": "dr8",
+      "routing_labels": {
+        "environment": "dr8",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000041",
+            "name": "dr8",
+            "routingLabels": {
+              "environment": "dr8"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:17Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000041",
+      "name": "dr8",
+      "routing_labels": {
+        "environment": "dr8",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:18Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for target preset",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr9",
+      "routing_labels": {
+        "environment": "dr9"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr9",
+      "routing_labels": {
+        "environment": "dr9",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr9",
+            "routingLabels": {
+              "environment": "dr9"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:19Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000046",
+      "name": "dr9",
+      "routing_labels": {
+        "environment": "dr9",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:19Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after target preset changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000046",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:19Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000046",
+      "name": "dr9",
+      "routing_labels": {
+        "environment": "dr9",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "k": "y"
+              },
+              "preset_id": "p-new"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:19Z"
+    },
+    "drift": [
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\").ElementKeyString(\"k\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\").ElementKeyString(\"x\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"preset_id\")"
+    ]
+  },
+  {
+    "step": "plan the same config after target preset",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr9",
+      "routing_labels": {
+        "environment": "dr9"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:19Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000046",
+      "name": "dr9",
+      "routing_labels": {
+        "environment": "dr9",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000046",
+            "name": "dr9",
+            "routingLabels": {
+              "environment": "dr9"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:19Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000046",
+      "name": "dr9",
+      "routing_labels": {
+        "environment": "dr9",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:20Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for target custom_details",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr10",
+      "routing_labels": {
+        "environment": "dr10"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr10",
+      "routing_labels": {
+        "environment": "dr10",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr10",
+            "routingLabels": {
+              "environment": "dr10"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:21Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000052",
+      "name": "dr10",
+      "routing_labels": {
+        "environment": "dr10",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:21Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after target custom_details changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000052",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:21Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000052",
+      "name": "dr10",
+      "routing_labels": {
+        "environment": "dr10",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {},
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:21Z"
+    },
+    "drift": [
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\")",
+      "AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"custom_details\").ElementKeyString(\"x\")"
+    ]
+  },
+  {
+    "step": "plan the same config after target custom_details",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr10",
+      "routing_labels": {
+        "environment": "dr10"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:21Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000052",
+      "name": "dr10",
+      "routing_labels": {
+        "environment": "dr10",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000052",
+            "name": "dr10",
+            "routingLabels": {
+              "environment": "dr10"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:21Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000052",
+      "name": "dr10",
+      "routing_labels": {
+        "environment": "dr10",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:22Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for fallback added",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr11",
+      "routing_labels": {
+        "environment": "dr11"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr11",
+      "routing_labels": {
+        "environment": "dr11",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr11",
+            "routingLabels": {
+              "environment": "dr11"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:23Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000058",
+      "name": "dr11",
+      "routing_labels": {
+        "environment": "dr11",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:23Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after fallback added changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000058",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:23Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": [
+        {
+          "connector_id": "c5",
+          "custom_details": {},
+          "preset_id": null
+        }
+      ],
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000058",
+      "name": "dr11",
+      "routing_labels": {
+        "environment": "dr11",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:23Z"
+    },
+    "drift": [
+      "AttributeName(\"fallback\")",
+      "AttributeName(\"fallback\").ElementKeyInt(0)",
+      "AttributeName(\"fallback_targets\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0)",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"entity_type\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\").AttributeName(\"connector_id\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\").AttributeName(\"custom_details\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\").AttributeName(\"preset_id\")"
+    ]
+  },
+  {
+    "step": "plan the same config after fallback added",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr11",
+      "routing_labels": {
+        "environment": "dr11"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:23Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000058",
+      "name": "dr11",
+      "routing_labels": {
+        "environment": "dr11",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000058",
+            "name": "dr11",
+            "routingLabels": {
+              "environment": "dr11"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:23Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000058",
+      "name": "dr11",
+      "routing_labels": {
+        "environment": "dr11",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:24Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for fallback_targets entity type",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr12",
+      "routing_labels": {
+        "environment": "dr12"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr12",
+      "routing_labels": {
+        "environment": "dr12",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr12",
+            "routingLabels": {
+              "environment": "dr12"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:25Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000064",
+      "name": "dr12",
+      "routing_labels": {
+        "environment": "dr12",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:25Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after fallback_targets entity type changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000064",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:25Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": {},
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000064",
+      "name": "dr12",
+      "routing_labels": {
+        "environment": "dr12",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:25Z"
+    },
+    "drift": [
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"entity_type\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\").AttributeName(\"custom_details\")"
+    ]
+  },
+  {
+    "step": "plan the same config after fallback_targets entity type",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr12",
+      "routing_labels": {
+        "environment": "dr12"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:25Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000064",
+      "name": "dr12",
+      "routing_labels": {
+        "environment": "dr12",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000064",
+            "name": "dr12",
+            "routingLabels": {
+              "environment": "dr12"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:25Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000064",
+      "name": "dr12",
+      "routing_labels": {
+        "environment": "dr12",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:26Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create for fallback_targets removed",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr13",
+      "routing_labels": {
+        "environment": "dr13"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "dr13",
+      "routing_labels": {
+        "environment": "dr13",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "name": "dr13",
+            "routingLabels": {
+              "environment": "dr13"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:27Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000069",
+      "name": "dr13",
+      "routing_labels": {
+        "environment": "dr13",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:27Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after fallback_targets removed changed",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000069",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:27Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000069",
+      "name": "dr13",
+      "routing_labels": {
+        "environment": "dr13",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:27Z"
+    },
+    "drift": [
+      "AttributeName(\"fallback_targets\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0)",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"entity_type\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\").AttributeName(\"connector_id\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\").AttributeName(\"custom_details\")",
+      "AttributeName(\"fallback_targets\").ElementKeyInt(0).AttributeName(\"target\").AttributeName(\"preset_id\")"
+    ]
+  },
+  {
+    "step": "plan the same config after fallback_targets removed",
+    "config": {
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9"
+          }
+        }
+      ],
+      "name": "dr13",
+      "routing_labels": {
+        "environment": "dr13"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:27Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000069",
+      "name": "dr13",
+      "routing_labels": {
+        "environment": "dr13",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": true,
+            "entityLabels": {
+              "a": "b"
+            },
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c9"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000069",
+            "name": "dr13",
+            "routingLabels": {
+              "environment": "dr13"
+            },
+            "rules": [
+              {
+                "condition": "true",
+                "customDetails": {
+                  "k": "v"
+                },
+                "entityType": "ALERTS",
+                "name": "r",
+                "targets": [
+                  {
+                    "connectorId": "c1",
+                    "customDetails": {
+                      "x": "y"
+                    },
+                    "presetId": "p"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:27Z",
+      "description": "d",
+      "disabled": true,
+      "entity_labels": {
+        "a": "b"
+      },
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c9",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000069",
+      "name": "dr13",
+      "routing_labels": {
+        "environment": "dr13",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {
+            "k": "v"
+          },
+          "entity_type": "alerts",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {
+                "x": "y"
+              },
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:28Z"
+    },
+    "replanEmpty": true
+  }
+]
