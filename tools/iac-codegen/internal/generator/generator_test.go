@@ -30,8 +30,8 @@ func TestGoldenOutputExistingResource(t *testing.T) {
 	}
 	input, loadDir := syntheticInput(t)
 	input.OpenAPI = spec
-	out := filepath.Join(t.TempDir(), "legacything")
-	options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml"), AcceptancePath: filepath.Join("testdata", "legacy-acceptance.yaml")}
+	out := legacyOutputWithAcceptance(t)
+	options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml")}
 	if err := generateFromInput(options, input, loadDir); err != nil {
 		t.Fatal(err)
 	}

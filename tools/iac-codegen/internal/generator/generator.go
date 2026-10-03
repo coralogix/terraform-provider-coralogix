@@ -128,6 +128,9 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if err != nil {
 		return err
 	}
+	if err := checkUpgradeLocation(options, accFile); err != nil {
+		return err
+	}
 	prior, err := readUpgrade(options.OutputDir)
 	if err != nil {
 		return err

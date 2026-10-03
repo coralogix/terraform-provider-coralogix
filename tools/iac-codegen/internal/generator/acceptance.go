@@ -683,6 +683,23 @@ func renderAcceptance(data *acceptanceData) ([]byte, error) {
 	return formatGenerated("acceptance_test.go", []byte(buf.String()))
 }
 
+// checkUpgradeLocation requires the acceptance file of an upgrade test in the output directory. The
+// upgrade attributes file sits next to it, so check and generate read the same list.
+func checkUpgradeLocation(options Options, file *acceptance.File) error {
+	if file == nil || file.UpgradeFrom == "" {
+		return nil
+	}
+	same, err := sameDirectory(filepath.Dir(acceptancePath(options)), options.OutputDir)
+	if err != nil {
+		return err
+	}
+	if !same {
+		return fmt.Errorf("the acceptance file has upgradeFrom, so it must be in the output directory %s: %s sits next to it",
+			options.OutputDir, acceptance.UpgradeFileName)
+	}
+	return nil
+}
+
 // readUpgrade reads the upgrade attributes file in dir. It returns nil when there is none.
 func readUpgrade(dir string) (*acceptance.UpgradeAttributes, error) {
 	if dir == "" {
