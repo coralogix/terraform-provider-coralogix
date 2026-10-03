@@ -543,3 +543,48 @@ func TestUpgradeAcceptanceFileMustBeInTheOutput(t *testing.T) {
 		t.Fatalf("err = %v, want the acceptance file in the output directory", err)
 	}
 }
+
+// A nested field in minimal brings its optional parents, with only their required fields.
+func TestAcceptanceMinimalIncludesParentsOfNestedFields(t *testing.T) {
+	attrs := []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "rules", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
+			{Name: "name", Kind: "String", Required: true},
+			{Name: "kind", Kind: "String", Optional: true},
+			{Name: "targets", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
+				{Name: "connector_id", Kind: "String", Required: true},
+			}},
+		}},
+	}
+	s := testSynth(t, "minimal:\n  - rules[].targets\n")
+	body, _, err := s.attrs(attrs, "", "", accMinimal, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"rules = [", "targets = [", "connector_id = "} {
+		if !strings.Contains(body, want) {
+			t.Errorf("minimal config lacks %q:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "kind") {
+		t.Errorf("minimal config sets an optional field that is not listed:\n%s", body)
+	}
+}
+
+// nextAction compares only top-level attributes, so RequiresReplace below them stops generation.
+func TestAcceptanceRejectsNestedRequiresReplace(t *testing.T) {
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "rules", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
+			{Name: "region", Kind: "String", Required: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}},
+		}},
+	}}
+	file, err := acceptance.Parse([]byte("resource: Thing\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = buildAcceptance(res, "example.com/provider", file, nil)
+	if err == nil || !strings.Contains(err.Error(), `"rules[].region" has RequiresReplace below the top level`) {
+		t.Fatalf("err = %v, want nested RequiresReplace rejected", err)
+	}
+}
