@@ -1,0 +1,93 @@
+openapi: 3.0.3
+info:
+  title: Synthetic settings API
+  version: 1.0.0
+paths:
+  /settings:
+    post:
+      tags: [Settings Service]
+      operationId: SettingsService_CreateSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateSettingsRequest
+              type: object
+              required: [retentionDays]
+              properties:
+                retentionDays:
+                  type: integer
+                  format: int32
+                  minimum: 1
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+    get:
+      tags: [Settings Service]
+      operationId: SettingsService_GetSettings
+      responses:
+        '200':
+          description: Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+    patch:
+      tags: [Settings Service]
+      operationId: SettingsService_UpdateSettings
+      parameters:
+        - name: updateMask
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-z][A-Za-z0-9]*(,[a-z][A-Za-z0-9]*)*$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: UpdateSettingsRequest
+              type: object
+              required: []
+              properties:
+                retentionDays:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                  x-coralogix-presence: true
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+    delete:
+      tags: [Settings Service]
+      operationId: SettingsService_DeleteSettings
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteSettingsResponse'
+components:
+  schemas:
+    Settings:
+      type: object
+      required: [retentionDays]
+      properties:
+        retentionDays:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Days to keep data.
+    DeleteSettingsResponse:
+      type: object

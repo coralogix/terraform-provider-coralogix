@@ -1203,3 +1203,54 @@ func copyTree(from, to string) error {
 		return os.WriteFile(target, data, 0o644)
 	})
 }
+
+func TestSingletonGeneration(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "settings")
+	if err := generateFromInput(Options{Resource: "settings", OutputDir: out}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(schema), "stringdefault.StaticString(TypeName)") || strings.Contains(string(schema), "UseStateForUnknown") {
+		t.Fatalf("singleton id must have a static default and no plan modifier:\n%s", schema)
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resource), "SettingsServiceGetSettings(ctx).Execute()") {
+		t.Fatalf("singleton Get must have no id argument:\n%s", resource)
+	}
+	semantics := `package settings
+
+import (
+	"context"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+)
+
+func TestSingletonIDIsStatic(t *testing.T) {
+	id, ok := Schema().Attributes["id"].(schema.StringAttribute)
+	if !ok || !id.Computed || id.Optional || id.Default == nil {
+		t.Fatalf("id attribute = %#v, want computed-only with a default", Schema().Attributes["id"])
+	}
+	if TypeName != "settings" {
+		t.Fatalf("TypeName = %q", TypeName)
+	}
+	_ = context.Background()
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "singleton_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
