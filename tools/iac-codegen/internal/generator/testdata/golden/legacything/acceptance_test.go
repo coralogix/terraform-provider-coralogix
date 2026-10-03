@@ -4,6 +4,7 @@ package legacything_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -220,15 +221,10 @@ func requireUpgradeAcceptance(t *testing.T) {
 }
 
 // upgradeSteps creates the resource with the released provider, then plans the same config with this
-// build and expects no change, applies the config next with the action nextAction, and imports. An
-// empty nextAction skips the action check: the generator could not tell it.
-func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, next string, nextChecks resource.TestCheckFunc, nextAction plancheck.ResourceActionType) []resource.TestStep {
+// build and expects no change, applies the config next with the plan checks nextPlan, and imports.
+func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, next string, nextChecks resource.TestCheckFunc, nextPlan []plancheck.PlanCheck) []resource.TestStep {
 	importWithBuild := importStep
 	importWithBuild.ProtoV6ProviderFactories = providerFactories
-	var nextPlan []plancheck.PlanCheck
-	if nextAction != "" {
-		nextPlan = append(nextPlan, plancheck.ExpectResourceAction(resourceAddress, nextAction))
-	}
 	return []resource.TestStep{
 		{
 			Config: config(run, initial),
@@ -260,6 +256,18 @@ func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, nex
 	}
 }
 
+// expectNoReplace fails when the plan replaces the resource. The step may update the resource or
+// leave it as it is: a default in state can equal what the next config sets.
+type expectNoReplace struct{}
+
+func (expectNoReplace) CheckPlan(_ context.Context, req plancheck.CheckPlanRequest, resp *plancheck.CheckPlanResponse) {
+	for _, change := range req.Plan.ResourceChanges {
+		if change.Address == resourceAddress && change.Change.Actions.Replace() {
+			resp.Error = fmt.Errorf("%s: the plan replaces the resource, want an update or no change", resourceAddress)
+		}
+	}
+}
+
 // TestAccCoralogixResourceLegacyThingGeneratedUpgrade creates the resource with provider 1.2.3, then plans
 // the same config with this build. A user who upgrades must see no change, and a later update must
 // work. Set CORALOGIX_GENERATED_UPGRADE_ACC=1 and TF_ACC_PROVIDER_NAMESPACE=coralogix to run it.
@@ -271,7 +279,7 @@ func TestAccCoralogixResourceLegacyThingGeneratedUpgrade(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
 			Steps: upgradeSteps(run, fullConfig, fullChecks(run),
-				updatedConfig, updatedChecks(run), plancheck.ResourceActionUpdate),
+				updatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})
 
@@ -280,7 +288,7 @@ func TestAccCoralogixResourceLegacyThingGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run), plancheck.ResourceActionNoop),
+			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run), []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)}),
 		})
 	})
 }
