@@ -207,19 +207,29 @@ func newRequired(schema map[string]*tfAttr, released map[string]bool, from strin
 	return nil
 }
 
-// nextAction is the plan action of a step from one config to the next: no-op for the same config,
-// replace when a top-level immutable attribute is added, removed, or changed, and update otherwise.
+// The plan actions that nextAction returns, as Go expressions. accActionUnknown skips the check.
+const (
+	accActionNoop    = "plancheck.ResourceActionNoop"
+	accActionUpdate  = "plancheck.ResourceActionUpdate"
+	accActionReplace = "plancheck.ResourceActionReplace"
+	accActionUnknown = `""`
+)
+
+// nextAction is the plan action of a step from one config to the next. It compares the top-level
+// attributes one by one: replace when an immutable one differs; update when a mutable one differs;
+// no-op when none differs. An attribute that the first config leaves out and the next config sets
+// to its known default does not differ, because the state already holds the default. When the
+// first config leaves out an Optional+Computed attribute without a known default, the state holds
+// what the API returned, and the action cannot be known: accActionUnknown.
 // s.minimal and s.released must be those of the first config. The next config has every attribute.
 func (s *accSynth) nextAction(attrs []*tfAttr, from, to *accStep, fromMode, toMode accMode) (string, error) {
 	if from.Config == to.Config {
-		return "plancheck.ResourceActionNoop", nil
+		return accActionNoop, nil
 	}
 	released := s.released
 	defer func() { s.released = released }()
+	action := accActionNoop
 	for _, a := range attrs {
-		if !immutable(a) {
-			continue
-		}
 		s.released = released
 		before, _, err := s.attrs([]*tfAttr{a}, "", "", fromMode, true)
 		if err != nil {
@@ -230,11 +240,47 @@ func (s *accSynth) nextAction(attrs []*tfAttr, from, to *accStep, fromMode, toMo
 		if err != nil {
 			return "", err
 		}
-		if before != after {
-			return "plancheck.ResourceActionReplace", nil
+		change := attrChange(a, before, after)
+		switch {
+		case change == accActionNoop:
+			continue
+		case immutable(a):
+			return accActionReplace, nil
+		case change == accActionUpdate:
+			action = accActionUpdate
+		case action == accActionNoop:
+			action = accActionUnknown
 		}
 	}
-	return "plancheck.ResourceActionUpdate", nil
+	return action, nil
+}
+
+// attrChange is the action that one top-level attribute causes, from its config lines ("" when a
+// config leaves it out). A left-out Computed attribute holds its known default, or what the API
+// returned when no default is known.
+func attrChange(a *tfAttr, before, after string) string {
+	if before == after {
+		return accActionNoop
+	}
+	if (before != "" && after != "") || !a.Computed {
+		return accActionUpdate
+	}
+	def, ok := defaultState(a)
+	if !ok {
+		return accActionUnknown
+	}
+	if line := a.Name + " = " + hclLiteral(a, def); before == line || after == line {
+		return accActionNoop
+	}
+	return accActionUpdate
+}
+
+// hclLiteral is the HCL of a state value of a scalar attribute.
+func hclLiteral(a *tfAttr, value string) string {
+	if a.Kind == "String" {
+		return strconv.Quote(value)
+	}
+	return value
 }
 
 // checkFile fails when the acceptance file names a field that the walk did not see, or a value

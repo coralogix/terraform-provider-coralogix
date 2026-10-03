@@ -220,10 +220,15 @@ func requireUpgradeAcceptance(t *testing.T) {
 }
 
 // upgradeSteps creates the resource with the released provider, then plans the same config with this
-// build and expects no change, applies the config next with the action nextAction, and imports.
+// build and expects no change, applies the config next with the action nextAction, and imports. An
+// empty nextAction skips the action check: the generator could not tell it.
 func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, next string, nextChecks resource.TestCheckFunc, nextAction plancheck.ResourceActionType) []resource.TestStep {
 	importWithBuild := importStep
 	importWithBuild.ProtoV6ProviderFactories = providerFactories
+	var nextPlan []plancheck.PlanCheck
+	if nextAction != "" {
+		nextPlan = append(nextPlan, plancheck.ExpectResourceAction(resourceAddress, nextAction))
+	}
 	return []resource.TestStep{
 		{
 			Config: config(run, initial),
@@ -246,7 +251,7 @@ func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, nex
 			Config:                   config(run, next),
 			ProtoV6ProviderFactories: providerFactories,
 			ConfigPlanChecks: resource.ConfigPlanChecks{
-				PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, nextAction)},
+				PreApply:             nextPlan,
 				PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 			},
 			Check: nextChecks,
