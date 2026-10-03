@@ -1230,7 +1230,9 @@ func enumZero(values []*yaml.Node) (string, error) {
 var topLevelMaskEntry = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 // UpdateMaskRule returns the check for one mask path and whether the API
-// accepts dotted paths. Validation and rendering use this one decision.
+// accepts dotted paths. Validation and rendering use this one decision. The
+// pattern describes the whole query value, and the generated code joins the
+// changed paths with commas, so the pattern must accept a list such as a,b.
 func UpdateMaskRule(pattern string) (valid func(string) bool, leaf bool, err error) {
 	if pattern == "" {
 		return topLevelMaskEntry.MatchString, false, nil
@@ -1239,8 +1241,8 @@ func UpdateMaskRule(pattern string) (valid func(string) bool, leaf bool, err err
 	if err != nil {
 		return nil, false, fmt.Errorf("update mask pattern %q: %w", pattern, err)
 	}
-	if !re.MatchString("a") || re.MatchString("*") {
-		return nil, false, fmt.Errorf("update mask pattern %q must accept a field name and reject *", pattern)
+	if !re.MatchString("a") || !re.MatchString("a,b") || re.MatchString("*") {
+		return nil, false, fmt.Errorf("update mask pattern %q must accept a field name and a comma-separated list of names, and reject *", pattern)
 	}
 	return re.MatchString, re.MatchString("a.b"), nil
 }

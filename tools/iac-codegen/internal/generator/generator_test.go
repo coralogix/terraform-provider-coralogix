@@ -216,8 +216,8 @@ func TestContractGapsUseSharedFailClosedValidation(t *testing.T) {
 		},
 		"top-level mask for nested oneOf": {
 			spec: strings.Replace(base,
-				"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$'",
-				"pattern: '^[a-z][A-Za-z0-9]*$'", 1),
+				"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
+				"pattern: '^[a-z][A-Za-z0-9]*(,[a-z][A-Za-z0-9]*)*$'", 1),
 			code: "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
 		},
 	}
@@ -1047,14 +1047,15 @@ func TestFullReplaceGeneration(t *testing.T) {
 }
 
 func TestMaskPatternContract(t *testing.T) {
-	valid, leaf, err := maskRule(`^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*$`)
+	valid, leaf, err := maskRule(`^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*)*$`)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !leaf || !valid("object.field") || valid("*") {
 		t.Fatalf("mask rule returned leaf=%t object.field=%t *=%t", leaf, valid("object.field"), valid("*"))
 	}
-	for _, bad := range []string{`^.*$`, `[`} {
+	// The single-path pattern rejects the comma list that a two-field update sends.
+	for _, bad := range []string{`^.*$`, `[`, `^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*$`} {
 		if _, _, err := maskRule(bad); err == nil {
 			t.Errorf("maskRule(%q) accepted an unsafe pattern", bad)
 		}

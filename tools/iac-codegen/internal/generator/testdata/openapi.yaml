@@ -75,7 +75,7 @@ paths:
           required: true
           schema:
             type: string
-            pattern: '^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*$'
+            pattern: '^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)*)*$'
       requestBody:
         required: true
         content:
