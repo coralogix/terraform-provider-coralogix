@@ -25,6 +25,9 @@ type Options struct {
 	// OverridesPath is the behavior-overrides file of a resource that users
 	// already have. "" uses the file in OutputDir, when it exists.
 	OverridesPath string
+	// AcceptancePath is the acceptance file. "" uses the file in OutputDir, when it exists. With a
+	// file, the generator also writes acceptance_test.go.
+	AcceptancePath string
 }
 
 // CheckOptions selects one resource in a local candidate OpenAPI document.
@@ -34,6 +37,9 @@ type CheckOptions struct {
 	OperationIDs model.OperationIDs
 	// OverridesPath is the behavior-overrides file of a resource that users already have.
 	OverridesPath string
+	// AcceptancePath is the acceptance file. With it, Check also builds and renders the
+	// acceptance test, as Generate does.
+	AcceptancePath string
 }
 
 type validatedResource struct {
@@ -77,8 +83,23 @@ func Check(options CheckOptions) error {
 	if err != nil {
 		return err
 	}
-	_, err = validateOpenAPIWith(data, options.Resource, options.OperationIDs, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, file)
-	return err
+	validated, err := validateOpenAPIWith(data, options.Resource, options.OperationIDs, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, file)
+	if err != nil {
+		return err
+	}
+	acc, err := readAcceptance(Options{Resource: options.Resource, AcceptancePath: options.AcceptancePath})
+	if err != nil || acc == nil {
+		return err
+	}
+	prior, err := readUpgrade(filepath.Dir(options.AcceptancePath))
+	if err != nil {
+		return err
+	}
+	if _, err := renderAll(validated.resource, validated.refs, "generated", validated.overrides, acc, prior, source.ProviderModule); err != nil {
+		return eligibilityIssue("ACCEPTANCE_INVALID", "renderer.acceptance", err,
+			"Fix the acceptance file, or set the value that the test cannot make up.")
+	}
+	return nil
 }
 
 // generateFromInput is the internal test seam for synthetic OpenAPI and a
@@ -103,7 +124,18 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if report := sdkIssues(validated.refs, loaded, input); len(report) != 0 {
 		return &EligibilityError{Report: report.Normalize()}
 	}
-	files, err := renderWith(validated.resource, validated.refs, pkg, validated.overrides)
+	accFile, err := readAcceptance(options)
+	if err != nil {
+		return err
+	}
+	if err := checkUpgradeLocation(options, accFile); err != nil {
+		return err
+	}
+	prior, err := readUpgrade(options.OutputDir)
+	if err != nil {
+		return err
+	}
+	files, err := renderAll(validated.resource, validated.refs, pkg, validated.overrides, accFile, prior, input.ProviderModule)
 	if err != nil {
 		return fmt.Errorf("render resource: %w", err)
 	}
@@ -111,6 +143,9 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 		return err
 	}
 	if err := keepOverrides(options, files); err != nil {
+		return err
+	}
+	if err := keepAcceptance(options, files); err != nil {
 		return err
 	}
 	return publish(options.OutputDir, files)

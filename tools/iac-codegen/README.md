@@ -101,18 +101,46 @@ Existing mode does not keep the prior form of an empty value. `flatten` and the 
 
 A resource in this mode exports `Flatten` for a handwritten data source. A frozen prior schema stays in its own package.
 
+## Acceptance tests
+
+With an `acceptance.yaml` in the output directory, `generate` also writes `acceptance_test.go`: an external test package (`<package>_test`) that runs against a real tenant. It serves the provider through `provider.MuxServer`, the SDKv2 and the framework providers behind one mux as in the binary, so a prerequisite can be any resource of the provider. It needs no helper from the provider tests. Without the file, the generator writes no test. `--acceptance <file>` names another file. `check --acceptance <file>` builds and renders the same test without writing it, so a wrong file fails before the SDK exists.
+
+```yaml
+resource: GlobalRouter          # must match --resource
+env: [SLACK_INTEGRATION_ID]     # variables the config reads; the test stops if one is missing
+prerequisites: |                # HCL that goes before the resource; @{run} and @{env.NAME} work
+  resource "coralogix_connector" "http" { id = "@{run}-http" ... }
+values:                         # an HCL expression for a field, instead of a made-up value
+  rules[].targets[].connector_id: coralogix_connector.http.id
+skip: [fallback]                # fields that no config sets (a deprecated field, for example)
+minimal: [routing_labels]       # optional fields that the minimal config must set
+upgradeMinimal: [description]    # optional fields the released provider needs to create the resource (needs upgradeFrom)
+upgradeFrom: "3.19.0"           # a released provider for the upgrade test
+```
+
+The test makes its configs from the final schema, after the behavior overrides. Each lifecycle is a subtest on its own resource, so a failure in one does not hide the others:
+
+- `full-lifecycle`: the full config sets every attribute the user can set, and the test checks each value. Then an import step compares the imported state with the state (`ImportStateVerify`). The update config changes the strings, numbers, and bools. An immutable attribute and an enum keep their values, because the valid values of other fields can depend on an enum. Then another import.
+- `minimal-lifecycle`: the minimal config sets only the required attributes, and the ones listed in `minimal`. Optional attributes that the server does not fill must leave the state. Then an import, the full config, and the minimal config again.
+
+After every apply, the framework plans again and fails on a non-empty plan. The made-up values are: the first accepted value of an enum (not `unspecified`), `true` and `false`, `1` and `2` (or the start of a range validator and the next number), and `@{run}-<attribute>` for a string (cut or padded with `x` to fit a length validator). One arm of each `oneOf` group is set. A made-up collection has one element, made by the same rules and the validators of the elements. The generator fails on a kind of attribute it cannot make, or on a collection whose size validator rejects one element, and asks for a value in `acceptance.yaml`. A path in `values`, `skip`, or `minimal` that matches no attribute is an error. A nested path in `minimal` (or `upgradeMinimal`) also sets its optional parents, with only their required fields. A required attribute in `skip` is an error too: no config can leave it out. After the minimal config removes an `Optional` and `Computed` attribute, the test checks the value that the schema states: a static or server default, or, with `UseStateForUnknown`, the value of the full config. Without one, the API decides, and only the empty plan and the import check it. A `values` path names the attributes from the resource down, with `[]` for each list or set element: `rules[].targets[].connector_id`.
+
+With `upgradeFrom`, a second test has two subtests. `upgrade-full` creates the full config with that released provider, plans it with this build (no change expected), applies the updated config, and imports. The apply checks the plan action only where it is sure: no change for the same config, and replace when a top-level immutable attribute surely differs. Otherwise the plan must not replace the resource, and may update it or not, because a default or an API value in state can equal what the next config sets; the value checks after the apply catch a missing update. When an immutable `Optional` and `Computed` attribute without a known default is left out of the first config, the test checks no action and keeps the empty-plan check. The released provider rejects an attribute that it does not have, so the generator writes `upgrade-attributes.yaml` next to the test and the acceptance file, which must then sit in the output directory, so that `check` and `generate` read the same list: every attribute path of the schema (nested ones and every `oneOf` arm included), with its type and requiredness, when `upgradeFrom` is first set or changes. It keeps the file on later runs. The first config of each upgrade subtest leaves out every attribute that the release does not have in the same type, so a field added or retyped after the release is still tested by the normal lifecycle. It sets every attribute that the release requires, even one that is optional now. No config works with both providers when a new attribute is required, or when a required attribute of the release is gone or retyped, inside an object that the release has: that is an error. Set `upgradeFrom` to the latest release when you change it, because the list comes from the schema of that moment. `upgrade-minimal` does the same from the minimal config plus the fields in `upgradeMinimal`, and updates to the full config. Set `CORALOGIX_GENERATED_UPGRADE_ACC=1` and `TF_ACC_PROVIDER_NAMESPACE=coralogix` to run it, for every generated resource at once (`make testacc-generated-upgrade`). It is skipped otherwise. The `provider-migration` job of the acceptance workflow runs every test whose name ends in `GeneratedUpgrade`, so a new generated resource needs no workflow change.
+
+Not covered: a check that the resource is gone after destroy, a oneOf group among the top-level fields, and checks on the elements of a set.
+
 ## Versioned output
 
 Every generated Go file starts with this header:
 
 ```go
-// Code generated by coralogix-iac-codegen v0.1.0-beta.2. DO NOT EDIT.
+// Code generated by coralogix-iac-codegen v0.1.0-beta.3. DO NOT EDIT.
 ```
 
 Find files affected by this generator version with:
 
 ```sh
-rg 'Code generated by coralogix-iac-codegen v0\.1\.0-beta\.2' .
+rg 'Code generated by coralogix-iac-codegen v0\.1\.0-beta\.3' .
 ```
 
 During beta, increment the beta identifier for each generator behavior change. After beta, use a patch version for fixes, a minor version for new supported behavior, and a major version for incompatible output changes.

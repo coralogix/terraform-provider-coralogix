@@ -1,0 +1,17 @@
+# The acceptance file of the synthetic legacy resource. It uses every key of the file.
+resource: LegacyThing
+env: [LEGACY_TOKEN]
+prerequisites: |
+  resource "coralogix_other" "dependency" {
+    name  = "@{run}-dependency"
+    token = "@{env.LEGACY_TOKEN}"
+  }
+values:
+  rules[].targets[].connector_id: coralogix_other.dependency.id
+skip:
+  - labels.env
+minimal:
+  - labels
+upgradeMinimal:
+  - rules
+upgradeFrom: "1.2.3"

@@ -43,6 +43,7 @@ func runGenerate(args []string) int {
 	resource := set.String("resource", "", "OpenAPI component name of the complete resource")
 	out := set.String("out", "", "generator-owned output directory")
 	overridesFile := set.String("overrides", "", "behavior-overrides file of a resource that users already have (default: the file in --out)")
+	acceptanceFile := set.String("acceptance", "", "acceptance file; with it the generator also writes acceptance_test.go (default: the file in --out)")
 	operations := addOperationFlags(set)
 	if err := set.Parse(args); err != nil {
 		return 2
@@ -57,10 +58,11 @@ func runGenerate(args []string) int {
 		return 1
 	}
 	err = generator.Generate(cwd, generator.Options{
-		Resource:      *resource,
-		OutputDir:     *out,
-		OperationIDs:  operations.ids(),
-		OverridesPath: *overridesFile,
+		Resource:       *resource,
+		OutputDir:      *out,
+		OperationIDs:   operations.ids(),
+		OverridesPath:  *overridesFile,
+		AcceptancePath: *acceptanceFile,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "tfgen: %s\n", err)
@@ -75,6 +77,7 @@ func runCheck(args []string) int {
 	resource := set.String("resource", "", "OpenAPI component name of the complete resource")
 	openAPI := set.String("openapi", "", "local candidate OpenAPI file")
 	overridesFile := set.String("overrides", "", "behavior-overrides file of a resource that users already have")
+	acceptanceFile := set.String("acceptance", "", "acceptance file; with it the check also builds the acceptance test")
 	operations := addOperationFlags(set)
 	if err := set.Parse(args); err != nil {
 		return 2
@@ -84,10 +87,11 @@ func runCheck(args []string) int {
 		return 2
 	}
 	if err := generator.Check(generator.CheckOptions{
-		Resource:      *resource,
-		OpenAPIPath:   *openAPI,
-		OperationIDs:  operations.ids(),
-		OverridesPath: *overridesFile,
+		Resource:       *resource,
+		OpenAPIPath:    *openAPI,
+		OperationIDs:   operations.ids(),
+		OverridesPath:  *overridesFile,
+		AcceptancePath: *acceptanceFile,
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "tfgen: %s\n", err)
 		return 1
@@ -116,7 +120,7 @@ func (f operationFlags) ids() model.OperationIDs {
 }
 
 func printUsage() {
-	fmt.Fprintln(os.Stderr, "usage: tfgen generate --resource <resource_name> --out <generated_output_directory> [--overrides <file>]")
+	fmt.Fprintln(os.Stderr, "usage: tfgen generate --resource <resource_name> --out <generated_output_directory> [--overrides <file>] [--acceptance <file>]")
 	fmt.Fprintln(os.Stderr, "       tfgen check --resource <resource_name> --openapi <candidate_openapi_file> [--overrides <file>]")
 	fmt.Fprintln(os.Stderr, "       tfgen --version")
 }

@@ -3,6 +3,7 @@
 #### tools/iac-codegen
 - FEAT: Add the fail-closed beta generator and local candidate eligibility checks for complete Terraform Plugin Framework resources.
 - FEAT: Add existing-resource mode. A `behavior-overrides.yaml` file lists where a released resource differs from the API contract, and the generator keeps that behavior. A line that matches nothing in the contract is an error.
+- FEAT: Generate an acceptance test (`acceptance_test.go`) from an `acceptance.yaml` file. It creates, imports, updates, and sets the minimal config of the resource, and can test the upgrade from a released provider.
 
 #### resource/coralogix_global_router
 - CHORE: The resource is generated from the API contract. The schema, the docs text, and the behavior are unchanged, except for the changes below.

@@ -32,6 +32,9 @@ env:
   DASHBOARD_MIGRATION_SCHEMA_V3_PATTERN: &dashboard_migration_schema_v3_pattern '^TestAccCoralogixResourceDashboardMigrationFromSchemaV3$'
   EVENTS2METRIC_MIGRATION_ACC_PATTERN: &events2metric_migration_acc_pattern '^TestAccCoralogixResourceEvents2MetricMigration$'
   USER_MIGRATION_ACC_PATTERN: &user_migration_acc_pattern '^TestAccCoralogixResourceUserMigration'
+  GLOBAL_ROUTER_MIGRATION_ACC_PATTERN: &global_router_migration_acc_pattern '^TestAccCoralogixResourceGlobalRouterMigration$'
+  # Every generated resource has a test whose name ends in GeneratedUpgrade. One shard runs them all.
+  GENERATED_UPGRADE_ACC_PATTERN: &generated_upgrade_acc_pattern 'GeneratedUpgrade$'
   DASHBOARD_SHARD_STRUCTURED_LINE_AND_TABLE: &dashboard_shard_structured_line_and_table '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/line-and-table$'
   DASHBOARD_SHARD_STRUCTURED_GAUGE_AND_BARS: &dashboard_shard_structured_gauge_and_bars '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/gauge-and-bars$'
   DASHBOARD_SHARD_STRUCTURED_HORIZONTAL_AND_HEXAGON: &dashboard_shard_structured_horizontal_and_hexagon '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/horizontal-and-hexagon$'
@@ -244,6 +247,10 @@ jobs:
             pattern: *events2metric_migration_acc_pattern
           - shard: user-scim-v3.14.0
             pattern: *user_migration_acc_pattern
+          - shard: global-router-v3.19.0
+            pattern: *global_router_migration_acc_pattern
+          - shard: generated-upgrade
+            pattern: *generated_upgrade_acc_pattern
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -260,7 +267,7 @@ jobs:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
-          CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -run '${{ matrix.pattern }}' -v -count=1 -timeout 120m -parallel=3
+          CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -v -count=1 -timeout 120m -parallel=3
 
   notify-failure:
     name: Notify Slack on failure
