@@ -3,33 +3,33 @@
 # every other attribute. The generator takes the list from the schema when upgradeFrom changes.
 from: 3.19.0
 attributes:
-    - create_time
-    - description
-    - disabled
-    - entity_labels
-    - fallback
-    - fallback[].connector_id
-    - fallback[].custom_details
-    - fallback[].preset_id
-    - fallback_targets
-    - fallback_targets[].entity_type
-    - fallback_targets[].target
-    - fallback_targets[].target.connector_id
-    - fallback_targets[].target.custom_details
-    - fallback_targets[].target.preset_id
-    - id
-    - name
-    - routing_labels
-    - routing_labels.environment
-    - routing_labels.service
-    - routing_labels.team
-    - rules
-    - rules[].condition
-    - rules[].custom_details
-    - rules[].entity_type
-    - rules[].name
-    - rules[].targets
-    - rules[].targets[].connector_id
-    - rules[].targets[].custom_details
-    - rules[].targets[].preset_id
-    - update_time
+    create_time: {type: String}
+    description: {type: String}
+    disabled: {type: Bool}
+    entity_labels: {type: Map(String)}
+    fallback: {type: ListNested}
+    fallback[].connector_id: {type: String, required: true}
+    fallback[].custom_details: {type: Map(String)}
+    fallback[].preset_id: {type: String}
+    fallback_targets: {type: ListNested}
+    fallback_targets[].entity_type: {type: String, required: true}
+    fallback_targets[].target: {type: SingleNested, required: true}
+    fallback_targets[].target.connector_id: {type: String, required: true}
+    fallback_targets[].target.custom_details: {type: Map(String)}
+    fallback_targets[].target.preset_id: {type: String}
+    id: {type: String}
+    name: {type: String, required: true}
+    routing_labels: {type: SingleNested}
+    routing_labels.environment: {type: String}
+    routing_labels.service: {type: String}
+    routing_labels.team: {type: String}
+    rules: {type: ListNested}
+    rules[].condition: {type: String, required: true}
+    rules[].custom_details: {type: Map(String)}
+    rules[].entity_type: {type: String}
+    rules[].name: {type: String, required: true}
+    rules[].targets: {type: ListNested}
+    rules[].targets[].connector_id: {type: String, required: true}
+    rules[].targets[].custom_details: {type: Map(String)}
+    rules[].targets[].preset_id: {type: String}
+    update_time: {type: String}

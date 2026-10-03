@@ -143,12 +143,22 @@ func (s *accSynth) upgradeSteps(out *acceptanceData, attrs []*tfAttr, resourceTy
 	schemaAttrs(schema, "", attrs)
 	if prior == nil || prior.From != s.file.UpgradeFrom {
 		// The list is new, or upgradeFrom changed: the schema of now is the schema of the release.
-		prior = &acceptance.UpgradeAttributes{From: s.file.UpgradeFrom, Attributes: slices.Sorted(maps.Keys(schema))}
+		prior = &acceptance.UpgradeAttributes{From: s.file.UpgradeFrom, Attributes: map[string]acceptance.UpgradeAttribute{}}
+		for path, a := range schema {
+			prior.Attributes[path] = upgradeAttribute(a)
+		}
 	}
 	out.UpgradeAttributes = prior
+	// The release has an attribute when it has the path in the same type. A newer attribute, or one
+	// whose type changed, is left out of the first config.
 	released := map[string]bool{}
-	for _, path := range prior.Attributes {
-		released[path] = true
+	for path, old := range prior.Attributes {
+		if a, ok := schema[path]; ok && upgradeAttribute(a).Type == old.Type {
+			released[path] = true
+		}
+	}
+	if err := lostRequired(prior, released); err != nil {
+		return err
 	}
 	if err := newRequired(schema, released, prior.From); err != nil {
 		return err
@@ -191,14 +201,42 @@ func schemaAttrs(out map[string]*tfAttr, key string, attrs []*tfAttr) {
 	}
 }
 
+// upgradeAttribute is the shape of an attribute in the upgrade attributes file.
+func upgradeAttribute(a *tfAttr) acceptance.UpgradeAttribute {
+	kind := a.Kind
+	if a.ElementType != "" {
+		kind += "(" + strings.TrimSuffix(strings.TrimPrefix(a.ElementType, "types."), "Type") + ")"
+	}
+	return acceptance.UpgradeAttribute{Type: kind, Required: a.Required}
+}
+
+// parentPath is the path of the object that holds the attribute, or "" at the top level.
+func parentPath(path string) string {
+	if i := strings.LastIndex(path, "."); i >= 0 {
+		return strings.TrimSuffix(path[:i], "[]")
+	}
+	return ""
+}
+
+// lostRequired fails on an attribute that the released provider requires inside an object that
+// the first config sets, when this build no longer has it in the same type: no config works with
+// both providers.
+func lostRequired(prior *acceptance.UpgradeAttributes, released map[string]bool) error {
+	for _, path := range slices.Sorted(maps.Keys(prior.Attributes)) {
+		parent := parentPath(path)
+		if prior.Attributes[path].Required && !released[path] && (parent == "" || released[parent]) {
+			return fmt.Errorf("%q is required by the released provider %s, but this build removed it or changed its type: "+
+				"no config works with both; set upgradeFrom to a newer release", path, prior.From)
+		}
+	}
+	return nil
+}
+
 // newRequired fails on a required attribute that the released provider does not have, inside an
 // object that it has. The first config would leave it out, and this build would reject that config.
 func newRequired(schema map[string]*tfAttr, released map[string]bool, from string) error {
 	for _, path := range slices.Sorted(maps.Keys(schema)) {
-		parent := ""
-		if i := strings.LastIndex(path, "."); i >= 0 {
-			parent = strings.TrimSuffix(path[:i], "[]")
-		}
+		parent := parentPath(path)
 		if schema[path].Required && !released[path] && (parent == "" || released[parent]) {
 			return fmt.Errorf("%q is required but the released provider %s does not have it: no config works with both; "+
 				"set upgradeFrom to a release that has it", path, from)

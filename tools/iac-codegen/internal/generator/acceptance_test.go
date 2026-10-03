@@ -2,9 +2,9 @@ package generator
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -391,9 +391,12 @@ func candidate(t *testing.T, dir string, spec []byte) string {
 	return path
 }
 
-// The upgrade test sends the released provider only the attributes in the upgrade attributes
-// file, nested ones and oneOf arms included. This build gets every attribute.
-func TestAcceptanceUpgradeLeavesOutNewAttributes(t *testing.T) {
+// upgradeFixture is a resource with nested fields and a oneOf, and a builder of its acceptance
+// data for an upgrade attributes file. shapes returns the attributes of a release that has the
+// paths, in the types of now.
+func upgradeFixture(t *testing.T) (shapes func(...string) map[string]acceptance.UpgradeAttribute,
+	build func(string, map[string]acceptance.UpgradeAttribute) (*acceptanceData, error)) {
+	t.Helper()
 	arm := func(name, child string) *tfAttr {
 		return &tfAttr{Name: name, Kind: "SingleNested", Optional: true, OneOfGroup: "http,queue",
 			Attributes: []*tfAttr{{Name: child, Kind: "String", Required: true}}}
@@ -411,11 +414,26 @@ func TestAcceptanceUpgradeLeavesOutNewAttributes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	released := []string{"name", "rules", "rules[].name", "delivery", "delivery.queue", "delivery.queue.topic"}
-	build := func(from string, attrs []string) (*acceptanceData, error) {
+	schema := map[string]*tfAttr{}
+	schemaAttrs(schema, "", res.Attributes)
+	shapes = func(paths ...string) map[string]acceptance.UpgradeAttribute {
+		out := map[string]acceptance.UpgradeAttribute{}
+		for _, path := range paths {
+			out[path] = upgradeAttribute(schema[path])
+		}
+		return out
+	}
+	build = func(from string, attrs map[string]acceptance.UpgradeAttribute) (*acceptanceData, error) {
 		return buildAcceptance(res, "example.com/provider", file, &acceptance.UpgradeAttributes{From: from, Attributes: attrs})
 	}
+	return shapes, build
+}
 
+// The upgrade test sends the released provider only the attributes in the upgrade attributes
+// file, nested ones and oneOf arms included. This build gets every attribute.
+func TestAcceptanceUpgradeLeavesOutNewAttributes(t *testing.T) {
+	shapes, build := upgradeFixture(t)
+	released := shapes("name", "rules", "rules[].name", "delivery", "delivery.queue", "delivery.queue.topic")
 	data, err := build("1.0.0", released)
 	if err != nil {
 		t.Fatal(err)
@@ -434,14 +452,8 @@ func TestAcceptanceUpgradeLeavesOutNewAttributes(t *testing.T) {
 	if !strings.Contains(data.UpgradeFull.Config, "queue") {
 		t.Errorf("upgrade config should take the oneOf arm that the released provider has:\n%s", data.UpgradeFull.Config)
 	}
-	if !slices.Equal(data.UpgradeAttributes.Attributes, released) {
+	if !maps.Equal(data.UpgradeAttributes.Attributes, released) {
 		t.Errorf("attributes = %v, want the kept list %v", data.UpgradeAttributes.Attributes, released)
-	}
-
-	// A new required attribute inside an object that the release has: no config works with both.
-	_, err = build("1.0.0", []string{"name", "rules", "delivery"})
-	if err == nil || !strings.Contains(err.Error(), `"rules[].name" is required`) {
-		t.Fatalf("err = %v, want a new required attribute", err)
 	}
 
 	// A new upgradeFrom takes the list from the schema again.
@@ -451,6 +463,35 @@ func TestAcceptanceUpgradeLeavesOutNewAttributes(t *testing.T) {
 	}
 	if data.UpgradeFull != nil || data.UpgradeAttributes.From != "1.0.0" || len(data.UpgradeAttributes.Attributes) != 10 {
 		t.Fatalf("upgrade attributes = %+v, want every attribute of the schema for 1.0.0", data.UpgradeAttributes)
+	}
+}
+
+// An attribute whose type changed since the release is left out like a new one. A required one
+// stops generation: no config works with both providers.
+func TestAcceptanceUpgradeComparesTypes(t *testing.T) {
+	shapes, build := upgradeFixture(t)
+	changed := shapes("name", "labels")
+	changed["labels"] = acceptance.UpgradeAttribute{Type: "String"} // a string in the release, a map now
+	data, err := build("1.0.0", changed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data.UpgradeFull == nil || strings.Contains(data.UpgradeFull.Config, "labels") {
+		t.Errorf("upgrade config should leave out labels, whose type changed:\n%v", data.UpgradeFull)
+	}
+	for name, test := range map[string]struct {
+		attrs map[string]acceptance.UpgradeAttribute
+		want  string
+	}{
+		"a new required attribute": {shapes("name", "rules", "delivery"), `"rules[].name" is required but the released provider`},
+		"a required attribute is gone": {map[string]acceptance.UpgradeAttribute{
+			"name": {Type: "String", Required: true}, "owner": {Type: "String", Required: true}}, `"owner" is required by the released provider`},
+		"a required attribute's new type": {map[string]acceptance.UpgradeAttribute{
+			"name": {Type: "Int64", Required: true}}, `"name" is required by the released provider`},
+	} {
+		if _, err := build("1.0.0", test.attrs); err == nil || !strings.Contains(err.Error(), test.want) {
+			t.Errorf("%s: err = %v, want %q", name, err, test.want)
+		}
 	}
 }
 
@@ -473,7 +514,7 @@ func TestGenerateKeepsTheUpgradeAttributes(t *testing.T) {
 		t.Fatal(err)
 	}
 	// As if the release had no labels: the next run must keep the list and leave labels out.
-	older := strings.Replace(string(data), "    - labels\n", "", 1)
+	older := strings.Replace(string(data), "    labels: {type: SingleNested}\n", "", 1)
 	if older == string(data) {
 		t.Fatal("no change")
 	}
