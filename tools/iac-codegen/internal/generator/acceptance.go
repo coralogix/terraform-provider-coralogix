@@ -80,9 +80,11 @@ type accSynth struct {
 	// required are the attribute paths that the walk saw as Required.
 	required map[string]bool
 	// released are the attributes that the released provider of the upgrade test has. When it is
-	// not nil, the walk leaves out every other attribute.
+	// not nil, the walk leaves out every other attribute, and sets every one in releasedRequired.
 	released map[string]bool
-	used     map[string]bool // every value path that a config used
+	// releasedRequired are the attributes that the released provider requires.
+	releasedRequired map[string]bool
+	used             map[string]bool // every value path that a config used
 }
 
 var quoted = regexp.MustCompile(`"([^"]*)"`)
@@ -149,22 +151,15 @@ func (s *accSynth) upgradeSteps(out *acceptanceData, attrs []*tfAttr, resourceTy
 		}
 	}
 	out.UpgradeAttributes = prior
-	// The release has an attribute when it has the path in the same type. A newer attribute, or one
-	// whose type changed, is left out of the first config.
-	released := map[string]bool{}
-	for path, old := range prior.Attributes {
-		if a, ok := schema[path]; ok && upgradeAttribute(a).Type == old.Type {
-			released[path] = true
-		}
-	}
+	released, releasedRequired := releasedAttrs(prior, schema)
 	if err := lostRequired(prior, released); err != nil {
 		return err
 	}
 	if err := newRequired(schema, released, prior.From); err != nil {
 		return err
 	}
-	defer func() { s.released, s.minimal = nil, s.file.Minimal }()
-	s.released = released
+	defer func() { s.released, s.releasedRequired, s.minimal = nil, nil, s.file.Minimal }()
+	s.released, s.releasedRequired = released, releasedRequired
 	body, checks, err := s.attrs(attrs, "", "", accFull, true)
 	if err != nil {
 		return err
@@ -199,6 +194,20 @@ func schemaAttrs(out map[string]*tfAttr, key string, attrs []*tfAttr) {
 		}
 		schemaAttrs(out, child, a.Attributes)
 	}
+}
+
+// releasedAttrs returns the attributes that the release has: the paths that it has in the same
+// type. A newer attribute, or one whose type changed, is left out of the first config. required are
+// those that the release requires.
+func releasedAttrs(prior *acceptance.UpgradeAttributes, schema map[string]*tfAttr) (released, required map[string]bool) {
+	released, required = map[string]bool{}, map[string]bool{}
+	for path, old := range prior.Attributes {
+		if a, ok := schema[path]; ok && upgradeAttribute(a).Type == old.Type {
+			released[path] = true
+			required[path] = old.Required
+		}
+	}
+	return released, required
 }
 
 // upgradeAttribute is the shape of an attribute in the upgrade attributes file.
@@ -384,6 +393,8 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 		return false // the released provider does not have it
 	case !a.Required && !a.Optional:
 		return false // the server sets it
+	case s.released != nil && s.releasedRequired[key]:
+		return true // the released provider requires it, even when this build does not
 	case top && a.Name == s.idAttr && !a.Required:
 		return false // the server makes the id; a changed id would replace the resource
 	case a.Required:
