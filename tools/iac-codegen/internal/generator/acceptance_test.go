@@ -479,6 +479,18 @@ func TestAcceptanceUpgradeComparesTypes(t *testing.T) {
 	if data.UpgradeFull == nil || strings.Contains(data.UpgradeFull.Config, "labels") {
 		t.Errorf("upgrade config should leave out labels, whose type changed:\n%v", data.UpgradeFull)
 	}
+
+	// rules was required in the release and is optional now: the released provider still needs it.
+	relaxed := shapes("name", "rules", "rules[].name")
+	relaxed["rules"] = acceptance.UpgradeAttribute{Type: "ListNested", Required: true}
+	data, err = build("1.0.0", relaxed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(data.Minimal.Config, "rules") || !strings.Contains(data.UpgradeMinimal.Config, "rules = [") {
+		t.Errorf("only the minimal config for the release should set rules:\nminimal:\n%s\nupgrade minimal:\n%s",
+			data.Minimal.Config, data.UpgradeMinimal.Config)
+	}
 	for name, test := range map[string]struct {
 		attrs map[string]acceptance.UpgradeAttribute
 		want  string
