@@ -55,10 +55,32 @@ func TestTerraformNameKeepsAcronymsTogether(t *testing.T) {
 		"HTTPServer":  "http_server",
 		"httpServer":  "http_server",
 		"sqlReadOnly": "sql_read_only",
+		"foo-bar":     "foo_bar",
+		"foo.bar":     "foo_bar",
+		"1st":         "_1st",
+		"_private":    "_private",
+		"café":        "caf_",
 	} {
 		if got := TerraformName(input); got != want {
 			t.Errorf("TerraformName(%q) = %q, want %q", input, got, want)
 		}
+	}
+}
+
+func TestSeparatorTerraformNameCollisionIsIneligible(t *testing.T) {
+	doc := loadComponent(t, `
+    Collision:
+      type: object
+      properties:
+        foo-bar: {type: string}
+        foo_bar: {type: string}
+`)
+	typeValue, problems := Survey(doc, "Collision")
+	if len(problems) != 0 {
+		t.Fatal(problems)
+	}
+	if codes := reportCodes(nameCollisions("components.schemas.Collision", typeValue)); !slices.Contains(codes, "TERRAFORM_NAME_COLLISION") {
+		t.Fatalf("codes %v do not contain TERRAFORM_NAME_COLLISION", codes)
 	}
 }
 
