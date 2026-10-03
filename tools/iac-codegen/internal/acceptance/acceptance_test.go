@@ -72,21 +72,29 @@ func TestHCLBraceSyntaxIsNotAPlaceholder(t *testing.T) {
 }
 
 func TestUpgradeAttributesRoundTrip(t *testing.T) {
-	in := &UpgradeAttributes{From: "3.19.0", Attributes: []string{"rules[].name", "name"}}
+	in := &UpgradeAttributes{From: "3.19.0", Attributes: map[string]UpgradeAttribute{
+		"rules[].name": {Type: "String", Required: true},
+		"name":         {Type: "String"},
+	}}
 	data, err := in.Marshal()
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "    name: {type: String}\n    rules[].name: {type: String, required: true}\n") {
+		t.Fatalf("file = %s, want one sorted line per attribute", data)
 	}
 	out, err := ParseUpgrade(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.From != "3.19.0" || strings.Join(out.Attributes, ",") != "name,rules[].name" {
-		t.Fatalf("read back %+v, want the sorted attributes", out)
+	if out.From != "3.19.0" || len(out.Attributes) != 2 || out.Attributes["rules[].name"] != (UpgradeAttribute{Type: "String", Required: true}) {
+		t.Fatalf("read back %+v, want the written attributes", out)
 	}
 	for name, text := range map[string]string{
-		"bad from":    "from: latest\nattributes: [name]\n",
-		"unknown key": "from: \"3.19.0\"\nother: x\n",
+		"bad from":     "from: latest\nattributes: {name: {type: String}}\n",
+		"unknown key":  "from: \"3.19.0\"\nother: x\n",
+		"missing type": "from: \"3.19.0\"\nattributes: {name: {required: true}}\n",
+		"bad path":     "from: \"3.19.0\"\nattributes: {Name: {type: String}}\n",
 	} {
 		if _, err := ParseUpgrade([]byte(text)); err == nil {
 			t.Errorf("%s: want an error", name)
