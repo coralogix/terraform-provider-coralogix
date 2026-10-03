@@ -23,6 +23,9 @@ type tfResource struct {
 	ServerDefaultKinds []string // Terraform scalar kinds that need reset planning
 	PlanModifierPkgs   []string // lower-case Terraform value kinds with standard plan modifiers
 	DefaultPkgs        []string // lower-case Terraform value kinds with static defaults
+	// ComputedPaths are the paths of the computed attributes, with list and map
+	// steps left out, as in Conv.OneOfArms.
+	ComputedPaths []string
 }
 
 // tfAttr is one Terraform schema attribute.
@@ -122,7 +125,25 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 	out.Models = b.models
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
+	out.ComputedPaths = computedPaths(nil, "", out.Attributes)
 	return out, nil
+}
+
+// computedPaths appends the paths of the computed attributes in attrs, in
+// schema order. A nested attribute adds its name to the path. A list, set, or
+// map step adds nothing.
+func computedPaths(out []string, parent string, attrs []*tfAttr) []string {
+	for _, a := range attrs {
+		at := a.Name
+		if parent != "" {
+			at = parent + "." + a.Name
+		}
+		if a.Computed {
+			out = append(out, at)
+		}
+		out = computedPaths(out, at, a.Attributes)
+	}
+	return out
 }
 
 // defaultPackages returns the default packages, such as stringdefault, that

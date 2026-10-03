@@ -388,6 +388,10 @@ func TestEmptyObjectRules(t *testing.T) {
 	if got := priorEmpty(ctx, "config.http", types.ObjectNull(httpType), emptyArm, &diags); !got.IsNull() {
 		t.Fatalf("missing arm = %v, want null: the API must return an empty arm", got)
 	}
+	// After an import the prior is null. A computed attribute keeps the API value.
+	if got := priorEmpty(ctx, "status", emptyStatus, types.ObjectNull(statusType), &diags); !got.Equal(emptyStatus) {
+		t.Fatalf("computed object after import = %v, want the API value", got)
+	}
 	if diags.HasError() {
 		t.Fatal(diags)
 	}

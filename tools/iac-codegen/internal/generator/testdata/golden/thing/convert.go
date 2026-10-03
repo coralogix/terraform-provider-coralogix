@@ -142,6 +142,17 @@ var oneOfArms = map[string]bool{
 	"config.queue": true,
 }
 
+// computedAttrs are the paths of the computed attributes, with list and map
+// steps left out.
+var computedAttrs = map[string]bool{
+	"id":            true,
+	"enabled":       true,
+	"status":        true,
+	"status.health": true,
+	"create_time":   true,
+	"update_time":   true,
+}
+
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
 // prior data and the new state. The API does not tell null from an empty
 // list, set, or map, or a missing object outside a oneOf from an empty one
@@ -173,7 +184,7 @@ func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.
 // returns v, with the same rule applied to the attributes of an object and to
 // the elements of a list or map.
 func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Diagnostics) attr.Value {
-	if v == nil || p == nil || v.IsUnknown() || p.IsUnknown() || v.Equal(p) {
+	if keepAPIValue(at, v, p) {
 		return v
 	}
 	if emptyValue(at, v) && emptyValue(at, p) {
@@ -197,6 +208,18 @@ func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Dia
 		}
 	}
 	return v
+}
+
+// keepAPIValue reports whether v needs no rule: a value is missing or
+// unknown, the values are equal, or the attribute is computed and the prior
+// has no value, for example after an import. Terraform does not compare a
+// computed attribute that the configuration leaves out, so the value of the
+// API is safe, and an empty value stays known.
+func keepAPIValue(at string, v, p attr.Value) bool {
+	if v == nil || p == nil || v.IsUnknown() || p.IsUnknown() || v.Equal(p) {
+		return true
+	}
+	return p.IsNull() && computedAttrs[at]
 }
 
 func priorEmptyObject(ctx context.Context, at string, v, prior types.Object, diags *diag.Diagnostics) attr.Value {
