@@ -3,7 +3,7 @@
 # A field with a line here keeps its released behavior. A field without a line follows the
 # API contract.
 #
-# A new optional API field needs no line only if the contract states its presence
+# A new optional scalar API field needs no line only if the contract states its presence
 # (x-coralogix-presence: true, which comes from a proto3 optional field). Without it the
 # generator stops. Then either ask the backend team for the annotation, or probe what a read
 # returns for an omitted value and write a line (for example computed and default, as for disabled).

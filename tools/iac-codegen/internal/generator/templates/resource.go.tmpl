@@ -242,12 +242,17 @@ func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {
 	return {{$cx}}.{{.NewAPIError}}(httpResp, err)
 }
 
+{{if .Existing -}}
+// setState writes the resource in an API response to the state. prior is the plan after Create
+// or Update, or the state before Read. A state upgrade has no prior of this schema version, so
+// it passes nil. flatten keeps the released read rules, so a value that is empty in both the
+// response and prior does not keep its form from prior. flatten returns an error when the
+// response has no resource.
+{{- else -}}
 // setState writes the resource in an API response to the state. A value that
 // is empty in both the response and prior keeps its form from prior: the plan
 // after Create or Update, or the state before Read. flatten
 // returns an error when the response has no resource.
-{{- if .Upgrades}} A state upgrade has no
-// prior of this schema version, so it passes nil.
 {{- end}}
 func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, state *tfsdk.State) diag.Diagnostics {
 	m, diags := flatten(ctx, v{{if $.Conv.HasPrior}}, priorModel(ctx, prior){{end}})
@@ -258,15 +263,12 @@ func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, stat
 	m.Id = types.StringValue(TypeName) // a singleton has a fixed id (D18)
 {{- end}}
 	diags.Append(state.Set(ctx, m)...)
+{{- if not .Existing}}
 	if diags.HasError() {
 		return diags
 	}
-{{- if .Upgrades}}
-	if prior == nil {
-		return diags
-	}
-{{- end}}
 	diags.Append(keepPriorEmpty(ctx, prior, state)...)
+{{- end}}
 	return diags
 }
 
