@@ -56,8 +56,8 @@ type acceptanceData struct {
 	UpgradeFrom string
 	// UpgradeAttributes is the upgrade attributes file to write. nil without an upgrade test.
 	UpgradeAttributes *acceptance.UpgradeAttributes
-	// UpgradeFullAction and UpgradeMinimalAction are the plan actions of the step after the upgrade,
-	// to the updated config and to the full config. Go expressions of type plancheck.ResourceActionType.
+	// UpgradeFullAction and UpgradeMinimalAction are the plan checks of the step after the upgrade,
+	// to the updated config and to the full config. Go expressions of type []plancheck.PlanCheck.
 	UpgradeFullAction, UpgradeMinimalAction string
 }
 
@@ -254,30 +254,33 @@ func newRequired(schema map[string]*tfAttr, released map[string]bool, from strin
 	return nil
 }
 
-// The plan actions that nextAction returns, as Go expressions. accActionUnknown skips the check.
+// The plan checks of the step after an upgrade that nextAction returns, as Go expressions of type
+// []plancheck.PlanCheck. accPlanUnknown checks no action.
 const (
-	accActionNoop    = "plancheck.ResourceActionNoop"
-	accActionUpdate  = "plancheck.ResourceActionUpdate"
-	accActionReplace = "plancheck.ResourceActionReplace"
-	accActionUnknown = `""`
+	accPlanNoop      = "[]plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)}"
+	accPlanReplace   = "[]plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionReplace)}"
+	accPlanNoReplace = "[]plancheck.PlanCheck{expectNoReplace{}}"
+	accPlanUnknown   = "nil"
 )
 
-// nextAction is the plan action of a step from one config to the next. It compares the top-level
-// attributes one by one: replace when an immutable one differs; update when a mutable one differs;
-// no-op when none differs. An unknown immutable attribute makes the action unknown unless another
-// immutable attribute surely differs. An attribute that the first config leaves out and the next config sets
-// to its known default does not differ, because the state already holds the default. When the
-// first config leaves out an Optional+Computed attribute without a known default, the state holds
-// what the API returned, and the action cannot be known: accActionUnknown.
+// nextAction is the plan check of a step from one config to the next. It is exact only where the
+// action is sure: no-op for the same config, replace when a top-level immutable attribute surely
+// differs. Otherwise the step must not replace the resource; it may update it or not, because a
+// default or an API value in state can equal what the next config sets. The value checks after the
+// apply catch a missing update. When an immutable attribute may differ (a left-out
+// Optional+Computed one without a known default), the step checks no action.
 // s.minimal and s.released must be those of the first config. The next config has every attribute.
 func (s *accSynth) nextAction(attrs []*tfAttr, from, to *accStep, fromMode, toMode accMode) (string, error) {
 	if from.Config == to.Config {
-		return accActionNoop, nil
+		return accPlanNoop, nil
 	}
 	released := s.released
 	defer func() { s.released = released }()
-	var update, unknown, replaceUnknown bool
+	maybe := false
 	for _, a := range attrs {
+		if !immutable(a) {
+			continue
+		}
 		s.released = released
 		before, _, err := s.attrs([]*tfAttr{a}, "", "", fromMode, true)
 		if err != nil {
@@ -288,47 +291,45 @@ func (s *accSynth) nextAction(attrs []*tfAttr, from, to *accStep, fromMode, toMo
 		if err != nil {
 			return "", err
 		}
-		change := attrChange(a, before, after)
-		switch {
-		case change == accActionUpdate && immutable(a):
-			return accActionReplace, nil
-		case change == accActionUnknown && immutable(a):
-			replaceUnknown = true // the state may already hold the next value, or not
-		case change == accActionUpdate:
-			update = true
-		case change == accActionUnknown:
-			unknown = true
+		switch attrChange(a, before, after) {
+		case changeSure:
+			return accPlanReplace, nil
+		case changeMaybe:
+			maybe = true // the state may already hold the next value, or not
 		}
 	}
-	switch {
-	case replaceUnknown:
-		return accActionUnknown, nil // replace or not: a known update does not decide it
-	case update:
-		return accActionUpdate, nil
-	case unknown:
-		return accActionUnknown, nil
+	if maybe {
+		return accPlanUnknown, nil
 	}
-	return accActionNoop, nil
+	return accPlanNoReplace, nil
 }
 
-// attrChange is the action that one top-level attribute causes, from its config lines ("" when a
-// config leaves it out). A left-out Computed attribute holds its known default, or what the API
-// returned when no default is known.
-func attrChange(a *tfAttr, before, after string) string {
+type attrChangeKind int
+
+const (
+	changeNone attrChangeKind = iota
+	changeSure
+	changeMaybe
+)
+
+// attrChange says whether one top-level attribute differs between two configs, from its config
+// lines ("" when a config leaves it out). A left-out Computed attribute holds its known default, or
+// what the API returned when no default is known.
+func attrChange(a *tfAttr, before, after string) attrChangeKind {
 	if before == after {
-		return accActionNoop
+		return changeNone
 	}
 	if (before != "" && after != "") || !a.Computed {
-		return accActionUpdate
+		return changeSure
 	}
 	def, ok := defaultState(a)
 	if !ok {
-		return accActionUnknown
+		return changeMaybe
 	}
 	if line := a.Name + " = " + hclLiteral(a, def); before == line || after == line {
-		return accActionNoop
+		return changeNone
 	}
-	return accActionUpdate
+	return changeSure
 }
 
 // hclLiteral is the HCL of a state value of a scalar attribute.
@@ -806,6 +807,11 @@ func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (stri
 		return "[" + item + "]", []accCheck{{tfPath + ".#", "1"}, {tfPath + ".0", state}}, nil
 	}
 	return "[" + item + "]", []accCheck{{tfPath + ".#", "1"}}, nil
+}
+
+// UsesNoReplace reports whether a step after an upgrade checks only that the plan does not replace.
+func (d *acceptanceData) UsesNoReplace() bool {
+	return d.UpgradeFullAction == accPlanNoReplace || d.UpgradeMinimalAction == accPlanNoReplace
 }
 
 // renderAcceptance returns the generated acceptance test.

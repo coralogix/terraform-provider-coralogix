@@ -233,19 +233,16 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 		from, to accMode
 		want     string
 	}{
-		"a mutable value changes":     {[]*tfAttr{enum, name, region}, accFull, accUpdated, "plancheck.ResourceActionUpdate"},
-		"nothing changes":             {[]*tfAttr{enum, region}, accFull, accUpdated, "plancheck.ResourceActionNoop"},
-		"an immutable value is added": {[]*tfAttr{enum, name, region}, accMinimal, accFull, "plancheck.ResourceActionReplace"},
-		// The state already holds the default false that the next config sets.
-		"a left-out value is set to its default": {[]*tfAttr{enum, paused}, accMinimal, accUpdated, "plancheck.ResourceActionNoop"},
-		"a left-out value is set to another":     {[]*tfAttr{enum, paused}, accMinimal, accFull, "plancheck.ResourceActionUpdate"},
-		// The state holds what the API returned, which the generator does not know.
-		"a left-out computed value": {[]*tfAttr{enum, note}, accMinimal, accFull, `""`},
-		"a known change wins":       {[]*tfAttr{enum, name, note}, accMinimal, accUpdated, "plancheck.ResourceActionUpdate"},
-		"a left-out plain value":    {[]*tfAttr{enum, label}, accMinimal, accFull, "plancheck.ResourceActionUpdate"},
+		"a mutable value changes":     {[]*tfAttr{enum, name, region}, accFull, accUpdated, accPlanNoReplace},
+		"nothing changes":             {[]*tfAttr{enum, region}, accFull, accUpdated, accPlanNoop},
+		"an immutable value is added": {[]*tfAttr{enum, name, region}, accMinimal, accFull, accPlanReplace},
+		// A default or an API value in state can equal the next value: update or no change.
+		"a left-out value is set to its default": {[]*tfAttr{enum, paused}, accMinimal, accUpdated, accPlanNoReplace},
+		"a left-out computed value":              {[]*tfAttr{enum, note}, accMinimal, accFull, accPlanNoReplace},
+		"a left-out plain value":                 {[]*tfAttr{enum, label}, accMinimal, accFull, accPlanNoReplace},
 		// The API may have set the immutable zone to the value of the next config, or not.
-		"a left-out immutable computed value": {[]*tfAttr{enum, name, zone}, accMinimal, accUpdated, `""`},
-		"a sure replace wins":                 {[]*tfAttr{enum, zone, region}, accMinimal, accFull, "plancheck.ResourceActionReplace"},
+		"a left-out immutable computed value": {[]*tfAttr{enum, name, zone}, accMinimal, accUpdated, accPlanUnknown},
+		"a sure replace wins":                 {[]*tfAttr{enum, zone, region}, accMinimal, accFull, accPlanReplace},
 	}
 	for testName, test := range tests {
 		t.Run(testName, func(t *testing.T) {
