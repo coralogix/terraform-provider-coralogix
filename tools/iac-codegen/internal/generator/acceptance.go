@@ -217,7 +217,8 @@ const (
 
 // nextAction is the plan action of a step from one config to the next. It compares the top-level
 // attributes one by one: replace when an immutable one differs; update when a mutable one differs;
-// no-op when none differs. An attribute that the first config leaves out and the next config sets
+// no-op when none differs. An unknown immutable attribute makes the action unknown unless another
+// immutable attribute surely differs. An attribute that the first config leaves out and the next config sets
 // to its known default does not differ, because the state already holds the default. When the
 // first config leaves out an Optional+Computed attribute without a known default, the state holds
 // what the API returned, and the action cannot be known: accActionUnknown.
@@ -228,7 +229,7 @@ func (s *accSynth) nextAction(attrs []*tfAttr, from, to *accStep, fromMode, toMo
 	}
 	released := s.released
 	defer func() { s.released = released }()
-	action := accActionNoop
+	var update, unknown, replaceUnknown bool
 	for _, a := range attrs {
 		s.released = released
 		before, _, err := s.attrs([]*tfAttr{a}, "", "", fromMode, true)
@@ -242,17 +243,25 @@ func (s *accSynth) nextAction(attrs []*tfAttr, from, to *accStep, fromMode, toMo
 		}
 		change := attrChange(a, before, after)
 		switch {
-		case change == accActionNoop:
-			continue
-		case immutable(a):
+		case change == accActionUpdate && immutable(a):
 			return accActionReplace, nil
+		case change == accActionUnknown && immutable(a):
+			replaceUnknown = true // the state may already hold the next value, or not
 		case change == accActionUpdate:
-			action = accActionUpdate
-		case action == accActionNoop:
-			action = accActionUnknown
+			update = true
+		case change == accActionUnknown:
+			unknown = true
 		}
 	}
-	return action, nil
+	switch {
+	case replaceUnknown:
+		return accActionUnknown, nil // replace or not: a known update does not decide it
+	case update:
+		return accActionUpdate, nil
+	case unknown:
+		return accActionUnknown, nil
+	}
+	return accActionNoop, nil
 }
 
 // attrChange is the action that one top-level attribute causes, from its config lines ("" when a
