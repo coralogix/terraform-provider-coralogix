@@ -734,8 +734,16 @@ func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base
 	if err != nil {
 		return nil
 	}
+	value := valueSchema(schema)
 	required := slices.Contains(parent.Required, field)
-	if required && !scalarZeroValueValid(schema) {
+	if required {
+		if report := requiredEmptyIssue(location, value); report != nil {
+			return report
+		}
+	}
+	// A list or map has no presence: empty and missing are the same. A
+	// message always has presence, so it needs no marker.
+	if !scalarSchema(value) || required && !scalarZeroValueValid(schema) {
 		return nil
 	}
 	presence := schema.Extensions.GetOrZero(extPresence)
@@ -746,15 +754,58 @@ func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base
 		return issue.Report{{
 			Code:        "REQUIRED_SCALAR_PRESENCE_UNKNOWN",
 			Location:    location,
-			Message:     "The required scalar accepts its zero value but does not preserve field presence.",
+			Message:     "The required bool or number accepts its zero value but does not preserve field presence.",
 			Remediation: "Use a presence-tracking protobuf scalar and expose x-coralogix-presence: true in OpenAPI.",
 		}}
 	}
-	code := "FIELD_PRESENCE_UNKNOWN"
-	if slices.Equal(schema.Type, []string{"array"}) || slices.Equal(schema.Type, []string{"object"}) && schema.AdditionalProperties != nil {
-		code = "COLLECTION_NULL_EMPTY_AMBIGUOUS"
+	return issue.Report{{Code: "FIELD_PRESENCE_UNKNOWN", Location: location, Message: "The optional request field does not state whether omission differs from an explicit zero or empty value.", Remediation: "Add x-coralogix-presence: true to the source API contract."}}
+}
+
+// requiredEmptyIssue reports a required string, list, or map that accepts an
+// empty value. Required means not empty: an empty value is an optional field.
+func requiredEmptyIssue(location string, schema *base.Schema) issue.Report {
+	var message, remediation string
+	switch {
+	case plainStringSchema(schema) && (schema.MinLength == nil || *schema.MinLength < 1):
+		message, remediation = `The required string accepts "".`, "Add openapiv3_field min_length: 1, or make the field optional."
+	case slices.Equal(schema.Type, []string{"array"}) && (schema.MinItems == nil || *schema.MinItems < 1):
+		message, remediation = "The required list accepts [].", "Add openapiv3_field min_items: 1, or make the field optional."
+	case isMapSchema(schema) && (schema.MinProperties == nil || *schema.MinProperties < 1):
+		message, remediation = "The required map accepts {}.", "Add openapiv3_field min_properties: 1, or make the field optional."
+	default:
+		return nil
 	}
-	return issue.Report{{Code: code, Location: location, Message: "The optional request field does not state whether omission differs from an explicit zero or empty value.", Remediation: "Add x-coralogix-presence: true to the source API contract."}}
+	return issue.Report{{Code: "REQUIRED_VALUE_CAN_BE_EMPTY", Location: location, Message: message, Remediation: remediation}}
+}
+
+// valueSchema returns the schema that an allOf wrapper of one $ref names, or
+// schema itself.
+func valueSchema(schema *base.Schema) *base.Schema {
+	if inner, err := singleAllOf(schema, "schema"); err == nil {
+		if resolved, resolveErr := schemaOf(inner); resolveErr == nil {
+			return resolved
+		}
+	}
+	return schema
+}
+
+// scalarSchema reports whether schema is a string, bool, number, or enum. A
+// list, a map, and an object are not scalars.
+func scalarSchema(schema *base.Schema) bool {
+	if len(schema.Type) != 1 {
+		return len(schema.Enum) != 0
+	}
+	switch schema.Type[0] {
+	case "string", "boolean", "integer", "number":
+		return true
+	}
+	return false
+}
+
+// plainStringSchema reports whether schema is a protobuf string: a string with
+// no enum and no format. A 64-bit number is a string with a format.
+func plainStringSchema(schema *base.Schema) bool {
+	return slices.Equal(schema.Type, []string{"string"}) && len(schema.Enum) == 0 && schema.Format == ""
 }
 
 func scalarZeroValueValid(schema *base.Schema) bool {

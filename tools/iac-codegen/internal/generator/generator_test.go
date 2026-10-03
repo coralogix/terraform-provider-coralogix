@@ -134,7 +134,7 @@ func TestEnumCollectionFlatteningUsesGuardedHelpers(t *testing.T) {
 
 func TestEligibilityFailurePreservesOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
-	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 1)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 2)
 	out := filepath.Join(t.TempDir(), "thing")
 	if err := os.Mkdir(out, 0o755); err != nil {
 		t.Fatal(err)
@@ -156,7 +156,7 @@ func TestEligibilityFailurePreservesOutput(t *testing.T) {
 
 func TestCheckUsesGenerateEligibilityAndWritesNothing(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
-	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 1)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 2)
 	work := t.TempDir()
 	candidate := filepath.Join(work, "candidate.yaml")
 	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
@@ -206,8 +206,8 @@ func TestContractGapsUseSharedFailClosedValidation(t *testing.T) {
 		},
 		"missing required scalar presence": {
 			spec: strings.Replace(base,
-				"                name:\n                  type: string\n                  x-coralogix-presence: true\n",
-				"                name:\n                  type: string\n", 1),
+				"        endpoint:\n          type: string\n          minLength: 1\n",
+				"        endpoint:\n          type: integer\n", 1),
 			code: "REQUIRED_SCALAR_PRESENCE_UNKNOWN",
 		},
 		"invalid enum zero": {
@@ -545,7 +545,7 @@ func unboundedUint64Spec(spec string) string {
 }
 
 func setOfObjectsSpec(spec string) string {
-	spec = strings.ReplaceAll(spec, "x-coralogix-collection: set\n                  x-coralogix-presence: true\n                  items: {type: string}", "x-coralogix-collection: set\n                  x-coralogix-presence: true\n                  items: {$ref: '#/components/schemas/Detail'}")
+	spec = strings.ReplaceAll(spec, "x-coralogix-collection: set\n                  items: {type: string}", "x-coralogix-collection: set\n                  items: {$ref: '#/components/schemas/Detail'}")
 	spec = strings.Replace(spec, "x-coralogix-collection: set\n          items: {type: string}", "x-coralogix-collection: set\n          items: {$ref: '#/components/schemas/Detail'}", 1)
 	return spec + `
     Detail:
@@ -554,19 +554,19 @@ func setOfObjectsSpec(spec string) string {
       properties:
         value:
           type: string
-          x-coralogix-presence: true
+          minLength: 1
 `
 }
 
 func invalidGeneratedIdentifierSpec(t *testing.T, spec string) string {
 	t.Helper()
-	createField := "                name:\n                  type: string\n                  x-coralogix-presence: true"
+	createField := "                name:\n                  type: string\n                  minLength: 1\n                  x-coralogix-presence: true"
 	createWithDetail := createField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/v3.FilterOperator'"
 	spec = replaceAfter(t, spec, "operationId: ThingsService_CreateThing", createField, createWithDetail)
 	updateField := createField
 	updateWithDetail := updateField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/v3.FilterOperator'"
 	spec = replaceAfter(t, spec, "operationId: ThingsService_UpdateThing", updateField, updateWithDetail)
-	responseField := "        name:\n          type: string\n          description: The display name."
+	responseField := "        name:\n          type: string\n          minLength: 1\n          description: The display name."
 	responseWithDetail := responseField + "\n        detail:\n          $ref: '#/components/schemas/v3.FilterOperator'"
 	spec = replaceAfter(t, spec, "    Thing:", responseField, responseWithDetail)
 	return spec + `
@@ -574,27 +574,27 @@ func invalidGeneratedIdentifierSpec(t *testing.T, spec string) string {
       type: object
       required: [value]
       properties:
-        value: {type: string}
+        value: {type: string, minLength: 1}
 `
 }
 
 func acronymNameCollisionSpec(t *testing.T, spec string) string {
 	t.Helper()
-	field := "        name:\n          type: string\n          description: The display name."
+	field := "        name:\n          type: string\n          minLength: 1\n          description: The display name."
 	fields := field + "\n        HTTPServer:\n          type: string\n        httpServer:\n          type: string"
 	return replaceAfter(t, spec, "    Thing:", field, fields)
 }
 
 func goNameCollisionSpec(t *testing.T, spec string) string {
 	t.Helper()
-	field := "        name:\n          type: string\n          description: The display name."
+	field := "        name:\n          type: string\n          minLength: 1\n          description: The display name."
 	fields := field + "\n        foo-bar:\n          type: string\n        foo_bar:\n          type: string"
 	return replaceAfter(t, spec, "    Thing:", field, fields)
 }
 
 func goComponentNameCollisionSpec(t *testing.T, spec string) string {
 	t.Helper()
-	field := "        name:\n          type: string\n          description: The display name."
+	field := "        name:\n          type: string\n          minLength: 1\n          description: The display name."
 	fields := field + "\n        firstDetail:\n          $ref: '#/components/schemas/FooBar'\n        secondDetail:\n          $ref: '#/components/schemas/fooBar'"
 	spec = replaceAfter(t, spec, "    Thing:", field, fields)
 	return spec + `

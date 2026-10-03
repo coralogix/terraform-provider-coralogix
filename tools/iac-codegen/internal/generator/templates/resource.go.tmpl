@@ -102,7 +102,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
 		return
 	}
-	diags = setState(ctx, v, &resp.State)
+	diags = setState(ctx, v, req.Plan, &resp.State)
 	resp.Diagnostics.Append(diags...)
 {{- if .Singleton}}
 	if diags.HasError() {
@@ -137,7 +137,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
-	resp.Diagnostics.Append(setState(ctx, v, &resp.State)...)
+	resp.Diagnostics.Append(setState(ctx, v, req.State, &resp.State)...)
 }
 
 {{if .Replace -}}
@@ -180,7 +180,7 @@ body, mask, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 		resp.Diagnostics.AddError("Unable to update "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
-	resp.Diagnostics.Append(setState(ctx, v, &resp.State)...)
+	resp.Diagnostics.Append(setState(ctx, v, req.Plan, &resp.State)...)
 }
 
 // Delete treats a resource that the API does not find as deleted.
@@ -236,9 +236,11 @@ func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {
 	return {{$cx}}.{{.NewAPIError}}(httpResp, err)
 }
 
-// setState writes the resource in an API response to the state. flatten
+// setState writes the resource in an API response to the state. A value that
+// is empty in both the response and prior keeps its form from prior: the plan
+// after Create or Update, or the state before Read. flatten
 // returns an error when the response has no resource.
-func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, state *tfsdk.State) diag.Diagnostics {
+func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, state *tfsdk.State) diag.Diagnostics {
 	m, diags := flatten(ctx, v)
 	if diags.HasError() {
 		return diags
@@ -247,6 +249,10 @@ func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, state *tfsdk.State
 	m.Id = types.StringValue(TypeName) // a singleton has a fixed id (D18)
 {{- end}}
 	diags.Append(state.Set(ctx, m)...)
+	if diags.HasError() {
+		return diags
+	}
+	diags.Append(keepPriorEmpty(ctx, prior, state)...)
 	return diags
 }
 
