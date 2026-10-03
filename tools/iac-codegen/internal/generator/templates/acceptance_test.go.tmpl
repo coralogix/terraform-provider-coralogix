@@ -3,12 +3,12 @@
 package {{.Package}}_test
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
@@ -22,9 +22,15 @@ const resourceAddress = {{printf "%q" .Address}}
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{ {{- range .Env}}{{printf "%q" .}}, {{end -}} }
 
+// providerFactories serve the provider as the binary does: the SDKv2 and the framework providers
+// behind one mux, so a prerequisite can be any resource of the provider.
 var providerFactories = map[string]func() (tfprotov6.ProviderServer, error){
 	"coralogix": func() (tfprotov6.ProviderServer, error) {
-		return providerserver.NewProtocol6WithError(provider.NewCoralogixProvider())()
+		server, err := provider.MuxServer(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		return server(), nil
 	},
 }
 
@@ -59,6 +65,11 @@ const fullConfig = `{{.Full.Config}}`
 const updatedConfig = `{{.Updated.Config}}`
 
 const minimalConfig = `{{.Minimal.Config}}`
+{{- if .UpgradeFull}}
+
+// upgradeFullConfig is the full config without the attributes that provider {{.UpgradeFrom}} does not have.
+const upgradeFullConfig = `{{.UpgradeFull.Config}}`
+{{- end}}
 {{- if .UpgradeMinimal}}
 
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
@@ -95,6 +106,29 @@ func minimalChecks(run string) resource.TestCheckFunc {
 {{- end}}
 	)
 }
+{{- if .Minimal.Kept}}
+
+// removedChecks are the checks after the full config, when the minimal config removes attributes:
+// an attribute that keeps its state value still has the value of the full config.
+func removedChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		minimalChecks(run),
+{{- range .Minimal.Kept}}
+		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+{{- end}}
+	)
+}
+{{- end}}
+{{- if .UpgradeFull}}
+
+func upgradeFullChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+{{- range .UpgradeFull.Checks}}
+		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+{{- end}}
+	)
+}
+{{- end}}
 {{- if .UpgradeMinimal}}
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
@@ -152,7 +186,7 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
-				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
+				{Config: config(run, minimalConfig), Check: {{if .Minimal.Kept}}removedChecks(run){{else}}minimalChecks(run){{end}}},
 				importStep,
 			},
 		})
@@ -177,8 +211,8 @@ func requireUpgradeAcceptance(t *testing.T) {
 }
 
 // upgradeSteps creates the resource with the released provider, then plans the same config with this
-// build and expects no change, updates to the config next, and imports.
-func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, next string, nextChecks resource.TestCheckFunc) []resource.TestStep {
+// build and expects no change, applies the config next with the action nextAction, and imports.
+func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, next string, nextChecks resource.TestCheckFunc, nextAction plancheck.ResourceActionType) []resource.TestStep {
 	importWithBuild := importStep
 	importWithBuild.ProtoV6ProviderFactories = providerFactories
 	return []resource.TestStep{
@@ -203,7 +237,7 @@ func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, nex
 			Config:                   config(run, next),
 			ProtoV6ProviderFactories: providerFactories,
 			ConfigPlanChecks: resource.ConfigPlanChecks{
-				PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionUpdate)},
+				PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, nextAction)},
 				PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 			},
 			Check: nextChecks,
@@ -222,7 +256,8 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps:    upgradeSteps(run, fullConfig, fullChecks(run), updatedConfig, updatedChecks(run)),
+			Steps: upgradeSteps(run, {{if .UpgradeFull}}upgradeFullConfig, upgradeFullChecks(run){{else}}fullConfig, fullChecks(run){{end}},
+				updatedConfig, updatedChecks(run), {{.UpgradeFullAction}}),
 		})
 	})
 {{- if .UpgradeMinimal}}
@@ -232,7 +267,7 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run)),
+			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run), {{.UpgradeMinimalAction}}),
 		})
 	})
 {{- end}}

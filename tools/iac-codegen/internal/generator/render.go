@@ -37,12 +37,13 @@ var formatGenerated = formatSource
 // render returns the generated files of the resource, by file name.
 // renderWith is render for a resource with a behavior-overrides file (nil for a new resource).
 func renderWith(r *model.Resource, refs []sdkRef, pkg string, file *overrides.File) (map[string][]byte, error) {
-	return renderAll(r, refs, pkg, file, nil, "")
+	return renderAll(r, refs, pkg, file, nil, nil, "")
 }
 
-// renderAll is renderWith that also writes the acceptance test, when acc is not nil. providerModule
+// renderAll is renderWith that also writes the acceptance test, when acc is not nil, and the upgrade
+// attributes file of its upgrade test. prior is that file of the last run, or nil. providerModule
 // is the module path of the provider; the test imports its provider package.
-func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.File, acc *acceptance.File, providerModule string) (map[string][]byte, error) {
+func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.File, acc *acceptance.File, prior *acceptance.UpgradeAttributes, providerModule string) (map[string][]byte, error) {
 	data, err := buildTFResourceWith(r, pkg, file)
 	if err != nil {
 		return nil, err
@@ -72,12 +73,17 @@ func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.Fil
 		out[file] = src
 	}
 	if acc != nil {
-		accData, err := buildAcceptance(data, providerModule, acc)
+		accData, err := buildAcceptance(data, providerModule, acc, prior)
 		if err != nil {
 			return nil, err
 		}
 		if out["acceptance_test.go"], err = renderAcceptance(accData); err != nil {
 			return nil, err
+		}
+		if accData.UpgradeAttributes != nil {
+			if out[acceptance.UpgradeFileName], err = accData.UpgradeAttributes.Marshal(); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return out, nil

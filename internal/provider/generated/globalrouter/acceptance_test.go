@@ -3,12 +3,12 @@
 package globalrouter_test
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
@@ -21,9 +21,15 @@ const resourceAddress = "coralogix_global_router.test"
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{}
 
+// providerFactories serve the provider as the binary does: the SDKv2 and the framework providers
+// behind one mux, so a prerequisite can be any resource of the provider.
 var providerFactories = map[string]func() (tfprotov6.ProviderServer, error){
 	"coralogix": func() (tfprotov6.ProviderServer, error) {
-		return providerserver.NewProtocol6WithError(provider.NewCoralogixProvider())()
+		server, err := provider.MuxServer(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		return server(), nil
 	},
 }
 
@@ -206,6 +212,7 @@ func minimalChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", render(run, "@{run}-environment")),
 		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.service", render(run, "@{run}-service")),
 		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", render(run, "@{run}-team")),
+		resource.TestCheckResourceAttr(resourceAddress, "disabled", "false"),
 	)
 }
 
@@ -283,8 +290,8 @@ func requireUpgradeAcceptance(t *testing.T) {
 }
 
 // upgradeSteps creates the resource with the released provider, then plans the same config with this
-// build and expects no change, updates to the config next, and imports.
-func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, next string, nextChecks resource.TestCheckFunc) []resource.TestStep {
+// build and expects no change, applies the config next with the action nextAction, and imports.
+func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, next string, nextChecks resource.TestCheckFunc, nextAction plancheck.ResourceActionType) []resource.TestStep {
 	importWithBuild := importStep
 	importWithBuild.ProtoV6ProviderFactories = providerFactories
 	return []resource.TestStep{
@@ -309,7 +316,7 @@ func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, nex
 			Config:                   config(run, next),
 			ProtoV6ProviderFactories: providerFactories,
 			ConfigPlanChecks: resource.ConfigPlanChecks{
-				PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionUpdate)},
+				PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, nextAction)},
 				PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 			},
 			Check: nextChecks,
@@ -328,7 +335,8 @@ func TestAccCoralogixResourceGlobalRouterGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps:    upgradeSteps(run, fullConfig, fullChecks(run), updatedConfig, updatedChecks(run)),
+			Steps: upgradeSteps(run, fullConfig, fullChecks(run),
+				updatedConfig, updatedChecks(run), plancheck.ResourceActionUpdate),
 		})
 	})
 
@@ -337,7 +345,7 @@ func TestAccCoralogixResourceGlobalRouterGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run)),
+			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run), plancheck.ResourceActionUpdate),
 		})
 	})
 }

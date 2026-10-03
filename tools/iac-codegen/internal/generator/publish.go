@@ -111,7 +111,7 @@ func checkOwned(path string) error {
 	}
 	for _, entry := range entries {
 		if inputFile(entry.Name()) && !entry.IsDir() {
-			continue // the one file that people write; publish keeps it
+			continue // YAML that publish keeps
 		}
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".go" || strings.Contains(entry.Name(), string(filepath.Separator)) {
 			return fmt.Errorf("output %s is not generator-owned: unexpected entry %s", path, entry.Name())
@@ -130,6 +130,8 @@ func checkOwned(path string) error {
 
 // inputFile reports whether the name is a file that people write and that the generator reads.
 // Publish keeps these files.
+// inputFile reports whether a file of the output directory is YAML that publish keeps: a file that
+// people write, or the upgrade attributes file that the generator writes.
 func inputFile(name string) bool {
-	return name == overrides.FileName || name == acceptance.FileName
+	return name == overrides.FileName || name == acceptance.FileName || name == acceptance.UpgradeFileName
 }
