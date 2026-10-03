@@ -227,6 +227,7 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 	paused := &tfAttr{Name: "paused", Kind: "Bool", Optional: true, Computed: true, Default: "booldefault.StaticBool(false)"}
 	note := &tfAttr{Name: "note", Kind: "String", Optional: true, Computed: true}
 	label := &tfAttr{Name: "label", Kind: "String", Optional: true}
+	zone := &tfAttr{Name: "zone", Kind: "String", Optional: true, Computed: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}}
 	tests := map[string]struct {
 		attrs    []*tfAttr
 		from, to accMode
@@ -242,6 +243,9 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 		"a left-out computed value": {[]*tfAttr{enum, note}, accMinimal, accFull, `""`},
 		"a known change wins":       {[]*tfAttr{enum, name, note}, accMinimal, accUpdated, "plancheck.ResourceActionUpdate"},
 		"a left-out plain value":    {[]*tfAttr{enum, label}, accMinimal, accFull, "plancheck.ResourceActionUpdate"},
+		// The API may have set the immutable zone to the value of the next config, or not.
+		"a left-out immutable computed value": {[]*tfAttr{enum, name, zone}, accMinimal, accUpdated, `""`},
+		"a sure replace wins":                 {[]*tfAttr{enum, zone, region}, accMinimal, accFull, "plancheck.ResourceActionReplace"},
 	}
 	for testName, test := range tests {
 		t.Run(testName, func(t *testing.T) {
