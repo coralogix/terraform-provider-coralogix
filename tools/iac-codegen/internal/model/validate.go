@@ -1076,7 +1076,9 @@ func componentNameCollisions(root *Type) issue.Report {
 
 // TerraformName converts an OpenAPI name to the exact Terraform name used by
 // validation and rendering. Acronym runs stay together: HTTPServer becomes
-// http_server.
+// http_server. Terraform allows only a-z, 0-9, and _, and no leading digit, so
+// any other character becomes _: foo-bar and foo.bar become foo_bar. The name
+// collision check then finds foo-bar beside foo_bar.
 func TerraformName(name string) string {
 	var out strings.Builder
 	runes := []rune(name)
@@ -1088,9 +1090,20 @@ func TerraformName(name string) string {
 				out.WriteByte('_')
 			}
 		}
-		out.WriteRune(unicode.ToLower(r))
+		out.WriteRune(terraformNameRune(unicode.ToLower(r)))
 	}
-	return out.String()
+	result := out.String()
+	if result == "" || result[0] >= '0' && result[0] <= '9' {
+		return "_" + result
+	}
+	return result
+}
+
+func terraformNameRune(r rune) rune {
+	if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '_' {
+		return r
+	}
+	return '_'
 }
 
 // GoName converts an OpenAPI name to the exact Go name used by SDK and model
