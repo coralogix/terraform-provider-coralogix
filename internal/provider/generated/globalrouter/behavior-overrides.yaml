@@ -139,6 +139,7 @@ types:
 
 enums:
   # ENTITY_TYPE_UNSPECIFIED was the Terraform value "unspecified" in the released resource.
+  # The API refuses it on write (backend confirmed). It stays accepted to keep released behavior.
   # OLLY_SCHEDULED_TASKS is not accepted: the backend refuses it for global routing.
   notification_center.EntityType:
     zero: unspecified
