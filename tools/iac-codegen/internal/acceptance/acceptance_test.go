@@ -37,20 +37,21 @@ func TestParseRejectsWhatCannotWork(t *testing.T) {
 		text string
 		want string
 	}{
-		"empty":               {"", "is empty"},
-		"unknown key":         {"resource: R\nbogus: 1\n", "bogus"},
-		"no resource":         {"env: [A]\n", "resource is required"},
-		"bad env name":        {"resource: R\nenv: [lower]\n", "not an environment variable"},
-		"env twice":           {"resource: R\nenv: [A, A]\n", "listed twice"},
-		"unknown placeholder": {"resource: R\nprerequisites: x @{foo}\n", "not @{run}"},
-		"env not listed":      {"resource: R\nprerequisites: x @{env.MISSING}\n", "not @{run}"},
-		"bad value path":      {"resource: R\nvalues:\n  Rules.x: y\n", "not a field path"},
-		"empty value":         {"resource: R\nvalues:\n  name: \"\"\n", "is empty"},
-		"bad skip path":       {"resource: R\nskip: [Bad]\n", "not a field path"},
-		"bad minimal path":    {"resource: R\nminimal: [a.B]\n", "not a field path"},
-		"bad upgradeMinimal":  {"resource: R\nupgradeMinimal: [Bad]\n", "not a field path"},
-		"bad version":         {"resource: R\nupgradeFrom: latest\n", "want a release"},
-		"backtick":            {"resource: R\nprerequisites: \"a`b\"\n", "backtick"},
+		"empty":                {"", "is empty"},
+		"unknown key":          {"resource: R\nbogus: 1\n", "bogus"},
+		"no resource":          {"env: [A]\n", "resource is required"},
+		"bad env name":         {"resource: R\nenv: [lower]\n", "not an environment variable"},
+		"env twice":            {"resource: R\nenv: [A, A]\n", "listed twice"},
+		"unknown placeholder":  {"resource: R\nprerequisites: x @{foo}\n", "not @{run}"},
+		"env not listed":       {"resource: R\nprerequisites: x @{env.MISSING}\n", "not @{run}"},
+		"bad value path":       {"resource: R\nvalues:\n  Rules.x: y\n", "not a field path"},
+		"empty value":          {"resource: R\nvalues:\n  name: \"\"\n", "is empty"},
+		"bad skip path":        {"resource: R\nskip: [Bad]\n", "not a field path"},
+		"bad minimal path":     {"resource: R\nminimal: [a.B]\n", "not a field path"},
+		"bad upgradeMinimal":   {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeMinimal: [Bad]\n", "not a field path"},
+		"upgradeMinimal alone": {"resource: R\nupgradeMinimal: [description]\n", "upgradeMinimal needs upgradeFrom"},
+		"bad version":          {"resource: R\nupgradeFrom: latest\n", "want a release"},
+		"backtick":             {"resource: R\nprerequisites: \"a`b\"\n", "backtick"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

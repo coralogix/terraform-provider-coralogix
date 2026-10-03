@@ -137,6 +137,9 @@ func (f *File) checkVersionAndText() error {
 	if f.UpgradeFrom != "" && !version.MatchString(f.UpgradeFrom) {
 		return fmt.Errorf("upgradeFrom is %q, want a release such as 3.19.0", f.UpgradeFrom)
 	}
+	if f.UpgradeFrom == "" && len(f.UpgradeMinimal) != 0 {
+		return errors.New("upgradeMinimal needs upgradeFrom: without it there is no upgrade test")
+	}
 	for _, text := range append([]string{f.Prerequisites}, f.valueTexts()...) {
 		if strings.Contains(text, "`") {
 			return errors.New("a backtick is not allowed in HCL: the generated test writes it in a Go raw string")

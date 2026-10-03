@@ -334,17 +334,20 @@ func TestAcceptanceFileMustMatchTheSchema(t *testing.T) {
 			}
 			input, loadDir := syntheticInput(t)
 			input.OpenAPI = spec
-			dir := t.TempDir()
+			dir := filepath.Join(t.TempDir(), "legacything")
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				t.Fatal(err)
+			}
 			path := filepath.Join(dir, "acceptance.yaml")
 			if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
 				t.Fatal(err)
 			}
-			options := Options{Resource: "LegacyThing", OutputDir: filepath.Join(dir, "out"), OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml"), AcceptancePath: path}
+			options := Options{Resource: "LegacyThing", OutputDir: dir, OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml"), AcceptancePath: path}
 			err := generateFromInput(options, input, loadDir)
 			if err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("err = %v, want %q", err, test.want)
 			}
-			if _, statErr := os.Stat(options.OutputDir); statErr == nil {
+			if _, statErr := os.Stat(filepath.Join(dir, "acceptance_test.go")); statErr == nil {
 				t.Fatal("the generator wrote output although the acceptance file was wrong")
 			}
 			// check finds the same error before an SDK exists.
@@ -445,8 +448,8 @@ func TestGenerateKeepsTheUpgradeAttributes(t *testing.T) {
 	}
 	input, loadDir := syntheticInput(t)
 	input.OpenAPI = spec
-	out := filepath.Join(t.TempDir(), "legacything")
-	options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml"), AcceptancePath: filepath.Join("testdata", "legacy-acceptance.yaml")}
+	out := legacyOutputWithAcceptance(t)
+	options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml")}
 	if err := generateFromInput(options, input, loadDir); err != nil {
 		t.Fatal(err)
 	}
@@ -503,5 +506,40 @@ func TestAcceptanceChecksRemovedComputedAttributes(t *testing.T) {
 	}
 	if got := fmt.Sprint(kept); got != "[{limit 1}]" {
 		t.Errorf("kept = %s, want limit with its full value", got)
+	}
+}
+
+// legacyOutputWithAcceptance returns an output directory that holds the legacy acceptance file, as
+// a resource with an upgrade test has it.
+func legacyOutputWithAcceptance(t *testing.T) string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", "legacy-acceptance.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(t.TempDir(), "legacything")
+	if err := os.MkdirAll(out, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, acceptance.FileName), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// An acceptance file with upgradeFrom must sit in the output directory, next to the upgrade
+// attributes file, so that check and generate read the same list.
+func TestUpgradeAcceptanceFileMustBeInTheOutput(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	options := Options{Resource: "LegacyThing", OutputDir: filepath.Join(t.TempDir(), "legacything"),
+		OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml"), AcceptancePath: filepath.Join("testdata", "legacy-acceptance.yaml")}
+	err = generateFromInput(options, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "must be in the output directory") {
+		t.Fatalf("err = %v, want the acceptance file in the output directory", err)
 	}
 }
