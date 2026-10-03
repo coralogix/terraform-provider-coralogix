@@ -22,6 +22,7 @@ type tfResource struct {
 	HasServerDefaults  bool
 	ServerDefaultKinds []string // Terraform scalar kinds that need reset planning
 	PlanModifierPkgs   []string // lower-case Terraform value kinds with standard plan modifiers
+	DefaultPkgs        []string // lower-case Terraform value kinds with static defaults
 }
 
 // tfAttr is one Terraform schema attribute.
@@ -36,6 +37,7 @@ type tfAttr struct {
 	ElementType string   // Set, List: the element type, for example "types.StringType"
 	Validators  []string // Go expressions
 	Modifiers   []string // plan modifiers, Go expressions
+	Default     string   // a static default, a Go expression; only for a computed-only attribute
 	Attributes  []*tfAttr
 }
 
@@ -69,9 +71,11 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 				return nil, fmt.Errorf("%s: a singleton with an id field is not supported: the id attribute is fixed", f.Name)
 			}
 		}
+		// A static default puts the fixed id in the plan, so Create does not
+		// show it as unknown. The user still cannot set it.
 		out.Attributes = append(out.Attributes, &tfAttr{Name: "id", Kind: "String", ValueKind: "String", Computed: true,
 			Description: "The fixed id of this singleton: there is one per company.",
-			Modifiers:   []string{"stringplanmodifier.UseStateForUnknown()"}})
+			Default:     "stringdefault.StaticString(TypeName)"})
 		root.Fields = append(root.Fields, tfModelField{Name: "Id", Type: "types.String", TFName: "id"})
 	}
 	for _, f := range r.Fields {
@@ -117,7 +121,21 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 	out.ConfigValidators = b.validators
 	out.Models = b.models
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
+	out.DefaultPkgs = defaultPackages(out.Attributes)
 	return out, nil
+}
+
+// defaultPackages returns the default packages, such as stringdefault, that
+// the static defaults of attrs use.
+func defaultPackages(attrs []*tfAttr) []string {
+	var packages []string
+	for _, attr := range attrs {
+		pkg := strings.ToLower(attr.ValueKind) + "default"
+		if strings.HasPrefix(attr.Default, pkg+".") && !containsString(packages, pkg) {
+			packages = append(packages, pkg)
+		}
+	}
+	return packages
 }
 
 // markComputed makes a server-owned attribute and every nested attribute
