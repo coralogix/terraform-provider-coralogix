@@ -93,6 +93,9 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 	if len(res.ConfigValidators) != 0 {
 		return nil, errors.New("acceptance test: a oneOf group among the top-level fields is not supported")
 	}
+	if path := nestedImmutable("", res.Attributes, true); path != "" {
+		return nil, fmt.Errorf("acceptance test: %q has RequiresReplace below the top level, which nextAction does not compare", path)
+	}
 	typeName := res.CRUD.TypeName
 	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}}
 	out := &acceptanceData{
@@ -293,7 +296,15 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 	case a.Required:
 		return true
 	}
-	return mode != accMinimal || slices.Contains(s.minimal, key)
+	return mode != accMinimal || slices.Contains(s.minimal, key) || s.minimalBelow(key)
+}
+
+// minimalBelow reports whether the minimal config sets a field below the attribute. The attribute
+// is then set too, with its required fields and the listed ones.
+func (s *accSynth) minimalBelow(key string) bool {
+	return slices.ContainsFunc(s.minimal, func(p string) bool {
+		return strings.HasPrefix(p, key+".") || strings.HasPrefix(p, key+"[].")
+	})
 }
 
 // attrs makes the "name = value" lines of the attributes of one object, and the checks.
@@ -388,6 +399,25 @@ func defaultState(a *tfAttr) (string, bool) {
 		return m[1], true
 	}
 	return "", false
+}
+
+// nestedImmutable returns the path of an attribute below the top level that has RequiresReplace, or
+// "". The schema builder adds it only to top-level fields, so nextAction compares only those.
+func nestedImmutable(key string, attrs []*tfAttr, top bool) string {
+	for _, a := range attrs {
+		path := joinPath(key, a.Name)
+		if !top && immutable(a) {
+			return path
+		}
+		child := path
+		if a.Kind == "ListNested" || a.Kind == "SetNested" {
+			child += "[]"
+		}
+		if found := nestedImmutable(child, a.Attributes, false); found != "" {
+			return found
+		}
+	}
+	return ""
 }
 
 func immutable(a *tfAttr) bool {
