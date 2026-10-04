@@ -9,7 +9,6 @@
 
 #### resource/coralogix_alert
 - FEAT: Add `case_settings` (preview) so case settings (auto-resolve mode, enrichment query, case destinations) can be managed in Terraform and are kept across updates. Also flows through to `data-source/coralogix_alert`.
-- FIX: Previously every alert update wiped case settings set in the UI with no diff shown. Without `case_settings` they are still cleared, but the plan now shows it.
 
 # Release 3.19.0
 
