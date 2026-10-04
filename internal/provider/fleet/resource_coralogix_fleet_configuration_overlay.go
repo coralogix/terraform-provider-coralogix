@@ -246,14 +246,29 @@ func (r *FleetConfigurationOverlayResource) Create(ctx context.Context, req reso
 		)
 		return
 	}
+	overlay := &result.Overlay
 
-	state, diags := flattenConfigurationOverlay(ctx, plan, &result.Overlay)
+	// Activation is a separate call, so create and activate are not atomic. If
+	// activation fails, the inactive overlay is still written to state (Terraform
+	// marks it tainted) so it is not orphaned in Coralogix.
+	var activateDiags diag.Diagnostics
+	if plan.Active.ValueBool() {
+		activated, activateErr := r.setVersionActive(ctx, latestOverlayVersionID(overlay), true)
+		if activateErr != nil {
+			activateDiags.AddError("Error activating coralogix_fleet_configuration_overlay", activateErr.Error())
+		} else {
+			overlay = activated
+		}
+	}
+
+	state, diags := flattenConfigurationOverlay(ctx, plan, overlay)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+	resp.Diagnostics.Append(activateDiags...)
 }
 
 func (r *FleetConfigurationOverlayResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -302,50 +317,93 @@ func (r *FleetConfigurationOverlayResource) Update(ctx context.Context, req reso
 		return
 	}
 
-	updateReq, updateMask, diags := expandOverlayUpdateRequest(ctx, plan, prior)
+	overlay, updateDiags := r.applyOverlayUpdate(ctx, plan, prior)
+	if overlay == nil {
+		resp.Diagnostics.Append(updateDiags...)
+		return
+	}
+
+	// When a later step failed after an earlier one succeeded, still record what
+	// the API now holds, so the next plan diffs against real state.
+	state, diags := flattenConfigurationOverlay(ctx, plan, overlay)
 	if diags.HasError() {
+		resp.Diagnostics.Append(updateDiags...)
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+	resp.Diagnostics.Append(updateDiags...)
+}
+
+// applyOverlayUpdate deactivates, patches and activates as needed. It returns
+// the latest overlay the API reported, which may be non-nil alongside errors.
+func (r *FleetConfigurationOverlayResource) applyOverlayUpdate(ctx context.Context, plan, prior *FleetConfigurationOverlayResourceModel) (*cfgoverlays.ConfigurationOverlay, diag.Diagnostics) {
+	updateReq, updateMask, diags := expandOverlayUpdateRequest(ctx, plan, prior)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	id := prior.ID.ValueString()
+	activeChanged := !plan.Active.Equal(prior.Active)
 	var overlay *cfgoverlays.ConfigurationOverlay
+
+	// Deactivate before patching: emptying the targets of an active overlay is rejected.
+	if activeChanged && !plan.Active.ValueBool() {
+		deactivated, err := r.setVersionActive(ctx, prior.VersionID.ValueString(), false)
+		if err != nil {
+			diags.AddError("Error deactivating coralogix_fleet_configuration_overlay", err.Error())
+			return nil, diags
+		}
+		overlay = deactivated
+	}
+
 	if len(updateMask) > 0 {
 		// Send only changed fields: resending the same YAML or targets mints a
-		// new overlay version.
+		// new overlay version. The active state carries over to the new version.
 		result, httpResponse, err := r.client.
 			ConfigurationOverlayServiceUpdateConfigurationOverlay(ctx, id).
 			UpdateMask(strings.Join(updateMask, ",")).
 			ConfigurationOverlayServiceUpdateConfigurationOverlayRequest(updateReq).
 			Execute()
 		if err != nil {
-			resp.Diagnostics.AddError("Error updating coralogix_fleet_configuration_overlay",
+			diags.AddError("Error updating coralogix_fleet_configuration_overlay",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", updateReq),
 			)
-			return
+			return overlay, diags
 		}
 		overlay = &result.Overlay
-	} else {
+	}
+
+	// Activate after patching, so the latest version with its new targets is applied.
+	if activeChanged && plan.Active.ValueBool() {
+		versionID := prior.VersionID.ValueString()
+		if overlay != nil {
+			versionID = latestOverlayVersionID(overlay)
+		}
+		activated, err := r.setVersionActive(ctx, versionID, true)
+		if err != nil {
+			diags.AddError("Error activating coralogix_fleet_configuration_overlay", err.Error())
+			return overlay, diags
+		}
+		overlay = activated
+	}
+
+	if overlay == nil {
 		// Only null vs empty representation changed; nothing to send.
 		result, httpResponse, err := r.client.
 			ConfigurationOverlayServiceGetConfigurationOverlay(ctx, id).
 			Execute()
 		if err != nil {
-			resp.Diagnostics.AddError("Error reading coralogix_fleet_configuration_overlay",
+			diags.AddError("Error reading coralogix_fleet_configuration_overlay",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
-			return
+			return nil, diags
 		}
 		overlay = &result.Overlay
 	}
 
-	state, diags := flattenConfigurationOverlay(ctx, plan, overlay)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+	return overlay, diags
 }
 
 func (r *FleetConfigurationOverlayResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -356,29 +414,29 @@ func (r *FleetConfigurationOverlayResource) Delete(ctx context.Context, req reso
 	}
 
 	id := state.ID.ValueString()
-	// Archive requires an inactive overlay. If archive then fails, the overlay
-	// stays inactive in Coralogix and in Terraform state; retrying destroy archives.
-	if !state.Active.IsNull() && state.Active.ValueBool() {
-		deactivateReq := cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequest{
-			Active: cfgoverlays.PtrBool(false),
+	// Archive requires an inactive overlay, and the active version is always the
+	// latest one. Read it fresh rather than trusting state. If archive then fails,
+	// the overlay stays inactive in Coralogix; retrying destroy archives.
+	result, httpResponse, err := r.client.
+		ConfigurationOverlayServiceGetConfigurationOverlay(ctx, id).
+		Execute()
+	if err != nil {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return
 		}
-		_, httpResponse, err := r.client.
-			ConfigurationOverlayServiceUpdateConfigurationOverlay(ctx, id).
-			UpdateMask("active").
-			ConfigurationOverlayServiceUpdateConfigurationOverlayRequest(deactivateReq).
-			Execute()
-		if err != nil {
-			if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
-				return
-			}
-			resp.Diagnostics.AddError("Error deactivating coralogix_fleet_configuration_overlay before archive",
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", deactivateReq),
-			)
+		resp.Diagnostics.AddError("Error reading coralogix_fleet_configuration_overlay before archive",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
+		)
+		return
+	}
+	if result.Overlay.GetActive() {
+		if _, err := r.setVersionActive(ctx, latestOverlayVersionID(&result.Overlay), false); err != nil {
+			resp.Diagnostics.AddError("Error deactivating coralogix_fleet_configuration_overlay before archive", err.Error())
 			return
 		}
 	}
 
-	_, httpResponse, err := r.client.
+	_, httpResponse, err = r.client.
 		ConfigurationOverlayServiceArchiveConfigurationOverlay(ctx, id).
 		Execute()
 	if err != nil {
@@ -389,6 +447,35 @@ func (r *FleetConfigurationOverlayResource) Delete(ctx context.Context, req reso
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 	}
+}
+
+// setVersionActive activates or deactivates one overlay version. Both calls are
+// idempotent. State conflicts (no targets, archived version) return 412.
+func (r *FleetConfigurationOverlayResource) setVersionActive(ctx context.Context, versionID string, active bool) (*cfgoverlays.ConfigurationOverlay, error) {
+	if active {
+		result, httpResponse, err := r.client.
+			ConfigurationOverlayServiceActivateConfigurationOverlayVersion(ctx, versionID).
+			Execute()
+		if err != nil {
+			return nil, fmt.Errorf("%s", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Activate", nil))
+		}
+		return &result.Overlay, nil
+	}
+	result, httpResponse, err := r.client.
+		ConfigurationOverlayServiceDeactivateConfigurationOverlayVersion(ctx, versionID).
+		Execute()
+	if err != nil {
+		return nil, fmt.Errorf("%s", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Deactivate", nil))
+	}
+	return &result.Overlay, nil
+}
+
+// latestOverlayVersionID returns the newest version's ID; versions are newest first.
+func latestOverlayVersionID(overlay *cfgoverlays.ConfigurationOverlay) string {
+	if overlay == nil || len(overlay.Versions) == 0 {
+		return ""
+	}
+	return overlay.Versions[0].Id
 }
 
 func (r *FleetConfigurationOverlayResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -422,15 +509,13 @@ func expandOverlayCreateRequest(ctx context.Context, plan *FleetConfigurationOve
 	if !plan.PriorityOrder.IsNull() && !plan.PriorityOrder.IsUnknown() {
 		overlay.SetPriorityOrder(int32(plan.PriorityOrder.ValueInt64()))
 	}
-	if !plan.Active.IsNull() && !plan.Active.IsUnknown() {
-		overlay.SetActive(plan.Active.ValueBool())
-	}
 
 	return cfgoverlays.ConfigurationOverlayServiceCreateConfigurationOverlayRequest{Overlay: overlay}, diags
 }
 
 // expandOverlayUpdateRequest builds a PATCH body and update mask holding only
-// the fields that differ between plan and prior state. A masked field left out
+// the fields that differ between plan and prior state. active is not part of
+// the PATCH; it is applied with the activate and deactivate calls. A masked field left out
 // of the body is cleared by the API, which is how removed attributes clear.
 func expandOverlayUpdateRequest(ctx context.Context, plan, prior *FleetConfigurationOverlayResourceModel) (cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequest, []string, diag.Diagnostics) {
 	updateReq := cfgoverlays.ConfigurationOverlayServiceUpdateConfigurationOverlayRequest{}
@@ -451,10 +536,6 @@ func expandOverlayUpdateRequest(ctx context.Context, plan, prior *FleetConfigura
 	if !plan.PriorityOrder.Equal(prior.PriorityOrder) {
 		mask = append(mask, "priorityOrder")
 		updateReq.SetPriorityOrder(int32(plan.PriorityOrder.ValueInt64()))
-	}
-	if !plan.Active.Equal(prior.Active) {
-		mask = append(mask, "active")
-		updateReq.SetActive(plan.Active.ValueBool())
 	}
 
 	planTags, diags := expandStringList(ctx, plan.Tags)
