@@ -27,6 +27,32 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
+# Connector used by the alert's case_settings.destinations below. Case
+# destinations need a connector that supports the "cases" entity type.
+resource "coralogix_connector" "generic_https_cases_example" {
+  type        = "generic_https"
+  name        = "generic-https cases connector for alert example"
+  description = "generic-https connector that receives case notifications"
+  connector_config = {
+    fields = [
+      {
+        field_name = "url"
+        value      = "https://webhook.example.com/cases"
+      },
+      {
+        field_name = "method"
+        value      = "POST"
+      }
+    ]
+  }
+  config_overrides = [
+    {
+      entity_type = "cases"
+      fields      = []
+    }
+  ]
+}
+
 # Connector and preset used by the alert's notification_group.destinations below.
 resource "coralogix_connector" "generic_https_example" {
   type        = "generic_https"
@@ -207,6 +233,19 @@ resource "coralogix_alert" "test" {
     retriggering_period = {
       minutes = 1
     }
+  }
+
+  # Optional (preview) - case settings. Removing the block clears them.
+  case_settings = {
+    auto_resolve_mode  = "disabled"
+    enrichment_queries = [{ query = "source logs | limit 10" }]
+    destinations = [
+      {
+        connector_id = coralogix_connector.generic_https_cases_example.id
+        condition    = "true"
+        preset_id    = "preset_system_generic_https_cases_empty"
+      }
+    ]
   }
 
   schedule = {
@@ -844,6 +883,7 @@ resource "coralogix_alert" "test" {
 
 ### Optional
 
+- `case_settings` (Attributes) Case settings for the alert (preview): whether cases auto-resolve, a query that enriches the case, and where case notifications are sent. Case destinations are independent of `notification_group.destinations`; both are delivered. Removing this block clears the case settings. (see [below for nested schema](#nestedatt--case_settings))
 - `data_sources` (Attributes List) Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list. (see [below for nested schema](#nestedatt--data_sources))
 - `description` (String) Alert description.
 - `enabled` (Boolean) Alert enabled status. True by default.
@@ -2183,6 +2223,41 @@ Optional:
 
 
 
+
+
+
+<a id="nestedatt--case_settings"></a>
+### Nested Schema for `case_settings`
+
+Optional:
+
+- `auto_resolve_mode` (String) Whether the case is resolved automatically when the alert resolves. Valid values: ["enabled" "disabled"]. Defaults to `enabled`.
+- `destinations` (Attributes List) Notification Center destinations notified about the cases opened by this alert. The API accepts at most 100 destinations and rejects two destinations with the same `connector_id`, `preset_id` and `condition`. (see [below for nested schema](#nestedatt--case_settings--destinations))
+- `enrichment_queries` (Attributes List) Queries that enrich the cases opened by this alert. The API accepts at most one query. (see [below for nested schema](#nestedatt--case_settings--enrichment_queries))
+
+<a id="nestedatt--case_settings--destinations"></a>
+### Nested Schema for `case_settings.destinations`
+
+Required:
+
+- `condition` (String) Notification Center routing condition that decides whether this destination is notified. Use `"true"` to notify on every case notification, or filter on `caseMetadata.notificationReason` (for example `caseMetadata.notificationReason == 'caseResolved'`).
+- `connector_id` (String) ID of the Notification Center connector to notify. The connector must support the `cases` entity type, for example through a `config_overrides` entry with `entity_type = "cases"`.
+
+Optional:
+
+- `preset_id` (String) ID of the Notification Center preset used to render the notification. The preset must be defined for the `cases` entity type and the connector's type (for example `preset_system_generic_https_cases_empty`). When omitted, the connector type's default preset is used.
+
+
+<a id="nestedatt--case_settings--enrichment_queries"></a>
+### Nested Schema for `case_settings.enrichment_queries`
+
+Required:
+
+- `query` (String) The enrichment query.
+
+Optional:
+
+- `type` (String) The query language. Valid values: ["dataprime"]. Defaults to `dataprime`.
 
 
 

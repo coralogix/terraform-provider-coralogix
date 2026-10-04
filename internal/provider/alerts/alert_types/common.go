@@ -331,6 +331,35 @@ var (
 	}
 	DurationUnitSchemaToProtoMap = utils.ReverseMap(DurationUnitProtoToSchemaMap)
 	ValidDurationUnits           = utils.GetKeys(DurationUnitSchemaToProtoMap)
+
+	// The API reads back an omitted mode or query type as UNSPECIFIED, which it
+	// treats as enabled / DataPrime. Those are mapped on read only; writes always
+	// send the concrete value.
+	CaseAutoResolveModeSchemaToProtoMap = map[string]alerts.AlertDefCaseAutoResolveMode{
+		CaseAutoResolveModeEnabled:  alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED,
+		CaseAutoResolveModeDisabled: alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED,
+	}
+	CaseAutoResolveModeProtoToSchemaMap = map[alerts.AlertDefCaseAutoResolveMode]string{
+		alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_UNSPECIFIED: CaseAutoResolveModeEnabled,
+		alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED:     CaseAutoResolveModeEnabled,
+		alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED:    CaseAutoResolveModeDisabled,
+	}
+	ValidCaseAutoResolveModes = []string{CaseAutoResolveModeEnabled, CaseAutoResolveModeDisabled}
+
+	CaseEnrichmentQueryTypeSchemaToProtoMap = map[string]alerts.AlertDefCaseEnrichmentQueryType{
+		CaseEnrichmentQueryTypeDataPrime: alerts.ALERTDEFCASEENRICHMENTQUERYTYPE_ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME,
+	}
+	CaseEnrichmentQueryTypeProtoToSchemaMap = map[alerts.AlertDefCaseEnrichmentQueryType]string{
+		alerts.ALERTDEFCASEENRICHMENTQUERYTYPE_ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_UNSPECIFIED: CaseEnrichmentQueryTypeDataPrime,
+		alerts.ALERTDEFCASEENRICHMENTQUERYTYPE_ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME:   CaseEnrichmentQueryTypeDataPrime,
+	}
+	ValidCaseEnrichmentQueryTypes = []string{CaseEnrichmentQueryTypeDataPrime}
+)
+
+const (
+	CaseAutoResolveModeEnabled       = "enabled"
+	CaseAutoResolveModeDisabled      = "disabled"
+	CaseEnrichmentQueryTypeDataPrime = "dataprime"
 )
 
 type AlertResourceModel struct {
@@ -348,6 +377,24 @@ type AlertResourceModel struct {
 	NotificationGroup types.Object `tfsdk:"notification_group"` // NotificationGroupModel
 	Labels            types.Map    `tfsdk:"labels"`             // map[string]string
 	DataSources       types.List   `tfsdk:"data_sources"`       // []DataSourceModel
+	CaseSettings      types.Object `tfsdk:"case_settings"`      // CaseSettingsModel
+}
+
+type CaseSettingsModel struct {
+	AutoResolveMode   types.String `tfsdk:"auto_resolve_mode"`
+	EnrichmentQueries types.List   `tfsdk:"enrichment_queries"` // []CaseEnrichmentQueryModel
+	Destinations      types.List   `tfsdk:"destinations"`       // []CaseDestinationModel
+}
+
+type CaseEnrichmentQueryModel struct {
+	Query types.String `tfsdk:"query"`
+	Type  types.String `tfsdk:"type"`
+}
+
+type CaseDestinationModel struct {
+	ConnectorId types.String `tfsdk:"connector_id"`
+	Condition   types.String `tfsdk:"condition"`
+	PresetId    types.String `tfsdk:"preset_id"`
 }
 
 type DataSourceModel struct {

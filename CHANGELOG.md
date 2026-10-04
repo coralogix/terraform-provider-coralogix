@@ -7,6 +7,10 @@
 #### tools/iac-codegen
 - FEAT: Add the fail-closed beta generator and local candidate eligibility checks for complete Terraform Plugin Framework resources.
 
+#### resource/coralogix_alert
+- FEAT: Add `case_settings` (preview): case auto-resolve mode, a case enrichment query, and case notification destinations. Also flows through to `data-source/coralogix_alert`.
+- FIX: Updating an alert no longer resets its case settings when `case_settings` is configured. Case settings set outside Terraform now show as drift instead of being cleared silently on the next update.
+
 # Release 3.19.0
 
 #### resource/coralogix_events2metric

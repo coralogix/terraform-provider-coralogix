@@ -299,7 +299,89 @@ func extractAlertProperties(ctx context.Context, plan *alerttypes.AlertResourceM
 	}
 	alertProperties.DataSources = dataSources
 
+	caseSettings, diags := extractCaseSettings(ctx, plan.CaseSettings)
+	if diags.HasError() {
+		return nil, diags
+	}
+	alertProperties.CaseSettings = caseSettings
+
 	return alertProperties, nil
+}
+
+func extractCaseSettings(ctx context.Context, caseSettingsObject types.Object) (*alerts.AlertDefCaseSettings, diag.Diagnostics) {
+	if caseSettingsObject.IsNull() || caseSettingsObject.IsUnknown() {
+		return nil, nil
+	}
+
+	var caseSettingsModel alerttypes.CaseSettingsModel
+	if diags := caseSettingsObject.As(ctx, &caseSettingsModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	enrichmentQueries, diags := extractCaseEnrichmentQueries(ctx, caseSettingsModel.EnrichmentQueries)
+	if diags.HasError() {
+		return nil, diags
+	}
+	destinations, diags := extractCaseDestinations(ctx, caseSettingsModel.Destinations)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	// Always send a concrete mode: the API stores an object holding only
+	// defaults (UNSPECIFIED mode, no queries, no destinations) as absent.
+	autoResolveMode := alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED
+	if mode, ok := alerttypes.CaseAutoResolveModeSchemaToProtoMap[caseSettingsModel.AutoResolveMode.ValueString()]; ok {
+		autoResolveMode = mode
+	}
+
+	return &alerts.AlertDefCaseSettings{
+		AutoResolveMode:   autoResolveMode.Ptr(),
+		EnrichmentQueries: enrichmentQueries,
+		Destinations:      destinations,
+	}, nil
+}
+
+func extractCaseEnrichmentQueries(ctx context.Context, queries types.List) ([]alerts.AlertDefCaseEnrichmentQuery, diag.Diagnostics) {
+	extracted := []alerts.AlertDefCaseEnrichmentQuery{}
+	if queries.IsNull() || queries.IsUnknown() {
+		return extracted, nil
+	}
+
+	var models []alerttypes.CaseEnrichmentQueryModel
+	if diags := queries.ElementsAs(ctx, &models, false); diags.HasError() {
+		return nil, diags
+	}
+	for _, model := range models {
+		queryType := alerts.ALERTDEFCASEENRICHMENTQUERYTYPE_ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME
+		if t, ok := alerttypes.CaseEnrichmentQueryTypeSchemaToProtoMap[model.Type.ValueString()]; ok {
+			queryType = t
+		}
+		extracted = append(extracted, alerts.AlertDefCaseEnrichmentQuery{
+			Query: model.Query.ValueString(),
+			Type:  queryType.Ptr(),
+		})
+	}
+	return extracted, nil
+}
+
+func extractCaseDestinations(ctx context.Context, destinations types.List) ([]alerts.AlertDefCaseDestination, diag.Diagnostics) {
+	extracted := []alerts.AlertDefCaseDestination{}
+	if destinations.IsNull() || destinations.IsUnknown() {
+		return extracted, nil
+	}
+
+	var models []alerttypes.CaseDestinationModel
+	if diags := destinations.ElementsAs(ctx, &models, false); diags.HasError() {
+		return nil, diags
+	}
+	for _, model := range models {
+		extracted = append(extracted, alerts.AlertDefCaseDestination{
+			ConnectorId: model.ConnectorId.ValueString(),
+			Condition:   model.Condition.ValueString(),
+			PresetId:    model.PresetId.ValueStringPointer(),
+		})
+	}
+	return extracted, nil
 }
 
 func extractDataSources(ctx context.Context, dataSources types.List) ([]alerts.AlertDefDataSource, diag.Diagnostics) {
@@ -3088,6 +3170,10 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 	if diags.HasError() {
 		return nil, diags
 	}
+	caseSettings, diags := flattenCaseSettings(ctx, alertProperties.CaseSettings)
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &alerttypes.AlertResourceModel{
 		ID:                types.StringPointerValue(alert.Id),
 		Name:              types.StringPointerValue(getAlertName(alertProperties)),
@@ -3103,6 +3189,7 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 		PhantomMode:       types.BoolPointerValue(getAlertPhantomMode(alertProperties)),
 		Deleted:           types.BoolPointerValue(getAlertDeleted(alertProperties)),
 		DataSources:       dataSources,
+		CaseSettings:      caseSettings,
 	}, nil
 }
 
@@ -3185,6 +3272,56 @@ func flattenDataSources(ctx context.Context, dataSources []alerts.AlertDefDataSo
 	}
 
 	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertschema.DataSourcesAttr()}, dataSourceModels)
+}
+
+func flattenCaseSettings(ctx context.Context, caseSettings *alerts.AlertDefCaseSettings) (types.Object, diag.Diagnostics) {
+	if caseSettings == nil {
+		return types.ObjectNull(alertschema.CaseSettingsAttr()), nil
+	}
+
+	autoResolveMode := alerttypes.CaseAutoResolveModeEnabled
+	if caseSettings.AutoResolveMode != nil {
+		if mode, ok := alerttypes.CaseAutoResolveModeProtoToSchemaMap[*caseSettings.AutoResolveMode]; ok {
+			autoResolveMode = mode
+		}
+	}
+
+	queryModels := make([]alerttypes.CaseEnrichmentQueryModel, 0, len(caseSettings.EnrichmentQueries))
+	for _, query := range caseSettings.EnrichmentQueries {
+		queryType := alerttypes.CaseEnrichmentQueryTypeDataPrime
+		if query.Type != nil {
+			if t, ok := alerttypes.CaseEnrichmentQueryTypeProtoToSchemaMap[*query.Type]; ok {
+				queryType = t
+			}
+		}
+		queryModels = append(queryModels, alerttypes.CaseEnrichmentQueryModel{
+			Query: types.StringValue(query.Query),
+			Type:  types.StringValue(queryType),
+		})
+	}
+	enrichmentQueries, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertschema.CaseEnrichmentQueryAttr()}, queryModels)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.CaseSettingsAttr()), diags
+	}
+
+	destinationModels := make([]alerttypes.CaseDestinationModel, 0, len(caseSettings.Destinations))
+	for _, destination := range caseSettings.Destinations {
+		destinationModels = append(destinationModels, alerttypes.CaseDestinationModel{
+			ConnectorId: types.StringValue(destination.ConnectorId),
+			Condition:   types.StringValue(destination.Condition),
+			PresetId:    types.StringPointerValue(destination.PresetId),
+		})
+	}
+	destinations, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertschema.CaseDestinationAttr()}, destinationModels)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.CaseSettingsAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, alertschema.CaseSettingsAttr(), alerttypes.CaseSettingsModel{
+		AutoResolveMode:   types.StringValue(autoResolveMode),
+		EnrichmentQueries: enrichmentQueries,
+		Destinations:      destinations,
+	})
 }
 
 func getAlertName(alertDefProperties *alerts.AlertDefProperties) *string {
