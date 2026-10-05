@@ -350,6 +350,9 @@ func (s *accSynth) checkFile() error {
 			if !s.known[path] {
 				return fmt.Errorf("%s: %q is not an attribute of the resource", name, path)
 			}
+			if name != "skip" && slices.Contains(s.file.Skip, path) {
+				return fmt.Errorf("%s: %q is also in skip: skip leaves it out of every config", name, path)
+			}
 			if name != "skip" && !s.settable[path] {
 				return fmt.Errorf("%s: %q is set by the server: a config cannot set it", name, path)
 			}
@@ -405,6 +408,8 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 		return false // the server makes the id; a changed id would replace the resource
 	case a.Required:
 		return true
+	case a.OneOfRequired:
+		return true // the group needs one arm; the walk takes the first that is included
 	}
 	return mode != accMinimal || slices.Contains(s.minimal, key) || s.minimalBelow(key)
 }

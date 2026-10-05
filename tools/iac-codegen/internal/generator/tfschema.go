@@ -55,6 +55,8 @@ type tfAttr struct {
 	// OneOfGroup names the oneOf group of an arm: its arms, joined. "" when the attribute is no arm.
 	// The acceptance test sets one arm of each group.
 	OneOfGroup string
+	// OneOfRequired says that the group needs one arm (ExactlyOneOf), so every config sets one.
+	OneOfRequired bool
 	// EnumSchema is the OpenAPI component of the enum of a scalar attribute, or "".
 	EnumSchema string
 	Modifiers  []string // plan modifiers, Go expressions
@@ -459,6 +461,7 @@ func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup) {
 			a.Validators = append(a.Validators, validator)
 			a.GroupValidators = append(a.GroupValidators, validator)
 			a.OneOfGroup = strings.Join(g.Arms, ",")
+			a.OneOfRequired = !g.AllowNone
 		}
 	}
 }

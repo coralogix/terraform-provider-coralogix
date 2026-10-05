@@ -681,3 +681,45 @@ func TestAcceptanceRejectsMinimalFieldThatTheServerSets(t *testing.T) {
 		t.Fatalf("err = %v, want a settable minimal field accepted", err)
 	}
 }
+
+// A oneOf group that needs one arm (ExactlyOneOf) has an arm in every config, the minimal one too.
+// A group that allows none stays empty in the minimal config.
+func TestAcceptanceMinimalConfigTakesAnArmOfARequiredGroup(t *testing.T) {
+	s := testSynth(t, "")
+	attrs := []*tfAttr{
+		{Name: "http", Kind: "SingleNested", Optional: true, OneOfGroup: "http,queue", OneOfRequired: true, Attributes: []*tfAttr{{Name: "endpoint", Kind: "String", Required: true}}},
+		{Name: "queue", Kind: "SingleNested", Optional: true, OneOfGroup: "http,queue", OneOfRequired: true, Attributes: []*tfAttr{{Name: "topic", Kind: "String", Required: true}}},
+		{Name: "daily", Kind: "SingleNested", Optional: true, OneOfGroup: "daily,weekly", Attributes: []*tfAttr{{Name: "hour", Kind: "Int64", Required: true}}},
+		{Name: "weekly", Kind: "SingleNested", Optional: true, OneOfGroup: "daily,weekly", Attributes: []*tfAttr{{Name: "day", Kind: "Int64", Required: true}}},
+	}
+	body, _, err := s.attrs(attrs, "", "", accMinimal, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(body, "http = {") || strings.Contains(body, "queue") {
+		t.Fatalf("the minimal config should hold the first arm of the required group:\n%s", body)
+	}
+	if strings.Contains(body, "daily") || strings.Contains(body, "weekly") {
+		t.Fatalf("the minimal config should leave a group that allows none empty:\n%s", body)
+	}
+}
+
+// A path in skip and in minimal contradicts itself: skip wins and the minimal config would lack it.
+func TestAcceptanceRejectsAPathInSkipAndMinimal(t *testing.T) {
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "note", Kind: "String", Optional: true},
+	}}
+	for _, key := range []string{"minimal", "upgradeMinimal"} {
+		t.Run(key, func(t *testing.T) {
+			file, err := acceptance.Parse([]byte("resource: Thing\nupgradeFrom: \"1.0.0\"\nskip:\n  - note\n" + key + ":\n  - note\n"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = buildAcceptance(res, "example.com/provider", file, nil)
+			if err == nil || !strings.Contains(err.Error(), `"note" is also in skip`) {
+				t.Fatalf("err = %v, want the path in skip and %s rejected", err, key)
+			}
+		})
+	}
+}
