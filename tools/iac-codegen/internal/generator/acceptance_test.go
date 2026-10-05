@@ -17,7 +17,7 @@ func testSynth(t *testing.T, fileText string) *accSynth {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &accSynth{file: file, minimal: file.Minimal, idAttr: "id", known: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}}
+	return &accSynth{file: file, minimal: file.Minimal, idAttr: "id", known: map[string]bool{}, settable: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}}
 }
 
 func sampleAttrs() []*tfAttr {
@@ -650,5 +650,34 @@ func TestAcceptanceRejectsNestedRequiresReplace(t *testing.T) {
 	_, err = buildAcceptance(res, "example.com/provider", file, nil)
 	if err == nil || !strings.Contains(err.Error(), `"rules[].region" has RequiresReplace below the top level`) {
 		t.Fatalf("err = %v, want nested RequiresReplace rejected", err)
+	}
+}
+
+// A minimal field that the server sets cannot be in a config. The walk leaves it out, so the entry
+// would promise coverage that the test does not give.
+func TestAcceptanceRejectsMinimalFieldThatTheServerSets(t *testing.T) {
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "note", Kind: "String", Optional: true},
+		{Name: "created", Kind: "String", Computed: true},
+	}}
+	for _, key := range []string{"minimal", "upgradeMinimal"} {
+		t.Run(key, func(t *testing.T) {
+			file, err := acceptance.Parse([]byte("resource: Thing\nupgradeFrom: \"1.0.0\"\n" + key + ":\n  - created\n"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = buildAcceptance(res, "example.com/provider", file, nil)
+			if err == nil || !strings.Contains(err.Error(), `"created" is set by the server`) {
+				t.Fatalf("err = %v, want the server-set field rejected", err)
+			}
+		})
+	}
+	file, err := acceptance.Parse([]byte("resource: Thing\nminimal:\n  - note\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := buildAcceptance(res, "example.com/provider", file, nil); err != nil {
+		t.Fatalf("err = %v, want a settable minimal field accepted", err)
 	}
 }

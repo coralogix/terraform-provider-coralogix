@@ -77,6 +77,8 @@ type accSynth struct {
 	minimal []string
 	idAttr  string
 	known   map[string]bool // every attribute path that the walk saw
+	// settable are the attribute paths that the user can set: Required or Optional.
+	settable map[string]bool
 	// required are the attribute paths that the walk saw as Required.
 	required map[string]bool
 	// released are the attributes that the released provider of the upgrade test has. When it is
@@ -99,7 +101,7 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		return nil, fmt.Errorf("acceptance test: %q has RequiresReplace below the top level, which nextAction does not compare", path)
 	}
 	typeName := res.CRUD.TypeName
-	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}}
+	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, settable: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}}
 	out := &acceptanceData{
 		Package:        res.Package,
 		VersionHeader:  version.Header,
@@ -340,13 +342,16 @@ func hclLiteral(a *tfAttr, value string) string {
 	return value
 }
 
-// checkFile fails when the acceptance file names a field that the walk did not see, or a value
-// that no config used. A stale line cannot stay.
+// checkFile fails when the acceptance file names a field that the walk did not see, a minimal field
+// that the user cannot set, or a value that no config used. A stale line cannot stay.
 func (s *accSynth) checkFile() error {
 	for name, paths := range map[string][]string{"skip": s.file.Skip, "minimal": s.file.Minimal, "upgradeMinimal": s.file.UpgradeMinimal} {
 		for _, path := range paths {
 			if !s.known[path] {
 				return fmt.Errorf("%s: %q is not an attribute of the resource", name, path)
+			}
+			if name != "skip" && !s.settable[path] {
+				return fmt.Errorf("%s: %q is set by the server: a config cannot set it", name, path)
 			}
 			if name == "skip" && s.required[path] {
 				return fmt.Errorf("skip: %q is required: a config cannot leave it out", path)
@@ -420,6 +425,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 	for _, a := range attrs {
 		attrKey := joinPath(key, a.Name)
 		s.known[attrKey] = true
+		s.settable[attrKey] = a.Required || a.Optional
 		s.required[attrKey] = a.Required
 		if !s.include(a, attrKey, mode, top) {
 			continue
