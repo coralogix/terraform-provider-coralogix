@@ -92,6 +92,7 @@ components:
         id:
           type: string
           pattern: '^[a-z][a-z0-9_-]*$'
+          x-coralogix-presence: true
         name:
           type: string
           pattern: '^[\s\S]*$'

@@ -255,6 +255,12 @@ func (l Field) keys() []string {
 	return keys
 }
 
+// statesPresence reports whether the line says how an omitted value behaves. A line that only
+// changes a text, a validator, or the order does not: the contract must still state presence.
+func (l Field) statesPresence() bool {
+	return l.Skip || l.ReadOnly || l.Required || l.Computed != nil || l.Default != nil || l.ReadEmptyAs != ""
+}
+
 func (l Field) empty() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" &&
@@ -333,7 +339,9 @@ func (f *File) Policy() model.Policy {
 			if t.Fields[field].ReadOnly {
 				p.ReadOnly = append(p.ReadOnly, name+"."+field)
 			}
-			p.Released = append(p.Released, name+"."+field)
+			if t.Fields[field].statesPresence() {
+				p.Released = append(p.Released, name+"."+field)
+			}
 		}
 	}
 	return p

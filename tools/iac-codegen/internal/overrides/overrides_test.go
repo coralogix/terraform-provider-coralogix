@@ -107,3 +107,19 @@ func TestARequiredFieldCannotBeComputed(t *testing.T) {
 		t.Fatalf("err = %v, want an error about a required and computed field", err)
 	}
 }
+
+// Only a line that says how an omitted value behaves answers the presence question of the
+// generator. A line that only changes a text, a validator, or the order does not.
+func TestPolicyReleasesOnlyLinesThatStatePresence(t *testing.T) {
+	text := valid + "  Words:\n    fields:\n      text: {description: A text.}\n      order: {keepPriorOrder: true}\n      mode: {computed: true}\n      zero: {default: false}\n      empty: {readEmptyAs: \"null\"}\n"
+	text = strings.Replace(text, "enums:\n  Kind: {zero: unspecified}\n  Words:", "  Words:", 1)
+	text += "enums:\n  Kind: {zero: unspecified}\n"
+	f, err := Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := strings.Join(f.Policy().Released, ",")
+	if want := "Target.id,Words.empty,Words.mode,Words.zero"; got != want {
+		t.Fatalf("released = %s, want %s", got, want)
+	}
+}
