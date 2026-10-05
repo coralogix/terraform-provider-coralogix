@@ -74,8 +74,8 @@ resource "coralogix_global_router" "example" {
 
 ### Read-Only
 
-- `create_time` (String) The create time.
-- `update_time` (String) Timestamp of the last update.
+- `create_time` (String) The create time. Set by the server; a value sent by the client is ignored.
+- `update_time` (String) Timestamp of the last update. Set by the server; a value sent by the client is ignored.
 
 <a id="nestedatt--fallback"></a>
 ### Nested Schema for `fallback`

@@ -24,7 +24,7 @@ func Schema() schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "The create time.",
+				MarkdownDescription: "The create time. Set by the server; a value sent by the client is ignored.",
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
@@ -199,7 +199,7 @@ func Schema() schema.Schema {
 			},
 			"update_time": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Timestamp of the last update.",
+				MarkdownDescription: "Timestamp of the last update. Set by the server; a value sent by the client is ignored.",
 			},
 		},
 		MarkdownDescription: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in Beta stage.",

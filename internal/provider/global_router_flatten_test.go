@@ -28,13 +28,13 @@ import (
 // Read, Update, and Delete take the id from the state.
 func TestGlobalRouterFlattenNeedsAnID(t *testing.T) {
 	name := "router"
-	_, diags := globalrouter.Flatten(context.Background(), &global_routers_service.GlobalRouter{Name: &name})
+	_, diags := globalrouter.Flatten(context.Background(), &global_routers_service.GlobalRouter{Name: name})
 	if !diags.HasError() {
 		t.Fatal("a response without an id was accepted")
 	}
 
 	id := "router-1"
-	model, diags := globalrouter.Flatten(context.Background(), &global_routers_service.GlobalRouter{Id: &id, Name: &name})
+	model, diags := globalrouter.Flatten(context.Background(), &global_routers_service.GlobalRouter{Id: &id, Name: name})
 	if diags.HasError() {
 		t.Fatalf("a response with an id was rejected: %v", diags)
 	}

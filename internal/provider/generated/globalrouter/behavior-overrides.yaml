@@ -10,10 +10,6 @@
 #
 # A new value of an enum also needs a decision. Add it to values (the resource accepts it) or to
 # rejected. The generator stops until you do. The validators of the enum fields follow values.
-#
-# Lines marked PINNED-SDK state facts that the API contract will declare after the SDK that
-# has them is pinned. The generator reports each of them as unused at that point and names the
-# stale key. Delete only that key. The other keys of the line stay: the contract does not state them.
 resource: GlobalRouter
 mode: existing
 
@@ -40,14 +36,12 @@ api:
 
 types:
   GlobalRouter:
-    required: [] # PINNED-SDK: the pinned contract declares no required list
     fields:
       id:
         markdownDescription: "The ID of the GlobalRouter. Use `router_default` for the default; leave empty for auto generated or provide your own (unique) id."
         useStateForUnknown: true
       name:
         markdownDescription: "Name of the GlobalRouter."
-        required: true # PINNED-SDK: the contract will require the name
       description:
         markdownDescription: "Description of the GlobalRouter."
         computed: true # the API returns "" for an omitted value
@@ -77,13 +71,11 @@ types:
         computed: true
       # The released resource has no top-level entity type.
       entityType: {skip: true}
-      # The server sets the times. They are new attributes, so the contract describes them.
-      # After the SDK bump, delete readOnly only. Keep useStateForUnknown: the generator never adds it.
-      createTime: {readOnly: true, useStateForUnknown: true} # PINNED-SDK: the contract will mark the field readOnly
-      updateTime: {readOnly: true} # PINNED-SDK
+      # The server sets the times. The contract marks them readOnly.
+      # useStateForUnknown stays: the generator never adds it.
+      createTime: {useStateForUnknown: true}
 
   RoutingRule:
-    required: [] # PINNED-SDK
     fields:
       entityType:
         description: ""
@@ -92,10 +84,8 @@ types:
         validators: [{enum: true}]
       name:
         description: "Name of the routing rule."
-        required: true # PINNED-SDK
       condition:
         description: ""
-        required: true # PINNED-SDK
       targets:
         description: "Routing targets for the rule."
         computed: true
@@ -105,11 +95,9 @@ types:
         computed: true
 
   RoutingTarget:
-    required: [] # PINNED-SDK
     fields:
       connectorId:
         description: "ID of the connector."
-        required: true # PINNED-SDK
       presetId:
         description: "ID of the preset."
       customDetails:
@@ -127,15 +115,12 @@ types:
       team: {description: "", computed: true}
 
   FallbackTarget:
-    required: [] # PINNED-SDK
     fields:
       entityType:
         description: "The entity type this fallback applies to."
-        required: true # PINNED-SDK
         validators: [{enum: true}]
       target:
         description: "The fallback routing target."
-        required: true # PINNED-SDK
 
 enums:
   # ENTITY_TYPE_UNSPECIFIED was the Terraform value "unspecified" in the released resource.

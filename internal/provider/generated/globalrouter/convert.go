@@ -75,7 +75,7 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 func expandCreate(ctx context.Context, m *GlobalRouterModel) (*global_routers_service.CreateGlobalRouterRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expandGlobalRouterCreate(ctx, path.Empty(), m, &diags)
-	return &global_routers_service.CreateGlobalRouterRequest{Router: out}, diags
+	return &global_routers_service.CreateGlobalRouterRequest{Router: valueOf(out)}, diags
 }
 
 // expandUpdate returns the Update request body with every Update field. A
@@ -83,7 +83,7 @@ func expandCreate(ctx context.Context, m *GlobalRouterModel) (*global_routers_se
 func expandUpdate(ctx context.Context, m *GlobalRouterModel) (*global_routers_service.ReplaceGlobalRouterRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expandGlobalRouterUpdate(ctx, path.Empty(), m, &diags)
-	return &global_routers_service.ReplaceGlobalRouterRequest{Router: out}, diags
+	return &global_routers_service.ReplaceGlobalRouterRequest{Router: valueOf(out)}, diags
 }
 
 // flatten returns the Terraform model of the resource in an API response.
@@ -122,7 +122,7 @@ func expandGlobalRouterCreate(ctx context.Context, p path.Path, m *GlobalRouterM
 		}
 	}
 	out.Id = expandString(m.Id)
-	out.Name = expandString(m.Name)
+	out.Name = valueOf(expandString(m.Name))
 	out.RoutingLabels = expandRoutingLabels(ctx, p.AtName("routing_labels"), m.RoutingLabels, diags)
 	if items := expandElements[RoutingRuleModel](ctx, p.AtName("rules"), m.Rules, diags); items != nil {
 		out.Rules = make([]global_routers_service.RoutingRule, 0, len(items))
@@ -138,7 +138,7 @@ func expandRoutingTarget(ctx context.Context, p path.Path, m *RoutingTargetModel
 		return nil
 	}
 	out := &global_routers_service.RoutingTarget{}
-	out.ConnectorId = expandString(m.ConnectorId)
+	out.ConnectorId = valueOf(expandString(m.ConnectorId))
 	out.CustomDetails = expandStringMap[string](ctx, p.AtName("custom_details"), m.CustomDetails, diags)
 	out.PresetId = expandString(m.PresetId)
 	return out
@@ -149,7 +149,7 @@ func flattenRoutingTarget(ctx context.Context, p path.Path, v *global_routers_se
 		return nil
 	}
 	out := &RoutingTargetModel{}
-	out.ConnectorId = types.StringPointerValue(v.ConnectorId)
+	out.ConnectorId = types.StringPointerValue(&v.ConnectorId)
 	out.CustomDetails = flattenStringMap(ctx, v.CustomDetails, diags)
 	out.PresetId = types.StringPointerValue(v.PresetId)
 	return out
@@ -158,7 +158,7 @@ func flattenRoutingTarget(ctx context.Context, p path.Path, v *global_routers_se
 // sameRoutingTarget reports whether two SDK values are equal. It compares the fields that the resource
 // manages. A missing value and an empty one are equal.
 func sameRoutingTarget(a, b *global_routers_service.RoutingTarget) bool {
-	return pointerValue(a.ConnectorId) == pointerValue(b.ConnectorId) &&
+	return a.ConnectorId == b.ConnectorId &&
 		maps.Equal(a.CustomDetails, b.CustomDetails) &&
 		pointerValue(a.PresetId) == pointerValue(b.PresetId)
 }
@@ -176,8 +176,8 @@ func expandFallbackTarget(ctx context.Context, p path.Path, m *FallbackTargetMod
 		return nil
 	}
 	out := &global_routers_service.FallbackTarget{}
-	out.EntityType = expandEnumMapped(p.AtName("entity_type"), m.EntityType, notificationCenterEntityTypeToAPI, diags)
-	out.Target = expandRoutingTarget(ctx, p.AtName("target"), m.Target, diags)
+	out.EntityType = valueOf(expandEnumMapped(p.AtName("entity_type"), m.EntityType, notificationCenterEntityTypeToAPI, diags))
+	out.Target = valueOf(expandRoutingTarget(ctx, p.AtName("target"), m.Target, diags))
 	return out
 }
 
@@ -186,16 +186,16 @@ func flattenFallbackTarget(ctx context.Context, p path.Path, v *global_routers_s
 		return nil
 	}
 	out := &FallbackTargetModel{}
-	out.EntityType = flattenEnumMapped(p.AtName("entity_type"), v.EntityType, notificationCenterEntityTypeFromAPI, diags)
-	out.Target = flattenRoutingTarget(ctx, p.AtName("target"), v.Target, diags)
+	out.EntityType = flattenEnumMapped(p.AtName("entity_type"), &v.EntityType, notificationCenterEntityTypeFromAPI, diags)
+	out.Target = flattenRoutingTarget(ctx, p.AtName("target"), &v.Target, diags)
 	return out
 }
 
 // sameFallbackTarget reports whether two SDK values are equal. It compares the fields that the resource
 // manages. A missing value and an empty one are equal.
 func sameFallbackTarget(a, b *global_routers_service.FallbackTarget) bool {
-	return pointerValue(a.EntityType) == pointerValue(b.EntityType) &&
-		sameObject(a.Target, b.Target, sameRoutingTarget)
+	return a.EntityType == b.EntityType &&
+		sameRoutingTarget(&a.Target, &b.Target)
 }
 
 func fallbackTargetAttrTypes() map[string]attr.Type {
@@ -232,10 +232,10 @@ func expandRoutingRule(ctx context.Context, p path.Path, m *RoutingRuleModel, di
 		return nil
 	}
 	out := &global_routers_service.RoutingRule{}
-	out.Condition = expandString(m.Condition)
+	out.Condition = valueOf(expandString(m.Condition))
 	out.CustomDetails = expandStringMap[string](ctx, p.AtName("custom_details"), m.CustomDetails, diags)
 	out.EntityType = expandEnumMapped(p.AtName("entity_type"), m.EntityType, notificationCenterEntityTypeToAPI, diags)
-	out.Name = expandString(m.Name)
+	out.Name = valueOf(expandString(m.Name))
 	if items := expandElements[RoutingTargetModel](ctx, p.AtName("targets"), m.Targets, diags); items != nil {
 		out.Targets = make([]global_routers_service.RoutingTarget, 0, len(items))
 		for i := range items {
@@ -250,10 +250,10 @@ func flattenRoutingRule(ctx context.Context, p path.Path, v *global_routers_serv
 		return nil
 	}
 	out := &RoutingRuleModel{}
-	out.Condition = types.StringPointerValue(v.Condition)
+	out.Condition = types.StringPointerValue(&v.Condition)
 	out.CustomDetails = flattenStringMap(ctx, v.CustomDetails, diags)
 	out.EntityType = flattenEnumMapped(p.AtName("entity_type"), v.EntityType, notificationCenterEntityTypeFromAPI, diags)
-	out.Name = types.StringPointerValue(v.Name)
+	out.Name = types.StringPointerValue(&v.Name)
 	out.Targets = types.ListNull(types.ObjectType{AttrTypes: routingTargetAttrTypes()})
 	srcTargets := v.Targets
 	if prior != nil {
@@ -300,7 +300,7 @@ func expandGlobalRouterUpdate(ctx context.Context, p path.Path, m *GlobalRouterM
 		}
 	}
 	out.Id = expandString(m.Id)
-	out.Name = expandString(m.Name)
+	out.Name = valueOf(expandString(m.Name))
 	out.RoutingLabels = expandRoutingLabels(ctx, p.AtName("routing_labels"), m.RoutingLabels, diags)
 	if items := expandElements[RoutingRuleModel](ctx, p.AtName("rules"), m.Rules, diags); items != nil {
 		out.Rules = make([]global_routers_service.RoutingRule, 0, len(items))
@@ -345,7 +345,7 @@ func flattenGlobalRouter(ctx context.Context, p path.Path, v *global_routers_ser
 		out.FallbackTargets = flattenList(ctx, types.ObjectType{AttrTypes: fallbackTargetAttrTypes()}, items, diags)
 	}
 	out.Id = types.StringPointerValue(v.Id)
-	out.Name = types.StringPointerValue(v.Name)
+	out.Name = types.StringPointerValue(&v.Name)
 	out.RoutingLabels = flattenRoutingLabels(ctx, p.AtName("routing_labels"), v.RoutingLabels, diags)
 	if out.RoutingLabels != nil && reflect.DeepEqual(*out.RoutingLabels, RoutingLabelsModel{}) {
 		out.RoutingLabels = nil
@@ -369,6 +369,16 @@ func flattenGlobalRouter(ctx context.Context, p path.Path, v *global_routers_ser
 	}
 	out.UpdateTime = flattenTime(v.UpdateTime)
 	return out
+}
+
+// valueOf returns the value of p, or the zero value for nil. It fills an SDK
+// field that is a value, not a pointer.
+func valueOf[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
 }
 
 // elements is a types.Set or a types.List.

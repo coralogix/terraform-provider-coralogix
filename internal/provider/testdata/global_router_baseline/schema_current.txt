@@ -1,7 +1,7 @@
 (schema)  version=1
     markdown: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in Beta stage."
 create_time  StringAttribute computed
-    markdown: "The create time."
+    markdown: "The create time. Set by the server; a value sent by the client is ignored."
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 description  StringAttribute optional computed
     markdown: "Description of the GlobalRouter."
@@ -66,4 +66,4 @@ rules[].targets[].custom_details  MapAttribute optional computed elem=basetypes.
 rules[].targets[].preset_id  StringAttribute optional
     description: "ID of the preset."
 update_time  StringAttribute computed
-    markdown: "Timestamp of the last update."
+    markdown: "Timestamp of the last update. Set by the server; a value sent by the client is ignored."
