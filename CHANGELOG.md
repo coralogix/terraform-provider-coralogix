@@ -1,7 +1,7 @@
 # Unreleased
 
 #### resource/coralogix_alert
-- DOCS: Describe `notification_group.group_by_keys`. Omitting it gives one combined case/notification; setting it opens a separate case/notification per combination of the keys.
+- DOCS: Describe `notification_group.group_by_keys` (combined vs. separate cases).
 
 #### resource/coralogix_grafana_folder
 - FIX: Handle out-of-band folder deletion on read — `terraform plan` now warns and recreates instead of erroring.

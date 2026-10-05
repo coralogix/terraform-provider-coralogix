@@ -2218,7 +2218,7 @@ Required:
 Optional:
 
 - `destinations` (Attributes List) Link a 3rd party notification to an alert. (see [below for nested schema](#nestedatt--notification_group--destinations))
-- `group_by_keys` (List of String) Keys that split the alert's cases and notifications into separate groups. Omit to get one combined case/notification for all permutations of the alert; an empty list is not allowed. Set one or more keys to open a separate case/notification for each combination of their values (the "Separate" case setting in the UI). This does not change how the alert triggers, which is controlled by `group_by`. Except for metric alerts, the keys must be a subset of the alert's `group_by` keys (for SLO alerts, a subset of the SLO's grouping labels).
+- `group_by_keys` (List of String) Splits cases and notifications: one per combination of these keys' values. Omit for a single combined case (an empty list is rejected). Must be a subset of `group_by`, except for metric alerts.
 - `router` (Attributes) (see [below for nested schema](#nestedatt--notification_group--router))
 - `webhooks_settings` (Attributes Set) (see [below for nested schema](#nestedatt--notification_group--webhooks_settings))
 
