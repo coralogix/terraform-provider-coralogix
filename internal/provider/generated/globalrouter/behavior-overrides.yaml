@@ -1,0 +1,132 @@
+# Where coralogix_global_router differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the
+# API contract.
+#
+# A new optional scalar API field needs no line only if the contract states its presence
+# (x-coralogix-presence: true, which comes from a proto3 optional field). Without it the
+# generator stops. Then either ask the backend team for the annotation, or probe what a read
+# returns for an omitted value and write a line (for example computed and default, as for disabled).
+#
+# A new value of an enum also needs a decision. Add it to values (the resource accepts it) or to
+# rejected. The generator stops until you do. The validators of the enum fields follow values.
+resource: GlobalRouter
+mode: existing
+
+markdownDescription: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in Beta stage."
+
+schema:
+  version: 1
+  upgrade:
+    # State of version 0 is upgraded by reading the router from the API.
+    0: {priorSchema: github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/global_router_schema.V0, strategy: refresh}
+
+# The contract has limits (maxLength, minLength, ...) that the released resource never checked.
+# A validator for them would reject configs that work today.
+validators:
+  inferred: false
+
+api:
+  # Create and Update send {"router": {...}}.
+  requestWrapper: router
+  # Update is PUT on the collection path. The id is router.id in the body.
+  updateIDInBody: true
+  # The user can set the id, for example router_default.
+  clientSetID: true
+
+types:
+  GlobalRouter:
+    fields:
+      id:
+        markdownDescription: "The ID of the GlobalRouter. Use `router_default` for the default; leave empty for auto generated or provide your own (unique) id."
+        useStateForUnknown: true
+      name:
+        markdownDescription: "Name of the GlobalRouter."
+      description:
+        markdownDescription: "Description of the GlobalRouter."
+        computed: true # the API returns "" for an omitted value
+      routingLabels:
+        markdownDescription: "Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique. Labels matching is linked with AND, so an alert has to have all labels specified below."
+        readEmptyAs: "null"
+      rules:
+        description: "Routing rules for the GlobalRouter."
+        computed: true
+      fallback:
+        description: "Fallback routing targets. Removing the block clears them."
+        deprecation: "Use `fallback_targets` instead, which supports per-entity-type fallback."
+        readEmptyAs: "null"
+        keepPriorOrder: true # the API does not keep the order
+        validators: [{sizeAtLeast: 1}]
+      fallbackTargets:
+        description: "Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. Omit the block to clear the fallback targets."
+        readEmptyAs: "null"
+        keepPriorOrder: true # the API does not keep the order
+        validators: [{sizeAtLeast: 1}]
+      disabled:
+        markdownDescription: "Disables the router without deleting it. Defaults to false."
+        computed: true
+        default: false
+      entityLabels:
+        description: ""
+        computed: true
+      # The released resource has no top-level entity type.
+      entityType: {skip: true}
+      # The server sets the times. The contract marks them readOnly.
+      # useStateForUnknown stays: the generator never adds it.
+      createTime: {useStateForUnknown: true}
+
+  RoutingRule:
+    fields:
+      entityType:
+        description: ""
+        computed: true
+        useStateForUnknown: true
+        validators: [{enum: true}]
+      name:
+        description: "Name of the routing rule."
+      condition:
+        description: ""
+      targets:
+        description: "Routing targets for the rule."
+        computed: true
+        keepPriorOrder: true
+      customDetails:
+        description: "Custom details for the rule."
+        computed: true
+
+  RoutingTarget:
+    fields:
+      connectorId:
+        description: "ID of the connector."
+      presetId:
+        description: "ID of the preset."
+      customDetails:
+        description: "Custom details for the target."
+        computed: true
+      # The server makes a new id on every write. It would show a diff on every update.
+      id: {skip: true}
+
+  RoutingLabels:
+    # The contract does not declare a required list for the labels. All are optional.
+    required: []
+    fields:
+      environment: {description: "", computed: true}
+      service: {description: "", computed: true}
+      team: {description: "", computed: true}
+
+  FallbackTarget:
+    fields:
+      entityType:
+        description: "The entity type this fallback applies to."
+        validators: [{enum: true}]
+      target:
+        description: "The fallback routing target."
+
+enums:
+  # ENTITY_TYPE_UNSPECIFIED was the Terraform value "unspecified" in the released resource.
+  # The API refuses it on write (backend confirmed). It stays accepted to keep released behavior.
+  # OLLY_SCHEDULED_TASKS is not accepted: the backend refuses it for global routing.
+  notification_center.EntityType:
+    zero: unspecified
+    values: [ALERTS, CASES, TEST_NOTIFICATIONS]
+    rejected: [OLLY_SCHEDULED_TASKS]

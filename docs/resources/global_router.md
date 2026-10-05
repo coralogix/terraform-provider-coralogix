@@ -72,6 +72,11 @@ resource "coralogix_global_router" "example" {
 - `routing_labels` (Attributes) Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique. Labels matching is linked with AND, so an alert has to have all labels specified below. (see [below for nested schema](#nestedatt--routing_labels))
 - `rules` (Attributes List) Routing rules for the GlobalRouter. (see [below for nested schema](#nestedatt--rules))
 
+### Read-Only
+
+- `create_time` (String) The create time. Set by the server; a value sent by the client is ignored.
+- `update_time` (String) Timestamp of the last update. Set by the server; a value sent by the client is ignored.
+
 <a id="nestedatt--fallback"></a>
 ### Nested Schema for `fallback`
 

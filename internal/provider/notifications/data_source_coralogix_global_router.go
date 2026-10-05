@@ -22,6 +22,7 @@ import (
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/globalrouter"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -65,9 +66,8 @@ func (d *GlobalRouterDataSource) Configure(_ context.Context, req datasource.Con
 }
 
 func (d *GlobalRouterDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r GlobalRouterResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
+	globalrouter.NewResource().Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 
@@ -88,7 +88,7 @@ func (d *GlobalRouterDataSource) Schema(ctx context.Context, _ datasource.Schema
 }
 
 func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *GlobalRouterResourceModel
+	var data *globalrouter.GlobalRouterModel
 	diags := req.Config.Get(ctx, &data)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -112,7 +112,7 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		}
 
 		for _, router := range listResult.Routers {
-			if *router.Name == data.Name.ValueString() {
+			if router.Name == data.Name.ValueString() {
 				routerID = *router.Id
 				break
 			}
@@ -122,7 +122,7 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_global_router with name %q not found", name), "")
 			return
 		}
-	} else if id := data.ID.ValueString(); id != "" {
+	} else if id := data.Id.ValueString(); id != "" {
 		routerID = id
 	} else {
 		resp.Diagnostics.AddError("ID or name must be set", "")
@@ -138,7 +138,7 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		)
 		return
 	}
-	data, diags = flattenGlobalRouter(ctx, result.Router)
+	data, diags = globalrouter.Flatten(ctx, result.Router)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

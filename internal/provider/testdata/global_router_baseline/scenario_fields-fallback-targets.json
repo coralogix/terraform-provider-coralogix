@@ -1,0 +1,919 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1"
+          }
+        }
+      ],
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1"
+      }
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "(unknown)",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "fallbackTargets": [
+              {
+                "entityType": "ALERTS",
+                "target": {
+                  "connectorId": "c1"
+                }
+              }
+            ],
+            "name": "g1",
+            "routingLabels": {
+              "environment": "g1"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "entity_type cases",
+    "config": {
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c1"
+          }
+        }
+      ],
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "(unknown)",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c1"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "g1",
+            "routingLabels": {
+              "environment": "g1"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:02Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "entity_type test_notifications",
+    "config": {
+      "fallback_targets": [
+        {
+          "entity_type": "test_notifications",
+          "target": {
+            "connector_id": "c1"
+          }
+        }
+      ],
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "(unknown)",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "test_notifications",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "fallbackTargets": [
+              {
+                "entityType": "TEST_NOTIFICATIONS",
+                "target": {
+                  "connectorId": "c1"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "g1",
+            "routingLabels": {
+              "environment": "g1"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "test_notifications",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:03Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "entity_type unspecified",
+    "config": {
+      "fallback_targets": [
+        {
+          "entity_type": "unspecified",
+          "target": {
+            "connector_id": "c1"
+          }
+        }
+      ],
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "(unknown)",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "unspecified",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "fallbackTargets": [
+              {
+                "entityType": "ENTITY_TYPE_UNSPECIFIED",
+                "target": {
+                  "connectorId": "c1"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "g1",
+            "routingLabels": {
+              "environment": "g1"
+            }
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to update global_router | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Valid entity_type must be provided\\\"}\"}"
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "test_notifications",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:03Z"
+    }
+  },
+  {
+    "step": "preset set",
+    "config": {
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "preset_id": "p"
+          }
+        }
+      ],
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "(unknown)",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": "(unknown)",
+            "preset_id": "p"
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "fallbackTargets": [
+              {
+                "entityType": "ALERTS",
+                "target": {
+                  "connectorId": "c1",
+                  "presetId": "p"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "g1",
+            "routingLabels": {
+              "environment": "g1"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": null,
+            "preset_id": "p"
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:04Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "custom_details set",
+    "config": {
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": {
+              "a": "b"
+            }
+          }
+        }
+      ],
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "(unknown)",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": {
+              "a": "b"
+            },
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "fallbackTargets": [
+              {
+                "entityType": "ALERTS",
+                "target": {
+                  "connectorId": "c1",
+                  "customDetails": {
+                    "a": "b"
+                  }
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "g1",
+            "routingLabels": {
+              "environment": "g1"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": {
+              "a": "b"
+            },
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:05Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "two entries",
+    "config": {
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1"
+          }
+        },
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c2"
+          }
+        }
+      ],
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "(unknown)",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        },
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c2",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "fallbackTargets": [
+              {
+                "entityType": "ALERTS",
+                "target": {
+                  "connectorId": "c1"
+                }
+              },
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c2"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "g1",
+            "routingLabels": {
+              "environment": "g1"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": null,
+            "preset_id": null
+          }
+        },
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c2",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:06Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "reorder in config",
+    "config": {
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c2"
+          }
+        },
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1"
+          }
+        }
+      ],
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "(unknown)",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c2",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        },
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "fallbackTargets": [
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c2"
+                }
+              },
+              {
+                "entityType": "ALERTS",
+                "target": {
+                  "connectorId": "c1"
+                }
+              }
+            ],
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "g1",
+            "routingLabels": {
+              "environment": "g1"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c2",
+            "custom_details": null,
+            "preset_id": null
+          }
+        },
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:07Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "remove",
+    "config": {
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "(unknown)",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "disabled": false,
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "g1",
+            "routingLabels": {
+              "environment": "g1"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:08Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "g1",
+      "routing_labels": {
+        "environment": "g1",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:08Z"
+    }
+  }
+]

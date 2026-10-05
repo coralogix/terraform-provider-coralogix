@@ -1,0 +1,69 @@
+(schema)  version=1
+    markdown: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in Beta stage."
+create_time  StringAttribute computed
+    markdown: "The create time. Set by the server; a value sent by the client is ignored."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+description  StringAttribute optional computed
+    markdown: "Description of the GlobalRouter."
+disabled  BoolAttribute optional computed
+    default: booldefault.staticBoolDefault value defaults to false
+    markdown: "Disables the router without deleting it. Defaults to false."
+entity_labels  MapAttribute optional computed elem=basetypes.StringType
+fallback  ListNestedAttribute optional
+    deprecated: "Use `fallback_targets` instead, which supports per-entity-type fallback."
+    description: "Fallback routing targets. Removing the block clears them."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+fallback[]  NestedObject
+fallback[].connector_id  StringAttribute required
+    description: "ID of the connector."
+fallback[].custom_details  MapAttribute optional computed elem=basetypes.StringType
+    description: "Custom details for the target."
+fallback[].preset_id  StringAttribute optional
+    description: "ID of the preset."
+fallback_targets  ListNestedAttribute optional
+    description: "Per-entity-type fallback targets used when no routing rule matches. Replaces the deprecated `fallback`. Omit the block to clear the fallback targets."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+fallback_targets[]  NestedObject
+fallback_targets[].entity_type  StringAttribute required
+    description: "The entity type this fallback applies to."
+    validator: stringvalidator.oneOfValidator value must be one of: ["alerts" "cases" "test_notifications" "unspecified"]
+fallback_targets[].target  SingleNestedAttribute required
+    description: "The fallback routing target."
+fallback_targets[].target.connector_id  StringAttribute required
+    description: "ID of the connector."
+fallback_targets[].target.custom_details  MapAttribute optional computed elem=basetypes.StringType
+    description: "Custom details for the target."
+fallback_targets[].target.preset_id  StringAttribute optional
+    description: "ID of the preset."
+id  StringAttribute optional computed
+    markdown: "The ID of the GlobalRouter. Use `router_default` for the default; leave empty for auto generated or provide your own (unique) id."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+name  StringAttribute required
+    markdown: "Name of the GlobalRouter."
+routing_labels  SingleNestedAttribute optional
+    markdown: "Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique. Labels matching is linked with AND, so an alert has to have all labels specified below."
+routing_labels.environment  StringAttribute optional computed
+routing_labels.service  StringAttribute optional computed
+routing_labels.team  StringAttribute optional computed
+rules  ListNestedAttribute optional computed
+    description: "Routing rules for the GlobalRouter."
+rules[]  NestedObject
+rules[].condition  StringAttribute required
+rules[].custom_details  MapAttribute optional computed elem=basetypes.StringType
+    description: "Custom details for the rule."
+rules[].entity_type  StringAttribute optional computed
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    validator: stringvalidator.oneOfValidator value must be one of: ["alerts" "cases" "test_notifications" "unspecified"]
+rules[].name  StringAttribute required
+    description: "Name of the routing rule."
+rules[].targets  ListNestedAttribute optional computed
+    description: "Routing targets for the rule."
+rules[].targets[]  NestedObject
+rules[].targets[].connector_id  StringAttribute required
+    description: "ID of the connector."
+rules[].targets[].custom_details  MapAttribute optional computed elem=basetypes.StringType
+    description: "Custom details for the target."
+rules[].targets[].preset_id  StringAttribute optional
+    description: "ID of the preset."
+update_time  StringAttribute computed
+    markdown: "Timestamp of the last update. Set by the server; a value sent by the client is ignored."

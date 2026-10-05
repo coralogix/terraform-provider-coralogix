@@ -5,12 +5,16 @@ import (
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
 // convData is the template data for expand (Terraform model → SDK request)
 // and flatten (SDK response → Terraform model). Every SDK name comes from
 // the checked sdkRefs.
 type convData struct {
+	// IDGuard is the model field of the resource id when flatten must check that the response
+	// has it, or "".
+	IDGuard string
 	SDKPkg  string // import path of the SDK package
 	SDKName string // package name
 	// The root objects: the Create body and the Update body (expand), and
@@ -38,7 +42,33 @@ type convData struct {
 	// steps left out. An empty arm selects that arm, so state keeps it apart
 	// from a missing arm (contract 2.8).
 	OneOfArms []string
+	// CreateBody and UpdateBody are the SDK request body types. They are the SDK
+	// types of the roots, unless the body wraps the resource (CreateWrap, UpdateWrap).
+	CreateBody, UpdateBody string
+	// CreateWrap and UpdateWrap are set when the request body has one field that holds
+	// the resource. The roots are then the resource type, and expand wraps them.
+	CreateWrap, UpdateWrap *bodyWrap
+	// EnumMaps map the Terraform values of an enum to its API values, and back.
+	EnumMaps []*enumMap
+	// Existing: the resource has users. An unknown planned value of a computed attribute is
+	// left out of the request, and the server supplies it, as the released resource did.
+	Existing bool
 }
+
+// bodyWrap is the request body that holds the resource in one field.
+type bodyWrap struct {
+	Field string // Go field of the body
+	Value bool   // the field is a value, not a pointer
+}
+
+// enumMap is the mapping of an enum that a released resource exposes under other names.
+type enumMap struct {
+	Name    string // Go name prefix of the two map variables
+	SDKType string // qualified SDK enum type
+	Values  []enumMapValue
+}
+
+type enumMapValue struct{ TF, API string }
 
 // maskField is one top-level Update field. With leaf masks, it is also a
 // node of the mask tree: Children are the fields of an object or the arms of
@@ -68,6 +98,14 @@ type convObject struct {
 	// object. The function AttrTypesFunc returns them.
 	AttrTypes     []convAttrType
 	AttrTypesFunc string
+	// NeedsPrior: flatten takes the prior model, because a field of this object, or of a
+	// nested object, keeps the prior order.
+	NeedsPrior bool
+	// Same: the package has same<Func>, which compares two SDK values of this object. It
+	// ignores the fields that the resource does not manage. A list that keeps the prior
+	// order uses it. SameChecks are the Go conditions that must hold for equal values.
+	Same       bool
+	SameChecks []string
 }
 
 type convAttrType struct {
@@ -115,9 +153,15 @@ type convField struct {
 	ElemType string
 	// Enum is true for a collection or map whose string values are enum
 	// values. Response conversion then rejects protobuf zero sentinels.
-	Enum        bool
-	EnumZero    string // exact protobuf zero sentinel for enum conversion
-	ObjectValue bool   // a computed object stored as unknown-capable types.Object
+	Enum     bool
+	EnumZero string   // exact protobuf zero sentinel for enum conversion
+	EnumMap  *enumMap // set when the overrides state the Terraform values of the enum
+	// ReadEmptyAsNull: flatten reads an empty list, or an object with no value, as null.
+	ReadEmptyAsNull bool
+	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
+	// API returns the same items in another order.
+	KeepPriorOrder bool
+	ObjectValue    bool // a computed object stored as unknown-capable types.Object
 	// Value is true when the SDK field is a value, not a pointer. The SDK
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
@@ -140,6 +184,9 @@ func (d *convData) Uses(conv string) bool {
 // HasValue reports whether an expanded SDK field is a value, not a pointer.
 // The template then emits the valueOf helper.
 func (d *convData) HasValue() bool {
+	if d.CreateWrap != nil && d.CreateWrap.Value || d.UpdateWrap != nil && d.UpdateWrap.Value {
+		return true
+	}
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if obj.Expand && f.Value {
@@ -157,49 +204,30 @@ func (d *convData) HasValue() bool {
 //   - uint64 → the decimal string (D7). An enum → its API value (D12).
 //   - The Update body has only the Update fields, so application,
 //     subsystem, and target are never set (D9).
-func buildConv(r *model.Resource, refs []sdkRef) (*convData, error) {
+//
+// file is the behavior-overrides file of a resource that users already have (nil for a new resource).
+func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*convData, error) {
 	ix, err := indexRefs(refs)
 	if err != nil {
 		return nil, err
 	}
-	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}}
-	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name}
+	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r}
+	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Existing: r.Policy.Existing}
+	if r.Policy.ClientSetID && !r.Singleton {
+		// The contract may not require the id in the response (a proto3 optional field), so
+		// flatten checks it. Without the id, Read, Update, and Delete would have no identity.
+		out.IDGuard = camelize(r.IDParam)
+	}
 
-	roots := []struct {
-		obj    **convObject
-		path   string // SDK name path of the struct
-		expand bool
-		has    func(*model.ResourceField) bool
-	}{
+	roots := []convRoot{
 		{&out.Create, "create.body", true, func(f *model.ResourceField) bool { return f.Create != nil }},
 		{&out.Update, "update.body", true, func(f *model.ResourceField) bool { return f.Update != nil }},
 		{&out.Resource, "fields", false, func(f *model.ResourceField) bool { return f.InGet }},
 	}
 	for _, root := range roots {
-		ref, err := ix.typeRef(root.path)
-		if err != nil {
+		if err := b.buildRoot(out, root); err != nil {
 			return nil, err
 		}
-		obj := &convObject{Func: camelize(ref.Name), Model: modelTypeName(r.Name), SDK: ref.Name}
-		if root.path == "fields" {
-			obj = b.object(r.Name, ref)
-		}
-		b.objects = append(b.objects, obj)
-		for _, f := range r.Fields {
-			if !root.has(f) {
-				continue
-			}
-			cf, err := b.field(root.path, f.Name, f.Type)
-			if err != nil {
-				return nil, fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
-			}
-			b.markComputedObjectValue(cf, f, root.path == "fields")
-			obj.Fields = append(obj.Fields, cf)
-		}
-		if err := b.mark(obj, root.expand); err != nil {
-			return nil, fmt.Errorf("%s: %w", root.path, err)
-		}
-		*root.obj = obj
 	}
 	for _, obj := range b.listed {
 		if err := b.attrTypes(obj); err != nil {
@@ -208,9 +236,13 @@ func buildConv(r *model.Resource, refs []sdkRef) (*convData, error) {
 	}
 	out.Objects = b.objects
 	out.OneOfArms = oneOfArmPaths(r)
+	out.EnumMaps = b.enumMaps
+	if err := markPrior(out); err != nil {
+		return nil, err
+	}
 	for _, f := range r.Fields {
 		if f.Create != nil {
-			out.CreateFields = append(out.CreateFields, &maskField{TFName: tfName(f.Name), ServerDefault: hasServerDefault(f)})
+			out.CreateFields = append(out.CreateFields, &maskField{TFName: tfName(f.Name), ServerDefault: serverDefault(r, f)})
 		}
 	}
 	if r.Replace {
@@ -262,6 +294,92 @@ func typeArmPaths(out []string, at string, t *model.Type, seen map[*model.Type]b
 	return out
 }
 
+// convRoot is a root object of the conversion: the Create body, the Update body, or the resource.
+type convRoot struct {
+	obj    **convObject
+	path   string // SDK name path of the struct
+	expand bool
+	has    func(*model.ResourceField) bool
+}
+
+// buildRoot builds one root object and its fields.
+func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
+	ref, err := b.ix.typeRef(root.path)
+	if err != nil {
+		return err
+	}
+	obj, fieldsPath, err := b.rootObject(out, root, ref)
+	if err != nil {
+		return err
+	}
+	b.objects = append(b.objects, obj)
+	for _, f := range b.resource.Fields {
+		if !root.has(f) {
+			continue
+		}
+		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, f.Type)
+		if err != nil {
+			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+		}
+		b.markComputedObjectValue(cf, f, root.path == "fields")
+		if err := checkReadEmptyAs(cf); err != nil {
+			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+		}
+		obj.Fields = append(obj.Fields, cf)
+	}
+	if err := b.mark(obj, root.expand); err != nil {
+		return fmt.Errorf("%s: %w", root.path, err)
+	}
+	*root.obj = obj
+	return nil
+}
+
+// rootObject returns the object of a root and the SDK path of its fields. A request body that
+// wraps the resource is expanded as the resource type, and expandCreate and expandUpdate wrap it.
+func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkRef) (*convObject, string, error) {
+	r := b.resource
+	switch {
+	case root.path == "fields":
+		return b.object(r.Name, ref), root.path, nil
+	case r.Policy.RequestWrapper != "" && root.expand:
+		body, wrap, err := b.bodyWrapper(root.path, r.Policy.RequestWrapper)
+		if err != nil {
+			return nil, "", err
+		}
+		resourceRef, err := b.ix.typeRef("fields")
+		if err != nil {
+			return nil, "", err
+		}
+		verb := strings.ToUpper(root.path[:1]) + root.path[1:strings.Index(root.path, ".")]
+		obj := &convObject{Func: camelize(r.Name) + verb, Model: modelTypeName(r.Name), SDK: resourceRef.Name}
+		if root.path == "create.body" {
+			out.CreateBody, out.CreateWrap = body, wrap
+		} else {
+			out.UpdateBody, out.UpdateWrap = body, wrap
+		}
+		return obj, "fields", nil
+	}
+	if root.path == "create.body" {
+		out.CreateBody = ref.Name
+	} else {
+		out.UpdateBody = ref.Name
+	}
+	return &convObject{Func: camelize(ref.Name), Model: modelTypeName(r.Name), SDK: ref.Name}, root.path, nil
+}
+
+// checkReadEmptyAs rejects readEmptyAs where the renderer has no such normalization. The flag
+// works for an object that is a pointer, and for a list or set of objects. Elsewhere it would
+// do nothing, and the released normalization that the line states would be missing.
+func checkReadEmptyAs(cf *convField) error {
+	if !cf.ReadEmptyAsNull {
+		return nil
+	}
+	if (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects {
+		return nil
+	}
+	return fmt.Errorf("readEmptyAs: \"null\" is supported for an object and for a list or set of objects, not for the %s field %s", cf.Conv, cf.TFName)
+}
+
 // markComputedObjectValue makes a directly nested computed field capable of
 // holding the unknown value that Terraform plans before Create.
 func (b *convBuilder) markComputedObjectValue(cf *convField, f *model.ResourceField, response bool) {
@@ -283,7 +401,7 @@ func replaceFields(r *model.Resource, out *convData) error {
 	out.Replace = true
 	for _, f := range r.Fields {
 		if f.Update != nil {
-			out.UpdateFields = append(out.UpdateFields, &maskField{TFName: tfName(f.Name), ServerDefault: hasServerDefault(f)})
+			out.UpdateFields = append(out.UpdateFields, &maskField{TFName: tfName(f.Name), ServerDefault: serverDefault(r, f)})
 		}
 	}
 	if len(out.UpdateFields) == 0 {
@@ -308,7 +426,7 @@ func buildMask(r *model.Resource, out *convData) error {
 		if leaf {
 			mf = maskTree(f.Name, f.Type)
 		}
-		mf.ServerDefault = hasServerDefault(f)
+		mf.ServerDefault = serverDefault(r, f)
 		if err := checkMaskPaths(mf, "", valid); err != nil {
 			return err
 		}
@@ -391,6 +509,63 @@ type convBuilder struct {
 	objects  []*convObject
 	bySchema map[string]*convObject
 	listed   []*convObject // objects that a list holds
+	file     *overrides.File
+	resource *model.Resource
+	enumMaps []*enumMap
+}
+
+// serverDefault reports whether removing the field resets it to a declared server default.
+// A released resource states its defaults in the behavior-overrides file instead.
+func serverDefault(r *model.Resource, f *model.ResourceField) bool {
+	return !r.Policy.Existing && hasServerDefault(f)
+}
+
+// bodyWrapper returns the SDK request body type and the field that holds the resource.
+func (b *convBuilder) bodyWrapper(bodyPath, wrapper string) (string, *bodyWrap, error) {
+	body, err := b.ix.typeRef(bodyPath)
+	if err != nil {
+		return "", nil, err
+	}
+	field, err := b.ix.fieldRef(bodyPath + "." + wrapper)
+	if err != nil {
+		return "", nil, err
+	}
+	resource, err := b.ix.typeRef("fields")
+	if err != nil {
+		return "", nil, err
+	}
+	switch field.Want {
+	case "*" + resource.Name:
+		return body.Name, &bodyWrap{Field: field.Name}, nil
+	case resource.Name:
+		return body.Name, &bodyWrap{Field: field.Name, Value: true}, nil
+	}
+	return "", nil, fmt.Errorf("SDK field %s has type %s, want *%s", field.sdkName(), field.Want, resource.Name)
+}
+
+// enumMapFor returns the mapping of the enum, or nil when the overrides do not state it.
+func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMap, error) {
+	if b.file == nil {
+		return nil, nil
+	}
+	over, ok := b.file.Enums[schema]
+	if !ok {
+		return nil, nil
+	}
+	for _, m := range b.enumMaps {
+		if m.Name == lowerFirst(camelize(schema)) {
+			return m, nil
+		}
+	}
+	m := &enumMap{Name: lowerFirst(camelize(schema)), SDKType: sdkType}
+	if over.Zero != "" {
+		m.Values = append(m.Values, enumMapValue{TF: over.Zero, API: t.EnumZero})
+	}
+	for _, v := range over.Values {
+		m.Values = append(m.Values, enumMapValue{TF: strings.ToLower(v), API: v})
+	}
+	b.enumMaps = append(b.enumMaps, m)
+	return m, nil
 }
 
 // object adds the convObject of a component schema, without fields.
@@ -403,14 +578,21 @@ func (b *convBuilder) object(schema string, ref sdkRef) *convObject {
 
 // field returns the conversion of the property name of the SDK struct at
 // owner (an SDK name path).
-func (b *convBuilder) field(owner, name string, t *model.Type) (*convField, error) {
+func (b *convBuilder) field(owner, component, name string, t *model.Type) (*convField, error) {
 	ref, err := b.ix.fieldRef(owner + "." + name)
 	if err != nil {
 		return nil, err
 	}
 	cf := &convField{TFName: tfName(name), Model: camelize(name), SDK: ref.Name}
+	if b.file != nil {
+		line := b.file.Types[component].Fields[name]
+		cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
+	}
 	want, err := b.fieldConv(cf, t)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkReadEmptyAs(cf); err != nil {
 		return nil, err
 	}
 	// The SDK type must be the one the conversion writes, or its value type.
@@ -436,6 +618,11 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type) (string, error) {
 			return "", err
 		}
 		cf.Conv, cf.SDKType, cf.EnumZero = convEnum, b.qualify(enum.Name), t.EnumZero
+		m, err := b.enumMapFor(t.Schema, b.qualify(enum.Name), t)
+		if err != nil {
+			return "", err
+		}
+		cf.EnumMap = m
 		return "*" + enum.Name, nil
 	case model.Object, model.OneOf:
 		if len(t.Fields) == 0 {
@@ -500,6 +687,9 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		cf.Conv, cf.SDKType = convStrings, "string"
 		return "[]string", nil
 	case model.Enum:
+		if err := b.rejectEnumLine(t.Elem.Schema); err != nil {
+			return "", err
+		}
 		enum, err := b.ix.schemaRef(t.Elem.Schema)
 		if err != nil {
 			return "", err
@@ -545,7 +735,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	obj := b.object(t.Schema, ref)
 	b.objects = append(b.objects, obj)
 	for _, f := range t.Fields {
-		cf, err := b.field(ref.Path, f.Name, f.Type)
+		cf, err := b.field(ref.Path, t.Schema, f.Name, f.Type)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -648,6 +838,9 @@ func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 		cf.Conv, cf.SDKType = convStringMap, "string"
 		return "map[string]string", nil
 	case e.Kind == model.Enum:
+		if err := b.rejectEnumLine(e.Schema); err != nil {
+			return "", err
+		}
 		enum, err := b.ix.schemaRef(e.Schema)
 		if err != nil {
 			return "", err
@@ -670,6 +863,16 @@ func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 		return "map[string]" + obj.SDK, nil
 	}
 	return "", fmt.Errorf("map of %s is not supported", typeName(t.Elem))
+}
+
+// rejectEnumLine stops an enums line from applying to the items of a list or set, or the values of
+// a map. Those conversions cast the Terraform strings to the SDK enum as they are, so the
+// Terraform values that the line states would reach the API unchanged and drift on refresh.
+func (b *convBuilder) rejectEnumLine(schema string) error {
+	if b.resource.Policy.EnumOverride(schema) {
+		return fmt.Errorf("the enums line of %s applies to a single enum field, not to a list, set, or map of it", schema)
+	}
+	return nil
 }
 
 // scalarElem returns the Go type and the Terraform element type of a bool or
@@ -802,3 +1005,108 @@ func (ix *refIndex) schemaRef(schema string) (sdkRef, error) {
 	}
 	return ref, nil
 }
+
+// markPrior sets NeedsPrior on every object with a KeepPriorOrder field, and on every object
+// that holds such an object. Only these flatten functions take the prior model. It also
+// marks the objects that a list keeping the prior order holds, and their nested objects: the
+// package compares their SDK values.
+func markPrior(d *convData) error {
+	if err := markPriorFields(d); err != nil {
+		return err
+	}
+	propagatePrior(d)
+	for _, obj := range d.Objects {
+		if !obj.Same {
+			continue
+		}
+		for _, f := range obj.Fields {
+			check, err := sameCheck(f)
+			if err != nil {
+				return fmt.Errorf("%s.%s: %w", obj.Model, f.TFName, err)
+			}
+			obj.SameChecks = append(obj.SameChecks, check)
+		}
+	}
+	return nil
+}
+
+// markPriorFields marks the objects with a KeepPriorOrder field, and the objects that such a list holds.
+func markPriorFields(d *convData) error {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if !f.KeepPriorOrder {
+				continue
+			}
+			if f.Conv != convObjects || f.Collection != "List" {
+				return fmt.Errorf("%s.%s: keepPriorOrder needs a list of objects", obj.Model, f.TFName)
+			}
+			obj.NeedsPrior = true
+			f.Object.Same = true
+		}
+	}
+	return nil
+}
+
+// propagatePrior marks every object that holds an object that needs the prior model, and every object
+// nested in an object that the package compares.
+func propagatePrior(d *convData) {
+	for changed := true; changed; {
+		changed = false
+		for _, obj := range d.Objects {
+			for _, f := range obj.Fields {
+				if (f.Conv != convObj && f.Conv != convObjects) || f.Object == nil {
+					continue
+				}
+				if f.Object.NeedsPrior && !obj.NeedsPrior {
+					obj.NeedsPrior, changed = true, true
+				}
+				if obj.Same && !f.Object.Same {
+					f.Object.Same, changed = true, true
+				}
+			}
+		}
+	}
+}
+
+// sameCheck is the Go condition that two SDK values, a and b, have an equal field f. A missing
+// value and an empty one are equal, as in the released resources.
+func sameCheck(f *convField) (string, error) {
+	a, b := "a."+f.SDK, "b."+f.SDK
+	switch f.Conv {
+	case convString, convBool, convFloat64, convFloat32, convInt32, convInt64, convUint64, convEnum, convTime:
+		if f.Value {
+			return a + " == " + b, nil
+		}
+		return "pointerValue(" + a + ") == pointerValue(" + b + ")", nil
+	case convStringMap, convScalarMap, convUint64Map:
+		return "maps.Equal(" + a + ", " + b + ")", nil
+	case convStrings, convScalars:
+		if f.Collection == "Set" {
+			break
+		}
+		return "slices.Equal(" + a + ", " + b + ")", nil
+	case convObj:
+		if f.Value {
+			return "same" + f.Object.Func + "(&" + a + ", &" + b + ")", nil
+		}
+		return "sameObject(" + a + ", " + b + ", same" + f.Object.Func + ")", nil
+	case convObjects:
+		return "sameList(" + a + ", " + b + ", same" + f.Object.Func + ")", nil
+	}
+	return "", fmt.Errorf("a field of kind %s cannot be compared for keepPriorOrder yet", f.Conv)
+}
+
+// UsesPrior reports whether a field keeps the prior order.
+func (d *convData) UsesPrior() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.KeepPriorOrder {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// HasPrior reports whether flatten takes the prior model of the resource.
+func (d *convData) HasPrior() bool { return d.Resource != nil && d.Resource.NeedsPrior }

@@ -1,0 +1,370 @@
+[
+  {
+    "step": "create fallback: response has reversed order",
+    "config": {
+      "description": "d",
+      "fallback": [
+        {
+          "connector_id": "c1"
+        },
+        {
+          "connector_id": "c2"
+        }
+      ],
+      "name": "o1",
+      "routing_labels": {
+        "environment": "o1"
+      }
+    },
+    "validateDiagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"fallback\")] | Use `fallback_targets` instead, which supports per-entity-type fallback."
+    ],
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": [
+        {
+          "connector_id": "c1",
+          "custom_details": "(unknown)",
+          "preset_id": null
+        },
+        {
+          "connector_id": "c2",
+          "custom_details": "(unknown)",
+          "preset_id": null
+        }
+      ],
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "o1",
+      "routing_labels": {
+        "environment": "o1",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "fallback": [
+              {
+                "connectorId": "c1"
+              },
+              {
+                "connectorId": "c2"
+              }
+            ],
+            "name": "o1",
+            "routingLabels": {
+              "environment": "o1"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": [
+        {
+          "connector_id": "c1",
+          "custom_details": null,
+          "preset_id": null
+        },
+        {
+          "connector_id": "c2",
+          "custom_details": null,
+          "preset_id": null
+        }
+      ],
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "o1",
+      "routing_labels": {
+        "environment": "o1",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create fallback_targets: response has reversed order",
+    "config": {
+      "description": "d",
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1"
+          }
+        },
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c2"
+          }
+        }
+      ],
+      "name": "o2",
+      "routing_labels": {
+        "environment": "o2"
+      }
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        },
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c2",
+            "custom_details": "(unknown)",
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "(unknown)",
+      "name": "o2",
+      "routing_labels": {
+        "environment": "o2",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "fallbackTargets": [
+              {
+                "entityType": "ALERTS",
+                "target": {
+                  "connectorId": "c1"
+                }
+              },
+              {
+                "entityType": "CASES",
+                "target": {
+                  "connectorId": "c2"
+                }
+              }
+            ],
+            "name": "o2",
+            "routingLabels": {
+              "environment": "o2"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:02Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": [
+        {
+          "entity_type": "alerts",
+          "target": {
+            "connector_id": "c1",
+            "custom_details": null,
+            "preset_id": null
+          }
+        },
+        {
+          "entity_type": "cases",
+          "target": {
+            "connector_id": "c2",
+            "custom_details": null,
+            "preset_id": null
+          }
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000004",
+      "name": "o2",
+      "routing_labels": {
+        "environment": "o2",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:02Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create in order",
+    "config": {
+      "description": "d",
+      "fallback": [
+        {
+          "connector_id": "c1"
+        },
+        {
+          "connector_id": "c2"
+        }
+      ],
+      "name": "o3",
+      "routing_labels": {
+        "environment": "o3"
+      }
+    },
+    "validateDiagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"fallback\")] | Use `fallback_targets` instead, which supports per-entity-type fallback."
+    ],
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": [
+        {
+          "connector_id": "c1",
+          "custom_details": "(unknown)",
+          "preset_id": null
+        },
+        {
+          "connector_id": "c2",
+          "custom_details": "(unknown)",
+          "preset_id": null
+        }
+      ],
+      "fallback_targets": null,
+      "id": "(unknown)",
+      "name": "o3",
+      "routing_labels": {
+        "environment": "o3",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "fallback": [
+              {
+                "connectorId": "c1"
+              },
+              {
+                "connectorId": "c2"
+              }
+            ],
+            "name": "o3",
+            "routingLabels": {
+              "environment": "o3"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:03Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": [
+        {
+          "connector_id": "c1",
+          "custom_details": null,
+          "preset_id": null
+        },
+        {
+          "connector_id": "c2",
+          "custom_details": null,
+          "preset_id": null
+        }
+      ],
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000007",
+      "name": "o3",
+      "routing_labels": {
+        "environment": "o3",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:03Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: response has reversed order",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000007",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:03Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": [
+        {
+          "connector_id": "c1",
+          "custom_details": null,
+          "preset_id": null
+        },
+        {
+          "connector_id": "c2",
+          "custom_details": null,
+          "preset_id": null
+        }
+      ],
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000007",
+      "name": "o3",
+      "routing_labels": {
+        "environment": "o3",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:03Z"
+    }
+  }
+]

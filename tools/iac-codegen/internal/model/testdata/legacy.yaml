@@ -1,0 +1,128 @@
+# A resource that users already have. It has one example of each shape that the
+# existing-resource policy accepts and the new-resource rules refuse.
+openapi: 3.1.0
+info: {title: legacy, version: 1.0.0}
+paths:
+  /legacy/v1/things:
+    post:
+      tags: [Legacy Things Service]
+      operationId: LegacyThingsService_CreateLegacyThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Legacy Thing Request
+              type: object
+              required: [thing]
+              properties:
+                thing: {$ref: '#/components/schemas/LegacyThing'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateLegacyThingResponse'}
+    put:
+      tags: [Legacy Things Service]
+      operationId: LegacyThingsService_ReplaceLegacyThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Replace Legacy Thing Request
+              type: object
+              required: [thing]
+              properties:
+                thing: {$ref: '#/components/schemas/LegacyThing'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReplaceLegacyThingResponse'}
+  /legacy/v1/things/{id}:
+    get:
+      tags: [Legacy Things Service]
+      operationId: LegacyThingsService_GetLegacyThing
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetLegacyThingResponse'}
+    delete:
+      tags: [Legacy Things Service]
+      operationId: LegacyThingsService_DeleteLegacyThing
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteLegacyThingResponse'}
+components:
+  schemas:
+    CreateLegacyThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/LegacyThing'}
+    ReplaceLegacyThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/LegacyThing'}
+    GetLegacyThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/LegacyThing'}
+    DeleteLegacyThingResponse:
+      type: object
+      required: []
+    LegacyThing:
+      type: object
+      required: []
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z][a-z0-9_-]*$'
+          x-coralogix-presence: true
+        name:
+          type: string
+          pattern: '^[\s\S]*$'
+        createTime: {type: string, format: date-time, readOnly: true}
+        labels: {$ref: '#/components/schemas/LegacyLabels'}
+        rules:
+          type: array
+          items: {$ref: '#/components/schemas/LegacyRule'}
+    LegacyLabels:
+      type: object
+      properties:
+        env: {type: string}
+    LegacyRule:
+      type: object
+      required: []
+      properties:
+        name: {type: string}
+        kind:
+          allOf:
+            - {$ref: '#/components/schemas/legacy.Kind'}
+          default: ALPHA
+        targets:
+          type: array
+          items: {$ref: '#/components/schemas/LegacyTarget'}
+    LegacyTarget:
+      type: object
+      required: []
+      properties:
+        connectorId: {type: string, pattern: '^[a-zA-Z0-9][a-zA-Z0-9_-]*$'}
+        id: {type: string, readOnly: true}
+    legacy.Kind:
+      type: string
+      enum: [KIND_UNSPECIFIED, ALPHA, BETA, GAMMA]

@@ -2,8 +2,10 @@ package generator
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
 // crudData is the template data for the resource: CRUD, import, and the
@@ -22,6 +24,12 @@ type crudData struct {
 	Singleton bool
 	// Replace: Update is a full replace (PUT, E11) with no update mask.
 	Replace bool
+	// UpdateIDInBody: the Update call takes no id. The id is a field of the body.
+	UpdateIDInBody bool
+	// Existing: the resource has users. The package exports Flatten for a handwritten data source.
+	Existing bool
+	// Upgrades are the state upgraders: one per older schema version.
+	Upgrades []upgradeData
 	// UpdateMask is the SDK request-builder method for the PATCH updateMask
 	// query parameter. It is empty for a full replace.
 	UpdateMask string
@@ -38,6 +46,24 @@ type crudData struct {
 	Update, Delete            crudOp
 }
 
+// upgradeData is a state upgrader. It reads the resource from the API, so the prior schema is
+// only used to decode the old state.
+type upgradeData struct {
+	Version    int64
+	ImportPath string // package of the function that returns the frozen prior schema
+	Alias      string // import alias of that package
+	Func       string
+}
+
+func sortedVersions(file *overrides.File) []int64 {
+	versions := make([]int64, 0, len(file.Schema.Upgrade))
+	for v := range file.Schema.Upgrade {
+		versions = append(versions, v)
+	}
+	slices.Sort(versions)
+	return versions
+}
+
 // crudOp is the SDK call of one operation:
 //
 //	client.<Method>(ctx[, id]).<Body>(body).Execute()
@@ -50,7 +76,8 @@ type crudOp struct {
 // buildCRUD maps the operations and their SDK names to the template data.
 // Create, Get, and Update must return the resource. Delete must not have a
 // body.
-func buildCRUD(r *model.Resource, refs []sdkRef) (*crudData, error) {
+// buildCRUDWith is buildCRUD for a resource with a behavior-overrides file (nil for a new resource).
+func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*crudData, error) {
 	ix, err := indexRefs(refs)
 	if err != nil {
 		return nil, err
@@ -71,12 +98,21 @@ func buildCRUD(r *model.Resource, refs []sdkRef) (*crudData, error) {
 		IDTFType:  "String",
 		Singleton: r.Singleton,
 		Replace:   r.Replace,
-		SDKName:   ix.pkg.Name,
-		Client:    client.Name,
-		Resource:  resource.Name,
+
+		UpdateIDInBody: r.Policy.UpdateIDInBody,
+		Existing:       r.Policy.Existing,
+		SDKName:        ix.pkg.Name,
+		Client:         client.Name,
+		Resource:       resource.Name,
 	}
 	if err := resourceIDData(r, ix, out); err != nil {
 		return nil, err
+	}
+	if file != nil {
+		for _, version := range sortedVersions(file) {
+			importPath, function, _ := file.Schema.Upgrade[version].PriorSchemaFunc()
+			out.Upgrades = append(out.Upgrades, upgradeData{Version: version, ImportPath: importPath, Alias: fmt.Sprintf("priorSchema%d", version), Func: function})
+		}
 	}
 	if err := updateExtras(ix, r.Replace, out); err != nil {
 		return nil, err
