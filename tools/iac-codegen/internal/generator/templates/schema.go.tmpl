@@ -1,0 +1,146 @@
+{{.VersionHeader}}
+
+package {{.Package}}
+
+import (
+{{- if .HasServerDefaults}}
+	"context"
+{{- end}}
+
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/float32validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+{{- if .HasServerDefaults}}
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+{{- end}}
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+{{- range .PlanModifierPkgs}}
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/{{.}}"
+{{- end}}
+{{- range .DefaultPkgs}}
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/{{.}}"
+{{- end}}
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// Schema is the Terraform schema of the resource.
+func Schema() schema.Schema {
+	return schema.Schema{
+		Attributes: map[string]schema.Attribute{
+{{- range .Attributes}}
+			{{printf "%q" .Name}}: {{template "attribute" .}},
+{{- end}}
+		},
+	}
+}
+
+// ConfigValidators are the resource validators.
+func ConfigValidators() []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+{{- range .ConfigValidators}}
+		{{.}},
+{{- end}}
+	}
+}
+
+{{- if .HasServerDefaults}}
+// serverDefaultModifier distinguishes removal from a steady server default.
+// It never inserts the default into configuration or an API request. When a
+// user removes a different value, it makes the plan unknown. Update then sends
+// the field in the update mask without a body value, and the API resets it.
+type serverDefaultModifier struct{ value attr.Value }
+
+func (m serverDefaultModifier) Description(context.Context) string {
+	return "Resets a removed value to the server default."
+}
+
+func (m serverDefaultModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
+	if config.IsUnknown() || !config.IsNull() || state.IsNull() || state.IsUnknown() {
+		return false, false
+	}
+	if state.Equal(declared) {
+		return false, true
+	}
+	return true, false
+}
+
+{{range .ServerDefaultKinds}}
+func (m serverDefaultModifier) PlanModify{{.}}(_ context.Context, req planmodifier.{{.}}Request, resp *planmodifier.{{.}}Response) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
+	if unknown {
+		resp.PlanValue = types.{{.}}Unknown()
+	} else if preserve {
+		resp.PlanValue = req.StateValue
+	}
+}
+{{end}}
+{{- end}}
+
+{{define "attribute" -}}
+schema.{{.Kind}}Attribute{
+{{- if .Required}}
+	Required: true,
+{{- end}}
+{{- if .Optional}}
+	Optional: true,
+{{- end}}
+{{- if .Computed}}
+	Computed: true,
+{{- end}}
+{{- if .ElementType}}
+	ElementType: {{.ElementType}},
+{{- end}}
+{{- if .Validators}}
+	Validators: []validator.{{.ValueKind}}{
+	{{- range .Validators}}
+		{{.}},
+	{{- end}}
+	},
+{{- end}}
+{{- if .Default}}
+	Default: {{.Default}},
+{{- end}}
+{{- if .Modifiers}}
+	PlanModifiers: []planmodifier.{{.ValueKind}}{
+	{{- range .Modifiers}}
+		{{.}},
+	{{- end}}
+	},
+{{- end}}
+{{- if eq .Kind "SingleNested"}}
+	Attributes: {{template "attributes" .Attributes}},
+{{- else if or (eq .Kind "ListNested") (eq .Kind "SetNested") (eq .Kind "MapNested")}}
+	NestedObject: schema.NestedAttributeObject{
+		Attributes: {{template "attributes" .Attributes}},
+	},
+{{- end}}
+	MarkdownDescription: {{printf "%q" .Description}},
+}
+{{- end}}
+
+{{define "attributes" -}}
+map[string]schema.Attribute{
+{{- range .}}
+	{{printf "%q" .Name}}: {{template "attribute" .}},
+{{- end}}
+}
+{{- end}}
