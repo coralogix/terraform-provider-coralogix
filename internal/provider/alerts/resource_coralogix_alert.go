@@ -308,14 +308,37 @@ func extractAlertProperties(ctx context.Context, plan *alerttypes.AlertResourceM
 	return alertProperties, nil
 }
 
+func unresolvedCaseSettings(field string) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	diags.AddError(
+		"Error applying case settings",
+		fmt.Sprintf("%s is unknown. An alert update replaces case settings, so an unresolved value would clear or reset them.", field),
+	)
+	return diags
+}
+
 func extractCaseSettings(ctx context.Context, caseSettingsObject types.Object) (*alerts.AlertDefCaseSettings, diag.Diagnostics) {
-	if caseSettingsObject.IsNull() || caseSettingsObject.IsUnknown() {
+	// Null means the block was removed and the replace should clear case settings.
+	// Unknown is not the same: sending nil would clear settings the user still has.
+	if caseSettingsObject.IsNull() {
 		return nil, nil
+	}
+	if caseSettingsObject.IsUnknown() {
+		return nil, unresolvedCaseSettings("case_settings")
 	}
 
 	var caseSettingsModel alerttypes.CaseSettingsModel
 	if diags := caseSettingsObject.As(ctx, &caseSettingsModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
+	}
+	if caseSettingsModel.AutoResolveMode.IsUnknown() {
+		return nil, unresolvedCaseSettings("case_settings.auto_resolve_mode")
+	}
+	if caseSettingsModel.EnrichmentQueries.IsUnknown() {
+		return nil, unresolvedCaseSettings("case_settings.enrichment_queries")
+	}
+	if caseSettingsModel.Destinations.IsUnknown() {
+		return nil, unresolvedCaseSettings("case_settings.destinations")
 	}
 
 	enrichmentQueries, diags := extractCaseEnrichmentQueries(ctx, caseSettingsModel.EnrichmentQueries)
@@ -343,8 +366,11 @@ func extractCaseSettings(ctx context.Context, caseSettingsObject types.Object) (
 
 func extractCaseEnrichmentQueries(ctx context.Context, queries types.List) ([]alerts.AlertDefCaseEnrichmentQuery, diag.Diagnostics) {
 	extracted := []alerts.AlertDefCaseEnrichmentQuery{}
-	if queries.IsNull() || queries.IsUnknown() {
+	if queries.IsNull() {
 		return extracted, nil
+	}
+	if queries.IsUnknown() {
+		return nil, unresolvedCaseSettings("case_settings.enrichment_queries")
 	}
 
 	var models []alerttypes.CaseEnrichmentQueryModel
@@ -352,6 +378,9 @@ func extractCaseEnrichmentQueries(ctx context.Context, queries types.List) ([]al
 		return nil, diags
 	}
 	for _, model := range models {
+		if model.Query.IsUnknown() || model.Type.IsUnknown() {
+			return nil, unresolvedCaseSettings("case_settings.enrichment_queries")
+		}
 		queryType := alerts.ALERTDEFCASEENRICHMENTQUERYTYPE_ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME
 		if t, ok := alerttypes.CaseEnrichmentQueryTypeSchemaToProtoMap[model.Type.ValueString()]; ok {
 			queryType = t
@@ -366,8 +395,11 @@ func extractCaseEnrichmentQueries(ctx context.Context, queries types.List) ([]al
 
 func extractCaseDestinations(ctx context.Context, destinations types.List) ([]alerts.AlertDefCaseDestination, diag.Diagnostics) {
 	extracted := []alerts.AlertDefCaseDestination{}
-	if destinations.IsNull() || destinations.IsUnknown() {
+	if destinations.IsNull() {
 		return extracted, nil
+	}
+	if destinations.IsUnknown() {
+		return nil, unresolvedCaseSettings("case_settings.destinations")
 	}
 
 	var models []alerttypes.CaseDestinationModel
@@ -375,6 +407,9 @@ func extractCaseDestinations(ctx context.Context, destinations types.List) ([]al
 		return nil, diags
 	}
 	for _, model := range models {
+		if model.ConnectorId.IsUnknown() || model.Condition.IsUnknown() || model.PresetId.IsUnknown() {
+			return nil, unresolvedCaseSettings("case_settings.destinations")
+		}
 		extracted = append(extracted, alerts.AlertDefCaseDestination{
 			ConnectorId: model.ConnectorId.ValueString(),
 			Condition:   model.Condition.ValueString(),

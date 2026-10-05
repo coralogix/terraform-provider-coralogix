@@ -60,13 +60,37 @@ func TestExtractCaseSettings(t *testing.T) {
 		}
 	})
 
-	t.Run("unknown object is omitted", func(t *testing.T) {
-		got, diags := extractCaseSettings(ctx, types.ObjectUnknown(alertschema.CaseSettingsAttr()))
-		if diags.HasError() {
-			t.Fatalf("extractCaseSettings returned diagnostics: %v", diags)
+	t.Run("unknown object is rejected", func(t *testing.T) {
+		_, diags := extractCaseSettings(ctx, types.ObjectUnknown(alertschema.CaseSettingsAttr()))
+		if !diags.HasError() {
+			t.Fatal("extractCaseSettings() accepted an unknown case_settings object")
 		}
-		if got != nil {
-			t.Fatalf("extractCaseSettings() = %v, want nil", got)
+	})
+
+	t.Run("unknown mode or lists are rejected", func(t *testing.T) {
+		unknownMode := types.ObjectValueMust(alertschema.CaseSettingsAttr(), map[string]attr.Value{
+			"auto_resolve_mode":  types.StringUnknown(),
+			"enrichment_queries": types.ListValueMust(caseEnrichmentQueryObjectType, nil),
+			"destinations":       types.ListValueMust(caseDestinationObjectType, nil),
+		})
+		if _, diags := extractCaseSettings(ctx, unknownMode); !diags.HasError() {
+			t.Fatal("extractCaseSettings() accepted an unknown auto_resolve_mode")
+		}
+		unknownQueries := types.ObjectValueMust(alertschema.CaseSettingsAttr(), map[string]attr.Value{
+			"auto_resolve_mode":  types.StringValue(alerttypes.CaseAutoResolveModeEnabled),
+			"enrichment_queries": types.ListUnknown(caseEnrichmentQueryObjectType),
+			"destinations":       types.ListValueMust(caseDestinationObjectType, nil),
+		})
+		if _, diags := extractCaseSettings(ctx, unknownQueries); !diags.HasError() {
+			t.Fatal("extractCaseSettings() accepted unknown enrichment_queries")
+		}
+		unknownDestinations := types.ObjectValueMust(alertschema.CaseSettingsAttr(), map[string]attr.Value{
+			"auto_resolve_mode":  types.StringValue(alerttypes.CaseAutoResolveModeEnabled),
+			"enrichment_queries": types.ListValueMust(caseEnrichmentQueryObjectType, nil),
+			"destinations":       types.ListUnknown(caseDestinationObjectType),
+		})
+		if _, diags := extractCaseSettings(ctx, unknownDestinations); !diags.HasError() {
+			t.Fatal("extractCaseSettings() accepted unknown destinations")
 		}
 	})
 
