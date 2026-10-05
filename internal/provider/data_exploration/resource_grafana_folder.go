@@ -173,13 +173,8 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
-			id := d.Id()
 			d.SetId("")
-			return diag.Diagnostics{diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("grafana-folder %q is in state, but no longer exists in Coralogix backend", id),
-				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
-			}}
+			return nil
 		}
 		return diag.Errorf("%s", utils.FormatRpcErrors(err, fmt.Sprintf("/grafana/api/folders/%s", folder.UID), fmt.Sprintf("%#v", folder)))
 	}
