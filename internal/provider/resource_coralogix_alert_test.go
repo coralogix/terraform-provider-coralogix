@@ -438,7 +438,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
 						},
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.router.notify_on", "Triggered Only"),
-					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
+					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
@@ -478,7 +478,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "low"),
-					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
+					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Monday"),
@@ -2672,7 +2672,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
   }
 
   incidents_settings = {
-    notify_on = "Triggered Only"
+    notify_on = "Triggered and Resolved"
     retriggering_period = {
       minutes = 10
     }
@@ -2822,7 +2822,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
   }
 
   incidents_settings = {
-    notify_on = "Triggered and Resolved"
+    notify_on = "Triggered Only"
     retriggering_period = {
       minutes = 1
     }
