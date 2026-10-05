@@ -24,6 +24,9 @@
 #### data-source/coralogix_global_router
 - FEAT: Add the computed attributes `create_time` and `update_time`.
 
+#### resource/coralogix_alert
+- FEAT: Add `case_settings` (preview) so case settings (auto-resolve mode, enrichment query, case destinations) can be managed in Terraform and are kept across updates. Also flows through to `data-source/coralogix_alert`.
+
 # Release 3.19.0
 
 #### resource/coralogix_events2metric
