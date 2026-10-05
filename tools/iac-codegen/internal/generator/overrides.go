@@ -176,9 +176,16 @@ func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 			return wholeLine(fmt.Errorf("enum %q has no value %q", line.Component, value))
 		}
 	}
+	if hasZeroValue(contract) && line.EnumZero == "" {
+		return &lineIssue{
+			code:    "ENUM_ZERO_UNDECIDED",
+			message: fmt.Sprintf("enum %q has the zero value %s, but the line has no zero", line.Component, contract[0]),
+			fix:     "Add zero with the Terraform value of the zero value. Without it, a response that has the value fails with Unsupported API value.",
+		}
+	}
 	var undecided []string
 	for i, value := range contract {
-		zero := i == 0 && strings.HasSuffix(value, "_UNSPECIFIED")
+		zero := i == 0 && hasZeroValue(contract)
 		if !zero && !slices.Contains(line.EnumValues, value) && !slices.Contains(line.EnumRejected, value) {
 			undecided = append(undecided, value)
 		}
@@ -191,6 +198,11 @@ func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 		message: fmt.Sprintf("the contract of enum %q has values that the file neither accepts nor rejects: %s", line.Component, strings.Join(undecided, ", ")),
 		fix:     "Add each value to values (the resource accepts it) or to rejected (it does not).",
 	}
+}
+
+// hasZeroValue reports whether the first value of the enum is the protobuf zero value.
+func hasZeroValue(contract []string) bool {
+	return len(contract) > 0 && strings.HasSuffix(contract[0], "_UNSPECIFIED")
 }
 
 // fieldLineProblem checks a field line. The field must exist. A readOnly or required key is

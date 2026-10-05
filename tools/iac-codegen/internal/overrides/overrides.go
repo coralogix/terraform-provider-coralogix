@@ -352,7 +352,7 @@ func (f *File) Policy() model.Policy {
 func (f *File) Lines() []Line {
 	var out []Line
 	for _, name := range sortedKeys(f.Enums) {
-		out = append(out, Line{Kind: KindEnum, Component: name, EnumValues: f.Enums[name].Values, EnumRejected: f.Enums[name].Rejected})
+		out = append(out, Line{Kind: KindEnum, Component: name, EnumZero: f.Enums[name].Zero, EnumValues: f.Enums[name].Values, EnumRejected: f.Enums[name].Rejected})
 	}
 	for _, name := range sortedKeys(f.Types) {
 		t := f.Types[name]
@@ -382,6 +382,7 @@ type Line struct {
 	Component  string
 	Field      string
 	EnumValues []string // for an enum line: the values that the resource accepts
+	EnumZero   string   // for an enum line: the Terraform value of the zero value
 	// EnumRejected are the values of the contract that the resource does not accept.
 	EnumRejected []string
 	ReadOnly     bool     // for a field line: the file says that the server sets the field

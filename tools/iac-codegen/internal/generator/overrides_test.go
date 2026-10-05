@@ -435,3 +435,18 @@ func TestWordingOnlyLineDoesNotWaivePresence(t *testing.T) {
 		})
 	}
 }
+
+// An enum with a zero value (KIND_UNSPECIFIED) needs a zero key. Without it the conversion map has
+// no row for the value, and a response that has it fails with Unsupported API value.
+func TestEnumZeroValueNeedsAZeroKey(t *testing.T) {
+	const head = "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  legacy.Kind:\n"
+	const values = "    values: [ALPHA, BETA]\n    rejected: [GAMMA]\n"
+	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, head+values))
+	if !slices.Contains(eligibilityCodes(t, err), "ENUM_ZERO_UNDECIDED") {
+		t.Fatalf("err = %v, want ENUM_ZERO_UNDECIDED", err)
+	}
+	_, err = validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, head+"    zero: unspecified\n"+values))
+	if slices.Contains(eligibilityCodes(t, err), "ENUM_ZERO_UNDECIDED") {
+		t.Fatalf("err = %v, want no ENUM_ZERO_UNDECIDED", err)
+	}
+}
