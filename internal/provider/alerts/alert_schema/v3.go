@@ -793,6 +793,13 @@ func V3() schema.Schema {
 						Validators: []validator.List{
 							listvalidator.SizeAtLeast(1),
 						},
+						MarkdownDescription: "Keys that split the alert's cases and notifications into separate groups. " +
+							"Omit to get one combined case/notification for all permutations of the alert; an empty list is not allowed. " +
+							"Set one or more keys to open a separate case/notification for each combination of their values " +
+							"(the \"Separate\" case setting in the UI). " +
+							"This does not change how the alert triggers, which is controlled by `group_by`. " +
+							"Except for metric alerts, the keys must be a subset of the alert's `group_by` keys " +
+							"(for SLO alerts, a subset of the SLO's grouping labels).",
 					},
 					"webhooks_settings": schema.SetNestedAttribute{
 						Optional: true,
