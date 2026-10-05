@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_grafana_folder
+- FIX: Handle out-of-band folder deletion on read — `terraform plan` now warns and recreates instead of erroring.
+- FIX: Mark `uid` as `ForceNew` — the Grafana API does not support updating a folder's uid, so changes now plan a replace instead of failing with 404.
+
 # Release 3.19.0
 
 #### resource/coralogix_events2metric

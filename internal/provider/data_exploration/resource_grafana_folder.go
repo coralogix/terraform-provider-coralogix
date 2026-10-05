@@ -52,6 +52,7 @@ func ResourceGrafanaFolder() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Optional:    true,
+				ForceNew:    true,
 				Description: "Unique identifier.",
 			},
 			"title": {
@@ -149,6 +150,15 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	folder, err := meta.(*clientset.ClientSet).Grafana().GetGrafanaFolder(ctx, d.Id())
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
+		if status.Code(err) == codes.NotFound {
+			id := d.Id()
+			d.SetId("")
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("grafana-folder %q is in state, but no longer exists in Coralogix backend", id),
+				Detail:   fmt.Sprintf("%q will be recreated when you apply", id),
+			}}
+		}
 		return diag.FromErr(err)
 	}
 	log.Printf("[INFO] Received grafana-folder: %#v", folder)
@@ -163,11 +173,12 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
+			id := d.Id()
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
 				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("grafana-dashboard %q is in state, but no longer exists in Coralogix backend", d.Id()),
-				Detail:   fmt.Sprintf("%s will be recreated when you apply", d.Id()),
+				Summary:  fmt.Sprintf("grafana-folder %q is in state, but no longer exists in Coralogix backend", id),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
 		return diag.Errorf("%s", utils.FormatRpcErrors(err, fmt.Sprintf("/grafana/api/folders/%s", folder.UID), fmt.Sprintf("%#v", folder)))
