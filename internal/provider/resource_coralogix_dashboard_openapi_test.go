@@ -799,6 +799,10 @@ func dashboardOpenAPIStructuredQueryConfigVariant(widget, queryBranch string, up
 		if widget == "pie_chart" {
 			groupNames = fmt.Sprintf("\n                  group_names = [%q]", dashboardOpenAPIDataPrimePieGroupName(updated))
 		}
+		// The API rejects a bar chart Dataprime query with empty group_names.
+		if widget == "bar_chart" {
+			groupNames = fmt.Sprintf("\n                  group_names = [%q]", dashboardOpenAPIDataPrimeGroupName(updated))
+		}
 		if widget == "horizontal_bar_chart" {
 			timeFrame := `relative = { duration = "seconds:900" }`
 			if updated {
