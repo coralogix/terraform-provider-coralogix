@@ -173,6 +173,22 @@ func TestFlattenCaseSettings(t *testing.T) {
 		}
 	})
 
+	t.Run("unknown enums are rejected", func(t *testing.T) {
+		unknownMode := alerts.AlertDefCaseAutoResolveMode("ALERT_DEF_CASE_AUTO_RESOLVE_MODE_FUTURE")
+		_, diags := flattenCaseSettings(ctx, &alerts.AlertDefCaseSettings{AutoResolveMode: &unknownMode})
+		if !diags.HasError() {
+			t.Fatal("flattenCaseSettings() accepted an unknown auto resolve mode")
+		}
+
+		unknownType := alerts.AlertDefCaseEnrichmentQueryType("ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_FUTURE")
+		_, diags = flattenCaseSettings(ctx, &alerts.AlertDefCaseSettings{
+			EnrichmentQueries: []alerts.AlertDefCaseEnrichmentQuery{{Query: "source logs", Type: &unknownType}},
+		})
+		if !diags.HasError() {
+			t.Fatal("flattenCaseSettings() accepted an unknown enrichment query type")
+		}
+	})
+
 	t.Run("disabled mode and destinations keep order and preset presence", func(t *testing.T) {
 		preset := "preset-a"
 		got, diags := flattenCaseSettings(ctx, &alerts.AlertDefCaseSettings{

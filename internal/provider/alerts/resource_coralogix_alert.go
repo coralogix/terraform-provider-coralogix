@@ -3281,18 +3281,32 @@ func flattenCaseSettings(ctx context.Context, caseSettings *alerts.AlertDefCaseS
 
 	autoResolveMode := alerttypes.CaseAutoResolveModeEnabled
 	if caseSettings.AutoResolveMode != nil {
-		if mode, ok := alerttypes.CaseAutoResolveModeProtoToSchemaMap[*caseSettings.AutoResolveMode]; ok {
-			autoResolveMode = mode
+		mode, ok := alerttypes.CaseAutoResolveModeProtoToSchemaMap[*caseSettings.AutoResolveMode]
+		if !ok {
+			diags := diag.Diagnostics{}
+			diags.AddError(
+				"Error reading case settings",
+				fmt.Sprintf("Unsupported case_settings.auto_resolve_mode %q.", *caseSettings.AutoResolveMode),
+			)
+			return types.ObjectNull(alertschema.CaseSettingsAttr()), diags
 		}
+		autoResolveMode = mode
 	}
 
 	queryModels := make([]alerttypes.CaseEnrichmentQueryModel, 0, len(caseSettings.EnrichmentQueries))
-	for _, query := range caseSettings.EnrichmentQueries {
+	for i, query := range caseSettings.EnrichmentQueries {
 		queryType := alerttypes.CaseEnrichmentQueryTypeDataPrime
 		if query.Type != nil {
-			if t, ok := alerttypes.CaseEnrichmentQueryTypeProtoToSchemaMap[*query.Type]; ok {
-				queryType = t
+			t, ok := alerttypes.CaseEnrichmentQueryTypeProtoToSchemaMap[*query.Type]
+			if !ok {
+				diags := diag.Diagnostics{}
+				diags.AddError(
+					"Error reading case settings",
+					fmt.Sprintf("Unsupported case_settings.enrichment_queries[%d].type %q.", i, *query.Type),
+				)
+				return types.ObjectNull(alertschema.CaseSettingsAttr()), diags
 			}
+			queryType = t
 		}
 		queryModels = append(queryModels, alerttypes.CaseEnrichmentQueryModel{
 			Query: types.StringValue(query.Query),
