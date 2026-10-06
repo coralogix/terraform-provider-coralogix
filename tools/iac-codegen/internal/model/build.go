@@ -19,8 +19,12 @@ const (
 	componentPrefix = "#/components/schemas/"
 	jsonMedia       = "application/json"
 	updateMaskField = "updateMask" // contract: PATCH has an updateMask query parameter
-	extPresence     = "x-coralogix-presence"
-	extCollection   = "x-coralogix-collection"
+	// updateMaskProtoField is the proto name of the update mask. The OpenAPI
+	// fork names query parameters with the proto name, and the gateway accepts
+	// both names.
+	updateMaskProtoField = "update_mask"
+	extPresence          = "x-coralogix-presence"
+	extCollection        = "x-coralogix-collection"
 	// A decimal uint64 with at most 18 digits always fits in Terraform Int64.
 	terraformInt64SafeDecimalDigits int64 = 18
 )
@@ -63,9 +67,6 @@ func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Pol
 		return nil, err
 	}
 	r := &Resource{Name: name, Replace: ops[opUpdate].method == "PUT", Policy: policy}
-	if !r.Replace {
-		r.UpdateMask = updateMaskField
-	}
 	if err := r.readOperations(ops); err != nil {
 		return nil, err
 	}
@@ -181,7 +182,7 @@ func findOperations(doc *v3.Document, name string, ids OperationIDs) (map[verb]f
 func unsupportedRequiredParameters(role verb, op foundOp) []*v3.Parameter {
 	var params []*v3.Parameter
 	for _, p := range slices.Concat(op.item.Parameters, op.op.Parameters) {
-		if role == opUpdate && p.In == "query" && p.Name == updateMaskField {
+		if role == opUpdate && p.In == "query" && isUpdateMaskName(p.Name) {
 			continue
 		}
 		if p.In != "path" && p.Required != nil && *p.Required {
@@ -588,8 +589,8 @@ func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema, u
 		return err
 	}
 	for _, loc := range []location{{"create body", createBody}, {r.Name, getSchema}} {
-		if propertyOf(loc.schema, updateMaskField) != nil {
-			return fmt.Errorf("%s: unexpected %s property", loc.name, updateMaskField)
+		if name := maskProperty(loc.schema); name != "" {
+			return fmt.Errorf("%s: unexpected %s property", loc.name, name)
 		}
 	}
 	if !r.Singleton && propertyOf(getSchema, r.IDParam) == nil {
@@ -610,55 +611,71 @@ func (r *Resource) checkUpdateContract(updateBody *base.Schema, update foundOp) 
 }
 
 func (r *Resource) checkUpdateMask(updateBody *base.Schema, update foundOp) error {
-	bodyMask := propertyOf(updateBody, updateMaskField)
-	params := namedParameters(update, updateMaskField)
+	bodyMask := maskProperty(updateBody)
+	params := maskParameters(update)
 	if r.Replace {
 		return checkNoUpdateMask(bodyMask, params)
 	}
-	if bodyMask != nil {
-		return fmt.Errorf("update body: %s must be a query parameter, not a body property", updateMaskField)
+	if bodyMask != "" {
+		return fmt.Errorf("update body: %s must be a query parameter, not a body property", bodyMask)
 	}
 	if len(params) == 0 {
-		return fmt.Errorf("update parameters: no %s query parameter", updateMaskField)
+		return fmt.Errorf("update parameters: no %s or %s query parameter", updateMaskField, updateMaskProtoField)
 	}
 	if len(params) > 1 {
-		return fmt.Errorf("update parameters: %d %s parameters, want 1", len(params), updateMaskField)
+		return fmt.Errorf("update parameters: %d %s or %s parameters, want 1", len(params), updateMaskField, updateMaskProtoField)
 	}
 	return r.readUpdateMask(params[0])
 }
 
-func checkNoUpdateMask(bodyMask *base.SchemaProxy, params []*v3.Parameter) error {
-	if bodyMask != nil {
-		return fmt.Errorf("update body: a full replace (PUT) has no %s property", updateMaskField)
+func checkNoUpdateMask(bodyMask string, params []*v3.Parameter) error {
+	if bodyMask != "" {
+		return fmt.Errorf("update body: a full replace (PUT) has no %s property", bodyMask)
 	}
 	if len(params) != 0 {
-		return fmt.Errorf("update parameters: a full replace (PUT) has no %s parameter", updateMaskField)
+		return fmt.Errorf("update parameters: a full replace (PUT) has no %s parameter", params[0].Name)
 	}
 	return nil
 }
 
 func (r *Resource) readUpdateMask(mask *v3.Parameter) error {
 	if mask.In != "query" {
-		return fmt.Errorf("update parameters: %s is in %q, want query", updateMaskField, mask.In)
+		return fmt.Errorf("update parameters: %s is in %q, want query", mask.Name, mask.In)
 	}
 	if mask.Required == nil || !*mask.Required {
-		return fmt.Errorf("update parameters: %s must be required", updateMaskField)
+		return fmt.Errorf("update parameters: %s must be required", mask.Name)
 	}
 	if mask.Schema == nil {
-		return fmt.Errorf("update parameters: %s has no schema", updateMaskField)
+		return fmt.Errorf("update parameters: %s has no schema", mask.Name)
 	}
 	ms, err := schemaOf(mask.Schema)
 	if err != nil || !slices.Equal(ms.Type, []string{"string"}) {
-		return fmt.Errorf("update parameters: %s must have a string schema", updateMaskField)
+		return fmt.Errorf("update parameters: %s must have a string schema", mask.Name)
 	}
+	r.UpdateMask = mask.Name
 	r.UpdateMaskPattern = ms.Pattern
 	return nil
 }
 
-func namedParameters(op foundOp, name string) []*v3.Parameter {
+func isUpdateMaskName(name string) bool {
+	return name == updateMaskField || name == updateMaskProtoField
+}
+
+// maskProperty returns the name of the update mask property of s, or "".
+func maskProperty(s *base.Schema) string {
+	for _, name := range []string{updateMaskField, updateMaskProtoField} {
+		if propertyOf(s, name) != nil {
+			return name
+		}
+	}
+	return ""
+}
+
+// maskParameters returns the update mask parameters of op, under either name.
+func maskParameters(op foundOp) []*v3.Parameter {
 	var params []*v3.Parameter
 	for _, p := range slices.Concat(op.item.Parameters, op.op.Parameters) {
-		if p.Name == name {
+		if isUpdateMaskName(p.Name) {
 			params = append(params, p)
 		}
 	}

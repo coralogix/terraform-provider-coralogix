@@ -1308,7 +1308,7 @@ func buildIssue(err error) issue.Issue {
 	case strings.Contains(message, "id in the request body is not supported"):
 		code = "UPDATE_ID_IN_BODY_UNSUPPORTED"
 		remediation = "Put the resource id in the Update path. Add body-id compatibility only during existing-resource migration."
-	case strings.Contains(message, "update mask") || strings.Contains(message, updateMaskField):
+	case strings.Contains(message, "update mask") || strings.Contains(message, updateMaskField) || strings.Contains(message, updateMaskProtoField):
 		code = "CLEAR_BEHAVIOR_UNKNOWN"
 	case strings.Contains(message, "type differs"):
 		code = "FIELD_TYPE_INCONSISTENT"

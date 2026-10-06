@@ -137,6 +137,38 @@ func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 	}
 }
 
+// The OpenAPI fork names the mask query parameter with its proto name. The
+// SDK method is the same, so the resource must match the golden output.
+func TestProtoMaskNameMatchesGolden(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	text := strings.Replace(string(input.OpenAPI), "        - name: updateMask\n", "        - name: update_mask\n", 1)
+	if text == string(input.OpenAPI) {
+		t.Fatal("cannot locate the updateMask query parameter")
+	}
+	input.OpenAPI = []byte(text)
+	assertGoldenThing(t, input, sdkDir)
+}
+
+// assertGoldenThing checks that input is eligible and generates exactly the
+// golden Thing resource.
+func assertGoldenThing(t *testing.T, input source.Input, sdkDir string) {
+	t.Helper()
+	candidate := filepath.Join(t.TempDir(), "candidate.yaml")
+	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate}); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(t.TempDir(), "thing")
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, sdkDir); err != nil {
+		t.Fatal(err)
+	}
+	if diff := compareDirectories(filepath.Join("testdata", "golden", "thing"), out); diff != "" {
+		t.Fatalf("output differs from the canonical golden output:\n%s", diff)
+	}
+}
+
 func TestEnumCollectionFlatteningUsesGuardedHelpers(t *testing.T) {
 	fields := []*convField{
 		{TFName: "statuses", Model: "Statuses", SDK: "Statuses", Conv: convStrings, Collection: "List", Enum: true, EnumZero: "STATUS_UNSPECIFIED"},
