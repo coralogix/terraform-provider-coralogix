@@ -92,7 +92,7 @@ func (d *FleetConfigurationGroupDataSource) Read(ctx context.Context, req dataso
 		return
 	}
 
-	state, diags := flattenConfigurationGroup(ctx, data, result.Group, false)
+	state, diags := flattenConfigurationGroup(ctx, data, result, false)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

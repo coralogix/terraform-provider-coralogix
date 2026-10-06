@@ -123,29 +123,34 @@ func TestExpandFamilyCreateSendsOnlyTheConfiguredType(t *testing.T) {
 	}
 }
 
-func TestExpandFamilyReplaceClearsPresetMetadata(t *testing.T) {
-	family := presetFamily(types.StringValue("1.0.0"), `{}`)
-	family.Preset.Metadata = types.MapNull(types.StringType)
-	out, diags := expandFamilyReplace(context.Background(), family)
+func TestExpandUpdateRequestSendsChangedPreset(t *testing.T) {
+	prior := presetFamily(types.StringValue("1.0.0"), `{"a":1}`)
+	planned := presetFamily(types.StringUnknown(), `{"a":2}`)
+	planned.Preset.Metadata = types.MapNull(types.StringType)
+	group := func(f *FleetConfigurationGroupFamilyModel) *FleetConfigurationGroupResourceModel {
+		return &FleetConfigurationGroupResourceModel{Name: types.StringValue("g"), Description: types.StringNull(), Tags: types.ListNull(types.StringType), PriorityOrder: types.Int64Value(0), Family: f}
+	}
+	req, mask, diags := expandUpdateRequest(context.Background(), group(planned), group(prior))
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
-	if out.HasRaw() || !out.HasPreset() {
-		t.Fatal("preset family should send preset only")
+	if mask[len(mask)-1] != "family.preset" || !req.Family.HasPreset() || req.Family.HasRaw() {
+		t.Fatalf("changed preset should be masked and sent, mask %v", mask)
 	}
-	if out.Preset.Metadata == nil || len(out.Preset.Metadata) != 0 {
-		t.Fatalf("removed metadata should be sent as an empty map, got %#v", out.Preset.Metadata)
+	if req.Family.Preset.HasIntegrationVersion() {
+		t.Fatal("unknown integration_version should be omitted so the API re-resolves it")
 	}
-	if out.Preset.GetIntegrationVersion() != "1.0.0" {
-		t.Fatalf("integrationVersion = %q", out.Preset.GetIntegrationVersion())
+	if req.Family.Preset.HasMetadata() {
+		t.Fatal("removed metadata should be omitted so the masked arm clears it")
+	}
+	if req.Family.Preset.GetObservabilityFeatures() != `{"a":2}` {
+		t.Fatalf("observabilityFeatures = %q", req.Family.Preset.GetObservabilityFeatures())
 	}
 }
 
 func TestFlattenFamilyPreset(t *testing.T) {
 	chart := cfggroups.CHARTNAME_CHART_NAME_OTEL_LINUX_STANDALONE
-	apiFamily := cfggroups.NewConfigurationFamily()
-	apiFamily.SetId("family-id")
-	apiFamily.SetVersion("3")
+	apiFamily := cfggroups.NewConfigurationFamily("family-id", "3")
 	apiFamily.SetActive(true)
 	apiFamily.SetCollectorVersion("0.120.0")
 	preset := cfggroups.NewPresetConfigurationFamily("0.0.200", "1.2.0", `{"metrics":1,"logs":{"enabled":true}}`)

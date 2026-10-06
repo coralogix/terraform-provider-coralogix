@@ -401,7 +401,7 @@ func (r *FleetConfigurationGroupResource) Create(ctx context.Context, req resour
 		return
 	}
 
-	state, diags := flattenConfigurationGroup(ctx, plan, result.Group, true)
+	state, diags := flattenConfigurationGroup(ctx, plan, result, true)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -454,24 +454,25 @@ func (r *FleetConfigurationGroupResource) Update(ctx context.Context, req resour
 		return
 	}
 
-	replaceReq, diags := expandReplaceRequest(ctx, plan, prior)
+	updateReq, mask, diags := expandUpdateRequest(ctx, plan, prior)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
 	result, httpResponse, err := r.client.
-		ConfigurationGroupServiceReplaceConfigurationGroup(ctx, plan.ID.ValueString()).
-		ConfigurationGroupServiceReplaceConfigurationGroupRequest(replaceReq).
+		ConfigurationGroupServiceUpdateConfigurationGroup(ctx, plan.ID.ValueString()).
+		UpdateMask(strings.Join(mask, ",")).
+		ConfigurationGroupServiceUpdateConfigurationGroupRequest(updateReq).
 		Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating coralogix_fleet_configuration_group",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", replaceReq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", updateReq),
 		)
 		return
 	}
 
-	state, diags := flattenConfigurationGroup(ctx, plan, result.Group, true)
+	state, diags := flattenConfigurationGroup(ctx, plan, result, true)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -522,10 +523,10 @@ func (r *FleetConfigurationGroupResource) getLatestFamily(ctx context.Context, i
 	if err != nil {
 		return nil, httpResponse, err
 	}
-	if result == nil || result.Group == nil {
+	if result == nil {
 		return nil, httpResponse, fmt.Errorf("configuration group %s was empty", id)
 	}
-	return result.Group, httpResponse, nil
+	return result, httpResponse, nil
 }
 
 func deactivateFamilyIfActive(ctx context.Context, client *cfggroups.FleetManagerConfigurationGroupsAPIService, state *FleetConfigurationGroupResourceModel) error {
@@ -533,19 +534,15 @@ func deactivateFamilyIfActive(ctx context.Context, client *cfggroups.FleetManage
 		return nil
 	}
 
-	inactive := *state
-	family := *state.Family
-	family.Active = types.BoolValue(false)
-	inactive.Family = &family
-
-	replaceReq, diags := expandReplaceRequest(ctx, &inactive, nil)
-	if diags.HasError() {
-		return fmt.Errorf("preparing deactivate request: %s", diags.Errors()[0].Detail())
-	}
+	family := cfggroups.NewConfigurationFamilyUpdate()
+	family.SetActive(false)
+	body := cfggroups.NewConfigurationGroupServiceUpdateConfigurationGroupRequest()
+	body.SetFamily(*family)
 
 	_, httpResponse, err := client.
-		ConfigurationGroupServiceReplaceConfigurationGroup(ctx, state.ID.ValueString()).
-		ConfigurationGroupServiceReplaceConfigurationGroupRequest(replaceReq).
+		ConfigurationGroupServiceUpdateConfigurationGroup(ctx, state.ID.ValueString()).
+		UpdateMask(maskFamilyActive).
+		ConfigurationGroupServiceUpdateConfigurationGroupRequest(*body).
 		Execute()
 	if err != nil {
 		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
@@ -558,7 +555,12 @@ func deactivateFamilyIfActive(ctx context.Context, client *cfggroups.FleetManage
 
 func expandCreateRequest(ctx context.Context, plan *FleetConfigurationGroupResourceModel) (cfggroups.ConfigurationGroupServiceCreateConfigurationGroupRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	group := cfggroups.NewConfigurationGroupCreate()
+	family, familyDiags := expandFamilyCreate(ctx, plan.Family)
+	diags.Append(familyDiags...)
+	if familyDiags.HasError() {
+		return cfggroups.ConfigurationGroupServiceCreateConfigurationGroupRequest{}, diags
+	}
+	group := cfggroups.NewConfigurationGroupCreate(*family)
 	group.SetName(plan.Name.ValueString())
 	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		group.SetDescription(plan.Description.ValueString())
@@ -572,55 +574,103 @@ func expandCreateRequest(ctx context.Context, plan *FleetConfigurationGroupResou
 		group.SetPriorityOrder(int32(plan.PriorityOrder.ValueInt64()))
 	}
 
-	family, familyDiags := expandFamilyCreate(ctx, plan.Family)
-	diags.Append(familyDiags...)
-	if familyDiags.HasError() {
-		return cfggroups.ConfigurationGroupServiceCreateConfigurationGroupRequest{}, diags
-	}
-	group.SetFamily(*family)
-
-	req := cfggroups.NewConfigurationGroupServiceCreateConfigurationGroupRequest()
-	req.SetGroup(*group)
-	return *req, diags
+	return *cfggroups.NewConfigurationGroupServiceCreateConfigurationGroupRequest(*group), diags
 }
 
-func expandReplaceRequest(ctx context.Context, plan, prior *FleetConfigurationGroupResourceModel) (cfggroups.ConfigurationGroupServiceReplaceConfigurationGroupRequest, diag.Diagnostics) {
+// Update mask paths. A masked field that the body omits is cleared or reset,
+// so the group fields are always masked with their planned values.
+const (
+	maskName              = "name"
+	maskDescription       = "description"
+	maskTags              = "tags"
+	maskPriorityOrder     = "priorityOrder"
+	maskFamilyActive      = "family.active"
+	maskFamilyDescription = "family.description"
+	maskFamilyPreset      = "family.preset"
+	maskFamilyRaw         = "family.raw"
+)
+
+// expandUpdateRequest builds the PATCH body and its update mask. Family fields
+// are masked only when they changed, and the preset or raw content only when
+// it changed, so a group-only update keeps the family version.
+func expandUpdateRequest(ctx context.Context, plan, prior *FleetConfigurationGroupResourceModel) (cfggroups.ConfigurationGroupServiceUpdateConfigurationGroupRequest, []string, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	group := cfggroups.NewConfigurationGroupServiceReplaceConfigurationGroupRequestGroup()
-	group.SetName(plan.Name.ValueString())
+	body := cfggroups.NewConfigurationGroupServiceUpdateConfigurationGroupRequest()
+	mask := []string{maskName, maskDescription, maskTags, maskPriorityOrder}
+	body.SetName(plan.Name.ValueString())
 	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
-		group.SetDescription(plan.Description.ValueString())
-	} else {
-		group.SetDescription("")
+		body.SetDescription(plan.Description.ValueString())
 	}
 	tags, tagDiags := expandStringList(ctx, plan.Tags)
 	diags.Append(tagDiags...)
-	if tags == nil {
-		tags = []string{}
+	if tags != nil {
+		body.SetTags(tags)
 	}
-	group.SetTags(tags)
 	if !plan.PriorityOrder.IsNull() && !plan.PriorityOrder.IsUnknown() {
-		group.SetPriorityOrder(int32(plan.PriorityOrder.ValueInt64()))
+		body.SetPriorityOrder(int32(plan.PriorityOrder.ValueInt64()))
 	}
 
-	// Omit an unchanged family so group-only updates keep existing family IDs.
-	// Sending family on every PUT can mint a new version even when content is equal.
-	var priorFamily *FleetConfigurationGroupFamilyModel
-	if prior != nil {
+	if plan.Family == nil {
+		diags.AddError("Missing family", "family is required")
+		return cfggroups.ConfigurationGroupServiceUpdateConfigurationGroupRequest{}, nil, diags
+	}
+	priorFamily := &FleetConfigurationGroupFamilyModel{}
+	if prior != nil && prior.Family != nil {
 		priorFamily = prior.Family
 	}
-	if !familyConfigUnchanged(plan.Family, priorFamily) {
-		family, familyDiags := expandFamilyReplace(ctx, plan.Family)
-		diags.Append(familyDiags...)
-		if familyDiags.HasError() {
-			return cfggroups.ConfigurationGroupServiceReplaceConfigurationGroupRequest{}, diags
+	family := cfggroups.NewConfigurationFamilyUpdate()
+	familyMask := familyUpdateMask(plan.Family, priorFamily)
+	for _, path := range familyMask {
+		switch path {
+		case maskFamilyActive:
+			if !plan.Family.Active.IsNull() && !plan.Family.Active.IsUnknown() {
+				family.SetActive(plan.Family.Active.ValueBool())
+			}
+		case maskFamilyDescription:
+			if !plan.Family.Description.IsNull() && !plan.Family.Description.IsUnknown() {
+				family.SetDescription(plan.Family.Description.ValueString())
+			}
+		case maskFamilyPreset:
+			preset, presetDiags := expandPresetUpdate(ctx, plan.Family.Preset)
+			diags.Append(presetDiags...)
+			if preset != nil {
+				family.SetPreset(*preset)
+			}
+		case maskFamilyRaw:
+			raw, rawDiags := expandRawUpdate(ctx, plan.Family.Raw)
+			diags.Append(rawDiags...)
+			if raw != nil {
+				family.SetRaw(*raw)
+			}
 		}
-		group.SetFamily(*family)
 	}
+	if diags.HasError() {
+		return cfggroups.ConfigurationGroupServiceUpdateConfigurationGroupRequest{}, nil, diags
+	}
+	if len(familyMask) > 0 {
+		body.SetFamily(*family)
+		mask = append(mask, familyMask...)
+	}
+	return *body, mask, diags
+}
 
-	req := cfggroups.NewConfigurationGroupServiceReplaceConfigurationGroupRequest()
-	req.SetGroup(*group)
-	return *req, diags
+// familyUpdateMask lists the family paths whose planned value differs from the
+// prior state. An empty prior family (no state) masks everything configured.
+func familyUpdateMask(plan, prior *FleetConfigurationGroupFamilyModel) []string {
+	var mask []string
+	if !plan.Active.Equal(prior.Active) {
+		mask = append(mask, maskFamilyActive)
+	}
+	if !plan.Description.Equal(prior.Description) {
+		mask = append(mask, maskFamilyDescription)
+	}
+	if plan.Preset != nil && (prior.Preset == nil || !presetConfigUnchanged(plan.Preset, prior.Preset)) {
+		mask = append(mask, maskFamilyPreset)
+	}
+	if plan.Raw != nil && (prior.Raw == nil || !rawConfigUnchanged(plan.Raw, prior.Raw)) {
+		mask = append(mask, maskFamilyRaw)
+	}
+	return mask
 }
 
 func expandFamilyCreate(ctx context.Context, family *FleetConfigurationGroupFamilyModel) (*cfggroups.ConfigurationFamilyCreate, diag.Diagnostics) {
@@ -674,68 +724,48 @@ func expandFamilyCreate(ctx context.Context, family *FleetConfigurationGroupFami
 	return out, diags
 }
 
-func expandFamilyReplace(ctx context.Context, family *FleetConfigurationGroupFamilyModel) (*cfggroups.ConfigurationGroupServiceReplaceConfigurationGroupRequestGroupFamily, diag.Diagnostics) {
-	if family == nil {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Missing family", "family is required")}
-	}
-	out := cfggroups.NewConfigurationGroupServiceReplaceConfigurationGroupRequestGroupFamily()
-	if !family.Active.IsNull() && !family.Active.IsUnknown() {
-		out.SetActive(family.Active.ValueBool())
-	}
-	if !family.Description.IsNull() && !family.Description.IsUnknown() {
-		out.SetDescription(family.Description.ValueString())
-	} else {
-		out.SetDescription("")
-	}
-
-	var diags diag.Diagnostics
-	switch {
-	case family.Preset != nil:
-		metadata, metadataDiags := expandStringMap(ctx, family.Preset.Metadata)
-		diags.Append(metadataDiags...)
-		if metadata == nil {
-			metadata = map[string]string{}
-		}
-		preset := cfggroups.NewPresetConfigurationFamilyReplace(
-			chartNameToAPI(family.Preset.ChartName.ValueString()),
-			family.Preset.ChartVersion.ValueString(),
-			family.Preset.ObservabilityFeatures.ValueString(),
-		)
-		if !family.Preset.IntegrationVersion.IsNull() && !family.Preset.IntegrationVersion.IsUnknown() {
-			preset.SetIntegrationVersion(family.Preset.IntegrationVersion.ValueString())
-		}
-		preset.SetMetadata(metadata)
-		out.SetPreset(*preset)
-	case family.Raw != nil:
-		metadata, metadataDiags := expandStringMap(ctx, family.Raw.Metadata)
-		diags.Append(metadataDiags...)
-		if metadata == nil {
-			metadata = map[string]string{}
-		}
-		remotes, remoteDiags := expandRemoteReplaces(ctx, family.Raw.RemoteConfigurations)
-		diags.Append(remoteDiags...)
-		raw := cfggroups.NewRawConfigurationFamilyReplace(remotes)
-		if !family.Raw.CollectorVersion.IsNull() && !family.Raw.CollectorVersion.IsUnknown() {
-			raw.SetCollectorVersion(family.Raw.CollectorVersion.ValueString())
-		}
-		raw.SetMetadata(metadata)
-		out.SetRaw(*raw)
-	default:
-		diags.AddError("Missing family type", "exactly one of family.preset or family.raw is required")
-	}
+func expandPresetUpdate(ctx context.Context, model *FleetPresetFamilyModel) (*cfggroups.PresetConfigurationFamilyUpdate, diag.Diagnostics) {
+	metadata, diags := expandStringMap(ctx, model.Metadata)
 	if diags.HasError() {
 		return nil, diags
 	}
-	return out, diags
+	preset := cfggroups.NewPresetConfigurationFamilyUpdate(
+		chartNameToAPI(model.ChartName.ValueString()),
+		model.ChartVersion.ValueString(),
+		model.ObservabilityFeatures.ValueString(),
+	)
+	if !model.IntegrationVersion.IsNull() && !model.IntegrationVersion.IsUnknown() {
+		preset.SetIntegrationVersion(model.IntegrationVersion.ValueString())
+	}
+	if metadata != nil {
+		preset.SetMetadata(metadata)
+	}
+	return preset, diags
+}
+
+func expandRawUpdate(ctx context.Context, model *FleetRawFamilyModel) (*cfggroups.RawConfigurationFamilyUpdate, diag.Diagnostics) {
+	metadata, diags := expandStringMap(ctx, model.Metadata)
+	remotes, remoteDiags := expandRemoteReplaces(ctx, model.RemoteConfigurations)
+	diags.Append(remoteDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	raw := cfggroups.NewRawConfigurationFamilyUpdate(remotes)
+	if !model.CollectorVersion.IsNull() && !model.CollectorVersion.IsUnknown() {
+		raw.SetCollectorVersion(model.CollectorVersion.ValueString())
+	}
+	if metadata != nil {
+		raw.SetMetadata(metadata)
+	}
+	return raw, diags
 }
 
 func expandRemoteCreates(ctx context.Context, remotes []FleetRemoteConfigurationModel) ([]cfggroups.RemoteConfigurationCreate, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := make([]cfggroups.RemoteConfigurationCreate, 0, len(remotes))
 	for _, remote := range remotes {
-		item := cfggroups.NewRemoteConfigurationCreate()
+		item := cfggroups.NewRemoteConfigurationCreate(remote.RawConfiguration.ValueString())
 		item.SetName(remote.Name.ValueString())
-		item.SetRawConfiguration(remote.RawConfiguration.ValueString())
 		selector, selectorDiags := expandAgentSelector(ctx, remote.AgentSelector)
 		diags.Append(selectorDiags...)
 		if selector != nil {
@@ -750,9 +780,8 @@ func expandRemoteReplaces(ctx context.Context, remotes []FleetRemoteConfiguratio
 	var diags diag.Diagnostics
 	out := make([]cfggroups.RemoteConfigurationReplace, 0, len(remotes))
 	for _, remote := range remotes {
-		item := cfggroups.NewRemoteConfigurationReplace()
+		item := cfggroups.NewRemoteConfigurationReplace(remote.RawConfiguration.ValueString())
 		item.SetName(remote.Name.ValueString())
-		item.SetRawConfiguration(remote.RawConfiguration.ValueString())
 		selector, selectorDiags := expandAgentSelector(ctx, remote.AgentSelector)
 		diags.Append(selectorDiags...)
 		if selector != nil {

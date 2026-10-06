@@ -74,10 +74,7 @@ func remotePlan(name, raw string) FleetRemoteConfigurationModel {
 }
 
 func remoteAPI(name, id, hash, raw string) cfggroups.RemoteConfiguration {
-	remote := cfggroups.NewRemoteConfiguration()
+	remote := cfggroups.NewRemoteConfiguration(hash, id, raw)
 	remote.SetName(name)
-	remote.SetId(id)
-	remote.SetHash(hash)
-	remote.SetRawConfiguration(raw)
 	return *remote
 }

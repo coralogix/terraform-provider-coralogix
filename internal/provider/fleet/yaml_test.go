@@ -18,6 +18,8 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -156,28 +158,43 @@ func TestExpandReplaceRequestOmitsUnchangedFamily(t *testing.T) {
 		PriorityOrder: types.Int64Value(0),
 		Family:        family,
 	}
-	req, diags := expandReplaceRequest(context.Background(), plan, prior)
+	req, mask, diags := expandUpdateRequest(context.Background(), plan, prior)
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
-	if req.Group.HasFamily() {
-		t.Fatal("unchanged family should be omitted from replace")
+	if req.HasFamily() || slices.ContainsFunc(mask, func(p string) bool { return strings.HasPrefix(p, "family") }) {
+		t.Fatalf("unchanged family should be left out of the update, mask %v", mask)
+	}
+	if !slices.Equal(mask, []string{"name", "description", "tags", "priorityOrder"}) {
+		t.Fatalf("group fields should always be masked, got %v", mask)
 	}
 
 	plan.Family = rawFamily(types.StringNull(), "receivers: {}\n")
-	req, diags = expandReplaceRequest(context.Background(), plan, prior)
+	req, mask, diags = expandUpdateRequest(context.Background(), plan, prior)
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
-	if !req.Group.HasFamily() || req.Group.Family.Raw.HasCollectorVersion() {
-		t.Fatal("removed collector_version should replace the family without collectorVersion")
+	if !slices.Equal(mask[4:], []string{"family.raw"}) || !req.Family.HasRaw() || req.Family.Raw.HasCollectorVersion() {
+		t.Fatalf("removed collector_version should send family.raw without collectorVersion, mask %v", mask)
 	}
 
-	req, diags = expandReplaceRequest(context.Background(), plan, nil)
+	activeOnly := rawFamily(types.StringValue("0.114.0"), "receivers: {}\n")
+	activeOnly.Active = types.BoolValue(false)
+	plan.Family = activeOnly
+	req, mask, diags = expandUpdateRequest(context.Background(), plan, prior)
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
-	if !req.Group.HasFamily() {
-		t.Fatal("replace without prior state should include family")
+	if !slices.Equal(mask[4:], []string{"family.active"}) || req.Family.GetActive() || req.Family.HasRaw() {
+		t.Fatalf("an active-only change should mask only family.active, mask %v", mask)
+	}
+
+	plan.Family = family
+	_, mask, diags = expandUpdateRequest(context.Background(), plan, nil)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if !slices.Contains(mask, "family.raw") || !slices.Contains(mask, "family.active") {
+		t.Fatalf("update without prior state should send the whole family, mask %v", mask)
 	}
 }

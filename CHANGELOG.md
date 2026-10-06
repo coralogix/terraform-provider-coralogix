@@ -5,6 +5,7 @@
 - FEAT: Add `family.preset` with `chart_name`, `chart_version`, `integration_version`, `metadata`, `observability_features` (JSON), and the computed generated `remote_configuration` list. Semantically equal `observability_features` JSON does not plan.
 - BREAKING (Beta): `family.raw.collector_version` is now plain Optional. Removing it from configuration clears it, matching the API, which clears omitted fields on replace.
 - FEAT: Switching a group between `family.preset` and `family.raw` replaces the group. The API cannot change a family's type in place.
+- CHORE: Updates use the configuration groups PATCH API with an update mask. Family fields are sent only when they change, so a group-only change keeps the family version.
 
 #### data-source/coralogix_fleet_configuration_group
 - BREAKING (Beta): Family attributes follow the resource's `family.preset` / `family.raw` shape.
