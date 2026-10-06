@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.20.0
+
 #### resource/coralogix_alert
 - NOTE: The API now rejects an alert when `notification_group.router.notify_on` differs from `incidents_settings.notify_on`. Set both to the same value. If `router` is set without `notify_on`, the provider sends `"Triggered Only"`, so an alert with `incidents_settings.notify_on = "Triggered and Resolved"` fails too. Set `router.notify_on = "Triggered and Resolved"` for such alerts.
 
