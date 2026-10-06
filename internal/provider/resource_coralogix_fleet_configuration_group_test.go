@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -37,9 +38,9 @@ func TestAccCoralogixResourceFleetConfigurationGroup(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "id"),
 					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "name", name),
-					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.remote_configuration.0.name", "default"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.raw.remote_configuration.0.name", "default"),
 					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.id"),
-					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.remote_configuration.0.hash"),
+					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.raw.remote_configuration.0.hash"),
 				),
 			},
 			{
@@ -61,7 +62,7 @@ func TestAccCoralogixResourceFleetConfigurationGroup(t *testing.T) {
 				ResourceName:            fleetConfigurationGroupResourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"family.remote_configuration.0.raw_configuration"},
+				ImportStateVerifyIgnore: []string{"family.raw.remote_configuration.0.raw_configuration"},
 			},
 		},
 	})
@@ -121,14 +122,14 @@ func TestAccCoralogixResourceFleetConfigurationGroupFromFile(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "id"),
 					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "name", name),
-					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.remote_configuration.#", "2"),
-					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.remote_configuration.0.name", "otel-agent"),
-					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.remote_configuration.0.agent_selector.cx.agent.type", "agent"),
-					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.remote_configuration.1.name", "otel-cluster-collector"),
-					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.remote_configuration.1.agent_selector.cx.agent.type", "cluster-collector"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.raw.remote_configuration.#", "2"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.raw.remote_configuration.0.name", "otel-agent"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.raw.remote_configuration.0.agent_selector.cx.agent.type", "agent"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.raw.remote_configuration.1.name", "otel-cluster-collector"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.raw.remote_configuration.1.agent_selector.cx.agent.type", "cluster-collector"),
 					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.id"),
-					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.remote_configuration.0.hash"),
-					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.remote_configuration.1.hash"),
+					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.raw.remote_configuration.0.hash"),
+					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.raw.remote_configuration.1.hash"),
 				),
 			},
 			{
@@ -141,8 +142,8 @@ func TestAccCoralogixResourceFleetConfigurationGroupFromFile(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"family.remote_configuration.0.raw_configuration",
-					"family.remote_configuration.1.raw_configuration",
+					"family.raw.remote_configuration.0.raw_configuration",
+					"family.raw.remote_configuration.1.raw_configuration",
 				},
 			},
 		},
@@ -157,17 +158,19 @@ func testAccCoralogixResourceFleetConfigurationGroup(name, rawConfiguration stri
   priority_order = 10
 
   family = {
-    active            = true
-    collector_version = "0.114.0"
-    remote_configuration = [
-      {
-        name              = "default"
-        raw_configuration = %q
-        agent_selector = {
-          "cx.agent.type" = "agent"
+    active = true
+    raw = {
+      collector_version = "0.114.0"
+      remote_configuration = [
+        {
+          name              = "default"
+          raw_configuration = %q
+          agent_selector = {
+            "cx.agent.type" = "agent"
+          }
         }
-      }
-    ]
+      ]
+    }
   }
 }
 `, name, rawConfiguration)
@@ -182,15 +185,17 @@ func testAccCoralogixResourceFleetConfigurationGroupOmitCollectorVersion(name, r
 
   family = {
     active = true
-    remote_configuration = [
-      {
-        name              = "default"
-        raw_configuration = %q
-        agent_selector = {
-          "cx.agent.type" = "agent"
+    raw = {
+      remote_configuration = [
+        {
+          name              = "default"
+          raw_configuration = %q
+          agent_selector = {
+            "cx.agent.type" = "agent"
+          }
         }
-      }
-    ]
+      ]
+    }
   }
 }
 `, name, rawConfiguration)
@@ -204,25 +209,77 @@ func testAccCoralogixResourceFleetConfigurationGroupFromFile(name, agentYAML, cl
   priority_order = 10
 
   family = {
-    active            = true
-    collector_version = "0.114.0"
-    remote_configuration = [
-      {
-        name              = "otel-agent"
-        raw_configuration = file(%q)
-        agent_selector = {
-          "cx.agent.type" = "agent"
+    active = true
+    raw = {
+      collector_version = "0.114.0"
+      remote_configuration = [
+        {
+          name              = "otel-agent"
+          raw_configuration = file(%q)
+          agent_selector = {
+            "cx.agent.type" = "agent"
+          }
+        },
+        {
+          name              = "otel-cluster-collector"
+          raw_configuration = file(%q)
+          agent_selector = {
+            "cx.agent.type" = "cluster-collector"
+          }
         }
-      },
-      {
-        name              = "otel-cluster-collector"
-        raw_configuration = file(%q)
-        agent_selector = {
-          "cx.agent.type" = "cluster-collector"
-        }
-      }
-    ]
+      ]
+    }
   }
 }
 `, name, agentYAML, clusterYAML)
+}
+
+func TestAccCoralogixResourceFleetConfigurationGroupFamilyTypeIsExclusive(t *testing.T) {
+	name := acctest.RandomWithPrefix("tf-acc-fleet-cg-type")
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixResourceFleetConfigurationGroupFamilyType(name, true, true),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`(?s)Invalid Attribute Combination`),
+			},
+			{
+				Config:      testAccCoralogixResourceFleetConfigurationGroupFamilyType(name, false, false),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`(?s)Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceFleetConfigurationGroupFamilyType(name string, withPreset, withRaw bool) string {
+	preset, raw := "", ""
+	if withPreset {
+		preset = `
+    preset = {
+      chart_name             = "otel_integration"
+      chart_version          = "0.0.200"
+      observability_features = jsonencode({})
+    }`
+	}
+	if withRaw {
+		raw = fmt.Sprintf(`
+    raw = {
+      remote_configuration = [
+        {
+          name              = "default"
+          raw_configuration = %q
+        }
+      ]
+    }`, fleetAccRawConfigInlineList)
+	}
+	return fmt.Sprintf(`resource "coralogix_fleet_configuration_group" "test" {
+  name = %q
+
+  family = {%s%s
+  }
+}
+`, name, preset, raw)
 }

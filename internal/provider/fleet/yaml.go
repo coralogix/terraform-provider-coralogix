@@ -20,6 +20,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"gopkg.in/yaml.v3"
 )
@@ -45,129 +46,58 @@ func (m PreserveStateForEquivalentYAML) PlanModifyString(_ context.Context, req 
 	}
 }
 
-// UseStateForUnknownWhenYAMLUnchanged keeps computed family/remote IDs when
-// the only configuration difference is semantically equal YAML. Terraform marks
-// computed nils unknown whenever any config text differs, including inline vs
-// multiline lists, before YAML plan modifiers run.
-type UseStateForUnknownWhenYAMLUnchanged struct{}
-
-func (m UseStateForUnknownWhenYAMLUnchanged) Description(_ context.Context) string {
-	return "Keeps the previous computed value when remote configuration YAML is semantically unchanged."
+// UseStateForUnknownWhenFamilyUnchanged keeps a computed family value (family
+// and remote IDs, hashes, preset defaults and generated remotes) when nothing
+// that mints a new family version changed. Terraform marks computed nils
+// unknown whenever any config text differs, including inline vs multiline YAML
+// lists, before the YAML and JSON plan modifiers run. Levels is how many
+// parent steps lead from the attribute to the family object.
+type UseStateForUnknownWhenFamilyUnchanged struct {
+	Levels int
 }
 
-func (m UseStateForUnknownWhenYAMLUnchanged) MarkdownDescription(ctx context.Context) string {
+func (m UseStateForUnknownWhenFamilyUnchanged) Description(_ context.Context) string {
+	return "Keeps the previous computed value when the configuration family is semantically unchanged."
+}
+
+func (m UseStateForUnknownWhenFamilyUnchanged) MarkdownDescription(ctx context.Context) string {
 	return m.Description(ctx)
 }
 
-func (m UseStateForUnknownWhenYAMLUnchanged) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+func (m UseStateForUnknownWhenFamilyUnchanged) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
 	if !req.PlanValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
 		return
 	}
-	if familyOrRemoteYAMLUnchanged(ctx, req) {
+	if familyUnchangedAt(ctx, req.Plan, req.State, m.familyPath(req.Path)) {
 		resp.PlanValue = req.StateValue
 	}
 }
 
-func familyOrRemoteYAMLUnchanged(ctx context.Context, req planmodifier.StringRequest) bool {
-	parent := req.Path.ParentPath()
-	var planYAML types.String
-	if diags := req.Plan.GetAttribute(ctx, parent.AtName("raw_configuration"), &planYAML); !diags.HasError() && !planYAML.IsNull() {
-		// Remote id/hash: replacing a family mints new remote IDs even when this
-		// remote's YAML is unchanged, so require the whole family to be unchanged.
-		return familyFieldsUnchanged(ctx, req, parent.ParentPath().ParentPath())
+func (m UseStateForUnknownWhenFamilyUnchanged) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
+	if !req.PlanValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+		return
 	}
-	return familyFieldsUnchanged(ctx, req, parent)
+	if familyUnchangedAt(ctx, req.Plan, req.State, m.familyPath(req.Path)) {
+		resp.PlanValue = req.StateValue
+	}
 }
 
-func familyFieldsUnchanged(ctx context.Context, req planmodifier.StringRequest, familyPath path.Path) bool {
-	if !boolAttrEqual(ctx, req, familyPath.AtName("active")) ||
-		!stringAttrEqualOrUnknownPlan(ctx, req, familyPath.AtName("collector_version")) ||
-		!stringAttrEqual(ctx, req, familyPath.AtName("description")) ||
-		!mapAttrEqual(ctx, req, familyPath.AtName("metadata")) {
-		return false
+func (m UseStateForUnknownWhenFamilyUnchanged) familyPath(p path.Path) path.Path {
+	for i := 0; i < m.Levels; i++ {
+		p = p.ParentPath()
 	}
-
-	remotesPath := familyPath.AtName("remote_configuration")
-	var planRemotes, stateRemotes types.List
-	if diags := req.Plan.GetAttribute(ctx, remotesPath, &planRemotes); diags.HasError() || planRemotes.IsNull() || planRemotes.IsUnknown() {
-		return false
-	}
-	if diags := req.State.GetAttribute(ctx, remotesPath, &stateRemotes); diags.HasError() || stateRemotes.IsNull() || stateRemotes.IsUnknown() {
-		return false
-	}
-	if len(planRemotes.Elements()) != len(stateRemotes.Elements()) {
-		return false
-	}
-	for i := range planRemotes.Elements() {
-		item := remotesPath.AtListIndex(i)
-		if !yamlAttrUnchanged(ctx, req, item.AtName("raw_configuration")) ||
-			!stringAttrEqual(ctx, req, item.AtName("name")) ||
-			!mapAttrEqual(ctx, req, item.AtName("agent_selector")) {
-			return false
-		}
-	}
-	return true
+	return p
 }
 
-func yamlAttrUnchanged(ctx context.Context, req planmodifier.StringRequest, attrPath path.Path) bool {
-	var planYAML, stateYAML types.String
-	if diags := req.Plan.GetAttribute(ctx, attrPath, &planYAML); diags.HasError() || planYAML.IsNull() || planYAML.IsUnknown() {
+func familyUnchangedAt(ctx context.Context, plan tfsdk.Plan, state tfsdk.State, familyPath path.Path) bool {
+	var planFamily, stateFamily *FleetConfigurationGroupFamilyModel
+	if diags := plan.GetAttribute(ctx, familyPath, &planFamily); diags.HasError() {
 		return false
 	}
-	if diags := req.State.GetAttribute(ctx, attrPath, &stateYAML); diags.HasError() || stateYAML.IsNull() || stateYAML.IsUnknown() {
+	if diags := state.GetAttribute(ctx, familyPath, &stateFamily); diags.HasError() {
 		return false
 	}
-	return yamlStringsEqual(planYAML.ValueString(), stateYAML.ValueString())
-}
-
-func stringAttrEqual(ctx context.Context, req planmodifier.StringRequest, attrPath path.Path) bool {
-	var planVal, stateVal types.String
-	if diags := req.Plan.GetAttribute(ctx, attrPath, &planVal); diags.HasError() {
-		return false
-	}
-	if diags := req.State.GetAttribute(ctx, attrPath, &stateVal); diags.HasError() {
-		return false
-	}
-	return planVal.Equal(stateVal)
-}
-
-// stringAttrEqualOrUnknownPlan treats an unknown plan value as unchanged. Nested
-// Optional+Computed attributes such as collector_version become unknown when
-// omitted, and the API keeps the prior value.
-func stringAttrEqualOrUnknownPlan(ctx context.Context, req planmodifier.StringRequest, attrPath path.Path) bool {
-	var planVal, stateVal types.String
-	if diags := req.Plan.GetAttribute(ctx, attrPath, &planVal); diags.HasError() {
-		return false
-	}
-	if planVal.IsUnknown() {
-		return true
-	}
-	if diags := req.State.GetAttribute(ctx, attrPath, &stateVal); diags.HasError() {
-		return false
-	}
-	return planVal.Equal(stateVal)
-}
-
-func boolAttrEqual(ctx context.Context, req planmodifier.StringRequest, attrPath path.Path) bool {
-	var planVal, stateVal types.Bool
-	if diags := req.Plan.GetAttribute(ctx, attrPath, &planVal); diags.HasError() {
-		return false
-	}
-	if diags := req.State.GetAttribute(ctx, attrPath, &stateVal); diags.HasError() {
-		return false
-	}
-	return planVal.Equal(stateVal)
-}
-
-func mapAttrEqual(ctx context.Context, req planmodifier.StringRequest, attrPath path.Path) bool {
-	var planVal, stateVal types.Map
-	if diags := req.Plan.GetAttribute(ctx, attrPath, &planVal); diags.HasError() {
-		return false
-	}
-	if diags := req.State.GetAttribute(ctx, attrPath, &stateVal); diags.HasError() {
-		return false
-	}
-	return planVal.Equal(stateVal)
+	return planFamily != nil && stateFamily != nil && familyConfigUnchanged(planFamily, stateFamily)
 }
 
 func echoYAML(configured, api string) types.String {
@@ -198,9 +128,36 @@ func familyConfigUnchanged(plan, state *FleetConfigurationGroupFamilyModel) bool
 	if plan == nil || state == nil {
 		return plan == state
 	}
-	if !plan.Active.Equal(state.Active) ||
-		!plan.Description.Equal(state.Description) ||
+	if !plan.Active.Equal(state.Active) || !plan.Description.Equal(state.Description) {
+		return false
+	}
+	return presetConfigUnchanged(plan.Preset, state.Preset) && rawConfigUnchanged(plan.Raw, state.Raw)
+}
+
+func presetConfigUnchanged(plan, state *FleetPresetFamilyModel) bool {
+	if plan == nil || state == nil {
+		return plan == state
+	}
+	if !plan.ChartName.Equal(state.ChartName) ||
+		!plan.ChartVersion.Equal(state.ChartVersion) ||
 		!plan.Metadata.Equal(state.Metadata) {
+		return false
+	}
+	// Omitting integration_version plans unknown; the API keeps the prior value.
+	if !plan.IntegrationVersion.IsUnknown() && !plan.IntegrationVersion.Equal(state.IntegrationVersion) {
+		return false
+	}
+	if plan.ObservabilityFeatures.IsUnknown() || state.ObservabilityFeatures.IsUnknown() {
+		return false
+	}
+	return jsonStringsEqual(plan.ObservabilityFeatures.ValueString(), state.ObservabilityFeatures.ValueString())
+}
+
+func rawConfigUnchanged(plan, state *FleetRawFamilyModel) bool {
+	if plan == nil || state == nil {
+		return plan == state
+	}
+	if !plan.Metadata.Equal(state.Metadata) {
 		return false
 	}
 	// Omitting collector_version plans unknown; the API keeps the prior value.

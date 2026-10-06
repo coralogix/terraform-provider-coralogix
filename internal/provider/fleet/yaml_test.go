@@ -109,45 +109,39 @@ func TestSelectorAttrsForStateKeepsExplicitServiceVersion(t *testing.T) {
 	}
 }
 
-func TestFamilyConfigUnchangedIgnoresGroupLevelFields(t *testing.T) {
-	family := &FleetConfigurationGroupFamilyModel{
-		Active:           types.BoolValue(true),
-		CollectorVersion: types.StringValue("0.114.0"),
-		Description:      types.StringNull(),
-		Metadata:         types.MapNull(types.StringType),
-		RemoteConfigurations: []FleetRemoteConfigurationModel{{
-			Name:             types.StringValue("default"),
-			RawConfiguration: types.StringValue("receivers: [otlp]\n"),
-			AgentSelector:    types.MapNull(types.StringType),
-		}},
+func rawFamily(collectorVersion types.String, rawConfiguration string) *FleetConfigurationGroupFamilyModel {
+	return &FleetConfigurationGroupFamilyModel{
+		Active:      types.BoolValue(true),
+		Description: types.StringNull(),
+		Raw: &FleetRawFamilyModel{
+			CollectorVersion: collectorVersion,
+			Metadata:         types.MapNull(types.StringType),
+			RemoteConfigurations: []FleetRemoteConfigurationModel{{
+				Name:             types.StringValue("default"),
+				RawConfiguration: types.StringValue(rawConfiguration),
+				AgentSelector:    types.MapNull(types.StringType),
+			}},
+		},
 	}
+}
+
+func TestFamilyConfigUnchangedIgnoresGroupLevelFields(t *testing.T) {
+	family := rawFamily(types.StringValue("0.114.0"), "receivers: [otlp]\n")
 	if !familyConfigUnchanged(family, family) {
 		t.Fatal("identical families should compare equal")
 	}
-	changed := *family
-	changed.CollectorVersion = types.StringValue("0.115.0")
-	if familyConfigUnchanged(&changed, family) {
+	changed := rawFamily(types.StringValue("0.115.0"), "receivers: [otlp]\n")
+	if familyConfigUnchanged(changed, family) {
 		t.Fatal("collector_version change should not compare equal")
 	}
-	omitted := *family
-	omitted.CollectorVersion = types.StringUnknown()
-	if !familyConfigUnchanged(&omitted, family) {
+	omitted := rawFamily(types.StringUnknown(), "receivers: [otlp]\n")
+	if !familyConfigUnchanged(omitted, family) {
 		t.Fatal("unknown collector_version should compare equal so omit keeps the family")
 	}
 }
 
 func TestExpandReplaceRequestOmitsUnchangedFamily(t *testing.T) {
-	family := &FleetConfigurationGroupFamilyModel{
-		Active:           types.BoolValue(true),
-		CollectorVersion: types.StringValue("0.114.0"),
-		Description:      types.StringNull(),
-		Metadata:         types.MapNull(types.StringType),
-		RemoteConfigurations: []FleetRemoteConfigurationModel{{
-			Name:             types.StringValue("default"),
-			RawConfiguration: types.StringValue("receivers: {}\n"),
-			AgentSelector:    types.MapNull(types.StringType),
-		}},
-	}
+	family := rawFamily(types.StringValue("0.114.0"), "receivers: {}\n")
 	plan := &FleetConfigurationGroupResourceModel{
 		Name:          types.StringValue("new-name"),
 		Description:   types.StringNull(),
@@ -170,9 +164,7 @@ func TestExpandReplaceRequestOmitsUnchangedFamily(t *testing.T) {
 		t.Fatal("unchanged family should be omitted from replace")
 	}
 
-	omitted := *family
-	omitted.CollectorVersion = types.StringUnknown()
-	plan.Family = &omitted
+	plan.Family = rawFamily(types.StringUnknown(), "receivers: {}\n")
 	req, diags = expandReplaceRequest(context.Background(), plan, prior)
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)

@@ -170,7 +170,7 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	rq := globalRouters.CreateGlobalRouterRequest{
-		Router: router,
+		Router: *router,
 	}
 
 	result, httpResponse, err := r.client.
@@ -252,7 +252,7 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 	rq := globalRouters.ReplaceGlobalRouterRequest{
-		Router: router,
+		Router: *router,
 	}
 	result, httpResponse, err := r.client.
 		GlobalRoutersServiceReplaceGlobalRouter(ctx).
@@ -333,7 +333,7 @@ func extractGlobalRouter(ctx context.Context, plan *GlobalRouterResourceModel) (
 
 	return &globalRouters.GlobalRouter{
 		Id:              routerId,
-		Name:            plan.Name.ValueStringPointer(),
+		Name:            plan.Name.ValueString(),
 		Description:     plan.Description.ValueStringPointer(),
 		Rules:           rules,
 		Fallback:        fallback,
@@ -370,8 +370,8 @@ func extractFallbackTargets(ctx context.Context, list types.List) ([]globalRoute
 		}
 		entityType := globalrouterschema.GlobalRouterEntityTypeSchemaToApi[model.EntityType.ValueString()]
 		extracted = append(extracted, globalRouters.FallbackTarget{
-			EntityType: &entityType,
-			Target:     target,
+			EntityType: entityType,
+			Target:     *target,
 		})
 	}
 
@@ -425,8 +425,8 @@ func extractRoutingRule(ctx context.Context, routingModel RoutingRuleModel) (*gl
 	entityType := globalrouterschema.GlobalRouterEntityTypeSchemaToApi[routingModel.EntityType.ValueString()]
 
 	return &globalRouters.RoutingRule{
-		Name:          utils.TypeStringToStringPointer(routingModel.Name),
-		Condition:     routingModel.Condition.ValueStringPointer(),
+		Name:          routingModel.Name.ValueString(),
+		Condition:     routingModel.Condition.ValueString(),
 		Targets:       targets,
 		CustomDetails: customDetails,
 		EntityType:    &entityType,
@@ -489,7 +489,7 @@ func extractRoutingTarget(ctx context.Context, routingTargetModel RoutingTargetM
 	}
 
 	return &globalRouters.RoutingTarget{
-		ConnectorId:   routingTargetModel.ConnectorId.ValueStringPointer(),
+		ConnectorId:   routingTargetModel.ConnectorId.ValueString(),
 		PresetId:      utils.TypeStringToStringPointer(routingTargetModel.PresetId),
 		CustomDetails: customDetails,
 	}, nil
@@ -540,7 +540,7 @@ func flattenFallbackTargets(ctx context.Context, targets []globalRouters.Fallbac
 	}
 	targetList := make([]types.Object, 0, len(targets))
 	for _, t := range targets {
-		targetObject, dg := flattenRoutingTarget(ctx, t.Target)
+		targetObject, dg := flattenRoutingTarget(ctx, &t.Target)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -733,7 +733,7 @@ func flattenRoutingTarget(ctx context.Context, target *globalRouters.RoutingTarg
 	}
 
 	targetModel := RoutingTargetModel{
-		ConnectorId:   types.StringPointerValue(target.ConnectorId),
+		ConnectorId:   types.StringValue(target.ConnectorId),
 		PresetId:      utils.StringPointerToTypeString(target.PresetId),
 		CustomDetails: customDetails,
 	}

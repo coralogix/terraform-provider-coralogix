@@ -1,5 +1,15 @@
 # Unreleased
 
+#### resource/coralogix_fleet_configuration_group
+- BREAKING (Beta): A family is now either `family.preset` (a configuration template that Coralogix renders into remote configurations) or `family.raw` (your own collector YAML). Exactly one must be set. Move `family.collector_version`, `family.metadata` and `family.remote_configuration` under `family.raw`. Existing state is upgraded automatically.
+- FEAT: Add `family.preset` with `chart_name`, `chart_version`, `integration_version`, `metadata`, `observability_features` (JSON), and the computed generated `remote_configuration` list. Semantically equal `observability_features` JSON does not plan.
+
+#### data-source/coralogix_fleet_configuration_group
+- BREAKING (Beta): Family attributes follow the resource's `family.preset` / `family.raw` shape.
+
+#### resource/coralogix_global_router
+- CHORE: Adapt to the SDK marking router, rule and target names, conditions and connector IDs as required. HCL and state are unchanged.
+
 # Release 3.19.0
 
 #### resource/coralogix_events2metric

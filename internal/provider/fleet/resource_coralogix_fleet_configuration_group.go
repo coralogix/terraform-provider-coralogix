@@ -20,6 +20,7 @@ import (
 	"math"
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -29,6 +30,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -44,8 +46,9 @@ import (
 )
 
 var (
-	_ resource.ResourceWithConfigure   = &FleetConfigurationGroupResource{}
-	_ resource.ResourceWithImportState = &FleetConfigurationGroupResource{}
+	_ resource.ResourceWithConfigure    = &FleetConfigurationGroupResource{}
+	_ resource.ResourceWithImportState  = &FleetConfigurationGroupResource{}
+	_ resource.ResourceWithUpgradeState = &FleetConfigurationGroupResource{}
 )
 
 type FleetConfigurationGroupResourceModel struct {
@@ -58,10 +61,25 @@ type FleetConfigurationGroupResourceModel struct {
 }
 
 type FleetConfigurationGroupFamilyModel struct {
-	ID                   types.String                    `tfsdk:"id"`
-	Version              types.String                    `tfsdk:"version"`
-	Active               types.Bool                      `tfsdk:"active"`
-	Description          types.String                    `tfsdk:"description"`
+	ID          types.String            `tfsdk:"id"`
+	Version     types.String            `tfsdk:"version"`
+	Active      types.Bool              `tfsdk:"active"`
+	Description types.String            `tfsdk:"description"`
+	Preset      *FleetPresetFamilyModel `tfsdk:"preset"`
+	Raw         *FleetRawFamilyModel    `tfsdk:"raw"`
+}
+
+type FleetPresetFamilyModel struct {
+	ChartName             types.String `tfsdk:"chart_name"`
+	ChartVersion          types.String `tfsdk:"chart_version"`
+	IntegrationVersion    types.String `tfsdk:"integration_version"`
+	Metadata              types.Map    `tfsdk:"metadata"`
+	ObservabilityFeatures types.String `tfsdk:"observability_features"`
+	// Computed: Coralogix generates the remote configurations from the preset.
+	RemoteConfigurations types.List `tfsdk:"remote_configuration"`
+}
+
+type FleetRawFamilyModel struct {
 	CollectorVersion     types.String                    `tfsdk:"collector_version"`
 	Metadata             types.Map                       `tfsdk:"metadata"`
 	RemoteConfigurations []FleetRemoteConfigurationModel `tfsdk:"remote_configuration"`
@@ -106,8 +124,8 @@ func (r *FleetConfigurationGroupResource) Configure(_ context.Context, req resou
 
 func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Version:             0,
-		MarkdownDescription: "Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy deactivates the latest family and then archives the group. **Note: This resource is in private preview (Beta).**",
+		Version:             1,
+		MarkdownDescription: "Fleet Manager configuration group with its latest family. A family is either a `preset` (a configuration template Coralogix renders into remote configurations) or `raw` (remote OpenTelemetry Collector YAML). Destroy deactivates the latest family and then archives the group. **Note: This resource is in private preview (Beta).**",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -143,19 +161,19 @@ func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.S
 			},
 			"family": schema.SingleNestedAttribute{
 				Required:            true,
-				MarkdownDescription: "Latest configuration family for this group.",
+				MarkdownDescription: "Latest configuration family for this group. Exactly one of `preset` or `raw` must be set.",
 				Attributes: map[string]schema.Attribute{
 					"id": schema.StringAttribute{
 						Computed: true,
 						PlanModifiers: []planmodifier.String{
-							UseStateForUnknownWhenYAMLUnchanged{},
+							UseStateForUnknownWhenFamilyUnchanged{Levels: 1},
 						},
 						MarkdownDescription: "Configuration family UUID. Replace may mint a new version.",
 					},
 					"version": schema.StringAttribute{
 						Computed: true,
 						PlanModifiers: []planmodifier.String{
-							UseStateForUnknownWhenYAMLUnchanged{},
+							UseStateForUnknownWhenFamilyUnchanged{Levels: 1},
 						},
 						MarkdownDescription: "Monotonic family version within the group.",
 					},
@@ -169,73 +187,175 @@ func (r *FleetConfigurationGroupResource) Schema(_ context.Context, _ resource.S
 						Optional:            true,
 						MarkdownDescription: "Human-readable family description.",
 					},
-					"collector_version": schema.StringAttribute{
-						Optional: true,
-						Computed: true,
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.UseStateForUnknown(),
+					"preset": presetFamilySchema(),
+					"raw":    rawFamilySchema(),
+				},
+			},
+		},
+	}
+}
+
+func presetFamilySchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Validators: []validator.Object{
+			objectvalidator.ExactlyOneOf(path.MatchRoot("family").AtName("raw")),
+		},
+		MarkdownDescription: "Configuration template settings. Coralogix generates the remote configurations from them. Conflicts with `raw`.",
+		Attributes: map[string]schema.Attribute{
+			"chart_name": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(chartNameSchemaValues()...),
+				},
+				MarkdownDescription: fmt.Sprintf("Configuration template type: `otel_integration` for Kubernetes, `otel_ecs_ec2` for ECS on EC2, or a `*_standalone` template for hosts. Valid values: %s.", strings.Join(chartNameSchemaValues(), ", ")),
+			},
+			"chart_version": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
+				MarkdownDescription: "Configuration template semantic version. It determines the collector version, the generated configuration, and which `integration_version` values are supported.",
+			},
+			"integration_version": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					UseStateForUnknownWhenFamilyUnchanged{Levels: 2},
+				},
+				MarkdownDescription: "Version of the observability features format. When omitted, Coralogix uses the default for `chart_name` and `chart_version`.",
+			},
+			"metadata": schema.MapAttribute{
+				Optional:            true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "Environment setup values for the template, such as `ClusterName`, `KubernetesRunningOn`, `ApplicationName`, or `SubsystemName`.",
+			},
+			"observability_features": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
+				PlanModifiers: []planmodifier.String{
+					PreserveStateForEquivalentJSON{},
+				},
+				MarkdownDescription: "Observability feature settings as a JSON object string, for example `jsonencode({...})`. The available features depend on `chart_name` and `integration_version`. Semantically equal JSON does not plan.",
+			},
+			"remote_configuration": schema.ListNestedAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.List{
+					UseStateForUnknownWhenFamilyUnchanged{Levels: 2},
+				},
+				MarkdownDescription: "Remote configurations Coralogix generated from the template settings.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Remote configuration UUID.",
 						},
-						MarkdownDescription: "Collector semantic version this family targets, without a leading v prefix. " +
-							"The replace API keeps the existing value when this attribute is omitted, and empty string is not a valid clear representation, " +
-							"so removing it from configuration does not unset it remotely.",
-					},
-					"metadata": schema.MapAttribute{
-						Optional:            true,
-						ElementType:         types.StringType,
-						MarkdownDescription: "Metadata stored with this configuration family.",
-					},
-					"remote_configuration": schema.ListNestedAttribute{
-						Required: true,
-						Validators: []validator.List{
-							listvalidator.SizeAtLeast(1),
-							listvalidator.SizeAtMost(128),
+						"hash": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "SHA-256 hash of the normalized raw configuration.",
 						},
-						MarkdownDescription: "Remote OpenTelemetry Collector configurations in this family.",
-						NestedObject: schema.NestedAttributeObject{
-							Attributes: map[string]schema.Attribute{
-								"id": schema.StringAttribute{
-									Computed: true,
-									PlanModifiers: []planmodifier.String{
-										UseStateForUnknownWhenYAMLUnchanged{},
-									},
-									MarkdownDescription: "Remote configuration UUID. Replace may mint a new version.",
-								},
-								"hash": schema.StringAttribute{
-									Computed: true,
-									PlanModifiers: []planmodifier.String{
-										UseStateForUnknownWhenYAMLUnchanged{},
-									},
-									MarkdownDescription: "SHA-256 hash of the normalized raw configuration. Replace may mint a new version.",
-								},
-								"name": schema.StringAttribute{
-									Required: true,
-									Validators: []validator.String{
-										stringvalidator.LengthAtLeast(1),
-									},
-									MarkdownDescription: "Remote configuration name.",
-								},
-								"raw_configuration": schema.StringAttribute{
-									Required: true,
-									Validators: []validator.String{
-										stringvalidator.LengthAtLeast(1),
-									},
-									PlanModifiers: []planmodifier.String{
-										PreserveStateForEquivalentYAML{},
-									},
-									MarkdownDescription: "OpenTelemetry Collector configuration YAML. The supervisor-managed OpAMP extension must not be configured. Semantically equal YAML does not plan.",
-								},
-								"agent_selector": schema.MapAttribute{
-									Optional:    true,
-									ElementType: types.StringType,
-									MarkdownDescription: "Flat agent attributes that match agents for this configuration. " +
-										"The API may copy family.collector_version onto service.version when that key is omitted; " +
-										"the resource drops that injected key unless configuration sets it. Data-source reads keep the remote map.",
-								},
-							},
+						"name": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Remote configuration name.",
+						},
+						"raw_configuration": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Generated OpenTelemetry Collector configuration YAML.",
+						},
+						"agent_selector": schema.MapAttribute{
+							Computed:            true,
+							ElementType:         types.StringType,
+							MarkdownDescription: "Flat agent attributes that match agents for this configuration.",
 						},
 					},
 				},
 			},
+		},
+	}
+}
+
+func rawFamilySchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional:            true,
+		MarkdownDescription: "Family defined directly by its remote OpenTelemetry Collector configurations. Conflicts with `preset`.",
+		Attributes: map[string]schema.Attribute{
+			"collector_version": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "Collector semantic version this family targets, without a leading v prefix. " +
+					"The replace API keeps the existing value when this attribute is omitted, and empty string is not a valid clear representation, " +
+					"so removing it from configuration does not unset it remotely.",
+			},
+			"metadata": schema.MapAttribute{
+				Optional:            true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "Metadata stored with this configuration family.",
+			},
+			"remote_configuration": schema.ListNestedAttribute{
+				Required: true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeAtMost(128),
+				},
+				MarkdownDescription: "Remote OpenTelemetry Collector configurations in this family.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								UseStateForUnknownWhenFamilyUnchanged{Levels: 4},
+							},
+							MarkdownDescription: "Remote configuration UUID. Replace may mint a new version.",
+						},
+						"hash": schema.StringAttribute{
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								UseStateForUnknownWhenFamilyUnchanged{Levels: 4},
+							},
+							MarkdownDescription: "SHA-256 hash of the normalized raw configuration. Replace may mint a new version.",
+						},
+						"name": schema.StringAttribute{
+							Required: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
+							MarkdownDescription: "Remote configuration name.",
+						},
+						"raw_configuration": schema.StringAttribute{
+							Required: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
+							PlanModifiers: []planmodifier.String{
+								PreserveStateForEquivalentYAML{},
+							},
+							MarkdownDescription: "OpenTelemetry Collector configuration YAML. The supervisor-managed OpAMP extension must not be configured. Semantically equal YAML does not plan.",
+						},
+						"agent_selector": schema.MapAttribute{
+							Optional:    true,
+							ElementType: types.StringType,
+							MarkdownDescription: "Flat agent attributes that match agents for this configuration. " +
+								"The API may copy raw.collector_version onto service.version when that key is omitted; " +
+								"the resource drops that injected key unless configuration sets it. Data-source reads keep the remote map.",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func (r *FleetConfigurationGroupResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	schemaV0 := fleetConfigurationGroupSchemaV0()
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema:   &schemaV0,
+			StateUpgrader: upgradeFleetConfigurationGroupStateV0,
 		},
 	}
 }
@@ -497,22 +617,43 @@ func expandFamilyCreate(ctx context.Context, family *FleetConfigurationGroupFami
 	if !family.Description.IsNull() && !family.Description.IsUnknown() {
 		out.SetDescription(family.Description.ValueString())
 	}
-	if !family.CollectorVersion.IsNull() && !family.CollectorVersion.IsUnknown() {
-		out.SetCollectorVersion(family.CollectorVersion.ValueString())
+
+	var diags diag.Diagnostics
+	switch {
+	case family.Preset != nil:
+		metadata, metadataDiags := expandStringMap(ctx, family.Preset.Metadata)
+		diags.Append(metadataDiags...)
+		preset := cfggroups.NewPresetConfigurationFamilyCreate(
+			chartNameToAPI(family.Preset.ChartName.ValueString()),
+			family.Preset.ChartVersion.ValueString(),
+			family.Preset.ObservabilityFeatures.ValueString(),
+		)
+		if !family.Preset.IntegrationVersion.IsNull() && !family.Preset.IntegrationVersion.IsUnknown() {
+			preset.SetIntegrationVersion(family.Preset.IntegrationVersion.ValueString())
+		}
+		if metadata != nil {
+			preset.SetMetadata(metadata)
+		}
+		out.SetPreset(*preset)
+	case family.Raw != nil:
+		metadata, metadataDiags := expandStringMap(ctx, family.Raw.Metadata)
+		diags.Append(metadataDiags...)
+		remotes, remoteDiags := expandRemoteCreates(ctx, family.Raw.RemoteConfigurations)
+		diags.Append(remoteDiags...)
+		raw := cfggroups.NewRawConfigurationFamilyCreate(remotes)
+		if !family.Raw.CollectorVersion.IsNull() && !family.Raw.CollectorVersion.IsUnknown() {
+			raw.SetCollectorVersion(family.Raw.CollectorVersion.ValueString())
+		}
+		if metadata != nil {
+			raw.SetMetadata(metadata)
+		}
+		out.SetRaw(*raw)
+	default:
+		diags.AddError("Missing family type", "exactly one of family.preset or family.raw is required")
 	}
-	metadata, diags := expandStringMap(ctx, family.Metadata)
 	if diags.HasError() {
 		return nil, diags
 	}
-	if metadata != nil {
-		out.SetMetadata(metadata)
-	}
-	remotes, remoteDiags := expandRemoteCreates(ctx, family.RemoteConfigurations)
-	diags.Append(remoteDiags...)
-	if remoteDiags.HasError() {
-		return nil, diags
-	}
-	out.SetRemoteConfigurations(remotes)
 	return out, diags
 }
 
@@ -529,23 +670,45 @@ func expandFamilyReplace(ctx context.Context, family *FleetConfigurationGroupFam
 	} else {
 		out.SetDescription("")
 	}
-	if !family.CollectorVersion.IsNull() && !family.CollectorVersion.IsUnknown() {
-		out.SetCollectorVersion(family.CollectorVersion.ValueString())
+
+	var diags diag.Diagnostics
+	switch {
+	case family.Preset != nil:
+		metadata, metadataDiags := expandStringMap(ctx, family.Preset.Metadata)
+		diags.Append(metadataDiags...)
+		if metadata == nil {
+			metadata = map[string]string{}
+		}
+		preset := cfggroups.NewPresetConfigurationFamilyReplace(
+			chartNameToAPI(family.Preset.ChartName.ValueString()),
+			family.Preset.ChartVersion.ValueString(),
+			family.Preset.ObservabilityFeatures.ValueString(),
+		)
+		if !family.Preset.IntegrationVersion.IsNull() && !family.Preset.IntegrationVersion.IsUnknown() {
+			preset.SetIntegrationVersion(family.Preset.IntegrationVersion.ValueString())
+		}
+		preset.SetMetadata(metadata)
+		out.SetPreset(*preset)
+	case family.Raw != nil:
+		metadata, metadataDiags := expandStringMap(ctx, family.Raw.Metadata)
+		diags.Append(metadataDiags...)
+		if metadata == nil {
+			metadata = map[string]string{}
+		}
+		remotes, remoteDiags := expandRemoteReplaces(ctx, family.Raw.RemoteConfigurations)
+		diags.Append(remoteDiags...)
+		raw := cfggroups.NewRawConfigurationFamilyReplace(remotes)
+		if !family.Raw.CollectorVersion.IsNull() && !family.Raw.CollectorVersion.IsUnknown() {
+			raw.SetCollectorVersion(family.Raw.CollectorVersion.ValueString())
+		}
+		raw.SetMetadata(metadata)
+		out.SetRaw(*raw)
+	default:
+		diags.AddError("Missing family type", "exactly one of family.preset or family.raw is required")
 	}
-	metadata, diags := expandStringMap(ctx, family.Metadata)
 	if diags.HasError() {
 		return nil, diags
 	}
-	if metadata == nil {
-		metadata = map[string]string{}
-	}
-	out.SetMetadata(metadata)
-	remotes, remoteDiags := expandRemoteReplaces(ctx, family.RemoteConfigurations)
-	diags.Append(remoteDiags...)
-	if remoteDiags.HasError() {
-		return nil, diags
-	}
-	out.SetRemoteConfigurations(remotes)
 	return out, diags
 }
 
@@ -657,44 +820,141 @@ func flattenFamily(ctx context.Context, plan *FleetConfigurationGroupFamilyModel
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Missing family", "API returned no configuration family")}
 	}
 	family := families[0]
+
+	planDescription := types.StringNull()
+	var planPreset *FleetPresetFamilyModel
+	var planRaw *FleetRawFamilyModel
+	if plan != nil {
+		planDescription = plan.Description
+		planPreset = plan.Preset
+		planRaw = plan.Raw
+	}
+
+	out := &FleetConfigurationGroupFamilyModel{
+		ID:          types.StringValue(family.GetId()),
+		Version:     types.StringValue(family.GetVersion()),
+		Active:      types.BoolValue(family.GetActive()),
+		Description: flattenConfiguredString(family.Description, planDescription),
+	}
+
+	var diags diag.Diagnostics
+	switch {
+	case family.Preset != nil:
+		out.Preset, diags = flattenPresetFamily(ctx, planPreset, family.Preset, family.GetCollectorVersion())
+	case family.Raw != nil:
+		collectorVersion := family.Raw.GetCollectorVersion()
+		if collectorVersion == "" {
+			collectorVersion = family.GetCollectorVersion()
+		}
+		out.Raw, diags = flattenRawFamily(ctx, planRaw, family.Raw, collectorVersion, dropInjectedSelector)
+	default:
+		diags.AddError("Unknown family type", fmt.Sprintf("API returned configuration family %s with neither preset nor raw settings", family.GetId()))
+	}
+	if diags.HasError() {
+		return nil, diags
+	}
+	return out, diags
+}
+
+func flattenPresetFamily(ctx context.Context, plan *FleetPresetFamilyModel, preset *cfggroups.PresetConfigurationFamily, collectorVersion string) (*FleetPresetFamilyModel, diag.Diagnostics) {
 	planMetadata := types.MapNull(types.StringType)
+	planFeatures := ""
 	if plan != nil {
 		planMetadata = plan.Metadata
+		planFeatures = plan.ObservabilityFeatures.ValueString()
 	}
-	metadata, diags := flattenStringMap(ctx, family.Metadata, planMetadata)
+	metadata, diags := flattenStringMap(ctx, preset.Metadata, planMetadata)
 	if diags.HasError() {
 		return nil, diags
 	}
 
+	// Generated remotes are not configurable: sort them by name and keep the
+	// selector the API returns.
+	remotes, remoteDiags := flattenRemotes(ctx, nil, preset.RemoteConfigurations, collectorVersion, false)
+	diags.Append(remoteDiags...)
+	if remoteDiags.HasError() {
+		return nil, diags
+	}
+	remoteList, listDiags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: remoteConfigurationAttrTypes()}, remotes)
+	diags.Append(listDiags...)
+	if listDiags.HasError() {
+		return nil, diags
+	}
+
+	return &FleetPresetFamilyModel{
+		ChartName:             chartNameFromAPI(preset.ChartName),
+		ChartVersion:          types.StringValue(preset.GetChartVersion()),
+		IntegrationVersion:    types.StringValue(preset.GetIntegrationVersion()),
+		Metadata:              metadata,
+		ObservabilityFeatures: echoJSON(planFeatures, preset.GetObservabilityFeatures()),
+		RemoteConfigurations:  remoteList,
+	}, diags
+}
+
+func flattenRawFamily(ctx context.Context, plan *FleetRawFamilyModel, raw *cfggroups.RawConfigurationFamily, collectorVersion string, dropInjectedSelector bool) (*FleetRawFamilyModel, diag.Diagnostics) {
+	planMetadata := types.MapNull(types.StringType)
 	var planRemotes []FleetRemoteConfigurationModel
 	if plan != nil {
+		planMetadata = plan.Metadata
 		planRemotes = plan.RemoteConfigurations
 	}
-	remotes, remoteDiags := flattenRemotes(ctx, planRemotes, family.RemoteConfigurations, family.GetCollectorVersion(), dropInjectedSelector)
+	metadata, diags := flattenStringMap(ctx, raw.Metadata, planMetadata)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	remotes, remoteDiags := flattenRemotes(ctx, planRemotes, raw.RemoteConfigurations, collectorVersion, dropInjectedSelector)
 	diags.Append(remoteDiags...)
 	if remoteDiags.HasError() {
 		return nil, diags
 	}
 
-	planDescription := types.StringNull()
-	if plan != nil {
-		planDescription = plan.Description
-	}
-	description := flattenConfiguredString(family.Description, planDescription)
-	collectorVersion := types.StringNull()
-	if family.CollectorVersion != nil && *family.CollectorVersion != "" {
-		collectorVersion = types.StringValue(*family.CollectorVersion)
+	collectorVersionValue := types.StringNull()
+	if collectorVersion != "" {
+		collectorVersionValue = types.StringValue(collectorVersion)
 	}
 
-	return &FleetConfigurationGroupFamilyModel{
-		ID:                   types.StringValue(family.GetId()),
-		Version:              types.StringValue(family.GetVersion()),
-		Active:               types.BoolValue(family.GetActive()),
-		Description:          description,
-		CollectorVersion:     collectorVersion,
+	return &FleetRawFamilyModel{
+		CollectorVersion:     collectorVersionValue,
 		Metadata:             metadata,
 		RemoteConfigurations: remotes,
 	}, diags
+}
+
+func remoteConfigurationAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":                types.StringType,
+		"hash":              types.StringType,
+		"name":              types.StringType,
+		"raw_configuration": types.StringType,
+		"agent_selector":    types.MapType{ElemType: types.StringType},
+	}
+}
+
+// chartNameSchemaValues maps CHART_NAME_OTEL_INTEGRATION to otel_integration
+// for every concrete chart name the SDK knows.
+func chartNameSchemaValues() []string {
+	out := make([]string, 0, len(cfggroups.AllowedChartNameEnumValues))
+	for _, name := range cfggroups.AllowedChartNameEnumValues {
+		if name == cfggroups.CHARTNAME_CHART_NAME_UNSPECIFIED {
+			continue
+		}
+		out = append(out, strings.ToLower(strings.TrimPrefix(string(name), chartNamePrefix)))
+	}
+	return out
+}
+
+const chartNamePrefix = "CHART_NAME_"
+
+func chartNameToAPI(name string) cfggroups.ChartName {
+	return cfggroups.ChartName(chartNamePrefix + strings.ToUpper(name))
+}
+
+func chartNameFromAPI(name *cfggroups.ChartName) types.String {
+	if name == nil || *name == cfggroups.CHARTNAME_CHART_NAME_UNSPECIFIED {
+		return types.StringNull()
+	}
+	return types.StringValue(strings.ToLower(strings.TrimPrefix(string(*name), chartNamePrefix)))
 }
 
 func flattenRemotes(ctx context.Context, plan []FleetRemoteConfigurationModel, remotes []cfggroups.RemoteConfiguration, collectorVersion string, dropInjectedSelector bool) ([]FleetRemoteConfigurationModel, diag.Diagnostics) {

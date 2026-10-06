@@ -3,12 +3,12 @@
 page_title: "coralogix_fleet_configuration_group Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy deactivates the latest family and then archives the group. Note: This resource is in private preview (Beta).
+  Fleet Manager configuration group with its latest family. A family is either a preset (a configuration template Coralogix renders into remote configurations) or raw (remote OpenTelemetry Collector YAML). Destroy deactivates the latest family and then archives the group. Note: This resource is in private preview (Beta).
 ---
 
 # coralogix_fleet_configuration_group (Data Source)
 
-Fleet Manager configuration group with its latest family and remote OpenTelemetry Collector YAML. Destroy deactivates the latest family and then archives the group. **Note: This resource is in private preview (Beta).**
+Fleet Manager configuration group with its latest family. A family is either a `preset` (a configuration template Coralogix renders into remote configurations) or `raw` (remote OpenTelemetry Collector YAML). Destroy deactivates the latest family and then archives the group. **Note: This resource is in private preview (Beta).**
 
 ## Example Usage
 
@@ -28,7 +28,7 @@ data "coralogix_fleet_configuration_group" "example" {
 ### Read-Only
 
 - `description` (String) Human-readable description.
-- `family` (Attributes) Latest configuration family for this group. (see [below for nested schema](#nestedatt--family))
+- `family` (Attributes) Latest configuration family for this group. Exactly one of `preset` or `raw` must be set. (see [below for nested schema](#nestedatt--family))
 - `name` (String) Display name.
 - `priority_order` (Number) Selection precedence. Higher values win on ties. Defaults to 0.
 - `tags` (List of String) Tags attached to the configuration group.
@@ -39,19 +39,52 @@ data "coralogix_fleet_configuration_group" "example" {
 Read-Only:
 
 - `active` (Boolean) Whether this family is active. Defaults to true.
-- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix. The replace API keeps the existing value when this attribute is omitted, and empty string is not a valid clear representation, so removing it from configuration does not unset it remotely.
 - `description` (String) Human-readable family description.
 - `id` (String) Configuration family UUID. Replace may mint a new version.
-- `metadata` (Map of String) Metadata stored with this configuration family.
-- `remote_configuration` (Attributes List) Remote OpenTelemetry Collector configurations in this family. (see [below for nested schema](#nestedatt--family--remote_configuration))
+- `preset` (Attributes) Configuration template settings. Coralogix generates the remote configurations from them. Conflicts with `raw`. (see [below for nested schema](#nestedatt--family--preset))
+- `raw` (Attributes) Family defined directly by its remote OpenTelemetry Collector configurations. Conflicts with `preset`. (see [below for nested schema](#nestedatt--family--raw))
 - `version` (String) Monotonic family version within the group.
 
-<a id="nestedatt--family--remote_configuration"></a>
-### Nested Schema for `family.remote_configuration`
+<a id="nestedatt--family--preset"></a>
+### Nested Schema for `family.preset`
 
 Read-Only:
 
-- `agent_selector` (Map of String) Flat agent attributes that match agents for this configuration. The API may copy family.collector_version onto service.version when that key is omitted; the resource drops that injected key unless configuration sets it. Data-source reads keep the remote map.
+- `chart_name` (String) Configuration template type: `otel_integration` for Kubernetes, `otel_ecs_ec2` for ECS on EC2, or a `*_standalone` template for hosts. Valid values: otel_integration, opentelemetry_collector, otel_linux_standalone, otel_windows_standalone, otel_macos_standalone, otel_ecs_ec2.
+- `chart_version` (String) Configuration template semantic version. It determines the collector version, the generated configuration, and which `integration_version` values are supported.
+- `integration_version` (String) Version of the observability features format. When omitted, Coralogix uses the default for `chart_name` and `chart_version`.
+- `metadata` (Map of String) Environment setup values for the template, such as `ClusterName`, `KubernetesRunningOn`, `ApplicationName`, or `SubsystemName`.
+- `observability_features` (String) Observability feature settings as a JSON object string, for example `jsonencode({...})`. The available features depend on `chart_name` and `integration_version`. Semantically equal JSON does not plan.
+- `remote_configuration` (Attributes List) Remote configurations Coralogix generated from the template settings. (see [below for nested schema](#nestedatt--family--preset--remote_configuration))
+
+<a id="nestedatt--family--preset--remote_configuration"></a>
+### Nested Schema for `family.preset.remote_configuration`
+
+Read-Only:
+
+- `agent_selector` (Map of String) Flat agent attributes that match agents for this configuration.
+- `hash` (String) SHA-256 hash of the normalized raw configuration.
+- `id` (String) Remote configuration UUID.
+- `name` (String) Remote configuration name.
+- `raw_configuration` (String) Generated OpenTelemetry Collector configuration YAML.
+
+
+
+<a id="nestedatt--family--raw"></a>
+### Nested Schema for `family.raw`
+
+Read-Only:
+
+- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix. The replace API keeps the existing value when this attribute is omitted, and empty string is not a valid clear representation, so removing it from configuration does not unset it remotely.
+- `metadata` (Map of String) Metadata stored with this configuration family.
+- `remote_configuration` (Attributes List) Remote OpenTelemetry Collector configurations in this family. (see [below for nested schema](#nestedatt--family--raw--remote_configuration))
+
+<a id="nestedatt--family--raw--remote_configuration"></a>
+### Nested Schema for `family.raw.remote_configuration`
+
+Read-Only:
+
+- `agent_selector` (Map of String) Flat agent attributes that match agents for this configuration. The API may copy raw.collector_version onto service.version when that key is omitted; the resource drops that injected key unless configuration sets it. Data-source reads keep the remote map.
 - `hash` (String) SHA-256 hash of the normalized raw configuration. Replace may mint a new version.
 - `id` (String) Remote configuration UUID. Replace may mint a new version.
 - `name` (String) Remote configuration name.

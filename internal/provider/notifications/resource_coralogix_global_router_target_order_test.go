@@ -27,7 +27,7 @@ import (
 
 // target builds a routing target. An empty preset leaves PresetId unset.
 func target(connector, preset string) globalRouters.RoutingTarget {
-	t := globalRouters.RoutingTarget{ConnectorId: &connector}
+	t := globalRouters.RoutingTarget{ConnectorId: connector}
 	if preset != "" {
 		t.PresetId = &preset
 	}

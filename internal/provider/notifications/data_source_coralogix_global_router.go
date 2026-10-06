@@ -112,7 +112,7 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		}
 
 		for _, router := range listResult.Routers {
-			if *router.Name == data.Name.ValueString() {
+			if router.Name == data.Name.ValueString() {
 				routerID = *router.Id
 				break
 			}
