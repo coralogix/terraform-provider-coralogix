@@ -29,6 +29,10 @@ type Options struct {
 	// AcceptancePath is the acceptance file. "" uses the file in OutputDir, when it exists. With a
 	// file, the generator also writes acceptance_test.go.
 	AcceptancePath string
+	// OpenAPIPath overlays a local candidate OpenAPI document on the pinned SDK.
+	// "" uses openapi.yaml from the provider-pinned module. SDK symbol checks
+	// still load that pinned module.
+	OpenAPIPath string
 }
 
 // CheckOptions selects one resource in a local candidate OpenAPI document.
@@ -68,6 +72,13 @@ func Generate(start string, options Options) error {
 	input, err := source.Resolve(start)
 	if err != nil {
 		return err
+	}
+	if options.OpenAPIPath != "" {
+		data, err := os.ReadFile(options.OpenAPIPath)
+		if err != nil {
+			return fmt.Errorf("read candidate OpenAPI %s: %w", options.OpenAPIPath, err)
+		}
+		input.OpenAPI = data
 	}
 	return generateFromInput(options, input, input.ProviderRoot)
 }

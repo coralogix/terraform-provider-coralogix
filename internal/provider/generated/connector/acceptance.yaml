@@ -1,0 +1,18 @@
+# What the generated acceptance test needs for coralogix_connector, besides the schema.
+# The test sets every generated attribute, imports, changes them, and sets the minimal config.
+# Type-specific Slack, PagerDuty, and email fixtures stay in the handwritten tests.
+resource: Connector
+
+values:
+  type: '"generic_https"'
+  connector_config.fields[].field_name: '"url"'
+  connector_config.fields[].value: '"https://httpbin.org/post"'
+  config_overrides[].entity_type: '"alerts"'
+  config_overrides[].fields[].field_name: '"url"'
+  config_overrides[].fields[].template: '"https://httpbin.org/post"'
+
+# A connector without config is not a useful create; keep the generated config on the minimal step.
+minimal:
+  - connector_config
+
+upgradeFrom: "3.20.0"

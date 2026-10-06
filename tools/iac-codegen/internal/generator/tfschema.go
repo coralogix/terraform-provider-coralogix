@@ -657,7 +657,6 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	switch t.Elem.Kind {
 	case model.Object:
 		a.Kind = kind + "Nested"
-		// buildConv rejects a set of objects, so a Set never gets here.
 		attrs, err := b.objectAttributes(append(append(attrPath{}, p...), step), t.Elem)
 		if err != nil {
 			return err
@@ -842,7 +841,7 @@ func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfMode
 }
 
 // modelTypeName is the Terraform model struct of a component schema.
-func modelTypeName(schema string) string { return schema + "Model" }
+func modelTypeName(schema string) string { return model.GoName(schema) + "Model" }
 
 // scalar returns the attribute kind and the validators of a scalar type.
 func scalar(t *model.Type) (string, []string, error) {

@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_connector
+- CHORE: The resource is generated from the API contract. Released HCL is unchanged. Write-only `connector_config.field_values_wo` stays a handwritten overlay because the generator does not emit write-only attributes.
+- FIX: `description` is now `Optional` and `Computed`. To clear it, set `description = ""`.
+
 #### resource/coralogix_alert
 - DOCS: Describe `notification_group.group_by_keys` (combined vs. separate cases).
 
@@ -16,6 +20,8 @@
 - FEAT: `keepPriorOrder` works on a list whose request items use another component than its response items, such as a Create item without the server-set id and hash. The items pair on the fields that the request sends.
 - FEAT: A `default` line in `behavior-overrides.yaml` accepts a number for an `Int64`, `Int32`, `Float64`, or `Float32` attribute, for example `{computed: true, default: 0}`. Before, it accepted only a string or a bool.
 - FIX: In existing mode, a top-level field with a server default in the contract uses that default when `behavior-overrides.yaml` has no `default` or `computed: false` line for it. Before, the field became plain `Optional`, and an apply without it failed with `was null, but now` the default.
+- FEAT: Generate unordered sets of objects.
+- FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
 
 # Release 3.20.0
 

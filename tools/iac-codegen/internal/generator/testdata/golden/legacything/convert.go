@@ -79,6 +79,16 @@ func expandUpdate(ctx context.Context, m *LegacyThingModel) (*legacy_things_serv
 	return &legacy_things_service.ReplaceLegacyThingRequest{Thing: out}, diags
 }
 
+// ExpandCreate is the Create request body for a handwritten wrapper.
+func ExpandCreate(ctx context.Context, m *LegacyThingModel) (*legacy_things_service.CreateLegacyThingRequest, diag.Diagnostics) {
+	return expandCreate(ctx, m)
+}
+
+// ExpandUpdate is the Update request body for a handwritten wrapper.
+func ExpandUpdate(ctx context.Context, m *LegacyThingModel) (*legacy_things_service.ReplaceLegacyThingRequest, diag.Diagnostics) {
+	return expandUpdate(ctx, m)
+}
+
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
 func flatten(ctx context.Context, v *legacy_things_service.LegacyThing, prior *LegacyThingModel) (*LegacyThingModel, diag.Diagnostics) {
