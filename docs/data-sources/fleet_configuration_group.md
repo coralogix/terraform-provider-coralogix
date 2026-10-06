@@ -52,8 +52,8 @@ Read-Only:
 
 - `chart_name` (String) Configuration template type: `otel_integration` for Kubernetes, `otel_ecs_ec2` for ECS on EC2, or a `*_standalone` template for hosts. Valid values: otel_integration, opentelemetry_collector, otel_linux_standalone, otel_windows_standalone, otel_macos_standalone, otel_ecs_ec2.
 - `chart_version` (String) Configuration template semantic version. It determines the collector version, the generated configuration, and which `integration_version` values are supported.
-- `integration_version` (String) Version of the observability features format. When omitted, Coralogix uses the default for `chart_name` and `chart_version`.
-- `metadata` (Map of String) Environment setup values for the template, such as `ClusterName`, `KubernetesRunningOn`, `ApplicationName`, or `SubsystemName`.
+- `integration_version` (String) Version of the observability features format. When omitted, Coralogix resolves the default for `chart_name` and `chart_version`, and resolves it again when the family changes. Removing it from configuration keeps the current value until another `preset` change replaces the family.
+- `metadata` (Map of String) Environment setup values for the template, such as `ClusterName`, `KubernetesRunningOn`, `ApplicationName`, or `SubsystemName`. Set observability features in `observability_features`, not under an `ObservabilityFeatures` key here.
 - `observability_features` (String) Observability feature settings as a JSON object string, for example `jsonencode({...})`. The available features depend on `chart_name` and `integration_version`. Semantically equal JSON does not plan.
 - `remote_configuration` (Attributes List) Remote configurations Coralogix generated from the template settings. (see [below for nested schema](#nestedatt--family--preset--remote_configuration))
 
@@ -75,7 +75,7 @@ Read-Only:
 
 Read-Only:
 
-- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix. The replace API keeps the existing value when this attribute is omitted, and empty string is not a valid clear representation, so removing it from configuration does not unset it remotely.
+- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix. Removing it from configuration keeps the current value until another `raw` change replaces the family, which sends the family without it and clears it.
 - `metadata` (Map of String) Metadata stored with this configuration family.
 - `remote_configuration` (Attributes List) Remote OpenTelemetry Collector configurations in this family. (see [below for nested schema](#nestedatt--family--raw--remote_configuration))
 

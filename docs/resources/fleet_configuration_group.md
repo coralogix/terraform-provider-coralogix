@@ -127,8 +127,8 @@ Required:
 
 Optional:
 
-- `integration_version` (String) Version of the observability features format. When omitted, Coralogix uses the default for `chart_name` and `chart_version`.
-- `metadata` (Map of String) Environment setup values for the template, such as `ClusterName`, `KubernetesRunningOn`, `ApplicationName`, or `SubsystemName`.
+- `integration_version` (String) Version of the observability features format. When omitted, Coralogix resolves the default for `chart_name` and `chart_version`, and resolves it again when the family changes. Removing it from configuration keeps the current value until another `preset` change replaces the family.
+- `metadata` (Map of String) Environment setup values for the template, such as `ClusterName`, `KubernetesRunningOn`, `ApplicationName`, or `SubsystemName`. Set observability features in `observability_features`, not under an `ObservabilityFeatures` key here.
 
 Read-Only:
 
@@ -156,7 +156,7 @@ Required:
 
 Optional:
 
-- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix. The replace API keeps the existing value when this attribute is omitted, and empty string is not a valid clear representation, so removing it from configuration does not unset it remotely.
+- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix. Removing it from configuration keeps the current value until another `raw` change replaces the family, which sends the family without it and clears it.
 - `metadata` (Map of String) Metadata stored with this configuration family.
 
 <a id="nestedatt--family--raw--remote_configuration"></a>

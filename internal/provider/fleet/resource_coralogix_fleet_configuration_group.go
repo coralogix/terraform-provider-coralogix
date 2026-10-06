@@ -223,12 +223,13 @@ func presetFamilySchema() schema.SingleNestedAttribute {
 				PlanModifiers: []planmodifier.String{
 					UseStateForUnknownWhenFamilyUnchanged{Levels: 2},
 				},
-				MarkdownDescription: "Version of the observability features format. When omitted, Coralogix uses the default for `chart_name` and `chart_version`.",
+				MarkdownDescription: "Version of the observability features format. When omitted, Coralogix resolves the default for `chart_name` and `chart_version`, and resolves it again when the family changes. " +
+					"Removing it from configuration keeps the current value until another `preset` change replaces the family.",
 			},
 			"metadata": schema.MapAttribute{
 				Optional:            true,
 				ElementType:         types.StringType,
-				MarkdownDescription: "Environment setup values for the template, such as `ClusterName`, `KubernetesRunningOn`, `ApplicationName`, or `SubsystemName`.",
+				MarkdownDescription: "Environment setup values for the template, such as `ClusterName`, `KubernetesRunningOn`, `ApplicationName`, or `SubsystemName`. Set observability features in `observability_features`, not under an `ObservabilityFeatures` key here.",
 			},
 			"observability_features": schema.StringAttribute{
 				Required: true,
@@ -285,11 +286,11 @@ func rawFamilySchema() schema.SingleNestedAttribute {
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					UseStateForUnknownWhenFamilyUnchanged{Levels: 2},
 				},
 				MarkdownDescription: "Collector semantic version this family targets, without a leading v prefix. " +
-					"The replace API keeps the existing value when this attribute is omitted, and empty string is not a valid clear representation, " +
-					"so removing it from configuration does not unset it remotely.",
+					"Removing it from configuration keeps the current value until another `raw` change replaces the family, " +
+					"which sends the family without it and clears it.",
 			},
 			"metadata": schema.MapAttribute{
 				Optional:            true,

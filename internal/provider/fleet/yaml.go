@@ -143,7 +143,8 @@ func presetConfigUnchanged(plan, state *FleetPresetFamilyModel) bool {
 		!plan.Metadata.Equal(state.Metadata) {
 		return false
 	}
-	// Omitting integration_version plans unknown; the API keeps the prior value.
+	// An omitted integration_version plans unknown. When nothing else changed the
+	// family is not sent, so the resolved value stays.
 	if !plan.IntegrationVersion.IsUnknown() && !plan.IntegrationVersion.Equal(state.IntegrationVersion) {
 		return false
 	}
@@ -160,7 +161,8 @@ func rawConfigUnchanged(plan, state *FleetRawFamilyModel) bool {
 	if !plan.Metadata.Equal(state.Metadata) {
 		return false
 	}
-	// Omitting collector_version plans unknown; the API keeps the prior value.
+	// An omitted collector_version plans unknown. When nothing else changed the
+	// family is not sent, so the current value stays.
 	if !plan.CollectorVersion.IsUnknown() && !plan.CollectorVersion.Equal(state.CollectorVersion) {
 		return false
 	}
