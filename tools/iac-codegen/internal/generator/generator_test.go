@@ -971,6 +971,24 @@ func TestGeneratedRuntimeSemantics(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
+// The golden output is compared as text, and Go does not build testdata. The
+// existing-resource output must also compile, for example with an import for
+// the static default of a nested attribute.
+func TestExistingResourceOutputCompiles(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "legacything")
+	options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
 func compileGenerated(t *testing.T, out string, input source.Input) {
 	t.Helper()
 	module := fmt.Sprintf(`module github.com/coralogix/terraform-provider-coralogix/generated-test
