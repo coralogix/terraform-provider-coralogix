@@ -608,7 +608,6 @@ func TestCheckRejectsRendererUnsupportedShapes(t *testing.T) {
 		code string
 	}{
 		"request date-time":            {requestDateTimeSpec(base), "RENDERER_SHAPE_UNSUPPORTED"},
-		"set of objects":               {setOfObjectsSpec(base), "RENDERER_SHAPE_UNSUPPORTED"},
 		"invalid generated identifier": {invalidGeneratedIdentifierSpec(t, base), "RENDERER_OUTPUT_INVALID"},
 		"acronym name collision":       {acronymNameCollisionSpec(t, base), "TERRAFORM_NAME_COLLISION"},
 		"Go field name collision":      {goNameCollisionSpec(t, base), "GO_NAME_COLLISION"},
@@ -641,6 +640,18 @@ func TestCheckRejectsRendererUnsupportedShapes(t *testing.T) {
 				t.Fatalf("generated output exists after renderer rejection: %v", err)
 			}
 		})
+	}
+}
+
+func TestCheckAllowsSetOfObjects(t *testing.T) {
+	input, _ := syntheticInput(t)
+	work := t.TempDir()
+	candidate := filepath.Join(work, "candidate.yaml")
+	if err := os.WriteFile(candidate, []byte(setOfObjectsSpec(string(input.OpenAPI))), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate}); err != nil {
+		t.Fatalf("check set of objects: %v", err)
 	}
 }
 
@@ -697,16 +708,16 @@ func setOfObjectsSpec(spec string) string {
 func invalidGeneratedIdentifierSpec(t *testing.T, spec string) string {
 	t.Helper()
 	createField := "                name:\n                  type: string\n                  minLength: 1\n                  x-coralogix-presence: true"
-	createWithDetail := createField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/v3.FilterOperator'"
+	createWithDetail := createField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/1FilterOperator'"
 	spec = replaceAfter(t, spec, "operationId: ThingsService_CreateThing", createField, createWithDetail)
 	updateField := createField
-	updateWithDetail := updateField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/v3.FilterOperator'"
+	updateWithDetail := updateField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/1FilterOperator'"
 	spec = replaceAfter(t, spec, "operationId: ThingsService_UpdateThing", updateField, updateWithDetail)
 	responseField := "        name:\n          type: string\n          minLength: 1\n          description: The display name."
-	responseWithDetail := responseField + "\n        detail:\n          $ref: '#/components/schemas/v3.FilterOperator'"
+	responseWithDetail := responseField + "\n        detail:\n          $ref: '#/components/schemas/1FilterOperator'"
 	spec = replaceAfter(t, spec, "    Thing:", responseField, responseWithDetail)
 	return spec + `
-    v3.FilterOperator:
+    1FilterOperator:
       type: object
       required: [value]
       properties:

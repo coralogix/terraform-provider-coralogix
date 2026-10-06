@@ -61,7 +61,7 @@ func (d *ConnectorDataSource) Configure(_ context.Context, req datasource.Config
 		return
 	}
 
-	d.client, _, _ = clientSet.GetNotifications()
+	d.client = clientSet.Connectors()
 }
 
 func (d *ConnectorDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -139,9 +139,7 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	data, diags = // A data source has no configuration for write-only values and no prior
-		// state, so nothing is omitted: it reports what the API returns.
-		flattenConnector(ctx, result.Connector, nil)
+	data, diags = flattenConnector(ctx, result.Connector, nil)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

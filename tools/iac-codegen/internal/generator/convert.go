@@ -752,9 +752,7 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		cf.Conv, cf.SDKType, cf.ElemType = convScalars, goType, elem
 		return "[]" + goType, nil
 	case model.Object:
-		// A set of objects needs path.AtSetValue for diagnostics. No
-		// resource uses it yet.
-		if t.Kind == model.Set || len(t.Elem.Fields) == 0 {
+		if len(t.Elem.Fields) == 0 {
 			break
 		}
 		obj, err := b.nested(t.Elem)

@@ -226,6 +226,19 @@ func expandUpdate(ctx context.Context, m *{{.Update.Model}}) (*{{$sdk}}.{{.Updat
 {{- end}}
 }
 
+{{- if .Existing}}
+
+// ExpandCreate is the Create request body for a handwritten wrapper.
+func ExpandCreate(ctx context.Context, m *{{.Create.Model}}) (*{{$sdk}}.{{.CreateBody}}, diag.Diagnostics) {
+	return expandCreate(ctx, m)
+}
+
+// ExpandUpdate is the Update request body for a handwritten wrapper.
+func ExpandUpdate(ctx context.Context, m *{{.Update.Model}}) (*{{$sdk}}.{{.UpdateBody}}, diag.Diagnostics) {
+	return expandUpdate(ctx, m)
+}
+{{- end}}
+
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
 func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}{{if .HasPrior}}, prior *{{.Resource.Model}}{{end}}) (*{{.Resource.Model}}, diag.Diagnostics) {
@@ -1048,7 +1061,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	if items := expandElements[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
 		out.{{.SDK}} = make([]{{.SDKType}}, 0, len(items))
 		for i := range items {
+			{{- if eq .Collection "Set"}}
+			out.{{.SDK}} = append(out.{{.SDK}}, *expand{{.Object.Func}}(ctx, {{$p}}, &items[i], diags))
+			{{- else}}
 			out.{{.SDK}} = append(out.{{.SDK}}, *expand{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &items[i], diags))
+			{{- end}}
 		}
 	}
 {{- end}}
@@ -1172,6 +1189,17 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		}
 		{{- end}}
 		for i := range {{$src}} {
+			{{- if eq .Collection "Set"}}
+			{{- if .Object.NeedsPrior}}
+			var priorItem *{{.Object.Model}}
+			if i < len(prior{{.Model}}) {
+				priorItem = &prior{{.Model}}[i]
+			}
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], priorItem, diags))
+			{{- else}}
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], diags))
+			{{- end}}
+			{{- else}}
 			{{- if .Object.NeedsPrior}}
 			// The prior item at the same index keeps the order of its own lists and the text of its documents.
 			var priorItem *{{.Object.Model}}
@@ -1181,6 +1209,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &{{$src}}[i], priorItem, diags))
 			{{- else}}
 			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &{{$src}}[i], diags))
+			{{- end}}
 			{{- end}}
 		}
 		out.{{.Model}} = flatten{{.Collection}}(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)

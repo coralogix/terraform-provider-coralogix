@@ -69,7 +69,12 @@ func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.Fil
 		files["replace.go"] = "replace.go.tmpl"
 	}
 	out := map[string][]byte{}
-	for file, tmpl := range files {
+	order := []string{"schema.go", "model.go", "convert.go", "mask.go", "resource.go", "replace.go"}
+	for _, file := range order {
+		tmpl, ok := files[file]
+		if !ok {
+			continue
+		}
 		var buf bytes.Buffer
 		if err := templates.ExecuteTemplate(&buf, tmpl, data); err != nil {
 			return nil, fmt.Errorf("%s: %w", file, err)
