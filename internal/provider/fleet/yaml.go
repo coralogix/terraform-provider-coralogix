@@ -161,9 +161,7 @@ func rawConfigUnchanged(plan, state *FleetRawFamilyModel) bool {
 	if !plan.Metadata.Equal(state.Metadata) {
 		return false
 	}
-	// An omitted collector_version plans unknown. When nothing else changed the
-	// family is not sent, so the current value stays.
-	if !plan.CollectorVersion.IsUnknown() && !plan.CollectorVersion.Equal(state.CollectorVersion) {
+	if !plan.CollectorVersion.Equal(state.CollectorVersion) {
 		return false
 	}
 	if len(plan.RemoteConfigurations) != len(state.RemoteConfigurations) {

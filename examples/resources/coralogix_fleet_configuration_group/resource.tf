@@ -48,20 +48,41 @@ resource "coralogix_fleet_configuration_group" "example" {
 }
 
 # Preset family: Coralogix renders the remote configurations from a configuration template.
+# The required metadata keys and the available observability features depend on chart_name and chart_version.
 resource "coralogix_fleet_configuration_group" "kubernetes" {
   name = "kubernetes-collectors"
 
   family = {
     preset = {
       chart_name    = "otel_integration"
-      chart_version = "0.0.200"
+      chart_version = "0.0.353"
       metadata = {
         ClusterName         = "production"
-        KubernetesRunningOn = "eks"
+        KubernetesRunningOn = "openshift"
       }
       observability_features = jsonencode({
-        logs    = { enabled = true }
-        metrics = { enabled = true }
+        apm = {
+          enabled      = true
+          ebpf         = false
+          profiling    = { enabled = false }
+          sampling     = {}
+          span_metrics = { enabled = true, histogram_buckets = [], transform_statements = [] }
+        }
+        coralogix_operator = false
+        fleet_management   = { enabled = false, remote_config = false }
+        kubernetes_events  = true
+        logs               = { enabled = false }
+        metrics = {
+          cluster          = false
+          collector        = false
+          host             = { enabled = false }
+          kubelet          = false
+          kubernetes_extra = { enabled = false, scrape_all = false }
+          statsd           = false
+          target_allocator = false
+        }
+        reduce_resources_attributes = true
+        resource_catalog            = false
       })
     }
   }

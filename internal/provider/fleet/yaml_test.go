@@ -134,9 +134,9 @@ func TestFamilyConfigUnchangedIgnoresGroupLevelFields(t *testing.T) {
 	if familyConfigUnchanged(changed, family) {
 		t.Fatal("collector_version change should not compare equal")
 	}
-	omitted := rawFamily(types.StringUnknown(), "receivers: [otlp]\n")
-	if !familyConfigUnchanged(omitted, family) {
-		t.Fatal("unknown collector_version should compare equal so omit keeps the family")
+	omitted := rawFamily(types.StringNull(), "receivers: [otlp]\n")
+	if familyConfigUnchanged(omitted, family) {
+		t.Fatal("removing collector_version should change the family so the replace clears it")
 	}
 }
 
@@ -164,13 +164,13 @@ func TestExpandReplaceRequestOmitsUnchangedFamily(t *testing.T) {
 		t.Fatal("unchanged family should be omitted from replace")
 	}
 
-	plan.Family = rawFamily(types.StringUnknown(), "receivers: {}\n")
+	plan.Family = rawFamily(types.StringNull(), "receivers: {}\n")
 	req, diags = expandReplaceRequest(context.Background(), plan, prior)
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
-	if req.Group.HasFamily() {
-		t.Fatal("omitted collector_version should not replace the family")
+	if !req.Group.HasFamily() || req.Group.Family.Raw.HasCollectorVersion() {
+		t.Fatal("removed collector_version should replace the family without collectorVersion")
 	}
 
 	req, diags = expandReplaceRequest(context.Background(), plan, nil)

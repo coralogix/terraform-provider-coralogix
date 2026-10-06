@@ -41,8 +41,8 @@ Read-Only:
 - `active` (Boolean) Whether this family is active. Defaults to true.
 - `description` (String) Human-readable family description.
 - `id` (String) Configuration family UUID. Replace may mint a new version.
-- `preset` (Attributes) Configuration template settings. Coralogix generates the remote configurations from them. Conflicts with `raw`. (see [below for nested schema](#nestedatt--family--preset))
-- `raw` (Attributes) Family defined directly by its remote OpenTelemetry Collector configurations. Conflicts with `preset`. (see [below for nested schema](#nestedatt--family--raw))
+- `preset` (Attributes) Configuration template settings. Coralogix generates the remote configurations from them. Conflicts with `raw`. Switching between `preset` and `raw` replaces the group, because the API cannot change a family's type in place. (see [below for nested schema](#nestedatt--family--preset))
+- `raw` (Attributes) Family defined directly by its remote OpenTelemetry Collector configurations. Conflicts with `preset`. Switching between `preset` and `raw` replaces the group. (see [below for nested schema](#nestedatt--family--raw))
 - `version` (String) Monotonic family version within the group.
 
 <a id="nestedatt--family--preset"></a>
@@ -75,7 +75,7 @@ Read-Only:
 
 Read-Only:
 
-- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix. Removing it from configuration keeps the current value until another `raw` change replaces the family, which sends the family without it and clears it.
+- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix. Removing it from configuration clears it.
 - `metadata` (Map of String) Metadata stored with this configuration family.
 - `remote_configuration` (Attributes List) Remote OpenTelemetry Collector configurations in this family. (see [below for nested schema](#nestedatt--family--raw--remote_configuration))
 

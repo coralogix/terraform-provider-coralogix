@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -201,7 +202,10 @@ func presetFamilySchema() schema.SingleNestedAttribute {
 		Validators: []validator.Object{
 			objectvalidator.ExactlyOneOf(path.MatchRoot("family").AtName("raw")),
 		},
-		MarkdownDescription: "Configuration template settings. Coralogix generates the remote configurations from them. Conflicts with `raw`.",
+		PlanModifiers: []planmodifier.Object{
+			requiresReplaceOnFamilyTypeSwitch(),
+		},
+		MarkdownDescription: "Configuration template settings. Coralogix generates the remote configurations from them. Conflicts with `raw`. Switching between `preset` and `raw` replaces the group, because the API cannot change a family's type in place.",
 		Attributes: map[string]schema.Attribute{
 			"chart_name": schema.StringAttribute{
 				Required: true,
@@ -279,18 +283,16 @@ func presetFamilySchema() schema.SingleNestedAttribute {
 
 func rawFamilySchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
-		Optional:            true,
-		MarkdownDescription: "Family defined directly by its remote OpenTelemetry Collector configurations. Conflicts with `preset`.",
+		Optional: true,
+		PlanModifiers: []planmodifier.Object{
+			requiresReplaceOnFamilyTypeSwitch(),
+		},
+		MarkdownDescription: "Family defined directly by its remote OpenTelemetry Collector configurations. Conflicts with `preset`. Switching between `preset` and `raw` replaces the group.",
 		Attributes: map[string]schema.Attribute{
 			"collector_version": schema.StringAttribute{
 				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					UseStateForUnknownWhenFamilyUnchanged{Levels: 2},
-				},
 				MarkdownDescription: "Collector semantic version this family targets, without a leading v prefix. " +
-					"Removing it from configuration keeps the current value until another `raw` change replaces the family, " +
-					"which sends the family without it and clears it.",
+					"Removing it from configuration clears it.",
 			},
 			"metadata": schema.MapAttribute{
 				Optional:            true,
@@ -349,6 +351,20 @@ func rawFamilySchema() schema.SingleNestedAttribute {
 			},
 		},
 	}
+}
+
+// requiresReplaceOnFamilyTypeSwitch replaces the group when this family type
+// is added to an existing group: exactly one of preset and raw is set, so that
+// means the family switched type. The replace API rejects that switch with
+// 400 in both directions.
+func requiresReplaceOnFamilyTypeSwitch() planmodifier.Object {
+	return objectplanmodifier.RequiresReplaceIf(
+		func(_ context.Context, req planmodifier.ObjectRequest, resp *objectplanmodifier.RequiresReplaceIfFuncResponse) {
+			resp.RequiresReplace = !req.State.Raw.IsNull() && req.StateValue.IsNull() && !req.PlanValue.IsNull()
+		},
+		"Switching between family.preset and family.raw replaces the group.",
+		"Switching between `family.preset` and `family.raw` replaces the group.",
+	)
 }
 
 func (r *FleetConfigurationGroupResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
@@ -843,11 +859,7 @@ func flattenFamily(ctx context.Context, plan *FleetConfigurationGroupFamilyModel
 	case family.Preset != nil:
 		out.Preset, diags = flattenPresetFamily(ctx, planPreset, family.Preset, family.GetCollectorVersion())
 	case family.Raw != nil:
-		collectorVersion := family.Raw.GetCollectorVersion()
-		if collectorVersion == "" {
-			collectorVersion = family.GetCollectorVersion()
-		}
-		out.Raw, diags = flattenRawFamily(ctx, planRaw, family.Raw, collectorVersion, dropInjectedSelector)
+		out.Raw, diags = flattenRawFamily(ctx, planRaw, family.Raw, family.GetCollectorVersion(), dropInjectedSelector)
 	default:
 		diags.AddError("Unknown family type", fmt.Sprintf("API returned configuration family %s with neither preset nor raw settings", family.GetId()))
 	}
@@ -892,7 +904,9 @@ func flattenPresetFamily(ctx context.Context, plan *FleetPresetFamilyModel, pres
 	}, diags
 }
 
-func flattenRawFamily(ctx context.Context, plan *FleetRawFamilyModel, raw *cfggroups.RawConfigurationFamily, collectorVersion string, dropInjectedSelector bool) (*FleetRawFamilyModel, diag.Diagnostics) {
+// familyCollectorVersion is the group-level fallback used only to recognize the
+// service.version selector key the API injects.
+func flattenRawFamily(ctx context.Context, plan *FleetRawFamilyModel, raw *cfggroups.RawConfigurationFamily, familyCollectorVersion string, dropInjectedSelector bool) (*FleetRawFamilyModel, diag.Diagnostics) {
 	planMetadata := types.MapNull(types.StringType)
 	var planRemotes []FleetRemoteConfigurationModel
 	if plan != nil {
@@ -904,7 +918,12 @@ func flattenRawFamily(ctx context.Context, plan *FleetRawFamilyModel, raw *cfggr
 		return nil, diags
 	}
 
-	remotes, remoteDiags := flattenRemotes(ctx, planRemotes, raw.RemoteConfigurations, collectorVersion, dropInjectedSelector)
+	collectorVersion := raw.GetCollectorVersion()
+	selectorVersion := collectorVersion
+	if selectorVersion == "" {
+		selectorVersion = familyCollectorVersion
+	}
+	remotes, remoteDiags := flattenRemotes(ctx, planRemotes, raw.RemoteConfigurations, selectorVersion, dropInjectedSelector)
 	diags.Append(remoteDiags...)
 	if remoteDiags.HasError() {
 		return nil, diags

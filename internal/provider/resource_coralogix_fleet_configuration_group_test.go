@@ -23,6 +23,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 var fleetConfigurationGroupResourceName = "coralogix_fleet_configuration_group.test"
@@ -54,9 +55,10 @@ func TestAccCoralogixResourceFleetConfigurationGroup(t *testing.T) {
 				ExpectNonEmptyPlan: false,
 			},
 			{
+				// Removing collector_version clears it.
 				Config:             testAccCoralogixResourceFleetConfigurationGroupOmitCollectorVersion(name, fleetAccRawConfigInlineList),
 				PlanOnly:           true,
-				ExpectNonEmptyPlan: false,
+				ExpectNonEmptyPlan: true,
 			},
 			{
 				ResourceName:            fleetConfigurationGroupResourceName,
@@ -234,6 +236,101 @@ func testAccCoralogixResourceFleetConfigurationGroupFromFile(name, agentYAML, cl
 `, name, agentYAML, clusterYAML)
 }
 
+func TestAccCoralogixResourceFleetConfigurationGroupPreset(t *testing.T) {
+	name := acctest.RandomWithPrefix("tf-acc-fleet-cg-preset")
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceFleetConfigurationGroupPreset(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.id"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.preset.chart_name", "otel_integration"),
+					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.preset.integration_version"),
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.preset.remote_configuration.#", "2"),
+					resource.TestCheckResourceAttrSet(fleetConfigurationGroupResourceName, "family.preset.remote_configuration.0.raw_configuration"),
+					resource.TestCheckNoResourceAttr(fleetConfigurationGroupResourceName, "family.raw"),
+				),
+			},
+			{
+				Config:             testAccCoralogixResourceFleetConfigurationGroupPreset(name),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				ResourceName:            fleetConfigurationGroupResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"family.preset.observability_features"},
+			},
+			{
+				// The API cannot switch a family's type in place, so this replaces the group.
+				Config: testAccCoralogixResourceFleetConfigurationGroup(name, fleetAccRawConfigInlineList),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(fleetConfigurationGroupResourceName, plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(fleetConfigurationGroupResourceName, "family.raw.remote_configuration.0.name", "default"),
+					resource.TestCheckNoResourceAttr(fleetConfigurationGroupResourceName, "family.preset"),
+				),
+			},
+		},
+	})
+}
+
+// Known-good otel-integration preset. Bump chart_version when fleet-manager
+// stops serving it.
+func testAccCoralogixResourceFleetConfigurationGroupPreset(name string) string {
+	return fmt.Sprintf(`resource "coralogix_fleet_configuration_group" "test" {
+  name = %q
+
+  family = {
+    preset = {
+      chart_name    = "otel_integration"
+      chart_version = "0.0.353"
+      metadata = {
+        ClusterName         = "tf-acc"
+        KubernetesRunningOn = "openshift"
+        PrivateLinkEnabled  = "false"
+      }
+      observability_features = jsonencode({
+        apm = {
+          enabled   = true
+          ebpf      = false
+          profiling = { enabled = false }
+          sampling  = {}
+          span_metrics = {
+            enabled              = true
+            histogram_buckets    = []
+            transform_statements = []
+          }
+        }
+        coralogix_operator = false
+        fleet_management   = { enabled = false, remote_config = false }
+        kubernetes_events  = true
+        logs               = { enabled = false }
+        metrics = {
+          cluster          = false
+          collector        = false
+          host             = { enabled = false }
+          kubelet          = false
+          kubernetes_extra = { enabled = false, scrape_all = false }
+          statsd           = false
+          target_allocator = false
+        }
+        reduce_resources_attributes = true
+        resource_catalog            = false
+      })
+    }
+  }
+}
+`, name)
+}
+
 func TestAccCoralogixResourceFleetConfigurationGroupFamilyTypeIsExclusive(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-fleet-cg-type")
 	resource.Test(t, resource.TestCase{
@@ -260,7 +357,7 @@ func testAccCoralogixResourceFleetConfigurationGroupFamilyType(name string, with
 		preset = `
     preset = {
       chart_name             = "otel_integration"
-      chart_version          = "0.0.200"
+      chart_version          = "0.0.353"
       observability_features = jsonencode({})
     }`
 	}

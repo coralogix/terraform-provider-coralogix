@@ -63,20 +63,41 @@ resource "coralogix_fleet_configuration_group" "example" {
 }
 
 # Preset family: Coralogix renders the remote configurations from a configuration template.
+# The required metadata keys and the available observability features depend on chart_name and chart_version.
 resource "coralogix_fleet_configuration_group" "kubernetes" {
   name = "kubernetes-collectors"
 
   family = {
     preset = {
       chart_name    = "otel_integration"
-      chart_version = "0.0.200"
+      chart_version = "0.0.353"
       metadata = {
         ClusterName         = "production"
-        KubernetesRunningOn = "eks"
+        KubernetesRunningOn = "openshift"
       }
       observability_features = jsonencode({
-        logs    = { enabled = true }
-        metrics = { enabled = true }
+        apm = {
+          enabled      = true
+          ebpf         = false
+          profiling    = { enabled = false }
+          sampling     = {}
+          span_metrics = { enabled = true, histogram_buckets = [], transform_statements = [] }
+        }
+        coralogix_operator = false
+        fleet_management   = { enabled = false, remote_config = false }
+        kubernetes_events  = true
+        logs               = { enabled = false }
+        metrics = {
+          cluster          = false
+          collector        = false
+          host             = { enabled = false }
+          kubelet          = false
+          kubernetes_extra = { enabled = false, scrape_all = false }
+          statsd           = false
+          target_allocator = false
+        }
+        reduce_resources_attributes = true
+        resource_catalog            = false
       })
     }
   }
@@ -108,8 +129,8 @@ Optional:
 
 - `active` (Boolean) Whether this family is active. Defaults to true.
 - `description` (String) Human-readable family description.
-- `preset` (Attributes) Configuration template settings. Coralogix generates the remote configurations from them. Conflicts with `raw`. (see [below for nested schema](#nestedatt--family--preset))
-- `raw` (Attributes) Family defined directly by its remote OpenTelemetry Collector configurations. Conflicts with `preset`. (see [below for nested schema](#nestedatt--family--raw))
+- `preset` (Attributes) Configuration template settings. Coralogix generates the remote configurations from them. Conflicts with `raw`. Switching between `preset` and `raw` replaces the group, because the API cannot change a family's type in place. (see [below for nested schema](#nestedatt--family--preset))
+- `raw` (Attributes) Family defined directly by its remote OpenTelemetry Collector configurations. Conflicts with `preset`. Switching between `preset` and `raw` replaces the group. (see [below for nested schema](#nestedatt--family--raw))
 
 Read-Only:
 
@@ -156,7 +177,7 @@ Required:
 
 Optional:
 
-- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix. Removing it from configuration keeps the current value until another `raw` change replaces the family, which sends the family without it and clears it.
+- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix. Removing it from configuration clears it.
 - `metadata` (Map of String) Metadata stored with this configuration family.
 
 <a id="nestedatt--family--raw--remote_configuration"></a>

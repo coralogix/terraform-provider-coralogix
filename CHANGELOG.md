@@ -3,7 +3,8 @@
 #### resource/coralogix_fleet_configuration_group
 - BREAKING (Beta): A family is now either `family.preset` (a configuration template that Coralogix renders into remote configurations) or `family.raw` (your own collector YAML). Exactly one must be set. Move `family.collector_version`, `family.metadata` and `family.remote_configuration` under `family.raw`. Existing state is upgraded automatically.
 - FEAT: Add `family.preset` with `chart_name`, `chart_version`, `integration_version`, `metadata`, `observability_features` (JSON), and the computed generated `remote_configuration` list. Semantically equal `observability_features` JSON does not plan.
-- FIX: Changing a raw family while `collector_version` is omitted no longer keeps the old value in the plan. Replace clears omitted fields, so the value is now planned as unknown and read back.
+- BREAKING (Beta): `family.raw.collector_version` is now plain Optional. Removing it from configuration clears it, matching the API, which clears omitted fields on replace.
+- FEAT: Switching a group between `family.preset` and `family.raw` replaces the group. The API cannot change a family's type in place.
 
 #### data-source/coralogix_fleet_configuration_group
 - BREAKING (Beta): Family attributes follow the resource's `family.preset` / `family.raw` shape.
