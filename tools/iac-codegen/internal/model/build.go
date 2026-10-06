@@ -393,8 +393,8 @@ func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 	if resp == nil || resp.Content == nil || resp.Content.GetOrZero(jsonMedia) == nil || resp.Content.GetOrZero(jsonMedia).Schema == nil {
 		return Response{}, fmt.Errorf("no 200 %s response schema", jsonMedia)
 	}
-	proxy := resp.Content.GetOrZero(jsonMedia).Schema
-	if !proxy.IsReference() {
+	proxy := responseRef(resp.Content.GetOrZero(jsonMedia).Schema)
+	if proxy == nil {
 		return Response{}, errors.New("200 response schema is inline, want a $ref")
 	}
 	name, err := componentName(proxy.GetReference())
@@ -426,6 +426,24 @@ func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 	}
 	out.Field = keys[0]
 	return out, nil
+}
+
+// responseRef returns a 200 response schema that is "$ref: X", or the $ref
+// inside "allOf: [$ref: X]". The OpenAPI fork writes the allOf form for a
+// response_body field with a description, because OpenAPI 3.0 ignores the
+// siblings of a $ref. It returns nil for any other schema.
+func responseRef(proxy *base.SchemaProxy) *base.SchemaProxy {
+	if proxy == nil || proxy.IsReference() {
+		return proxy
+	}
+	s, err := schemaOf(proxy)
+	if err != nil {
+		return nil
+	}
+	if inner, err := singleAllOf(s, "200 response schema"); err == nil && inner.IsReference() {
+		return inner
+	}
+	return nil
 }
 
 // unwrapRef returns the $ref of a property that is "$ref: X" or "allOf: [$ref: X]".

@@ -500,10 +500,14 @@ func responseWrapperIssues(p Policy, name string, ops map[verb]foundOp) issue.Re
 			continue
 		}
 		media := response.Content.GetOrZero(jsonMedia)
-		if media == nil || media.Schema == nil || !media.Schema.IsReference() {
+		if media == nil {
 			continue
 		}
-		component, err := componentName(media.Schema.GetReference())
+		ref := responseRef(media.Schema)
+		if ref == nil {
+			continue
+		}
+		component, err := componentName(ref.GetReference())
 		if err != nil || component == name {
 			continue
 		}
@@ -1068,10 +1072,14 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 	if media == nil || media.Schema == nil {
 		return nil
 	}
-	if media.Schema.GetReference() == componentPrefix+name {
-		return media.Schema
+	schema := media.Schema
+	if ref := responseRef(schema); ref != nil {
+		schema = ref
 	}
-	s, err := schemaOf(media.Schema)
+	if schema.GetReference() == componentPrefix+name {
+		return schema
+	}
+	s, err := schemaOf(schema)
 	if err != nil {
 		return nil
 	}

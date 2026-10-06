@@ -149,6 +149,18 @@ func TestProtoMaskNameMatchesGolden(t *testing.T) {
 	assertGoldenThing(t, input, sdkDir)
 }
 
+// The OpenAPI fork writes a response_body field with a description as a single
+// allOf. It is the direct resource, so the resource must match the golden output.
+func TestSingleAllOfResponsesMatchGolden(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	direct := "              schema:\n                $ref: '#/components/schemas/Thing'\n"
+	if strings.Count(string(input.OpenAPI), direct) != 3 {
+		t.Fatal("cannot locate the Create, Get, and Update responses")
+	}
+	input.OpenAPI = []byte(strings.ReplaceAll(string(input.OpenAPI), direct, "              schema:\n                description: The thing.\n                allOf:\n                  - $ref: '#/components/schemas/Thing'\n"))
+	assertGoldenThing(t, input, sdkDir)
+}
+
 // assertGoldenThing checks that input is eligible and generates exactly the
 // golden Thing resource.
 func assertGoldenThing(t *testing.T, input source.Input, sdkDir string) {
