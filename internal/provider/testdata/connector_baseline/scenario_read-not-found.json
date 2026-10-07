@@ -33,7 +33,7 @@
           }
         ]
       },
-      "description": null,
+      "description": "(unknown)",
       "id": "(unknown)",
       "name": "gone",
       "type": "generic_https"
@@ -63,9 +63,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "config_overrides": [],
       "connector_config": {
@@ -87,11 +84,7 @@
       "name": "gone",
       "type": "generic_https"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"config_overrides\")",
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh: connector was deleted outside Terraform",

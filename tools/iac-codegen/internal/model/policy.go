@@ -42,6 +42,9 @@ type Policy struct {
 	// EnumAnyPrefix lists the enum components whose business values do not use
 	// the prefix of the zero value (ENTITY_TYPE_UNSPECIFIED, ALERTS).
 	EnumAnyPrefix []string
+	// EmptyRequired lists the object components that declare no required list
+	// and mean "no field is required".
+	EmptyRequired []string
 	// Skip lists "Component.field" of fields that the resource does not manage.
 	// The generator does not send them and does not store them.
 	Skip []string
@@ -59,6 +62,9 @@ type Policy struct {
 	// ReadOnly lists "Component.field" of top-level fields that the server sets, although
 	// the contract does not mark them readOnly yet. They are in Get only.
 	ReadOnly []string
+	// CollectionSet lists "Component.field" of arrays that Terraform stores as an
+	// unordered set, although the contract still describes a list.
+	CollectionSet []string
 }
 
 // requestBody returns the schema that holds the resource in a Create or Update
@@ -125,6 +131,14 @@ func (p Policy) enumAnyPrefix(component string) bool {
 	return component != "" && slices.Contains(p.EnumAnyPrefix, component)
 }
 
+func (p Policy) emptyRequired(component string) bool {
+	return component != "" && slices.Contains(p.EmptyRequired, component)
+}
+
+func (p Policy) collectionSet(component, field string) bool {
+	return component != "" && slices.Contains(p.CollectionSet, component+"."+field)
+}
+
 // pruneSkipped removes the fields that the policy skips from the resource and from its
 // nested types. The resource does not manage them: it neither sends nor stores them.
 func (r *Resource) pruneSkipped() {
@@ -152,5 +166,43 @@ func (p Policy) pruneType(t *Type, seen map[*Type]bool) {
 	t.Fields = slices.DeleteFunc(t.Fields, func(f *Field) bool { return p.skips(t.Schema, f.Name) })
 	for _, f := range t.Fields {
 		p.pruneType(f.Type, seen)
+	}
+}
+
+// applyCollectionSet turns listed list fields into unordered sets, matching the
+// released Terraform schema until the contract has x-coralogix-collection: set.
+func (r *Resource) applyCollectionSet() {
+	if len(r.Policy.CollectionSet) == 0 {
+		return
+	}
+	for _, f := range r.Fields {
+		r.Policy.markCollection(r.Name, f.Name, f.Type)
+	}
+	seen := map[*Type]bool{}
+	for _, f := range r.Fields {
+		r.Policy.walkCollection(f.Type, seen)
+	}
+}
+
+func (p Policy) walkCollection(t *Type, seen map[*Type]bool) {
+	if t == nil || seen[t] {
+		return
+	}
+	seen[t] = true
+	if t.Elem != nil {
+		p.walkCollection(t.Elem, seen)
+	}
+	for _, f := range t.Fields {
+		p.markCollection(t.Schema, f.Name, f.Type)
+		p.walkCollection(f.Type, seen)
+	}
+}
+
+func (p Policy) markCollection(component, field string, t *Type) {
+	if t == nil || !p.collectionSet(component, field) {
+		return
+	}
+	if t.Kind == List {
+		t.Kind = Set
 	}
 }

@@ -2,6 +2,7 @@
 
 #### resource/coralogix_connector
 - CHORE: The resource is generated from the API contract. Released HCL is unchanged. Write-only `connector_config.field_values_wo` stays a handwritten overlay because the generator does not emit write-only attributes.
+- CHORE: Add protocol baseline golden files against an in-memory connector API.
 - FIX: `description` is now `Optional` and `Computed`. To clear it, set `description = ""`.
 
 #### resource/coralogix_alert
@@ -22,6 +23,8 @@
 - FIX: In existing mode, a top-level field with a server default in the contract uses that default when `behavior-overrides.yaml` has no `default` or `computed: false` line for it. Before, the field became plain `Optional`, and an apply without it failed with `was null, but now` the default.
 - FEAT: Generate unordered sets of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
+- FIX: A nested object collection marked `collection: set` now flattens as a set in the generated attr.Type map, matching the schema.
+- FEAT: Existing-resource `collection: set` override keeps a released `SetNested` field when the pinned SDK still describes a list.
 
 # Release 3.20.0
 

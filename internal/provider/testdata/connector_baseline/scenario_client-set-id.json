@@ -34,7 +34,7 @@
           }
         ]
       },
-      "description": null,
+      "description": "(unknown)",
       "id": "my-connector",
       "name": "mine",
       "type": "generic_https"
@@ -65,9 +65,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "config_overrides": [],
       "connector_config": {
@@ -89,11 +86,7 @@
       "name": "mine",
       "type": "generic_https"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"config_overrides\")",
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update",

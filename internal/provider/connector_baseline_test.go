@@ -27,9 +27,9 @@ import (
 
 const cxGoldenDir = "testdata/connector_baseline"
 
-// These tests record the behavior of the released handwritten coralogix_connector.
-// Record the goldens on master first. The generated-resource switch then shows
-// the real protocol diff in these files.
+// These tests record the behavior of the registered coralogix_connector (the
+// generated schema plus the handwritten write-only overlay). After a generator
+// change, the golden diff must show only listed fixes or message wording.
 //
 //	UPDATE_GOLDEN=1 go test ./internal/provider -run TestConnectorBaseline
 
