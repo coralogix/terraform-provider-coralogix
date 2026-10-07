@@ -578,9 +578,7 @@ func TestCheckRejectsRendererUnsupportedShapes(t *testing.T) {
 		spec string
 		code string
 	}{
-		"request date-time":            {requestDateTimeSpec(base), "RENDERER_SHAPE_UNSUPPORTED"},
 		"set of objects":               {setOfObjectsSpec(base), "RENDERER_SHAPE_UNSUPPORTED"},
-		"invalid generated identifier": {invalidGeneratedIdentifierSpec(t, base), "RENDERER_OUTPUT_INVALID"},
 		"acronym name collision":       {acronymNameCollisionSpec(t, base), "TERRAFORM_NAME_COLLISION"},
 		"Go field name collision":      {goNameCollisionSpec(t, base), "GO_NAME_COLLISION"},
 		"Go component name collision":  {goComponentNameCollisionSpec(t, base), "GO_COMPONENT_NAME_COLLISION"},
@@ -641,11 +639,6 @@ func TestCheckRejectsMissingSchemasWithoutPanic(t *testing.T) {
 	}
 }
 
-func requestDateTimeSpec(spec string) string {
-	spec = strings.ReplaceAll(spec, "                name:\n                  type: string", "                name:\n                  type: string\n                  format: date-time")
-	return strings.Replace(spec, "        name:\n          type: string", "        name:\n          type: string\n          format: date-time", 1)
-}
-
 func unboundedUint64Spec(spec string) string {
 	spec = strings.ReplaceAll(spec, "                name:\n                  type: string", "                name:\n                  type: string\n                  format: uint64")
 	return strings.Replace(spec, "        name:\n          type: string", "        name:\n          type: string\n          format: uint64", 1)
@@ -662,26 +655,6 @@ func setOfObjectsSpec(spec string) string {
         value:
           type: string
           minLength: 1
-`
-}
-
-func invalidGeneratedIdentifierSpec(t *testing.T, spec string) string {
-	t.Helper()
-	createField := "                name:\n                  type: string\n                  minLength: 1\n                  x-coralogix-presence: true"
-	createWithDetail := createField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/v3.FilterOperator'"
-	spec = replaceAfter(t, spec, "operationId: ThingsService_CreateThing", createField, createWithDetail)
-	updateField := createField
-	updateWithDetail := updateField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/v3.FilterOperator'"
-	spec = replaceAfter(t, spec, "operationId: ThingsService_UpdateThing", updateField, updateWithDetail)
-	responseField := "        name:\n          type: string\n          minLength: 1\n          description: The display name."
-	responseWithDetail := responseField + "\n        detail:\n          $ref: '#/components/schemas/v3.FilterOperator'"
-	spec = replaceAfter(t, spec, "    Thing:", responseField, responseWithDetail)
-	return spec + `
-    v3.FilterOperator:
-      type: object
-      required: [value]
-      properties:
-        value: {type: string, minLength: 1}
 `
 }
 

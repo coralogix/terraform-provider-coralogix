@@ -267,7 +267,10 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		a.Computed = *l.Computed
 	}
 	if l.UseStateForUnknown {
-		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
+		modifier := strings.ToLower(a.ValueKind) + "planmodifier.UseStateForUnknown()"
+		if !slices.Contains(a.Modifiers, modifier) {
+			a.Modifiers = append(a.Modifiers, modifier)
+		}
 	}
 	if l.Default != nil {
 		expr, err := defaultExpr(a, l.Default)
@@ -660,7 +663,8 @@ func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfMode
 }
 
 // modelTypeName is the Terraform model struct of a component schema.
-func modelTypeName(schema string) string { return schema + "Model" }
+// A dotted component such as views.v1.Filter becomes ViewsV1FilterModel.
+func modelTypeName(schema string) string { return model.GoName(schema) + "Model" }
 
 // scalar returns the attribute kind and the validators of a scalar type.
 func scalar(t *model.Type) (string, []string, error) {

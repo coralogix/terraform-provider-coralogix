@@ -2,6 +2,16 @@ package model
 
 import "fmt"
 
+// classifyField returns the behavior of field. An Update that has no id in its
+// path still sends the id in the body. That id is a computed attribute: the
+// server assigned it, and Update only echoes it.
+func classifyField(p Policy, field string, inCreate, inUpdate, inGet bool) (Behavior, error) {
+	if p.UpdateIDInBody && field == "id" && !inCreate && inUpdate && inGet {
+		inUpdate = false
+	}
+	return Classify(inCreate, inUpdate, inGet)
+}
+
 // Classify returns the behavior of a top-level field from where it appears
 // (README.md, "Field location"). Any other combination is an error.
 func Classify(inCreate, inUpdate, inGet bool) (Behavior, error) {

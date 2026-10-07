@@ -646,6 +646,18 @@ func flattenTime(v *time.Time) types.String {
 	return types.StringValue(v.Format(time.RFC3339Nano))
 }
 
+func expandTime(p path.Path, v types.String, diags *diag.Diagnostics) *time.Time {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, v.ValueString())
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid timestamp", fmt.Sprintf("The timestamp %q is not RFC3339.", v.ValueString()))
+		return nil
+	}
+	return &parsed
+}
+
 func flattenStringsSet[T ~string](ctx context.Context, v []T, diags *diag.Diagnostics) types.Set {
 	if v == nil {
 		return types.SetNull(types.StringType)
@@ -863,7 +875,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- define "expandField"}}
 {{- $p := printf "p.AtName(%q)" .TFName}}
 {{- $l := ""}}{{$r := ""}}{{if .Value}}{{$l = "valueOf("}}{{$r = ")"}}{{end}}
-{{- if eq .Conv "string"}}
+{{- if eq .Conv "time"}}
+	out.{{.SDK}} = {{$l}}expandTime({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "string"}}
 	out.{{.SDK}} = {{$l}}expandString(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "bool"}}
 	out.{{.SDK}} = {{$l}}expandBool(m.{{.Model}}){{$r}}
@@ -882,7 +896,13 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.SDK}} = expandElements[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
 	{{- end}}
 {{- else if eq .Conv "scalarmap"}}
+	{{- if .Pointer}}
+	if mapped := expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags); mapped != nil {
+		out.{{.SDK}} = &mapped
+	}
+	{{- else}}
 	out.{{.SDK}} = expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
+	{{- end}}
 {{- else if eq .Conv "uint64"}}
 	out.{{.SDK}} = {{$l}}expandUint64({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if and (eq .Conv "enum") .EnumMap}}
@@ -941,7 +961,15 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "scalars"}}
 	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, {{.ElemType}}, v.{{.SDK}}, diags)
 {{- else if eq .Conv "scalarmap"}}
+	{{- if .Pointer}}
+	var mapped map[string]{{.SDKType}}
+	if v.{{.SDK}} != nil {
+		mapped = *v.{{.SDK}}
+	}
+	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, mapped, diags)
+	{{- else}}
 	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, v.{{.SDK}}, diags)
+	{{- end}}
 {{- else if eq .Conv "uint64"}}
 	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "time"}}

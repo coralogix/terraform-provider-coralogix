@@ -119,7 +119,7 @@ const (
 	convBool    = "bool"    // types.Bool ↔ *bool
 	convFloat64 = "float64" // types.Float64 ↔ *float64
 	convUint64  = "uint64"  // types.Int64 ↔ *string (D7)
-	convTime    = "time"    // types.String ← *time.Time (flatten only)
+	convTime    = "time"    // types.String ↔ *time.Time (RFC3339)
 	convEnum    = "enum"    // types.String ↔ *<enum type> (D12)
 	convObj     = "object"  // *<Model> ↔ *<SDK type>
 	convEmpty   = "empty"   // *<Model> ↔ map[string]interface{} (F16)
@@ -166,6 +166,9 @@ type convField struct {
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
 	Value bool
+	// Pointer is true when an optional map is a pointer in the SDK. A nil
+	// pointer omits the field; a nil map would be sent as null.
+	Pointer bool
 }
 
 // Uses reports whether a field uses the conversion kind conv. The template
@@ -600,6 +603,8 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type) (*conv
 	case ref.Want == want:
 	case strings.HasPrefix(want, "*") && ref.Want == want[1:]:
 		cf.Value = true
+	case strings.HasPrefix(want, "map[") && ref.Want == "*"+want:
+		cf.Pointer = true
 	default:
 		return nil, fmt.Errorf("SDK field %s has type %s, the %s conversion needs %s", ref.sdkName(), ref.Want, cf.Conv, want)
 	}
@@ -745,7 +750,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 }
 
 // mark sets the direction that uses obj and its nested objects: expand
-// (a request) or flatten (a response). A request cannot hold a date-time.
+// (a request) or flatten (a response).
 func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	if (expand && obj.Expand) || (!expand && obj.Flatten) {
 		return nil
@@ -757,8 +762,6 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	}
 	for _, f := range obj.Fields {
 		switch {
-		case f.Conv == convTime && expand:
-			return fmt.Errorf("%s: date-time in a request is not supported", f.TFName)
 		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)

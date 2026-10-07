@@ -1,0 +1,15 @@
+resource: ViewFolder
+mode: existing
+markdownDescription: "Coralogix View Folder. Folders group saved views in the Explore screen. For more info please review - https://coralogix.com/docs/user-guides/monitoring-and-insights/explore-screen/custom-views/."
+schema:
+  version: 1
+api:
+  updateIDInBody: true
+types:
+  ViewFolder:
+    fields:
+      id:
+        useStateForUnknown: true
+        markdownDescription: "Unique identifier for the view folder, assigned by Coralogix. Stays the same when the folder is renamed."
+      name:
+        markdownDescription: "Display name of the view folder. Between 1 and 100 characters - the backend silently truncates a longer name, so the provider rejects it instead. Folder names must currently be unique within the team."

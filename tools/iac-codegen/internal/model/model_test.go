@@ -298,8 +298,8 @@ func TestRequiredDeclarationContract(t *testing.T) {
 			new: "              title: UpdateThingRequest\n              type: object\n              properties:\n",
 		},
 		"nested object": {
-			old: "    ThingConfig:\n      type: object\n      required: []\n      properties:\n",
-			new: "    ThingConfig:\n      type: object\n      properties:\n",
+			old: "    HttpThingConfig:\n      type: object\n      required: [endpoint]\n      properties:\n",
+			new: "    HttpThingConfig:\n      type: object\n      properties:\n",
 		},
 	}
 	for name, test := range tests {

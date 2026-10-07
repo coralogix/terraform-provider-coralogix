@@ -296,6 +296,11 @@ func (s *resolver) field(path, owner, name string, t *model.Type, allowValue boo
 	if allowValue && strings.HasPrefix(goType, "*") {
 		ref.WantValue = goType[1:]
 	}
+	// The Go client uses a pointer for an optional map and a value for a
+	// required one. The check keeps the type the SDK actually has.
+	if strings.HasPrefix(goType, "map[") {
+		ref.WantValue = "*" + goType
+	}
 	s.add(ref)
 	return nil
 }

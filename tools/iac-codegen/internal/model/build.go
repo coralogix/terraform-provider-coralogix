@@ -331,18 +331,113 @@ func (r *Resource) readTargets(ops map[verb]foundOp) error {
 	return nil
 }
 
-// readBodyTitles reads the title of each inline request body, and whether a
-// component schema has the same name.
+// readBodyTitles reads the title of each inline request body. openapi-generator
+// adds "1" when a component schema in the same generated package has that name.
+// The Go SDK is one package per tag, and unused components are dropped, so a
+// component that only another tag references does not collide.
 func (r *Resource) readBodyTitles(doc *v3.Document, ops map[verb]foundOp) {
+	referenced := schemasReferencedByTags(doc, operationTags(ops))
 	for v, o := range map[verb]*Operation{opCreate: &r.Create, opUpdate: &r.Update} {
 		proxy := bodyProxy(ops[v].op)
 		if o.Body != "inline" || proxy == nil || proxy.Schema() == nil {
 			continue
 		}
 		o.BodyTitle = proxy.Schema().Title
-		o.BodyTitleIsComponent = o.BodyTitle != "" && doc.Components != nil && doc.Components.Schemas != nil &&
-			doc.Components.Schemas.GetOrZero(o.BodyTitle) != nil
+		o.BodyTitleIsComponent = o.BodyTitle != "" && referenced[o.BodyTitle]
 	}
+}
+
+func operationTags(ops map[verb]foundOp) map[string]bool {
+	tags := map[string]bool{}
+	for _, f := range ops {
+		if f.op == nil {
+			continue
+		}
+		for _, tag := range f.op.Tags {
+			tags[tag] = true
+		}
+	}
+	return tags
+}
+
+// schemasReferencedByTags is the set of component names reachable from
+// operations that carry one of tags. That is the set that remains in the
+// per-tag Go package after unused components are removed.
+func schemasReferencedByTags(doc *v3.Document, tags map[string]bool) map[string]bool {
+	out := map[string]bool{}
+	if doc == nil || doc.Paths == nil || doc.Paths.PathItems == nil || len(tags) == 0 {
+		return out
+	}
+	seen := map[*base.SchemaProxy]bool{}
+	var walk func(*base.SchemaProxy)
+	walk = func(proxy *base.SchemaProxy) {
+		if proxy == nil || seen[proxy] {
+			return
+		}
+		seen[proxy] = true
+		if ref := proxy.GetReference(); ref != "" {
+			name, err := componentName(ref)
+			if err != nil || out[name] {
+				return
+			}
+			out[name] = true
+			if doc.Components != nil && doc.Components.Schemas != nil {
+				walk(doc.Components.Schemas.GetOrZero(name))
+			}
+			return
+		}
+		s := proxy.Schema()
+		if s == nil {
+			return
+		}
+		if s.Properties != nil {
+			for _, p := range s.Properties.FromOldest() {
+				walk(p)
+			}
+		}
+		if s.Items != nil && s.Items.IsA() {
+			walk(s.Items.A)
+		}
+		if s.AdditionalProperties != nil && s.AdditionalProperties.IsA() {
+			walk(s.AdditionalProperties.A)
+		}
+		for _, p := range slices.Concat(s.AllOf, s.OneOf, s.AnyOf) {
+			walk(p)
+		}
+		walk(s.Not)
+	}
+	for _, item := range doc.Paths.PathItems.FromOldest() {
+		if item == nil {
+			continue
+		}
+		for _, op := range item.GetOperations().FromOldest() {
+			if op == nil || !sharesTag(op.Tags, tags) {
+				continue
+			}
+			walk(bodyProxy(op))
+			if op.Responses == nil || op.Responses.Codes == nil {
+				continue
+			}
+			for _, resp := range op.Responses.Codes.FromOldest() {
+				if resp == nil || resp.Content == nil {
+					continue
+				}
+				if media := resp.Content.GetOrZero(jsonMedia); media != nil {
+					walk(media.Schema)
+				}
+			}
+		}
+	}
+	return out
+}
+
+func sharesTag(opTags []string, tags map[string]bool) bool {
+	for _, tag := range opTags {
+		if tags[tag] {
+			return true
+		}
+	}
+	return false
 }
 
 func pathParams(f foundOp) []*v3.Parameter {
@@ -758,7 +853,7 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("update body: %w", err)
 	}
 	gp := propertyOf(getSchema, name)
-	behavior, err := Classify(cp != nil, up != nil, gp != nil)
+	behavior, err := classifyField(r.Policy, name, cp != nil, up != nil, gp != nil)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}

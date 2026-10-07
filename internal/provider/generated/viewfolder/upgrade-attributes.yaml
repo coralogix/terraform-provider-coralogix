@@ -1,0 +1,7 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.20.0
+attributes:
+    id: {type: String}
+    name: {type: String, required: true}

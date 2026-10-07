@@ -1,0 +1,14 @@
+# Generated acceptance test for coralogix_view.
+# A view can live in a folder. The folder id has to be one the API already stored.
+resource: View
+prerequisites: |
+  resource "coralogix_view_folder" "dependency" {
+    name = "@{run}-folder"
+  }
+values:
+  folder_id: coralogix_view_folder.dependency.id
+skip:
+  - time_selection.custom_selection
+  - time_selection.quick_selection.caption
+minimal:
+  - time_selection.quick_selection.seconds
