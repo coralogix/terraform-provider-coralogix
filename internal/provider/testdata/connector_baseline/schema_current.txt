@@ -35,6 +35,7 @@ id  StringAttribute optional computed
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 name  StringAttribute required
     markdown: "Connector name."
+    validator: stringvalidator.lengthAtLeastValidator string length must be at least 1
 type  StringAttribute required
     markdown: "Connector type. Valid values are: unspecified, slack, generic_https, pagerduty, pagerduty_incidents, email, service_now, microsoft_teams, eventbridge, incident_io. `incident_io` is a preview type."
     validator: stringvalidator.oneOfValidator value must be one of: ["email" "eventbridge" "generic_https" "incident_io" "microsoft_teams" "pagerduty" "pagerduty_incidents" "service_now" "slack" "unspecified"]
