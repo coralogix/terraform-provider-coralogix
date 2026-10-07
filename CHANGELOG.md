@@ -1,5 +1,14 @@
 # Unreleased
 
+#### resource/coralogix_view
+- FEAT: Add `coralogix_view` for a saved Explore view. `name` and `time_selection` are required. `search_query`, `filters`, and `folder_id` can be set, changed, and removed.
+
+#### resource/coralogix_view_folder
+- CHORE: The resource is generated from the API contract. Schema version stays 1. `id` stays computed and keeps its value when the folder is renamed. `name` stays required and must be between 1 and 100 characters.
+
+#### tools/iac-codegen
+- FEAT: Keep contract validators when `validators.inferred` is omitted, accept RFC3339 timestamps, and treat an update id that lives only in the body as computed.
+
 #### resource/coralogix_alert
 - DOCS: Describe `notification_group.group_by_keys` (combined vs. separate cases).
 

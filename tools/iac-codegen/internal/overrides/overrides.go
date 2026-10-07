@@ -78,8 +78,9 @@ func (u Upgrade) PriorSchemaFunc() (importPath, function string, ok bool) {
 type Validators struct {
 	// Inferred: false means that no limit of the contract (minLength, maxLength,
 	// minItems, ...) becomes a validator. A released provider did not check these
-	// limits, and a new validator would reject configs that work today. Only false is
-	// supported. The validators of the released resource are written as field lines.
+	// limits, and a new validator would reject configs that work today. Omitted or
+	// true keeps those limits. The validators of a released resource that are not in
+	// the contract are written as field lines.
 	Inferred *bool `yaml:"inferred"`
 }
 
@@ -195,9 +196,8 @@ func (f *File) check() error {
 	if err := f.Schema.checkUpgrades(); err != nil {
 		return err
 	}
-	if f.Validators.Inferred == nil || *f.Validators.Inferred {
-		return errors.New("validators.inferred: false is required: a released resource does not turn contract limits into validators")
-	}
+	// Omitted or true keeps the contract limits as validators. false drops them, for a
+	// released resource whose provider did not check those limits.
 	if err := f.checkEnums(); err != nil {
 		return err
 	}
@@ -344,8 +344,7 @@ func (f *File) Policy() model.Policy {
 		RequestWrapper: f.API.RequestWrapper,
 		UpdateIDInBody: f.API.UpdateIDInBody,
 		ClientSetID:    f.API.ClientSetID,
-		// The file states validators.inferred: false; Parse checked it.
-		NoInferredValidators: true,
+		NoInferredValidators: f.Validators.Inferred != nil && !*f.Validators.Inferred,
 	}
 	if f.API.Delete != nil {
 		p.DeleteOperation = f.API.Delete.Operation

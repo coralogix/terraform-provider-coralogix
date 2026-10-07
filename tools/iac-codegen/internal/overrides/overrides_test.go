@@ -67,8 +67,6 @@ func TestParseIsStrict(t *testing.T) {
 		"no resource":     {"mode: existing\n", "resource is required"},
 		"wrong mode":      {"resource: Thing\nmode: new\n", `mode is "new"`},
 		"no mode":         {"resource: Thing\n", `mode is ""`},
-		"no validators":   {"resource: Thing\nmode: existing\n", "validators.inferred: false is required"},
-		"inferred true":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: true\n", "validators.inferred: false is required"},
 		"bad readEmptyAs": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {readEmptyAs: zero}\n", "readEmptyAs"},
 		"bad default":     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: [a]}\n", "default is"},
 		"two validators":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {validators: [{oneOf: [a], sizeAtLeast: 1}]}\n", "exactly one"},
@@ -84,6 +82,21 @@ func TestParseIsStrict(t *testing.T) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
 		})
+	}
+}
+
+func TestInferredValidatorsDefaultToTheContract(t *testing.T) {
+	for _, text := range []string{
+		"resource: Thing\nmode: existing\n",
+		"resource: Thing\nmode: existing\nvalidators:\n  inferred: true\n",
+	} {
+		file, err := Parse([]byte(text))
+		if err != nil {
+			t.Fatalf("Parse(%q) = %v", text, err)
+		}
+		if file.Policy().NoInferredValidators {
+			t.Fatalf("Parse(%q) dropped contract validators", text)
+		}
 	}
 }
 

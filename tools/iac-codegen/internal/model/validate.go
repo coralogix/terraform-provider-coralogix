@@ -158,7 +158,9 @@ func requiredDeclarationIssuesAt(p Policy, location string, proxy *base.SchemaPr
 	seen[schema] = true
 	location = referencedSchemaLocation(proxy, location)
 	var report issue.Report
-	if fixedObject(schema) && (schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()) && !p.emptyRequired(referencedComponent(proxy)) {
+	// A oneOf states which fields are required on each arm. The parent object has no
+	// required list of its own, and an empty required list is not emitted.
+	if fixedObject(schema) && len(schema.OneOf) == 0 && (schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()) && !p.emptyRequired(referencedComponent(proxy)) {
 		report = append(report, issue.Issue{
 			Code:        "REQUIRED_DECLARATION_MISSING",
 			Location:    location,
@@ -589,7 +591,7 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 	}
 	gp := propertyOf(get, field)
 	location := "components.schemas." + name + "." + field
-	if _, err := Classify(cp != nil, up != nil, gp != nil); err != nil {
+	if _, err := classifyField(p, field, cp != nil, up != nil, gp != nil); err != nil {
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
 	}
 	var report issue.Report

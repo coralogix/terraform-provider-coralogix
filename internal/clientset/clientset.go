@@ -35,6 +35,7 @@ import (
 	e2ms "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/events2metrics_service"
 	cfggroups "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/fleet_manager_configuration_groups"
 	viewsfolders "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/folders_for_views_service"
+	viewsservice "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/views_service"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
@@ -66,6 +67,7 @@ type ClientSet struct {
 
 	dahboardsFolders      *dbfs.DashboardFoldersServiceAPIService
 	viewsFolders          *viewsfolders.FoldersForViewsServiceAPIService
+	views                 *viewsservice.ViewsServiceAPIService
 	customDataEnrichments *cess.CustomEnrichmentsServiceAPIService
 	dataEnrichments       *ess.EnrichmentsServiceAPIService
 	parsingRuleGroups     *prgs.RuleGroupsServiceAPIService
@@ -199,6 +201,10 @@ func (c *ClientSet) ViewsFolders() *viewsfolders.FoldersForViewsServiceAPIServic
 	return c.viewsFolders
 }
 
+func (c *ClientSet) Views() *viewsservice.ViewsServiceAPIService {
+	return c.views
+}
+
 func (c *ClientSet) Groups() *GroupsClient {
 	return c.groups
 }
@@ -291,6 +297,7 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 
 		dahboardsFolders:      cs.DashboardFolders(),
 		viewsFolders:          cs.ViewsFolders(),
+		views:                 cs.Views(),
 		parsingRuleGroups:     cs.RuleGroups(),
 		archiveMetrics:        cs.ArchiveMetrics(),
 		alerts:                cs.Alerts(),
