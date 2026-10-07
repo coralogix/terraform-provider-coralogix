@@ -1,0 +1,10 @@
+# The behavior-overrides file of the synthetic resource whose API archives instead of deleting.
+resource: ArchivedThing
+mode: existing
+
+validators:
+  inferred: false
+
+api:
+  delete:
+    operation: ArchivedThingsService_ArchiveArchivedThing

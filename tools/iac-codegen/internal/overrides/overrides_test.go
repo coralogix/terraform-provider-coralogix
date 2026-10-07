@@ -123,3 +123,34 @@ func TestPolicyReleasesOnlyLinesThatStatePresence(t *testing.T) {
 		t.Fatalf("released = %s, want %s", got, want)
 	}
 }
+
+func TestDeleteOperation(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\napi:\n"
+	f, err := Parse([]byte(head + "  delete:\n    operation: Service_ArchiveR\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := f.Policy().DeleteOperation; got != "Service_ArchiveR" {
+		t.Fatalf("delete operation = %q, want Service_ArchiveR", got)
+	}
+	if f.Lines() != nil {
+		t.Fatalf("lines = %v, want none: the generator checks the operation itself", f.Lines())
+	}
+	tests := map[string]struct {
+		text string
+		want string
+	}{
+		"no operation":     {head + "  delete: {}\n", "api.delete.operation is required"},
+		"empty operation":  {head + "  delete:\n    operation: \"\"\n", "api.delete.operation is required"},
+		"unknown key":      {head + "  delete:\n    operation: Service_ArchiveR\n    before: deactivate\n", "before"},
+		"operation scalar": {head + "  delete: Service_ArchiveR\n", "overrides.Delete"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(test.text))
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}

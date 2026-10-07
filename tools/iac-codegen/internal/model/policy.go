@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/pb33f/libopenapi/datamodel/high/base"
@@ -32,6 +33,12 @@ type Policy struct {
 	// ClientSetID means that the client can send the id on Create, and the Get
 	// response does not require it.
 	ClientSetID bool
+	// DeleteOperation is the operationId of the operation that removes the resource
+	// when the API has no DELETE. It is a POST on the Get path plus one segment, for
+	// example /things/{id}/archive, with the id path parameter of Get, no request
+	// body, and a response that the generated code ignores. "" means a DELETE on
+	// the Get path.
+	DeleteOperation string
 	// EnumAnyPrefix lists the enum components whose business values do not use
 	// the prefix of the zero value (ENTITY_TYPE_UNSPECIFIED, ALERTS).
 	EnumAnyPrefix []string
@@ -68,6 +75,27 @@ func (p Policy) requestBody(op *v3.Operation) *base.SchemaProxy {
 		return inner
 	}
 	return proxy // a later check reports the missing wrapper property
+}
+
+// operationIDs returns the explicit operation IDs with the Delete operation of the policy. The
+// policy and an explicit ID cannot both name the Delete operation.
+func (p Policy) operationIDs(ids OperationIDs) (OperationIDs, error) {
+	if p.DeleteOperation == "" {
+		return ids, nil
+	}
+	if ids.Delete != "" {
+		return ids, fmt.Errorf("%s: the overrides name %s, and the flag names %s", opDelete, p.DeleteOperation, ids.Delete)
+	}
+	ids.Delete = p.DeleteOperation
+	return ids, nil
+}
+
+// methods returns the HTTP methods that the operation of the lifecycle step may use.
+func (p Policy) methods(v verb) []string {
+	if v == opDelete && p.DeleteOperation != "" {
+		return []string{"POST"}
+	}
+	return verbMethods[v]
 }
 
 func (p Policy) skips(component, field string) bool {

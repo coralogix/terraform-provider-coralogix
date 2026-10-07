@@ -49,6 +49,41 @@ func TestGoldenOutputExistingResource(t *testing.T) {
 	}
 }
 
+// The golden output of a resource whose API has no DELETE. The behavior-overrides file names
+// the archive call, and the generated Delete calls it.
+func TestGoldenOutputDeleteOverride(t *testing.T) {
+	out := generateArchivedThing(t)
+	golden := filepath.Join("testdata", "golden", "archivedthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputDeleteOverride -update:\n%s", diff)
+	}
+}
+
+// generateArchivedThing generates the synthetic resource whose Delete is an archive call.
+func generateArchivedThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "archived.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "archivedthing")
+	options := Options{Resource: "ArchivedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "archived-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 func TestGoldenOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	first := filepath.Join(t.TempDir(), "thing")
@@ -984,6 +1019,21 @@ func TestExistingResourceOutputCompiles(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "legacything")
 	options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml")}
 	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The generated Delete of a resource with a Delete override calls the archive operation, and
+// treats a resource that the API does not find as deleted.
+func TestDeleteOverrideRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateArchivedThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "archived_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	compileGenerated(t, out, input)
