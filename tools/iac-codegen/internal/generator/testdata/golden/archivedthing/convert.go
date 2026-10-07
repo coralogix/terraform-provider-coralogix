@@ -61,6 +61,16 @@ func expandUpdate(ctx context.Context, m *ArchivedThingModel) (*archived_things_
 	return out, diags
 }
 
+// ExpandCreate is the Create request body for a handwritten wrapper.
+func ExpandCreate(ctx context.Context, m *ArchivedThingModel) (*archived_things_service.CreateArchivedThingRequest, diag.Diagnostics) {
+	return expandCreate(ctx, m)
+}
+
+// ExpandUpdate is the Update request body for a handwritten wrapper.
+func ExpandUpdate(ctx context.Context, m *ArchivedThingModel) (*archived_things_service.ReplaceArchivedThingRequest, diag.Diagnostics) {
+	return expandUpdate(ctx, m)
+}
+
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
 func flatten(ctx context.Context, v *archived_things_service.ArchivedThing) (*ArchivedThingModel, diag.Diagnostics) {

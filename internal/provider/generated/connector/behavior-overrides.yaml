@@ -31,6 +31,7 @@ types:
       name:
         markdownDescription: "Connector name."
         required: true # PINNED-SDK
+        validators: [{lengthAtLeast: 1}]
       description:
         computed: true # the API returns "" for an omitted value
       type:

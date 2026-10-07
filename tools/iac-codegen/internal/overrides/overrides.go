@@ -163,6 +163,8 @@ const (
 type Validator struct {
 	OneOf       []string `yaml:"oneOf"`
 	SizeAtLeast *int     `yaml:"sizeAtLeast"`
+	// LengthAtLeast is a released stringvalidator.LengthAtLeast.
+	LengthAtLeast *int `yaml:"lengthAtLeast"`
 	// Enum: true accepts the Terraform values of the enum of the field, as the enums line of
 	// the enum states them. The list of values has one source, so it cannot drift.
 	Enum bool `yaml:"enum"`
@@ -351,11 +353,14 @@ func checkValidators(validators []Validator) error {
 		if v.SizeAtLeast != nil {
 			set++
 		}
+		if v.LengthAtLeast != nil {
+			set++
+		}
 		if v.Enum {
 			set++
 		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, and enum")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, and enum")
 		}
 	}
 	return nil
