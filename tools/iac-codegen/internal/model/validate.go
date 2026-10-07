@@ -500,10 +500,14 @@ func responseWrapperIssues(p Policy, name string, ops map[verb]foundOp) issue.Re
 			continue
 		}
 		media := response.Content.GetOrZero(jsonMedia)
-		if media == nil || media.Schema == nil || !media.Schema.IsReference() {
+		if media == nil {
 			continue
 		}
-		component, err := componentName(media.Schema.GetReference())
+		ref := responseRef(media.Schema)
+		if ref == nil {
+			continue
+		}
+		component, err := componentName(ref.GetReference())
 		if err != nil || component == name {
 			continue
 		}
@@ -1068,10 +1072,14 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 	if media == nil || media.Schema == nil {
 		return nil
 	}
-	if media.Schema.GetReference() == componentPrefix+name {
-		return media.Schema
+	schema := media.Schema
+	if ref := responseRef(schema); ref != nil {
+		schema = ref
 	}
-	s, err := schemaOf(media.Schema)
+	if schema.GetReference() == componentPrefix+name {
+		return schema
+	}
+	s, err := schemaOf(schema)
 	if err != nil {
 		return nil
 	}
@@ -1308,7 +1316,7 @@ func buildIssue(err error) issue.Issue {
 	case strings.Contains(message, "id in the request body is not supported"):
 		code = "UPDATE_ID_IN_BODY_UNSUPPORTED"
 		remediation = "Put the resource id in the Update path. Add body-id compatibility only during existing-resource migration."
-	case strings.Contains(message, "update mask") || strings.Contains(message, updateMaskField):
+	case strings.Contains(message, "update mask") || strings.Contains(message, updateMaskField) || strings.Contains(message, updateMaskProtoField):
 		code = "CLEAR_BEHAVIOR_UNKNOWN"
 	case strings.Contains(message, "type differs"):
 		code = "FIELD_TYPE_INCONSISTENT"

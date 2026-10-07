@@ -8,7 +8,11 @@ repos:
     hooks:
       - id: go-fmt
       - id: go-vet
+        # tools/iac-codegen is its own Go module. The local hook below vets it.
+        exclude: ^tools/iac-codegen/
       - id: go-imports
+        # testdata holds exact generator output. Its golden files must not change.
+        exclude: /testdata/
       - id: go-cyclo
         args: [-over=16]
       - id: validate-toml
@@ -18,3 +22,11 @@ repos:
       - id: go-unit-tests
       - id: go-build
       - id: go-mod-tidy
+  - repo: local
+    hooks:
+      - id: iac-codegen-go-vet
+        name: go vet (tools/iac-codegen)
+        entry: bash -c 'cd tools/iac-codegen && go vet ./...'
+        language: system
+        files: ^tools/iac-codegen/.*\.go$
+        pass_filenames: false
