@@ -1229,6 +1229,9 @@ func sameCheck(f *convField) (string, error) {
 		}
 		return "sameObject(" + a + ", " + b + ", same" + f.Object.Func + ")", nil
 	case convObjects:
+		if f.Collection == "Set" || f.KeepPriorOrder {
+			return "sameUnordered(" + a + ", " + b + ", same" + f.Object.Func + ")", nil
+		}
 		return "sameList(" + a + ", " + b + ", same" + f.Object.Func + ")", nil
 	}
 	return "", fmt.Errorf("a field of kind %s cannot be compared for keepPriorOrder yet", f.Conv)

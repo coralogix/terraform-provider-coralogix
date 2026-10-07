@@ -21,7 +21,7 @@
 - FEAT: `keepPriorOrder` works on a list whose request items use another component than its response items, such as a Create item without the server-set id and hash. The items pair on the fields that the request sends.
 - CHORE: Bump the generator to `v0.1.0-beta.6`.
 - FEAT: Existing-resource `lengthAtLeast` keeps a released non-empty string validator.
-- FIX: Flatten of a set of objects matches prior items by identity when nested lists keep prior order.
+- FIX: Flatten of a set of objects matches prior items by identity when nested lists keep prior order. Identity comparison treats those nested lists as unordered.
 - FEAT: Generate unordered sets of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
 - FIX: A nested object collection marked `collection: set` now flattens as a set in the generated attr.Type map, matching the schema.

@@ -16,4 +16,21 @@ func TestSetFlattenTemplateMatchesPriorByIdentity(t *testing.T) {
 	if !strings.Contains(text, "matchPriorSetItem") {
 		t.Fatal("set flatten with NeedsPrior must match prior items by identity, not slice index")
 	}
+	if !strings.Contains(text, "sameUnordered") {
+		t.Fatal("same* must compare nested keepPriorOrder lists without regard to order")
+	}
+}
+
+func TestSameCheckComparesKeepPriorOrderListsUnordered(t *testing.T) {
+	got, err := sameCheck(&convField{
+		Conv: convObjects, SDK: "Targets", KeepPriorOrder: true,
+		Object: &convObject{Func: "LegacyTarget"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "sameUnordered(a.Targets, b.Targets, sameLegacyTarget)"
+	if got != want {
+		t.Fatalf("sameCheck = %q, want %q", got, want)
+	}
 }
