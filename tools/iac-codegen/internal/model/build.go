@@ -19,8 +19,12 @@ const (
 	componentPrefix = "#/components/schemas/"
 	jsonMedia       = "application/json"
 	updateMaskField = "updateMask" // contract: PATCH has an updateMask query parameter
-	extPresence     = "x-coralogix-presence"
-	extCollection   = "x-coralogix-collection"
+	// updateMaskProtoField is the proto name of the update mask. The OpenAPI
+	// fork names query parameters with the proto name, and the gateway accepts
+	// both names.
+	updateMaskProtoField = "update_mask"
+	extPresence          = "x-coralogix-presence"
+	extCollection        = "x-coralogix-collection"
 	// A decimal uint64 with at most 18 digits always fits in Terraform Int64.
 	terraformInt64SafeDecimalDigits int64 = 18
 )
@@ -58,14 +62,11 @@ func BuildWithOperationIDs(doc *v3.Document, name string, ids OperationIDs) (*Re
 
 // BuildWithPolicy builds a resource under the given rule set.
 func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Policy) (*Resource, error) {
-	ops, err := findOperations(doc, name, ids)
+	ops, err := findOperations(doc, name, ids, policy)
 	if err != nil {
 		return nil, err
 	}
 	r := &Resource{Name: name, Replace: ops[opUpdate].method == "PUT", Policy: policy}
-	if !r.Replace {
-		r.UpdateMask = updateMaskField
-	}
 	if err := r.readOperations(ops); err != nil {
 		return nil, err
 	}
@@ -134,10 +135,14 @@ func SurveyWithPolicy(doc *v3.Document, name string, policy Policy) (*Type, []er
 	return t, issues
 }
 
-func findOperations(doc *v3.Document, name string, ids OperationIDs) (map[verb]foundOp, error) {
+func findOperations(doc *v3.Document, name string, ids OperationIDs, p Policy) (map[verb]foundOp, error) {
 	found := map[verb]foundOp{}
 	if doc.Paths == nil {
 		return nil, errors.New("spec has no paths")
+	}
+	ids, err := p.operationIDs(ids)
+	if err != nil {
+		return nil, err
 	}
 	explicit := map[verb]string{opCreate: ids.Create, opGet: ids.Get, opUpdate: ids.Update, opDelete: ids.Delete}
 	for _, v := range verbs {
@@ -168,8 +173,8 @@ func findOperations(doc *v3.Document, name string, ids OperationIDs) (map[verb]f
 		if !ok {
 			return nil, fmt.Errorf("%s: no operation with operationId suffix %s", v, suffix)
 		}
-		if !slices.Contains(verbMethods[v], f.method) {
-			return nil, fmt.Errorf("%s: %s is %s, want %s", v, f.op.OperationId, f.method, strings.Join(verbMethods[v], " or "))
+		if !slices.Contains(p.methods(v), f.method) {
+			return nil, fmt.Errorf("%s: %s is %s, want %s", v, f.op.OperationId, f.method, strings.Join(p.methods(v), " or "))
 		}
 		if params := unsupportedRequiredParameters(v, f); len(params) != 0 {
 			return nil, fmt.Errorf("%s: required %s parameter %q is not supported", v, params[0].In, params[0].Name)
@@ -181,7 +186,7 @@ func findOperations(doc *v3.Document, name string, ids OperationIDs) (map[verb]f
 func unsupportedRequiredParameters(role verb, op foundOp) []*v3.Parameter {
 	var params []*v3.Parameter
 	for _, p := range slices.Concat(op.item.Parameters, op.op.Parameters) {
-		if role == opUpdate && p.In == "query" && p.Name == updateMaskField {
+		if role == opUpdate && p.In == "query" && isUpdateMaskName(p.Name) {
 			continue
 		}
 		if p.In != "path" && p.Required != nil && *p.Required {
@@ -244,12 +249,25 @@ func (r *Resource) readOperations(ops map[verb]foundOp) error {
 		return fmt.Errorf("get: path %s, want %s", itemPath, want)
 	}
 	for _, v := range item {
+		if v == opDelete && r.Policy.DeleteOperation != "" {
+			if !deleteActionPath(itemPath, ops[v].path) {
+				return fmt.Errorf("%s: path %s, want %s/<action>", v, ops[v].path, itemPath)
+			}
+			continue
+		}
 		if ops[v].path != itemPath {
 			return fmt.Errorf("%s: path %s, want %s (as in get)", v, ops[v].path, itemPath)
 		}
 	}
 
 	return r.readTargets(ops)
+}
+
+// deleteActionPath reports whether path is the item path plus one literal
+// segment, for example /things/{id}/archive. A Delete override uses this path.
+func deleteActionPath(itemPath, path string) bool {
+	segment, ok := strings.CutPrefix(path, itemPath+"/")
+	return ok && segment != "" && !strings.ContainsAny(segment, "/{}")
 }
 
 // itemOperations returns the operations besides Get that must have the id in
@@ -306,6 +324,9 @@ func (r *Resource) readTargets(ops map[verb]foundOp) error {
 		if targets[v].Body == "" {
 			return fmt.Errorf("%s: no request body", v)
 		}
+	}
+	if r.Policy.DeleteOperation != "" && ops[opDelete].op.RequestBody != nil {
+		return fmt.Errorf("%s: %s has a request body, want none", opDelete, r.Delete.OperationID)
 	}
 	return nil
 }
@@ -392,8 +413,8 @@ func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 	if resp == nil || resp.Content == nil || resp.Content.GetOrZero(jsonMedia) == nil || resp.Content.GetOrZero(jsonMedia).Schema == nil {
 		return Response{}, fmt.Errorf("no 200 %s response schema", jsonMedia)
 	}
-	proxy := resp.Content.GetOrZero(jsonMedia).Schema
-	if !proxy.IsReference() {
+	proxy := responseRef(resp.Content.GetOrZero(jsonMedia).Schema)
+	if proxy == nil {
 		return Response{}, errors.New("200 response schema is inline, want a $ref")
 	}
 	name, err := componentName(proxy.GetReference())
@@ -425,6 +446,24 @@ func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 	}
 	out.Field = keys[0]
 	return out, nil
+}
+
+// responseRef returns a 200 response schema that is "$ref: X", or the $ref
+// inside "allOf: [$ref: X]". The OpenAPI fork writes the allOf form for a
+// response_body field with a description, because OpenAPI 3.0 ignores the
+// siblings of a $ref. It returns nil for any other schema.
+func responseRef(proxy *base.SchemaProxy) *base.SchemaProxy {
+	if proxy == nil || proxy.IsReference() {
+		return proxy
+	}
+	s, err := schemaOf(proxy)
+	if err != nil {
+		return nil
+	}
+	if inner, err := singleAllOf(s, "200 response schema"); err == nil && inner.IsReference() {
+		return inner
+	}
+	return nil
 }
 
 // unwrapRef returns the $ref of a property that is "$ref: X" or "allOf: [$ref: X]".
@@ -588,8 +627,8 @@ func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema, u
 		return err
 	}
 	for _, loc := range []location{{"create body", createBody}, {r.Name, getSchema}} {
-		if propertyOf(loc.schema, updateMaskField) != nil {
-			return fmt.Errorf("%s: unexpected %s property", loc.name, updateMaskField)
+		if name := maskProperty(loc.schema); name != "" {
+			return fmt.Errorf("%s: unexpected %s property", loc.name, name)
 		}
 	}
 	if !r.Singleton && propertyOf(getSchema, r.IDParam) == nil {
@@ -610,55 +649,71 @@ func (r *Resource) checkUpdateContract(updateBody *base.Schema, update foundOp) 
 }
 
 func (r *Resource) checkUpdateMask(updateBody *base.Schema, update foundOp) error {
-	bodyMask := propertyOf(updateBody, updateMaskField)
-	params := namedParameters(update, updateMaskField)
+	bodyMask := maskProperty(updateBody)
+	params := maskParameters(update)
 	if r.Replace {
 		return checkNoUpdateMask(bodyMask, params)
 	}
-	if bodyMask != nil {
-		return fmt.Errorf("update body: %s must be a query parameter, not a body property", updateMaskField)
+	if bodyMask != "" {
+		return fmt.Errorf("update body: %s must be a query parameter, not a body property", bodyMask)
 	}
 	if len(params) == 0 {
-		return fmt.Errorf("update parameters: no %s query parameter", updateMaskField)
+		return fmt.Errorf("update parameters: no %s or %s query parameter", updateMaskField, updateMaskProtoField)
 	}
 	if len(params) > 1 {
-		return fmt.Errorf("update parameters: %d %s parameters, want 1", len(params), updateMaskField)
+		return fmt.Errorf("update parameters: %d %s or %s parameters, want 1", len(params), updateMaskField, updateMaskProtoField)
 	}
 	return r.readUpdateMask(params[0])
 }
 
-func checkNoUpdateMask(bodyMask *base.SchemaProxy, params []*v3.Parameter) error {
-	if bodyMask != nil {
-		return fmt.Errorf("update body: a full replace (PUT) has no %s property", updateMaskField)
+func checkNoUpdateMask(bodyMask string, params []*v3.Parameter) error {
+	if bodyMask != "" {
+		return fmt.Errorf("update body: a full replace (PUT) has no %s property", bodyMask)
 	}
 	if len(params) != 0 {
-		return fmt.Errorf("update parameters: a full replace (PUT) has no %s parameter", updateMaskField)
+		return fmt.Errorf("update parameters: a full replace (PUT) has no %s parameter", params[0].Name)
 	}
 	return nil
 }
 
 func (r *Resource) readUpdateMask(mask *v3.Parameter) error {
 	if mask.In != "query" {
-		return fmt.Errorf("update parameters: %s is in %q, want query", updateMaskField, mask.In)
+		return fmt.Errorf("update parameters: %s is in %q, want query", mask.Name, mask.In)
 	}
 	if mask.Required == nil || !*mask.Required {
-		return fmt.Errorf("update parameters: %s must be required", updateMaskField)
+		return fmt.Errorf("update parameters: %s must be required", mask.Name)
 	}
 	if mask.Schema == nil {
-		return fmt.Errorf("update parameters: %s has no schema", updateMaskField)
+		return fmt.Errorf("update parameters: %s has no schema", mask.Name)
 	}
 	ms, err := schemaOf(mask.Schema)
 	if err != nil || !slices.Equal(ms.Type, []string{"string"}) {
-		return fmt.Errorf("update parameters: %s must have a string schema", updateMaskField)
+		return fmt.Errorf("update parameters: %s must have a string schema", mask.Name)
 	}
+	r.UpdateMask = mask.Name
 	r.UpdateMaskPattern = ms.Pattern
 	return nil
 }
 
-func namedParameters(op foundOp, name string) []*v3.Parameter {
+func isUpdateMaskName(name string) bool {
+	return name == updateMaskField || name == updateMaskProtoField
+}
+
+// maskProperty returns the name of the update mask property of s, or "".
+func maskProperty(s *base.Schema) string {
+	for _, name := range []string{updateMaskField, updateMaskProtoField} {
+		if propertyOf(s, name) != nil {
+			return name
+		}
+	}
+	return ""
+}
+
+// maskParameters returns the update mask parameters of op, under either name.
+func maskParameters(op foundOp) []*v3.Parameter {
 	var params []*v3.Parameter
 	for _, p := range slices.Concat(op.item.Parameters, op.op.Parameters) {
-		if p.Name == name {
+		if isUpdateMaskName(p.Name) {
 			params = append(params, p)
 		}
 	}

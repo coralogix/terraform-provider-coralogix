@@ -12,6 +12,32 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
+# Connector used by the alert's case_settings.destinations below. Case
+# destinations need a connector that supports the "cases" entity type.
+resource "coralogix_connector" "generic_https_cases_example" {
+  type        = "generic_https"
+  name        = "generic-https cases connector for alert example"
+  description = "generic-https connector that receives case notifications"
+  connector_config = {
+    fields = [
+      {
+        field_name = "url"
+        value      = "https://webhook.example.com/cases"
+      },
+      {
+        field_name = "method"
+        value      = "POST"
+      }
+    ]
+  }
+  config_overrides = [
+    {
+      entity_type = "cases"
+      fields      = []
+    }
+  ]
+}
+
 # Connector and preset used by the alert's notification_group.destinations below.
 resource "coralogix_connector" "generic_https_example" {
   type        = "generic_https"
@@ -194,6 +220,19 @@ resource "coralogix_alert" "test" {
     }
   }
 
+  # Optional (preview) - case settings. Removing the block clears them.
+  case_settings = {
+    auto_resolve_mode  = "disabled"
+    enrichment_queries = [{ query = "source logs | limit 10" }]
+    destinations = [
+      {
+        connector_id = coralogix_connector.generic_https_cases_example.id
+        condition    = "true"
+        preset_id    = "preset_system_generic_https_cases_empty"
+      }
+    ]
+  }
+
   schedule = {
     active_on = {
       days_of_week = ["Wednesday", "Thursday"]
@@ -270,7 +309,10 @@ resource "coralogix_alert" "test" {
 #       recipients = ["example@coralogix.com", "example2@coralogix.com"]
 #       notify_on  = "Triggered and Resolved"
 #     }]
-#     router = {}  # label-based Global Router matching; use { id = "router_default" } to pin a router
+#     # label-based Global Router matching; use id = "router_default" to pin a router
+#     router = {
+#       notify_on = "Triggered and Resolved" # must match incidents_settings.notify_on
+#     }
 #   }
 
 #   incidents_settings = {

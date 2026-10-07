@@ -49,6 +49,41 @@ func TestGoldenOutputExistingResource(t *testing.T) {
 	}
 }
 
+// The golden output of a resource whose API has no DELETE. The behavior-overrides file names
+// the archive call, and the generated Delete calls it.
+func TestGoldenOutputDeleteOverride(t *testing.T) {
+	out := generateArchivedThing(t)
+	golden := filepath.Join("testdata", "golden", "archivedthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputDeleteOverride -update:\n%s", diff)
+	}
+}
+
+// generateArchivedThing generates the synthetic resource whose Delete is an archive call.
+func generateArchivedThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "archived.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "archivedthing")
+	options := Options{Resource: "ArchivedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "archived-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 func TestGoldenOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	first := filepath.Join(t.TempDir(), "thing")
@@ -134,6 +169,50 @@ func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 	}
 	if !bytes.Contains(resource, []byte(".UpdateThingRequest(*body).UpdateMask(mask).Execute()")) {
 		t.Fatalf("resource.go does not send updateMask through the query setter:\n%s", resource)
+	}
+}
+
+// The OpenAPI fork names the mask query parameter with its proto name. The
+// SDK method is the same, so the resource must match the golden output.
+func TestProtoMaskNameMatchesGolden(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	text := strings.Replace(string(input.OpenAPI), "        - name: updateMask\n", "        - name: update_mask\n", 1)
+	if text == string(input.OpenAPI) {
+		t.Fatal("cannot locate the updateMask query parameter")
+	}
+	input.OpenAPI = []byte(text)
+	assertGoldenThing(t, input, sdkDir)
+}
+
+// The OpenAPI fork writes a response_body field with a description as a single
+// allOf. It is the direct resource, so the resource must match the golden output.
+func TestSingleAllOfResponsesMatchGolden(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	direct := "              schema:\n                $ref: '#/components/schemas/Thing'\n"
+	if strings.Count(string(input.OpenAPI), direct) != 3 {
+		t.Fatal("cannot locate the Create, Get, and Update responses")
+	}
+	input.OpenAPI = []byte(strings.ReplaceAll(string(input.OpenAPI), direct, "              schema:\n                description: The thing.\n                allOf:\n                  - $ref: '#/components/schemas/Thing'\n"))
+	assertGoldenThing(t, input, sdkDir)
+}
+
+// assertGoldenThing checks that input is eligible and generates exactly the
+// golden Thing resource.
+func assertGoldenThing(t *testing.T, input source.Input, sdkDir string) {
+	t.Helper()
+	candidate := filepath.Join(t.TempDir(), "candidate.yaml")
+	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate}); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(t.TempDir(), "thing")
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, sdkDir); err != nil {
+		t.Fatal(err)
+	}
+	if diff := compareDirectories(filepath.Join("testdata", "golden", "thing"), out); diff != "" {
+		t.Fatalf("output differs from the canonical golden output:\n%s", diff)
 	}
 }
 
@@ -918,6 +997,39 @@ func TestGeneratedRuntimeSemantics(t *testing.T) {
 		t.Fatal(err)
 	}
 	semantics, err := os.ReadFile(filepath.Join("testdata", "semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The golden output is compared as text, and Go does not build testdata. The
+// existing-resource output must also compile, for example with an import for
+// the static default of a nested attribute.
+func TestExistingResourceOutputCompiles(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "legacything")
+	options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "legacy-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The generated Delete of a resource with a Delete override calls the archive operation, and
+// treats a resource that the API does not find as deleted.
+func TestDeleteOverrideRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateArchivedThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "archived_semantics_test.go"))
 	if err != nil {
 		t.Fatal(err)
 	}

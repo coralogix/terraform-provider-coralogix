@@ -686,6 +686,66 @@ func TestPatchUpdateContract(t *testing.T) {
 	}
 }
 
+func TestUpdateMaskProtoName(t *testing.T) {
+	data := string(validSpec(t))
+	protoName := strings.Replace(data, "        - name: updateMask\n", "        - name: update_mask\n", 1)
+	if protoName == data {
+		t.Fatal("cannot rename the updateMask query parameter")
+	}
+	doc, err := Load([]byte(protoName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resource, err := Build(doc, "Thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resource.UpdateMask != "update_mask" || resource.UpdateMaskPattern == "" {
+		t.Fatalf("mask %q, pattern %q", resource.UpdateMask, resource.UpdateMaskPattern)
+	}
+
+	bothNames := strings.Replace(data, "        - name: updateMask\n", "        - name: update_mask\n          in: query\n          schema: {type: string}\n        - name: updateMask\n", 1)
+	doc, err = Load([]byte(bothNames))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "CLEAR_BEHAVIOR_UNKNOWN") {
+		t.Fatalf("codes %v do not contain CLEAR_BEHAVIOR_UNKNOWN", codes)
+	}
+}
+
+func TestSingleAllOfResponseIsDirect(t *testing.T) {
+	direct := "              schema:\n                $ref: '#/components/schemas/Thing'\n"
+	allOf := "              schema:\n                description: The thing.\n                allOf:\n                  - $ref: '#/components/schemas/%s'\n"
+	spec := strings.ReplaceAll(string(validSpec(t)), direct, fmt.Sprintf(allOf, "Thing"))
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+		t.Fatalf("allOf responses are ineligible: %v", report)
+	}
+	resource, err := Build(doc, "Thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, op := range []Operation{resource.Create, resource.Get, resource.Update} {
+		if !op.Response.Direct || op.Response.Schema != "Thing" {
+			t.Errorf("%s response = %+v, want the direct Thing", op.OperationID, op.Response)
+		}
+	}
+
+	wrapped := strings.Replace(string(validSpec(t)), direct, fmt.Sprintf(allOf, "CreateThingResponse"), 1)
+	wrapped = strings.Replace(wrapped, "    DeleteThingResponse:\n", "    CreateThingResponse:\n      type: object\n      required: [thing]\n      properties:\n        thing:\n          $ref: '#/components/schemas/Thing'\n    DeleteThingResponse:\n", 1)
+	doc, err = Load([]byte(wrapped))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "RESPONSE_WRAPPER_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain RESPONSE_WRAPPER_UNSUPPORTED", codes)
+	}
+}
+
 func TestPutUpdateContract(t *testing.T) {
 	data := validSpec(t)
 	put := strings.Replace(string(data), "    patch:\n", "    put:\n", 1)

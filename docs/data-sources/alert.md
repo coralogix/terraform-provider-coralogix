@@ -21,6 +21,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 
 ### Read-Only
 
+- `case_settings` (Attributes) Case settings for the alert (preview): whether cases auto-resolve, a query that enriches the case, and where case notifications are sent. Case destinations are independent of `notification_group.destinations`; both are delivered. Removing this block clears the case settings. (see [below for nested schema](#nestedatt--case_settings))
 - `data_sources` (Attributes List) Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list. (see [below for nested schema](#nestedatt--data_sources))
 - `deleted` (Boolean)
 - `description` (String) Alert description.
@@ -34,6 +35,35 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"]. This field will be removed in the future in favor of the 'override' property where possible.
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
 - `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate (preview), analytics_threshold (preview). (see [below for nested schema](#nestedatt--type_definition))
+
+<a id="nestedatt--case_settings"></a>
+### Nested Schema for `case_settings`
+
+Read-Only:
+
+- `auto_resolve_mode` (String) Whether the case is resolved automatically when the alert resolves. Valid values: ["enabled" "disabled"]. Defaults to `enabled`.
+- `destinations` (Attributes List) Notification Center destinations notified about the cases opened by this alert. The API accepts at most 100 destinations and rejects two destinations with the same `connector_id`, `preset_id` and `condition`. (see [below for nested schema](#nestedatt--case_settings--destinations))
+- `enrichment_queries` (Attributes List) Queries that enrich the cases opened by this alert. The API accepts at most one query. (see [below for nested schema](#nestedatt--case_settings--enrichment_queries))
+
+<a id="nestedatt--case_settings--destinations"></a>
+### Nested Schema for `case_settings.destinations`
+
+Read-Only:
+
+- `condition` (String) Notification Center routing condition that decides whether this destination is notified. Use `"true"` to notify on every case notification, or filter on `caseMetadata.notificationReason` (for example `caseMetadata.notificationReason == 'caseResolved'`).
+- `connector_id` (String) ID of the Notification Center connector to notify. The connector must support the `cases` entity type, for example through a `config_overrides` entry with `entity_type = "cases"`.
+- `preset_id` (String) ID of the Notification Center preset used to render the notification. The preset must be defined for the `cases` entity type and the connector's type (for example `preset_system_generic_https_cases_empty`). When omitted, the connector type's default preset is used.
+
+
+<a id="nestedatt--case_settings--enrichment_queries"></a>
+### Nested Schema for `case_settings.enrichment_queries`
+
+Read-Only:
+
+- `query` (String) The enrichment query.
+- `type` (String) The query language. Valid values: ["dataprime"]. Defaults to `dataprime`.
+
+
 
 <a id="nestedatt--data_sources"></a>
 ### Nested Schema for `data_sources`

@@ -238,7 +238,7 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 	s.add(sdkRef{Path: path, Kind: kindType, Name: builder, Rule: ruleOperationID})
 	if name == "update" && !r.Replace {
 		s.add(sdkRef{Path: path + ".mask", Kind: kindMethod, Owner: builder, Name: goFieldName(r.UpdateMask),
-			Want: "func(" + lowerFirst(r.UpdateMask) + " string) " + builder, Rule: ruleParameter})
+			Want: "func(" + lowerFirst(goFieldName(r.UpdateMask)) + " string) " + builder, Rule: ruleParameter})
 	}
 
 	switch op.Body {

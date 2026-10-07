@@ -151,13 +151,18 @@ func computedPaths(out []string, parent string, attrs []*tfAttr) []string {
 }
 
 // defaultPackages returns the default packages, such as stringdefault, that
-// the static defaults of attrs use.
+// the static defaults of attrs and of their nested attributes use.
 func defaultPackages(attrs []*tfAttr) []string {
 	var packages []string
 	for _, attr := range attrs {
 		pkg := strings.ToLower(attr.ValueKind) + "default"
 		if strings.HasPrefix(attr.Default, pkg+".") && !containsString(packages, pkg) {
 			packages = append(packages, pkg)
+		}
+		for _, nested := range defaultPackages(attr.Attributes) {
+			if !containsString(packages, nested) {
+				packages = append(packages, nested)
+			}
 		}
 	}
 	return packages

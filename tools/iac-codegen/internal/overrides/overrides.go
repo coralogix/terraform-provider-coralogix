@@ -91,6 +91,16 @@ type API struct {
 	UpdateIDInBody bool `yaml:"updateIDInBody"`
 	// ClientSetID: the client can send the id on Create.
 	ClientSetID bool `yaml:"clientSetID"`
+	// Delete names the operation that removes the resource when the API has no DELETE.
+	Delete *Delete `yaml:"delete"`
+}
+
+// Delete is how a released resource is removed when the API has no DELETE, for example a
+// POST /things/{id}/archive. It is an object, so that a later key can add a step before the call.
+type Delete struct {
+	// Operation is the operationId of a POST whose path is the Get path plus one segment. It
+	// takes the id path parameter of Get and no request body. Its response is ignored.
+	Operation string `yaml:"operation"`
 }
 
 // Type overrides one OpenAPI object component.
@@ -191,6 +201,9 @@ func (f *File) check() error {
 	if err := f.checkEnums(); err != nil {
 		return err
 	}
+	if err := f.API.check(); err != nil {
+		return err
+	}
 	for name, t := range f.Types {
 		if t.Required != nil && len(*t.Required) != 0 {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
@@ -203,6 +216,14 @@ func (f *File) check() error {
 				return fmt.Errorf("types.%s.fields.%s: %w", name, field, err)
 			}
 		}
+	}
+	return nil
+}
+
+// check checks that a Delete override names its operation.
+func (a API) check() error {
+	if a.Delete != nil && a.Delete.Operation == "" {
+		return errors.New("api.delete.operation is required")
 	}
 	return nil
 }
@@ -325,6 +346,9 @@ func (f *File) Policy() model.Policy {
 		ClientSetID:    f.API.ClientSetID,
 		// The file states validators.inferred: false; Parse checked it.
 		NoInferredValidators: true,
+	}
+	if f.API.Delete != nil {
+		p.DeleteOperation = f.API.Delete.Operation
 	}
 	p.EnumAnyPrefix = append(p.EnumAnyPrefix, sortedKeys(f.Enums)...)
 	for _, name := range sortedKeys(f.Types) {

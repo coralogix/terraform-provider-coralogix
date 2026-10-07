@@ -3,6 +3,11 @@
 #### resource/coralogix_alert
 - DOCS: Describe `notification_group.group_by_keys` (combined vs. separate cases).
 
+# Release 3.20.0
+
+#### resource/coralogix_alert
+- NOTE: The API now rejects an alert when `notification_group.router.notify_on` differs from `incidents_settings.notify_on`. Set both to the same value. If `router` is set without `notify_on`, the provider sends `"Triggered Only"`, so an alert with `incidents_settings.notify_on = "Triggered and Resolved"` fails too. Set `router.notify_on = "Triggered and Resolved"` for such alerts.
+
 #### resource/coralogix_grafana_folder
 - FIX: Handle out-of-band folder deletion on read — `terraform plan` now warns and recreates instead of erroring.
 - FIX: Mark uid as ForceNew. The Grafana API cannot update a folder's uid, so a uid change now replaces the folder, which also deletes the dashboards inside it.
@@ -23,6 +28,9 @@
 
 #### data-source/coralogix_global_router
 - FEAT: Add the computed attributes `create_time` and `update_time`.
+
+#### resource/coralogix_alert
+- FEAT: Add `case_settings` (preview) so case settings (auto-resolve mode, enrichment query, case destinations) can be managed in Terraform and are kept across updates. Also flows through to `data-source/coralogix_alert`.
 
 # Release 3.19.0
 

@@ -1009,7 +1009,102 @@ func V3() schema.Schema {
 					},
 				},
 			},
+			"case_settings": caseSettingsSchema(),
 		},
+	}
+}
+
+// caseSettingsSchema is only used by V3. The API stores a case settings
+// object that holds nothing but defaults as absent, so auto_resolve_mode
+// always sends a concrete value and the lists default to known empty lists:
+// a configured block then reads back exactly as planned.
+func caseSettingsSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		MarkdownDescription: "Case settings for the alert (preview): whether cases auto-resolve, a query that enriches the case, and where case notifications are sent. " +
+			"Case destinations are independent of `notification_group.destinations`; both are delivered. Removing this block clears the case settings.",
+		Attributes: map[string]schema.Attribute{
+			"auto_resolve_mode": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(alerttypes.CaseAutoResolveModeEnabled),
+				Validators: []validator.String{
+					stringvalidator.OneOf(alerttypes.ValidCaseAutoResolveModes...),
+				},
+				MarkdownDescription: fmt.Sprintf("Whether the case is resolved automatically when the alert resolves. Valid values: %q. Defaults to `%s`.", alerttypes.ValidCaseAutoResolveModes, alerttypes.CaseAutoResolveModeEnabled),
+			},
+			"enrichment_queries": schema.ListNestedAttribute{
+				Optional:            true,
+				Computed:            true,
+				Default:             listdefault.StaticValue(types.ListValueMust(types.ObjectType{AttrTypes: CaseEnrichmentQueryAttr()}, []attr.Value{})),
+				MarkdownDescription: "Queries that enrich the cases opened by this alert. The API accepts at most one query.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"query": schema.StringAttribute{
+							Required:            true,
+							MarkdownDescription: "The enrichment query.",
+						},
+						"type": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+							Default:  stringdefault.StaticString(alerttypes.CaseEnrichmentQueryTypeDataPrime),
+							Validators: []validator.String{
+								stringvalidator.OneOf(alerttypes.ValidCaseEnrichmentQueryTypes...),
+							},
+							MarkdownDescription: fmt.Sprintf("The query language. Valid values: %q. Defaults to `%s`.", alerttypes.ValidCaseEnrichmentQueryTypes, alerttypes.CaseEnrichmentQueryTypeDataPrime),
+						},
+					},
+				},
+			},
+			"destinations": schema.ListNestedAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  listdefault.StaticValue(types.ListValueMust(types.ObjectType{AttrTypes: CaseDestinationAttr()}, []attr.Value{})),
+				MarkdownDescription: "Notification Center destinations notified about the cases opened by this alert. The API accepts at most 100 destinations " +
+					"and rejects two destinations with the same `connector_id`, `preset_id` and `condition`.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"connector_id": schema.StringAttribute{
+							Required:            true,
+							MarkdownDescription: "ID of the Notification Center connector to notify. The connector must support the `cases` entity type, for example through a `config_overrides` entry with `entity_type = \"cases\"`.",
+						},
+						"condition": schema.StringAttribute{
+							Required: true,
+							MarkdownDescription: "Notification Center routing condition that decides whether this destination is notified. Use `\"true\"` to notify on every case notification, " +
+								"or filter on `caseMetadata.notificationReason` (for example `caseMetadata.notificationReason == 'caseResolved'`).",
+						},
+						"preset_id": schema.StringAttribute{
+							Optional: true,
+							MarkdownDescription: "ID of the Notification Center preset used to render the notification. The preset must be defined for the `cases` entity type and the connector's type " +
+								"(for example `preset_system_generic_https_cases_empty`). When omitted, the connector type's default preset is used.",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func CaseSettingsAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"auto_resolve_mode":  types.StringType,
+		"enrichment_queries": types.ListType{ElemType: types.ObjectType{AttrTypes: CaseEnrichmentQueryAttr()}},
+		"destinations":       types.ListType{ElemType: types.ObjectType{AttrTypes: CaseDestinationAttr()}},
+	}
+}
+
+func CaseEnrichmentQueryAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"query": types.StringType,
+		"type":  types.StringType,
+	}
+}
+
+func CaseDestinationAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"connector_id": types.StringType,
+		"condition":    types.StringType,
+		"preset_id":    types.StringType,
 	}
 }
 
