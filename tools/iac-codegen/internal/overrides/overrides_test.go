@@ -153,3 +153,39 @@ func TestDeleteOperation(t *testing.T) {
 		})
 	}
 }
+
+func TestEquality(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n"
+	f, err := Parse([]byte(head + "      config: {equality: yaml}\n      settings: {equality: json, description: A JSON object.}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, l := range f.Lines() {
+		got = append(got, l.String()+"="+l.Equality+":"+strings.Join(l.Keys, "+"))
+	}
+	if want := "types.R.fields.config=yaml:equality,types.R.fields.settings=json:description+equality"; strings.Join(got, ",") != want {
+		t.Fatalf("lines = %s, want %s", strings.Join(got, ","), want)
+	}
+	if released := f.Policy().Released; len(released) != 0 {
+		t.Fatalf("released = %v: equality does not state presence", released)
+	}
+	tests := map[string]struct {
+		line string
+		want string
+	}{
+		"unknown value":  {"{equality: toml}", `equality is "toml"`},
+		"upper case":     {"{equality: YAML}", `equality is "YAML"`},
+		"skipped field":  {"{skip: true, equality: yaml}", "skipped field"},
+		"not a scalar":   {"{equality: [yaml]}", "into string"},
+		"empty is unset": {"{equality: \"\"}", "sets nothing"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(head + "      config: " + test.line + "\n"))
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}

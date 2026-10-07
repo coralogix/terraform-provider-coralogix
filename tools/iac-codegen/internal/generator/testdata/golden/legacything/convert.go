@@ -241,7 +241,7 @@ func flattenLegacyThing(ctx context.Context, p path.Path, v *legacy_things_servi
 			priorRules = priorItems[LegacyRuleModel](ctx, prior.Rules)
 		}
 		for i := range v.Rules {
-			// The prior item at the same index keeps the order of its own lists.
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
 			var priorItem *LegacyRuleModel
 			if i < len(priorRules) {
 				priorItem = &priorRules[i]
@@ -423,7 +423,7 @@ func flattenEnum[T ~string](v *T, zero string) types.String {
 }
 
 // priorItems returns the items of the prior list, or nil when it cannot be read. The prior only
-// keeps an order, so a prior that cannot be read is not an error.
+// keeps an order or the text of a document, so a prior that cannot be read is not an error.
 func priorItems[T any](ctx context.Context, v elements) []T {
 	var scratch diag.Diagnostics
 	items := expandElements[T](ctx, path.Empty(), v, &scratch)

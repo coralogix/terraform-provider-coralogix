@@ -221,7 +221,8 @@ func setState(ctx context.Context, v *global_routers_service.GlobalRouter, prior
 }
 
 // priorModel returns the model in the state or the plan, or nil when there is none or it
-// cannot be read. The prior only keeps the order of lists that the API does not order.
+// cannot be read. The prior keeps the order of lists that the API does not order, and the text
+// of documents that the API returns in another format.
 func priorModel(ctx context.Context, data tfData) *GlobalRouterModel {
 	var m GlobalRouterModel
 	if data == nil || data.Get(ctx, &m).HasError() {
