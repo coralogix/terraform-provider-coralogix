@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -1077,6 +1078,9 @@ func markPrior(d *convData) error {
 		return err
 	}
 	propagatePrior(d)
+	if err := checkPriorContainers(d); err != nil {
+		return err
+	}
 	for _, obj := range d.Objects {
 		if !obj.Same {
 			continue
@@ -1115,6 +1119,21 @@ func markPriorFields(d *convData) error {
 			}
 			obj.NeedsPrior = true
 			f.Object.Same = true
+		}
+	}
+	return nil
+}
+
+// errPriorContainer reports a field that needs the prior model in a container whose flatten has no
+// prior value to pass: a map of objects, or a computed object stored as types.Object.
+var errPriorContainer = errors.New("equality and keepPriorOrder are not supported in a map of objects or in a computed object")
+
+func checkPriorContainers(d *convData) error {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.Object != nil && f.Object.NeedsPrior && (f.Conv == convObjectMap || f.ObjectValue) {
+				return fmt.Errorf("%s.%s holds %s: %w", obj.Model, f.TFName, f.Object.Model, errPriorContainer)
+			}
 		}
 	}
 	return nil
