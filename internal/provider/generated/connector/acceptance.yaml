@@ -15,4 +15,8 @@ values:
 minimal:
   - connector_config
 
+# Provider 3.20.0 cannot create a connector without a description (plans null, API returns "").
+upgradeMinimal:
+  - description
+
 upgradeFrom: "3.20.0"
