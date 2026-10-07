@@ -669,6 +669,26 @@ func keepOrder[M, S any](ctx context.Context, items []S, prior types.List, expan
 	return orderLike(items, priorSDK, same)
 }
 
+// matchPriorSetItem returns the unused prior model whose expanded SDK value equals item.
+// A set has no order, so pairing by slice index can attach nested prior lists to the wrong object.
+func matchPriorSetItem[M, S any](ctx context.Context, item *S, prior []M, used []bool, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) *M {
+	for i := range prior {
+		if used[i] {
+			continue
+		}
+		var scratch diag.Diagnostics
+		expanded := expand(ctx, path.Empty(), &prior[i], &scratch)
+		if scratch.HasError() {
+			continue
+		}
+		if same(item, expanded) {
+			used[i] = true
+			return &prior[i]
+		}
+	}
+	return nil
+}
+
 // orderLike returns prior when it holds the same items as items, in another order. Otherwise
 // the items really changed, and the API order stays, so the plan shows the change.
 func orderLike[T any](items, prior []T, same func(a, b *T) bool) []T {
@@ -1188,13 +1208,13 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			prior{{.Model}} = priorItems[{{.Object.Model}}](ctx, prior.{{.Model}})
 		}
 		{{- end}}
+		{{- if and (eq .Collection "Set") .Object.NeedsPrior}}
+		usedPrior{{.Model}} := make([]bool, len(prior{{.Model}}))
+		{{- end}}
 		for i := range {{$src}} {
 			{{- if eq .Collection "Set"}}
 			{{- if .Object.NeedsPrior}}
-			var priorItem *{{.Object.Model}}
-			if i < len(prior{{.Model}}) {
-				priorItem = &prior{{.Model}}[i]
-			}
+			priorItem := matchPriorSetItem(ctx, &{{$src}}[i], prior{{.Model}}, usedPrior{{.Model}}, expand{{.Object.Func}}, same{{.Object.Func}})
 			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], priorItem, diags))
 			{{- else}}
 			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], diags))

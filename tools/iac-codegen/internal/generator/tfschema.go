@@ -400,6 +400,8 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
 	case v.SizeAtLeast != nil && (a.ValueKind == "List" || a.ValueKind == "Set" || a.ValueKind == "Map"):
 		return fmt.Sprintf("%s.SizeAtLeast(%d)", pkg, *v.SizeAtLeast), nil
+	case v.LengthAtLeast != nil && a.ValueKind == "String":
+		return fmt.Sprintf("stringvalidator.LengthAtLeast(%d)", *v.LengthAtLeast), nil
 	}
 	return "", fmt.Errorf("the validator does not fit a %s attribute", a.ValueKind)
 }

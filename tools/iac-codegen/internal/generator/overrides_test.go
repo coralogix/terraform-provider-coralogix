@@ -215,6 +215,18 @@ func TestInferredFalseKeepsOneOfGroupValidators(t *testing.T) {
 	}
 }
 
+func TestLengthAtLeastOverride(t *testing.T) {
+	a := &tfAttr{Name: "name", Kind: "String", ValueKind: "String", Required: true, Component: "T", Property: "name"}
+	out := &tfResource{Attributes: []*tfAttr{a}}
+	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      name: {validators: [{lengthAtLeast: 1}]}\n")
+	if err := applyOverrides(out, file); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.Validators; !slices.Equal(got, []string{"stringvalidator.LengthAtLeast(1)"}) {
+		t.Fatalf("validators = %v, want LengthAtLeast(1)", got)
+	}
+}
+
 func thingSpec(t *testing.T) []byte {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join("testdata", "openapi.yaml"))

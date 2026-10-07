@@ -21,6 +21,9 @@
 - FEAT: `keepPriorOrder` works on a list whose request items use another component than its response items, such as a Create item without the server-set id and hash. The items pair on the fields that the request sends.
 - FEAT: A `default` line in `behavior-overrides.yaml` accepts a number for an `Int64`, `Int32`, `Float64`, or `Float32` attribute, for example `{computed: true, default: 0}`. Before, it accepted only a string or a bool.
 - FIX: In existing mode, a top-level field with a server default in the contract uses that default when `behavior-overrides.yaml` has no `default` or `computed: false` line for it. Before, the field became plain `Optional`, and an apply without it failed with `was null, but now` the default.
+- CHORE: Bump the generator to `v0.1.0-beta.6`.
+- FEAT: Existing-resource `lengthAtLeast` keeps a released non-empty string validator.
+- FIX: Flatten of a set of objects matches prior items by identity when nested lists keep prior order.
 - FEAT: Generate unordered sets of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
 - FIX: A nested object collection marked `collection: set` now flattens as a set in the generated attr.Type map, matching the schema.
