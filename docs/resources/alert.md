@@ -2296,7 +2296,7 @@ Required:
 Optional:
 
 - `destinations` (Attributes List) Link a 3rd party notification to an alert. (see [below for nested schema](#nestedatt--notification_group--destinations))
-- `group_by_keys` (List of String)
+- `group_by_keys` (List of String) Splits cases and notifications: one per combination of these keys' values. Omit for a single combined case (an empty list is rejected). Must be a subset of `group_by`, except for metric alerts.
 - `router` (Attributes) (see [below for nested schema](#nestedatt--notification_group--router))
 - `webhooks_settings` (Attributes Set) (see [below for nested schema](#nestedatt--notification_group--webhooks_settings))
 

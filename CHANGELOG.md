@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- DOCS: Describe `notification_group.group_by_keys` (combined vs. separate cases).
+
 # Release 3.20.0
 
 #### resource/coralogix_alert

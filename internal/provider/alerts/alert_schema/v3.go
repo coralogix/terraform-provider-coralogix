@@ -793,6 +793,7 @@ func V3() schema.Schema {
 						Validators: []validator.List{
 							listvalidator.SizeAtLeast(1),
 						},
+						MarkdownDescription: "Splits cases and notifications: one per combination of these keys' values. Omit for a single combined case (an empty list is rejected). Must be a subset of `group_by`, except for metric alerts.",
 					},
 					"webhooks_settings": schema.SetNestedAttribute{
 						Optional: true,
