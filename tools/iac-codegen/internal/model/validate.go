@@ -49,7 +49,7 @@ func Validate(doc *v3.Document, name string, ids OperationIDs) issue.Report {
 // ValidateWithPolicy is Validate under the given rule set.
 func ValidateWithPolicy(doc *v3.Document, name string, ids OperationIDs, p Policy) issue.Report {
 	var report issue.Report
-	ops, opIssues := validateOperations(doc, name, ids)
+	ops, opIssues := validateOperations(doc, name, ids, p)
 	report = append(report, opIssues...)
 
 	t, surveyIssues := SurveyWithPolicy(doc, name, p)
@@ -207,52 +207,20 @@ func fixedObject(schema *base.Schema) bool {
 	return schema.AdditionalProperties == nil || !schema.AdditionalProperties.IsA() && !schema.AdditionalProperties.B
 }
 
-func validateOperations(doc *v3.Document, name string, ids OperationIDs) (map[verb]foundOp, issue.Report) {
+func validateOperations(doc *v3.Document, name string, ids OperationIDs, p Policy) (map[verb]foundOp, issue.Report) {
 	found := map[verb]foundOp{}
 	if doc.Paths == nil {
 		return found, issue.Report{{Code: "RESOURCE_LIFECYCLE_INCOMPLETE", Location: "paths", Message: "The OpenAPI document has no paths.", Remediation: "Add one complete Create, Get, Update or Replace, and Delete lifecycle."}}
 	}
+	report := deleteOverrideConflictIssues(ids, p)
+	if len(report) != 0 {
+		return found, report
+	}
+	ids, _ = p.operationIDs(ids) // deleteOverrideConflictIssues reports the conflict.
 	explicit := map[verb]string{opCreate: ids.Create, opGet: ids.Get, opUpdate: ids.Update, opDelete: ids.Delete}
-	var report issue.Report
 	for _, role := range verbs {
-		var candidates []foundOp
-		for path, item := range doc.Paths.PathItems.FromOldest() {
-			for method, op := range item.GetOperations().FromOldest() {
-				match := explicit[role] != "" && op.OperationId == explicit[role]
-				if explicit[role] == "" {
-					match = strings.HasSuffix(op.OperationId, "_"+string(role)+name)
-					if role == opUpdate {
-						match = match || strings.HasSuffix(op.OperationId, "_"+string(opReplace)+name)
-					}
-				}
-				if match {
-					candidates = append(candidates, foundOp{path: path, method: strings.ToUpper(method), item: item, op: op})
-				}
-			}
-		}
-		location := "paths." + strings.ToLower(string(role))
-		switch len(candidates) {
-		case 0:
-			wanted := "a unique operationId suffix"
-			if explicit[role] != "" {
-				wanted = fmt.Sprintf("operationId %q", explicit[role])
-			}
-			report = append(report, issue.Issue{Code: "OPERATION_NOT_FOUND", Location: location, Message: fmt.Sprintf("No %s operation matches %s.", role, wanted), Remediation: "Fix the source API contract or select the exact operation ID."})
-		case 1:
-			candidate := candidates[0]
-			candidateIssues := operationCandidateIssues(location, role, candidate)
-			report = append(report, candidateIssues...)
-			if len(candidateIssues) == 0 {
-				found[role] = candidate
-			}
-		default:
-			var names []string
-			for _, candidate := range candidates {
-				names = append(names, candidate.op.OperationId)
-			}
-			slices.Sort(names)
-			report = append(report, issue.Issue{Code: "OPERATION_AMBIGUOUS", Location: location, Message: fmt.Sprintf("More than one %s operation matches: %s.", role, strings.Join(names, ", ")), Remediation: "Select one exact operation ID or make discovery unique in the source API contract."})
-		}
+		candidates := matchingOperations(doc, name, role, explicit[role])
+		report = append(report, validateRole(role, candidates, explicit[role], p, found)...)
 	}
 	if len(found) != len(verbs) {
 		report = append(report, issue.Issue{Code: "RESOURCE_LIFECYCLE_INCOMPLETE", Location: "paths", Message: "The resource does not have one eligible operation for every lifecycle step.", Remediation: "Provide one Create, Get, Update or Replace, and Delete operation."})
@@ -260,16 +228,109 @@ func validateOperations(doc *v3.Document, name string, ids OperationIDs) (map[ve
 	return found, report
 }
 
-func operationCandidateIssues(location string, role verb, candidate foundOp) issue.Report {
-	if !slices.Contains(verbMethods[role], candidate.method) {
+// validateRole checks the operations that match one lifecycle step. It adds the one eligible
+// operation to found.
+func validateRole(role verb, candidates []foundOp, explicit string, p Policy, found map[verb]foundOp) issue.Report {
+	location := "paths." + strings.ToLower(string(role))
+	switch len(candidates) {
+	case 0:
+		if role == opDelete && p.DeleteOperation != "" {
+			return issue.Report{deleteOverrideNotFoundIssue(p)}
+		}
+		wanted := "a unique operationId suffix"
+		if explicit != "" {
+			wanted = fmt.Sprintf("operationId %q", explicit)
+		}
+		return issue.Report{{Code: "OPERATION_NOT_FOUND", Location: location, Message: fmt.Sprintf("No %s operation matches %s.", role, wanted), Remediation: "Fix the source API contract or select the exact operation ID."}}
+	case 1:
+		candidate := candidates[0]
+		report := operationCandidateIssues(location, role, candidate, p)
+		if role == opDelete && p.DeleteOperation != "" && len(report) == 0 {
+			report = deleteActionIssues(location, candidate, found)
+		}
+		if len(report) == 0 {
+			found[role] = candidate
+		}
+		return report
+	default:
+		var names []string
+		for _, candidate := range candidates {
+			names = append(names, candidate.op.OperationId)
+		}
+		slices.Sort(names)
+		return issue.Report{{Code: "OPERATION_AMBIGUOUS", Location: location, Message: fmt.Sprintf("More than one %s operation matches: %s.", role, strings.Join(names, ", ")), Remediation: "Select one exact operation ID or make discovery unique in the source API contract."}}
+	}
+}
+
+func operationCandidateIssues(location string, role verb, candidate foundOp, p Policy) issue.Report {
+	if methods := p.methods(role); !slices.Contains(methods, candidate.method) {
+		code, remediation := "OPERATION_METHOD_INCOMPATIBLE", "Use the required HTTP method in the source API contract."
+		if role == opDelete && p.DeleteOperation != "" {
+			code, remediation = "DELETE_OVERRIDE_METHOD_INCOMPATIBLE", "Name a POST operation in api.delete.operation, or delete the line when the API has a DELETE."
+		}
 		return issue.Report{{
-			Code:        "OPERATION_METHOD_INCOMPATIBLE",
+			Code:        code,
 			Location:    location + "." + candidate.op.OperationId,
-			Message:     fmt.Sprintf("The method is %s. The %s operation needs %s.", candidate.method, role, strings.Join(verbMethods[role], " or ")),
-			Remediation: "Use the required HTTP method in the source API contract.",
+			Message:     fmt.Sprintf("The method is %s. The %s operation needs %s.", candidate.method, role, strings.Join(methods, " or ")),
+			Remediation: remediation,
 		}}
 	}
 	return requiredParameterIssues(location, role, candidate)
+}
+
+// deleteOverrideLocation is the line of the behavior-overrides file that names the Delete operation.
+const deleteOverrideLocation = "behavior-overrides.yaml:api.delete.operation"
+
+// deleteOverrideConflictIssues reports a Delete override that the --delete-operation flag
+// contradicts: both name the Delete operation.
+func deleteOverrideConflictIssues(ids OperationIDs, p Policy) issue.Report {
+	if p.DeleteOperation == "" || ids.Delete == "" {
+		return nil
+	}
+	return issue.Report{{
+		Code:        "DELETE_OVERRIDE_CONFLICT",
+		Location:    deleteOverrideLocation,
+		Message:     fmt.Sprintf("The overrides name the Delete operation %q, and --delete-operation names %q.", p.DeleteOperation, ids.Delete),
+		Remediation: "Name the Delete operation in one place.",
+	}}
+}
+
+func deleteOverrideNotFoundIssue(p Policy) issue.Issue {
+	return issue.Issue{
+		Code:        "DELETE_OVERRIDE_OPERATION_NOT_FOUND",
+		Location:    deleteOverrideLocation,
+		Message:     fmt.Sprintf("No operation has the operationId %q.", p.DeleteOperation),
+		Remediation: "Name an operation of the API contract, or delete the line.",
+	}
+}
+
+// deleteActionIssues checks the operation of a Delete override against Get: a POST on the Get
+// path plus one segment, with the id path parameter of Get and no request body. The generated
+// call sends only the id, so any other input would be lost.
+func deleteActionIssues(location string, candidate foundOp, found map[verb]foundOp) issue.Report {
+	get, ok := found[opGet]
+	if !ok {
+		return nil // The Get issue is reported.
+	}
+	location += "." + candidate.op.OperationId
+	var report issue.Report
+	getID, getErr := idParam(get)
+	id, err := idParam(candidate)
+	switch {
+	case getErr != nil:
+		report = append(report, issue.Issue{Code: "DELETE_OVERRIDE_ID_INCOMPATIBLE", Location: location + ".parameters", Message: fmt.Sprintf("Get has no single id path parameter (%s). A Delete override needs the resource id.", getErr), Remediation: "Use a Delete override only for a resource with an id in the Get path."})
+	case err != nil:
+		report = append(report, issue.Issue{Code: "DELETE_OVERRIDE_ID_INCOMPATIBLE", Location: location + ".parameters", Message: fmt.Sprintf("The operation has %s. It needs only the id path parameter %q of Get.", err, getID), Remediation: "Give the operation exactly the id path parameter of Get."})
+	case id != getID:
+		report = append(report, issue.Issue{Code: "DELETE_OVERRIDE_ID_INCOMPATIBLE", Location: location + ".parameters.path." + id, Message: fmt.Sprintf("The id path parameter is %q. Get uses %q.", id, getID), Remediation: "Give the operation exactly the id path parameter of Get."})
+	}
+	if !deleteActionPath(get.path, candidate.path) {
+		report = append(report, issue.Issue{Code: "DELETE_OVERRIDE_PATH_INCOMPATIBLE", Location: location, Message: fmt.Sprintf("The path is %s. A Delete override needs the Get path plus one segment, for example %s/archive.", candidate.path, get.path), Remediation: "Name an operation on the Get path plus one segment."})
+	}
+	if candidate.op.RequestBody != nil {
+		report = append(report, issue.Issue{Code: "DELETE_OVERRIDE_BODY_UNSUPPORTED", Location: location + ".requestBody", Message: "The operation has a request body. The generated Delete sends only the id.", Remediation: "Remove the request body from the operation, or wait until the generator can send it."})
+	}
+	return report
 }
 
 func requiredParameterIssues(location string, role verb, op foundOp) issue.Report {

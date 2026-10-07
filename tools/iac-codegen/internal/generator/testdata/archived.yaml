@@ -1,0 +1,79 @@
+# A resource that users already have, whose API has no DELETE. An archive call
+# removes it, and the behavior-overrides file names that call as the Delete.
+openapi: 3.1.0
+info: {title: archived, version: 1.0.0}
+paths:
+  /archived/v1/things:
+    post:
+      tags: [Archived Things Service]
+      operationId: ArchivedThingsService_CreateArchivedThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Archived Thing Request
+              type: object
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ArchivedThing'}
+  /archived/v1/things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Archived Things Service]
+      operationId: ArchivedThingsService_GetArchivedThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ArchivedThing'}
+    put:
+      tags: [Archived Things Service]
+      operationId: ArchivedThingsService_ReplaceArchivedThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Replace Archived Thing Request
+              type: object
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ArchivedThing'}
+  /archived/v1/things/{id}/archive:
+    post:
+      tags: [Archived Things Service]
+      operationId: ArchivedThingsService_ArchiveArchivedThing
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ArchiveArchivedThingResponse'}
+components:
+  schemas:
+    ArchiveArchivedThingResponse:
+      type: object
+      required: []
+    ArchivedThing:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: string, readOnly: true}
+        name: {type: string, minLength: 1}

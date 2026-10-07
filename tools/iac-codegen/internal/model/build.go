@@ -62,7 +62,7 @@ func BuildWithOperationIDs(doc *v3.Document, name string, ids OperationIDs) (*Re
 
 // BuildWithPolicy builds a resource under the given rule set.
 func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Policy) (*Resource, error) {
-	ops, err := findOperations(doc, name, ids)
+	ops, err := findOperations(doc, name, ids, policy)
 	if err != nil {
 		return nil, err
 	}
@@ -135,10 +135,14 @@ func SurveyWithPolicy(doc *v3.Document, name string, policy Policy) (*Type, []er
 	return t, issues
 }
 
-func findOperations(doc *v3.Document, name string, ids OperationIDs) (map[verb]foundOp, error) {
+func findOperations(doc *v3.Document, name string, ids OperationIDs, p Policy) (map[verb]foundOp, error) {
 	found := map[verb]foundOp{}
 	if doc.Paths == nil {
 		return nil, errors.New("spec has no paths")
+	}
+	ids, err := p.operationIDs(ids)
+	if err != nil {
+		return nil, err
 	}
 	explicit := map[verb]string{opCreate: ids.Create, opGet: ids.Get, opUpdate: ids.Update, opDelete: ids.Delete}
 	for _, v := range verbs {
@@ -169,8 +173,8 @@ func findOperations(doc *v3.Document, name string, ids OperationIDs) (map[verb]f
 		if !ok {
 			return nil, fmt.Errorf("%s: no operation with operationId suffix %s", v, suffix)
 		}
-		if !slices.Contains(verbMethods[v], f.method) {
-			return nil, fmt.Errorf("%s: %s is %s, want %s", v, f.op.OperationId, f.method, strings.Join(verbMethods[v], " or "))
+		if !slices.Contains(p.methods(v), f.method) {
+			return nil, fmt.Errorf("%s: %s is %s, want %s", v, f.op.OperationId, f.method, strings.Join(p.methods(v), " or "))
 		}
 		if params := unsupportedRequiredParameters(v, f); len(params) != 0 {
 			return nil, fmt.Errorf("%s: required %s parameter %q is not supported", v, params[0].In, params[0].Name)
@@ -245,12 +249,25 @@ func (r *Resource) readOperations(ops map[verb]foundOp) error {
 		return fmt.Errorf("get: path %s, want %s", itemPath, want)
 	}
 	for _, v := range item {
+		if v == opDelete && r.Policy.DeleteOperation != "" {
+			if !deleteActionPath(itemPath, ops[v].path) {
+				return fmt.Errorf("%s: path %s, want %s/<action>", v, ops[v].path, itemPath)
+			}
+			continue
+		}
 		if ops[v].path != itemPath {
 			return fmt.Errorf("%s: path %s, want %s (as in get)", v, ops[v].path, itemPath)
 		}
 	}
 
 	return r.readTargets(ops)
+}
+
+// deleteActionPath reports whether path is the item path plus one literal
+// segment, for example /things/{id}/archive. A Delete override uses this path.
+func deleteActionPath(itemPath, path string) bool {
+	segment, ok := strings.CutPrefix(path, itemPath+"/")
+	return ok && segment != "" && !strings.ContainsAny(segment, "/{}")
 }
 
 // itemOperations returns the operations besides Get that must have the id in
@@ -307,6 +324,9 @@ func (r *Resource) readTargets(ops map[verb]foundOp) error {
 		if targets[v].Body == "" {
 			return fmt.Errorf("%s: no request body", v)
 		}
+	}
+	if r.Policy.DeleteOperation != "" && ops[opDelete].op.RequestBody != nil {
+		return fmt.Errorf("%s: %s has a request body, want none", opDelete, r.Delete.OperationID)
 	}
 	return nil
 }
