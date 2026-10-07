@@ -68,6 +68,35 @@ func TestEqualityRejectsFieldsThatAreNoDocument(t *testing.T) {
 	}
 }
 
+// The flatten of a map of objects and of a computed object passes no prior model, so equality in the
+// objects they hold is rejected instead of generating code that does not compile.
+func TestEqualityRejectsContainersWithoutAPrior(t *testing.T) {
+	remotes := "                remotes:\n                  type: array\n                  items: {$ref: '#/components/schemas/ConfigRemote'}\n"
+	byName := "                byName:\n                  type: object\n                  additionalProperties: {$ref: '#/components/schemas/ConfigRemote'}\n"
+	mapSpec := strings.ReplaceAll(configThingSpec(t), remotes, remotes+byName)
+	mapSpec = strings.Replace(mapSpec, "    ConfigRemote:\n", "        byName:\n          type: object\n          additionalProperties: {$ref: '#/components/schemas/ConfigRemote'}\n    ConfigRemote:\n", 1)
+	computedSpec := strings.Replace(configThingSpec(t), "    ConfigRemote:\n",
+		"        status:\n          readOnly: true\n          allOf:\n            - $ref: '#/components/schemas/ConfigStatus'\n"+
+			"    ConfigStatus:\n      type: object\n      required: []\n      properties:\n        document: {type: string, x-coralogix-presence: true}\n"+
+			"    ConfigRemote:\n", 1)
+	if strings.Count(mapSpec, "byName:") != 3 || !strings.Contains(computedSpec, "ConfigStatus:") {
+		t.Fatal("the test contracts did not change as intended: update the replaced text")
+	}
+	tests := map[string]struct{ spec, overrides string }{
+		"map of objects":  {mapSpec, "  ConfigRemote:\n    fields:\n      rawConfiguration: {equality: yaml}\n"},
+		"computed object": {computedSpec, "  ConfigStatus:\n    fields:\n      document: {equality: yaml}\n"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := validateOpenAPIWith([]byte(test.spec), "ConfigThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, configThingHead+test.overrides))
+			report := requireReport(t, err)
+			if !reportHas(report, "OVERRIDE_PRIOR_CONTAINER", "renderer.conversion") || len(report) != 1 {
+				t.Fatalf("report:\n%s\nwant only OVERRIDE_PRIOR_CONTAINER", report)
+			}
+		})
+	}
+}
+
 // check --overrides and generate share one eligibility path, so both report the same issues.
 func TestCheckAndGenerateAgreeOnEquality(t *testing.T) {
 	dir := t.TempDir()

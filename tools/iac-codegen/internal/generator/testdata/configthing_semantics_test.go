@@ -37,6 +37,16 @@ func TestYAMLEqual(t *testing.T) {
 		"empty":                {"", "", true},
 		"empty and document":   {"", "a: 1", false},
 		"empty and blank":      {"", "\n", true},
+		"beyond float64":       {"a: 9007199254740992", "a: 9007199254740993", false},
+		"beyond int64":         {"a: 18446744073709551616", "a: 18446744073709551617", false},
+		"same big integer":     {"a: 18446744073709551617", "{a: 18446744073709551617}", true},
+		"decimal beyond":       {"a: 0.10000000000000000001", "a: 0.10000000000000000002", false},
+		"same float forms":     {"a: 1.5", "a: 15e-1", true},
+		"integer and float":    {"a: 1", "a: 1.0", false},
+		"hex integer":          {"a: 0x10", "a: 16", true},
+		"alias":                {"x: &v [1]\ny: *v", "x: [1]\ny: [1]", true},
+		"repeated key":         {"a: 1\na: 2", "a: 2", false},
+		"number keys":          {"1: a\n2: b", "{2: b, 1: a}", true},
 	}
 	for name, test := range tests {
 		if got := yamlEqual(test.a, test.b); got != test.want {
@@ -57,6 +67,10 @@ func TestJSONEqual(t *testing.T) {
 		"invalid itself":           {`{"a":`, `{"a":`, true},
 		"empty":                    {"", "", true},
 		"empty and document":       {"", "{}", false},
+		"beyond float64":           {`{"a":9007199254740992}`, `{"a":9007199254740993}`, false},
+		"decimal beyond":           {`[0.10000000000000000001]`, `[0.10000000000000000002]`, false},
+		"same number forms":        {`{"a":[1, 1.5]}`, `{"a":[1.0, 15e-1]}`, true},
+		"trailing value":           {`{"a":1} {}`, `{"a":1}`, false},
 	}
 	for name, test := range tests {
 		if got := jsonEqual(test.a, test.b); got != test.want {
@@ -266,6 +280,16 @@ func TestChangedDocumentPlansUpdate(t *testing.T) {
 		if !planned.Equal(want) {
 			t.Errorf("%s: planned:\n%v\nwant:\n%v", name, planned, want)
 		}
+	}
+}
+
+// Numbers that one float64 holds are different numbers, so changing one plans an update.
+func TestChangedBigNumberPlansUpdate(t *testing.T) {
+	prior := thing{settings: str(`{"id":9007199254740992}`), name: str("name"), remotes: []string{"id: 9007199254740992"}}
+	config := thing{settings: str(`{"id":9007199254740993}`), name: str("name"), remotes: []string{"id: 9007199254740993"}}
+	planned, _, _ := plan(t, prior, config)
+	if !at(t, planned, "settings").Equal(str(`{"id":9007199254740993}`)) || !at(t, planned, "remotes", 0, "raw_configuration").Equal(str("id: 9007199254740993")) {
+		t.Fatalf("planned = %v, want the configured numbers", planned)
 	}
 }
 
