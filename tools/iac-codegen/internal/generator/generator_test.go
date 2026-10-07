@@ -274,6 +274,25 @@ func TestEnumCollectionFlatteningUsesGuardedHelpers(t *testing.T) {
 	}
 }
 
+func TestObjectCollectionAttrTypeFollowsSetOrList(t *testing.T) {
+	child := &convObject{
+		Model:         "Item",
+		AttrTypesFunc: "itemAttrTypes",
+		Fields:        []*convField{{TFName: "name", Conv: convString}},
+	}
+	b := &convBuilder{}
+	got, err := b.attrType(&convObject{Model: "Parent"}, &convField{
+		TFName: "items", Conv: convObjects, Collection: "Set", Object: child,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "types.SetType{ElemType: types.ObjectType{AttrTypes: itemAttrTypes()}}"
+	if got != want {
+		t.Fatalf("attr type:\n  got  %s\n  want %s", got, want)
+	}
+}
+
 func TestEligibilityFailurePreservesOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 2)

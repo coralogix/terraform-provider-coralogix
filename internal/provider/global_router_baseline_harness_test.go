@@ -32,6 +32,11 @@ import (
 )
 
 const grTypeName = "coralogix_global_router"
+const cxTypeName = "coralogix_connector"
+
+type requestLog interface {
+	takeRequests() []grRequest
+}
 
 // grStep is the record of one operation. The golden files hold these records.
 type grStep struct {
@@ -60,23 +65,50 @@ type grStep struct {
 // grHarness drives the provider through the Terraform plugin protocol, the
 // way Terraform core does, against the fake backend.
 type grHarness struct {
-	t      *testing.T
-	ctx    context.Context
-	server tfprotov6.ProviderServer
-	schema *tfprotov6.Schema
-	typ    tftypes.Object
-	api    *grFake
-	steps  []grStep
+	t        *testing.T
+	ctx      context.Context
+	server   tfprotov6.ProviderServer
+	schema   *tfprotov6.Schema
+	typ      tftypes.Object
+	api      requestLog
+	typeName string
+	steps    []grStep
 }
 
 func newGRHarness(t *testing.T) *grHarness {
+	return newProtocolHarness(t, grTypeName, newGRFake(t))
+}
+
+func newCXHarness(t *testing.T) *grHarness {
+	return newProtocolHarness(t, cxTypeName, newCXFake(t))
+}
+
+func (h *grHarness) routers() *grFake {
+	h.t.Helper()
+	f, ok := h.api.(*grFake)
+	if !ok {
+		h.t.Fatal("expected *grFake")
+	}
+	return f
+}
+
+func (h *grHarness) connectors() *cxFake {
+	h.t.Helper()
+	f, ok := h.api.(*cxFake)
+	if !ok {
+		h.t.Fatal("expected *cxFake")
+	}
+	return f
+}
+
+func newProtocolHarness(t *testing.T, typeName string, api requestLog) *grHarness {
 	t.Helper()
 	// Placeholder credentials. The fake backend accepts any key.
 	t.Setenv("CORALOGIX_API_KEY", "baseline-test-key")
 	t.Setenv("CORALOGIX_DOMAIN", "eu2.coralogix.com")
 	t.Setenv("CORALOGIX_ENV", "")
 
-	h := &grHarness{t: t, ctx: context.Background(), api: newGRFake(t)}
+	h := &grHarness{t: t, ctx: context.Background(), api: api, typeName: typeName}
 	var err error
 	if h.server, err = testAccProtoV6ProviderFactories["coralogix"](); err != nil {
 		t.Fatal(err)
@@ -84,9 +116,9 @@ func newGRHarness(t *testing.T) *grHarness {
 	schemas, err := h.server.GetProviderSchema(h.ctx, &tfprotov6.GetProviderSchemaRequest{})
 	h.must(err)
 	h.fatalOnError(schemas.Diagnostics)
-	h.schema = schemas.ResourceSchemas[grTypeName]
+	h.schema = schemas.ResourceSchemas[typeName]
 	if h.schema == nil {
-		t.Fatalf("%s is not registered", grTypeName)
+		t.Fatalf("%s is not registered", typeName)
 	}
 	h.typ = h.schema.ValueType().(tftypes.Object)
 
@@ -96,7 +128,10 @@ func newGRHarness(t *testing.T) *grHarness {
 		nulls[name] = tftypes.NewValue(at, nil)
 	}
 	cfg := h.dynamic(providerType, tftypes.NewValue(providerType, nulls))
-	configured, err := h.server.ConfigureProvider(h.ctx, &tfprotov6.ConfigureProviderRequest{TerraformVersion: "1.9.0", Config: cfg})
+	configured, err := h.server.ConfigureProvider(h.ctx, &tfprotov6.ConfigureProviderRequest{
+		TerraformVersion: "1.11.0",
+		Config:           cfg,
+	})
 	h.must(err)
 	h.fatalOnError(configured.Diagnostics)
 	return h
@@ -141,7 +176,9 @@ func (h *grHarness) record(s grStep) { h.steps = append(h.steps, s) }
 
 func (h *grHarness) validate(cfg tftypes.Value) []*tfprotov6.Diagnostic {
 	resp, err := h.server.ValidateResourceConfig(h.ctx, &tfprotov6.ValidateResourceConfigRequest{
-		TypeName: grTypeName, Config: h.dynamic(h.typ, cfg),
+		TypeName:           h.typeName,
+		Config:             h.dynamic(h.typ, cfg),
+		ClientCapabilities: &tfprotov6.ValidateResourceConfigClientCapabilities{WriteOnlyAttributesAllowed: true},
 	})
 	h.must(err)
 	return resp.Diagnostics
@@ -156,7 +193,7 @@ func (h *grHarness) Validate(name string, cfg map[string]any) {
 func (h *grHarness) plan(prior, cfg tftypes.Value) (tftypes.Value, []string, []*tfprotov6.Diagnostic) {
 	proposed := proposedNew(h.schema.Block.Attributes, prior, cfg)
 	resp, err := h.server.PlanResourceChange(h.ctx, &tfprotov6.PlanResourceChangeRequest{
-		TypeName:         grTypeName,
+		TypeName:         h.typeName,
 		PriorState:       h.dynamic(h.typ, prior),
 		ProposedNewState: h.dynamic(h.typ, proposed),
 		Config:           h.dynamic(h.typ, cfg),
@@ -201,7 +238,7 @@ func (h *grHarness) Apply(name string, prior tftypes.Value, cfgJSON map[string]a
 	}
 
 	resp, err := h.server.ApplyResourceChange(h.ctx, &tfprotov6.ApplyResourceChangeRequest{
-		TypeName:     grTypeName,
+		TypeName:     h.typeName,
 		PriorState:   h.dynamic(h.typ, prior),
 		PlannedState: h.dynamic(h.typ, planned),
 		Config:       h.dynamic(h.typ, cfg),
@@ -237,7 +274,7 @@ func (h *grHarness) Refresh(name string, state tftypes.Value) tftypes.Value {
 	h.t.Helper()
 	step := grStep{Step: name}
 	resp, err := h.server.ReadResource(h.ctx, &tfprotov6.ReadResourceRequest{
-		TypeName: grTypeName, CurrentState: h.dynamic(h.typ, state),
+		TypeName: h.typeName, CurrentState: h.dynamic(h.typ, state),
 	})
 	h.must(err)
 	step.Requests = h.api.takeRequests()
@@ -260,9 +297,15 @@ func (h *grHarness) Refresh(name string, state tftypes.Value) tftypes.Value {
 func (h *grHarness) Destroy(name string, state tftypes.Value) {
 	h.t.Helper()
 	step := grStep{Step: name}
+	if state.IsNull() {
+		step.ApplyDiags = []string{"error: prior state is null"}
+		step.State = nil
+		h.record(step)
+		return
+	}
 	null := h.null()
 	plan, err := h.server.PlanResourceChange(h.ctx, &tfprotov6.PlanResourceChangeRequest{
-		TypeName:         grTypeName,
+		TypeName:         h.typeName,
 		PriorState:       h.dynamic(h.typ, state),
 		ProposedNewState: h.dynamic(h.typ, null),
 		Config:           h.dynamic(h.typ, null),
@@ -275,7 +318,7 @@ func (h *grHarness) Destroy(name string, state tftypes.Value) {
 		return
 	}
 	resp, err := h.server.ApplyResourceChange(h.ctx, &tfprotov6.ApplyResourceChangeRequest{
-		TypeName:       grTypeName,
+		TypeName:       h.typeName,
 		PriorState:     h.dynamic(h.typ, state),
 		PlannedState:   plan.PlannedState,
 		Config:         h.dynamic(h.typ, null),
@@ -292,7 +335,7 @@ func (h *grHarness) Destroy(name string, state tftypes.Value) {
 func (h *grHarness) Import(name, id string) tftypes.Value {
 	h.t.Helper()
 	step := grStep{Step: name}
-	resp, err := h.server.ImportResourceState(h.ctx, &tfprotov6.ImportResourceStateRequest{TypeName: grTypeName, ID: id})
+	resp, err := h.server.ImportResourceState(h.ctx, &tfprotov6.ImportResourceStateRequest{TypeName: h.typeName, ID: id})
 	h.must(err)
 	step.ApplyDiags = diagStrings(resp.Diagnostics)
 	if hasError(resp.Diagnostics) || len(resp.ImportedResources) != 1 {
@@ -308,7 +351,7 @@ func (h *grHarness) UpgradeV0(name, rawJSON string) tftypes.Value {
 	h.t.Helper()
 	step := grStep{Step: name, Config: json.RawMessage(rawJSON)}
 	resp, err := h.server.UpgradeResourceState(h.ctx, &tfprotov6.UpgradeResourceStateRequest{
-		TypeName: grTypeName, Version: 0, RawState: &tfprotov6.RawState{JSON: []byte(rawJSON)},
+		TypeName: h.typeName, Version: 0, RawState: &tfprotov6.RawState{JSON: []byte(rawJSON)},
 	})
 	h.must(err)
 	step.Requests = h.api.takeRequests()
@@ -437,6 +480,9 @@ func proposedNew(attrs []*tfprotov6.SchemaAttribute, prior, cfg tftypes.Value) t
 		cv := c[a.Name]
 		pv, hasPrior := p[a.Name]
 		switch {
+		case a.WriteOnly:
+			// Terraform core keeps write-only values out of proposed state.
+			out[a.Name] = tftypes.NewValue(cv.Type(), nil)
 		case !cv.IsNull() && a.NestedType != nil:
 			out[a.Name] = proposedNested(a.NestedType, pv, hasPrior, cv)
 		case !cv.IsNull():
@@ -599,8 +645,12 @@ func goldenDir() string {
 
 // checkGolden compares got with the golden file. UPDATE_GOLDEN=1 rewrites the file.
 func checkGolden(t *testing.T, name string, got []byte) {
+	checkGoldenAt(t, goldenDir(), name, got)
+}
+
+func checkGoldenAt(t *testing.T, dir, name string, got []byte) {
 	t.Helper()
-	file := filepath.Join(goldenDir(), name)
+	file := filepath.Join(dir, name)
 	if os.Getenv("UPDATE_GOLDEN") == "1" {
 		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
 			t.Fatal(err)

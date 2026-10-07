@@ -142,6 +142,10 @@ type Field struct {
 	// KeepPriorOrder returns the list items in the order of the plan or state, because
 	// the API does not keep the order.
 	KeepPriorOrder bool `yaml:"keepPriorOrder"`
+	// Collection: "set" makes a list in the contract an unordered Terraform set, the
+	// released shape, until the contract has x-coralogix-collection: set. Delete the
+	// key when the contract states it (PINNED-SDK).
+	Collection string `yaml:"collection"`
 	// Validators are the released validators of the field.
 	Validators []Validator `yaml:"validators"`
 	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. The API
@@ -281,6 +285,7 @@ func (l Field) keys() []string {
 	add(l.Default != nil, "default")
 	add(l.ReadEmptyAs != "", "readEmptyAs")
 	add(l.KeepPriorOrder, "keepPriorOrder")
+	add(l.Collection != "", "collection")
 	add(len(l.Validators) != 0, "validators")
 	add(l.Equality != "", "equality")
 	return keys
@@ -295,7 +300,7 @@ func (l Field) statesPresence() bool {
 func (l Field) empty() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == ""
+		!l.KeepPriorOrder && l.Collection == "" && len(l.Validators) == 0 && l.Equality == ""
 }
 
 func (l Field) check() error {
@@ -322,13 +327,19 @@ func (l Field) check() error {
 	if l.Skip && l.hasBehavior() {
 		return errors.New("a skipped field has no other behavior")
 	}
+	if l.Collection != "" && l.Collection != "set" {
+		return fmt.Errorf("collection is %q, want \"set\"", l.Collection)
+	}
+	if l.Collection == "set" && l.KeepPriorOrder {
+		return errors.New("collection: set cannot be used with keepPriorOrder: a set has no order")
+	}
 	return checkValidators(l.Validators)
 }
 
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
-		l.ReadEmptyAs != "" || len(l.Validators) != 0 || l.Equality != ""
+		l.Collection != "" || l.ReadEmptyAs != "" || len(l.Validators) != 0 || l.Equality != ""
 }
 
 func checkValidators(validators []Validator) error {
@@ -373,6 +384,9 @@ func (f *File) Policy() model.Policy {
 			if t.Fields[field].ReadOnly {
 				p.ReadOnly = append(p.ReadOnly, name+"."+field)
 			}
+			if t.Fields[field].Collection == "set" {
+				p.CollectionSet = append(p.CollectionSet, name+"."+field)
+			}
 			if t.Fields[field].statesPresence() {
 				p.Released = append(p.Released, name+"."+field)
 			}
@@ -395,7 +409,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Equality: f.Equality, CollectionSet: f.Collection == "set", Keys: f.keys()})
 		}
 	}
 	return out
@@ -418,11 +432,12 @@ type Line struct {
 	EnumValues []string // for an enum line: the values that the resource accepts
 	EnumZero   string   // for an enum line: the Terraform value of the zero value
 	// EnumRejected are the values of the contract that the resource does not accept.
-	EnumRejected []string
-	ReadOnly     bool     // for a field line: the file says that the server sets the field
-	Equality     string   // for a field line: "yaml" or "json" when the line compares the value as a document
-	Required     bool     // for a field line: the file says that the field is required
-	Keys         []string // for a field line: every key that the line sets
+	EnumRejected  []string
+	ReadOnly      bool     // for a field line: the file says that the server sets the field
+	Equality      string   // for a field line: "yaml" or "json" when the line compares the value as a document
+	Required      bool     // for a field line: the file says that the field is required
+	CollectionSet bool     // for a field line: the file says the field is an unordered set
+	Keys          []string // for a field line: every key that the line sets
 }
 
 // String names the line as it is written in the file.

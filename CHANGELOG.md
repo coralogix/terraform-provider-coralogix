@@ -2,6 +2,7 @@
 
 #### resource/coralogix_connector
 - CHORE: The resource is generated from the API contract. Released HCL is unchanged. Write-only `connector_config.field_values_wo` stays a handwritten overlay because the generator does not emit write-only attributes.
+- CHORE: Add protocol baseline golden files against an in-memory connector API.
 - FIX: `description` is now `Optional` and `Computed`. To clear it, set `description = ""`.
 
 #### resource/coralogix_alert
@@ -20,6 +21,8 @@
 - FEAT: `keepPriorOrder` works on a list whose request items use another component than its response items, such as a Create item without the server-set id and hash. The items pair on the fields that the request sends.
 - FEAT: Generate unordered sets of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
+- FIX: A nested object collection marked `collection: set` now flattens as a set in the generated attr.Type map, matching the schema.
+- FEAT: Existing-resource `collection: set` override keeps a released `SetNested` field when the pinned SDK still describes a list.
 
 # Release 3.20.0
 

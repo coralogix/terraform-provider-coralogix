@@ -883,7 +883,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		expr := "types.ObjectType{AttrTypes: " + f.Object.AttrTypesFunc + "()}"
 		switch f.Conv {
 		case convObjects:
-			expr = "types.ListType{ElemType: " + expr + "}"
+			expr = "types." + f.Collection + "Type{ElemType: " + expr + "}"
 		case convObjectMap:
 			expr = "types.MapType{ElemType: " + expr + "}"
 		}

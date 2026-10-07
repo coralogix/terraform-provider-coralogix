@@ -219,7 +219,7 @@ func connectorCredentialWarnings(ctx context.Context, config *ConnectorResourceM
 func (r *ConnectorResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 	var config *ConnectorResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() || config == nil {
 		return
 	}
 	resp.Diagnostics.Append(connectorCredentialWarnings(ctx, config)...)
@@ -242,6 +242,10 @@ func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	if plan == nil {
+		resp.Diagnostics.AddError("Error creating coralogix_connector", "internal: empty plan")
+		return
+	}
 	body, diags := expandConnectorRequest(ctx, plan, secretFields, true)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -274,7 +278,7 @@ func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateReque
 func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state *ConnectorResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() || state == nil {
 		return
 	}
 
@@ -309,7 +313,7 @@ func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan *ConnectorResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() || plan == nil {
 		return
 	}
 	id := plan.ID.ValueString()
@@ -324,6 +328,10 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
+	if plan == nil {
+		resp.Diagnostics.AddError("Error replacing coralogix_connector", "internal: empty plan")
+		return
+	}
 	body, diags := expandConnectorRequest(ctx, plan, secretFields, false)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
