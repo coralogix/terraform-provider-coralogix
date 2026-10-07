@@ -142,9 +142,16 @@ func TestDeleteOverrideRejectsIncompatibleOperations(t *testing.T) {
 		},
 		"resource with a DELETE and a required parameter": {
 			extra: "    delete:\n      tags: [Archived Things Service]\n      operationId: ArchivedThingsService_DeleteArchivedThing\n" +
-				"      parameters:\n        - {name: force, in: query, required: true, schema: {type: boolean}}\n" +
-				"      responses:\n        '200':\n          description: ok\n          content:\n            application/json:\n              schema: {$ref: '#/components/schemas/ArchiveArchivedThingResponse'}\n",
-			code:     "",
+				"      parameters:\n        - {name: force, in: query, required: true, schema: {type: boolean}}\n" + "      responses:\n        '200':\n          description: ok\n          content:\n            application/json:\n              schema: {$ref: '#/components/schemas/ArchiveArchivedThingResponse'}\n",
+			location: line,
+		},
+		"resource with a DELETE that has a request body": {
+			extra: "    delete:\n      tags: [Archived Things Service]\n      operationId: ArchivedThingsService_DeleteArchivedThing\n" +
+				"      requestBody:\n        content:\n          application/json:\n            schema: {type: object, required: [], properties: {reason: {type: string}}}\n" + "      responses:\n        '200':\n          description: ok\n          content:\n            application/json:\n              schema: {$ref: '#/components/schemas/ArchiveArchivedThingResponse'}\n",
+			location: line,
+		},
+		"resource with a DELETE without a JSON response": {
+			extra:    "    delete:\n      tags: [Archived Things Service]\n      operationId: ArchivedThingsService_DeleteArchivedThing\n" + "      responses:\n        '204':\n          description: deleted\n",
 			location: line,
 		},
 		"flag names another operation": {

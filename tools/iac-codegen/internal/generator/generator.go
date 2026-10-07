@@ -214,7 +214,32 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
 	}
+	if err := unneededDeleteOverride(data, resourceName, operationIDs, sdkModule, providerModule, file); err != nil {
+		return nil, err
+	}
 	return &validatedResource{resource: resource, refs: refs, overrides: file}, nil
+}
+
+// unneededDeleteOverride reports a Delete override that generation does not need: without it, the
+// same contract passes every check, so a DELETE of the API is the Delete. A stale override must not
+// hide that DELETE. Any issue without the override, a DELETE that the generator cannot use or no
+// DELETE at all, leaves the override needed.
+func unneededDeleteOverride(data []byte, resourceName string, operationIDs model.OperationIDs, sdkModule, providerModule string, file *overrides.File) error {
+	if file == nil || file.API.Delete == nil {
+		return nil
+	}
+	without := *file
+	without.API.Delete = nil
+	validated, err := validateOpenAPIWith(data, resourceName, operationIDs, sdkModule, providerModule, &without)
+	if err != nil {
+		return nil
+	}
+	return &EligibilityError{Report: issue.Report{{
+		Code:        "DELETE_OVERRIDE_UNNEEDED",
+		Location:    overrides.FileName + ":api.delete.operation",
+		Message:     fmt.Sprintf("The overrides name the Delete operation %q, but the resource is eligible without it: the API has the DELETE operation %s.", file.API.Delete.Operation, validated.resource.Delete.OperationID),
+		Remediation: "Delete api.delete from the overrides: the generated resource uses the DELETE.",
+	}}}
 }
 
 // rendererIssues runs the same builders that generate uses, without rendering

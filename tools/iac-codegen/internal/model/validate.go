@@ -222,7 +222,6 @@ func validateOperations(doc *v3.Document, name string, ids OperationIDs, p Polic
 		candidates := matchingOperations(doc, name, role, explicit[role])
 		report = append(report, validateRole(role, candidates, explicit[role], p, found)...)
 	}
-	report = append(report, unneededDeleteOverrideIssues(doc, name, p, found)...)
 	if len(found) != len(verbs) {
 		report = append(report, issue.Issue{Code: "RESOURCE_LIFECYCLE_INCOMPLETE", Location: "paths", Message: "The resource does not have one eligible operation for every lifecycle step.", Remediation: "Provide one Create, Get, Update or Replace, and Delete operation."})
 	}
@@ -293,34 +292,6 @@ func deleteOverrideConflictIssues(ids OperationIDs, p Policy) issue.Report {
 		Location:    deleteOverrideLocation,
 		Message:     fmt.Sprintf("The overrides name the Delete operation %q, and --delete-operation names %q.", p.DeleteOperation, ids.Delete),
 		Remediation: "Name the Delete operation in one place.",
-	}}
-}
-
-// unneededDeleteOverrideIssues reports a Delete override when normal discovery would find a DELETE
-// that the generated resource can use: one operation with the Delete suffix, on the Get path, with
-// the id path parameter of Get and no unsupported required parameter. A stale override must not
-// hide that DELETE. A DELETE that discovery could not use leaves the override needed.
-func unneededDeleteOverrideIssues(doc *v3.Document, name string, p Policy, found map[verb]foundOp) issue.Report {
-	get, ok := found[opGet]
-	if p.DeleteOperation == "" || !ok {
-		return nil
-	}
-	candidates := matchingOperations(doc, name, opDelete, "")
-	if len(candidates) != 1 {
-		return nil
-	}
-	del := candidates[0]
-	getID, getErr := idParam(get)
-	id, err := idParam(del)
-	if del.method != "DELETE" || del.path != get.path || getErr != nil || err != nil || id != getID ||
-		len(unsupportedRequiredParameters(opDelete, del)) != 0 {
-		return nil
-	}
-	return issue.Report{{
-		Code:        "DELETE_OVERRIDE_UNNEEDED",
-		Location:    deleteOverrideLocation,
-		Message:     fmt.Sprintf("The overrides name the Delete operation %q, but the API has the DELETE operation %s.", p.DeleteOperation, del.op.OperationId),
-		Remediation: "Delete api.delete from the overrides: the generated resource uses the DELETE.",
 	}}
 }
 
