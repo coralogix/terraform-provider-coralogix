@@ -96,7 +96,7 @@ func TestDeleteOverrideRejectsIncompatibleOperations(t *testing.T) {
 		extra     string // appended to the paths of the contract
 		overrides string // replaces the operation name in the overrides; "" keeps it
 		ids       model.OperationIDs
-		code      string
+		code      string // "" when the override is accepted
 		location  string
 	}{
 		"body with fields": {
@@ -140,6 +140,13 @@ func TestDeleteOverrideRejectsIncompatibleOperations(t *testing.T) {
 			code:     "DELETE_OVERRIDE_UNNEEDED",
 			location: line,
 		},
+		"resource with a DELETE and a required parameter": {
+			extra: "    delete:\n      tags: [Archived Things Service]\n      operationId: ArchivedThingsService_DeleteArchivedThing\n" +
+				"      parameters:\n        - {name: force, in: query, required: true, schema: {type: boolean}}\n" +
+				"      responses:\n        '200':\n          description: ok\n          content:\n            application/json:\n              schema: {$ref: '#/components/schemas/ArchiveArchivedThingResponse'}\n",
+			code:     "",
+			location: line,
+		},
 		"flag names another operation": {
 			ids:      model.OperationIDs{Delete: "ArchivedThingsService_DeleteArchivedThing"},
 			code:     "DELETE_OVERRIDE_CONFLICT",
@@ -161,10 +168,34 @@ func TestDeleteOverrideRejectsIncompatibleOperations(t *testing.T) {
 				overrides = strings.Replace(overrides, archiveOperation, test.overrides, 1)
 			}
 			_, err := validateOpenAPIWith([]byte(spec), "ArchivedThing", test.ids, "sdk", "provider", mustParse(t, overrides))
+			if test.code == "" {
+				if err != nil {
+					t.Fatalf("err = %v, want the override accepted", err)
+				}
+				return
+			}
 			if report := eligibilityReport(t, err); !hasIssue(report, test.code, test.location) {
 				t.Fatalf("report:\n%s\nwant %s at %s", report, test.code, test.location)
 			}
 		})
+	}
+}
+
+// A DELETE with the Delete suffix that discovery could not use does not make the override stale:
+// without the override, generation would fail. Here it sits on another path.
+func TestDeleteOverrideStaysNeededForAnUnusableDelete(t *testing.T) {
+	spec := archivedSpec(t)
+	extra := "  /archived/v1/things/{id}/labels/{label}:\n    delete:\n      tags: [Archived Things Service]\n      operationId: ArchivedThingsService_DeleteArchivedThing\n" +
+		"      parameters:\n        - {name: id, in: path, required: true, schema: {type: string}}\n        - {name: label, in: path, required: true, schema: {type: string}}\n" +
+		"      responses:\n        '200':\n          description: ok\n          content:\n            application/json:\n              schema: {$ref: '#/components/schemas/ArchiveArchivedThingResponse'}\n"
+	spec = strings.Replace(spec, "components:\n", extra+"components:\n", 1)
+	if _, err := validateOpenAPIWith([]byte(spec), "ArchivedThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, archivedOverrides)); err != nil {
+		t.Fatalf("err = %v, want the override accepted", err)
+	}
+	// Without the override, the same contract has no usable Delete.
+	file := mustParse(t, strings.Split(archivedOverrides, "api:")[0])
+	if _, err := validateOpenAPIWith([]byte(spec), "ArchivedThing", model.OperationIDs{}, "sdk", "provider", file); err == nil {
+		t.Fatal("the contract is eligible without the override; the test DELETE must be unusable")
 	}
 }
 
