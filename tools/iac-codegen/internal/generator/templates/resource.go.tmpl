@@ -275,7 +275,8 @@ func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, stat
 {{- if $.Conv.HasPrior}}
 
 // priorModel returns the model in the state or the plan, or nil when there is none or it
-// cannot be read. The prior only keeps the order of lists that the API does not order.
+// cannot be read. The prior keeps the order of lists that the API does not order, and the text
+// of documents that the API returns in another format.
 func priorModel(ctx context.Context, data tfData) *{{.Model}} {
 	var m {{.Model}}
 	if data == nil || data.Get(ctx, &m).HasError() {

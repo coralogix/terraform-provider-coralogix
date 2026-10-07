@@ -269,6 +269,12 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if l.UseStateForUnknown {
 		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 	}
+	if l.Equality != "" {
+		if a.ValueKind != "String" {
+			return fmt.Errorf("equality needs a string attribute, not %s", a.ValueKind)
+		}
+		a.Modifiers = append(a.Modifiers, "equivalentDocument{equal: "+l.Equality+"Equal}")
+	}
 	if l.Default != nil {
 		expr, err := defaultExpr(a, l.Default)
 		if err != nil {

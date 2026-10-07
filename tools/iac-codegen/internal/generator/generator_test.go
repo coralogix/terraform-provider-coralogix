@@ -84,6 +84,41 @@ func generateArchivedThing(t *testing.T) string {
 	return out
 }
 
+// The golden output of a resource with string fields that hold documents: a JSON field, and a
+// YAML field in a list of objects. A change of format alone plans no change.
+func TestGoldenOutputDocumentEquality(t *testing.T) {
+	out := generateConfigThing(t)
+	golden := filepath.Join("testdata", "golden", "configthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputDocumentEquality -update:\n%s", diff)
+	}
+}
+
+// generateConfigThing generates the synthetic resource whose string fields hold documents.
+func generateConfigThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "configthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "configthing")
+	options := Options{Resource: "ConfigThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "configthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 func TestGoldenOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	first := filepath.Join(t.TempDir(), "thing")
@@ -1030,6 +1065,21 @@ func TestDeleteOverrideRuntimeSemantics(t *testing.T) {
 	input, _ := syntheticInput(t)
 	out := generateArchivedThing(t)
 	semantics, err := os.ReadFile(filepath.Join("testdata", "archived_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The generated resource with document fields compares them as documents in its plan and its
+// flatten, and plans no change when only the format of a document changes.
+func TestDocumentEqualityRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateConfigThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "configthing_semantics_test.go"))
 	if err != nil {
 		t.Fatal(err)
 	}

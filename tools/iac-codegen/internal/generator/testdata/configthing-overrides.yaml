@@ -1,0 +1,16 @@
+# The behavior-overrides file of the synthetic resource whose string fields hold documents.
+resource: ConfigThing
+mode: existing
+
+validators:
+  inferred: false
+
+types:
+  ConfigThing:
+    fields:
+      settings:
+        equality: json
+  ConfigRemote:
+    fields:
+      rawConfiguration:
+        equality: yaml

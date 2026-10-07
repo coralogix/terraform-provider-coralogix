@@ -211,6 +211,9 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if schema.Properties == nil || schema.Properties.GetOrZero(line.Field) == nil {
 		return wholeLine(fmt.Errorf("component %q has no field %q", line.Component, line.Field))
 	}
+	if problem := equalityProblem(schema, line); problem != nil {
+		return problem
+	}
 	var stale []string
 	if line.ReadOnly && contractReadOnly(schema, line.Field) {
 		stale = append(stale, "readOnly")
@@ -225,6 +228,34 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 		message: fmt.Sprintf("the contract already states that %q is %s", line.Field, strings.Join(stale, " and ")),
 		stale:   stale,
 	}
+}
+
+// equalityProblem checks the equality key of a field line. The key compares a string that the
+// user writes as a YAML or JSON document. On another kind of field, or on a field that only the
+// server sets, the generated plan modifier and flatten would have nothing to compare.
+func equalityProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+	if line.Equality == "" {
+		return nil
+	}
+	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	if !slices.Equal(built.Type, []string{"string"}) || len(built.Enum) != 0 || built.Format != "" {
+		return &lineIssue{
+			code:    "OVERRIDE_EQUALITY_NOT_STRING",
+			message: fmt.Sprintf("equality: %s compares a string document, but %q is not a plain string (type %v, format %q, %d enum values)", line.Equality, line.Field, built.Type, built.Format, len(built.Enum)),
+			fix:     "Delete the equality key, or set it on a string field that holds a YAML or JSON document.",
+		}
+	}
+	if line.ReadOnly || built.ReadOnly != nil && *built.ReadOnly {
+		return &lineIssue{
+			code:    "OVERRIDE_EQUALITY_COMPUTED",
+			message: fmt.Sprintf("equality: %s keeps the text that the user writes, but only the server sets %q", line.Equality, line.Field),
+			fix:     "Delete the equality key: Terraform never compares a configured value of a computed-only field.",
+		}
+	}
+	return nil
 }
 
 func contractReadOnly(schema *base.Schema, field string) bool {
