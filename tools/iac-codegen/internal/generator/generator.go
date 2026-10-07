@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
@@ -46,6 +47,10 @@ type validatedResource struct {
 	resource  *model.Resource
 	refs      []sdkRef
 	overrides *overrides.File // nil for a new resource
+	// withoutDelete is the resource validated without the Delete override of the overrides, when
+	// that also passes every OpenAPI and renderer check. The override is then stale unless the SDK
+	// symbol checks of generate reject it. It is nil otherwise.
+	withoutDelete *validatedResource
 }
 
 // EligibilityError reports all reasons that a resource is not eligible.
@@ -87,6 +92,10 @@ func Check(options CheckOptions) error {
 	if err != nil {
 		return err
 	}
+	if validated.withoutDelete != nil {
+		// Check has no SDK. As for every SDK symbol, it assumes that the SDK matches the contract.
+		return unneededDeleteOverrideError(validated)
+	}
 	acc, err := readAcceptance(Options{Resource: options.Resource, AcceptancePath: options.AcceptancePath})
 	if err != nil || acc == nil {
 		return err
@@ -117,12 +126,8 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if err != nil {
 		return err
 	}
-	loaded, err := loadSDK(validated.refs, loadDir)
-	if err != nil {
+	if err := checkSDK(validated, input, loadDir); err != nil {
 		return err
-	}
-	if report := sdkIssues(validated.refs, loaded, input); len(report) != 0 {
-		return &EligibilityError{Report: report.Normalize()}
 	}
 	accFile, err := readAcceptance(options)
 	if err != nil {
@@ -149,6 +154,27 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 		return err
 	}
 	return publish(options.OutputDir, files)
+}
+
+// checkSDK checks every SDK symbol that the generated code uses. A Delete override is stale when
+// the resource without it also passes these checks.
+func checkSDK(validated *validatedResource, input source.Input, loadDir string) error {
+	refs := validated.refs
+	if validated.withoutDelete != nil {
+		refs = slices.Concat(refs, validated.withoutDelete.refs)
+	}
+	loaded, err := loadSDK(refs, loadDir)
+	if err != nil {
+		return err
+	}
+	if report := sdkIssues(validated.refs, loaded, input); len(report) != 0 {
+		return &EligibilityError{Report: report.Normalize()}
+	}
+	if validated.withoutDelete != nil && len(sdkIssues(validated.withoutDelete.refs, loaded, input)) == 0 {
+		// Without the override, the SDK also has every symbol: the DELETE can be the Delete.
+		return unneededDeleteOverrideError(validated)
+	}
+	return nil
 }
 
 func validateOptions(options Options) (string, error) {
@@ -214,17 +240,15 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
 	}
-	if err := unneededDeleteOverride(data, resourceName, operationIDs, sdkModule, providerModule, file); err != nil {
-		return nil, err
-	}
-	return &validatedResource{resource: resource, refs: refs, overrides: file}, nil
+	return &validatedResource{resource: resource, refs: refs, overrides: file,
+		withoutDelete: validateWithoutDelete(data, resourceName, operationIDs, sdkModule, providerModule, file)}, nil
 }
 
-// unneededDeleteOverride reports a Delete override that generation does not need: without it, the
-// same contract passes every check, so a DELETE of the API is the Delete. A stale override must not
-// hide that DELETE. Any issue without the override, a DELETE that the generator cannot use or no
-// DELETE at all, leaves the override needed.
-func unneededDeleteOverride(data []byte, resourceName string, operationIDs model.OperationIDs, sdkModule, providerModule string, file *overrides.File) error {
+// validateWithoutDelete validates the contract again without the Delete override. It returns the
+// result when every check passes: a DELETE of the API can then be the Delete. Any issue, a DELETE
+// that the generator cannot use or no DELETE at all, means that the override is needed, and it
+// returns nil.
+func validateWithoutDelete(data []byte, resourceName string, operationIDs model.OperationIDs, sdkModule, providerModule string, file *overrides.File) *validatedResource {
 	if file == nil || file.API.Delete == nil {
 		return nil
 	}
@@ -234,10 +258,16 @@ func unneededDeleteOverride(data []byte, resourceName string, operationIDs model
 	if err != nil {
 		return nil
 	}
+	return validated
+}
+
+// unneededDeleteOverrideError reports a Delete override that generation does not need. A stale
+// override must not hide a DELETE of the API.
+func unneededDeleteOverrideError(validated *validatedResource) error {
 	return &EligibilityError{Report: issue.Report{{
 		Code:        "DELETE_OVERRIDE_UNNEEDED",
 		Location:    overrides.FileName + ":api.delete.operation",
-		Message:     fmt.Sprintf("The overrides name the Delete operation %q, but the resource is eligible without it: the API has the DELETE operation %s.", file.API.Delete.Operation, validated.resource.Delete.OperationID),
+		Message:     fmt.Sprintf("The overrides name the Delete operation %q, but the resource is eligible without it: the API has the DELETE operation %s.", validated.overrides.API.Delete.Operation, validated.withoutDelete.resource.Delete.OperationID),
 		Remediation: "Delete api.delete from the overrides: the generated resource uses the DELETE.",
 	}}}
 }

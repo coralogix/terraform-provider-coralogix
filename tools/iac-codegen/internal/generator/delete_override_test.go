@@ -10,6 +10,7 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
 )
 
 const archiveOperation = "ArchivedThingsService_ArchiveArchivedThing"
@@ -174,7 +175,7 @@ func TestDeleteOverrideRejectsIncompatibleOperations(t *testing.T) {
 			if test.overrides != "" {
 				overrides = strings.Replace(overrides, archiveOperation, test.overrides, 1)
 			}
-			_, err := validateOpenAPIWith([]byte(spec), "ArchivedThing", test.ids, "sdk", "provider", mustParse(t, overrides))
+			err := checkArchived(t, spec, overrides, test.ids)
 			if test.code == "" {
 				if err != nil {
 					t.Fatalf("err = %v, want the override accepted", err)
@@ -196,13 +197,74 @@ func TestDeleteOverrideStaysNeededForAnUnusableDelete(t *testing.T) {
 		"      parameters:\n        - {name: id, in: path, required: true, schema: {type: string}}\n        - {name: label, in: path, required: true, schema: {type: string}}\n" +
 		"      responses:\n        '200':\n          description: ok\n          content:\n            application/json:\n              schema: {$ref: '#/components/schemas/ArchiveArchivedThingResponse'}\n"
 	spec = strings.Replace(spec, "components:\n", extra+"components:\n", 1)
-	if _, err := validateOpenAPIWith([]byte(spec), "ArchivedThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, archivedOverrides)); err != nil {
+	if err := checkArchived(t, spec, archivedOverrides, model.OperationIDs{}); err != nil {
 		t.Fatalf("err = %v, want the override accepted", err)
 	}
 	// Without the override, the same contract has no usable Delete.
 	file := mustParse(t, strings.Split(archivedOverrides, "api:")[0])
 	if _, err := validateOpenAPIWith([]byte(spec), "ArchivedThing", model.OperationIDs{}, "sdk", "provider", file); err == nil {
 		t.Fatal("the contract is eligible without the override; the test DELETE must be unusable")
+	}
+}
+
+// checkArchived runs check --overrides on the contract.
+func checkArchived(t *testing.T, spec, overridesText string, ids model.OperationIDs) error {
+	t.Helper()
+	dir := t.TempDir()
+	specPath, overridesPath := filepath.Join(dir, "openapi.yaml"), filepath.Join(dir, "overrides.yaml")
+	if err := os.WriteFile(specPath, []byte(spec), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(overridesPath, []byte(overridesText), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return Check(CheckOptions{Resource: "ArchivedThing", OpenAPIPath: specPath, OverridesPath: overridesPath, OperationIDs: ids})
+}
+
+// usableDelete is a DELETE on the Get path that the generator can use as the Delete.
+const usableDelete = "    delete:\n      tags: [Archived Things Service]\n      operationId: ArchivedThingsService_DeleteArchivedThing\n" +
+	"      responses:\n        '200':\n          description: ok\n          content:\n            application/json:\n              schema: {$ref: '#/components/schemas/ArchiveArchivedThingResponse'}\n"
+
+// deleteMethod is the SDK method of usableDelete, for a copied test SDK.
+const deleteMethod = `
+type ApiArchivedThingsServiceDeleteArchivedThingRequest struct{}
+
+func (*ArchivedThingsServiceAPIService) ArchivedThingsServiceDeleteArchivedThing(ctx context.Context, id string) ApiArchivedThingsServiceDeleteArchivedThingRequest {
+	_, _ = ctx, id
+	return ApiArchivedThingsServiceDeleteArchivedThingRequest{}
+}
+
+func (ApiArchivedThingsServiceDeleteArchivedThingRequest) Execute() (map[string]interface{}, *http.Response, error) {
+	return nil, nil, nil
+}
+`
+
+// generate decides a stale override after the SDK symbol checks: a DELETE that the pinned SDK does
+// not have cannot be the Delete, so the override stays needed. With the SDK method, it is stale.
+func TestGenerateDecidesAStaleDeleteOverrideWithTheSDK(t *testing.T) {
+	spec := strings.Replace(archivedSpec(t), "    put:\n      tags: [Archived Things Service]\n", usableDelete+"    put:\n      tags: [Archived Things Service]\n", 1)
+	overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(archivedOverrides), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	generate := func(input source.Input, loadDir string) error {
+		input.OpenAPI = []byte(spec)
+		return generateFromInput(Options{Resource: "ArchivedThing", OutputDir: filepath.Join(t.TempDir(), "archivedthing"), OverridesPath: overridesPath}, input, loadDir)
+	}
+	if err := generate(syntheticInput(t)); err != nil {
+		t.Fatalf("SDK without the DELETE method: err = %v, want the override accepted", err)
+	}
+	input, loadDir := copiedSyntheticInput(t)
+	path := filepath.Join(input.SDKDir, "go", "openapi", "gen", "archived_things_service", "archived.go")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, append(data, deleteMethod...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if report := eligibilityReport(t, generate(input, loadDir)); !hasIssue(report, "DELETE_OVERRIDE_UNNEEDED", "behavior-overrides.yaml:api.delete.operation") {
+		t.Fatalf("SDK with the DELETE method: report = %v, want DELETE_OVERRIDE_UNNEEDED", report)
 	}
 }
 
