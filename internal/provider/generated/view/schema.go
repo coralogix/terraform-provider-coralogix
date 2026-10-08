@@ -68,7 +68,11 @@ func Schema() schema.Schema {
 				MarkdownDescription: "id",
 			},
 			"is_compact_mode": schema.BoolAttribute{
-				Computed:            true,
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					serverDefaultModifier{value: types.BoolValue(false)},
+				},
 				MarkdownDescription: "The is compact mode.",
 			},
 			"name": schema.StringAttribute{
@@ -93,7 +97,7 @@ func Schema() schema.Schema {
 						Validators: []validator.String{
 							stringvalidator.OneOf("SYNTAX_TYPE_LUCENE", "SYNTAX_TYPE_DATAPRIME"),
 						},
-						MarkdownDescription: "Query syntax type.",
+						MarkdownDescription: "Syntax type.",
 					},
 				},
 				MarkdownDescription: "Search query.",
@@ -131,10 +135,7 @@ func Schema() schema.Schema {
 						},
 						Attributes: map[string]schema.Attribute{
 							"caption": schema.StringAttribute{
-								Optional: true,
-								Validators: []validator.String{
-									stringvalidator.LengthBetween(1, 100),
-								},
+								Computed:            true,
 								MarkdownDescription: "Display label for the quick time range.",
 							},
 							"seconds": schema.Int64Attribute{
@@ -159,7 +160,7 @@ func Schema() schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					serverDefaultModifier{value: types.StringValue("VIEW_TYPE_LOGS")},
 				},
-				MarkdownDescription: "View type.",
+				MarkdownDescription: "",
 			},
 		},
 	}
@@ -192,6 +193,18 @@ func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bo
 		return false, true
 	}
 	return true, false
+}
+
+func (m serverDefaultModifier) PlanModifyBool(_ context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
+	if unknown {
+		resp.PlanValue = types.BoolUnknown()
+	} else if preserve {
+		resp.PlanValue = req.StateValue
+	}
 }
 
 func (m serverDefaultModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {

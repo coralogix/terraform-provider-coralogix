@@ -108,6 +108,7 @@ type Field struct {
 type Attrs struct {
 	Required bool    // in the parent "required" list
 	Presence bool    // x-coralogix-presence: true
+	ReadOnly bool    // the server sets the value; a request must not send it
 	Default  *string // YAML text of "default", nil when there is none
 }
 

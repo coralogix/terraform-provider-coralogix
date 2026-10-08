@@ -7,6 +7,9 @@ prerequisites: |
   }
 values:
   folder_id: coralogix_view_folder.dependency.id
+  # 3600 is a preset the service stores unchanged. A nearby integer is snapped
+  # back to this value, so the update step must keep 3600.
+  time_selection.quick_selection.seconds: "3600"
 skip:
   - time_selection.custom_selection
   - time_selection.quick_selection.caption

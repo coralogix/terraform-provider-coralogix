@@ -26,6 +26,7 @@ var updateFields = []struct {
 }{
 	{attr: "filters", serverDefault: false},
 	{attr: "folder_id", serverDefault: false},
+	{attr: "is_compact_mode", serverDefault: true},
 	{attr: "name", serverDefault: false},
 	{attr: "search_query", serverDefault: false},
 	{attr: "time_selection", serverDefault: false},
@@ -61,7 +62,7 @@ func updateChanged(ctx context.Context, config, plan, state tfData) (bool, diag.
 // mask. A value that the plan clears (null) is not in the body, and the
 // server clears it. updateRequest returns nil when no Update field changed.
 // Then the caller sends no request (D14).
-func updateRequest(ctx context.Context, config, plan, state tfData) (*views_service.ViewWrite, diag.Diagnostics) {
+func updateRequest(ctx context.Context, config, plan, state tfData) (*views_service.View1, diag.Diagnostics) {
 	changed, diags := updateChanged(ctx, config, plan, state)
 	if diags.HasError() || !changed {
 		return nil, diags

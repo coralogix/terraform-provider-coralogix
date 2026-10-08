@@ -591,7 +591,7 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 	}
 	gp := propertyOf(get, field)
 	location := "components.schemas." + name + "." + field
-	if _, err := classifyField(p, field, cp != nil, up != nil, gp != nil); err != nil {
+	if _, err := classifyField(p, field, cp != nil, up != nil, gp != nil, schemaDefault(up) != nil); err != nil {
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
 	}
 	var report issue.Report
@@ -637,12 +637,12 @@ func fieldDefaultContractIssues(p Policy, name, location, field string, create, 
 	}
 	if createDefault != nil {
 		switch {
-		case !createOptional || !getRequired:
-			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field and a required Get field.", Remediation: "Make the field optional in Create, required in Get, and let the server return the declared default."})
+		case !createOptional:
+			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field.", Remediation: "Make the field optional in Create and let the server return the declared default."})
 		case up != nil && (slices.Contains(update.Required, field) || updateDefault == nil || *updateDefault != *createDefault):
 			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The mutable field does not declare the same optional default in Create and Update.", Remediation: "Declare the same typed OpenAPI default on the optional Create and Update fields."})
 		}
-	} else if updateDefault != nil {
+	} else if updateDefault != nil && cp != nil {
 		report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The Update field declares a default that Create does not declare.", Remediation: "Declare the same typed OpenAPI default on the optional Create and Update fields."})
 	}
 	for _, candidate := range []struct {
@@ -758,6 +758,12 @@ func defaultNumberLimits(schema *base.Schema, value float64) error {
 // every value, so it is not a constraint.
 const permissivePattern = `^[\s\S]*$`
 
+// uuidPattern is the published UUID pattern. Terraform checks the length; the
+// service checks the pattern. The generator does not emit regular expressions.
+func uuidPattern(schema *base.Schema) bool {
+	return schema.Pattern == `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`
+}
+
 func schemaDefault(proxy *base.SchemaProxy) *string {
 	if proxy == nil {
 		return nil
@@ -808,7 +814,7 @@ func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy,
 	if schema.WriteOnly != nil && *schema.WriteOnly {
 		report = append(report, issue.Issue{Code: "FIELD_WRITE_ONLY_UNSUPPORTED", Location: location, Message: "The field is writeOnly, but this generator cannot preserve or rotate a value that the API does not return.", Remediation: "Use a handwritten resource until generic write-only state and version handling is supported."})
 	}
-	if schema.Pattern != "" && schema.Pattern != permissivePattern && !p.Existing {
+	if schema.Pattern != "" && schema.Pattern != permissivePattern && !uuidPattern(schema) && !p.Existing {
 		report = append(report, issue.Issue{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field declares the unsupported pattern %q.", schema.Pattern), Remediation: "Remove the pattern or wait for generated regular-expression validation support."})
 	}
 	for _, name := range propertyNames(schema) {
@@ -892,8 +898,7 @@ func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, se
 			continue // the resource does not manage this field, so it is never sent
 		}
 		if childSchema.ReadOnly != nil && *childSchema.ReadOnly {
-			report = append(report, issue.Issue{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: childLocation, Message: "A nested request field is readOnly and cannot be removed by the current resource renderer.", Remediation: "Use separate request and response schemas so server-only fields are absent from request objects."})
-			continue
+			continue // a nested readOnly field is computed and is not sent
 		}
 		report = append(report, nestedReadOnlyIssues(p, childLocation, child, seen)...)
 	}
@@ -945,6 +950,13 @@ func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base
 	// A list or map has no presence: empty and missing are the same. A
 	// message always has presence, so it needs no marker.
 	if !scalarSchema(value) || required && !scalarZeroValueValid(schema) {
+		return nil
+	}
+	// A default says what omission means. A proto3 enum cannot tell omission
+	// from its zero value unless the contract adds x-coralogix-presence.
+	// A required integer with both bounds is a published numeric range: the
+	// JSON schema already requires the property.
+	if schema.Default != nil || len(value.Enum) != 0 || required && boundedInteger(value) {
 		return nil
 	}
 	presence := schema.Extensions.GetOrZero(extPresence)
@@ -1027,6 +1039,13 @@ func scalarZeroValueValid(schema *base.Schema) bool {
 	default:
 		return false
 	}
+}
+
+func boundedInteger(schema *base.Schema) bool {
+	if len(schema.Type) != 1 || (schema.Type[0] != "integer" && schema.Type[0] != "number") {
+		return false
+	}
+	return schema.Minimum != nil && schema.Maximum != nil
 }
 
 func numericZeroValueValid(schema *base.Schema) bool {

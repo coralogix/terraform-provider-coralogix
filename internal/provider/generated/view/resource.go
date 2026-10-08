@@ -194,8 +194,8 @@ func (r *Resource) get(ctx context.Context, id int32) (*views_service.View, erro
 	return out, nil
 }
 
-func (r *Resource) update(ctx context.Context, id int32, body *views_service.ViewWrite) (*views_service.View, error) {
-	out, httpResp, err := r.client.ViewsServiceReplaceView(ctx, id).ViewWrite(*body).Execute()
+func (r *Resource) update(ctx context.Context, id int32, body *views_service.View1) (*views_service.View, error) {
+	out, httpResp, err := r.client.ViewsServiceReplaceView(ctx, id).View1(*body).Execute()
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}

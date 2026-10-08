@@ -114,9 +114,9 @@ func expandCreate(ctx context.Context, m *ViewModel) (*views_service.ViewFolder,
 
 // expandUpdate returns the Update request body with every Update field. A
 // null value is not sent, and the server clears it (a full replace).
-func expandUpdate(ctx context.Context, m *ViewModel) (*views_service.ViewWrite, diag.Diagnostics) {
+func expandUpdate(ctx context.Context, m *ViewModel) (*views_service.View1, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	out := expandViewWrite(ctx, path.Empty(), m, &diags)
+	out := expandView1(ctx, path.Empty(), m, &diags)
 	return out, diags
 }
 
@@ -143,9 +143,10 @@ var oneOfArms = map[string]bool{
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id":              true,
-	"is_compact_mode": true,
-	"view_type":       true,
+	"id":                                     true,
+	"is_compact_mode":                        true,
+	"time_selection.quick_selection.caption": true,
+	"view_type":                              true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -334,9 +335,7 @@ func expandViewsV1Filter(ctx context.Context, p path.Path, m *ViewsV1FilterModel
 	}
 	out := &views_service.ViewsV1Filter{}
 	out.Name = valueOf(expandString(m.Name))
-	if mapped := expandMap[bool](ctx, p.AtName("selected_values"), m.SelectedValues, diags); mapped != nil {
-		out.SelectedValues = &mapped
-	}
+	out.SelectedValues = expandMap[bool](ctx, p.AtName("selected_values"), m.SelectedValues, diags)
 	return out
 }
 
@@ -346,11 +345,7 @@ func flattenViewsV1Filter(ctx context.Context, p path.Path, v *views_service.Vie
 	}
 	out := &ViewsV1FilterModel{}
 	out.Name = types.StringPointerValue(&v.Name)
-	var mapped map[string]bool
-	if v.SelectedValues != nil {
-		mapped = *v.SelectedValues
-	}
-	out.SelectedValues = flattenScalarMap(ctx, types.BoolType, mapped, diags)
+	out.SelectedValues = flattenScalarMap(ctx, types.BoolType, v.SelectedValues, diags)
 	return out
 }
 
@@ -441,13 +436,14 @@ func flattenQuickTimeSelection(ctx context.Context, p path.Path, v *views_servic
 	return out
 }
 
-func expandViewWrite(ctx context.Context, p path.Path, m *ViewModel, diags *diag.Diagnostics) *views_service.ViewWrite {
+func expandView1(ctx context.Context, p path.Path, m *ViewModel, diags *diag.Diagnostics) *views_service.View1 {
 	if m == nil {
 		return nil
 	}
-	out := &views_service.ViewWrite{}
+	out := &views_service.View1{}
 	out.Filters = expandSelectedFilters(ctx, p.AtName("filters"), m.Filters, diags)
 	out.FolderId = expandString(m.FolderId)
+	out.IsCompactMode = expandBool(m.IsCompactMode)
 	out.Name = valueOf(expandString(m.Name))
 	out.SearchQuery = expandSearchQuery(ctx, p.AtName("search_query"), m.SearchQuery, diags)
 	out.TimeSelection = valueOf(expandTimeSelection(ctx, p.AtName("time_selection"), m.TimeSelection, diags))
@@ -467,7 +463,7 @@ func flattenView(ctx context.Context, p path.Path, v *views_service.View, diags 
 	out.Name = types.StringPointerValue(&v.Name)
 	out.SearchQuery = flattenSearchQuery(ctx, p.AtName("search_query"), v.SearchQuery, diags)
 	out.TimeSelection = flattenTimeSelection(ctx, p.AtName("time_selection"), &v.TimeSelection, diags)
-	out.ViewType = flattenEnum(&v.ViewType, "VIEW_TYPE_UNSPECIFIED")
+	out.ViewType = flattenEnum(v.ViewType, "VIEW_TYPE_UNSPECIFIED")
 	return out
 }
 

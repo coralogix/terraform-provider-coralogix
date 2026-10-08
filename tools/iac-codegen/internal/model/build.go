@@ -853,7 +853,12 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("update body: %w", err)
 	}
 	gp := propertyOf(getSchema, name)
-	behavior, err := classifyField(r.Policy, name, cp != nil, up != nil, gp != nil)
+	updateDefault := false
+	if up != nil {
+		updateAttrs, attrErr := attrsOf(updateBody, name, up)
+		updateDefault = attrErr == nil && updateAttrs.Default != nil
+	}
+	behavior, err := classifyField(r.Policy, name, cp != nil, up != nil, gp != nil, updateDefault)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}
@@ -942,7 +947,19 @@ func attrsOf(parent *base.Schema, name string, proxy *base.SchemaProxy) (Attrs, 
 		v := s.Default.Value
 		a.Default = &v
 	}
+	if s.ReadOnly != nil && *s.ReadOnly {
+		a.ReadOnly = true
+	}
 	return a, nil
+}
+
+// referencedTypeSchema returns the schema a $ref-with-siblings points at.
+func referencedTypeSchema(proxy *base.SchemaProxy, sibling *base.Schema) (*base.Schema, error) {
+	semantic, err := proxy.BuildTransformedRefSemanticSchema(sibling)
+	if err != nil || semantic == nil || len(semantic.AllOf) != 2 || semantic.AllOf[1] == nil {
+		return nil, err
+	}
+	return schemaOf(semantic.AllOf[1])
 }
 
 // typeOf builds the type of a schema. path is the field path for errors.
@@ -954,6 +971,13 @@ func typeOf(proxy *base.SchemaProxy, path string, w walk) (*Type, error) {
 	s, err := schemaOf(proxy)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	if len(s.Type) != 1 && proxy.IsTransformedRefWithSiblings() {
+		// OpenAPI 3.1 keeps a sibling such as default next to $ref. Schema()
+		// then returns only the sibling, so the type lives on the target.
+		if resolved, resolveErr := referencedTypeSchema(proxy, s); resolveErr == nil && resolved != nil {
+			s = resolved
+		}
 	}
 	if err := checkSupported(s); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)

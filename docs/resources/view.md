@@ -44,13 +44,13 @@ resource "coralogix_view" "example" {
 
 - `filters` (Attributes) Selected filters. (see [below for nested schema](#nestedatt--filters))
 - `folder_id` (String) Unique identifier for folders
+- `is_compact_mode` (Boolean) The is compact mode.
 - `search_query` (Attributes) Search query. (see [below for nested schema](#nestedatt--search_query))
-- `view_type` (String) View type.
+- `view_type` (String)
 
 ### Read-Only
 
 - `id` (Number) id
-- `is_compact_mode` (Boolean) The is compact mode.
 
 <a id="nestedatt--time_selection"></a>
 ### Nested Schema for `time_selection`
@@ -76,7 +76,7 @@ Required:
 
 - `seconds` (Number) Length of the quick time range, in seconds.
 
-Optional:
+Read-Only:
 
 - `caption` (String) Display label for the quick time range.
 
@@ -111,4 +111,4 @@ Required:
 
 Optional:
 
-- `syntax_type` (String) Query syntax type.
+- `syntax_type` (String) Syntax type.

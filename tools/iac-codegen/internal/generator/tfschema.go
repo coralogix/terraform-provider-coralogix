@@ -193,10 +193,10 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 	}
 	if serverDefault(r, f) {
 		// The user may override this value. When it is omitted, the server
-		// supplies the declared default and Get always returns it. The plan
+		// supplies the declared default and Get returns it. The plan
 		// modifier makes removal unknown until Update clears the value and
 		// Get returns that default.
-		value, err := serverDefaultValue(f.Type, *f.Create.Default)
+		value, err := serverDefaultValue(f.Type, *declaredDefault(f))
 		if err != nil {
 			return nil, fmt.Errorf("server default: %w", err)
 		}
@@ -394,8 +394,28 @@ func containsString(values []string, target string) bool {
 	return false
 }
 
+func declaredDefault(f *model.ResourceField) *string {
+	if f.Create != nil && f.Create.Default != nil {
+		return f.Create.Default
+	}
+	if f.Update != nil && f.Update.Default != nil {
+		return f.Update.Default
+	}
+	return nil
+}
+
 func hasServerDefault(f *model.ResourceField) bool {
-	return f.Create != nil && !f.Create.Required && f.Create.Default != nil && f.Get != nil && f.Get.Required
+	d := declaredDefault(f)
+	if d == nil || f.Get == nil {
+		return false
+	}
+	if f.Create != nil && f.Create.Required {
+		return false
+	}
+	if f.Update != nil && (f.Update.Required || f.Update.Default == nil || *f.Update.Default != *d) {
+		return false
+	}
+	return true
 }
 
 // serverDefaultValue returns the typed Terraform value used only to detect
@@ -531,6 +551,9 @@ func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model
 	a := &tfAttr{Name: tfName(name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
 	if err := b.setType(a, p, t); err != nil {
 		return nil, err
+	}
+	if attrs.ReadOnly {
+		markComputed(a)
 	}
 	return a, nil
 }
