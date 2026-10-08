@@ -774,8 +774,8 @@ func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy,
 	if schema.WriteOnly != nil && *schema.WriteOnly {
 		report = append(report, issue.Issue{Code: "FIELD_WRITE_ONLY_UNSUPPORTED", Location: location, Message: "The field is writeOnly, but this generator cannot preserve or rotate a value that the API does not return.", Remediation: "Use a handwritten resource until generic write-only state and version handling is supported."})
 	}
-	if request && !p.Existing && !goPattern(schema.Pattern) {
-		report = append(report, issue.Issue{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("Go regular expressions (RE2) cannot compile the pattern %q.", schema.Pattern), Remediation: "Use a pattern without lookaround or backreferences."})
+	if request && !p.Existing {
+		report = append(report, patternIssues(location, schema)...)
 	}
 	for _, name := range propertyNames(schema) {
 		report = append(report, unsupportedSchemaIssues(p, location+"."+name, propertyOf(schema, name), request, seen)...)
@@ -787,6 +787,19 @@ func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy,
 		report = append(report, unsupportedSchemaIssues(p, location+"{}", schema.AdditionalProperties.A, request, seen)...)
 	}
 	return report
+}
+
+// patternIssues reports a request pattern that the generated validator cannot
+// enforce: Go (RE2) cannot compile it, or it is on an enum, whose attribute
+// gets only the OneOf validator.
+func patternIssues(location string, schema *base.Schema) issue.Report {
+	switch {
+	case !goPattern(schema.Pattern):
+		return issue.Report{{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("Go regular expressions (RE2) cannot compile the pattern %q.", schema.Pattern), Remediation: "Use a pattern without lookaround or backreferences."}}
+	case len(schema.Enum) != 0 && schema.Pattern != "" && schema.Pattern != permissivePattern:
+		return issue.Report{{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The enum declares the pattern %q. The enum values already limit the value.", schema.Pattern), Remediation: "Remove the pattern from the enum."}}
+	}
+	return nil
 }
 
 func rootGroupContractIssues(name string, create, update, get *base.Schema) issue.Report {

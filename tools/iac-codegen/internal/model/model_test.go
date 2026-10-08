@@ -550,6 +550,10 @@ func TestWriteOnlyAndLookaroundPatternAreIneligible(t *testing.T) {
 			spec: strings.Replace(base, "        enabled:\n          type: boolean\n", "        enabled:\n          type: boolean\n          writeOnly: true\n", 1),
 			code: "FIELD_WRITE_ONLY_UNSUPPORTED",
 		},
+		"pattern on a request enum": {
+			spec: strings.Replace(base, "    ThingKind:\n      type: string\n", "    ThingKind:\n      type: string\n      pattern: '^[a-z]+$'\n", 1),
+			code: "STRING_PATTERN_UNSUPPORTED",
+		},
 		"request pattern that Go cannot compile": {
 			spec: strings.Replace(base, "                name:\n                  type: string\n", "                name:\n                  type: string\n                  pattern: '^(?!x)[a-z]+$'\n", 1),
 			code: "STRING_PATTERN_UNSUPPORTED",
