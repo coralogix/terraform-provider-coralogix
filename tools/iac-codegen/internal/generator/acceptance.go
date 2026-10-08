@@ -800,13 +800,22 @@ func numberRange(a *tfAttr) (low, high float64) {
 
 // stringValue is the first accepted value of an enum, or a plain unique string. An enum keeps its
 // value in the update config: the valid values of other fields can depend on it (a rule condition
-// depends on the entity type), and the test cannot know how.
+// depends on the entity type), and the test cannot know how. When the plain string does not match
+// the pattern of the attribute, the value is built from the pattern, and is not unique per run.
 func stringValue(a *tfAttr, updated bool) string {
 	if values := enumValues(a); len(values) != 0 {
 		return values[0]
 	}
 	low, high := lengthRange(a)
-	return madeUpString(a.Name, updated, low, high)
+	v := madeUpString(a.Name, updated, low, high)
+	re := patternOf(a)
+	if re == nil || madeUpMatches(re, v) {
+		return v
+	}
+	if sample, ok := patternValue(re, updated, low, high); ok {
+		return sample
+	}
+	return v
 }
 
 // runLength is the length of @{run} in a test run: "acc-" and 8 characters.

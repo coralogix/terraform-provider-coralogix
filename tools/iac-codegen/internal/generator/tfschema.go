@@ -872,6 +872,9 @@ func scalar(t *model.Type) (string, []string, error) {
 		if v := lengthValidator(t.MinLength, t.MaxLength); v != "" {
 			vals = append(vals, v)
 		}
+		if t.Pattern != "" {
+			vals = append(vals, patternValidator(t.Pattern))
+		}
 		return "String", vals, nil
 	case model.Enum:
 		quoted := make([]string, len(t.Values))
@@ -905,6 +908,17 @@ func scalar(t *model.Type) (string, []string, error) {
 		return "", nil, fmt.Errorf("integer format %q is not supported", t.Format)
 	}
 	return "", nil, fmt.Errorf("kind %s is not a scalar", t.Kind)
+}
+
+// patternValidator returns a validator that the value matches pattern. The
+// pattern is a raw string literal when it can be, so it reads as in the API.
+// An empty message makes the validator show the pattern.
+func patternValidator(pattern string) string {
+	literal := strconv.Quote(pattern)
+	if !strings.Contains(pattern, "`") {
+		literal = "`" + pattern + "`"
+	}
+	return fmt.Sprintf("stringvalidator.RegexMatches(regexp.MustCompile(%s), \"\")", literal)
 }
 
 func lengthValidator(minLen, maxLen *int64) string {

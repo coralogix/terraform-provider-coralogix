@@ -1314,6 +1314,9 @@ func stringType(t *Type, s *base.Schema, w walk) error {
 		t.WireString = true
 	default:
 		t.Kind = String
+		if s.Pattern != permissivePattern && (w.policy == nil || !w.policy.Existing) {
+			t.Pattern = s.Pattern
+		}
 	}
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 {{- if or .HasServerDefaults .RequestReplaceKinds}}
 	"context"
 {{- end}}
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float32validator"

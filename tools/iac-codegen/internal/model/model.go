@@ -172,6 +172,9 @@ type Type struct {
 	Discriminator string
 
 	MinLength, MaxLength *int64
-	Minimum, Maximum     *float64
-	MinItems, MaxItems   *int64 // List, Set: items. Map: entries (minProperties, maxProperties).
+	// Pattern is the regular expression that a String must match, "" for
+	// none. The free-text pattern is none. Existing resources have none.
+	Pattern            string
+	Minimum, Maximum   *float64
+	MinItems, MaxItems *int64 // List, Set: items. Map: entries (minProperties, maxProperties).
 }

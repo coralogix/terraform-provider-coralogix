@@ -540,7 +540,7 @@ func TestExistingModeServerDefaultContract(t *testing.T) {
 	}
 }
 
-func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
+func TestWriteOnlyAndLookaroundPatternAreIneligible(t *testing.T) {
 	base := string(validSpec(t))
 	tests := map[string]struct {
 		spec string
@@ -550,8 +550,8 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 			spec: strings.Replace(base, "        enabled:\n          type: boolean\n", "        enabled:\n          type: boolean\n          writeOnly: true\n", 1),
 			code: "FIELD_WRITE_ONLY_UNSUPPORTED",
 		},
-		"pattern in a request": {
-			spec: strings.Replace(base, "                name:\n                  type: string\n", "                name:\n                  type: string\n                  pattern: '^[a-z]+$'\n", 1),
+		"request pattern that Go cannot compile": {
+			spec: strings.Replace(base, "                name:\n                  type: string\n", "                name:\n                  type: string\n                  pattern: '^(?!x)[a-z]+$'\n", 1),
 			code: "STRING_PATTERN_UNSUPPORTED",
 		},
 	}
@@ -568,8 +568,8 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 	}
 }
 
-// A pattern would become a validator of the configuration. The configuration
-// never sets a value that only the response has, so a pattern there is no issue.
+// A pattern becomes a validator of the configuration. The configuration never
+// sets a value that only the response has, so a pattern there is no issue.
 func TestResponseOnlyPatternIsEligible(t *testing.T) {
 	spec := strings.Replace(string(validSpec(t)),
 		"        id:\n          type: string\n          description: The server-assigned identifier.\n",
@@ -583,6 +583,63 @@ func TestResponseOnlyPatternIsEligible(t *testing.T) {
 	}
 	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
 		t.Fatalf("a pattern on the response-only id is ineligible: %v", report)
+	}
+}
+
+// withNamePattern sets pattern on name in the Create body, the Update body, and
+// Thing. Only Thing when requests is false.
+func withNamePattern(t *testing.T, pattern string, requests bool) string {
+	t.Helper()
+	spec := string(validSpec(t))
+	if requests {
+		spec = strings.Replace(spec, "                name:\n                  type: string\n", "                name:\n                  type: string\n                  pattern: '"+pattern+"'\n", 2)
+	}
+	return strings.Replace(spec, "        name:\n          type: string\n", "        name:\n          type: string\n          pattern: '"+pattern+"'\n", 1)
+}
+
+func namePattern(t *testing.T, spec string, policy Policy) string {
+	t.Helper()
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report := ValidateWithPolicy(doc, "Thing", OperationIDs{}, policy); len(report) != 0 {
+		t.Fatalf("ineligible: %v", report)
+	}
+	r, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range r.Fields {
+		if f.Name == "name" {
+			return f.Type.Pattern
+		}
+	}
+	t.Fatal("no name field")
+	return ""
+}
+
+func TestRequestPatternIsTheFieldPattern(t *testing.T) {
+	const pattern = "^[a-z][a-z0-9-]*$"
+	if got := namePattern(t, withNamePattern(t, pattern, true), Policy{}); got != pattern {
+		t.Errorf("pattern = %q, want %q", got, pattern)
+	}
+	if got := namePattern(t, withNamePattern(t, `^[\s\S]*$`, true), Policy{}); got != "" {
+		t.Errorf("free-text pattern = %q, want none", got)
+	}
+	// An existing resource keeps the released behavior: no pattern validator.
+	if got := namePattern(t, withNamePattern(t, pattern, true), Policy{Existing: true}); got != "" {
+		t.Errorf("existing-mode pattern = %q, want none", got)
+	}
+}
+
+func TestRequestPatternMustMatchTheResponse(t *testing.T) {
+	doc, err := Load([]byte(withNamePattern(t, "^[a-z]+$", false)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_TYPE_INCONSISTENT") {
+		t.Fatalf("codes %v do not contain FIELD_TYPE_INCONSISTENT", codes)
 	}
 }
 
