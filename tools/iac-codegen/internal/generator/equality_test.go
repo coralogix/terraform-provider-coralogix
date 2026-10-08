@@ -71,8 +71,8 @@ func TestEqualityRejectsFieldsThatAreNoDocument(t *testing.T) {
 // The flatten of a map of objects and of a computed object passes no prior model, so equality in the
 // objects they hold is rejected instead of generating code that does not compile.
 func TestEqualityRejectsContainersWithoutAPrior(t *testing.T) {
-	remotes := "                remotes:\n                  type: array\n                  items: {$ref: '#/components/schemas/ConfigRemote'}\n"
-	byName := "                byName:\n                  type: object\n                  additionalProperties: {$ref: '#/components/schemas/ConfigRemote'}\n"
+	remotes := "                remotes:\n                  type: array\n                  items: {$ref: '#/components/schemas/ConfigRemoteCreate'}\n"
+	byName := "                byName:\n                  type: object\n                  additionalProperties: {$ref: '#/components/schemas/ConfigRemoteCreate'}\n"
 	mapSpec := strings.ReplaceAll(configThingSpec(t), remotes, remotes+byName)
 	mapSpec = strings.Replace(mapSpec, "    ConfigRemote:\n", "        byName:\n          type: object\n          additionalProperties: {$ref: '#/components/schemas/ConfigRemote'}\n    ConfigRemote:\n", 1)
 	computedSpec := strings.Replace(configThingSpec(t), "    ConfigRemote:\n",

@@ -201,6 +201,100 @@ func TestFlattenKeepsPriorOrderOfReformattedItems(t *testing.T) {
 
 func ptr(v string) *string { return &v }
 
+// remote is one remote configuration, as the prior holds it and as the API returns it. A nil name
+// is a remote without a name.
+type remote struct {
+	name     *string
+	raw      string
+	selector map[string]string
+}
+
+// priorRemotes is the prior list of remotes after Create or Update: the plan, in which the server
+// sets the id and the hash of each remote later, so they are unknown.
+func priorRemotes(t *testing.T, remotes ...remote) types.List {
+	t.Helper()
+	ctx := context.Background()
+	items := make([]ConfigRemoteModel, 0, len(remotes))
+	for _, r := range remotes {
+		item := ConfigRemoteModel{Id: types.StringUnknown(), Hash: types.StringUnknown(), Name: types.StringPointerValue(r.name), RawConfiguration: types.StringValue(r.raw)}
+		if r.selector != nil {
+			attributes, diags := types.MapValueFrom(ctx, types.StringType, r.selector)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			item.Selector = &ConfigSelectorResponseModel{Attributes: attributes}
+		}
+		items = append(items, item)
+	}
+	list, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: configRemoteAttrTypes()}, items)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	return list
+}
+
+// apiRemotes returns the remotes as the API returns them, each with a server-set id and hash.
+func apiRemotes(remotes ...remote) []config_things_service.ConfigRemote {
+	out := make([]config_things_service.ConfigRemote, 0, len(remotes))
+	for i, r := range remotes {
+		item := config_things_service.ConfigRemote{Id: ptr(fmt.Sprintf("id-%d", i)), Hash: ptr(fmt.Sprintf("hash-%d", i)), Name: r.name, RawConfiguration: ptr(r.raw)}
+		if r.selector != nil {
+			item.Selector = &config_things_service.ConfigSelectorResponse{Attributes: r.selector}
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+// The request sends the remotes with their own component, and the response adds an id and a hash.
+// The items pair by the fields that the request sends, with the YAML document compared as a
+// document, so a reorder that the API does not apply keeps the prior order. The API values stay,
+// with their id and hash. When an item changed, or the API added or dropped one, the API order
+// stays, so the plan shows the change.
+func TestFlattenPairsRemotesByRequestFields(t *testing.T) {
+	ctx := context.Background()
+	a := remote{name: ptr("a"), raw: inlineYAML, selector: map[string]string{"type": "agent"}}
+	b := remote{name: ptr("b"), raw: "b: 1\n", selector: map[string]string{"type": "cluster"}}
+	aReformatted := remote{name: a.name, raw: multilineYAML, selector: a.selector}
+	bChanged := remote{name: b.name, raw: "b: 2\n", selector: b.selector}
+	bOtherSelector := remote{name: b.name, raw: b.raw, selector: map[string]string{"type": "agent"}}
+	nameless := remote{raw: "c: 1\n"}
+	tests := map[string]struct {
+		prior, api []remote
+		want       []string // the raw documents of the state, in order
+		wantIDs    []string // the ids of the state, from the API
+	}{
+		"reorder only":              {[]remote{b, a}, []remote{a, b}, []string{"b: 1\n", inlineYAML}, []string{"id-1", "id-0"}},
+		"reorder of a reformatted":  {[]remote{b, a}, []remote{aReformatted, b}, []string{"b: 1\n", inlineYAML}, []string{"id-1", "id-0"}},
+		"reorder plus one changed":  {[]remote{b, a}, []remote{bChanged, a}, []string{"b: 2\n", inlineYAML}, []string{"id-0", "id-1"}},
+		"changed selector":          {[]remote{b, a}, []remote{bOtherSelector, a}, []string{"b: 1\n", inlineYAML}, []string{"id-0", "id-1"}},
+		"nameless item":             {[]remote{nameless, a}, []remote{a, nameless}, []string{"c: 1\n", inlineYAML}, []string{"id-1", "id-0"}},
+		"duplicate identical items": {[]remote{b, a, a}, []remote{a, a, b}, []string{"b: 1\n", inlineYAML, inlineYAML}, []string{"id-2", "id-0", "id-1"}},
+		"same order":                {[]remote{a, b}, []remote{a, b}, []string{inlineYAML, "b: 1\n"}, []string{"id-0", "id-1"}},
+		"item that the API added":   {[]remote{b}, []remote{a, b}, []string{inlineYAML, "b: 1\n"}, []string{"id-0", "id-1"}},
+		"item that the API dropped": {[]remote{b, a}, []remote{a}, []string{inlineYAML}, []string{"id-0"}},
+		"no prior item matches":     {[]remote{bChanged}, []remote{a, b}, []string{inlineYAML, "b: 1\n"}, []string{"id-0", "id-1"}},
+	}
+	for name, test := range tests {
+		prior := &ConfigThingModel{Remotes: priorRemotes(t, test.prior...)}
+		got, diags := flatten(ctx, &config_things_service.ConfigThing{Id: "thing-1", Remotes: apiRemotes(test.api...)}, prior)
+		if diags.HasError() {
+			t.Fatalf("%s: %v", name, diags)
+		}
+		var remotes []ConfigRemoteModel
+		if diags := got.Remotes.ElementsAs(ctx, &remotes, false); diags.HasError() {
+			t.Fatalf("%s: %v", name, diags)
+		}
+		var raws, ids []string
+		for _, r := range remotes {
+			raws, ids = append(raws, r.RawConfiguration.ValueString()), append(ids, r.Id.ValueString())
+		}
+		if fmt.Sprint(raws) != fmt.Sprint(test.want) || fmt.Sprint(ids) != fmt.Sprint(test.wantIDs) {
+			t.Errorf("%s: raw_configuration = %q, id = %q, want %q, %q", name, raws, ids, test.want, test.wantIDs)
+		}
+	}
+}
+
 // The API returns an unset list or map as an empty one. The state keeps the form of the plan
 // after Create, or of the state before Read, so Terraform sees no difference. Without a prior,
 // after a state upgrade, the state takes the API value.
@@ -218,7 +312,8 @@ func TestSetStateKeepsTheFormOfEmptyCollections(t *testing.T) {
 	// prior is a value of the resource with the labels and the metadata.
 	prior := func(labels, metadata tftypes.Value) tftypes.Value {
 		remote := tftypes.NewValue(remoteType, map[string]tftypes.Value{
-			"name": str("collector"), "raw_configuration": str(inlineYAML),
+			"name": str("collector"), "raw_configuration": str(inlineYAML), "id": null, "hash": null,
+			"selector": tftypes.NewValue(remoteType.AttributeTypes["selector"], nil),
 		})
 		return tftypes.NewValue(objectType, map[string]tftypes.Value{
 			"id": str("thing-1"), "name": null, "settings": null, "template": null, "version": str("v1"),
@@ -280,15 +375,23 @@ func (testProvider) DataSources(context.Context) []func() datasource.DataSource 
 type thing struct {
 	settings, name, template tftypes.Value // a zero template is null
 	remotes                  []string
+	unknownRemoteIDs         bool // the server-set id and hash of each remote are unknown, not null
 }
 
 func (th thing) value(objectType tftypes.Object, id, version tftypes.Value) tftypes.Value {
 	remoteType := objectType.AttributeTypes["remotes"].(tftypes.List).ElementType.(tftypes.Object)
 	items := make([]tftypes.Value, 0, len(th.remotes))
+	serverSet := tftypes.NewValue(tftypes.String, nil)
+	if th.unknownRemoteIDs {
+		serverSet = tftypes.NewValue(tftypes.String, tftypes.UnknownValue)
+	}
 	for _, raw := range th.remotes {
 		items = append(items, tftypes.NewValue(remoteType, map[string]tftypes.Value{
 			"name":              tftypes.NewValue(tftypes.String, "collector"),
 			"raw_configuration": tftypes.NewValue(tftypes.String, raw),
+			"id":                serverSet,
+			"hash":              serverSet,
+			"selector":          tftypes.NewValue(remoteType.AttributeTypes["selector"], nil),
 		}))
 	}
 	template := th.template
@@ -402,11 +505,11 @@ func TestChangedDocumentPlansUpdate(t *testing.T) {
 	tests := map[string]struct{ config, want thing }{
 		"yaml": {
 			config: thing{settings: str(spacedJSON), name: str("name"), remotes: []string{changedYAML}},
-			want:   thing{settings: str(compactJSON), name: str("name"), remotes: []string{changedYAML}},
+			want:   thing{settings: str(compactJSON), name: str("name"), remotes: []string{changedYAML}, unknownRemoteIDs: true},
 		},
 		"json": {
 			config: thing{settings: str(`{"a":2}`), name: str("name"), remotes: []string{multilineYAML}},
-			want:   thing{settings: str(`{"a":2}`), name: str("name"), remotes: []string{inlineYAML}},
+			want:   thing{settings: str(`{"a":2}`), name: str("name"), remotes: []string{inlineYAML}, unknownRemoteIDs: true},
 		},
 	}
 	for name, test := range tests {
