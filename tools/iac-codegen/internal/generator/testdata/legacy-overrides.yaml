@@ -22,7 +22,6 @@ types:
     fields:
       id:
         markdownDescription: "The id. Leave it empty for a generated one."
-        useStateForUnknown: true
       name:
         markdownDescription: "The name."
         required: true

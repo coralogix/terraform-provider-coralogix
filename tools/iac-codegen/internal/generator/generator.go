@@ -313,6 +313,14 @@ func shapeIssue(location string, err error) issue.Issue {
 			Remediation: "Delete the equality or keepPriorOrder key from the fields of the object that the map or the computed object holds.",
 		}
 	}
+	if errors.Is(err, errStaleOverrideKey) {
+		return issue.Issue{
+			Code:        "OVERRIDE_UNUSED",
+			Location:    location,
+			Message:     err.Error(),
+			Remediation: "Delete only the named key from the line.",
+		}
+	}
 	return issue.Issue{
 		Code:        "RENDERER_SHAPE_UNSUPPORTED",
 		Location:    location,

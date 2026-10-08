@@ -270,6 +270,9 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 	return a, nil
 }
 
+// errStaleOverrideKey reports a key of a field line that the generator already applies.
+var errStaleOverrideKey = errors.New("the generator already applies this key, so it changes nothing")
+
 // applyOverrides applies the behavior-overrides file to the attributes. A field with a line
 // keeps the released behavior that the line states.
 func applyOverrides(out *tfResource, file *overrides.File) error {
@@ -313,8 +316,12 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if l.Computed != nil {
 		a.Computed = *l.Computed
 	}
-	if modifier := strings.ToLower(a.ValueKind) + "planmodifier.UseStateForUnknown()"; l.UseStateForUnknown && !containsString(a.Modifiers, modifier) {
-		// A client-set id already has it.
+	if l.UseStateForUnknown {
+		modifier := strings.ToLower(a.ValueKind) + "planmodifier.UseStateForUnknown()"
+		if containsString(a.Modifiers, modifier) {
+			// A client-set or computed id already has it. A key that changes nothing is an error.
+			return fmt.Errorf("useStateForUnknown: %w", errStaleOverrideKey)
+		}
 		a.Modifiers = append(a.Modifiers, modifier)
 	}
 	if l.Equality != "" {

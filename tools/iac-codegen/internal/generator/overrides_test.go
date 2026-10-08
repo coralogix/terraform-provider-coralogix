@@ -236,6 +236,19 @@ func thingSpec(t *testing.T) []byte {
 	return data
 }
 
+// The generator gives a client-set id UseStateForUnknown, so the key on its line changes nothing.
+// A key that changes nothing is reported, so a stale line cannot stay in the file.
+func TestUseStateForUnknownOnClientSetIDIsRejected(t *testing.T) {
+	text := strings.Replace(legacyOverrides, "id: {description: The id.}", "id: {description: The id., useStateForUnknown: true}", 1)
+	if text == legacyOverrides {
+		t.Fatal("the test overrides did not change: update the replaced text")
+	}
+	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
+	if !slices.Contains(eligibilityCodes(t, err), "OVERRIDE_UNUSED") || !strings.Contains(err.Error(), "useStateForUnknown") {
+		t.Fatalf("err = %v, want OVERRIDE_UNUSED for useStateForUnknown", err)
+	}
+}
+
 // Every call after Create names the resource by its id. A resource without the id attribute
 // cannot read, update, delete, or import, so the generator rejects the skip with a clear issue.
 func TestSkippingTheResourceIDIsRejected(t *testing.T) {

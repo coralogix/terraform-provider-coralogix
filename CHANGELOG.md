@@ -44,6 +44,7 @@
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
 - FIX: A nested object collection marked `x-coralogix-collection: set` now flattens as a set in the generated attr.Type map, matching the schema.
 - FIX: A client-set `id` (`clientSetID: true`) has `RequiresReplace`. Before, a change of `id` planned an in-place update that the API answered with 404.
+- FEAT: A `useStateForUnknown` key that the generator already applies, for example on a client-set `id`, is reported as `OVERRIDE_UNUSED`.
 - CHORE: Bump the generator to `v0.1.0-beta.14`.
 
 # Release 3.20.0
