@@ -24,8 +24,12 @@ type tfResource struct {
 	CRUD               *crudData // CRUD, import, and the provider data
 	HasServerDefaults  bool
 	ServerDefaultKinds []string // Terraform scalar kinds that need reset planning
-	PlanModifierPkgs   []string // lower-case Terraform value kinds with standard plan modifiers
-	DefaultPkgs        []string // lower-case Terraform value kinds with static defaults
+	// RequestReplaceKinds are the Terraform value kinds of the immutable
+	// attributes that hold values that the server sets. They use
+	// requestReplaceModifier instead of RequiresReplace.
+	RequestReplaceKinds []string
+	PlanModifierPkgs    []string // lower-case Terraform value kinds with standard plan modifiers
+	DefaultPkgs         []string // lower-case Terraform value kinds with static defaults
 	// ComputedPaths are the paths of the computed attributes, with list and map
 	// steps left out, as in Conv.OneOfArms.
 	ComputedPaths []string
@@ -127,6 +131,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	}
 	out.ConfigValidators = b.validators
 	out.Models = b.models
+	out.RequestReplaceKinds = b.replaceKinds
 	if file != nil {
 		if err := applyOverrides(out, file); err != nil {
 			return nil, err
@@ -245,7 +250,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 		}
 	case model.Immutable:
-		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.RequiresReplace()")
+		b.requiresReplace(a, a.Name)
 	}
 	return a, nil
 }
@@ -521,9 +526,10 @@ func fieldAttrs(f *model.ResourceField) model.Attrs {
 }
 
 type tfBuilder struct {
-	models     []*tfModel
-	seen       map[string]bool // model structs already added
-	validators []string        // resource config validators
+	models       []*tfModel
+	seen         map[string]bool // model structs already added
+	validators   []string        // resource config validators
+	replaceKinds []string        // RequestReplaceKinds
 }
 
 // attrPath is a Terraform attribute path: "root", then the names. The step
@@ -534,6 +540,18 @@ const (
 	anyListItem = "[]"
 	anyMapValue = "{}"
 )
+
+// dotted is the path in the form of tfResource.ComputedPaths: the names,
+// joined by dots, without the list and map steps.
+func (p attrPath) dotted() string {
+	var names []string
+	for _, n := range p[1:] {
+		if n != anyListItem && n != anyMapValue {
+			names = append(names, n)
+		}
+	}
+	return strings.Join(names, ".")
+}
 
 func (p attrPath) expr() string {
 	s := fmt.Sprintf("path.MatchRoot(%q)", p[1])
@@ -638,7 +656,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		case model.Computed:
 			markComputed(a)
 		case model.Immutable:
-			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.RequiresReplace()")
+			b.requiresReplace(a, child.dotted())
 		}
 		attrs = append(attrs, a)
 		fields = append(fields, b.modelField(f.Name, f.Type, f.Behavior == model.Computed))
@@ -666,6 +684,33 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		}
 	}
 	return attrs, nil
+}
+
+// requiresReplace makes a change of the immutable attribute a at path at
+// replace the resource. The stock RequiresReplace compares whole values. When
+// the resource changes, Terraform plans the attributes that the server sets as
+// unknown, so a value that holds them would replace the resource on every
+// change. requestReplaceModifier compares the values without them.
+func (b *tfBuilder) requiresReplace(a *tfAttr, at string) {
+	if !hasServerValue(a.Attributes) {
+		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.RequiresReplace()")
+		return
+	}
+	a.Modifiers = append(a.Modifiers, fmt.Sprintf("requestReplaceModifier{at: %q}", at))
+	if !containsString(b.replaceKinds, a.ValueKind) {
+		b.replaceKinds = append(b.replaceKinds, a.ValueKind)
+	}
+}
+
+// hasServerValue reports whether attrs or their descendants have a
+// computed-only attribute.
+func hasServerValue(attrs []*tfAttr) bool {
+	for _, a := range attrs {
+		if computedOnly(a) || hasServerValue(a.Attributes) {
+			return true
+		}
+	}
+	return false
 }
 
 // nestedAttrs are the attributes that decide Required for a nested field.

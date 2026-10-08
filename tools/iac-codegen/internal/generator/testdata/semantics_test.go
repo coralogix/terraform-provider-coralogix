@@ -405,18 +405,27 @@ func TestEmptyObjectRules(t *testing.T) {
 
 // nestedFixture builds Terraform values of the resource with a spec. The
 // spec has a normal mode, an immutable region, a computed revision and
-// source, and items with a computed id and an immutable key.
+// source, items with a computed id and an immutable key, and an immutable
+// list of targets with a computed id. target is the name of the one target.
 type nestedFixture struct {
-	root, spec, item, source tftypes.Object
-	items                    tftypes.List
+	root, spec, item, source, targetType tftypes.Object
+	items, targets                       tftypes.List
+	target                               string
 }
 
 func newNestedFixture(ctx context.Context) nestedFixture {
 	root := Schema().Type().TerraformType(ctx).(tftypes.Object)
 	spec := root.AttributeTypes["spec"].(tftypes.Object)
 	items := spec.AttributeTypes["items"].(tftypes.List)
+	targets := spec.AttributeTypes["targets"].(tftypes.List)
 	return nestedFixture{root: root, spec: spec, items: items, item: items.ElementType.(tftypes.Object),
-		source: spec.AttributeTypes["source"].(tftypes.Object)}
+		source: spec.AttributeTypes["source"].(tftypes.Object), targets: targets,
+		targetType: targets.ElementType.(tftypes.Object), target: "t1"}
+}
+
+func (f nestedFixture) withTarget(name string) nestedFixture {
+	f.target = name
+	return f
 }
 
 func tfString(v interface{}) tftypes.Value { return tftypes.NewValue(tftypes.String, v) }
@@ -427,14 +436,16 @@ func (f nestedFixture) itemValue(id, key interface{}, name string) tftypes.Value
 
 // specValue is the spec in configuration (server false) or in state (server true).
 func (f nestedFixture) specValue(server bool, mode, region string, items ...tftypes.Value) tftypes.Value {
-	revision, source := tfString(nil), tftypes.NewValue(f.source, nil)
+	revision, source, targetID := tfString(nil), tftypes.NewValue(f.source, nil), tfString(nil)
 	if server {
 		revision = tfString("1")
 		source = tftypes.NewValue(f.source, map[string]tftypes.Value{"origin": tfString("api")})
+		targetID = tfString("target-1")
 	}
+	target := tftypes.NewValue(f.targetType, map[string]tftypes.Value{"id": targetID, "name": tfString(f.target)})
 	return tftypes.NewValue(f.spec, map[string]tftypes.Value{
 		"mode": tfString(mode), "region": tfString(region), "revision": revision, "source": source,
-		"items": tftypes.NewValue(f.items, items),
+		"items": tftypes.NewValue(f.items, items), "targets": tftypes.NewValue(f.targets, []tftypes.Value{target}),
 	})
 }
 
@@ -548,6 +559,11 @@ func TestNestedLifecyclePlans(t *testing.T) {
 			proposed: f.resourceValue(true, "thing", f.specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a"), f.itemValue(nil, "k2", "b"))),
 			replace:  keyPath(1),
 		},
+		"changed immutable list": {
+			config:   f.withTarget("t2").resourceValue(false, "thing", f.withTarget("t2").specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a"))),
+			proposed: f.withTarget("t2").resourceValue(true, "thing", f.withTarget("t2").specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a"))),
+			replace:  tftypes.NewAttributePath().WithAttributeName("spec").WithAttributeName("targets"),
+		},
 		"new item without an immutable value": {
 			config:   f.resourceValue(false, "thing", f.specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a"), f.itemValue(nil, nil, "b"))),
 			proposed: f.resourceValue(true, "thing", f.specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a"), f.itemValue(nil, nil, "b"))),
@@ -590,6 +606,9 @@ func TestNestedServerValuesDoNotBlockCreate(t *testing.T) {
 		"mode": tfString("fast"), "region": tfString("eu"), "revision": tfString(tftypes.UnknownValue),
 		"source": tftypes.NewValue(f.source, tftypes.UnknownValue),
 		"items":  tftypes.NewValue(f.items, []tftypes.Value{f.itemValue(tftypes.UnknownValue, "k1", "a")}),
+		"targets": tftypes.NewValue(f.targets, []tftypes.Value{tftypes.NewValue(f.targetType, map[string]tftypes.Value{
+			"id": tfString(tftypes.UnknownValue), "name": tfString("t1"),
+		})}),
 	}))
 	if diags := validateCreate(ctx, tfsdk.Config{Schema: s, Raw: config}, tfsdk.Plan{Schema: s, Raw: plan}); diags.HasError() {
 		t.Fatalf("unknown server values blocked Create: %v", diags)

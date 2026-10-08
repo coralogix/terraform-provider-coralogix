@@ -1125,6 +1125,7 @@ func TestNestedFieldLifecycle(t *testing.T) {
 	}
 	item := fieldNamed(spec.Fields, "items").Type.Elem
 	source := fieldNamed(spec.Fields, "source").Type
+	target := fieldNamed(spec.Fields, "targets").Type.Elem
 	for _, test := range []struct {
 		object *Type
 		field  string
@@ -1135,6 +1136,9 @@ func TestNestedFieldLifecycle(t *testing.T) {
 		{spec, "revision", Computed},
 		{spec, "source", Computed},
 		{spec, "items", Normal},
+		{spec, "targets", Immutable},
+		{target, "id", Computed}, // inside an immutable value, Create does not send it
+		{target, "name", Normal},
 		{item, "id", Computed},
 		{item, "key", Immutable},
 		{item, "name", Normal},
@@ -1149,7 +1153,7 @@ func TestNestedFieldLifecycle(t *testing.T) {
 func TestNestedRequestTypes(t *testing.T) {
 	spec := specType(t)
 	create, update := spec.CreateType(), spec.UpdateType()
-	if create.Schema != "ThingSpecCreate" || create.Model != "ThingSpec" || !slices.Equal(fieldNames(create), []string{"mode", "region", "items"}) {
+	if create.Schema != "ThingSpecCreate" || create.Model != "ThingSpec" || !slices.Equal(fieldNames(create), []string{"mode", "region", "items", "targets"}) {
 		t.Errorf("Create type = %s for %s with %v", create.Schema, create.Model, fieldNames(create))
 	}
 	if update.Schema != "ThingSpecUpdate" || !slices.Equal(fieldNames(update), []string{"mode", "items"}) {

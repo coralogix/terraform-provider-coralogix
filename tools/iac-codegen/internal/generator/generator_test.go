@@ -1394,3 +1394,30 @@ func TestSingletonIDIsStatic(t *testing.T) {
 	}
 	compileGenerated(t, out, input)
 }
+
+// An immutable value that holds a value that the server sets compares only the
+// request values. The stock RequiresReplace would compare the unknown server
+// value and replace the resource on every change.
+func TestImmutableServerValuesUseRequestReplace(t *testing.T) {
+	settings := &model.Type{Kind: model.Object, Schema: "Settings", CreateSchema: "SettingsCreate", Fields: []*model.Field{
+		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}},
+		{Name: "id", Type: &model.Type{Kind: model.String}, Behavior: model.Computed},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "settings", Type: settings, Behavior: model.Immutable, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+		{Name: "region", Type: &model.Type{Kind: model.String}, Behavior: model.Immutable, Create: &model.Attrs{Presence: true}, Get: &model.Attrs{}, InGet: true},
+	}}
+	data, err := buildTFResource(resource, "thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := data.Attributes[0].Modifiers; !slices.Equal(got, []string{`requestReplaceModifier{at: "settings"}`}) {
+		t.Errorf("settings modifiers = %v, want requestReplaceModifier", got)
+	}
+	if got := data.Attributes[1].Modifiers; !slices.Equal(got, []string{"stringplanmodifier.RequiresReplace()"}) {
+		t.Errorf("region modifiers = %v, want the stock RequiresReplace", got)
+	}
+	if !slices.Equal(data.RequestReplaceKinds, []string{"Object"}) || !slices.Equal(data.ServerPaths, []string{"settings.id"}) {
+		t.Errorf("kinds %v, server paths %v", data.RequestReplaceKinds, data.ServerPaths)
+	}
+}
