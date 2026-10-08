@@ -10,6 +10,7 @@
 - FEAT: A string `pattern` that only the resource response has, for example on a server-set `id`, no longer blocks generation.
 - FIX: Reject an immutable value that holds an optional and computed field from `behavior-overrides.yaml`. An omitted one would replace the resource on every change.
 - FIX: The generated acceptance test treats an immutable value with server-set fields as immutable. Before, it could expect an update where the plan replaces the resource.
+- FEAT: `equality: yaml` or `equality: json` on a string field compares its value as a document, so a reformatted YAML or JSON value does not plan a change.
 
 # Release 3.20.0
 
