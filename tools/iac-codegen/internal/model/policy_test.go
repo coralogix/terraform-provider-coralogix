@@ -52,7 +52,6 @@ func TestLegacyResourceIsRefusedWithoutPolicy(t *testing.T) {
 		"FIELD_LIFECYCLE_UNSUPPORTED",
 		"RESOURCE_ID_OPTIONAL",
 		"RESPONSE_WRAPPER_UNSUPPORTED",
-		"STRING_PATTERN_UNSUPPORTED",
 		"UPDATE_ID_IN_BODY_UNSUPPORTED",
 	} {
 		if !slices.Contains(got, want) {

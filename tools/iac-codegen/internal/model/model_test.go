@@ -499,8 +499,8 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 			spec: strings.Replace(base, "        enabled:\n          type: boolean\n", "        enabled:\n          type: boolean\n          writeOnly: true\n", 1),
 			code: "FIELD_WRITE_ONLY_UNSUPPORTED",
 		},
-		"pattern": {
-			spec: strings.Replace(base, "        name:\n          type: string\n", "        name:\n          type: string\n          pattern: '^[a-z]+$'\n", 1),
+		"pattern in a request": {
+			spec: strings.Replace(base, "                name:\n                  type: string\n", "                name:\n                  type: string\n                  pattern: '^[a-z]+$'\n", 1),
 			code: "STRING_PATTERN_UNSUPPORTED",
 		},
 	}
@@ -514,6 +514,24 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 				t.Fatalf("codes %v do not contain %s", codes, test.code)
 			}
 		})
+	}
+}
+
+// A pattern would become a validator of the configuration. The configuration
+// never sets a value that only the response has, so a pattern there is no issue.
+func TestResponseOnlyPatternIsEligible(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"        id:\n          type: string\n          description: The server-assigned identifier.\n",
+		"        id:\n          type: string\n          pattern: '^[0-9a-f-]+$'\n          description: The server-assigned identifier.\n", 1)
+	if !strings.Contains(spec, "pattern: '^[0-9a-f-]+$'") {
+		t.Fatal("fixture text not found")
+	}
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+		t.Fatalf("a pattern on the response-only id is ineligible: %v", report)
 	}
 }
 

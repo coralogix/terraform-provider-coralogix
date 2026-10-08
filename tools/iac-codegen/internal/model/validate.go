@@ -559,9 +559,9 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 	report = append(report, nestedPresenceIssues(p, location+".update", up, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(p, location+".update", up, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(p, location+".update", up, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(p, location+".get", gp, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, true, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".update", up, true, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".get", gp, false, map[*base.Schema]bool{})...)
 	return report
 }
 
@@ -739,7 +739,11 @@ func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, roo
 	return report
 }
 
-func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+// unsupportedSchemaIssues reports the keywords below proxy that the generator
+// cannot honor. request is false for the resource response. A pattern there is
+// no issue: a pattern would become a validator of the configuration, and the
+// configuration sets only the values that a request sends.
+func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy, request bool, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -752,17 +756,17 @@ func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy,
 	if schema.WriteOnly != nil && *schema.WriteOnly {
 		report = append(report, issue.Issue{Code: "FIELD_WRITE_ONLY_UNSUPPORTED", Location: location, Message: "The field is writeOnly, but this generator cannot preserve or rotate a value that the API does not return.", Remediation: "Use a handwritten resource until generic write-only state and version handling is supported."})
 	}
-	if schema.Pattern != "" && schema.Pattern != permissivePattern && !p.Existing {
+	if request && schema.Pattern != "" && schema.Pattern != permissivePattern && !p.Existing {
 		report = append(report, issue.Issue{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field declares the unsupported pattern %q.", schema.Pattern), Remediation: "Remove the pattern or wait for generated regular-expression validation support."})
 	}
 	for _, name := range propertyNames(schema) {
-		report = append(report, unsupportedSchemaIssues(p, location+"."+name, propertyOf(schema, name), seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"."+name, propertyOf(schema, name), request, seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, unsupportedSchemaIssues(p, location+"[]", schema.Items.A, seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"[]", schema.Items.A, request, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, unsupportedSchemaIssues(p, location+"{}", schema.AdditionalProperties.A, seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"{}", schema.AdditionalProperties.A, request, seen)...)
 	}
 	return report
 }
