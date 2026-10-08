@@ -31,6 +31,8 @@ paths:
                   $ref: '#/components/schemas/ThingKind'
                 config:
                   $ref: '#/components/schemas/ThingConfig'
+                spec:
+                  $ref: '#/components/schemas/ThingSpecCreate'
                 destinations:
                   type: array
                   items: {type: string}
@@ -99,6 +101,8 @@ paths:
                 config:
                   allOf:
                     - $ref: '#/components/schemas/ThingConfig'
+                spec:
+                  $ref: '#/components/schemas/ThingSpecUpdate'
                 destinations:
                   type: array
                   items: {type: string}
@@ -152,6 +156,8 @@ components:
           $ref: '#/components/schemas/ThingConfig'
         status:
           $ref: '#/components/schemas/ThingStatus'
+        spec:
+          $ref: '#/components/schemas/ThingSpec'
         destinations:
           type: array
           items: {type: string}
@@ -207,6 +213,87 @@ components:
       required: [health]
       properties:
         health:
+          type: string
+    ThingSpec:
+      type: object
+      required: [revision]
+      properties:
+        mode:
+          type: string
+          description: The processing mode.
+        region:
+          type: string
+          description: The region. A change replaces the thing.
+        revision:
+          type: string
+          description: The server-assigned revision of the settings.
+        source:
+          $ref: '#/components/schemas/ThingSource'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingItem'
+          description: Ordered items.
+    ThingSpecCreate:
+      type: object
+      required: []
+      properties:
+        mode:
+          type: string
+          x-coralogix-presence: true
+        region:
+          type: string
+          x-coralogix-presence: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingItemCreate'
+    ThingSpecUpdate:
+      type: object
+      required: []
+      properties:
+        mode:
+          type: string
+          x-coralogix-presence: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingItemUpdate'
+    ThingItem:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          description: The server-assigned item identifier.
+        key:
+          type: string
+          description: The item key. A change replaces the thing.
+        name:
+          type: string
+          minLength: 1
+    ThingItemCreate:
+      type: object
+      required: [name]
+      properties:
+        key:
+          type: string
+          x-coralogix-presence: true
+        name:
+          type: string
+          minLength: 1
+    ThingItemUpdate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+    ThingSource:
+      type: object
+      required: []
+      properties:
+        origin:
           type: string
     DeleteThingResponse:
       type: object

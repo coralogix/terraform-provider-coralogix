@@ -32,6 +32,44 @@ type ThingStatus struct {
 	Health string
 }
 
+type ThingSpec struct {
+	Mode     *string
+	Region   *string
+	Revision string
+	Source   *ThingSource
+	Items    []ThingItem
+}
+
+type ThingSpecCreate struct {
+	Mode   *string
+	Region *string
+	Items  []ThingItemCreate
+}
+
+type ThingSpecUpdate struct {
+	Mode  *string
+	Items []ThingItemUpdate
+}
+
+type ThingItem struct {
+	Id   string
+	Key  *string
+	Name string
+}
+
+type ThingItemCreate struct {
+	Key  *string
+	Name string
+}
+
+type ThingItemUpdate struct {
+	Name string
+}
+
+type ThingSource struct {
+	Origin *string
+}
+
 type Thing struct {
 	Id           *string
 	Name         *string
@@ -40,6 +78,7 @@ type Thing struct {
 	Kind         *ThingKind
 	Config       *ThingConfig
 	Status       *ThingStatus
+	Spec         *ThingSpec
 	Destinations []string
 	Tags         []string
 	Labels       map[string]string
@@ -53,6 +92,7 @@ type CreateThingRequest struct {
 	Enabled      *bool
 	Kind         ThingKind
 	Config       ThingConfig
+	Spec         *ThingSpecCreate
 	Destinations []string
 	Tags         []string
 	Labels       map[string]string
@@ -63,6 +103,7 @@ type UpdateThingRequest struct {
 	Description  *string
 	Enabled      *bool
 	Config       *ThingConfig
+	Spec         *ThingSpecUpdate
 	Destinations []string
 	Tags         []string
 	Labels       map[string]string

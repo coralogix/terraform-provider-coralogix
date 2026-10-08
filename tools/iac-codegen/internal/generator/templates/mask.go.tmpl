@@ -67,6 +67,9 @@ func updateMask(ctx context.Context, config, plan, state tfData) ([]string, diag
 		if fieldDiags.HasError() {
 			continue
 		}
+{{- if $.ServerPaths}}
+		p, s = requestValue(ctx, f.attr, p, &diags), requestValue(ctx, f.attr, s, &diags)
+{{- end}}
 		validateRequestValue(path.Root(f.attr), c, p, f.serverDefault, &diags)
 		mask = maskPaths(mask, "", f, p, s)
 {{- if .HasGroups}}
@@ -180,6 +183,9 @@ func updateMask(ctx context.Context, config, plan, state tfData) ([]string, diag
 		if fieldDiags.HasError() {
 			continue
 		}
+{{- if $.ServerPaths}}
+		p, s = requestValue(ctx, f.attr, p, &diags), requestValue(ctx, f.attr, s, &diags)
+{{- end}}
 		validateRequestValue(path.Root(f.attr), c, p, f.serverDefault, &diags)
 		if !p.Equal(s) {
 			mask = append(mask, f.api)

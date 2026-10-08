@@ -3,7 +3,6 @@ package model
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"regexp"
 	"slices"
 	"strings"
@@ -775,7 +774,8 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("%s: get: %w", name, err)
 	}
 	f.Get = &getAttrs
-	for _, loc := range []struct {
+	var requests [2]*Type
+	for i, loc := range []struct {
 		name  string
 		body  *base.Schema
 		proxy *base.SchemaProxy
@@ -787,12 +787,8 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		if loc.proxy == nil {
 			continue
 		}
-		t, err := typeOf(loc.proxy, name, walk{policy: &r.Policy})
-		if err != nil {
+		if requests[i], err = typeOf(loc.proxy, name, walk{policy: &r.Policy}); err != nil {
 			return nil, fmt.Errorf("%s: %w", loc.name, err)
-		}
-		if !reflect.DeepEqual(t, f.Type) {
-			return nil, fmt.Errorf("%s: %s type differs from the get type", name, loc.name)
 		}
 		a, err := attrsOf(loc.body, name, loc.proxy)
 		if err != nil {
@@ -800,7 +796,15 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		}
 		*loc.attrs = &a
 	}
+	if err := mergeRequests(fieldLocation(r.Name, name), f.Type, requests[0], requests[1]); err != nil {
+		return nil, err
+	}
 	return f, nil
+}
+
+// fieldLocation is the issue location of a top-level field.
+func fieldLocation(resource, field string) string {
+	return "components.schemas." + resource + "." + field
 }
 
 // description is the description of a property schema, also when it wraps a

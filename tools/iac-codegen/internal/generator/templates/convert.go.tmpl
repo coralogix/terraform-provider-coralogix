@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"{{.Conv.SDKPkg}}"
 )
@@ -83,10 +84,77 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 		if fieldDiags.HasError() {
 			continue
 		}
+{{- if $.ServerPaths}}
+		p = requestValue(ctx, field.attr, p, &diags)
+{{- end}}
 		validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)
 	}
 	return diags
 }
+{{- if $.ServerPaths}}
+
+// serverAttrs are the paths of the computed attributes inside the values
+// that a request sends, with list and map steps left out. The server sets
+// them.
+var serverAttrs = map[string]bool{
+{{- range $.ServerPaths}}
+	{{printf "%q" .}}: true,
+{{- end}}
+}
+
+// requestValue returns v with a null value for each attribute that the server
+// sets. When the resource changes, Terraform plans these attributes as
+// unknown. A request does not send them, so a change check and an
+// unknown-value check must not see them.
+func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diagnostics) attr.Value {
+	if v == nil || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	switch v := v.(type) {
+	case types.Object:
+		attrTypes := v.AttributeTypes(ctx)
+		out := make(map[string]attr.Value, len(attrTypes))
+		for name, child := range v.Attributes() {
+			if serverAttrs[at+"."+name] {
+				out[name] = nullValue(ctx, attrTypes[name], diags)
+			} else {
+				out[name] = requestValue(ctx, at+"."+name, child, diags)
+			}
+		}
+		value, d := types.ObjectValue(attrTypes, out)
+		diags.Append(d...)
+		return value
+	case types.List:
+		elems := v.Elements()
+		out := make([]attr.Value, len(elems))
+		for i, child := range elems {
+			out[i] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.ListValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	case types.Map:
+		elems := v.Elements()
+		out := make(map[string]attr.Value, len(elems))
+		for key, child := range elems {
+			out[key] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.MapValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	}
+	return v
+}
+
+// nullValue returns the null value of type t.
+func nullValue(ctx context.Context, t attr.Type, diags *diag.Diagnostics) attr.Value {
+	value, err := t.ValueFromTerraform(ctx, tftypes.NewValue(t.TerraformType(ctx), nil))
+	if err != nil {
+		diags.AddError("Invalid value", err.Error())
+	}
+	return value
+}
+{{- end}}
 
 {{if not .Existing}}func unknownValuePaths(p path.Path, value attr.Value) []path.Path {
 	if value == nil || value.IsNull() {

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -73,9 +74,20 @@ func ValidateWithPolicy(doc *v3.Document, name string, ids OperationIDs, p Polic
 			report = append(report, buildIssue(err))
 		} else {
 			report = append(report, validateBuiltResource(r)...)
+			report = append(report, componentNameCollisions(resourceType(r))...)
 		}
 	}
 	return report.Normalize()
+}
+
+// resourceType is the type of the resource response, with the request
+// components that Build merged into it.
+func resourceType(r *Resource) *Type {
+	t := &Type{Kind: Object, Schema: r.Name}
+	for _, f := range r.Fields {
+		t.Fields = append(t.Fields, &Field{Name: f.Name, Type: f.Type})
+	}
+	return t
 }
 
 func requestSchemaSeparationIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
@@ -588,7 +600,7 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 		cp, up = nil, nil
 	}
 	gp := propertyOf(get, field)
-	location := "components.schemas." + name + "." + field
+	location := fieldLocation(name, field)
 	if _, err := Classify(cp != nil, up != nil, gp != nil); err != nil {
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
 	}
@@ -904,23 +916,29 @@ func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, se
 	return report
 }
 
-func fieldTypeIssues(p Policy, location string, candidates ...*base.SchemaProxy) issue.Report {
-	var canonical *Type
-	for _, candidate := range candidates {
-		if candidate == nil {
+// fieldTypeIssues merges the Create and Update types of a field into its type
+// in the resource response, as Build does. A schema that is not supported is
+// left out: unsupportedSchemaIssues reports it.
+func fieldTypeIssues(p Policy, location string, gp, cp, up *base.SchemaProxy) issue.Report {
+	if gp == nil {
+		return nil
+	}
+	get, err := typeOf(gp, location, walk{policy: &p})
+	if err != nil {
+		return nil
+	}
+	var requests [2]*Type
+	for i, proxy := range []*base.SchemaProxy{cp, up} {
+		if proxy == nil {
 			continue
 		}
-		current, err := typeOf(candidate, location, walk{policy: &p})
-		if err != nil {
-			continue
+		if requests[i], err = typeOf(proxy, location, walk{policy: &p}); err != nil {
+			return nil
 		}
-		if canonical == nil {
-			canonical = current
-			continue
-		}
-		if !reflect.DeepEqual(canonical, current) {
-			return issue.Report{{Code: "FIELD_TYPE_INCONSISTENT", Location: location, Message: "The Create, Update, and Get schemas do not use the same field type.", Remediation: "Use one compatible schema for the field in every lifecycle operation."}}
-		}
+	}
+	var contract *contractError
+	if err := mergeRequests(location, get, requests[0], requests[1]); errors.As(err, &contract) {
+		return issue.Report{contract.issue()}
 	}
 	return nil
 }
@@ -1173,7 +1191,7 @@ func validateBuiltResource(r *Resource) issue.Report {
 		if field.Update == nil {
 			continue
 		}
-		paths := oneOfMaskPaths(field.Name, field.Type)
+		paths := oneOfMaskPaths(field.Name, field.Type.UpdateType())
 		if len(paths) == 0 {
 			continue
 		}
@@ -1254,18 +1272,22 @@ func componentNameCollisions(root *Type) issue.Report {
 			return
 		}
 		visitedTypes[t] = true
-		if t.Schema != "" && !visitedSchemas[t.Schema] {
-			visitedSchemas[t.Schema] = true
-			generated := GoName(t.Schema)
-			if previous, ok := generatedNames[generated]; ok && previous != t.Schema {
+		// A request component of an object names its expand function.
+		for _, schema := range []string{t.Schema, t.CreateSchema, t.UpdateSchema} {
+			if schema == "" || visitedSchemas[schema] {
+				continue
+			}
+			visitedSchemas[schema] = true
+			generated := GoName(schema)
+			if previous, ok := generatedNames[generated]; ok && previous != schema {
 				report = append(report, issue.Issue{
 					Code:        "GO_COMPONENT_NAME_COLLISION",
 					Location:    "components.schemas",
-					Message:     fmt.Sprintf("Components %q and %q both generate the Go name %q.", previous, t.Schema, generated),
+					Message:     fmt.Sprintf("Components %q and %q both generate the Go name %q.", previous, schema, generated),
 					Remediation: "Rename a source API component so every generated Go type name is unique.",
 				})
 			} else {
-				generatedNames[generated] = t.Schema
+				generatedNames[generated] = schema
 			}
 		}
 		walk(t.Elem)
@@ -1370,6 +1392,10 @@ func constraintSchemaIssueCode(message string) string {
 }
 
 func buildIssue(err error) issue.Issue {
+	var contract *contractError
+	if errors.As(err, &contract) {
+		return contract.issue()
+	}
 	message := err.Error()
 	code := "RESOURCE_LIFECYCLE_INCOMPLETE"
 	remediation := "Correct the source API contract so the complete resource lifecycle is deterministic."

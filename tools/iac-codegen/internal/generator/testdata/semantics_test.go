@@ -2,14 +2,19 @@ package thing
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
@@ -285,6 +290,7 @@ func requestValues() map[string]attr.Value {
 		"enabled":      types.BoolNull(),
 		"kind":         types.StringNull(),
 		"config":       types.ObjectNull(configType),
+		"spec":         types.ObjectNull(Schema().Attributes["spec"].GetType().(types.ObjectType).AttrTypes),
 		"destinations": types.ListNull(types.StringType),
 		"tags":         types.SetNull(types.StringType),
 		"labels":       types.MapNull(types.StringType),
@@ -394,5 +400,202 @@ func TestEmptyObjectRules(t *testing.T) {
 	}
 	if diags.HasError() {
 		t.Fatal(diags)
+	}
+}
+
+// nestedFixture builds Terraform values of the resource with a spec. The
+// spec has a normal mode, an immutable region, a computed revision and
+// source, and items with a computed id and an immutable key.
+type nestedFixture struct {
+	root, spec, item, source tftypes.Object
+	items                    tftypes.List
+}
+
+func newNestedFixture(ctx context.Context) nestedFixture {
+	root := Schema().Type().TerraformType(ctx).(tftypes.Object)
+	spec := root.AttributeTypes["spec"].(tftypes.Object)
+	items := spec.AttributeTypes["items"].(tftypes.List)
+	return nestedFixture{root: root, spec: spec, items: items, item: items.ElementType.(tftypes.Object),
+		source: spec.AttributeTypes["source"].(tftypes.Object)}
+}
+
+func tfString(v interface{}) tftypes.Value { return tftypes.NewValue(tftypes.String, v) }
+
+func (f nestedFixture) itemValue(id, key interface{}, name string) tftypes.Value {
+	return tftypes.NewValue(f.item, map[string]tftypes.Value{"id": tfString(id), "key": tfString(key), "name": tfString(name)})
+}
+
+// specValue is the spec in configuration (server false) or in state (server true).
+func (f nestedFixture) specValue(server bool, mode, region string, items ...tftypes.Value) tftypes.Value {
+	revision, source := tfString(nil), tftypes.NewValue(f.source, nil)
+	if server {
+		revision = tfString("1")
+		source = tftypes.NewValue(f.source, map[string]tftypes.Value{"origin": tfString("api")})
+	}
+	return tftypes.NewValue(f.spec, map[string]tftypes.Value{
+		"mode": tfString(mode), "region": tfString(region), "revision": revision, "source": source,
+		"items": tftypes.NewValue(f.items, items),
+	})
+}
+
+// resourceValue is the resource in configuration (server false) or in state (server true).
+func (f nestedFixture) resourceValue(server bool, name string, spec tftypes.Value) tftypes.Value {
+	values := nullTFValues(f.root)
+	values["name"] = tfString(name)
+	values["kind"] = tfString("THING_KIND_STANDARD")
+	configType := f.root.AttributeTypes["config"].(tftypes.Object)
+	httpType := configType.AttributeTypes["http"].(tftypes.Object)
+	values["config"] = tftypes.NewValue(configType, map[string]tftypes.Value{
+		"http":  tftypes.NewValue(httpType, map[string]tftypes.Value{"endpoint": tfString("https://example.com")}),
+		"queue": tftypes.NewValue(configType.AttributeTypes["queue"], nil),
+	})
+	values["spec"] = spec
+	if server {
+		statusType := f.root.AttributeTypes["status"].(tftypes.Object)
+		values["id"] = tfString("thing-1")
+		values["enabled"] = tftypes.NewValue(tftypes.Bool, true)
+		values["status"] = tftypes.NewValue(statusType, map[string]tftypes.Value{"health": tfString("ok")})
+		values["create_time"] = tfString("2026-01-01T00:00:00Z")
+		values["update_time"] = tfString("2026-01-01T00:00:00Z")
+	}
+	return tftypes.NewValue(f.root, values)
+}
+
+type testProvider struct{}
+
+func (testProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "test"
+}
+func (testProvider) Schema(context.Context, provider.SchemaRequest, *provider.SchemaResponse) {}
+func (testProvider) Configure(context.Context, provider.ConfigureRequest, *provider.ConfigureResponse) {
+}
+func (testProvider) Resources(context.Context) []func() frameworkresource.Resource {
+	return []func() frameworkresource.Resource{NewResource}
+}
+func (testProvider) DataSources(context.Context) []func() datasource.DataSource { return nil }
+
+// planChange runs the Terraform plan of the resource. proposed is the value
+// that Terraform core proposes: the configuration, and the prior value of a
+// computed attribute that the configuration leaves null.
+func (f nestedFixture) planChange(t *testing.T, prior, config, proposed tftypes.Value) (tftypes.Value, []*tftypes.AttributePath) {
+	t.Helper()
+	ctx := context.Background()
+	server, err := providerserver.NewProtocol6WithError(testProvider{})()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := server.GetProviderSchema(ctx, &tfprotov6.GetProviderSchemaRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	encode := func(v tftypes.Value) *tfprotov6.DynamicValue {
+		dv, err := tfprotov6.NewDynamicValue(f.root, v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return &dv
+	}
+	resp, err := server.PlanResourceChange(ctx, &tfprotov6.PlanResourceChangeRequest{
+		TypeName: "test_" + TypeName, PriorState: encode(prior), Config: encode(config), ProposedNewState: encode(proposed),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range resp.Diagnostics {
+		if d.Severity == tfprotov6.DiagnosticSeverityError {
+			t.Fatalf("plan: %s: %s", d.Summary, d.Detail)
+		}
+	}
+	planned, err := resp.PlannedState.Unmarshal(f.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return planned, resp.RequiresReplace
+}
+
+func TestNestedLifecyclePlans(t *testing.T) {
+	ctx := context.Background()
+	f := newNestedFixture(ctx)
+	prior := f.resourceValue(true, "thing", f.specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a")))
+	keyPath := func(i int) *tftypes.AttributePath {
+		return tftypes.NewAttributePath().WithAttributeName("spec").WithAttributeName("items").WithElementKeyInt(i).WithAttributeName("key")
+	}
+	tests := map[string]struct {
+		config, proposed tftypes.Value
+		replace          *tftypes.AttributePath // nil: an update or no change
+		mask             string                 // the update mask of an update
+	}{
+		"no change": {
+			config:   f.resourceValue(false, "thing", f.specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a"))),
+			proposed: prior,
+		},
+		"top-level change leaves the spec out of the mask": {
+			config:   f.resourceValue(false, "renamed", f.specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a"))),
+			proposed: f.resourceValue(true, "renamed", f.specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a"))),
+			mask:     "name",
+		},
+		"normal nested change": {
+			config:   f.resourceValue(false, "thing", f.specValue(false, "slow", "eu", f.itemValue(nil, "k1", "a"))),
+			proposed: f.resourceValue(true, "thing", f.specValue(true, "slow", "eu", f.itemValue("item-1", "k1", "a"))),
+			mask:     "spec.mode",
+		},
+		"immutable nested change": {
+			config:   f.resourceValue(false, "thing", f.specValue(false, "fast", "us", f.itemValue(nil, "k1", "a"))),
+			proposed: f.resourceValue(true, "thing", f.specValue(true, "fast", "us", f.itemValue("item-1", "k1", "a"))),
+			replace:  tftypes.NewAttributePath().WithAttributeName("spec").WithAttributeName("region"),
+		},
+		"new item with an immutable value": {
+			config:   f.resourceValue(false, "thing", f.specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a"), f.itemValue(nil, "k2", "b"))),
+			proposed: f.resourceValue(true, "thing", f.specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a"), f.itemValue(nil, "k2", "b"))),
+			replace:  keyPath(1),
+		},
+		"new item without an immutable value": {
+			config:   f.resourceValue(false, "thing", f.specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a"), f.itemValue(nil, nil, "b"))),
+			proposed: f.resourceValue(true, "thing", f.specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a"), f.itemValue(nil, nil, "b"))),
+			mask:     "spec.items",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			planned, replace := f.planChange(t, prior, test.config, test.proposed)
+			if test.replace != nil {
+				if !slices.ContainsFunc(replace, test.replace.Equal) {
+					t.Fatalf("requires replace = %v, want %v", replace, test.replace)
+				}
+				return
+			}
+			if len(replace) != 0 {
+				t.Fatalf("requires replace = %v, want none", replace)
+			}
+			if test.mask == "" {
+				if !planned.Equal(prior) {
+					t.Fatalf("planned = %s, want the prior state", planned)
+				}
+				return
+			}
+			s := Schema()
+			_, mask, diags := updateRequest(ctx, tfsdk.Config{Schema: s, Raw: test.config}, tfsdk.Plan{Schema: s, Raw: planned}, tfsdk.State{Schema: s, Raw: prior})
+			if diags.HasError() || mask != test.mask {
+				t.Fatalf("update mask = %q, %v; want %q", mask, diags, test.mask)
+			}
+		})
+	}
+}
+
+func TestNestedServerValuesDoNotBlockCreate(t *testing.T) {
+	ctx := context.Background()
+	f := newNestedFixture(ctx)
+	s := Schema()
+	config := f.resourceValue(false, "thing", f.specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a")))
+	plan := f.resourceValue(false, "thing", tftypes.NewValue(f.spec, map[string]tftypes.Value{
+		"mode": tfString("fast"), "region": tfString("eu"), "revision": tfString(tftypes.UnknownValue),
+		"source": tftypes.NewValue(f.source, tftypes.UnknownValue),
+		"items":  tftypes.NewValue(f.items, []tftypes.Value{f.itemValue(tftypes.UnknownValue, "k1", "a")}),
+	}))
+	if diags := validateCreate(ctx, tfsdk.Config{Schema: s, Raw: config}, tfsdk.Plan{Schema: s, Raw: plan}); diags.HasError() {
+		t.Fatalf("unknown server values blocked Create: %v", diags)
+	}
+	plan = f.resourceValue(false, "thing", f.specValue(false, "fast", "eu", f.itemValue(nil, tftypes.UnknownValue, "a")))
+	if diags := validateCreate(ctx, tfsdk.Config{Schema: s, Raw: plan}, tfsdk.Plan{Schema: s, Raw: plan}); !diags.HasError() {
+		t.Fatal("an unknown configured nested value was accepted")
 	}
 }

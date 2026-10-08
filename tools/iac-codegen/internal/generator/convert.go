@@ -230,9 +230,17 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 		}
 	}
 	for _, obj := range b.listed {
+		// Only flatten builds Terraform values. An object that only a request
+		// holds needs no attribute types.
+		if !obj.Flatten {
+			continue
+		}
 		if err := b.attrTypes(obj); err != nil {
 			return nil, err
 		}
+	}
+	if err := checkExpandNames(b.objects); err != nil {
+		return nil, err
 	}
 	out.Objects = b.objects
 	out.OneOfArms = oneOfArmPaths(r)
@@ -317,7 +325,7 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 		if !root.has(f) {
 			continue
 		}
-		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, f.Type)
+		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, rootType(root.path, f))
 		if err != nil {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
 		}
@@ -332,6 +340,18 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 	}
 	*root.obj = obj
 	return nil
+}
+
+// rootType is the type of field f in the root at path: the request type in
+// the Create or the Update body, else the type in the resource response.
+func rootType(path string, f *model.ResourceField) *model.Type {
+	switch path {
+	case "create.body":
+		return f.Type.CreateType()
+	case "update.body":
+		return f.Type.UpdateType()
+	}
+	return f.Type
 }
 
 // rootObject returns the object of a root and the SDK path of its fields. A request body that
@@ -424,7 +444,7 @@ func buildMask(r *model.Resource, out *convData) error {
 		}
 		mf := &maskField{TFName: tfName(f.Name), API: f.Name}
 		if leaf {
-			mf = maskTree(f.Name, f.Type)
+			mf = maskTree(f.Name, f.Type.UpdateType())
 		}
 		mf.ServerDefault = serverDefault(r, f)
 		if err := checkMaskPaths(mf, "", valid); err != nil {
@@ -576,6 +596,22 @@ func (b *convBuilder) object(schema string, ref sdkRef) *convObject {
 	return obj
 }
 
+// checkExpandNames rejects two objects with one expand function name: a
+// request component that holds two response models.
+func checkExpandNames(objects []*convObject) error {
+	models := map[string]string{}
+	for _, obj := range objects {
+		if !obj.Expand {
+			continue
+		}
+		if previous, ok := models[obj.Func]; ok {
+			return fmt.Errorf("expand%s converts both %s and %s", obj.Func, previous, obj.Model)
+		}
+		models[obj.Func] = obj.Model
+	}
+	return nil
+}
+
 // field returns the conversion of the property name of the SDK struct at
 // owner (an SDK name path).
 func (b *convBuilder) field(owner, component, name string, t *model.Type) (*convField, error) {
@@ -723,21 +759,42 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 }
 
 // nested returns the convObject of an object or a oneOf, and fills its
-// fields on the first call.
+// fields on the first call. A request type whose component is also the
+// response component shares the object with the response: the component has
+// the same fields in both. A request type with its own component, for example
+// ThingSpecCreate for ThingSpec, gets its own object. It expands the response
+// model into the request component, and has only the request fields.
 func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	ref, err := b.ix.schemaRef(t.Schema)
 	if err != nil {
 		return nil, err
 	}
-	if obj, ok := b.bySchema[t.Schema]; ok {
+	key, component := t.Schema, t.Schema
+	if t.Model != "" && t.Model != t.Schema {
+		key, component = "request:"+t.Schema, t.Model
+	}
+	if obj, ok := b.bySchema[key]; ok {
+		if obj.Model != modelTypeName(component) {
+			return nil, fmt.Errorf("request component %s holds both %s and %s", t.Schema, obj.Model, modelTypeName(component))
+		}
 		return obj, nil
 	}
-	obj := b.object(t.Schema, ref)
+	obj := b.object(key, ref)
+	obj.Func, obj.Model = camelize(t.Schema), modelTypeName(component)
+	obj.AttrTypesFunc = lowerFirst(obj.Func) + "AttrTypes"
 	b.objects = append(b.objects, obj)
 	for _, f := range t.Fields {
-		cf, err := b.field(ref.Path, t.Schema, f.Name, f.Type)
+		cf, err := b.field(ref.Path, component, f.Name, f.Type)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
+		}
+		if f.Behavior == model.Computed && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
+			// The model holds a computed object as a types.Object, which can
+			// be unknown while its parent is known.
+			cf.ObjectValue = true
+			if cf.Conv == convObj && !contains(b.listed, cf.Object) {
+				b.listed = append(b.listed, cf.Object)
+			}
 		}
 		obj.Fields = append(obj.Fields, cf)
 	}
@@ -1039,6 +1096,10 @@ func markPriorFields(d *convData) error {
 			}
 			if f.Conv != convObjects || f.Collection != "List" {
 				return fmt.Errorf("%s.%s: keepPriorOrder needs a list of objects", obj.Model, f.TFName)
+			}
+			if !f.Object.Expand {
+				// keepOrder expands the prior items with the response object.
+				return fmt.Errorf("%s.%s: keepPriorOrder needs a list that the request sends with the response component", obj.Model, f.TFName)
 			}
 			obj.NeedsPrior = true
 			f.Object.Same = true

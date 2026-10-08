@@ -29,6 +29,11 @@ type tfResource struct {
 	// ComputedPaths are the paths of the computed attributes, with list and map
 	// steps left out, as in Conv.OneOfArms.
 	ComputedPaths []string
+	// ServerPaths are the paths of the computed-only attributes inside the
+	// attributes that a request sends, in the form of ComputedPaths. The
+	// server sets them, and Terraform plans them as unknown when the resource
+	// changes, so the request checks leave them out.
+	ServerPaths []string
 	// SchemaVersion and ResourceMarkdownDescription are the released schema version and the
 	// released description of the resource. Both come from the behavior-overrides file.
 	SchemaVersion               int64
@@ -130,8 +135,30 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
 	out.ComputedPaths = computedPaths(nil, "", out.Attributes)
+	for _, a := range out.Attributes {
+		if !computedOnly(a) {
+			out.ServerPaths = serverPaths(out.ServerPaths, a.Name, a.Attributes)
+		}
+	}
 	return out, nil
 }
+
+// serverPaths appends the paths of the computed-only attributes in attrs, in
+// schema order, below the attribute at parent. The descendants of a
+// computed-only attribute are computed too, so they add nothing.
+func serverPaths(out []string, parent string, attrs []*tfAttr) []string {
+	for _, a := range attrs {
+		at := parent + "." + a.Name
+		if computedOnly(a) {
+			out = append(out, at)
+			continue
+		}
+		out = serverPaths(out, at, a.Attributes)
+	}
+	return out
+}
+
+func computedOnly(a *tfAttr) bool { return a.Computed && !a.Optional && !a.Required }
 
 // computedPaths appends the paths of the computed attributes in attrs, in
 // schema order. A nested attribute adds its name to the path. A list, set, or
@@ -603,12 +630,18 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	var fields []tfModelField
 	for _, f := range t.Fields {
 		child := append(append(attrPath{}, p...), tfName(f.Name))
-		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, f.Attrs)
+		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f))
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
+		switch f.Behavior {
+		case model.Computed:
+			markComputed(a)
+		case model.Immutable:
+			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.RequiresReplace()")
+		}
 		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(f.Name, f.Type, false))
+		fields = append(fields, b.modelField(f.Name, f.Type, f.Behavior == model.Computed))
 	}
 	groups := t.Groups
 	if t.Kind == model.OneOf {
@@ -619,11 +652,30 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		groups = append(groups, group)
 	}
 	addGroupValidators(attrs, groups)
-	if name := modelTypeName(t.Schema); !b.seen[name] {
+	name := modelTypeName(t.Schema)
+	if !b.seen[name] {
 		b.seen[name] = true
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
+		return attrs, nil
+	}
+	// One model struct serves every place of the component. A computed
+	// object is a types.Object, so it must be computed in every place.
+	for _, m := range b.models {
+		if m.Name == name && !slices.Equal(m.Fields, fields) {
+			return nil, fmt.Errorf("component %s has a computed object field in one place and a managed one in another", t.Schema)
+		}
 	}
 	return attrs, nil
+}
+
+// nestedAttrs are the attributes that decide Required for a nested field.
+// Create decides, as for a top-level field. A field that Create does not
+// send has the attributes of the resource response.
+func nestedAttrs(f *model.Field) model.Attrs {
+	if f.Create != nil {
+		return *f.Create
+	}
+	return f.Attrs
 }
 
 func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfModelField {
