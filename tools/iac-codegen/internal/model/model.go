@@ -100,8 +100,15 @@ type ResourceField struct {
 type Field struct {
 	Name        string
 	Description string
-	Attrs       Attrs
+	Attrs       Attrs // attributes in the resource response
 	Type        *Type
+	// Behavior is how the field is managed inside its parent object, as for a
+	// top-level field. It is "" inside a computed value: the whole value is
+	// computed.
+	Behavior Behavior
+	// Create and Update are the attributes of the field in the request type of
+	// its parent object. nil: that request does not have the field.
+	Create, Update *Attrs
 }
 
 // Attrs are the facts about a field in one place (a request body or an object).
@@ -137,6 +144,15 @@ type OneOfGroup struct {
 type Type struct {
 	Kind   Kind
 	Schema string // component name, "" for an inline schema
+	// CreateSchema and UpdateSchema are the components of an Object or a
+	// OneOf in the Create and Update requests. They can differ from Schema,
+	// the component in the resource response. "" when the request does not
+	// send the value.
+	CreateSchema, UpdateSchema string
+	// Model is the component of the resource response that holds the
+	// Terraform model of a request type. It is set only on the types that
+	// CreateType and UpdateType return.
+	Model  string
 	Format string // for example "double", "uint64", "date-time"
 	// WireString is true for an integer that JSON sends as a string
 	// (protobuf 64-bit numbers).
