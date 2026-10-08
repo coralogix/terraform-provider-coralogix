@@ -11,6 +11,9 @@
 #### resource/coralogix_alert
 - DOCS: Describe `notification_group.group_by_keys` (combined vs. separate cases).
 
+#### resource/coralogix_global_router
+- FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
+
 #### tools/iac-codegen
 - FEAT: `upgradeCases` in `acceptance.yaml` adds extra upgrade subtests. An extraAttribute is included when `values` or a case supplies its HCL, so a write-only map can use a real field name instead of a made-up `key`.
 - CHORE: Bump the generator to `v0.1.0-beta.13`.
@@ -40,6 +43,8 @@
 - FEAT: Generate unordered sets of objects. The Thing golden fixture includes a set of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
 - FIX: A nested object collection marked `x-coralogix-collection: set` now flattens as a set in the generated attr.Type map, matching the schema.
+- FIX: A client-set `id` (`clientSetID: true`) has `RequiresReplace`. Before, a change of `id` planned an in-place update that the API answered with 404.
+- CHORE: Bump the generator to `v0.1.0-beta.14`.
 
 # Release 3.20.0
 
