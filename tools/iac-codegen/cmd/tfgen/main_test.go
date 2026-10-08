@@ -13,7 +13,7 @@ func TestCheckAcceptsLocalCandidate(t *testing.T) {
 }
 
 func TestGenerateDoesNotAcceptOpenAPIInput(t *testing.T) {
-	if status := run([]string{"generate", "--resource", "Thing", "--openapi", "candidate.yaml"}); status != 2 {
+	if status := run([]string{"generate", "--resource", "Thing", "--out", t.TempDir(), "--openapi", "missing.yaml"}); status != 2 {
 		t.Fatalf("status = %d, want 2", status)
 	}
 }

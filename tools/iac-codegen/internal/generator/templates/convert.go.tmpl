@@ -417,6 +417,9 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, {{
 {{- range .Fields}}
 {{- template "flattenField" .}}
 {{- end}}
+{{- range .ExtraFlatten}}
+	out.{{.Name}} = {{.Expr}}
+{{- end}}
 	return out
 }
 {{end}}
@@ -768,6 +771,29 @@ func sameList[T any](a, b []T, same func(a, b *T) bool) bool {
 	}
 	return true
 }
+
+// sameUnordered reports whether a and b hold the same items, ignoring order. A nested list that
+// keepPriorOrder restores can come back from the API shuffled; matching the parent object must
+// still succeed so flatten can attach the prior nested list.
+func sameUnordered[T any](a, b []T, same func(a, b *T) bool) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	used := make([]bool, len(b))
+	for i := range a {
+		found := false
+		for j := range b {
+			if !used[j] && same(&a[i], &b[j]) {
+				used[j], found = true, true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
 {{- end}}
 
 func flattenTime(v *time.Time) types.String {
@@ -1048,7 +1074,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	if items := expandElements[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
 		out.{{.SDK}} = make([]{{.SDKType}}, 0, len(items))
 		for i := range items {
+			{{- if eq .Collection "Set"}}
+			out.{{.SDK}} = append(out.{{.SDK}}, *expand{{.Object.Func}}(ctx, {{$p}}, &items[i], diags))
+			{{- else}}
 			out.{{.SDK}} = append(out.{{.SDK}}, *expand{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &items[i], diags))
+			{{- end}}
 		}
 	}
 {{- end}}
@@ -1172,6 +1202,13 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		}
 		{{- end}}
 		for i := range {{$src}} {
+			{{- if eq .Collection "Set"}}
+			{{- if .Object.NeedsPrior}}
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], nil, diags))
+			{{- else}}
+			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}, &{{$src}}[i], diags))
+			{{- end}}
+			{{- else}}
 			{{- if .Object.NeedsPrior}}
 			// The prior item at the same index keeps the order of its own lists and the text of its documents.
 			var priorItem *{{.Object.Model}}
@@ -1181,6 +1218,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &{{$src}}[i], priorItem, diags))
 			{{- else}}
 			items = append(items, *flatten{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &{{$src}}[i], diags))
+			{{- end}}
 			{{- end}}
 		}
 		out.{{.Model}} = flatten{{.Collection}}(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)

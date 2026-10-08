@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/connector"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -31,6 +32,7 @@ import (
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSourceWithConfigure = &ConnectorDataSource{}
@@ -61,7 +63,7 @@ func (d *ConnectorDataSource) Configure(_ context.Context, req datasource.Config
 		return
 	}
 
-	d.client, _, _ = clientSet.GetNotifications()
+	d.client = clientSet.Connectors()
 }
 
 func (d *ConnectorDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -88,17 +90,16 @@ func (d *ConnectorDataSource) Schema(ctx context.Context, _ datasource.SchemaReq
 }
 
 func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *ConnectorResourceModel
-	diags := req.Config.Get(ctx, &data)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+	var name, id types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("name"), &name)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &id)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	var connectorID string
-	//Get refreshed connector value from Coralogix
-	if name := data.Name.ValueString(); name != "" {
-		log.Printf("[INFO] Listing coralogix_connector to find by name: %s", name)
+	if n := name.ValueString(); n != "" {
+		log.Printf("[INFO] Listing coralogix_connector to find by name: %s", n)
 		listConnectorResp, httpResponse, err := d.client.
 			ConnectorsServiceListConnectors(ctx).
 			Execute()
@@ -111,19 +112,19 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 			return
 		}
 
-		for _, connector := range listConnectorResp.Connectors {
-			if *connector.Name == data.Name.ValueString() {
-				connectorID = *connector.Id
+		for _, item := range listConnectorResp.Connectors {
+			if item.Name == n {
+				connectorID = *item.Id
 				break
 			}
 		}
 
 		if connectorID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_connector with name %q not found", name), "")
+			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_connector with name %q not found", n), "")
 			return
 		}
-	} else if id := data.ID.ValueString(); id != "" {
-		connectorID = id
+	} else if id.ValueString() != "" {
+		connectorID = id.ValueString()
 	} else {
 		resp.Diagnostics.AddError("ID or name must be set", "")
 		return
@@ -139,14 +140,11 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	data, diags = // A data source has no configuration for write-only values and no prior
-		// state, so nothing is omitted: it reports what the API returns.
-		flattenConnector(ctx, result.Connector, nil)
+	data, diags := connector.Flatten(ctx, result.Connector)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	diags = resp.State.Set(ctx, &data)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }

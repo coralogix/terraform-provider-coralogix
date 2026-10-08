@@ -41,6 +41,12 @@ paths:
                   uniqueItems: true
                   x-coralogix-collection: set
                   items: {type: string}
+                details:
+                  type: array
+                  uniqueItems: true
+                  x-coralogix-collection: set
+                  items:
+                    $ref: '#/components/schemas/ThingDetail'
                 labels:
                   type: object
                   additionalProperties: {type: string}
@@ -111,6 +117,12 @@ paths:
                   uniqueItems: true
                   x-coralogix-collection: set
                   items: {type: string}
+                details:
+                  type: array
+                  uniqueItems: true
+                  x-coralogix-collection: set
+                  items:
+                    $ref: '#/components/schemas/ThingDetail'
                 labels:
                   type: object
                   additionalProperties: {type: string}
@@ -168,6 +180,13 @@ components:
           x-coralogix-collection: set
           items: {type: string}
           description: Unordered unique tags.
+        details:
+          type: array
+          uniqueItems: true
+          x-coralogix-collection: set
+          items:
+            $ref: '#/components/schemas/ThingDetail'
+          description: Unordered unique details.
         labels:
           type: object
           additionalProperties: {type: string}
@@ -180,6 +199,14 @@ components:
           type: string
           format: date-time
           description: The server-generated update time.
+    ThingDetail:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: The detail name.
     ThingKind:
       type: string
       enum: [THING_KIND_UNSPECIFIED, THING_KIND_STANDARD, THING_KIND_ADVANCED, THING_KIND_P5_OR_UNSPECIFIED]

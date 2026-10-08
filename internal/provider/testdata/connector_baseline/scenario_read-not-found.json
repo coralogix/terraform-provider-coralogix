@@ -1,0 +1,104 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "name": "gone",
+      "type": "generic_https"
+    },
+    "plan": {
+      "config_overrides": "(unknown)",
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "",
+      "id": "(unknown)",
+      "name": "gone",
+      "type": "generic_https"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors",
+        "body": {
+          "connector": {
+            "connectorConfig": {
+              "fields": [
+                {
+                  "fieldName": "method",
+                  "value": "post"
+                },
+                {
+                  "fieldName": "url",
+                  "value": "https://example.com/hook"
+                }
+              ]
+            },
+            "description": "",
+            "name": "gone",
+            "type": "GENERIC_HTTPS"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "type": "generic_https"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: connector was deleted outside Terraform",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors/00000000-0000-4000-8000-000000000001",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | connector with id 00000000-0000-4000-8000-000000000001 was not found. Terraform removed it from state."
+    ],
+    "state": null
+  }
+]

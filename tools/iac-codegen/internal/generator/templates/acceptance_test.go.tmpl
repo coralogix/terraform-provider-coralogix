@@ -84,7 +84,11 @@ func config(run, resourceBlock string) string {
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 {{- range .Full.Checks}}
+{{- if .Absent}}
+		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
+{{- else}}
 		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+{{- end}}
 {{- end}}
 	)
 }
@@ -92,7 +96,11 @@ func fullChecks(run string) resource.TestCheckFunc {
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 {{- range .Updated.Checks}}
+{{- if .Absent}}
+		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
+{{- else}}
 		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+{{- end}}
 {{- end}}
 	)
 }
@@ -100,7 +108,11 @@ func updatedChecks(run string) resource.TestCheckFunc {
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 {{- range .Minimal.Checks}}
+{{- if .Absent}}
+		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
+{{- else}}
 		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+{{- end}}
 {{- end}}
 {{- range .Minimal.Absent}}
 		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .}}),
@@ -125,7 +137,11 @@ func removedChecks(run string) resource.TestCheckFunc {
 func upgradeFullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 {{- range .UpgradeFull.Checks}}
+{{- if .Absent}}
+		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
+{{- else}}
 		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+{{- end}}
 {{- end}}
 	)
 }
@@ -135,7 +151,27 @@ func upgradeFullChecks(run string) resource.TestCheckFunc {
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 {{- range .UpgradeMinimal.Checks}}
+{{- if .Absent}}
+		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
+{{- else}}
 		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+{{- end}}
+{{- end}}
+	)
+}
+{{- end}}
+{{- range .UpgradeCases}}
+
+const upgrade{{.Ident}}Config = `{{.Config}}`
+
+func upgrade{{.Ident}}Checks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+{{- range .Checks}}
+{{- if .Absent}}
+		resource.TestCheckNoResourceAttr(resourceAddress, {{printf "%q" .Path}}),
+{{- else}}
+		resource.TestCheckResourceAttr(resourceAddress, {{printf "%q" .Path}}, {{.Expr}}),
+{{- end}}
 {{- end}}
 	)
 }
@@ -247,6 +283,33 @@ func upgradeSteps(run, initial string, initialChecks resource.TestCheckFunc, nex
 	}
 }
 
+{{- if .UpgradeCases}}
+
+// upgradeNoopSteps creates the resource with the released provider, then plans the same config with
+// this build and expects no change. There is no later update or import: a write-only value does not
+// round-trip on import.
+func upgradeNoopSteps(run, initial string, initialChecks resource.TestCheckFunc) []resource.TestStep {
+	return []resource.TestStep{
+		{
+			Config: config(run, initial),
+			ExternalProviders: map[string]resource.ExternalProvider{
+				"coralogix": {Source: upgradeSource, VersionConstraint: upgradeVersion},
+			},
+			Check: initialChecks,
+		},
+		{
+			Config:                   config(run, initial),
+			ProtoV6ProviderFactories: providerFactories,
+			ConfigPlanChecks: resource.ConfigPlanChecks{
+				PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)},
+				PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+			},
+			Check: initialChecks,
+		},
+	}
+}
+{{- end}}
+
 {{- if .UsesNoReplace}}
 // expectNoReplace fails when the plan replaces the resource. The step may update the resource or
 // leave it as it is: a default in state can equal what the next config sets.
@@ -283,6 +346,16 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
 			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run), {{.UpgradeMinimalAction}}),
+		})
+	})
+{{- end}}
+{{- range .UpgradeCases}}
+
+	t.Run("upgrade-{{.Name}}", func(t *testing.T) {
+		run := newRun()
+		resource.Test(t, resource.TestCase{
+			PreCheck: func() { preCheck(t) },
+			Steps:    upgradeNoopSteps(run, upgrade{{.Ident}}Config, upgrade{{.Ident}}Checks(run)),
 		})
 	})
 {{- end}}

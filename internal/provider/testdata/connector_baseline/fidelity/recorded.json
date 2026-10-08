@@ -1,0 +1,750 @@
+{
+  "cases": [
+    {
+      "name": "minimal-lifecycle",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.122087Z",
+              "description": "",
+              "id": "{{C1}}",
+              "name": "{{C1}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.122087Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.122087Z",
+              "description": "",
+              "id": "{{C1}}",
+              "name": "{{C1}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.122087Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.122087Z",
+              "description": "",
+              "id": "{{C1}}",
+              "name": "renamed",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.272585Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.122087Z",
+              "description": "",
+              "id": "{{C1}}",
+              "name": "renamed",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.272585Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: {\"reason\":\"Connector with id {{C1}} not found\"}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "description-and-config-overrides",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.699905Z",
+              "description": "",
+              "id": "{{C2}}",
+              "name": "{{C2}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.699905Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.699905Z",
+              "description": "",
+              "id": "{{C2}}",
+              "name": "{{C2}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.699905Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [
+                {
+                  "entityType": "ALERTS",
+                  "fields": [
+                    {
+                      "fieldName": "url",
+                      "template": "https://example.com/alerts"
+                    }
+                  ]
+                }
+              ],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.699905Z",
+              "description": "d",
+              "id": "{{C2}}",
+              "name": "{{C2}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.836163Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [
+                {
+                  "entityType": "ALERTS",
+                  "fields": [
+                    {
+                      "fieldName": "url",
+                      "template": "https://example.com/alerts"
+                    }
+                  ]
+                }
+              ],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.699905Z",
+              "description": "d",
+              "id": "{{C2}}",
+              "name": "{{C2}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.836163Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.699905Z",
+              "description": "",
+              "id": "{{C2}}",
+              "name": "{{C2}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:58.006306Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.699905Z",
+              "description": "",
+              "id": "{{C2}}",
+              "name": "{{C2}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:58.006306Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.699905Z",
+              "description": "",
+              "id": "{{C2}}",
+              "name": "{{C2}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:58.141951Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:57.699905Z",
+              "description": "",
+              "id": "{{C2}}",
+              "name": "{{C2}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:58.141951Z"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "fields-set",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "method",
+                    "value": "post"
+                  },
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com/hook"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:58.284468Z",
+              "description": "",
+              "id": "{{C3}}",
+              "name": "{{C3}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "method",
+                    "value": "post"
+                  },
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com/hook"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:58.284468Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "method",
+                    "value": "post"
+                  },
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com/hook"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:58.284468Z",
+              "description": "",
+              "id": "{{C3}}",
+              "name": "{{C3}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "method",
+                    "value": "post"
+                  },
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com/hook"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:58.284468Z"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "validation",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Connector input is required\"}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"unknown enumeration value 0\"}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"name must not be empty\"}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"unknown enumeration value 0\"}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line 1:112): invalid value for enum field type: \"NOT_AN_ENUM\""
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"connector_config is required\"}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: {\"reason\":\"Connector with id missing not found\"}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "duplicate-id-and-generated-id",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:58.916572Z",
+              "description": "",
+              "id": "{{C5}}",
+              "name": "{{C5}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "EMAIL",
+              "updateTime": "2026-10-08T13:04:58.916572Z"
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Connector with the provided id exists\"}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:59.131821Z",
+              "description": "",
+              "id": "{{GEN}}",
+              "name": "generated",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "EMAIL",
+              "updateTime": "2026-10-08T13:04:59.131821Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:59.131821Z",
+              "description": "",
+              "id": "{{GEN}}",
+              "name": "generated",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "EMAIL",
+              "updateTime": "2026-10-08T13:04:59.131821Z"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "update-missing-id",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: {\"reason\":\"Connector with id {{MISSING}} not found\"}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "secret-field",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "integrationKey",
+                    "value": "secret-token-value"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:59.336225Z",
+              "description": "",
+              "id": "{{C6}}",
+              "name": "{{C6}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "integrationKey",
+                    "value": "secret-token-value"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "PAGERDUTY",
+              "updateTime": "2026-10-08T13:04:59.336225Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "integrationKey",
+                    "value": "secret-token-value"
+                  }
+                ]
+              },
+              "createTime": "2026-10-08T13:04:59.336225Z",
+              "description": "",
+              "id": "{{C6}}",
+              "name": "{{C6}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "integrationKey",
+                    "value": "secret-token-value"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "PAGERDUTY",
+              "updateTime": "2026-10-08T13:04:59.336225Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    }
+  ]
+}

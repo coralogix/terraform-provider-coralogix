@@ -42,6 +42,9 @@ type Policy struct {
 	// EnumAnyPrefix lists the enum components whose business values do not use
 	// the prefix of the zero value (ENTITY_TYPE_UNSPECIFIED, ALERTS).
 	EnumAnyPrefix []string
+	// EmptyRequired lists the object components that declare no required list
+	// and mean "no field is required".
+	EmptyRequired []string
 	// Skip lists "Component.field" of fields that the resource does not manage.
 	// The generator does not send them and does not store them.
 	Skip []string
@@ -123,6 +126,10 @@ func (p Policy) readOnly(component, field string) bool {
 
 func (p Policy) enumAnyPrefix(component string) bool {
 	return component != "" && slices.Contains(p.EnumAnyPrefix, component)
+}
+
+func (p Policy) emptyRequired(component string) bool {
+	return component != "" && slices.Contains(p.EmptyRequired, component)
 }
 
 // pruneSkipped removes the fields that the policy skips from the resource and from its

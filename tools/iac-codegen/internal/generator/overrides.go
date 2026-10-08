@@ -261,3 +261,7 @@ func contractReadOnly(schema *base.Schema, field string) bool {
 	built, err := schema.Properties.GetOrZero(field).BuildSchema()
 	return err == nil && built.ReadOnly != nil && *built.ReadOnly
 }
+
+func hasNoRequiredList(schema *base.Schema) bool {
+	return schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()
+}

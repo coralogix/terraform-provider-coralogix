@@ -21,6 +21,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/connector"
+
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
@@ -45,7 +47,7 @@ func connectorResourceWithTransport(transport http.RoundTripper) *ConnectorResou
 	cfg.Servers = connectors.ServerConfigurations{{URL: "https://example.com"}}
 	cfg.HTTPClient = &http.Client{Transport: transport}
 
-	return &ConnectorResource{client: connectors.NewAPIClient(cfg).ConnectorsServiceAPI}
+	return &ConnectorResource{Resource: connector.NewResourceWithClient(connectors.NewAPIClient(cfg).ConnectorsServiceAPI, connector.Hooks{}).(*connector.Resource)}
 }
 
 // TestConnectorResourceReadTransportFailure covers the nil-response guard: on a
@@ -73,7 +75,7 @@ func TestConnectorResourceReadTransportFailure(t *testing.T) {
 	if !response.State.Raw.Equal(priorState.Raw) {
 		t.Fatalf("Read() state = %#v, want prior state %#v", response.State.Raw, priorState.Raw)
 	}
-	assertDiagnosticsContain(t, response.Diagnostics, "Error reading coralogix_connector", connectorTransportFailureError)
+	assertDiagnosticsContain(t, response.Diagnostics, "Unable to read connector", connectorTransportFailureError)
 }
 
 func assertDiagnosticsContain(t *testing.T, diagnostics diag.Diagnostics, wants ...string) {

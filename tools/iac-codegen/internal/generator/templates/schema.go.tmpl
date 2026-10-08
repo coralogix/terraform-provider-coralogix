@@ -144,6 +144,9 @@ schema.{{.Kind}}Attribute{
 {{- if .Optional}}
 	Optional: true,
 {{- end}}
+{{- if .WriteOnly}}
+	WriteOnly: true,
+{{- end}}
 {{- if .Computed}}
 	Computed: true,
 {{- end}}

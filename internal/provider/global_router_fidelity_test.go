@@ -55,8 +55,12 @@ type fidelityRecorded struct {
 
 // loadFidelity reads the cases and the recorded answers. It skips the test when there is no recording.
 func loadFidelity(t *testing.T) (fidelityCases, fidelityRecorded) {
+	return loadFidelityAt(t, grGoldenDir)
+}
+
+func loadFidelityAt(t *testing.T, goldenDir string) (fidelityCases, fidelityRecorded) {
 	t.Helper()
-	dir := filepath.Join(grGoldenDir, "fidelity")
+	dir := filepath.Join(goldenDir, "fidelity")
 	rawRecorded, err := os.ReadFile(filepath.Join(dir, "recorded.json"))
 	if errors.Is(err, fs.ErrNotExist) {
 		t.Skip("fidelity/recorded.json does not exist: run the recorder first")
@@ -211,6 +215,8 @@ func normalizeFidelity(v any) any {
 				out[k] = "<id>"
 			case k == "createTime" || k == "updateTime":
 				out[k] = "<time>"
+			case k == "teamId":
+				out[k] = "<teamId>"
 			default:
 				out[k] = normalizeFidelity(e)
 			}

@@ -1,0 +1,263 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "config_overrides": [
+        {
+          "entity_type": "alerts",
+          "fields": [
+            {
+              "field_name": "url",
+              "template": "https://example.com/alerts"
+            }
+          ]
+        }
+      ],
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "primary connector",
+      "name": "main",
+      "type": "generic_https"
+    },
+    "plan": {
+      "config_overrides": [
+        {
+          "entity_type": "alerts",
+          "fields": [
+            {
+              "field_name": "url",
+              "template": "https://example.com/alerts"
+            }
+          ]
+        }
+      ],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "primary connector",
+      "id": "(unknown)",
+      "name": "main",
+      "type": "generic_https"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors",
+        "body": {
+          "connector": {
+            "configOverrides": [
+              {
+                "entityType": "ALERTS",
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "template": "https://example.com/alerts"
+                  }
+                ]
+              }
+            ],
+            "connectorConfig": {
+              "fields": [
+                {
+                  "fieldName": "method",
+                  "value": "post"
+                },
+                {
+                  "fieldName": "url",
+                  "value": "https://example.com/hook"
+                }
+              ]
+            },
+            "description": "primary connector",
+            "name": "main",
+            "type": "GENERIC_HTTPS"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [
+        {
+          "entity_type": "alerts",
+          "fields": [
+            {
+              "field_name": "url",
+              "template": "https://example.com/alerts"
+            }
+          ]
+        }
+      ],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "primary connector",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "type": "generic_https"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: only name, type, and connector_config are left",
+    "config": {
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "name": "main",
+      "type": "generic_https"
+    },
+    "plan": {
+      "config_overrides": "(unknown)",
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "type": "generic_https"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors",
+        "body": {
+          "connector": {
+            "connectorConfig": {
+              "fields": [
+                {
+                  "fieldName": "method",
+                  "value": "post"
+                },
+                {
+                  "fieldName": "url",
+                  "value": "https://example.com/hook"
+                }
+              ]
+            },
+            "description": "",
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "main",
+            "type": "GENERIC_HTTPS"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "type": "generic_https"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "type": "generic_https"
+    },
+    "drift": [
+      "AttributeName(\"config_overrides\")",
+      "AttributeName(\"config_overrides\").ElementKeyInt(0)",
+      "AttributeName(\"config_overrides\").ElementKeyInt(0).AttributeName(\"entity_type\")",
+      "AttributeName(\"config_overrides\").ElementKeyInt(0).AttributeName(\"fields\")",
+      "AttributeName(\"config_overrides\").ElementKeyInt(0).AttributeName(\"fields\").ElementKeyValue(tftypes.Object[\"field_name\":tftypes.String, \"template\":tftypes.String]<\"field_name\":tftypes.String<\"url\">, \"template\":tftypes.String<\"https://example.com/alerts\">>)",
+      "AttributeName(\"config_overrides\").ElementKeyInt(0).AttributeName(\"fields\").ElementKeyValue(tftypes.Object[\"field_name\":tftypes.String, \"template\":tftypes.String]<\"field_name\":tftypes.String<\"url\">, \"template\":tftypes.String<\"https://example.com/alerts\">>).AttributeName(\"field_name\")",
+      "AttributeName(\"config_overrides\").ElementKeyInt(0).AttributeName(\"fields\").ElementKeyValue(tftypes.Object[\"field_name\":tftypes.String, \"template\":tftypes.String]<\"field_name\":tftypes.String<\"url\">, \"template\":tftypes.String<\"https://example.com/alerts\">>).AttributeName(\"template\")",
+      "AttributeName(\"description\")"
+    ]
+  }
+]

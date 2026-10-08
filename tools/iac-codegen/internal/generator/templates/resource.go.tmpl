@@ -44,10 +44,42 @@ var (
 // *{{$provider}}.{{.ClientSet}}.
 type Resource struct {
 	client *{{$sdk}}.{{.Client}}
+{{- if .Existing}}
+	hooks  Hooks
+{{- end}}
+}
+
+{{- if .Existing}}
+
+// Hooks are handwritten steps around generated CRUD. Pass them to NewResource
+// so a resource that is used without the overlay package does not silently skip them.
+type Hooks struct {
+	// BeforeWrite mutates the expanded request body before the API call.
+	BeforeWrite func(context.Context, tfsdk.Config, any) diag.Diagnostics
+	// AfterRead mutates state after flatten. prior is the plan after Create or
+	// Update, or the state before Read.
+	AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
 }
 
 // NewResource returns the resource. Use it in provider.Resources.
+func NewResource(hooks Hooks) resource.Resource {
+	return &Resource{hooks: hooks}
+}
+
+// NewResourceWithClient returns the resource with an injected API client.
+func NewResourceWithClient(client *{{$sdk}}.{{.Client}}, hooks Hooks) resource.Resource {
+	return &Resource{client: client, hooks: hooks}
+}
+{{- else}}
+
+// NewResource returns the resource. Use it in provider.Resources.
 func NewResource() resource.Resource { return &Resource{} }
+
+// NewResourceWithClient returns the resource with an injected API client.
+func NewResourceWithClient(client *{{$sdk}}.{{.Client}}) resource.Resource {
+	return &Resource{client: client}
+}
+{{- end}}
 
 func (r *Resource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_" + TypeName
@@ -103,12 +135,20 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+{{- if .Existing}}
+	if r.hooks.BeforeWrite != nil {
+		resp.Diagnostics.Append(r.hooks.BeforeWrite(ctx, req.Config, body)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+{{- end}}
 	v, err := r.create(ctx, body)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
 		return
 	}
-	diags = setState(ctx, v, req.Plan, &resp.State)
+	diags = r.setState(ctx, v, req.Plan, &resp.State)
 	resp.Diagnostics.Append(diags...)
 {{- if .Singleton}}
 	if diags.HasError() {
@@ -143,7 +183,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
-	resp.Diagnostics.Append(setState(ctx, v, req.State, &resp.State)...)
+	resp.Diagnostics.Append(r.setState(ctx, v, req.State, &resp.State)...)
 }
 
 {{if .Replace -}}
@@ -169,6 +209,14 @@ body, mask, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+{{- if .Existing}}
+	if body != nil && r.hooks.BeforeWrite != nil {
+		resp.Diagnostics.Append(r.hooks.BeforeWrite(ctx, req.Config, body)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+{{- end}}
 	var v *{{$sdk}}.{{.Resource}}
 	var err error
 	if body == nil {
@@ -186,7 +234,7 @@ body, mask, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 		resp.Diagnostics.AddError("Unable to update "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
-	resp.Diagnostics.Append(setState(ctx, v, req.Plan, &resp.State)...)
+	resp.Diagnostics.Append(r.setState(ctx, v, req.Plan, &resp.State)...)
 }
 
 // Delete treats a resource that the API does not find as deleted.
@@ -254,7 +302,7 @@ func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {
 // after Create or Update, or the state before Read. flatten
 // returns an error when the response has no resource.
 {{- end}}
-func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, state *tfsdk.State) diag.Diagnostics {
+func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, state *tfsdk.State) diag.Diagnostics {
 	m, diags := flatten(ctx, v{{if $.Conv.HasPrior}}, priorModel(ctx, prior){{end}})
 	if diags.HasError() {
 		return diags
@@ -263,10 +311,19 @@ func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, stat
 	m.Id = types.StringValue(TypeName) // a singleton has a fixed id (D18)
 {{- end}}
 	diags.Append(state.Set(ctx, m)...)
-	if diags.HasError(){{if .Existing}} || prior == nil{{end}} {
+	if diags.HasError() {
 		return diags
 	}
+{{- if .Existing}}
+	if prior != nil {
+		diags.Append(keepPriorEmpty(ctx, prior, state)...)
+	}
+	if r.hooks.AfterRead != nil && !diags.HasError() {
+		diags.Append(r.hooks.AfterRead(ctx, state, prior)...)
+	}
+{{- else}}
 	diags.Append(keepPriorEmpty(ctx, prior, state)...)
+{{- end}}
 	return diags
 }
 
@@ -327,7 +384,7 @@ func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeSta
 		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
-	resp.Diagnostics.Append(setState(ctx, v, nil, &resp.State)...)
+	resp.Diagnostics.Append(r.setState(ctx, v, nil, &resp.State)...)
 }
 {{- end}}
 

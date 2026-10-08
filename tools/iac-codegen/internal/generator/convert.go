@@ -108,6 +108,8 @@ type convObject struct {
 	// order uses it. SameChecks are the Go conditions that must hold for equal values.
 	Same       bool
 	SameChecks []string
+	// ExtraFlatten writes typed nulls for extraAttributes of the behavior-overrides file.
+	ExtraFlatten []extraFlatten
 }
 
 type convAttrType struct {
@@ -752,9 +754,7 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		cf.Conv, cf.SDKType, cf.ElemType = convScalars, goType, elem
 		return "[]" + goType, nil
 	case model.Object:
-		// A set of objects needs path.AtSetValue for diagnostics. No
-		// resource uses it yet.
-		if t.Kind == model.Set || len(t.Elem.Fields) == 0 {
+		if len(t.Elem.Fields) == 0 {
 			break
 		}
 		obj, err := b.nested(t.Elem)
@@ -885,7 +885,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		expr := "types.ObjectType{AttrTypes: " + f.Object.AttrTypesFunc + "()}"
 		switch f.Conv {
 		case convObjects:
-			expr = "types.ListType{ElemType: " + expr + "}"
+			expr = "types." + f.Collection + "Type{ElemType: " + expr + "}"
 		case convObjectMap:
 			expr = "types.MapType{ElemType: " + expr + "}"
 		}
@@ -1231,6 +1231,9 @@ func sameCheck(f *convField) (string, error) {
 		}
 		return "sameObject(" + a + ", " + b + ", same" + f.Object.Func + ")", nil
 	case convObjects:
+		if f.Collection == "Set" || f.KeepPriorOrder {
+			return "sameUnordered(" + a + ", " + b + ", same" + f.Object.Func + ")", nil
+		}
 		return "sameList(" + a + ", " + b + ", same" + f.Object.Func + ")", nil
 	}
 	return "", fmt.Errorf("a field of kind %s cannot be compared for keepPriorOrder yet", f.Conv)

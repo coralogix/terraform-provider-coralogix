@@ -78,6 +78,12 @@ type tfAttr struct {
 	PlainDescription   bool
 	DeprecationMessage string
 	Default            string // Go expression of a static default, or ""
+	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
+	WriteOnly bool
+	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
+	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
+	// map key is not a valid API field.
+	Extra bool
 }
 
 // tfModel is one Go struct of the Terraform model.
@@ -400,6 +406,8 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
 	case v.SizeAtLeast != nil && (a.ValueKind == "List" || a.ValueKind == "Set" || a.ValueKind == "Map"):
 		return fmt.Sprintf("%s.SizeAtLeast(%d)", pkg, *v.SizeAtLeast), nil
+	case v.LengthAtLeast != nil && a.ValueKind == "String":
+		return fmt.Sprintf("stringvalidator.LengthAtLeast(%d)", *v.LengthAtLeast), nil
 	}
 	return "", fmt.Errorf("the validator does not fit a %s attribute", a.ValueKind)
 }
@@ -657,7 +665,6 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	switch t.Elem.Kind {
 	case model.Object:
 		a.Kind = kind + "Nested"
-		// buildConv rejects a set of objects, so a Set never gets here.
 		attrs, err := b.objectAttributes(append(append(attrPath{}, p...), step), t.Elem)
 		if err != nil {
 			return err
@@ -842,7 +849,7 @@ func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfMode
 }
 
 // modelTypeName is the Terraform model struct of a component schema.
-func modelTypeName(schema string) string { return schema + "Model" }
+func modelTypeName(schema string) string { return model.GoName(schema) + "Model" }
 
 // scalar returns the attribute kind and the validators of a scalar type.
 func scalar(t *model.Type) (string, []string, error) {

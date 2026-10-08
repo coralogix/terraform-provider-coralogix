@@ -1,0 +1,31 @@
+# What the generated acceptance test needs for coralogix_connector, besides the schema.
+# The test sets every generated attribute, imports, changes them, and sets the minimal config.
+# Type-specific Slack, PagerDuty, and email fixtures stay in the handwritten tests.
+resource: Connector
+
+values:
+  type: '"generic_https"'
+  connector_config.fields[].field_name: '"url"'
+  connector_config.fields[].value: '"https://httpbin.org/post"'
+  config_overrides[].entity_type: '"alerts"'
+  config_overrides[].fields[].field_name: '"url"'
+  config_overrides[].fields[].template: '"https://httpbin.org/post"'
+
+# A connector without config is not a useful create; keep the generated config on the minimal step.
+minimal:
+  - connector_config
+
+# Provider 3.20.0 cannot create a connector without a description (plans null, API returns "").
+upgradeMinimal:
+  - description
+
+upgradeFrom: "3.20.0"
+
+# extraAttributes need a real map key: a made-up `key` is not a connector field, so the lifecycle
+# tests leave them out. This case creates with 3.20.0 using field_values_wo, then plans the same
+# config with this build.
+upgradeCases:
+  - name: write-only
+    values:
+      connector_config.field_values_wo: '{ additionalHeaders = "{\"Authorization\":\"OAuth generated-secret\"}" }'
+      connector_config.field_values_wo_versions: '{ additionalHeaders = 1 }'
