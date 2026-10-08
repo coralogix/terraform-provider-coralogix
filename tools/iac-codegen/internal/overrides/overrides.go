@@ -135,7 +135,7 @@ type Field struct {
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
-	// Default is a static default in the schema (a string or a bool).
+	// Default is a static default in the schema: a string, a bool, or a number.
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
@@ -309,9 +309,9 @@ func (l Field) check() error {
 		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
 	}
 	switch l.Default.(type) {
-	case nil, string, bool:
+	case nil, string, bool, int, float64:
 	default:
-		return fmt.Errorf("default is %T, want a string or a bool", l.Default)
+		return fmt.Errorf("default is %T, want a string, a bool, or a number", l.Default)
 	}
 	if l.Required && l.Computed != nil && *l.Computed {
 		return errors.New("a required field cannot be computed")
@@ -375,6 +375,9 @@ func (f *File) Policy() model.Policy {
 			}
 			if t.Fields[field].statesPresence() {
 				p.Released = append(p.Released, name+"."+field)
+			}
+			if t.Fields[field].Default != nil {
+				p.Defaults = append(p.Defaults, name+"."+field)
 			}
 		}
 	}

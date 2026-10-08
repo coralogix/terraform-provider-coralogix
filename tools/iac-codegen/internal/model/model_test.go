@@ -506,6 +506,40 @@ func TestServerDefaultContract(t *testing.T) {
 	}
 }
 
+// In existing mode, only a default line replaces the declared server default. Another line
+// keeps the generated resource on the declared default, so the contract of it is still checked.
+func TestExistingModeServerDefaultContract(t *testing.T) {
+	base := string(validSpec(t))
+	defaultBlock := "                enabled:\n                  type: boolean\n                  default: true\n                  x-coralogix-presence: true"
+	noDefaultBlock := "                enabled:\n                  type: boolean\n                  x-coralogix-presence: true"
+	updateBlock := strings.LastIndex(base, defaultBlock)
+	different := base[:updateBlock] + strings.Replace(defaultBlock, "default: true", "default: false", 1) + base[updateBlock+len(defaultBlock):]
+	released := Policy{Existing: true, Released: []string{"Thing.enabled"}}
+	withDefault := Policy{Existing: true, Released: []string{"Thing.enabled"}, Defaults: []string{"Thing.enabled"}}
+	tests := map[string]struct {
+		spec   string
+		policy Policy
+		want   string // "" means no default issue
+	}{
+		"other line, different Update default":   {different, released, "FIELD_DEFAULT_CONTRACT_INCONSISTENT"},
+		"default line, different Update default": {different, withDefault, ""},
+		"other line, no declared default":        {strings.ReplaceAll(base, defaultBlock, noDefaultBlock), released, ""},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			doc, err := Load([]byte(test.spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			codes := reportCodes(ValidateWithPolicy(doc, "Thing", OperationIDs{}, test.policy))
+			hasDefaultIssue := slices.ContainsFunc(codes, func(c string) bool { return strings.Contains(c, "DEFAULT") })
+			if test.want == "" && hasDefaultIssue || test.want != "" && !slices.Contains(codes, test.want) {
+				t.Fatalf("codes = %v, want %q", codes, test.want)
+			}
+		})
+	}
+}
+
 func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 	base := string(validSpec(t))
 	tests := map[string]struct {

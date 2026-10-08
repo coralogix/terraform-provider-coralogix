@@ -2,6 +2,7 @@ package generator
 
 import (
 	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -465,5 +466,81 @@ func TestEmptyRequiredLineIsUnused(t *testing.T) {
 	report = overrideIssues(doc, component, mustParse(t, text))
 	if len(report) != 1 || report[0].Code != "OVERRIDE_UNUSED" || report[0].Location != "behavior-overrides.yaml:types.LegacyLabels.required" {
 		t.Fatalf("report = %v, want OVERRIDE_UNUSED for types.LegacyLabels.required", report)
+	}
+}
+
+func TestNumericOverrideDefault(t *testing.T) {
+	tests := []struct {
+		kind  string
+		value any
+		want  string
+	}{
+		{"Int64", 0, "int64default.StaticInt64(0)"},
+		{"Int64", -7, "int64default.StaticInt64(-7)"},
+		{"Int32", 2147483647, "int32default.StaticInt32(2147483647)"},
+		{"Float64", 0.5, "float64default.StaticFloat64(0.5)"},
+		{"Float64", 3, "float64default.StaticFloat64(3)"},
+		{"Float64", 1e6, "float64default.StaticFloat64(1000000)"},
+		{"Float32", 0.1, "float32default.StaticFloat32(0.1)"},
+	}
+	for _, test := range tests {
+		t.Run(test.want, func(t *testing.T) {
+			a := &tfAttr{Name: "n", Kind: test.kind, ValueKind: test.kind, Optional: true}
+			if err := applyField(a, overrides.Field{Default: test.value}, nil); err != nil {
+				t.Fatal(err)
+			}
+			if a.Default != test.want {
+				t.Fatalf("default = %s, want %s", a.Default, test.want)
+			}
+			if want := []string{strings.ToLower(test.kind) + "default"}; !slices.Equal(defaultPackages([]*tfAttr{a}), want) {
+				t.Fatalf("packages = %v, want %v", defaultPackages([]*tfAttr{a}), want)
+			}
+			if _, ok := defaultState(a); !ok {
+				t.Fatal("the acceptance test does not see the default")
+			}
+		})
+	}
+}
+
+func TestNumericOverrideDefaultMustFit(t *testing.T) {
+	tests := []struct {
+		kind  string
+		value any
+	}{
+		{"Int32", 2147483648},
+		{"Int64", 0.5},
+		{"String", 0},
+		{"Bool", 1},
+		{"Float32", 1e39},
+		{"Float64", math.Inf(1)},
+		{"Float64", math.NaN()},
+	}
+	for _, test := range tests {
+		a := &tfAttr{Name: "n", Kind: test.kind, ValueKind: test.kind, Optional: true}
+		if err := applyField(a, overrides.Field{Default: test.value}, nil); err == nil {
+			t.Errorf("%s default %v: no error, want one", test.kind, test.value)
+		}
+	}
+}
+
+// In existing mode, a default line replaces the declared server default. Without one, the
+// declared default applies, also when the field has another line.
+func TestExistingModeUsesTheDeclaredDefaultWithoutADefaultLine(t *testing.T) {
+	declared := "0"
+	field := &model.ResourceField{Name: "priorityOrder", Create: &model.Attrs{Default: &declared}, Get: &model.Attrs{Required: true}}
+	tests := map[string]struct {
+		policy model.Policy
+		want   bool
+	}{
+		"new resource":         {model.Policy{}, true},
+		"no line":              {model.Policy{Existing: true}, true},
+		"line without default": {model.Policy{Existing: true, Released: []string{"Group.priorityOrder"}}, true},
+		"default line":         {model.Policy{Existing: true, Released: []string{"Group.priorityOrder"}, Defaults: []string{"Group.priorityOrder"}}, false},
+	}
+	for name, test := range tests {
+		r := &model.Resource{Name: "Group", Policy: test.policy}
+		if got := serverDefault(r, field); got != test.want {
+			t.Errorf("%s: serverDefault = %t, want %t", name, got, test.want)
+		}
 	}
 }
