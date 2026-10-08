@@ -92,7 +92,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
 		return
 	}
-	diags = setState(ctx, v, req.Plan, &resp.State)
+	diags = r.setState(ctx, v, req.Plan, &resp.State)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() && v != nil && v.Id != nil {
 		// The resource exists, but the state is not complete. Keep the id, so
@@ -119,7 +119,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
-	resp.Diagnostics.Append(setState(ctx, v, req.State, &resp.State)...)
+	resp.Diagnostics.Append(r.setState(ctx, v, req.State, &resp.State)...)
 }
 
 // Update sends only the Update fields that changed. When none changed, it
@@ -152,7 +152,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		resp.Diagnostics.AddError("Unable to update "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
-	resp.Diagnostics.Append(setState(ctx, v, req.Plan, &resp.State)...)
+	resp.Diagnostics.Append(r.setState(ctx, v, req.Plan, &resp.State)...)
 }
 
 // Delete treats a resource that the API does not find as deleted.
@@ -212,7 +212,7 @@ func (r *Resource) delete(ctx context.Context, id string) error {
 // is empty in both the response and prior keeps its form from prior: the plan
 // after Create or Update, or the state before Read. flatten
 // returns an error when the response has no resource.
-func setState(ctx context.Context, v *things_service.Thing, prior tfData, state *tfsdk.State) diag.Diagnostics {
+func (r *Resource) setState(ctx context.Context, v *things_service.Thing, prior tfData, state *tfsdk.State) diag.Diagnostics {
 	m, diags := flatten(ctx, v)
 	if diags.HasError() {
 		return diags

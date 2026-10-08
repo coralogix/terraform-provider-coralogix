@@ -108,6 +108,8 @@ type convObject struct {
 	// order uses it. SameChecks are the Go conditions that must hold for equal values.
 	Same       bool
 	SameChecks []string
+	// ExtraFlatten writes typed nulls for extraAttributes of the behavior-overrides file.
+	ExtraFlatten []extraFlatten
 }
 
 type convAttrType struct {

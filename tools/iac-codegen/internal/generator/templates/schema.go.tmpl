@@ -144,6 +144,9 @@ schema.{{.Kind}}Attribute{
 {{- if .Optional}}
 	Optional: true,
 {{- end}}
+{{- if .WriteOnly}}
+	WriteOnly: true,
+{{- end}}
 {{- if .Computed}}
 	Computed: true,
 {{- end}}
@@ -170,23 +173,7 @@ schema.{{.Kind}}Attribute{
 	{{- end}}
 	},
 {{- end}}
-{{- if and (eq .Kind "SingleNested") (eq .Name "connector_config")}}
-	Attributes: map[string]schema.Attribute{
-	{{- range .Attributes}}
-		{{printf "%q" .Name}}: {{template "attribute" .}},
-	{{- end}}
-		"field_values_wo": schema.MapAttribute{
-			ElementType:         types.StringType,
-			Optional:            true,
-			MarkdownDescription: "Secret values for connector fields, keyed by field name. The provider overlay marks this write-only so Terraform does not store it.",
-		},
-		"field_values_wo_versions": schema.MapAttribute{
-			ElementType: types.Int64Type,
-			Optional:    true,
-			MarkdownDescription: "Version of each `field_values_wo` entry, keyed by the same field name. Increment a value to send a rotated secret: Terraform holds no copy of a write-only value, so it cannot notice that one changed. These versions are kept in state and are not secret.",
-		},
-	},
-{{- else if eq .Kind "SingleNested"}}
+{{- if eq .Kind "SingleNested"}}
 	Attributes: {{template "attributes" .Attributes}},
 {{- else if or (eq .Kind "ListNested") (eq .Kind "SetNested") (eq .Kind "MapNested")}}
 	NestedObject: schema.NestedAttributeObject{

@@ -47,7 +47,7 @@ func connectorResourceWithTransport(transport http.RoundTripper) *ConnectorResou
 	cfg.Servers = connectors.ServerConfigurations{{URL: "https://example.com"}}
 	cfg.HTTPClient = &http.Client{Transport: transport}
 
-	return &ConnectorResource{Resource: connector.NewResourceWithClient(connectors.NewAPIClient(cfg).ConnectorsServiceAPI).(*connector.Resource)}
+	return &ConnectorResource{Resource: connector.NewResourceWithClient(connectors.NewAPIClient(cfg).ConnectorsServiceAPI, connector.Hooks{}).(*connector.Resource)}
 }
 
 // TestConnectorResourceReadTransportFailure covers the nil-response guard: on a

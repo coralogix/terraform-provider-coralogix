@@ -46,7 +46,7 @@ type (
 
 func TestGlobalRouterBaselineSchema(t *testing.T) {
 	var current resource.SchemaResponse
-	globalrouter.NewResource().Schema(context.Background(), resource.SchemaRequest{}, &current)
+	globalrouter.NewResource(globalrouter.Hooks{}).Schema(context.Background(), resource.SchemaRequest{}, &current)
 
 	checkGolden(t, "schema_current.txt", []byte(schemadump.Text(current.Schema)))
 	// Version 0 stays frozen so that stored state can still be read.

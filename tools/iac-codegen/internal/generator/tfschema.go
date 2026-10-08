@@ -77,6 +77,8 @@ type tfAttr struct {
 	PlainDescription   bool
 	DeprecationMessage string
 	Default            string // Go expression of a static default, or ""
+	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
+	WriteOnly bool
 }
 
 // tfModel is one Go struct of the Terraform model.

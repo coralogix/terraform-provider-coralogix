@@ -441,7 +441,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		integrations.NewIntegrationResource,
 		alerts.NewAlertResource,
 		notifications.NewConnectorResource,
-		globalrouter.NewResource,
+		func() resource.Resource { return globalrouter.NewResource(globalrouter.Hooks{}) },
 		notifications.NewPresetResource,
 		parsing_rules.NewParsingRulesResource,
 		enrichment_rules.NewDataEnrichmentsResource,

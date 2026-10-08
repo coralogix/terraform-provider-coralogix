@@ -75,6 +75,7 @@ func TestParseIsStrict(t *testing.T) {
 		"skip and more":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, computed: true}\n", "skipped field"},
 		"required list":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    required: [a]\n", "only the empty list"},
 		"type with no op": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T: {}\n", "has no override"},
+		"bad extra type":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      token_wo:\n        elementType: bool\n        markdownDescription: x\n", "elementType"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

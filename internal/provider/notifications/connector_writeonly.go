@@ -7,7 +7,7 @@
 //     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an AS IS BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -17,8 +17,6 @@ package notifications
 import (
 	"context"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/connector"
-
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -27,31 +25,29 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func init() {
-	connector.BeforeWrite = mergeWriteOnlyIntoRequest
-	connector.AfterRead = restoreWriteOnlyAfterRead
-}
-
 type priorAttributes interface {
 	GetAttribute(context.Context, path.Path, any) diag.Diagnostics
 }
 
 func mergeWriteOnlyIntoRequest(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
-	var model ConnectorResourceModel
-	diags := config.Get(ctx, &model)
+	var secrets types.Map
+	diags := config.GetAttribute(ctx, path.Root("connector_config").AtName("field_values_wo"), &secrets)
 	if diags.HasError() {
 		return diags
 	}
-	secrets, d := secretFieldsFromConfig(ctx, &model)
-	diags.Append(d...)
+	if secrets.IsNull() || secrets.IsUnknown() {
+		return diags
+	}
+	values := map[string]string{}
+	diags.Append(secrets.ElementsAs(ctx, &values, false)...)
 	if diags.HasError() {
 		return diags
 	}
 	switch req := body.(type) {
 	case *connectors.CreateConnectorRequest:
-		mergeSecretFields(&req.Connector, secrets)
+		mergeSecretFields(&req.Connector, values)
 	case *connectors.ReplaceConnectorRequest:
-		mergeSecretFields(&req.Connector, secrets)
+		mergeSecretFields(&req.Connector, values)
 	}
 	return diags
 }

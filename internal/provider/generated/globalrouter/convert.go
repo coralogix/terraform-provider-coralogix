@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
@@ -86,15 +85,6 @@ func expandUpdate(ctx context.Context, m *GlobalRouterModel) (*global_routers_se
 	out := expandGlobalRouterUpdate(ctx, path.Empty(), m, &diags)
 	return &global_routers_service.ReplaceGlobalRouterRequest{Router: valueOf(out)}, diags
 }
-
-// BeforeWrite mutates the expanded request body before the API call. The
-// handwritten overlay uses it for write-only attributes. Nil means no extra step.
-var BeforeWrite func(context.Context, tfsdk.Config, any) diag.Diagnostics
-
-// AfterRead mutates state after flatten. The handwritten overlay uses it to
-// restore write-only versions and strip secret field values. prior is the plan
-// after Create or Update, or the state before Read. Nil means no extra step.
-var AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.

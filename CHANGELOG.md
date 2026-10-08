@@ -2,7 +2,7 @@
 
 #### resource/coralogix_connector
 - CHORE: Bump `coralogix-management-sdk` so Connector required fields and unordered field sets come from the OpenAPI contract.
-- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Write-only `connector_config.field_values_wo` stays a handwritten overlay because the generator does not emit write-only attributes.
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Write-only `connector_config.field_values_wo` is a generated extra attribute (`WriteOnly: true`); handwritten code only merges secrets into the request and restores versions after read.
 - CHORE: Add protocol baseline golden files against an in-memory connector API.
 - FIX: `description` is now `Optional` and `Computed`. To clear it, set `description = ""`. Removing `description` and `config_overrides` from the configuration together keeps both values. Set `description = ""` and `config_overrides = []` to clear them.
 - FIX: Deleting a connector that the API has already removed succeeds.
@@ -21,7 +21,9 @@
 - FEAT: `equality: yaml` or `equality: json` on a string field compares its value as a document, so a reformatted YAML or JSON value does not plan a change.
 - FIX: A resource in existing mode keeps the configured form of an empty list, set, or map. An omitted list or map that the API returns empty no longer fails the apply with `was null, but now` an empty value.
 - FEAT: `keepPriorOrder` works on a list whose request items use another component than its response items, such as a Create item without the server-set id and hash. The items pair on the fields that the request sends.
-- CHORE: Bump the generator to `v0.1.0-beta.8`.
+- CHORE: Bump the generator to `v0.1.0-beta.9`.
+- FEAT: `types.<Type>.extraAttributes` declares Terraform-only map attributes, including `writeOnly: true`. The archived-thing golden fixture covers the shape.
+- FEAT: Existing-resource `NewResource` takes `Hooks{BeforeWrite, AfterRead}` so overlays pass write-only logic at construction instead of package `init`.
 - FEAT: Existing-resource `lengthAtLeast` keeps a released non-empty string validator.
 - FEAT: Generate unordered sets of objects. The Thing golden fixture includes a set of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
