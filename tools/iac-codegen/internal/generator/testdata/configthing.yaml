@@ -1,5 +1,6 @@
 # A resource that users already have, with string fields that hold documents. The API returns
-# settings as normalized JSON and each remote configuration as normalized YAML.
+# settings and template as normalized JSON and each remote configuration as normalized YAML.
+# Only Create sets template, so a change of it replaces the resource.
 openapi: 3.1.0
 info: {title: config, version: 1.0.0}
 paths:
@@ -17,6 +18,7 @@ paths:
               required: []
               properties:
                 name: {type: string, x-coralogix-presence: true}
+                template: {type: string, x-coralogix-presence: true}
                 settings: {type: string, x-coralogix-presence: true}
                 remotes:
                   type: array
@@ -84,6 +86,10 @@ components:
         name: {type: string, x-coralogix-presence: true}
         settings:
           description: A JSON object.
+          type: string
+          x-coralogix-presence: true
+        template:
+          description: A JSON object that only Create sets.
           type: string
           x-coralogix-presence: true
         version: {type: string, readOnly: true}

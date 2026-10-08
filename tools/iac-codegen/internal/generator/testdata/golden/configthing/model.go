@@ -10,6 +10,7 @@ type ConfigThingModel struct {
 	Id       types.String `tfsdk:"id"`
 	Name     types.String `tfsdk:"name"`
 	Settings types.String `tfsdk:"settings"`
+	Template types.String `tfsdk:"template"`
 	Version  types.String `tfsdk:"version"`
 	Remotes  types.List   `tfsdk:"remotes"`
 }

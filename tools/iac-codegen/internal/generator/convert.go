@@ -1064,13 +1064,14 @@ func markPriorFields(d *convData) error {
 }
 
 // errPriorContainer reports a field that needs the prior model in a container whose flatten has no
-// prior value to pass: a map of objects, or a computed object stored as types.Object.
-var errPriorContainer = errors.New("equality and keepPriorOrder are not supported in a map of objects or in a computed object")
+// prior value to pass: a map of objects, or a computed object stored as types.Object. A set of
+// objects has no order, so the prior item at the same index is not the same item.
+var errPriorContainer = errors.New("equality and keepPriorOrder are not supported in a map or set of objects or in a computed object")
 
 func checkPriorContainers(d *convData) error {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
-			if f.Object != nil && f.Object.NeedsPrior && (f.Conv == convObjectMap || f.ObjectValue) {
+			if f.Object != nil && f.Object.NeedsPrior && (f.Conv == convObjectMap || f.ObjectValue || f.Conv == convObjects && f.Collection == "Set") {
 				return fmt.Errorf("%s.%s holds %s: %w", obj.Model, f.TFName, f.Object.Model, errPriorContainer)
 			}
 		}

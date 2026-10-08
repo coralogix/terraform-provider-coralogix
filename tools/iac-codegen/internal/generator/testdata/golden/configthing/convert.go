@@ -28,6 +28,7 @@ var createFields = []struct {
 }{
 	{attr: "name", serverDefault: false},
 	{attr: "settings", serverDefault: false},
+	{attr: "template", serverDefault: false},
 	{attr: "remotes", serverDefault: false},
 }
 
@@ -81,6 +82,7 @@ func expandCreateConfigThingRequest(ctx context.Context, p path.Path, m *ConfigT
 	out := &config_things_service.CreateConfigThingRequest{}
 	out.Name = expandString(m.Name)
 	out.Settings = expandString(m.Settings)
+	out.Template = expandString(m.Template)
 	if items := expandElements[ConfigRemoteModel](ctx, p.AtName("remotes"), m.Remotes, diags); items != nil {
 		out.Remotes = make([]config_things_service.ConfigRemote, 0, len(items))
 		for i := range items {
@@ -146,6 +148,10 @@ func flattenConfigThing(ctx context.Context, p path.Path, v *config_things_servi
 	out.Settings = types.StringPointerValue(v.Settings)
 	if prior != nil {
 		out.Settings = keepEquivalentText(prior.Settings, out.Settings, jsonEqual)
+	}
+	out.Template = types.StringPointerValue(v.Template)
+	if prior != nil {
+		out.Template = keepEquivalentText(prior.Template, out.Template, jsonEqual)
 	}
 	out.Version = types.StringPointerValue(v.Version)
 	out.Remotes = types.ListNull(types.ObjectType{AttrTypes: configRemoteAttrTypes()})

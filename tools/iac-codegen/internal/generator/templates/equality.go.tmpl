@@ -32,15 +32,28 @@ func yamlEqual(a, b string) bool {
 	if yaml.Unmarshal([]byte(a), &left) != nil || yaml.Unmarshal([]byte(b), &right) != nil {
 		return false
 	}
-	l, lok := yamlValue(&left)
-	r, rok := yamlValue(&right)
+	l, lok := newYAMLWalk().value(&left)
+	r, rok := newYAMLWalk().value(&right)
 	return lok && rok && reflect.DeepEqual(l, r)
 }
 
-// yamlValue decodes n like yaml.Unmarshal, with each number as an exactNumber that keeps its tag.
-// It is false for a document that it cannot compare: a merge key, a key that is a collection, or a
-// key that the document repeats.
-func yamlValue(n *yaml.Node) (any, bool) {
+// yamlWalk decodes one document. An alias can point to a node that holds it, so visiting holds the
+// collections on the current path, and a document that holds itself is not compared. budget caps
+// the nodes that aliases expand to, as yaml.Unmarshal does.
+type yamlWalk struct {
+	visiting map[*yaml.Node]bool
+	budget   int
+}
+
+func newYAMLWalk() *yamlWalk { return &yamlWalk{visiting: map[*yaml.Node]bool{}, budget: 1 << 20} }
+
+// value decodes n like yaml.Unmarshal, with each number as an exactNumber that keeps its tag. It
+// is false for a document that it cannot compare: a merge key, a key that is a collection, a key
+// that the document repeats, or a document that holds itself.
+func (w *yamlWalk) value(n *yaml.Node) (any, bool) {
+	if w.budget--; w.budget < 0 || w.visiting[n] {
+		return nil, false
+	}
 	switch n.Kind {
 	case 0:
 		return nil, true
@@ -48,13 +61,15 @@ func yamlValue(n *yaml.Node) (any, bool) {
 		if len(n.Content) == 0 {
 			return nil, true
 		}
-		return yamlValue(n.Content[0])
+		return w.value(n.Content[0])
 	case yaml.AliasNode:
-		return yamlValue(n.Alias)
+		return w.value(n.Alias)
 	case yaml.SequenceNode:
+		w.visiting[n] = true
+		defer delete(w.visiting, n)
 		out := make([]any, 0, len(n.Content))
 		for _, item := range n.Content {
-			v, ok := yamlValue(item)
+			v, ok := w.value(item)
 			if !ok {
 				return nil, false
 			}
@@ -62,7 +77,9 @@ func yamlValue(n *yaml.Node) (any, bool) {
 		}
 		return out, true
 	case yaml.MappingNode:
-		return yamlMapping(n)
+		w.visiting[n] = true
+		defer delete(w.visiting, n)
+		return w.mapping(n)
 	}
 	var v any
 	if n.Decode(&v) != nil {
@@ -99,20 +116,20 @@ func yamlNumber(n *yaml.Node, v any) (exactNumber, bool) {
 	return "", false
 }
 
-func yamlMapping(n *yaml.Node) (any, bool) {
+func (w *yamlWalk) mapping(n *yaml.Node) (any, bool) {
 	out := make(map[any]any, len(n.Content)/2)
 	for i := 0; i+1 < len(n.Content); i += 2 {
 		if n.Content[i].ShortTag() == "!!merge" {
 			return nil, false
 		}
-		key, ok := yamlValue(n.Content[i])
+		key, ok := w.value(n.Content[i])
 		if !ok || key != nil && !reflect.TypeOf(key).Comparable() {
 			return nil, false
 		}
 		if _, seen := out[key]; seen {
 			return nil, false
 		}
-		if out[key], ok = yamlValue(n.Content[i+1]); !ok {
+		if out[key], ok = w.value(n.Content[i+1]); !ok {
 			return nil, false
 		}
 	}

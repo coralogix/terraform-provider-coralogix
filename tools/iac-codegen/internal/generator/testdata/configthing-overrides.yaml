@@ -10,6 +10,8 @@ types:
     fields:
       settings:
         equality: json
+      template:
+        equality: json
   ConfigRemote:
     fields:
       rawConfiguration:

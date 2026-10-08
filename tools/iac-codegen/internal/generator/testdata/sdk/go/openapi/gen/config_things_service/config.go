@@ -14,6 +14,7 @@ type ConfigThing struct {
 	Id       string
 	Name     *string
 	Settings *string
+	Template *string
 	Version  *string
 	Remotes  []ConfigRemote
 }
@@ -21,6 +22,7 @@ type ConfigThing struct {
 type CreateConfigThingRequest struct {
 	Name     *string
 	Settings *string
+	Template *string
 	Remotes  []ConfigRemote
 }
 
