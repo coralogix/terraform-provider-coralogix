@@ -13,6 +13,8 @@ type ConfigThingModel struct {
 	Template types.String `tfsdk:"template"`
 	Version  types.String `tfsdk:"version"`
 	Remotes  types.List   `tfsdk:"remotes"`
+	Labels   types.List   `tfsdk:"labels"`
+	Metadata types.Map    `tfsdk:"metadata"`
 }
 
 type ConfigRemoteModel struct {

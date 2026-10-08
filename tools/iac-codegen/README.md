@@ -117,7 +117,7 @@ Keys of a field line: `skip`, `readOnly`, `required`, `description`, `markdownDe
 
 Existing mode relaxes these rules of the contract: a response that wraps the resource, a request that wraps the resource and shares its schema, the id in the Update body, a client-set id, enum values without the zero prefix, a missing `required` list on a named object, and nested server defaults. It also turns off the presence and default checks for a field with a line. It does not generate regular-expression validators. It ignores a string pattern.
 
-Existing mode does not keep the prior form of an empty value. `flatten` and the field lines (`readEmptyAs`, `computed`) decide what a read writes, as in the released resource.
+Existing mode also keeps the prior form of an empty value, as new resources do. The API returns an unset list or map as an empty one, because proto3 has no presence for them, so without it a configuration that omits one fails the apply with `was null, but now` an empty value. `flatten` and the field lines (`readEmptyAs`, `computed`) decide what a read writes before that rule applies. A state upgrade has no prior of the new schema version, so its state takes the value of the API.
 
 A resource in this mode exports `Flatten` for a handwritten data source. A frozen prior schema stays in its own package.
 

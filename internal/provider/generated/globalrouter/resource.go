@@ -206,17 +206,21 @@ func (r *Resource) delete(ctx context.Context, id string) error {
 	return cxsdk.NewAPIError(httpResp, err)
 }
 
-// setState writes the resource in an API response to the state. prior is the plan after Create
-// or Update, or the state before Read. A state upgrade has no prior of this schema version, so
-// it passes nil. flatten keeps the released read rules, so a value that is empty in both the
-// response and prior does not keep its form from prior. flatten returns an error when the
-// response has no resource.
+// setState writes the resource in an API response to the state. A value that is empty in both
+// the response and prior keeps its form from prior: the plan after Create or Update, or the
+// state before Read. A state upgrade has no prior of this schema version, so it passes nil and
+// the state takes the value of the API. flatten returns an error when the response has no
+// resource.
 func setState(ctx context.Context, v *global_routers_service.GlobalRouter, prior tfData, state *tfsdk.State) diag.Diagnostics {
 	m, diags := flatten(ctx, v, priorModel(ctx, prior))
 	if diags.HasError() {
 		return diags
 	}
 	diags.Append(state.Set(ctx, m)...)
+	if diags.HasError() || prior == nil {
+		return diags
+	}
+	diags.Append(keepPriorEmpty(ctx, prior, state)...)
 	return diags
 }
 

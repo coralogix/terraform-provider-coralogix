@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Schema is the Terraform schema of the resource.
@@ -60,6 +61,16 @@ func Schema() schema.Schema {
 						},
 					},
 				},
+				MarkdownDescription: "",
+			},
+			"labels": schema.ListAttribute{
+				Optional:            true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "",
+			},
+			"metadata": schema.MapAttribute{
+				Optional:            true,
+				ElementType:         types.StringType,
 				MarkdownDescription: "",
 			},
 		},

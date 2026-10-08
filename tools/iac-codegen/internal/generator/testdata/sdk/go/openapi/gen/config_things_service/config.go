@@ -17,6 +17,8 @@ type ConfigThing struct {
 	Template *string
 	Version  *string
 	Remotes  []ConfigRemote
+	Labels   []string
+	Metadata map[string]string
 }
 
 type CreateConfigThingRequest struct {
@@ -24,12 +26,16 @@ type CreateConfigThingRequest struct {
 	Settings *string
 	Template *string
 	Remotes  []ConfigRemote
+	Labels   []string
+	Metadata map[string]string
 }
 
 type ReplaceConfigThingRequest struct {
 	Name     *string
 	Settings *string
 	Remotes  []ConfigRemote
+	Labels   []string
+	Metadata map[string]string
 }
 
 type ConfigThingsServiceAPIService struct{}

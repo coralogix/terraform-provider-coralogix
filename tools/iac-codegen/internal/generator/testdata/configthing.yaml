@@ -1,6 +1,7 @@
 # A resource that users already have, with string fields that hold documents. The API returns
 # settings and template as normalized JSON and each remote configuration as normalized YAML.
-# Only Create sets template, so a change of it replaces the resource.
+# Only Create sets template, so a change of it replaces the resource. The API returns an unset
+# labels list and metadata map as empty ones.
 openapi: 3.1.0
 info: {title: config, version: 1.0.0}
 paths:
@@ -23,6 +24,12 @@ paths:
                 remotes:
                   type: array
                   items: {$ref: '#/components/schemas/ConfigRemote'}
+                labels:
+                  type: array
+                  items: {type: string}
+                metadata:
+                  type: object
+                  additionalProperties: {type: string}
       responses:
         '200':
           description: ok
@@ -58,6 +65,12 @@ paths:
                 remotes:
                   type: array
                   items: {$ref: '#/components/schemas/ConfigRemote'}
+                labels:
+                  type: array
+                  items: {type: string}
+                metadata:
+                  type: object
+                  additionalProperties: {type: string}
       responses:
         '200':
           description: ok
@@ -96,6 +109,12 @@ components:
         remotes:
           type: array
           items: {$ref: '#/components/schemas/ConfigRemote'}
+        labels:
+          type: array
+          items: {type: string}
+        metadata:
+          type: object
+          additionalProperties: {type: string}
     ConfigRemote:
       type: object
       required: []

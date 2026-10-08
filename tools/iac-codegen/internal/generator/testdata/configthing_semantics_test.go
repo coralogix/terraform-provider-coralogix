@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -200,6 +201,67 @@ func TestFlattenKeepsPriorOrderOfReformattedItems(t *testing.T) {
 
 func ptr(v string) *string { return &v }
 
+// The API returns an unset list or map as an empty one. The state keeps the form of the plan
+// after Create, or of the state before Read, so Terraform sees no difference. Without a prior,
+// after a state upgrade, the state takes the API value.
+func TestSetStateKeepsTheFormOfEmptyCollections(t *testing.T) {
+	ctx := context.Background()
+	var schemaResp frameworkresource.SchemaResponse
+	NewResource().Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	objectType := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	remoteType := objectType.AttributeTypes["remotes"].(tftypes.List).ElementType.(tftypes.Object)
+	metadataType := objectType.AttributeTypes["metadata"]
+	emptyLabels := tftypes.NewValue(objectType.AttributeTypes["labels"], []tftypes.Value{})
+	emptyMetadata := tftypes.NewValue(metadataType, map[string]tftypes.Value{})
+	null := tftypes.NewValue(tftypes.String, nil)
+
+	// prior is a value of the resource with the labels and the metadata.
+	prior := func(labels, metadata tftypes.Value) tftypes.Value {
+		remote := tftypes.NewValue(remoteType, map[string]tftypes.Value{
+			"name": str("collector"), "raw_configuration": str(inlineYAML),
+		})
+		return tftypes.NewValue(objectType, map[string]tftypes.Value{
+			"id": str("thing-1"), "name": null, "settings": null, "template": null, "version": str("v1"),
+			"remotes": tftypes.NewValue(tftypes.List{ElementType: remoteType}, []tftypes.Value{remote}),
+			"labels":  labels, "metadata": metadata,
+		})
+	}
+	nullLabels, nullMetadata := tftypes.NewValue(objectType.AttributeTypes["labels"], nil), tftypes.NewValue(metadataType, nil)
+	name, raw, version := "collector", inlineYAML, "v1"
+	api := func(labels []string, metadata map[string]string) *config_things_service.ConfigThing {
+		return &config_things_service.ConfigThing{Id: "thing-1", Version: &version, Labels: labels, Metadata: metadata,
+			Remotes: []config_things_service.ConfigRemote{{Name: &name, RawConfiguration: &raw}}}
+	}
+	tests := map[string]struct {
+		prior                    *tftypes.Value
+		api                      *config_things_service.ConfigThing
+		wantLabels, wantMetadata tftypes.Value
+	}{
+		"unset, API returns empty":    {ptrValue(prior(nullLabels, nullMetadata)), api([]string{}, map[string]string{}), nullLabels, nullMetadata},
+		"empty, API returns unset":    {ptrValue(prior(emptyLabels, emptyMetadata)), api(nil, nil), emptyLabels, emptyMetadata},
+		"set, API returns empty":      {ptrValue(prior(tftypes.NewValue(objectType.AttributeTypes["labels"], []tftypes.Value{str("a")}), nullMetadata)), api([]string{}, map[string]string{}), emptyLabels, nullMetadata},
+		"no prior, API returns empty": {nil, api([]string{}, map[string]string{}), emptyLabels, emptyMetadata},
+	}
+	for name, test := range tests {
+		state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(objectType, nil)}
+		var priorData tfData
+		if test.prior != nil {
+			priorData = &tfsdk.Plan{Schema: schemaResp.Schema, Raw: *test.prior}
+		}
+		if diags := setState(ctx, test.api, priorData, &state); diags.HasError() {
+			t.Fatalf("%s: %v", name, diags)
+		}
+		if got := at(t, state.Raw, "labels"); !got.Equal(test.wantLabels) {
+			t.Errorf("%s: labels = %v, want %v", name, got, test.wantLabels)
+		}
+		if got := at(t, state.Raw, "metadata"); !got.Equal(test.wantMetadata) {
+			t.Errorf("%s: metadata = %v, want %v", name, got, test.wantMetadata)
+		}
+	}
+}
+
+func ptrValue(v tftypes.Value) *tftypes.Value { return &v }
+
 // testProvider serves the generated resource, so that a test can plan it through the protocol as
 // Terraform does. Planning never calls the API.
 type testProvider struct{}
@@ -240,6 +302,8 @@ func (th thing) value(objectType tftypes.Object, id, version tftypes.Value) tfty
 		"template": template,
 		"version":  version,
 		"remotes":  tftypes.NewValue(tftypes.List{ElementType: remoteType}, items),
+		"labels":   tftypes.NewValue(objectType.AttributeTypes["labels"], nil),
+		"metadata": tftypes.NewValue(objectType.AttributeTypes["metadata"], nil),
 	})
 }
 
