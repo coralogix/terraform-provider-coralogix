@@ -677,6 +677,69 @@ func orderLike[T any](items, prior []T, same func(a, b *T) bool) []T {
 	}
 	return prior
 }
+{{- if .Conv.UsesPriorVia}}
+
+// keepOrderVia is keepOrder for a list whose response items the request does not send. It
+// converts each API item to the model and both it and each prior item to the request value R,
+// so the fields that only the server sets, such as an id or a hash, do not decide whether two
+// items are the same. The API items keep those fields.
+func keepOrderVia[M, S, R any](ctx context.Context, items []S, prior types.List, flatten func(context.Context, *S, *diag.Diagnostics) *M, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *R, same func(a, b *R) bool) []S {
+	var scratch diag.Diagnostics
+	models := priorItems[M](ctx, prior)
+	if items == nil || len(items) != len(models) {
+		return items // a missing list stays missing
+	}
+	api := make([]R, 0, len(items))
+	for i := range items {
+		api = append(api, *expand(ctx, path.Empty(), flatten(ctx, &items[i], &scratch), &scratch))
+	}
+	priorValues := make([]R, 0, len(models))
+	for i := range models {
+		priorValues = append(priorValues, *expand(ctx, path.Empty(), &models[i], &scratch))
+	}
+	if scratch.HasError() {
+		return items
+	}
+	if order, ok := priorOrder(api, priorValues, same); ok {
+		return reordered(items, order)
+	}
+	return items
+}
+
+// priorOrder returns, for each prior item in order, the index of the item that matches it. ok is
+// false when an item matches no prior item or the lists differ in length: the items really
+// changed.
+func priorOrder[T any](items, prior []T, same func(a, b *T) bool) (order []int, ok bool) {
+	if items == nil || len(items) != len(prior) {
+		return nil, false // a missing list stays missing
+	}
+	used := make([]bool, len(items))
+	order = make([]int, 0, len(prior))
+	for j := range prior {
+		found := false
+		for i := range items {
+			if !used[i] && same(&items[i], &prior[j]) {
+				used[i], found = true, true
+				order = append(order, i)
+				break
+			}
+		}
+		if !found {
+			return nil, false
+		}
+	}
+	return order, true
+}
+
+// reordered returns items in the order of the indexes in order.
+func reordered[T any](items []T, order []int) []T {
+	out := make([]T, 0, len(order))
+	for _, i := range order {
+		out = append(out, items[i])
+	}
+	return out
+}
+{{- end}}
 
 // pointerValue returns the value of p, or the zero value for nil. A missing value equals an empty one.
 func pointerValue[T any](p *T) T {
@@ -1090,7 +1153,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- if .KeepPriorOrder}}
 	{{$src}} := v.{{.SDK}}
 	if prior != nil {
+		{{- if .PriorVia}}
+		flattenItem := func(ctx context.Context, v *{{.SDKType}}, diags *diag.Diagnostics) *{{.Object.Model}} {
+			return flatten{{.Object.Func}}(ctx, path.Empty(), v, {{if .Object.NeedsPrior}}nil, {{end}}diags)
+		}
+		{{$src}} = keepOrderVia(ctx, {{$src}}, prior.{{.Model}}, flattenItem, expand{{.PriorVia.Func}}, same{{.PriorVia.Func}})
+		{{- else}}
 		{{$src}} = keepOrder(ctx, {{$src}}, prior.{{.Model}}, expand{{.Object.Func}}, same{{.Object.Func}})
+		{{- end}}
 	}
 	{{- end}}
 	if {{if .ReadEmptyAsNull}}len({{$src}}) != 0{{else}}{{$src}} != nil{{end}} {

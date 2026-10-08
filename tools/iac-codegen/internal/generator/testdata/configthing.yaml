@@ -1,6 +1,7 @@
 # A resource that users already have, with string fields that hold documents. The API returns
 # settings and template as normalized JSON and each remote configuration as normalized YAML.
-# Only Create sets template, so a change of it replaces the resource. The API returns an unset
+# Only Create sets template, so a change of it replaces the resource. The request sends the remotes
+# with their own components, and the response adds a server-set id and hash to each. The API returns an unset
 # labels list and metadata map as empty ones.
 openapi: 3.1.0
 info: {title: config, version: 1.0.0}
@@ -23,7 +24,7 @@ paths:
                 settings: {type: string, x-coralogix-presence: true}
                 remotes:
                   type: array
-                  items: {$ref: '#/components/schemas/ConfigRemote'}
+                  items: {$ref: '#/components/schemas/ConfigRemoteCreate'}
                 labels:
                   type: array
                   items: {type: string}
@@ -64,7 +65,7 @@ paths:
                 settings: {type: string, x-coralogix-presence: true}
                 remotes:
                   type: array
-                  items: {$ref: '#/components/schemas/ConfigRemote'}
+                  items: {$ref: '#/components/schemas/ConfigRemoteCreate'}
                 labels:
                   type: array
                   items: {type: string}
@@ -119,8 +120,35 @@ components:
       type: object
       required: []
       properties:
+        id: {type: string, description: Set by the server; changes when the remote is stored again.}
+        hash: {type: string, description: Set by the server from the normalized document.}
         name: {type: string, x-coralogix-presence: true}
         rawConfiguration:
           description: A YAML document.
           type: string
           x-coralogix-presence: true
+        selector: {$ref: '#/components/schemas/ConfigSelectorResponse'}
+    ConfigRemoteCreate:
+      type: object
+      required: []
+      properties:
+        name: {type: string, x-coralogix-presence: true}
+        rawConfiguration:
+          description: A YAML document.
+          type: string
+          x-coralogix-presence: true
+        selector: {$ref: '#/components/schemas/ConfigSelectorRequest'}
+    ConfigSelectorRequest:
+      type: object
+      required: []
+      properties:
+        attributes:
+          type: object
+          additionalProperties: {type: string}
+    ConfigSelectorResponse:
+      type: object
+      required: []
+      properties:
+        attributes:
+          type: object
+          additionalProperties: {type: string}

@@ -6,8 +6,25 @@ import (
 )
 
 type ConfigRemote struct {
+	Id               *string
+	Hash             *string
 	Name             *string
 	RawConfiguration *string
+	Selector         *ConfigSelectorResponse
+}
+
+type ConfigRemoteCreate struct {
+	Name             *string
+	RawConfiguration *string
+	Selector         *ConfigSelectorRequest
+}
+
+type ConfigSelectorRequest struct {
+	Attributes map[string]string
+}
+
+type ConfigSelectorResponse struct {
+	Attributes map[string]string
 }
 
 type ConfigThing struct {
@@ -25,7 +42,7 @@ type CreateConfigThingRequest struct {
 	Name     *string
 	Settings *string
 	Template *string
-	Remotes  []ConfigRemote
+	Remotes  []ConfigRemoteCreate
 	Labels   []string
 	Metadata map[string]string
 }
@@ -33,7 +50,7 @@ type CreateConfigThingRequest struct {
 type ReplaceConfigThingRequest struct {
 	Name     *string
 	Settings *string
-	Remotes  []ConfigRemote
+	Remotes  []ConfigRemoteCreate
 	Labels   []string
 	Metadata map[string]string
 }

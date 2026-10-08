@@ -163,6 +163,12 @@ type convField struct {
 	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
 	// API returns the same items in another order.
 	KeepPriorOrder bool
+	// PriorVia is the request object that pairs the items of a KeepPriorOrder list whose
+	// response object the request does not send. flatten converts each API item to the model
+	// and both it and each prior item to this request object, so only the fields that the
+	// request sends decide whether two items are the same. It is nil when the request sends
+	// the response object.
+	PriorVia *convObject
 	// Equality is "yaml" or "json" when flatten keeps the prior text of a string that the API
 	// returns as the same document in another format, and "" otherwise.
 	Equality    string
@@ -1113,15 +1119,52 @@ func markPriorFields(d *convData) error {
 			if f.Conv != convObjects || f.Collection != "List" {
 				return fmt.Errorf("%s.%s: keepPriorOrder needs a list of objects", obj.Model, f.TFName)
 			}
-			if !f.Object.Expand {
-				// keepOrder expands the prior items with the response object.
-				return fmt.Errorf("%s.%s: keepPriorOrder needs a list that the request sends with the response component", obj.Model, f.TFName)
-			}
 			obj.NeedsPrior = true
-			f.Object.Same = true
+			if f.Object.Expand {
+				// keepOrder expands the prior items with the response object.
+				f.Object.Same = true
+				continue
+			}
+			via, err := requestObject(d, f.Object)
+			if err != nil {
+				return fmt.Errorf("%s.%s: %w", obj.Model, f.TFName, err)
+			}
+			f.PriorVia, via.Same = via, true
 		}
 	}
 	return nil
+}
+
+// requestObject returns the request object that converts the model of the response object resp:
+// the item of a list that the request sends with another component. Create and Update can each
+// have one. They must send the same fields, so either pairs the items alike.
+func requestObject(d *convData, resp *convObject) (*convObject, error) {
+	var found *convObject
+	for _, obj := range d.Objects {
+		if !obj.Expand || obj == resp || obj.Model != resp.Model {
+			continue
+		}
+		if found != nil && !slices.Equal(sortedFieldNames(found), sortedFieldNames(obj)) {
+			return nil, fmt.Errorf("keepPriorOrder needs one set of request fields, but %s and %s send different fields", found.SDK, obj.SDK)
+		}
+		if found == nil {
+			found = obj
+		}
+	}
+	if found == nil {
+		return nil, errors.New("keepPriorOrder needs a list that the request sends")
+	}
+	return found, nil
+}
+
+// sortedFieldNames returns the Terraform names of the fields of obj, sorted.
+func sortedFieldNames(obj *convObject) []string {
+	names := make([]string, 0, len(obj.Fields))
+	for _, f := range obj.Fields {
+		names = append(names, f.TFName)
+	}
+	slices.Sort(names)
+	return names
 }
 
 // errPriorContainer reports a field that needs the prior model in a container whose flatten has no
@@ -1198,6 +1241,18 @@ func (d *convData) UsesPrior() bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if f.KeepPriorOrder {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// UsesPriorVia reports whether a list that keeps the prior order pairs its items with a request object.
+func (d *convData) UsesPriorVia() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.PriorVia != nil {
 				return true
 			}
 		}
