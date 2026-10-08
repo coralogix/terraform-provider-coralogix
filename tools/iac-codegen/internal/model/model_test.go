@@ -1096,3 +1096,125 @@ func reportCodes(report issue.Report) []string {
 	}
 	return codes
 }
+
+// specType returns the type of the spec field of the fixture, with the
+// request components that Build merged into it.
+func specType(t *testing.T) *Type {
+	t.Helper()
+	doc, err := Load(validSpec(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := Build(doc, "Thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range r.Fields {
+		if f.Name == "spec" {
+			return f.Type
+		}
+	}
+	t.Fatal("no spec field")
+	return nil
+}
+
+func TestNestedFieldLifecycle(t *testing.T) {
+	spec := specType(t)
+	if spec.CreateSchema != "ThingSpecCreate" || spec.UpdateSchema != "ThingSpecUpdate" {
+		t.Fatalf("request components = %s, %s", spec.CreateSchema, spec.UpdateSchema)
+	}
+	item := fieldNamed(spec.Fields, "items").Type.Elem
+	source := fieldNamed(spec.Fields, "source").Type
+	for _, test := range []struct {
+		object *Type
+		field  string
+		want   Behavior
+	}{
+		{spec, "mode", Normal},
+		{spec, "region", Immutable},
+		{spec, "revision", Computed},
+		{spec, "source", Computed},
+		{spec, "items", Normal},
+		{item, "id", Computed},
+		{item, "key", Immutable},
+		{item, "name", Normal},
+		{source, "origin", ""}, // inside a computed value
+	} {
+		if got := fieldNamed(test.object.Fields, test.field).Behavior; got != test.want {
+			t.Errorf("%s.%s = %q, want %q", test.object.Schema, test.field, got, test.want)
+		}
+	}
+}
+
+func TestNestedRequestTypes(t *testing.T) {
+	spec := specType(t)
+	create, update := spec.CreateType(), spec.UpdateType()
+	if create.Schema != "ThingSpecCreate" || create.Model != "ThingSpec" || !slices.Equal(fieldNames(create), []string{"mode", "region", "items"}) {
+		t.Errorf("Create type = %s for %s with %v", create.Schema, create.Model, fieldNames(create))
+	}
+	if update.Schema != "ThingSpecUpdate" || !slices.Equal(fieldNames(update), []string{"mode", "items"}) {
+		t.Errorf("Update type = %s with %v", update.Schema, fieldNames(update))
+	}
+	updateItem := fieldNamed(update.Fields, "items").Type.Elem
+	if updateItem.Schema != "ThingItemUpdate" || updateItem.Model != "ThingItem" || !slices.Equal(fieldNames(updateItem), []string{"name"}) {
+		t.Errorf("Update item type = %s for %s with %v", updateItem.Schema, updateItem.Model, fieldNames(updateItem))
+	}
+}
+
+func TestNestedFieldContract(t *testing.T) {
+	const updateItem = "    ThingItemUpdate:\n      type: object\n      required: [name]\n      properties:\n        name:\n          type: string\n          minLength: 1\n"
+	tests := map[string]struct {
+		old, new, code, location string
+	}{
+		"different kind": {
+			updateItem, strings.Replace(updateItem, "type: string\n          minLength: 1", "type: boolean\n          x-coralogix-presence: true", 1),
+			"FIELD_TYPE_INCONSISTENT", "components.schemas.Thing.spec.items[].name",
+		},
+		"different limits": {
+			updateItem, strings.Replace(updateItem, "minLength: 1", "minLength: 2", 1),
+			"FIELD_TYPE_INCONSISTENT", "components.schemas.Thing.spec.items[].name",
+		},
+		"request field missing from the response": {
+			updateItem, updateItem + "        extra:\n          type: string\n          x-coralogix-presence: true\n",
+			"FIELD_LIFECYCLE_UNSUPPORTED", "components.schemas.Thing.spec.items[].extra",
+		},
+		"Update field missing from Create": {
+			updateItem, updateItem + "        id:\n          type: string\n          x-coralogix-presence: true\n",
+			"FIELD_LIFECYCLE_UNSUPPORTED", "components.schemas.Thing.spec.items[].id",
+		},
+		"optional in Create, required in Update": {
+			"    ThingSpecUpdate:\n      type: object\n      required: []\n", "    ThingSpecUpdate:\n      type: object\n      required: [mode]\n",
+			"FIELD_REQUIREDNESS_UNSUPPORTED", "components.schemas.Thing.spec.mode",
+		},
+		"different oneOf arms": {
+			"                config:\n                  allOf:\n                    - $ref: '#/components/schemas/ThingConfig'\n",
+			"                config:\n                  $ref: '#/components/schemas/ThingConfigUpdate'\n",
+			"FIELD_TYPE_INCONSISTENT", "components.schemas.Thing.config",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec := string(validSpec(t))
+			if !strings.Contains(spec, test.old) {
+				t.Fatal("fixture text not found")
+			}
+			spec = strings.Replace(spec, test.old, test.new, 1)
+			spec = strings.Replace(spec, "    DeleteThingResponse:\n",
+				"    ThingConfigUpdate:\n      type: object\n      required: []\n      properties:\n        http:\n          $ref: '#/components/schemas/HttpThingConfig'\n      oneOf:\n        - required: [http]\n    DeleteThingResponse:\n", 1)
+			doc, err := Load([]byte(spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var found []issue.Issue
+			for _, item := range Validate(doc, "Thing", OperationIDs{}) {
+				if item.Location == test.location {
+					found = append(found, item)
+				}
+			}
+			// Validate and Build report the same issue once.
+			if len(found) != 1 || found[0].Code != test.code {
+				t.Fatalf("issues at %s = %v, want one %s", test.location, found, test.code)
+			}
+		})
+	}
+}
