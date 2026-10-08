@@ -87,6 +87,15 @@ func expandUpdate(ctx context.Context, m *GlobalRouterModel) (*global_routers_se
 	return &global_routers_service.ReplaceGlobalRouterRequest{Router: valueOf(out)}, diags
 }
 
+// BeforeWrite mutates the expanded request body before the API call. The
+// handwritten overlay uses it for write-only attributes. Nil means no extra step.
+var BeforeWrite func(context.Context, tfsdk.Config, any) diag.Diagnostics
+
+// AfterRead mutates state after flatten. The handwritten overlay uses it to
+// restore write-only versions and strip secret field values. prior is the plan
+// after Create or Update, or the state before Read. Nil means no extra step.
+var AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
+
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
 func flatten(ctx context.Context, v *global_routers_service.GlobalRouter, prior *GlobalRouterModel) (*GlobalRouterModel, diag.Diagnostics) {
@@ -741,26 +750,6 @@ func keepOrder[M, S any](ctx context.Context, items []S, prior types.List, expan
 		return items
 	}
 	return orderLike(items, priorSDK, same)
-}
-
-// matchPriorSetItem returns the unused prior model whose expanded SDK value equals item.
-// A set has no order, so pairing by slice index can attach nested prior lists to the wrong object.
-func matchPriorSetItem[M, S any](ctx context.Context, item *S, prior []M, used []bool, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) *M {
-	for i := range prior {
-		if used[i] {
-			continue
-		}
-		var scratch diag.Diagnostics
-		expanded := expand(ctx, path.Empty(), &prior[i], &scratch)
-		if scratch.HasError() {
-			continue
-		}
-		if same(item, expanded) {
-			used[i] = true
-			return &prior[i]
-		}
-	}
-	return nil
 }
 
 // orderLike returns prior when it holds the same items as items, in another order. Otherwise

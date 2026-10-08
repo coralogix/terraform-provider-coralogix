@@ -220,15 +220,6 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if line.Required && slices.Contains(schema.Required, line.Field) {
 		stale = append(stale, "required")
 	}
-	if line.CollectionSet {
-		built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
-		if err != nil || built == nil || !slices.Contains(built.Type, "array") {
-			return wholeLine(fmt.Errorf("field %q is not an array, so collection: set does not apply", line.Field))
-		}
-		if contractCollectionSet(built) {
-			stale = append(stale, "collection")
-		}
-	}
 	if len(stale) == 0 {
 		return nil
 	}
@@ -269,14 +260,6 @@ func equalityProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 func contractReadOnly(schema *base.Schema, field string) bool {
 	built, err := schema.Properties.GetOrZero(field).BuildSchema()
 	return err == nil && built.ReadOnly != nil && *built.ReadOnly
-}
-
-func contractCollectionSet(schema *base.Schema) bool {
-	if schema == nil || schema.Extensions == nil {
-		return false
-	}
-	n := schema.Extensions.GetOrZero("x-coralogix-collection")
-	return n != nil && n.Value == "set"
 }
 
 func hasNoRequiredList(schema *base.Schema) bool {

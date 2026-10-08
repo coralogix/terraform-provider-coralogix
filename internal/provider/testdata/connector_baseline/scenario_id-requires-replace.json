@@ -158,7 +158,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_connector \"second\" is in state, but no longer exists in Coralogix backend | second will be recreated when you apply",
+      "warning: Resource disappeared during update | The API did not find connector with id first. Terraform removed it from state.",
       "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
     ],
     "state": {

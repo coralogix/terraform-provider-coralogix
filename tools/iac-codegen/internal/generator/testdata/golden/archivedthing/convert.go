@@ -61,15 +61,14 @@ func expandUpdate(ctx context.Context, m *ArchivedThingModel) (*archived_things_
 	return out, diags
 }
 
-// ExpandCreate is the Create request body for a handwritten wrapper.
-func ExpandCreate(ctx context.Context, m *ArchivedThingModel) (*archived_things_service.CreateArchivedThingRequest, diag.Diagnostics) {
-	return expandCreate(ctx, m)
-}
+// BeforeWrite mutates the expanded request body before the API call. The
+// handwritten overlay uses it for write-only attributes. Nil means no extra step.
+var BeforeWrite func(context.Context, tfsdk.Config, any) diag.Diagnostics
 
-// ExpandUpdate is the Update request body for a handwritten wrapper.
-func ExpandUpdate(ctx context.Context, m *ArchivedThingModel) (*archived_things_service.ReplaceArchivedThingRequest, diag.Diagnostics) {
-	return expandUpdate(ctx, m)
-}
+// AfterRead mutates state after flatten. The handwritten overlay uses it to
+// restore write-only versions and strip secret field values. prior is the plan
+// after Create or Update, or the state before Read. Nil means no extra step.
+var AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.

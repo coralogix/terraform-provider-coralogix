@@ -37,6 +37,11 @@ type Resource struct {
 // NewResource returns the resource. Use it in provider.Resources.
 func NewResource() resource.Resource { return &Resource{} }
 
+// NewResourceWithClient returns the resource with an injected API client.
+func NewResourceWithClient(client *things_service.ThingsServiceAPIService) resource.Resource {
+	return &Resource{client: client}
+}
+
 func (r *Resource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_" + TypeName
 }

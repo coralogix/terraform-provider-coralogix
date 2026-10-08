@@ -48,6 +48,7 @@ var createFields = []struct {
 	{attr: "spec", serverDefault: false},
 	{attr: "destinations", serverDefault: false},
 	{attr: "tags", serverDefault: false},
+	{attr: "details", serverDefault: false},
 	{attr: "labels", serverDefault: false},
 }
 
@@ -373,6 +374,12 @@ func expandCreateThingRequest(ctx context.Context, p path.Path, m *ThingModel, d
 	out.Spec = expandThingSpecCreate(ctx, p.AtName("spec"), m.Spec, diags)
 	out.Destinations = expandStrings[string](ctx, p.AtName("destinations"), m.Destinations, diags)
 	out.Tags = expandStringsSet[string](ctx, p.AtName("tags"), m.Tags, diags)
+	if items := expandElements[ThingDetailModel](ctx, p.AtName("details"), m.Details, diags); items != nil {
+		out.Details = make([]things_service.ThingDetail, 0, len(items))
+		for i := range items {
+			out.Details = append(out.Details, *expandThingDetail(ctx, p.AtName("details"), &items[i], diags))
+		}
+	}
 	out.Labels = expandStringMap[string](ctx, p.AtName("labels"), m.Labels, diags)
 	return out
 }
@@ -474,6 +481,30 @@ func expandThingTargetInput(ctx context.Context, p path.Path, m *ThingTargetMode
 	return out
 }
 
+func expandThingDetail(ctx context.Context, p path.Path, m *ThingDetailModel, diags *diag.Diagnostics) *things_service.ThingDetail {
+	if m == nil {
+		return nil
+	}
+	out := &things_service.ThingDetail{}
+	out.Name = valueOf(expandString(m.Name))
+	return out
+}
+
+func flattenThingDetail(ctx context.Context, p path.Path, v *things_service.ThingDetail, diags *diag.Diagnostics) *ThingDetailModel {
+	if v == nil {
+		return nil
+	}
+	out := &ThingDetailModel{}
+	out.Name = types.StringPointerValue(&v.Name)
+	return out
+}
+
+func thingDetailAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"name": types.StringType,
+	}
+}
+
 func expandUpdateThingRequest(ctx context.Context, p path.Path, m *ThingModel, diags *diag.Diagnostics) *things_service.UpdateThingRequest {
 	if m == nil {
 		return nil
@@ -486,6 +517,12 @@ func expandUpdateThingRequest(ctx context.Context, p path.Path, m *ThingModel, d
 	out.Spec = expandThingSpecUpdate(ctx, p.AtName("spec"), m.Spec, diags)
 	out.Destinations = expandStrings[string](ctx, p.AtName("destinations"), m.Destinations, diags)
 	out.Tags = expandStringsSet[string](ctx, p.AtName("tags"), m.Tags, diags)
+	if items := expandElements[ThingDetailModel](ctx, p.AtName("details"), m.Details, diags); items != nil {
+		out.Details = make([]things_service.ThingDetail, 0, len(items))
+		for i := range items {
+			out.Details = append(out.Details, *expandThingDetail(ctx, p.AtName("details"), &items[i], diags))
+		}
+	}
 	out.Labels = expandStringMap[string](ctx, p.AtName("labels"), m.Labels, diags)
 	return out
 }
@@ -534,6 +571,14 @@ func flattenThing(ctx context.Context, p path.Path, v *things_service.Thing, dia
 	out.Spec = flattenThingSpec(ctx, p.AtName("spec"), v.Spec, diags)
 	out.Destinations = flattenStringsList(ctx, v.Destinations, diags)
 	out.Tags = flattenStringsSet(ctx, v.Tags, diags)
+	out.Details = types.SetNull(types.ObjectType{AttrTypes: thingDetailAttrTypes()})
+	if v.Details != nil {
+		items := make([]ThingDetailModel, 0, len(v.Details))
+		for i := range v.Details {
+			items = append(items, *flattenThingDetail(ctx, p.AtName("details"), &v.Details[i], diags))
+		}
+		out.Details = flattenSet(ctx, types.ObjectType{AttrTypes: thingDetailAttrTypes()}, items, diags)
+	}
 	out.Labels = flattenStringMap(ctx, v.Labels, diags)
 	out.CreateTime = flattenTime(v.CreateTime)
 	out.UpdateTime = flattenTime(v.UpdateTime)

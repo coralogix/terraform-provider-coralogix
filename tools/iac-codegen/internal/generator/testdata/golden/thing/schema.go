@@ -195,6 +195,21 @@ func Schema() schema.Schema {
 				ElementType:         types.StringType,
 				MarkdownDescription: "Unordered unique tags.",
 			},
+			"details": schema.SetNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Required: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
+							MarkdownDescription: "The detail name.",
+						},
+					},
+				},
+				MarkdownDescription: "Unordered unique details.",
+			},
 			"labels": schema.MapAttribute{
 				Optional:            true,
 				ElementType:         types.StringType,

@@ -115,7 +115,7 @@ func TestOptionalGetPresenceRoundTrips(t *testing.T) {
 	ctx := context.Background()
 	var diags diag.Diagnostics
 	omitted := flattenThing(ctx, path.Root("thing"), &things_service.Thing{}, &diags)
-	if !omitted.Description.IsNull() || !omitted.Destinations.IsNull() || !omitted.Tags.IsNull() || !omitted.Labels.IsNull() {
+	if !omitted.Description.IsNull() || !omitted.Destinations.IsNull() || !omitted.Tags.IsNull() || !omitted.Details.IsNull() || !omitted.Labels.IsNull() {
 		t.Fatalf("omitted optional fields = %#v, want null values", omitted)
 	}
 
@@ -124,9 +124,10 @@ func TestOptionalGetPresenceRoundTrips(t *testing.T) {
 		Description:  &emptyDescription,
 		Destinations: []string{},
 		Tags:         []string{},
+		Details:      []things_service.ThingDetail{},
 		Labels:       map[string]string{},
 	}, &diags)
-	if explicit.Description.IsNull() || explicit.Description.ValueString() != "" || explicit.Destinations.IsNull() || explicit.Tags.IsNull() || explicit.Labels.IsNull() {
+	if explicit.Description.IsNull() || explicit.Description.ValueString() != "" || explicit.Destinations.IsNull() || explicit.Tags.IsNull() || explicit.Details.IsNull() || explicit.Labels.IsNull() {
 		t.Fatalf("explicit empty fields = %#v, want present values", explicit)
 	}
 	if diags.HasError() {
@@ -143,6 +144,7 @@ func TestOptionalGetPresenceRoundTrips(t *testing.T) {
 		Enabled:      types.BoolNull(),
 		Destinations: types.ListNull(types.StringType),
 		Tags:         types.SetNull(types.StringType),
+		Details:      types.SetNull(types.ObjectType{AttrTypes: map[string]attr.Type{"name": types.StringType}}),
 		Labels:       types.MapNull(types.StringType),
 	})
 	updateDiags.Append(bodyDiags...)
@@ -154,6 +156,7 @@ func TestOptionalGetPresenceRoundTrips(t *testing.T) {
 func TestCollectionPresenceAndStability(t *testing.T) {
 	t.Run("list presence and order", testListPresenceAndOrder)
 	t.Run("set stability", testSetStability)
+	t.Run("set of objects", testSetOfObjects)
 	t.Run("map and flatten", testMapAndFlatten)
 }
 
@@ -193,6 +196,34 @@ func testSetStability(t *testing.T) {
 	}
 	if got := expandStringsSet[string](ctx, path.Root("tags"), duplicate, &diags); len(got) != 1 || got[0] != "a" {
 		t.Fatalf("expanded duplicate set = %#v", got)
+	}
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+}
+
+func testSetOfObjects(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	elem := types.ObjectType{AttrTypes: map[string]attr.Type{"name": types.StringType}}
+	first := types.SetValueMust(elem, []attr.Value{
+		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("a")}),
+		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("b")}),
+	})
+	second := types.SetValueMust(elem, []attr.Value{
+		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("b")}),
+		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("a")}),
+	})
+	if !first.Equal(second) {
+		t.Fatal("set of objects order changed equality")
+	}
+	items := expandElements[ThingDetailModel](ctx, path.Root("details"), first, &diags)
+	if len(items) != 2 {
+		t.Fatalf("expanded details = %#v", items)
+	}
+	got := expandThingDetail(ctx, path.Root("details"), &items[0], &diags)
+	if got == nil || got.Name == "" {
+		t.Fatalf("flattened detail = %#v", got)
 	}
 	if diags.HasError() {
 		t.Fatal(diags)
@@ -293,6 +324,7 @@ func requestValues() map[string]attr.Value {
 		"spec":         types.ObjectNull(Schema().Attributes["spec"].GetType().(types.ObjectType).AttrTypes),
 		"destinations": types.ListNull(types.StringType),
 		"tags":         types.SetNull(types.StringType),
+		"details":      types.SetNull(types.ObjectType{AttrTypes: map[string]attr.Type{"name": types.StringType}}),
 		"labels":       types.MapNull(types.StringType),
 	}
 }

@@ -176,6 +176,7 @@ func TestGoldenCanonicalAPIContract(t *testing.T) {
 		`objectvalidator.ExactlyOneOf`,
 		`"destinations": schema.ListAttribute{`,
 		`"tags": schema.SetAttribute{`,
+		`"details": schema.SetNestedAttribute{`,
 		`"create_time": schema.StringAttribute{`,
 		`"update_time": schema.StringAttribute{`,
 	} {
