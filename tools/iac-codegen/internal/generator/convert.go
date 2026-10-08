@@ -1,7 +1,9 @@
 package generator
 
 import (
+	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
@@ -161,7 +163,10 @@ type convField struct {
 	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
 	// API returns the same items in another order.
 	KeepPriorOrder bool
-	ObjectValue    bool // a computed object stored as unknown-capable types.Object
+	// Equality is "yaml" or "json" when flatten keeps the prior text of a string that the API
+	// returns as the same document in another format, and "" otherwise.
+	Equality    string
+	ObjectValue bool // a computed object stored as unknown-capable types.Object
 	// Value is true when the SDK field is a value, not a pointer. The SDK
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
@@ -623,6 +628,7 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type) (*conv
 	if b.file != nil {
 		line := b.file.Types[component].Fields[name]
 		cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
+		cf.Equality = line.Equality
 	}
 	want, err := b.fieldConv(cf, t)
 	if err != nil {
@@ -1072,6 +1078,9 @@ func markPrior(d *convData) error {
 		return err
 	}
 	propagatePrior(d)
+	if err := checkPriorContainers(d); err != nil {
+		return err
+	}
 	for _, obj := range d.Objects {
 		if !obj.Same {
 			continue
@@ -1087,10 +1096,17 @@ func markPrior(d *convData) error {
 	return nil
 }
 
-// markPriorFields marks the objects with a KeepPriorOrder field, and the objects that such a list holds.
+// markPriorFields marks the objects with a KeepPriorOrder or an Equality field, and the objects that
+// a list keeping the prior order holds.
 func markPriorFields(d *convData) error {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
+			if f.Equality != "" {
+				if f.Conv != convString {
+					return fmt.Errorf("%s.%s: equality needs a string field", obj.Model, f.TFName)
+				}
+				obj.NeedsPrior = true
+			}
 			if !f.KeepPriorOrder {
 				continue
 			}
@@ -1103,6 +1119,22 @@ func markPriorFields(d *convData) error {
 			}
 			obj.NeedsPrior = true
 			f.Object.Same = true
+		}
+	}
+	return nil
+}
+
+// errPriorContainer reports a field that needs the prior model in a container whose flatten has no
+// prior value to pass: a map of objects, or a computed object stored as types.Object. A set of
+// objects has no order, so the prior item at the same index is not the same item.
+var errPriorContainer = errors.New("equality and keepPriorOrder are not supported in a map or set of objects or in a computed object")
+
+func checkPriorContainers(d *convData) error {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.Object != nil && f.Object.NeedsPrior && (f.Conv == convObjectMap || f.ObjectValue || f.Conv == convObjects && f.Collection == "Set") {
+				return fmt.Errorf("%s.%s holds %s: %w", obj.Model, f.TFName, f.Object.Model, errPriorContainer)
+			}
 		}
 	}
 	return nil
@@ -1135,10 +1167,14 @@ func sameCheck(f *convField) (string, error) {
 	a, b := "a."+f.SDK, "b."+f.SDK
 	switch f.Conv {
 	case convString, convBool, convFloat64, convFloat32, convInt32, convInt64, convUint64, convEnum, convTime:
-		if f.Value {
-			return a + " == " + b, nil
+		if !f.Value {
+			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}
-		return "pointerValue(" + a + ") == pointerValue(" + b + ")", nil
+		if f.Equality != "" {
+			// The API can return the document in another format, so the items compare as documents.
+			return f.Equality + "Equal(" + a + ", " + b + ")", nil
+		}
+		return a + " == " + b, nil
 	case convStringMap, convScalarMap, convUint64Map:
 		return "maps.Equal(" + a + ", " + b + ")", nil
 	case convStrings, convScalars:
@@ -1162,6 +1198,31 @@ func (d *convData) UsesPrior() bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if f.KeepPriorOrder {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// PriorLists reports whether flatten reads the items of a prior list of objects.
+func (d *convData) PriorLists() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.Conv == convObjects && f.Object != nil && f.Object.NeedsPrior {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// UsesEquality reports whether a field compares its value as a document of the kind ("yaml" or
+// "json"). With no kind, it reports whether any field does.
+func (d *convData) UsesEquality(kind ...string) bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.Equality != "" && (len(kind) == 0 || slices.Contains(kind, f.Equality)) {
 				return true
 			}
 		}

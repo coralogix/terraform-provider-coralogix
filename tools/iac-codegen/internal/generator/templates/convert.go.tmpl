@@ -243,7 +243,6 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}{{if .HasPrior}},
 	return out, diags
 }
 
-{{- if not .Existing}}
 // oneOfArms are the paths of the oneOf arms, with list and map steps left
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
@@ -396,7 +395,6 @@ func emptyValue(at string, v attr.Value) bool {
 	}
 	return false
 }
-{{- end}}
 {{range .Objects}}
 {{- if .Expand}}
 func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$sdk}}.{{.SDK}} {
@@ -624,10 +622,10 @@ func flattenEnum[T ~string](v *T, zero string) types.String {
 	return types.StringValue(string(*v))
 }
 
-{{- if .Conv.UsesPrior}}
+{{- if .Conv.PriorLists}}
 
 // priorItems returns the items of the prior list, or nil when it cannot be read. The prior only
-// keeps an order, so a prior that cannot be read is not an error.
+// keeps an order or the text of a document, so a prior that cannot be read is not an error.
 func priorItems[T any](ctx context.Context, v elements) []T {
 	var scratch diag.Diagnostics
 	items := expandElements[T](ctx, path.Empty(), v, &scratch)
@@ -636,6 +634,8 @@ func priorItems[T any](ctx context.Context, v elements) []T {
 	}
 	return items
 }
+{{- end}}
+{{- if .Conv.UsesPrior}}
 
 // keepOrder returns the items in the order of the prior list, when the API returned the same items in
 // another order. It expands the prior list to SDK values and compares them with same. The prior only
@@ -996,6 +996,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- $v := printf "v.%s" .SDK}}{{if .Value}}{{$v = printf "&v.%s" .SDK}}{{end}}
 {{- if eq .Conv "string"}}
 	out.{{.Model}} = types.StringPointerValue({{$v}})
+	{{- if .Equality}}
+	if prior != nil {
+		out.{{.Model}} = keepEquivalentText(prior.{{.Model}}, out.{{.Model}}, {{.Equality}}Equal)
+	}
+	{{- end}}
 {{- else if eq .Conv "bool"}}
 	out.{{.Model}} = types.BoolPointerValue({{$v}})
 {{- else if eq .Conv "float64"}}
@@ -1098,7 +1103,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		{{- end}}
 		for i := range {{$src}} {
 			{{- if .Object.NeedsPrior}}
-			// The prior item at the same index keeps the order of its own lists.
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
 			var priorItem *{{.Object.Model}}
 			if i < len(prior{{.Model}}) {
 				priorItem = &prior{{.Model}}[i]

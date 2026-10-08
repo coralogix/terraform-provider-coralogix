@@ -2,6 +2,7 @@ package clientset
 
 import (
 	"example.com/iac-test-sdk/go/openapi/gen/archived_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/config_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/settings_service"
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
@@ -12,6 +13,7 @@ type ClientSet struct {
 	SettingsClient *settings_service.SettingsServiceAPIService
 	Legacy         *legacy_things_service.LegacyThingsServiceAPIService
 	Archived       *archived_things_service.ArchivedThingsServiceAPIService
+	Config         *config_things_service.ConfigThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -24,4 +26,8 @@ func (c *ClientSet) LegacyThings() *legacy_things_service.LegacyThingsServiceAPI
 
 func (c *ClientSet) ArchivedThings() *archived_things_service.ArchivedThingsServiceAPIService {
 	return c.Archived
+}
+
+func (c *ClientSet) ConfigThings() *config_things_service.ConfigThingsServiceAPIService {
+	return c.Config
 }

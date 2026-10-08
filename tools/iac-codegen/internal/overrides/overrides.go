@@ -144,7 +144,16 @@ type Field struct {
 	KeepPriorOrder bool `yaml:"keepPriorOrder"`
 	// Validators are the released validators of the field.
 	Validators []Validator `yaml:"validators"`
+	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. The API
+	// returns the document normalized, so a change of format alone must not plan a change.
+	Equality string `yaml:"equality"`
 }
+
+// Equality values of a field line.
+const (
+	EqualityYAML = "yaml"
+	EqualityJSON = "json"
+)
 
 // Validator is one released validator. Exactly one key is set.
 type Validator struct {
@@ -273,6 +282,7 @@ func (l Field) keys() []string {
 	add(l.ReadEmptyAs != "", "readEmptyAs")
 	add(l.KeepPriorOrder, "keepPriorOrder")
 	add(len(l.Validators) != 0, "validators")
+	add(l.Equality != "", "equality")
 	return keys
 }
 
@@ -285,7 +295,7 @@ func (l Field) statesPresence() bool {
 func (l Field) empty() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" &&
-		!l.KeepPriorOrder && len(l.Validators) == 0
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == ""
 }
 
 func (l Field) check() error {
@@ -294,6 +304,9 @@ func (l Field) check() error {
 	}
 	if l.ReadEmptyAs != "" && l.ReadEmptyAs != "null" {
 		return fmt.Errorf("readEmptyAs is %q, want \"null\"", l.ReadEmptyAs)
+	}
+	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
+		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
 	}
 	switch l.Default.(type) {
 	case nil, string, bool:
@@ -315,7 +328,7 @@ func (l Field) check() error {
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
-		l.ReadEmptyAs != "" || len(l.Validators) != 0
+		l.ReadEmptyAs != "" || len(l.Validators) != 0 || l.Equality != ""
 }
 
 func checkValidators(validators []Validator) error {
@@ -382,7 +395,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Equality: f.Equality, Keys: f.keys()})
 		}
 	}
 	return out
@@ -407,6 +420,7 @@ type Line struct {
 	// EnumRejected are the values of the contract that the resource does not accept.
 	EnumRejected []string
 	ReadOnly     bool     // for a field line: the file says that the server sets the field
+	Equality     string   // for a field line: "yaml" or "json" when the line compares the value as a document
 	Required     bool     // for a field line: the file says that the field is required
 	Keys         []string // for a field line: every key that the line sets
 }

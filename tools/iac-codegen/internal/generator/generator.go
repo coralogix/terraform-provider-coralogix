@@ -287,12 +287,7 @@ func rendererIssues(resource *model.Resource, refs []sdkRef, file *overrides.Fil
 	var report issue.Report
 	for _, check := range checks {
 		if err := check.run(); err != nil {
-			report = append(report, issue.Issue{
-				Code:        "RENDERER_SHAPE_UNSUPPORTED",
-				Location:    check.location,
-				Message:     err.Error(),
-				Remediation: "Use a resource shape that the generic Terraform renderer supports.",
-			})
+			report = append(report, shapeIssue(check.location, err))
 		}
 	}
 	if len(report) != 0 {
@@ -307,6 +302,23 @@ func rendererIssues(resource *model.Resource, refs []sdkRef, file *overrides.Fil
 		})
 	}
 	return report
+}
+
+func shapeIssue(location string, err error) issue.Issue {
+	if errors.Is(err, errPriorContainer) {
+		return issue.Issue{
+			Code:        "OVERRIDE_PRIOR_CONTAINER",
+			Location:    location,
+			Message:     err.Error(),
+			Remediation: "Delete the equality or keepPriorOrder key from the fields of the object that the map or the computed object holds.",
+		}
+	}
+	return issue.Issue{
+		Code:        "RENDERER_SHAPE_UNSUPPORTED",
+		Location:    location,
+		Message:     err.Error(),
+		Remediation: "Use a resource shape that the generic Terraform renderer supports.",
+	}
 }
 
 func eligibilityIssue(code, location string, err error, remediation string) error {

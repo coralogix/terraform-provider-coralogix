@@ -55,6 +55,14 @@ func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.Fil
 		return nil, err
 	}
 	files := maps.Clone(generatedFiles)
+	if data.Conv.UsesEquality() {
+		if data.HasServerDefaults {
+			// ModifyPlan keeps the state in place of every unknown that the configuration does
+			// not set. A server default plans unknown on purpose, and would be lost.
+			return nil, fmt.Errorf("equality and a server default in one resource are not supported")
+		}
+		files["equality.go"] = "equality.go.tmpl"
+	}
 	if data.Conv.Replace {
 		// A full replace has no update mask (E11).
 		delete(files, "mask.go")

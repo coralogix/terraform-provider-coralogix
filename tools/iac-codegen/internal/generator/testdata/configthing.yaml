@@ -1,0 +1,126 @@
+# A resource that users already have, with string fields that hold documents. The API returns
+# settings and template as normalized JSON and each remote configuration as normalized YAML.
+# Only Create sets template, so a change of it replaces the resource. The API returns an unset
+# labels list and metadata map as empty ones.
+openapi: 3.1.0
+info: {title: config, version: 1.0.0}
+paths:
+  /config/v1/things:
+    post:
+      tags: [Config Things Service]
+      operationId: ConfigThingsService_CreateConfigThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Config Thing Request
+              type: object
+              required: []
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                template: {type: string, x-coralogix-presence: true}
+                settings: {type: string, x-coralogix-presence: true}
+                remotes:
+                  type: array
+                  items: {$ref: '#/components/schemas/ConfigRemote'}
+                labels:
+                  type: array
+                  items: {type: string}
+                metadata:
+                  type: object
+                  additionalProperties: {type: string}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ConfigThing'}
+  /config/v1/things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Config Things Service]
+      operationId: ConfigThingsService_GetConfigThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ConfigThing'}
+    put:
+      tags: [Config Things Service]
+      operationId: ConfigThingsService_ReplaceConfigThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Replace Config Thing Request
+              type: object
+              required: []
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                settings: {type: string, x-coralogix-presence: true}
+                remotes:
+                  type: array
+                  items: {$ref: '#/components/schemas/ConfigRemote'}
+                labels:
+                  type: array
+                  items: {type: string}
+                metadata:
+                  type: object
+                  additionalProperties: {type: string}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ConfigThing'}
+    delete:
+      tags: [Config Things Service]
+      operationId: ConfigThingsService_DeleteConfigThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteConfigThingResponse'}
+components:
+  schemas:
+    DeleteConfigThingResponse:
+      type: object
+      required: []
+    ConfigThing:
+      type: object
+      required: [id]
+      properties:
+        id: {type: string, readOnly: true}
+        name: {type: string, x-coralogix-presence: true}
+        settings:
+          description: A JSON object.
+          type: string
+          x-coralogix-presence: true
+        template:
+          description: A JSON object that only Create sets.
+          type: string
+          x-coralogix-presence: true
+        version: {type: string, readOnly: true}
+        remotes:
+          type: array
+          items: {$ref: '#/components/schemas/ConfigRemote'}
+        labels:
+          type: array
+          items: {type: string}
+        metadata:
+          type: object
+          additionalProperties: {type: string}
+    ConfigRemote:
+      type: object
+      required: []
+      properties:
+        name: {type: string, x-coralogix-presence: true}
+        rawConfiguration:
+          description: A YAML document.
+          type: string
+          x-coralogix-presence: true
