@@ -15,7 +15,7 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
-- FEAT: A string `pattern` in Create, Update, and the response becomes a `stringvalidator.RegexMatches` validator, also on list items and map values. Only a pattern that Go cannot compile, such as a lookahead, blocks generation. The acceptance test builds a matching value when its made-up string does not match.
+- FEAT: A string `pattern` in Create, Update, and the response becomes a `stringvalidator.RegexMatches` validator, also on list items and map values. Only a pattern that Go cannot compile, such as a lookahead, or a pattern on an enum blocks generation. The acceptance test builds a matching value when its made-up string does not match, and generation stops when no value fits.
 - FEAT: A Delete can return `google.protobuf.Empty`, which the OpenAPI fork writes as an inline object with no fields.
 - CHORE: Bump the generator to `v0.1.0-beta.15`.
 - FEAT: `upgradeCases` in `acceptance.yaml` adds extra upgrade subtests. An extraAttribute is included when `values` or a case supplies its HCL, so a write-only map can use a real field name instead of a made-up `key`.

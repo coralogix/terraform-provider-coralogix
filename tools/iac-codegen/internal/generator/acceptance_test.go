@@ -228,8 +228,8 @@ func TestAcceptanceNumbersFitTheirRange(t *testing.T) {
 			if test.validator != "" {
 				a.Validators = []string{test.validator}
 			}
-			full, _ := scalarValue(a, accFull)
-			updated, _ := scalarValue(a, accUpdated)
+			full, _, _ := scalarValue(a, accFull)
+			updated, _, _ := scalarValue(a, accUpdated)
 			if full != test.full || updated != test.updated {
 				t.Fatalf("values = %s, %s; want %s, %s", full, updated, test.full, test.updated)
 			}
@@ -293,7 +293,7 @@ func TestAcceptanceStringsFitTheirLength(t *testing.T) {
 			if test.validator != "" {
 				a.Validators = []string{test.validator}
 			}
-			full, updated := stringValue(a, false), stringValue(a, true)
+			full, updated := mustStringValue(t, a, false), mustStringValue(t, a, true)
 			if full != test.full || updated != test.updated {
 				t.Fatalf("values = %q, %q; want %q, %q", full, updated, test.full, test.updated)
 			}

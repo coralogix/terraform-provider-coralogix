@@ -646,7 +646,10 @@ func (s *accSynth) value(a *tfAttr, tfPath, key string, mode accMode) (string, [
 	}
 	switch a.Kind {
 	case "String", "Bool", "Int64", "Int32", "Float64", "Float32":
-		v, check := scalarValue(a, mode)
+		v, check, err := scalarValue(a, mode)
+		if err != nil {
+			return "", nil, err
+		}
 		return v, []accCheck{{Path: tfPath, Value: check}}, nil
 	case "Map", "List", "Set":
 		return s.collectionValue(a, tfPath, mode)
@@ -689,29 +692,32 @@ func (s *accSynth) nestedCollection(a *tfAttr, tfPath, key string, mode accMode)
 }
 
 // scalarValue makes a plain value of a scalar attribute and the string that the state holds.
-func scalarValue(a *tfAttr, mode accMode) (hcl, state string) {
+func scalarValue(a *tfAttr, mode accMode) (hcl, state string, err error) {
 	updated := mode == accUpdated
 	switch a.Kind {
 	case "Bool":
 		v := !updated
-		return strconv.FormatBool(v), strconv.FormatBool(v)
+		return strconv.FormatBool(v), strconv.FormatBool(v), nil
 	case "Int64", "Int32":
 		full, next := numberValues(a, 1)
 		if updated {
 			full = next
 		}
 		v := strconv.FormatInt(int64(full), 10)
-		return v, v
+		return v, v, nil
 	case "Float64", "Float32":
 		full, next := numberValues(a, 1.5)
 		if updated {
 			full = next
 		}
 		v := strconv.FormatFloat(full, 'g', -1, 64)
-		return v, v
+		return v, v, nil
 	}
-	v := stringValue(a, updated)
-	return strconv.Quote(v), v
+	v, err := stringValue(a, updated)
+	if err != nil {
+		return "", "", err
+	}
+	return strconv.Quote(v), v, nil
 }
 
 // sizeCall matches a size validator of a collection, such as listvalidator.SizeAtLeast(2).
@@ -801,21 +807,23 @@ func numberRange(a *tfAttr) (low, high float64) {
 // stringValue is the first accepted value of an enum, or a plain unique string. An enum keeps its
 // value in the update config: the valid values of other fields can depend on it (a rule condition
 // depends on the entity type), and the test cannot know how. When the plain string does not match
-// the pattern of the attribute, the value is built from the pattern, and is not unique per run.
-func stringValue(a *tfAttr, updated bool) string {
+// the pattern of the attribute, the value is built from the pattern, and is not unique per run. When
+// the built value does not fit the length limits either, the test needs the value in the acceptance
+// file.
+func stringValue(a *tfAttr, updated bool) (string, error) {
 	if values := enumValues(a); len(values) != 0 {
-		return values[0]
+		return values[0], nil
 	}
 	low, high := lengthRange(a)
 	v := madeUpString(a.Name, updated, low, high)
 	re := patternOf(a)
 	if re == nil || madeUpMatches(re, v) {
-		return v
+		return v, nil
 	}
 	if sample, ok := patternValue(re, updated, low, high); ok {
-		return sample
+		return sample, nil
 	}
-	return v
+	return "", fmt.Errorf("no made-up value of %s matches the pattern %q and the length limits: set the value in %s", a.Name, re, acceptance.FileName)
 }
 
 // runLength is the length of @{run} in a test run: "acc-" and 8 characters.
@@ -911,7 +919,10 @@ func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (stri
 	if err := checkOneElement(a); err != nil {
 		return "", nil, err
 	}
-	item, state := scalarValue(&tfAttr{Name: a.Name, Kind: elem, Validators: a.ElemValidators}, mode)
+	item, state, err := scalarValue(&tfAttr{Name: a.Name, Kind: elem, Validators: a.ElemValidators}, mode)
+	if err != nil {
+		return "", nil, err
+	}
 	switch a.Kind {
 	case "Map":
 		return "{ key = " + item + " }", []accCheck{{Path: tfPath + ".key", Value: state}}, nil

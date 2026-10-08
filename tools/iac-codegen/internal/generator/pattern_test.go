@@ -35,7 +35,7 @@ func TestStringValueMatchesThePattern(t *testing.T) {
 		re := regexp.MustCompile(pattern)
 		a := &tfAttr{Name: "name", Validators: []string{patternValidator(pattern)}}
 		for _, updated := range []bool{false, true} {
-			v := stringValue(a, updated)
+			v := mustStringValue(t, a, updated)
 			if !madeUpMatches(re, v) {
 				t.Errorf("%s (updated %v): value %q does not match", pattern, updated, v)
 			}
@@ -45,7 +45,7 @@ func TestStringValueMatchesThePattern(t *testing.T) {
 
 func TestStringValueKeepsTheMadeUpValueWhenItMatches(t *testing.T) {
 	a := &tfAttr{Name: "name", Validators: []string{patternValidator(`^[a-zA-Z0-9][a-zA-Z0-9_-]*$`)}}
-	if got := stringValue(a, false); got != "@{run}-name" {
+	if got := mustStringValue(t, a, false); got != "@{run}-name" {
 		t.Errorf("value = %q, want the unique made-up value", got)
 	}
 }
@@ -53,7 +53,7 @@ func TestStringValueKeepsTheMadeUpValueWhenItMatches(t *testing.T) {
 func TestStringValueFromPatternFitsLengthAndDiffersOnUpdate(t *testing.T) {
 	uuid := `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`
 	a := &tfAttr{Name: "team_id", Validators: []string{"stringvalidator.LengthBetween(36, 36)", patternValidator(uuid)}}
-	created, updated := stringValue(a, false), stringValue(a, true)
+	created, updated := mustStringValue(t, a, false), mustStringValue(t, a, true)
 	if created != "00000000-0000-0000-0000-000000000000" || updated != "11111111-1111-1111-1111-111111111111" {
 		t.Errorf("values = %q and %q, want a UUID of 0s and of 1s", created, updated)
 	}
@@ -63,6 +63,25 @@ func TestStringValueFromPatternFitsLengthAndDiffersOnUpdate(t *testing.T) {
 	if _, ok := patternValue(regexp.MustCompile(uuid), false, 0, math.MaxInt); !ok {
 		t.Error("no UUID value")
 	}
+}
+
+// A value that matches the pattern but not the length limits is no test value. The generator stops
+// and asks for the value in the acceptance file.
+func TestStringValueThatCannotFitStops(t *testing.T) {
+	a := &tfAttr{Name: "code", Validators: []string{"stringvalidator.LengthBetween(3, 5)", patternValidator(`^x{1,5}$`)}}
+	_, err := stringValue(a, false)
+	if err == nil || !strings.Contains(err.Error(), "set the value in acceptance.yaml") {
+		t.Fatalf("err = %v, want a request for the value in acceptance.yaml", err)
+	}
+}
+
+func mustStringValue(t *testing.T, a *tfAttr, updated bool) string {
+	t.Helper()
+	v, err := stringValue(a, updated)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v
 }
 
 func TestPatternValidatorRoundTrips(t *testing.T) {
