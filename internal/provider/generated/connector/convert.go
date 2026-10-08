@@ -98,7 +98,7 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 func expandCreate(ctx context.Context, m *ConnectorModel) (*connectors_service.CreateConnectorRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expandConnectorCreate(ctx, path.Empty(), m, &diags)
-	return &connectors_service.CreateConnectorRequest{Connector: out}, diags
+	return &connectors_service.CreateConnectorRequest{Connector: valueOf(out)}, diags
 }
 
 // expandUpdate returns the Update request body with every Update field. A
@@ -106,7 +106,7 @@ func expandCreate(ctx context.Context, m *ConnectorModel) (*connectors_service.C
 func expandUpdate(ctx context.Context, m *ConnectorModel) (*connectors_service.ReplaceConnectorRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expandConnectorUpdate(ctx, path.Empty(), m, &diags)
-	return &connectors_service.ReplaceConnectorRequest{Connector: out}, diags
+	return &connectors_service.ReplaceConnectorRequest{Connector: valueOf(out)}, diags
 }
 
 // ExpandCreate is the Create request body for a handwritten wrapper.
@@ -148,8 +148,8 @@ func expandConnectorCreate(ctx context.Context, p path.Path, m *ConnectorModel, 
 	out.ConnectorConfig = expandConnectorConfig(ctx, p.AtName("connector_config"), m.ConnectorConfig, diags)
 	out.Description = expandString(m.Description)
 	out.Id = expandString(m.Id)
-	out.Name = expandString(m.Name)
-	out.Type = expandEnumMapped(p.AtName("type"), m.Type, notificationCenterConnectorTypeToAPI, diags)
+	out.Name = valueOf(expandString(m.Name))
+	out.Type = valueOf(expandEnumMapped(p.AtName("type"), m.Type, notificationCenterConnectorTypeToAPI, diags))
 	return out
 }
 
@@ -158,7 +158,7 @@ func expandEntityTypeConfigOverrides(ctx context.Context, p path.Path, m *Entity
 		return nil
 	}
 	out := &connectors_service.EntityTypeConfigOverrides{}
-	out.EntityType = expandEnumMapped(p.AtName("entity_type"), m.EntityType, notificationCenterEntityTypeToAPI, diags)
+	out.EntityType = valueOf(expandEnumMapped(p.AtName("entity_type"), m.EntityType, notificationCenterEntityTypeToAPI, diags))
 	if items := expandElements[TemplatedConnectorConfigFieldModel](ctx, p.AtName("fields"), m.Fields, diags); items != nil {
 		out.Fields = make([]connectors_service.TemplatedConnectorConfigField, 0, len(items))
 		for i := range items {
@@ -173,7 +173,7 @@ func flattenEntityTypeConfigOverrides(ctx context.Context, p path.Path, v *conne
 		return nil
 	}
 	out := &EntityTypeConfigOverridesModel{}
-	out.EntityType = flattenEnumMapped(p.AtName("entity_type"), v.EntityType, notificationCenterEntityTypeFromAPI, diags)
+	out.EntityType = flattenEnumMapped(p.AtName("entity_type"), &v.EntityType, notificationCenterEntityTypeFromAPI, diags)
 	out.Fields = types.SetNull(types.ObjectType{AttrTypes: templatedConnectorConfigFieldAttrTypes()})
 	if v.Fields != nil {
 		items := make([]TemplatedConnectorConfigFieldModel, 0, len(v.Fields))
@@ -197,7 +197,7 @@ func expandTemplatedConnectorConfigField(ctx context.Context, p path.Path, m *Te
 		return nil
 	}
 	out := &connectors_service.TemplatedConnectorConfigField{}
-	out.FieldName = expandString(m.FieldName)
+	out.FieldName = valueOf(expandString(m.FieldName))
 	out.Template = expandString(m.Template)
 	return out
 }
@@ -207,7 +207,7 @@ func flattenTemplatedConnectorConfigField(ctx context.Context, p path.Path, v *c
 		return nil
 	}
 	out := &TemplatedConnectorConfigFieldModel{}
-	out.FieldName = types.StringPointerValue(v.FieldName)
+	out.FieldName = types.StringPointerValue(&v.FieldName)
 	out.Template = types.StringPointerValue(v.Template)
 	return out
 }
@@ -254,7 +254,7 @@ func expandNotificationCenterConnectorConfigField(ctx context.Context, p path.Pa
 		return nil
 	}
 	out := &connectors_service.NotificationCenterConnectorConfigField{}
-	out.FieldName = expandString(m.FieldName)
+	out.FieldName = valueOf(expandString(m.FieldName))
 	out.Value = expandString(m.Value)
 	return out
 }
@@ -264,7 +264,7 @@ func flattenNotificationCenterConnectorConfigField(ctx context.Context, p path.P
 		return nil
 	}
 	out := &NotificationCenterConnectorConfigFieldModel{}
-	out.FieldName = types.StringPointerValue(v.FieldName)
+	out.FieldName = types.StringPointerValue(&v.FieldName)
 	out.Value = types.StringPointerValue(v.Value)
 	return out
 }
@@ -290,8 +290,8 @@ func expandConnectorUpdate(ctx context.Context, p path.Path, m *ConnectorModel, 
 	out.ConnectorConfig = expandConnectorConfig(ctx, p.AtName("connector_config"), m.ConnectorConfig, diags)
 	out.Description = expandString(m.Description)
 	out.Id = expandString(m.Id)
-	out.Name = expandString(m.Name)
-	out.Type = expandEnumMapped(p.AtName("type"), m.Type, notificationCenterConnectorTypeToAPI, diags)
+	out.Name = valueOf(expandString(m.Name))
+	out.Type = valueOf(expandEnumMapped(p.AtName("type"), m.Type, notificationCenterConnectorTypeToAPI, diags))
 	return out
 }
 
@@ -311,9 +311,19 @@ func flattenConnector(ctx context.Context, p path.Path, v *connectors_service.Co
 	out.ConnectorConfig = flattenConnectorConfig(ctx, p.AtName("connector_config"), v.ConnectorConfig, diags)
 	out.Description = types.StringPointerValue(v.Description)
 	out.Id = types.StringPointerValue(v.Id)
-	out.Name = types.StringPointerValue(v.Name)
-	out.Type = flattenEnumMapped(p.AtName("type"), v.Type, notificationCenterConnectorTypeFromAPI, diags)
+	out.Name = types.StringPointerValue(&v.Name)
+	out.Type = flattenEnumMapped(p.AtName("type"), &v.Type, notificationCenterConnectorTypeFromAPI, diags)
 	return out
+}
+
+// valueOf returns the value of p, or the zero value for nil. It fills an SDK
+// field that is a value, not a pointer.
+func valueOf[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
 }
 
 // elements is a types.Set or a types.List.
