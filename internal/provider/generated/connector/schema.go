@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -46,7 +47,7 @@ func Schema() schema.Schema {
 						},
 					},
 				},
-				MarkdownDescription: "The config overrides.",
+				MarkdownDescription: "The config overrides. Removing this block keeps the value until another attribute changes. Set `config_overrides = []` to clear it.",
 			},
 			"connector_config": schema.SingleNestedAttribute{
 				Optional: true,
@@ -84,7 +85,8 @@ func Schema() schema.Schema {
 			"description": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "Human-readable description. The API stores an omitted description as an empty string, so Terraform treats this field as Optional and Computed. To clear it, set `description = \"\"`. Removing `description` and `config_overrides` from the configuration together keeps both values: the server does not clear them on that update. Set `description = \"\"` and `config_overrides = []` to clear both.",
+				Default:             stringdefault.StaticString(""),
+				MarkdownDescription: "Human-readable description. The API stores an omitted description as an empty string, so Terraform treats this field as Optional and Computed with a default of `\"\"`. Removing the attribute clears it.",
 			},
 			"id": schema.StringAttribute{
 				Optional: true,

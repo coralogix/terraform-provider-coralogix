@@ -34,7 +34,7 @@
           }
         ]
       },
-      "description": "(unknown)",
+      "description": "",
       "id": "first",
       "name": "r",
       "type": "generic_https"
@@ -57,6 +57,7 @@
                 }
               ]
             },
+            "description": "",
             "id": "first",
             "name": "r",
             "type": "GENERIC_HTTPS"
@@ -123,7 +124,7 @@
           }
         ]
       },
-      "description": "(unknown)",
+      "description": "",
       "id": "second",
       "name": "r",
       "type": "generic_https"
@@ -149,6 +150,7 @@
                 }
               ]
             },
+            "description": "",
             "id": "second",
             "name": "r",
             "type": "GENERIC_HTTPS"
