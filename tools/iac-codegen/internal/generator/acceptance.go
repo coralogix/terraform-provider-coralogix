@@ -536,9 +536,9 @@ func nestedImmutable(key string, attrs []*tfAttr, top bool) string {
 	return ""
 }
 
-func immutable(a *tfAttr) bool {
-	return slices.ContainsFunc(a.Modifiers, func(m string) bool { return strings.Contains(m, "RequiresReplace") })
-}
+// immutable reports whether a change of a replaces the resource, with the
+// stock RequiresReplace or with requestReplaceModifier.
+func immutable(a *tfAttr) bool { return replaces(a) }
 
 // value makes the HCL value of an attribute and the checks on it.
 func (s *accSynth) value(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
