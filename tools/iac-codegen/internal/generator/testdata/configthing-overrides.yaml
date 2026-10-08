@@ -12,6 +12,8 @@ types:
         equality: json
       template:
         equality: json
+      remotes:
+        keepPriorOrder: true
   ConfigRemote:
     fields:
       rawConfiguration:
