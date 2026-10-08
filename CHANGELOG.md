@@ -1,6 +1,7 @@
 # Unreleased
 
 #### resource/coralogix_connector
+- CHORE: Generated upgrade test covers a connector that already uses `field_values_wo`.
 - CHORE: Bump `coralogix-management-sdk` so Connector required fields and unordered field sets come from the OpenAPI contract.
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Write-only `connector_config.field_values_wo` is a generated extra attribute (`WriteOnly: true`); handwritten code only merges secrets into the request and restores versions after read.
 - CHORE: Add protocol baseline golden files against an in-memory connector API.
@@ -11,6 +12,8 @@
 - DOCS: Describe `notification_group.group_by_keys` (combined vs. separate cases).
 
 #### tools/iac-codegen
+- FEAT: `upgradeCases` in `acceptance.yaml` adds extra upgrade subtests. An extraAttribute is included when `values` or a case supplies its HCL, so a write-only map can use a real field name instead of a made-up `key`.
+- CHORE: Bump the generator to `v0.1.0-beta.13`.
 - FEAT: Support nested objects whose Create, Update, and response schemas differ. A nested field that only the response has is computed. A nested field that Create has and Update does not is immutable. A type mismatch now names the exact nested field. A nested one-of can require an arm in Create and allow no arm in Update and the response.
 - FIX: An immutable nested value that holds computed fields no longer replaces the resource on every change. The replace check now compares only the values that Create sends.
 - FEAT: A missing `required` list means that no field is required. The OpenAPI fork cannot write an empty list, so an all-optional message, such as a PATCH body, was ineligible. A `required: []` line in `behavior-overrides.yaml` is now unused and reported.

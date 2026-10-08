@@ -81,7 +81,8 @@ type tfAttr struct {
 	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
 	WriteOnly bool
 	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
-	// acceptance test leaves it out: a made-up map key is not a valid API field.
+	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
+	// map key is not a valid API field.
 	Extra bool
 }
 
