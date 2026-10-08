@@ -627,7 +627,6 @@ func TestCheckRejectsRendererUnsupportedShapes(t *testing.T) {
 		spec string
 		code string
 	}{
-		"request date-time":            {requestDateTimeSpec(base), "RENDERER_SHAPE_UNSUPPORTED"},
 		"invalid generated identifier": {invalidGeneratedIdentifierSpec(t, base), "RENDERER_OUTPUT_INVALID"},
 		"acronym name collision":       {acronymNameCollisionSpec(t, base), "TERRAFORM_NAME_COLLISION"},
 		"Go field name collision":      {goNameCollisionSpec(t, base), "GO_NAME_COLLISION"},
@@ -699,11 +698,6 @@ func TestCheckRejectsMissingSchemasWithoutPanic(t *testing.T) {
 			}
 		})
 	}
-}
-
-func requestDateTimeSpec(spec string) string {
-	spec = strings.ReplaceAll(spec, "                name:\n                  type: string", "                name:\n                  type: string\n                  format: date-time")
-	return strings.Replace(spec, "        name:\n          type: string", "        name:\n          type: string\n          format: date-time", 1)
 }
 
 func unboundedUint64Spec(spec string) string {

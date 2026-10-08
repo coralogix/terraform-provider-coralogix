@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 {{- if or .HasServerDefaults .RequestReplaceKinds}}
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 {{- end}}
@@ -150,6 +151,9 @@ schema.{{.Kind}}Attribute{
 {{- end}}
 {{- if .Computed}}
 	Computed: true,
+{{- end}}
+{{- if .CustomType}}
+	CustomType: {{.CustomType}},
 {{- end}}
 {{- if .ElementType}}
 	ElementType: {{.ElementType}},

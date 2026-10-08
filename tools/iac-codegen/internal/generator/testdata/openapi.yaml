@@ -50,6 +50,13 @@ paths:
                 labels:
                   type: object
                   additionalProperties: {type: string}
+                expireTime:
+                  type: string
+                  format: date-time
+                  x-coralogix-presence: true
+                windows:
+                  type: array
+                  items: {type: string, format: date-time}
       responses:
         '200':
           description: Created
@@ -126,6 +133,13 @@ paths:
                 labels:
                   type: object
                   additionalProperties: {type: string}
+                expireTime:
+                  type: string
+                  format: date-time
+                  x-coralogix-presence: true
+                windows:
+                  type: array
+                  items: {type: string, format: date-time}
       responses:
         '200':
           description: Updated
@@ -191,6 +205,14 @@ components:
           type: object
           additionalProperties: {type: string}
           description: String labels by key.
+        expireTime:
+          type: string
+          format: date-time
+          description: When the thing expires, in UTC.
+        windows:
+          type: array
+          items: {type: string, format: date-time}
+          description: Ordered maintenance window starts, in UTC.
         createTime:
           type: string
           format: date-time

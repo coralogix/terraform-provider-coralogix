@@ -15,6 +15,8 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
+- FEAT: A `date-time` field that Create or Update sends, alone or in a list or set, is supported. It is a `timetypes.RFC3339` attribute that must be in UTC (`Z`). A time that only the response has stays a plain string.
+- CHORE: Bump the generator to `v0.1.0-beta.16`.
 - FEAT: A string `pattern` in Create, Update, and the response becomes a `stringvalidator.RegexMatches` validator, also on list items and map values. Only a pattern that Go cannot compile, such as a lookahead, or a pattern on an enum blocks generation. The acceptance test builds a matching value when its made-up string does not match, and generation stops when no value fits.
 - FEAT: A Delete can return `google.protobuf.Empty`, which the OpenAPI fork writes as an inline object with no fields.
 - CHORE: Bump the generator to `v0.1.0-beta.15`.

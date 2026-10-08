@@ -75,6 +75,21 @@ func TestStringValueThatCannotFitStops(t *testing.T) {
 	}
 }
 
+func TestTimeValueIsAUTCTime(t *testing.T) {
+	a := &tfAttr{Name: "expire_time", CustomType: rfc3339Type, Validators: []string{"stringvalidator.LengthAtMost(64)", utcValidator}}
+	if created, updated := mustStringValue(t, a, false), mustStringValue(t, a, true); created != "2030-01-01T00:00:00Z" || updated != "2030-01-02T00:00:00Z" {
+		t.Errorf("values = %q and %q, want two UTC times", created, updated)
+	}
+	minutes := &tfAttr{Name: "start", CustomType: rfc3339Type, Validators: []string{patternValidator(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:00Z$`)}}
+	if got := mustStringValue(t, minutes, false); got != "2030-01-01T00:00:00Z" {
+		t.Errorf("value = %q, want a time that the pattern accepts", got)
+	}
+	hours := &tfAttr{Name: "start", CustomType: rfc3339Type, Validators: []string{patternValidator(`T12:00:00Z$`)}}
+	if _, err := stringValue(hours, false); err == nil || !strings.Contains(err.Error(), "set the value in acceptance.yaml") {
+		t.Errorf("err = %v, want a request for the value in acceptance.yaml", err)
+	}
+}
+
 func mustStringValue(t *testing.T, a *tfAttr, updated bool) string {
 	t.Helper()
 	v, err := stringValue(a, updated)
